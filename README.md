@@ -26,22 +26,23 @@ The pipeline flows automatically with confirmation gates. Say **"proceed through
 
 ## Skills
 
-### Pipeline Skills
+| Skill | What It Does | Usage |
+|---|---|---|
+| **perspectives** | Divergent problem-solving. Spawns 3-5 Opus-class sub-agents, each approaching the problem from a distinct angle (Infrastructure, Architecture, Data, Root Cause, etc.). A final Skeptic agent stress-tests and synthesizes proposals into a ranked recommendation. | Standalone |
+| **plan** | Converts a brainstorming session or design discussion into a structured task plan under `.tasks/<feature>/` with `CONTEXT.md` and `tasks.json`. Infers the feature name from context — no need to provide one. | Pipeline + Standalone |
+| **review-plan** | Design review gate. Spawns two Opus-class sub-agents in parallel — a **Completeness Reviewer** and an **Adversarial Design Challenger** — to validate the plan cold from files only. Re-reviews until both approve (max 3 rounds). | Pipeline + Standalone |
+| **tasks** | Implementation status dashboard. Shows progress across all features or drills into a specific one with phase-by-phase breakdown. Can modify task status on request. | Standalone |
+| **implement** | Orchestrator. Analyzes the dependency graph, creates git worktrees for each task, spawns parallel Opus-class sub-agents to write code, merges completed work into the feature branch, and loops until all tasks are done. The main agent manages all git infrastructure; sub-agents only write code. | Pipeline + Standalone |
+| **audit** | Post-implementation verification. Spawns a read-only sub-agent that checks every acceptance criterion against the actual codebase. Produces a PASS/FAIL report. Optional in the pipeline — skipped unless explicitly requested. | Pipeline (optional) + Standalone |
+| **review-code** | Multi-agent code review. Spawns 4 specialist agents (Security, Logic, Performance, Architecture) in parallel, then an adversarial **Skeptic Agent** that independently tries to disprove every serious finding using a 6-point false-positive checklist. | Pipeline + Standalone + PR review |
 
-| Skill | What It Does |
-|---|---|
-| **plan** | Converts a brainstorming session or design discussion into a structured task plan under `.tasks/<feature>/` with `CONTEXT.md` and `tasks.json`. Infers the feature name from context — no need to provide one. |
-| **review-plan** | Design review gate. Spawns two Opus-class sub-agents in parallel — a **Completeness Reviewer** and an **Adversarial Design Challenger** — to validate the plan cold from files only. Re-reviews until both approve (max 3 rounds). |
-| **implement** | Orchestrator. Analyzes the dependency graph, creates git worktrees for each task, spawns parallel Opus-class sub-agents to write code, merges completed work into the feature branch, and loops until all tasks are done. The main agent manages all git infrastructure; sub-agents only write code. |
-| **review-code** | Multi-agent code review. Spawns 4 specialist agents (Security, Logic, Performance, Architecture) in parallel, then an adversarial **Skeptic Agent** that independently tries to disprove every serious finding using a 6-point false-positive checklist. Works in 3 modes: pipeline (feature branch), GitHub PR, or local changes. |
+`review-code` works in **3 modes** — it auto-detects which to use:
 
-### Standalone Skills
-
-| Skill | What It Does |
-|---|---|
-| **perspectives** | Divergent problem-solving. Spawns 3-5 Opus-class sub-agents, each approaching the problem from a distinct angle (Infrastructure, Architecture, Data, Root Cause, etc.). A final Skeptic agent stress-tests and synthesizes proposals into a ranked recommendation. |
-| **tasks** | Implementation status dashboard. Shows progress across all features or drills into a specific one with phase-by-phase breakdown. Can modify task status on request. |
-| **audit** | Post-implementation verification. Spawns a read-only sub-agent that checks every acceptance criterion against the actual codebase. Produces a PASS/FAIL report. Optional in the pipeline — skipped unless explicitly requested. |
+| Mode | When | What it reviews |
+|---|---|---|
+| **Pipeline** | After `implement` completes in the same session | Feature branch diff against `main` from the merge worktree |
+| **PR** | You provide a PR identifier (`owner/repo#42`, URL, or `#42`) | Full PR diff from GitHub via `gh` CLI |
+| **Local** | No pipeline context, no PR identifier | Staged changes, unstaged changes, or branch diff (auto-detected) |
 
 ---
 
