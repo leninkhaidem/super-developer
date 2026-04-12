@@ -87,12 +87,13 @@ When both agents approve:
 
 ## Pipeline Continuation
 
-After the plan is reviewed and approved:
-- If the user has given blanket approval to proceed through all stages (e.g., "proceed through all stages", "run end to end", "do everything"), continue immediately to implementation without asking.
-- Otherwise, state: "Plan reviewed and approved. I'll proceed to implementation." Wait for user confirmation before proceeding.
-- To proceed: Follow the implement skill instructions for this feature.
+If this stage failed or requires user intervention, STOP. Do not invoke the next stage.
 
-Pipeline: plan → **review-plan** → implement → audit → review-code
+If blanket approval was given (e.g., "proceed through all stages", "run end to end", "do everything"), invoke immediately. Otherwise, state: "Plan reviewed and approved." Wait for user confirmation. Then invoke:
+
+Use the Skill tool with: skill: "super-developer:implement", args: "<feature-name>"
+
+Do NOT attempt to execute the next skill's logic inline. The Skill tool loads it properly.
 
 ## Constraints
 

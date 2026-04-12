@@ -62,10 +62,10 @@ for the **report format** and **gated actions**.
 
 ## Step 2 — Parallel Sub-Agent Reviews
 
-**Diff size check:** If the diff exceeds 2,000 lines, warn the user and offer to scope the review to specific files or directories before proceeding.
+**Large diff handling:** If the diff exceeds 2,000 lines, split into batches by grouping related files (by directory or module). Run the full 4-specialist + Skeptic pipeline on each batch sequentially, then merge findings into a single consolidated report. Do not ask the user to scope the review — handle the batching autonomously.
 
 Spawn 4 specialist sub-agents **in parallel**. Each receives:
-- The full diff
+- The full diff (or the current batch's diff if batching)
 - Change context (PR description + title, commit messages, user-supplied context, or feature CONTEXT.md)
 
 ### Specialist Agents

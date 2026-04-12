@@ -94,12 +94,13 @@ Based on the sub-agent's report:
 
 ## Pipeline Continuation
 
-After audit completes (as part of the pipeline):
-- If PASS and the user has given blanket approval (e.g., "proceed through all stages", "run end to end", "do everything"), continue immediately to code review.
-- If PASS without blanket approval, state: "Audit passed. I'll proceed to code review." Wait for user confirmation.
-- If FAIL, present issues and wait for user decision before proceeding.
+If audit verdict is FAIL, present issues and STOP. Do not invoke the next stage.
 
-Pipeline: plan → review-plan → implement → **audit** → review-code
+If PASS and blanket approval was given (e.g., "proceed through all stages", "run end to end", "do everything"), invoke immediately. If PASS without blanket approval, state: "Audit passed. Merge worktree at `.worktrees/<feature>/merge/`." Wait for user confirmation. Then invoke:
+
+Use the Skill tool with: skill: "super-developer:review-code", args: "<feature-name>"
+
+Do NOT attempt to execute the next skill's logic inline. The Skill tool loads it properly.
 
 ## Constraints
 
