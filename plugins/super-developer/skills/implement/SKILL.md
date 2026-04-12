@@ -75,10 +75,10 @@ Actionable tasks: P1-T001, P1-T002, P1-T003, P2-T001
 
 Execution plan:
   Parallel batch 1:
-    Sub-agent A: P1-T001 (user model), P1-T002 (email validation) — both backend/models
-    Sub-agent B: P1-T003 (login page component) — frontend
+    Sub-agent A [Opus]:   P1-T001 (user model), P1-T002 (email validation) — new schema, no pattern to follow
+    Sub-agent B [Sonnet]: P1-T003 (login page component) — matches existing component pattern
   Serial (after batch 1):
-    P2-T001 (login endpoint) — depends on P1-T001
+    P2-T001 (login endpoint) [Opus] — depends on P1-T001, auth-sensitive
 ```
 
 ## Step 5: Create Worktrees and Execute
@@ -103,7 +103,16 @@ Branching from the feature ref gives the task access to all previously merged wo
 
 Set assigned tasks to `in-progress` in tasks.json. Write immediately.
 
-### 5c. Spawn Opus-Class Sub-Agents
+### 5c. Spawn Sub-Agents
+
+**Model selection — default is Opus. Downgrade only when the task clearly qualifies:**
+
+| Model | When to use | Examples |
+|---|---|---|
+| **Sonnet** | Trivial or standard tasks with well-defined scope and existing patterns to follow | Add a constant, rename a file, update an import, write tests for existing code, add a CRUD endpoint following an established pattern, add a component matching an existing one |
+| **Opus** | Complex tasks with ambiguity, cross-module impact, security sensitivity, concurrency, or no clear existing pattern to follow | New architecture, cross-module refactor, concurrency logic, auth/security-sensitive code, tasks with vague acceptance criteria |
+
+The orchestrator logs its model choice per task in the batch announcement (Step 4). Bias toward Opus when uncertain — the cost of a wrong downgrade is a subtle bug that survives audit.
 
 Each sub-agent receives:
 - `.tasks/$ARGUMENTS/CONTEXT.md` — project brief

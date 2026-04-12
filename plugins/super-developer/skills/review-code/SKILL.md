@@ -64,7 +64,7 @@ for the **report format** and **gated actions**.
 
 **Large diff handling:** If the diff exceeds 2,000 lines, split into batches by grouping related files (by directory or module). Run the full 4-specialist + Skeptic pipeline on each batch sequentially, then merge findings into a single consolidated report. Do not ask the user to scope the review — handle the batching autonomously.
 
-Spawn 4 specialist sub-agents **in parallel**. Each receives:
+Spawn 4 specialist sub-agents **in parallel** using **Sonnet**. Each receives:
 - The full diff (or the current batch's diff if batching)
 - Change context (PR description + title, commit messages, user-supplied context, or feature CONTEXT.md)
 
@@ -76,6 +76,8 @@ Spawn 4 specialist sub-agents **in parallel**. Each receives:
 | **Logic & Correctness** | Bugs, edge cases, race conditions, incorrect assumptions, off-by-one errors |
 | **Performance** | N+1 queries, unnecessary allocations, blocking I/O, missing indexes, inefficient algorithms |
 | **Architecture & Maintainability** | Violations of existing patterns, coupling issues, naming inconsistencies, dead code, complexity hotspots |
+
+Specialist agents do focused, pattern-matching analysis within a well-defined mandate — Sonnet is well-suited for this. The Skeptic Agent (Step 3) always uses **Opus** — adversarial reasoning across all findings requires the strongest model.
 
 ### Severity Taxonomy
 
@@ -91,7 +93,7 @@ Every finding must be classified — no exceptions:
 
 ## Step 3 — Adversarial Verification (Skeptic Agent)
 
-Spawn a **Skeptic Agent** that receives all findings from Step 2.
+Spawn an **Opus-class Skeptic Agent** that receives all findings from Step 2.
 
 For every 🔴 BLOCKER and 🟠 CRITICAL finding, the Skeptic Agent independently locates
 supporting evidence in the diff or codebase:
