@@ -110,11 +110,13 @@ Each sub-agent receives:
 - `.tasks/$ARGUMENTS/tasks.json` — for specific task details
 - The assigned task ID(s)
 - **The worktree path to work in** (e.g., `.worktrees/<feature>/task-<task>/`)
+- `${CLAUDE_PLUGIN_ROOT}/references/clean-code-rules.md` — code quality rules to follow
 - Project-level instructions (CLAUDE.md, AGENTS.md) if they exist
 
 Each sub-agent must:
 - Read CONTEXT.md to understand the feature holistically
 - Locate its assigned task(s) by ID in tasks.json
+- Read the clean code rules and follow them while writing code
 - Read existing files relevant to the task(s) before making changes
 - **Work exclusively within the assigned worktree directory**
 - Implement the changes and commit within the worktree

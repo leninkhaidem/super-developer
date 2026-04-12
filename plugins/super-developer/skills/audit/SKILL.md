@@ -44,13 +44,25 @@ Go through each acceptance criterion and verify it holds in the current codebase
 - If a criterion specifies a testable behavior — run the relevant test or command if possible.
 - If a criterion cannot be verified programmatically — note it as "manual verification required."
 
-### 2b. Completeness Check
+### 2b. Clean Code Compliance
+
+Read `${CLAUDE_PLUGIN_ROOT}/references/clean-code-rules.md` and verify the implemented code follows the rules:
+
+- **File-level:** No file exceeds 300 lines. Each file has a single concern. No orphan files.
+- **Function-level:** No function exceeds 50 lines. No more than 4 parameters. No nesting beyond 3 levels.
+- **Naming and structure:** No magic numbers/strings. Follows existing patterns in the codebase.
+- **Safety:** No `any` types (TypeScript), no empty catch blocks, no hardcoded secrets.
+- **Anti-patterns:** No unnecessary abstractions or speculative code.
+
+Flag violations as `[CODE-QUALITY]` issues in the audit report. Note the file, line, and which rule was violated.
+
+### 2c. Completeness Check
 
 - Cross-reference CONTEXT.md against the implementation. Are there requirements described in the context document that no task addresses?
 - Are there tasks marked `skipped` or `blocked`? Flag these with their reasons.
 - Are there any TODO, FIXME, or HACK comments introduced during implementation that indicate incomplete work?
 
-### 2c. Integration Sanity Check
+### 2d. Integration Sanity Check
 
 - Do the implemented components connect correctly? (e.g., if Phase 1 built the data layer and Phase 2 built the API, does the API actually use the data layer as designed?)
 - Are there any import errors, missing dependencies, or broken references?
