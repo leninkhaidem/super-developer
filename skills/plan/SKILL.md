@@ -164,4 +164,4 @@ After completing the plan:
 - Otherwise, state: "Plan created. I'll proceed to reviewing the plan for design validation." Wait for user confirmation before proceeding.
 - To proceed: Follow the review-plan skill instructions for this feature.
 
-Pipeline: **plan** → review-plan → implement → [audit] → review-code
+Pipeline: **plan** → review-plan → implement → audit → review-code

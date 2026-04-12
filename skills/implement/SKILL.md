@@ -197,11 +197,13 @@ When all phases are complete:
 ## Pipeline Continuation
 
 After implementation completes:
-- If the user has given blanket approval to proceed through all stages (e.g., "proceed through all stages", "run end to end", "do everything"), skip audit and continue immediately to code review. (Include audit only if the user explicitly requested it.)
-- Otherwise, state: "Implementation complete. I'll proceed to code review." Wait for user confirmation. Mention that audit is available if desired.
-- The review-code skill will review the feature branch from the merge worktree at `.worktrees/<feature>/merge/`, diffing `feature/<feature>` against `main`.
+- If the user has given blanket approval to proceed through all stages (e.g., "proceed through all stages", "run end to end", "do everything"), continue immediately to audit without asking.
+- Otherwise, state: "Implementation complete. I'll proceed to auditing the implementation against the plan." Wait for user confirmation.
+- After audit completes, the pipeline continues to code review.
 
-Pipeline: plan → review-plan → **implement** → [audit] → review-code
+**Audit is always included in the pipeline.** It verifies the implementation matches the plan before code review begins. It is only skipped when review-code is invoked standalone (outside the pipeline).
+
+Pipeline: plan → review-plan → **implement** → audit → review-code
 
 ## Rules
 

@@ -14,10 +14,10 @@ Super Developer turns Claude Code into an opinionated development workflow engin
 [perspectives]        Optional — divergent problem-solving for complex decisions
       |
       v
-    plan  --->  review-plan  --->  implement  --->  [audit]  --->  review-code
-                     |                  |                               |
-              2 adversarial       git worktrees +               4 specialists +
-              review agents      parallel sub-agents            Skeptic agent
+    plan  --->  review-plan  --->  implement  --->  audit  --->  review-code
+                     |                  |              |               |
+              2 adversarial       git worktrees +  verify vs     4 specialists +
+              review agents      parallel agents    plan         Skeptic agent
 ```
 
 The pipeline flows automatically with confirmation gates. Say **"proceed through all stages"** and it runs end-to-end without stopping. Or invoke any skill independently — they work standalone too.
@@ -33,7 +33,7 @@ The pipeline flows automatically with confirmation gates. Say **"proceed through
 | **review-plan** | Design review gate. Spawns two Opus-class sub-agents in parallel — a **Completeness Reviewer** and an **Adversarial Design Challenger** — to validate the plan cold from files only. Re-reviews until both approve (max 3 rounds). | Pipeline + Standalone |
 | **tasks** | Implementation status dashboard. Shows progress across all features or drills into a specific one with phase-by-phase breakdown. Can modify task status on request. | Standalone |
 | **implement** | Orchestrator. Analyzes the dependency graph, creates git worktrees for each task, spawns parallel Opus-class sub-agents to write code, merges completed work into the feature branch, and loops until all tasks are done. The main agent manages all git infrastructure; sub-agents only write code. | Pipeline + Standalone |
-| **audit** | Post-implementation verification. Spawns a read-only sub-agent that checks every acceptance criterion against the actual codebase. Produces a PASS/FAIL report. Optional in the pipeline — skipped unless explicitly requested. | Pipeline (optional) + Standalone |
+| **audit** | Post-implementation verification. Spawns a read-only sub-agent that checks every acceptance criterion against the actual codebase. Produces a PASS/FAIL report. Always runs in the pipeline after implement; also invocable standalone. | Pipeline + Standalone |
 | **review-code** | Multi-agent code review. Spawns 4 specialist agents (Security, Logic, Performance, Architecture) in parallel, then an adversarial **Skeptic Agent** that independently tries to disprove every serious finding using a 6-point false-positive checklist. | Pipeline + Standalone + PR review |
 
 `review-code` works in **3 modes** — it auto-detects which to use:
@@ -138,7 +138,7 @@ The agent infers the feature name, creates the task plan, and asks to continue. 
 |---|---|
 | "Plan this feature" | Creates plan, asks to continue |
 | "Proceed through all stages" | Runs plan -> review-plan -> implement -> review-code without stopping |
-| "Include audit" | Adds the optional audit step before code review |
+| "Skip audit" | Skips the audit step (included by default in the pipeline) |
 | Confirm at each gate | Step-by-step control over the pipeline |
 
 ---
@@ -189,7 +189,7 @@ super-developer/
 | Adversarial review at every gate | Completeness + Challenger for plans, 4 specialists + Skeptic for code — false positives are filtered, not just flagged |
 | Git worktree isolation | Parallel sub-agents work in separate worktrees — no branch switching, no merge conflicts during implementation |
 | Pipeline with confirmation gates | Flows automatically but stays under user control — blanket approval for speed, step-by-step for precision |
-| Audit is optional | Not every feature needs formal verification — skip it by default, invoke when thoroughness matters |
+| Audit always runs in pipeline | Verifies "did we build what we planned" before code review begins — standalone review-code skips it |
 | Feature name inference | The agent reads the conversation and proposes a name — no need to interrupt the flow for something obvious |
 
 ---

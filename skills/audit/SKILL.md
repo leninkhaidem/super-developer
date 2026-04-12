@@ -5,8 +5,8 @@ description: >
   acceptance criteria", "post-implementation check", "verify the build", "validate completion",
   or wants to confirm that all tasks in a plan were completed as specified. Triggers on phrases
   like "audit", "verify", "check completion", "acceptance criteria", "did we build what we
-  planned". This is an optional step in the development pipeline — skipped unless explicitly
-  requested.
+  planned". Always runs as part of the development pipeline after implementation. Also
+  invocable standalone.
 ---
 
 # Audit: Post-Implementation Verification
@@ -94,12 +94,12 @@ Based on the sub-agent's report:
 
 ## Pipeline Continuation
 
-After audit completes (if invoked as part of the pipeline):
+After audit completes (as part of the pipeline):
 - If PASS and the user has given blanket approval (e.g., "proceed through all stages", "run end to end", "do everything"), continue immediately to code review.
 - If PASS without blanket approval, state: "Audit passed. I'll proceed to code review." Wait for user confirmation.
 - If FAIL, present issues and wait for user decision before proceeding.
 
-Pipeline: plan → review-plan → implement → **[audit]** → review-code
+Pipeline: plan → review-plan → implement → **audit** → review-code
 
 ## Constraints
 

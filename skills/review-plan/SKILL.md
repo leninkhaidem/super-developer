@@ -92,7 +92,7 @@ After the plan is reviewed and approved:
 - Otherwise, state: "Plan reviewed and approved. I'll proceed to implementation." Wait for user confirmation before proceeding.
 - To proceed: Follow the implement skill instructions for this feature.
 
-Pipeline: plan → **review-plan** → implement → [audit] → review-code
+Pipeline: plan → **review-plan** → implement → audit → review-code
 
 ## Constraints
 
