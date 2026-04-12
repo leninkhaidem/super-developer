@@ -1,6 +1,6 @@
 {
-  "name": "super-developer",
-  "description": "A cohesive development workflow engine — from ideation through perspectives, planning, implementation, auditing, and code review.",
+  "name": "super-developer-marketplace",
+  "description": "A collection of Claude Code plugins for software development — workflow orchestration, code review, GitHub automation, and more.",
   "owner": {
     "name": "lenin khaidem",
     "email": "leninkhaidem@gmail.com"
@@ -24,7 +24,7 @@
         "multi-agent"
       ],
       "homepage": "https://github.com/leninkhaidem/super-developer",
-      "source": "./"
+      "source": "./plugins/super-developer"
     }
   ]
 }

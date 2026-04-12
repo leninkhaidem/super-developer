@@ -1,198 +1,57 @@
-# Super Developer
+# Super Developer Marketplace
 
-A Claude Code plugin that orchestrates the full development lifecycle — from divergent ideation through structured planning, parallel implementation with git worktree isolation, and multi-agent adversarial code review.
+A collection of Claude Code plugins for software development.
 
-One plugin. Seven skills. Zero manual git juggling.
+## Plugins
 
----
-
-## What It Does
-
-Super Developer turns Claude Code into an opinionated development workflow engine. Instead of scattered slash commands and ad-hoc prompts, it provides a structured pipeline where each stage feeds the next — with parallel sub-agents doing the heavy lifting and adversarial review gates catching issues before they ship.
-
-```
-[perspectives]        Optional — divergent problem-solving for complex decisions
-      |
-      v
-    plan  --->  review-plan  --->  implement  --->  audit  --->  review-code
-                     |                  |              |               |
-              2 adversarial       git worktrees +  verify vs     4 specialists +
-              review agents      parallel agents    plan         Skeptic agent
-```
-
-The pipeline flows automatically with confirmation gates. Say **"proceed through all stages"** and it runs end-to-end without stopping. Or invoke any skill independently — they work standalone too.
-
----
-
-## Skills
-
-| Skill | What It Does | Usage |
+| Plugin | Description | Version |
 |---|---|---|
-| **perspectives** | Divergent problem-solving. Spawns 3-5 Opus-class sub-agents, each approaching the problem from a distinct angle (Infrastructure, Architecture, Data, Root Cause, etc.). A final Skeptic agent stress-tests and synthesizes proposals into a ranked recommendation. | Standalone |
-| **plan** | Converts a brainstorming session or design discussion into a structured task plan under `.tasks/<feature>/` with `CONTEXT.md` and `tasks.json`. Infers the feature name from context — no need to provide one. | Pipeline + Standalone |
-| **review-plan** | Design review gate. Spawns two Opus-class sub-agents in parallel — a **Completeness Reviewer** and an **Adversarial Design Challenger** — to validate the plan cold from files only. Re-reviews until both approve (max 3 rounds). | Pipeline + Standalone |
-| **tasks** | Implementation status dashboard. Shows progress across all features or drills into a specific one with phase-by-phase breakdown. Can modify task status on request. | Standalone |
-| **implement** | Orchestrator. Analyzes the dependency graph, creates git worktrees for each task, spawns parallel Opus-class sub-agents to write code, merges completed work into the feature branch, and loops until all tasks are done. The main agent manages all git infrastructure; sub-agents only write code. | Pipeline + Standalone |
-| **audit** | Post-implementation verification. Spawns a read-only sub-agent that checks every acceptance criterion against the actual codebase. Produces a PASS/FAIL report. Always runs in the pipeline after implement; also invocable standalone. | Pipeline + Standalone |
-| **review-code** | Multi-agent code review. Spawns 4 specialist agents (Security, Logic, Performance, Architecture) in parallel, then an adversarial **Skeptic Agent** that independently tries to disprove every serious finding using a 6-point false-positive checklist. | Pipeline + Standalone + PR review |
+| [**super-developer**](plugins/super-developer/) | Full development lifecycle — divergent ideation, structured planning, parallel implementation with git worktree isolation, and multi-agent adversarial code review. 7 skills. | 1.0.0 |
 
-`review-code` works in **3 modes** — it auto-detects which to use:
-
-| Mode | When | What it reviews |
-|---|---|---|
-| **Pipeline** | After `implement` completes in the same session | Feature branch diff against `main` from the merge worktree |
-| **PR** | You provide a PR identifier (`owner/repo#42`, URL, or `#42`) | Full PR diff from GitHub via `gh` CLI |
-| **Local** | No pipeline context, no PR identifier | Staged changes, unstaged changes, or branch diff (auto-detected) |
-
----
-
-## Git Worktree Strategy
-
-The `implement` skill follows a branch-isolated, agent-managed git workflow:
-
-- **Main stays on `main`.** The main working tree never switches branches. Ever.
-- **All development happens in `.worktrees/`.** Each task gets its own worktree. Independent tasks run in parallel; dependent tasks branch from the feature ref.
-- **The orchestrator owns git.** Sub-agents receive a worktree path and task instructions — they write code and commit, nothing else. The orchestrator creates worktrees, merges branches, verifies with `merge-base --is-ancestor`, and cleans up.
-- **Feature branches are refs, not worktrees.** This keeps them unlocked for merging from any worktree.
-- **Merge to main requires explicit approval.** "Push to remote" does not mean "merge to main."
-
-```
-project/                              <- always on 'main'
-+-- .worktrees/
-|   +-- auth/
-|   |   +-- task-login/               <- branch: task/auth/login
-|   |   +-- task-signup/              <- branch: task/auth/signup
-|   |   +-- merge/                    <- branch: feature/auth
-```
-
-See [`references/git-worktree-strategy.md`](references/git-worktree-strategy.md) for the complete workflow including bugfix, hotfix, and multi-phase dependency handling.
-
----
+More plugins coming soon: GitHub issue management, and others.
 
 ## Installation
 
-### Install from GitHub (recommended)
-
-Add the repository as a marketplace and install — no cloning required:
-
 ```bash
-# 1. Add the marketplace
+# 1. Add the marketplace (one-time)
 /plugin marketplace add leninkhaidem/super-developer
 
-# 2. Install the plugin
-/plugin install super-developer@super-developer
+# 2. Install any plugin
+/plugin install super-developer@super-developer-marketplace
 ```
 
-To update later:
+### Available Commands
 
 ```bash
-/plugin update super-developer@super-developer
+# List what's available
+/plugin marketplace list
+
+# Install a plugin
+/plugin install <plugin-name>@super-developer-marketplace
+
+# Update a plugin
+/plugin update <plugin-name>@super-developer-marketplace
+
+# Update all plugins in this marketplace
+/plugin marketplace update super-developer-marketplace
+
+# Reload after install/update
+/reload-plugins
 ```
 
-### Install from local directory
+## Plugin Details
 
-If you prefer to clone first:
+### super-developer
 
-```bash
-git clone https://github.com/leninkhaidem/super-developer.git
-claude --plugin-dir /path/to/super-developer
-```
-
-### Installation scopes
-
-| Scope | Flag | Where it applies |
-|---|---|---|
-| User (default) | `--scope user` | All your projects |
-| Project | `--scope project` | Shared with team via `.claude/settings.json` |
-| Local | `--scope local` | This project only, gitignored |
-
-The plugin loads all 7 skills automatically via Claude Code's auto-discovery mechanism. No configuration required. Run `/reload-plugins` after installation to activate without restarting.
-
----
-
-## Usage
-
-### Full Pipeline
-
-Start a conversation, discuss what you want to build, then:
+Orchestrates the full development lifecycle with 7 skills:
 
 ```
-> Plan this feature
+plan → review-plan → implement → audit → review-code
 ```
 
-The agent infers the feature name, creates the task plan, and asks to continue. Say **"proceed through all stages"** to run the full pipeline end-to-end, or confirm each step individually.
+Plus standalone skills: **perspectives** (divergent problem-solving), **tasks** (status dashboard), and **review-code** (works independently for PR and local code review).
 
-### Individual Skills
-
-```
-> Get me some perspectives on this architecture decision
-> Show me the task status
-> Review this PR: owner/repo#42
-> Review my code
-> Audit the auth-system feature
-```
-
-### Pipeline Flow Control
-
-| What you say | What happens |
-|---|---|
-| "Plan this feature" | Creates plan, asks to continue |
-| "Proceed through all stages" | Runs plan -> review-plan -> implement -> review-code without stopping |
-| "Skip audit" | Skips the audit step (included by default in the pipeline) |
-| Confirm at each gate | Step-by-step control over the pipeline |
-
----
-
-## Plugin Structure
-
-```
-super-developer/
-+-- .claude-plugin/
-|   +-- plugin.json                     # Plugin manifest
-+-- references/
-|   +-- git-worktree-strategy.md        # Shared git workflow reference
-+-- skills/
-|   +-- perspectives/
-|   |   +-- SKILL.md                    # Divergent problem-solving
-|   +-- plan/
-|   |   +-- SKILL.md                    # Discussion -> structured tasks
-|   +-- review-plan/
-|   |   +-- SKILL.md                    # Design review gate
-|   +-- tasks/
-|   |   +-- SKILL.md                    # Status dashboard
-|   +-- implement/
-|   |   +-- SKILL.md                    # Orchestrator + git worktrees
-|   +-- audit/
-|   |   +-- SKILL.md                    # Post-implementation verification
-|   +-- review-code/
-|       +-- SKILL.md                    # Multi-agent code review
-|       +-- references/
-|           +-- pr-workflow.md          # GitHub PR review workflow
-|           +-- local-workflow.md       # Local code review workflow
-```
-
----
-
-## Requirements
-
-- **Claude Code** with plugin support
-- **git** (all skills)
-- **GitHub CLI (`gh`)** (review-code PR mode only) — [install](https://cli.github.com/)
-
----
-
-## Key Design Decisions
-
-| Decision | Rationale |
-|---|---|
-| Main agent orchestrates, sub-agents implement | Separation of concerns — orchestrator manages git state, sub-agents write code without risk of infrastructure conflicts |
-| Adversarial review at every gate | Completeness + Challenger for plans, 4 specialists + Skeptic for code — false positives are filtered, not just flagged |
-| Git worktree isolation | Parallel sub-agents work in separate worktrees — no branch switching, no merge conflicts during implementation |
-| Pipeline with confirmation gates | Flows automatically but stays under user control — blanket approval for speed, step-by-step for precision |
-| Audit always runs in pipeline | Verifies "did we build what we planned" before code review begins — standalone review-code skips it |
-| Feature name inference | The agent reads the conversation and proposes a name — no need to interrupt the flow for something obvious |
-
----
+See the [full documentation](plugins/super-developer/README.md).
 
 ## License
 
