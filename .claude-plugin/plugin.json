@@ -1,0 +1,17 @@
+{
+  "name": "super-developer",
+  "version": "0.1.0",
+  "description": "A cohesive development workflow engine — from ideation through perspectives, planning, implementation, auditing, and code review. Orchestrates parallel sub-agents with git worktree isolation.",
+  "author": {
+    "name": "lenin khaidem",
+    "email": "leninkhaidem@gmail.com"
+  },
+  "keywords": [
+    "development-workflow",
+    "code-review",
+    "planning",
+    "implementation",
+    "git-worktree",
+    "multi-agent"
+  ]
+}

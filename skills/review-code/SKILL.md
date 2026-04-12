@@ -1,0 +1,198 @@
+---
+name: review-code
+description: >
+  This skill should be used when the user asks to review a PR, review code changes, review a pull
+  request, check code quality, or wants feedback on a diff. Works for both GitHub
+  PRs (provide a PR URL or number like "owner/repo#42") and local code changes (staged, unstaged,
+  or branch diffs). Triggers on phrases like "review this PR", "review my code", "check these
+  changes", "code review", "review", "look over my changes". Also activates as the final step
+  in the development pipeline after implementation.
+---
+
+# Code Review — Multi-Agent Pipeline
+
+A unified code review that runs 4 specialist agents in parallel, then verifies every serious
+finding through an adversarial Skeptic Agent before reporting. Works in three modes depending
+on context.
+
+## Step 1 — Detect Review Mode
+
+Determine the review scope using this priority order:
+
+### Priority 0: Pipeline Context
+
+If a feature was just implemented in this session (feature name and merge worktree path are
+known from the implementation step), review the feature branch directly:
+
+- Work from the merge worktree at `.worktrees/<feature>/merge/`
+- `DIFF_CMD="git diff main...feature/<feature>"`
+- Collect file list: `git diff main...feature/<feature> --stat`
+- Scope: complete feature branch diff against main
+
+Report scope before proceeding:
+```
+Review Scope: feature branch `feature/<name>` vs main
+Worktree: .worktrees/<feature>/merge/
+Files changed: <count>
+Insertions: +<count>  Deletions: -<count>
+```
+
+Then skip to Step 2 (shared pipeline).
+
+### Priority 1: PR Mode
+
+A PR identifier is present (URL like `https://github.com/org/repo/pull/42`, shorthand like
+`owner/repo#42`, or just `#42` in a repo context).
+
+Read `references/pr-workflow.md` for setup, report format, and post-review actions.
+
+### Priority 2: Local Mode
+
+No PR identifier, no pipeline context. The user wants to review local changes (staged, unstaged,
+or a branch diff).
+
+Read `references/local-workflow.md` for **scope detection (Phase 0), setup (Phase 1)**,
+report format, and actions.
+
+Complete the mode-specific **setup and preflight** from the reference file, then return here for
+the shared review pipeline (Steps 2-3). After the shared pipeline, go back to the reference file
+for the **report format** and **gated actions**.
+
+---
+
+## Step 2 — Parallel Sub-Agent Reviews
+
+**Diff size check:** If the diff exceeds 2,000 lines, warn the user and offer to scope the review to specific files or directories before proceeding.
+
+Spawn 4 specialist sub-agents **in parallel**. Each receives:
+- The full diff
+- Change context (PR description + title, commit messages, user-supplied context, or feature CONTEXT.md)
+
+### Specialist Agents
+
+| Agent | Mandate |
+|---|---|
+| **Security** | Injection risks, auth/authz issues, secrets in code, insecure dependencies, input validation gaps |
+| **Logic & Correctness** | Bugs, edge cases, race conditions, incorrect assumptions, off-by-one errors |
+| **Performance** | N+1 queries, unnecessary allocations, blocking I/O, missing indexes, inefficient algorithms |
+| **Architecture & Maintainability** | Violations of existing patterns, coupling issues, naming inconsistencies, dead code, complexity hotspots |
+
+### Severity Taxonomy
+
+Every finding must be classified — no exceptions:
+
+| Severity | Label | Meaning |
+|---|---|---|
+| 🔴 | **BLOCKER** | Must be resolved before merge/commit. Correctness or security risk. |
+| 🟠 | **CRITICAL** | Strongly recommended fix. Significant quality or risk issue. |
+| 🟡 | **SUGGESTION** | Non-blocking improvement. |
+
+---
+
+## Step 3 — Adversarial Verification (Skeptic Agent)
+
+Spawn a **Skeptic Agent** that receives all findings from Step 2.
+
+For every 🔴 BLOCKER and 🟠 CRITICAL finding, the Skeptic Agent independently locates
+supporting evidence in the diff or codebase:
+- **CONFIRMED** — Evidence independently reproduced.
+- **DISPUTED** — Evidence not found. Excluded from the final report.
+
+The Skeptic Agent's job is to *disprove* findings. Confirmation is a byproduct of failed
+disproof. Do not reuse the same reasoning chain from Step 2 — that defeats the purpose.
+
+### False Positive Checklist
+
+Before confirming any 🔴 or 🟠 finding, run every item below. A single failed check is
+sufficient grounds to mark the finding **DISPUTED**.
+
+**1 Scope Mismatch** — *Most common. Check first.*
+Was this issue introduced by this change, or does it pre-exist? If the issue pre-exists and
+this change didn't modify the relevant lines, mark **DISPUTED.**
+
+**2 Context Blindness** — Does the surrounding code (20+ lines above and below the flagged
+line, plus imported utilities/middleware) already handle this? If addressed in context,
+mark **DISPUTED.**
+
+**3 Framework or Library Absorption** — Is the framework, ORM, or middleware already handling
+this? (SQL injection flagged with parameterized ORM; missing auth flagged with router-level
+middleware guard; unhandled promise rejections with global error boundary.) If the framework
+provably absorbs the concern, mark **DISPUTED.**
+
+**4 Dead or Unreachable Code Path** — Is the flagged code reachable in any real execution
+path? Check call chains, feature flags, conditional branches. If unreachable in production,
+mark **DOWNGRADED** (reclassify as 🟡 SUGGESTION).
+
+**5 Intentional Design** — Is this a deliberate, documented decision? Check PR description,
+commit messages, inline comments, AGENTS.md, ARCHITECTURE.md, ADR files, user-supplied
+context, and CONTEXT.md. If intentional and documented, mark **DISPUTED.**
+
+**6 Test-Scope Confusion** — Does this finding apply only to test code, fixtures, mocks,
+or seed data? If exclusively in test scope, mark **DISPUTED** for 🔴/🟠.
+
+### Skeptic Agent Output Format
+
+```
+Finding: <original finding summary>
+Checklist run: 1 2 3 4 5 6
+Failed check: <checklist item that caused dispute, or NONE>
+Verdict: CONFIRMED / DISPUTED / DOWNGRADED
+Reason: <one sentence — what the Skeptic found or failed to find>
+```
+
+---
+
+## Step 4 — Report & Actions
+
+Return to the mode-specific workflow:
+
+- **PR Mode** → `references/pr-workflow.md` — Phase 4 (report preview) and Phase 5
+  (approve / request-changes / edit / abort)
+- **Local Mode** → `references/local-workflow.md` — Phase 4 (report) and Phase 5
+  (fix / commit / details / abort)
+- **Pipeline context** → Use the report format below, then pipeline-specific gated actions.
+
+### Pipeline Context — Report & Actions
+
+Present the report using this format:
+
+````markdown
+## Feature Branch Review — `feature/<name>` vs `main`
+
+**Worktree:** `.worktrees/<feature>/merge/`
+**Files:** <count> changed
+
+### 🔴 Blockers
+1. [Finding] — `<filename>`, Line <line>
+   <explanation>
+
+### 🟠 Critical Issues
+1. [Finding] — `<filename>`, Line <line>
+   <explanation>
+
+### 🟡 Suggestions _(non-blocking)_
+1. [Finding] — `<filename>`, Line <line>
+
+---
+_Review generated via multi-agent analysis. All blockers and critical issues independently
+verified by adversarial Skeptic Agent before reporting._
+````
+
+**Omit empty sections.** If all sections are empty: "No issues found."
+
+**Verdict:**
+- **CLEAN** — No 🔴 or 🟠 findings. Feature branch is ready for merge approval.
+- **ISSUES FOUND** — One or more 🔴 or 🟠 findings confirmed.
+
+**Pipeline Gated Actions:**
+
+| Keyword | Action |
+|---|---|
+| `fix` | Fix confirmed 🔴 and 🟠 findings in the merge worktree, with per-fix approval. Commit fixes to the feature branch. |
+| `details <N>` | Expand finding N with full context and recommended fix. Return to gated actions. |
+| `abort` | No changes. Close review. |
+
+> `commit` is not offered — feature branch code is already committed. Use `fix` to apply
+> corrections, which are committed to the feature branch in the merge worktree.
+
+_Designed for multi-agent orchestration. Requires: `git` (always), `gh` CLI (PR mode only)._
