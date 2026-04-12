@@ -71,21 +71,42 @@ See [`references/git-worktree-strategy.md`](references/git-worktree-strategy.md)
 
 ## Installation
 
-### Option 1: Clone and use directly
+### Install from GitHub (recommended)
+
+Add the repository as a marketplace and install — no cloning required:
+
+```bash
+# 1. Add the marketplace
+/plugin marketplace add leninkhaidem/super-developer
+
+# 2. Install the plugin
+/plugin install super-developer@super-developer
+```
+
+To update later:
+
+```bash
+/plugin update super-developer@super-developer
+```
+
+### Install from local directory
+
+If you prefer to clone first:
 
 ```bash
 git clone https://github.com/leninkhaidem/super-developer.git
 claude --plugin-dir /path/to/super-developer
 ```
 
-### Option 2: Add to your project
+### Installation scopes
 
-```bash
-# From your project directory
-claude --plugin-dir /path/to/super-developer
-```
+| Scope | Flag | Where it applies |
+|---|---|---|
+| User (default) | `--scope user` | All your projects |
+| Project | `--scope project` | Shared with team via `.claude/settings.json` |
+| Local | `--scope local` | This project only, gitignored |
 
-The plugin loads all 7 skills automatically via Claude Code's auto-discovery mechanism. No configuration required.
+The plugin loads all 7 skills automatically via Claude Code's auto-discovery mechanism. No configuration required. Run `/reload-plugins` after installation to activate without restarting.
 
 ---
 

@@ -1,0 +1,30 @@
+{
+  "name": "super-developer",
+  "description": "A cohesive development workflow engine — from ideation through perspectives, planning, implementation, auditing, and code review.",
+  "owner": {
+    "name": "lenin khaidem",
+    "email": "leninkhaidem@gmail.com"
+  },
+  "plugins": [
+    {
+      "name": "super-developer",
+      "description": "Orchestrates the full development lifecycle with 7 skills — divergent ideation, structured planning, parallel implementation with git worktree isolation, and multi-agent adversarial code review.",
+      "version": "0.1.0",
+      "category": "development",
+      "author": {
+        "name": "lenin khaidem",
+        "email": "leninkhaidem@gmail.com"
+      },
+      "keywords": [
+        "development-workflow",
+        "code-review",
+        "planning",
+        "implementation",
+        "git-worktree",
+        "multi-agent"
+      ],
+      "homepage": "https://github.com/leninkhaidem/super-developer",
+      "source": "./"
+    }
+  ]
+}
