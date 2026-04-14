@@ -6,7 +6,7 @@ A collection of Claude Code plugins for software development.
 
 | Plugin | Description | Version |
 |---|---|---|
-| [**super-developer**](plugins/super-developer/) | Full development lifecycle — divergent ideation, structured planning, parallel implementation with git worktree isolation, and multi-agent adversarial code review. 8 skills. | 1.2.1 |
+| [**super-developer**](plugins/super-developer/) | Full development lifecycle — divergent ideation, structured planning, parallel implementation with git worktree isolation, and multi-agent adversarial code review. 8 skills. | 1.3.0 |
 
 More plugins coming soon: GitHub issue management, and others.
 
@@ -46,7 +46,7 @@ More plugins coming soon: GitHub issue management, and others.
 Orchestrates the full development lifecycle with 8 skills:
 
 ```
-plan → review-plan → implement → audit → review-code
+implementation-plan → review-plan → implement → audit → review-code
 ```
 
 Plus standalone skills: **perspectives** (divergent problem-solving), **tasks** (status dashboard), **review-code** (works independently for PR and local code review), and **code-doc** (generate comprehensive codebase documentation via hybrid analysis).

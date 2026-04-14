@@ -11,10 +11,10 @@ One plugin. Eight skills. Zero manual git juggling.
 Super Developer turns Claude Code into an opinionated development workflow engine. Instead of scattered slash commands and ad-hoc prompts, it provides a structured pipeline where each stage feeds the next — with parallel sub-agents doing the heavy lifting and adversarial review gates catching issues before they ship.
 
 ```
-[perspectives]        Optional — divergent problem-solving for complex decisions
-      |
-      v
-    plan  --->  review-plan  --->  implement  --->  audit  --->  review-code
+[perspectives]              Optional — divergent problem-solving for complex decisions
+       |
+       v
+  implementation-plan  --->  review-plan  --->  implement  --->  audit  --->  review-code
                      |                  |              |               |
               2 adversarial       git worktrees +  verify vs     4 specialists +
               review agents      parallel agents    plan         Skeptic agent
@@ -29,7 +29,7 @@ The pipeline flows automatically with confirmation gates. Say **"proceed through
 | Skill | What It Does | Usage |
 |---|---|---|
 | **perspectives** | Divergent problem-solving. Spawns 3-5 Opus-class sub-agents, each approaching the problem from a distinct angle (Infrastructure, Architecture, Data, Root Cause, etc.). A final Skeptic agent stress-tests and synthesizes proposals into a ranked recommendation. | Standalone |
-| **plan** | Converts a brainstorming session or design discussion into a structured task plan under `.tasks/<feature>/` with `CONTEXT.md` and `tasks.json`. Infers the feature name from context — no need to provide one. | Pipeline + Standalone |
+| **implementation-plan** | Converts a brainstorming session or design discussion into a structured task plan under `.tasks/<feature>/` with `CONTEXT.md` and `tasks.json`. Infers the feature name from context — no need to provide one. | Pipeline + Standalone |
 | **review-plan** | Design review gate. Spawns two Opus-class sub-agents in parallel — a **Completeness Reviewer** and an **Adversarial Design Challenger** — to validate the plan cold from files only. Re-reviews until both approve (max 3 rounds). | Pipeline + Standalone |
 | **tasks** | Implementation status dashboard. Shows progress across all features or drills into a specific one with phase-by-phase breakdown. Can modify task status on request. | Standalone |
 | **implement** | Orchestrator. Analyzes the dependency graph, creates git worktrees for each task, spawns parallel Opus-class sub-agents to write code, merges completed work into the feature branch, and loops until all tasks are done. The main agent manages all git infrastructure; sub-agents only write code. | Pipeline + Standalone |
@@ -137,8 +137,8 @@ The agent infers the feature name, creates the task plan, and asks to continue. 
 
 | What you say | What happens |
 |---|---|
-| "Plan this feature" | Creates plan, asks to continue |
-| "Proceed through all stages" | Runs plan -> review-plan -> implement -> review-code without stopping |
+| "Plan this feature" | Creates implementation plan, asks to continue |
+| "Proceed through all stages" | Runs implementation-plan -> review-plan -> implement -> review-code without stopping |
 | "Skip audit" | Skips the audit step (included by default in the pipeline) |
 | Confirm at each gate | Step-by-step control over the pipeline |
 
@@ -155,7 +155,7 @@ super-developer/
 +-- skills/
 |   +-- perspectives/
 |   |   +-- SKILL.md                    # Divergent problem-solving
-|   +-- plan/
+|   +-- implementation-plan/
 |   |   +-- SKILL.md                    # Discussion -> structured tasks
 |   +-- review-plan/
 |   |   +-- SKILL.md                    # Design review gate

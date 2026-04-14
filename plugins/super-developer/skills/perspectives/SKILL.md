@@ -150,6 +150,6 @@ State: "Perspectives complete. Ready to convert this into a structured plan when
 
 Wait for user confirmation. Then invoke:
 
-Use the Skill tool with: skill: "super-developer:plan"
+Use the Skill tool with: skill: "super-developer:implementation-plan"
 
 Do NOT attempt to execute plan logic inline. The Skill tool loads it properly.

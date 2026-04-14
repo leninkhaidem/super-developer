@@ -1,11 +1,13 @@
 ---
-name: plan
+name: implementation-plan
 description: >
-  This skill should be used when the user asks to "create a plan", "plan this feature", "write
-  tasks", "convert to plan", "structure this", "break this down into tasks", or wants to convert
-  a brainstorming session, design discussion, or requirements into structured implementation tasks.
-  Triggers on phrases like "plan", "create tasks", "task breakdown", "implementation plan",
-  "structure this into tasks".
+  Creates structured implementation task plans from discussions and requirements. Use this skill
+  whenever the user wants to turn a brainstorming session, design discussion, or feature request
+  into a structured task breakdown with dependencies. Triggers on "create an implementation plan",
+  "plan this feature", "break this down into tasks", "write implementation tasks", "structure
+  this into tasks", "convert to implementation plan", "task breakdown". Also trigger when the user
+  says "plan this" or "create tasks" in the context of building or implementing something — this
+  skill handles the planning-to-execution bridge, not general-purpose planning.
 ---
 
 # Plan: Convert Discussion to Structured Implementation Tasks
