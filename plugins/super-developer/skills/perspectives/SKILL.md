@@ -71,19 +71,23 @@ Launch one **Opus-class sub-agent per perspective**, each receiving:
 - The problem brief from Step 1 (identical for all)
 - Their assigned perspective and a directive to solve the problem *only* through that lens
 - Access to the project codebase for investigation
+- Access to external research tools: WebSearch, WebFetch, and any MCP tools available in the environment (e.g., context7 for library/framework docs). Use whatever is relevant to the problem.
 
 Each sub-agent must:
 
 - **Investigate** the codebase through their assigned lens. Read relevant files, configs, logs.
+- **Research externally when the lens demands it.** Pull in current library behavior, API changes, benchmarks, known issues, industry patterns, or prior art. Prefer context7 (or equivalent MCP) for library and framework documentation — training data may lag real releases. Use WebSearch/WebFetch for industry patterns, blog posts, standards, and non-library knowledge.
 - **Diagnose** what they believe is happening, from their perspective.
 - **Propose a solution** with:
   - Concrete implementation approach (specific changes to specific files — not abstract advice)
   - Tradeoffs: what this approach gains, costs, and risks
   - Effort estimate: 1-hour fix or multi-day refactor?
   - Limitations: what this approach does NOT solve
+- **Cite external sources** (URLs, MCP source names) in proposals so the Skeptic can verify.
+- **Do not fabricate citations.** If a search is empty or a tool unavailable, say so — no hallucinated sources.
 - **Not collaborate** with other sub-agents. Each works independently.
 
-Do not pass conversation history to sub-agents. They work from the problem brief and the codebase only.
+Do not pass conversation history to sub-agents. They work from the problem brief, the codebase, and external research tools.
 
 ## Step 4: Collect and Present Proposals
 
@@ -104,7 +108,7 @@ Do not editorialize or rank at this stage. Present each proposal on its own meri
 
 ## Step 5: Adversarial Synthesis
 
-Spawn one final **Opus-class sub-agent** — the Skeptic — with the problem brief, all proposals from Step 4, and codebase access.
+Spawn one final **Opus-class sub-agent** — the Skeptic — with the problem brief, all proposals from Step 4, codebase access, and the same external research tools available to perspective sub-agents (WebSearch, WebFetch, MCPs). The Skeptic needs these to verify claims and cited sources in proposals independently.
 
 The Skeptic must:
 
