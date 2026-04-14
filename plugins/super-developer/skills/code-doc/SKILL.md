@@ -147,7 +147,6 @@ Fan out documentation generation to parallel doc writer agents.
 Each writer is spawned via `task(agent_type='general-purpose')` with:
 - Assigned output file path
 - List of `.codedoc/` analysis files to read
-- READ `references/generation.md` for document templates, Mermaid patterns, and update/merge logic
 
 Core writers always spawn (README, Architecture, Developer Guide, Codebase Context).
 Optional writers spawn based on the doc plan from Step 3.
@@ -164,19 +163,19 @@ project_hash: "<short git hash>"
 
 **Update mode** (re-generation):
 
+IF existing docs detected, READ `references/update-merge.md` for archive, human block preservation, and augmentation logic.
+
 | Mode | Condition | Behavior |
 |------|-----------|----------|
 | **Fresh** | No existing docs | Generate all |
-| **Regenerate** | Existing code-doc output (`codedoc_version` frontmatter) | Archive to `.docs-archive/<timestamp>/`, regenerate, merge `<!-- human -->` blocks |
-| **Augment** | Existing human docs (no frontmatter, high quality) | Preserve entirely, add only user-approved additions |
+| **Regenerate** | Existing code-doc output (`codedoc_version` frontmatter) | Archive to `.docs-archive/v{N}/`, regenerate, merge `<!-- human -->` blocks |
+| **Augment** | Existing human docs (no frontmatter, high quality) | Preserve entirely, add only to `docs/codedoc/` subdirectory |
 
 ---
 
 ### Step 8 — Review & Commit
 
 Spawn 3 reviewer agents (`task(agent_type='explore')`) in parallel.
-
-READ `references/review.md` for reviewer checklists and severity taxonomy.
 
 | Reviewer | Focus |
 |----------|-------|
@@ -186,6 +185,9 @@ READ `references/review.md` for reviewer checklists and severity taxonomy.
 
 Severity: 🔴 BLOCKER (must fix) · 🟠 WARNING (should fix) · 🟡 INFO (optional).
 Fix all 🔴s. User decides on 🟠s. Maximum 2 fix iterations.
+
+If blockers remain after 2 iterations, append a `## Known Issues` section to README listing
+unresolved items, then proceed.
 
 After review passes:
 
