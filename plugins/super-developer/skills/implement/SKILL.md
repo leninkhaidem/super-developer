@@ -32,7 +32,43 @@ Progress: <done>/<total> tasks
 Current phase: <phase name>
 ```
 
-## Step 2: Initialize Git Worktree Infrastructure
+## Step 2: Load Model Preferences
+
+Check for `.claude/model-preferences.yml` in the project root:
+
+```bash
+cat "$PROJECT_ROOT/.claude/model-preferences.yml" 2>/dev/null
+```
+
+If the file exists and contains a valid `strategy` field (`adaptive` or `inherit`), use it.
+If the file is missing, malformed, or contains an unrecognized strategy, ask the user:
+
+```
+How should sub-agent models be selected?
+
+  adaptive  — Opus for complex tasks, Sonnet for simple ones (default)
+  inherit   — All sub-agents use the same model as you (the orchestrator)
+```
+
+Save their choice (overwriting any corrupt file):
+
+```yaml
+# .claude/model-preferences.yml
+# Controls how the implement skill selects models for sub-agents.
+#   adaptive — Opus for complex/ambiguous tasks, Sonnet for simple/patterned ones
+#   inherit  — All sub-agents use the orchestrator's model (no model override)
+strategy: adaptive
+```
+
+Add `.claude/model-preferences.yml` to `.gitignore` if not already present — this is a local developer preference, not committed:
+
+```bash
+grep -qF '.claude/model-preferences.yml' .gitignore 2>/dev/null || echo '.claude/model-preferences.yml' >> .gitignore
+```
+
+Carry the resolved strategy forward into Step 6c.
+
+## Step 3: Initialize Git Worktree Infrastructure
 
 Read `${CLAUDE_PLUGIN_ROOT}/references/git-worktree-strategy.md` for the complete git workflow reference.
 
@@ -48,7 +84,7 @@ PROJECT_ROOT=$(git rev-parse --show-toplevel)
 
 **The main working tree always stays on `main`.** Never run `git checkout` in the project root.
 
-## Step 3: Analyze Actionable Tasks
+## Step 4: Analyze Actionable Tasks
 
 A task is **actionable** when:
 - Its `status` is `pending`
@@ -61,17 +97,18 @@ Collect **all** currently actionable tasks — not just the next one.
 - **Tasks `blocked`:** List with `blocked_reason`. Ask how to proceed.
 - **Tasks `in-progress`:** Likely from an interrupted session. Show details and ask: continue, or reset to `pending`?
 
-## Step 4: Plan Execution Strategy
+## Step 5: Plan Execution Strategy
 
 Analyze actionable tasks and decide on parallelism:
 
 1. **Independent tasks** (no mutual dependencies, touch different files) — spawn concurrent sub-agents.
 2. **Dependent or overlapping tasks** — execute serially.
 
-Announce the plan before executing:
+Announce the plan before executing. If using the `adaptive` strategy, include model selection:
 
 ```
 Actionable tasks: P1-T001, P1-T002, P1-T003, P2-T001
+Strategy: adaptive
 
 Execution plan:
   Parallel batch 1:
@@ -81,11 +118,25 @@ Execution plan:
     P2-T001 (login endpoint) [Opus] — depends on P1-T001, auth-sensitive
 ```
 
-## Step 5: Create Worktrees and Execute
+If using `inherit`, omit model labels:
+
+```
+Actionable tasks: P1-T001, P1-T002, P1-T003, P2-T001
+Strategy: inherit (using orchestrator model)
+
+Execution plan:
+  Parallel batch 1:
+    Sub-agent A: P1-T001 (user model), P1-T002 (email validation)
+    Sub-agent B: P1-T003 (login page component)
+  Serial (after batch 1):
+    P2-T001 (login endpoint) — depends on P1-T001
+```
+
+## Step 6: Create Worktrees and Execute
 
 For each batch of tasks:
 
-### 5a. Create Task Worktrees
+### 6a. Create Task Worktrees
 
 **Independent tasks (no dependencies on earlier feature work):**
 ```bash
@@ -99,20 +150,24 @@ git worktree add .worktrees/<feature>/task-<task> -b task/<feature>/<task> featu
 
 Branching from the feature ref gives the task access to all previously merged work.
 
-### 5b. Update Status
+### 6b. Update Status
 
 Set assigned tasks to `in-progress` in tasks.json. Write immediately.
 
-### 5c. Spawn Sub-Agents
+### 6c. Spawn Sub-Agents
 
-**Model selection — default is Opus. Downgrade only when the task clearly qualifies:**
+**Model selection** depends on the strategy loaded in Step 2:
+
+**`inherit` strategy:** Do not pass a `model` parameter to sub-agents. They inherit the orchestrator's model. Skip the complexity analysis below.
+
+**`adaptive` strategy (default):** Select per-task based on complexity:
 
 | Model | When to use | Examples |
 |---|---|---|
 | **Sonnet** | Trivial or standard tasks with well-defined scope and existing patterns to follow | Add a constant, rename a file, update an import, write tests for existing code, add a CRUD endpoint following an established pattern, add a component matching an existing one |
 | **Opus** | Complex tasks with ambiguity, cross-module impact, security sensitivity, concurrency, or no clear existing pattern to follow | New architecture, cross-module refactor, concurrency logic, auth/security-sensitive code, tasks with vague acceptance criteria |
 
-The orchestrator logs its model choice per task in the batch announcement (Step 4). Bias toward Opus when uncertain — the cost of a wrong downgrade is a subtle bug that survives audit.
+The orchestrator logs its model choice per task in the batch announcement (Step 5). Bias toward Opus when uncertain — the cost of a wrong downgrade is a subtle bug that survives audit.
 
 Each sub-agent receives:
 - `.tasks/$ARGUMENTS/CONTEXT.md` — project brief
@@ -134,7 +189,7 @@ Each sub-agent must:
 
 **Do not pass conversation history to sub-agents.** They work from files only.
 
-### 5d. Merge Completed Tasks into Feature Branch
+### 6d. Merge Completed Tasks into Feature Branch
 
 After all sub-agents in the current batch complete, merge their work before starting the next batch:
 
@@ -153,9 +208,9 @@ git merge task/<feature>/<task-name> --no-edit
 3. Set the conflicting task's status to `blocked` with `blocked_reason: "merge conflict with <other-task> in <file(s)>"`.
 4. Report the conflict to the user and suggest re-sequencing the conflicting tasks (run them serially instead of in parallel).
 
-Complete Steps 5d and 5e for the current batch before returning to Step 3. Dependent tasks in the next batch require the feature ref to contain all previously merged work.
+Complete Steps 6d and 6e for the current batch before returning to Step 4. Dependent tasks in the next batch require the feature ref to contain all previously merged work.
 
-### 5e. Verify and Clean Up Task Worktrees
+### 6e. Verify and Clean Up Task Worktrees
 
 **Pre-cleanup verification (mandatory):**
 ```bash
@@ -173,7 +228,7 @@ git branch -d task/<feature>/<task>
 
 **Keep the merge worktree** — it holds the feature branch checkout needed for subsequent steps.
 
-## Step 6: Collect Results and Update
+## Step 7: Collect Results and Update
 
 1. Update each completed task's `status` to `done` in tasks.json. Add `completed_at` timestamp.
 2. If a sub-agent could not complete a task, set `status` to `blocked` with `blocked_reason`.
@@ -189,9 +244,9 @@ Batch complete:
 Progress: 7/24
 ```
 
-4. **Re-evaluate.** Completing tasks may unlock new actionable tasks. Loop back to Step 3 to find the next batch.
+4. **Re-evaluate.** Completing tasks may unlock new actionable tasks. Loop back to Step 4 to find the next batch.
 
-## Step 7: Phase and Feature Completion
+## Step 8: Phase and Feature Completion
 
 When all tasks in a phase are `done`:
 - Note the phase completion to the user.
