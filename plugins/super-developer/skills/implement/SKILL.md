@@ -209,11 +209,29 @@ When all phases are complete:
 
 If this stage failed or requires user intervention, STOP. Do not invoke the next stage.
 
-If blanket approval was given (e.g., "proceed through all stages", "run end to end", "do everything"), invoke immediately. Otherwise, state: "Implementation complete. Merge worktree at `.worktrees/<feature>/merge/`." Wait for user confirmation. Then invoke:
+If blanket approval was given (e.g., "proceed through all stages", "run end to end", "do everything"), default to `both` without asking.
 
-Use the Skill tool with: skill: "super-developer:audit", args: "<feature-name>"
+Otherwise, present:
 
-Audit is always included in the pipeline. Do NOT skip it. Do NOT attempt to execute the next skill's logic inline. The Skill tool loads it properly.
+```
+Implementation complete. Merge worktree at `.worktrees/<feature>/merge/`.
+
+How do you want to proceed?
+
+  audit   — Verify acceptance criteria and clean code compliance
+  review  — Multi-agent code review (security, logic, performance, architecture)
+  both    — Audit first, then code review if audit passes (sequential)
+  done    — No further verification
+```
+
+| Selection | Action |
+|---|---|
+| `audit` | Use the Skill tool with: skill: "super-developer:audit", args: "<feature-name>" |
+| `review` | Use the Skill tool with: skill: "super-developer:review-code", args: "<feature-name>" |
+| `both` | Use the Skill tool with: skill: "super-developer:audit", args: "<feature-name>". Treat as blanket pipeline approval — audit will automatically proceed to review-code upon PASS. |
+| `done` | No action. Pipeline ends. |
+
+Do NOT attempt to execute audit or review-code logic inline. The Skill tool loads each properly.
 
 ## Rules
 

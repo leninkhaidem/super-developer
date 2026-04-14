@@ -135,3 +135,17 @@ All findings remain in the conversation context for downstream skills to consume
 - **No premature convergence.** State the problem neutrally in the brief. Include what has been tried, but do not indicate a preferred direction.
 - **The Skeptic is adversarial, not diplomatic.** Its job is to find flaws, not validate. A proposal that survives the Skeptic has earned its recommendation.
 - **This skill does not produce implementation artifacts.** Its output is a recommendation ready to feed into planning.
+
+---
+
+## Pipeline Continuation
+
+If this stage failed or requires user intervention, STOP. Do not invoke the next stage.
+
+State: "Perspectives complete. Ready to convert this into a structured plan when you are — let me know if you have any follow-up questions first."
+
+Wait for user confirmation. Then invoke:
+
+Use the Skill tool with: skill: "super-developer:plan"
+
+Do NOT attempt to execute plan logic inline. The Skill tool loads it properly.
