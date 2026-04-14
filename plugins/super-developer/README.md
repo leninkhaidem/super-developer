@@ -2,7 +2,7 @@
 
 A Claude Code plugin that orchestrates the full development lifecycle — from divergent ideation through structured planning, parallel implementation with git worktree isolation, and multi-agent adversarial code review.
 
-One plugin. Seven skills. Zero manual git juggling.
+One plugin. Eight skills. Zero manual git juggling.
 
 ---
 
@@ -35,6 +35,7 @@ The pipeline flows automatically with confirmation gates. Say **"proceed through
 | **implement** | Orchestrator. Analyzes the dependency graph, creates git worktrees for each task, spawns parallel Opus-class sub-agents to write code, merges completed work into the feature branch, and loops until all tasks are done. The main agent manages all git infrastructure; sub-agents only write code. | Pipeline + Standalone |
 | **audit** | Post-implementation verification. Spawns a read-only sub-agent that checks every acceptance criterion against the actual codebase. Produces a PASS/FAIL report. Always runs in the pipeline after implement; also invocable standalone. | Pipeline + Standalone |
 | **review-code** | Multi-agent code review. Spawns 4 specialist agents (Security, Logic, Performance, Architecture) in parallel, then an adversarial **Skeptic Agent** that independently tries to disprove every serious finding using a 6-point false-positive checklist. | Pipeline + Standalone + PR review |
+| **code-doc** | Generate comprehensive documentation for any codebase via hybrid analysis (native extractors + LLM agents). Adaptive 8-step pipeline: Scout → Existing Doc Assessment → Doc Plan → Analyze (tiered: native extractors + LLM) → Synthesize → User Checkpoint → Generate → Review & Write. Outputs 4 core docs (README, architecture-guide, developer-guide, codebase-context) plus optional docs (api-reference, deployment-guide, data-model, components). | Standalone |
 
 `review-code` works in **3 modes** — it auto-detects which to use:
 
@@ -106,7 +107,7 @@ claude --plugin-dir /path/to/super-developer/plugins/super-developer
 | Project | `--scope project` | Shared with team via `.claude/settings.json` |
 | Local | `--scope local` | This project only, gitignored |
 
-The plugin loads all 7 skills automatically via Claude Code's auto-discovery mechanism. No configuration required. Run `/reload-plugins` after installation to activate without restarting.
+The plugin loads all 8 skills automatically via Claude Code's auto-discovery mechanism. No configuration required. Run `/reload-plugins` after installation to activate without restarting.
 
 ---
 
