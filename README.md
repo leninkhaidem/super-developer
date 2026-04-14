@@ -49,7 +49,7 @@ Orchestrates the full development lifecycle with 8 skills:
 plan → review-plan → implement → audit → review-code
 ```
 
-Plus standalone skills: **perspectives** (divergent problem-solving), **tasks** (status dashboard), and **review-code** (works independently for PR and local code review).
+Plus standalone skills: **perspectives** (divergent problem-solving), **tasks** (status dashboard), **review-code** (works independently for PR and local code review), and **code-doc** (generate comprehensive codebase documentation via hybrid analysis).
 
 See the [full documentation](plugins/super-developer/README.md).
 
