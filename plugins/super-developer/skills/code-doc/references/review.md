@@ -413,11 +413,11 @@ Each reviewer produces:
 - **[architecture-guide.md, line ~42]:** References `AuthController.validateToken()` — actual: `AuthService.verifyToken()` per source
 - **[developer-guide.md, line ~15]:** Path `src/config/database.ts` does not exist — actual: `src/db/config.ts`
 
-### 🟡 Warnings
+### 🟠 Warnings
 - **[README.md, Quick Start]:** Missing `npm install` step before `npm run dev`
 - **[architecture-guide.md, Data Flow]:** Diagram shows `API → DB` but actual flow is `API → Cache → DB`
 
-### ℹ️ Info
+### 🟡 Info
 - **[codebase-context.md]:** Consider grouping files by module instead of flat list
 - **[architecture-guide.md]:** A sequence diagram would clarify the auth flow
 
@@ -448,7 +448,7 @@ The orchestrator merges all 3 reports:
 | 2 | developer-guide.md | ~15 | Non-existent path: `src/config/database.ts` | Actual: `src/db/config.ts` | Accuracy |
 | 3 | architecture-guide.md | — | Missing `payment/` module (47 files) | Entry point: `payment/processor.ts` | Completeness |
 
-### 🟡 Warnings (4) — Fix inline
+### 🟠 Warnings (4) — Fix inline
 
 | # | Document | Section | Issue | Reviewer |
 |---|----------|---------|-------|----------|
@@ -457,7 +457,7 @@ The orchestrator merges all 3 reports:
 | 3 | developer-guide.md | Setup | Env vars not fully documented | Clarity |
 | 4 | codebase-context.md | — | File count off by 12% | Completeness |
 
-### ℹ️ Info (2) — Fix if time permits
+### 🟡 Info (2) — Fix if time permits
 
 | # | Document | Suggestion | Reviewer |
 |---|----------|------------|----------|
@@ -547,7 +547,7 @@ After review passes (or max iterations reached):
 | **Execution** | Parallel via `task(agent_type='explore')` |
 | **Checklists** | Explicit, verifiable checks per reviewer |
 | **Ground truth** | Native extractor output for names/signatures |
-| **Severity levels** | 🔴 BLOCKER, 🟡 WARNING, ℹ️ INFO |
+| **Severity levels** | 🔴 BLOCKER, 🟠 WARNING, 🟡 INFO |
 | **Fix loop** | Max 2 iterations, then Known Issues fallback |
 | **Skeptic agent** | Not used (cost/benefit inappropriate for docs) |
 | **Output format** | Structured Markdown with tables |

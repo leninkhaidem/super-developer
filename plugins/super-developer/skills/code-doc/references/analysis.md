@@ -286,7 +286,7 @@ find . -type f \( -name "*.ts" -o -name "*.tsx" -o -name "*.js" -o -name "*.jsx"
 |------|------------|----------------|
 | **Small** | < 200 files | Single-agent mode. Scout + one analyst pass. |
 | **Medium** | 200–1000 files | Scout + 2–3 concern-based analysts in parallel. |
-| **Large** | > 1000 files | Full pipeline: scout + 4–5 analysts + dedicated synthesis. Monorepo detection triggers per-project option. |
+| **Large** | > 1000 files | Full pipeline: scout + 4–5 analysts + scout-driven synthesis (Step 5). Monorepo detection triggers per-project option. |
 
 **Why this matters:** Small codebases don't benefit from multi-agent overhead. Large codebases need parallel analysis to stay within time/cost budgets.
 
