@@ -151,13 +151,13 @@ Each writer is spawned via `task(agent_type='general-purpose')` with:
 Core writers always spawn (README, Architecture, Developer Guide, Codebase Context).
 Optional writers spawn based on the doc plan from Step 3.
 
-All generated docs include frontmatter:
+All generated docs **must** include frontmatter (the Accuracy reviewer will flag missing fields as 🔴 BLOCKER):
 
 ```yaml
 ---
 codedoc_version: 1
 generated: "<ISO 8601 timestamp>"
-project_hash: "<short git hash>"
+project_hash: "<short git hash from `git rev-parse --short HEAD`>"
 ---
 ```
 
@@ -179,7 +179,7 @@ Spawn 3 reviewer agents (`task(agent_type='explore')`) in parallel.
 
 | Reviewer | Focus |
 |----------|-------|
-| **Accuracy** | Cross-reference against native extractor output, verify code paths exist |
+| **Accuracy** | Cross-reference against native extractor output, verify code paths exist, confirm every generated doc has valid frontmatter (`codedoc_version`, `generated`, `project_hash`) |
 | **Completeness** | All planned sections populated, no TODO placeholders |
 | **Clarity** | Writing quality, consistent terminology, actionable instructions |
 
