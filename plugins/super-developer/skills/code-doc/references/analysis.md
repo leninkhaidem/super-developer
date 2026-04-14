@@ -473,7 +473,7 @@ Choose [1/2/3]:
 
 This section provides 5 concern-based analyst prompt templates. Each template is a complete prompt ready to be passed to `task(agent_type='explore')`.
 
-All analyst outputs use **structured Markdown** (not YAML) — this is LLM-to-LLM communication optimized for downstream synthesis.
+All analyst outputs use **structured Markdown** (not YAML) — this is LLM-to-LLM communication optimized for downstream synthesis. Each analyst writes its full output to a file under `.codedoc/` and returns only a compact summary to the orchestrator.
 
 ---
 
@@ -584,6 +584,24 @@ Note what other analysts should verify or expand on:
 - **API Surface Analyst**: Verify endpoint list against `routes/` directory structure
 - **Data Model Analyst**: The `models/` directory uses Prisma — provide schema details
 - **Infrastructure Analyst**: Entry points suggest multiple deployment targets (server, worker, cli)
+
+---
+
+## Output Delegation
+
+Write your FULL analysis output to: `.codedoc/architecture-analysis.md`
+Format the file with a YAML frontmatter block:
+---
+project: {project_name}
+analyst: architecture
+timestamp: <ISO-8601>
+---
+Followed by your complete structured analysis.
+
+Return to the orchestrator ONLY a compact summary (max 15 lines):
+- File written: `.codedoc/architecture-analysis.md`
+- Components found: N, Patterns detected: [list]
+- Notable: any inconsistencies or unusual patterns
 ```
 
 ---
@@ -759,6 +777,24 @@ Document error response patterns:
 - **Architecture Analyst**: Verify that endpoint groupings match module boundaries
 - **Data Model Analyst**: Request/response schemas should align with database models
 - **Infrastructure Analyst**: Authentication mechanism may have infrastructure dependencies (Redis for sessions, etc.)
+
+---
+
+## Output Delegation
+
+Write your FULL analysis output to: `.codedoc/api-analysis.md`
+Format the file with a YAML frontmatter block:
+---
+project: {project_name}
+analyst: api-surface
+timestamp: <ISO-8601>
+---
+Followed by your complete structured analysis.
+
+Return to the orchestrator ONLY a compact summary (max 15 lines):
+- File written: `.codedoc/api-analysis.md`
+- Endpoints found: N, Auth patterns: [list]
+- Notable: any inconsistencies or unusual patterns
 ```
 
 ---
@@ -927,6 +963,24 @@ Document how data moves through the application:
 - **API Surface Analyst**: Verify API request/response schemas match these table structures
 - **Architecture Analyst**: Data flow aligns with module boundaries (Service → Repository pattern)
 - **Infrastructure Analyst**: Redis and Elasticsearch dependencies need infrastructure docs
+
+---
+
+## Output Delegation
+
+Write your FULL analysis output to: `.codedoc/data-model-analysis.md`
+Format the file with a YAML frontmatter block:
+---
+project: {project_name}
+analyst: data-model
+timestamp: <ISO-8601>
+---
+Followed by your complete structured analysis.
+
+Return to the orchestrator ONLY a compact summary (max 15 lines):
+- File written: `.codedoc/data-model-analysis.md`
+- Models/tables: N, Relationships: N
+- Notable: any inconsistencies or unusual patterns
 ```
 
 ---
@@ -1156,6 +1210,24 @@ Document reusable components:
 - **API Surface Analyst**: Verify API endpoints match the data fetching in components
 - **Architecture Analyst**: Component structure should align with module boundaries
 - **Infrastructure Analyst**: Build and bundle configuration affects component organization
+
+---
+
+## Output Delegation
+
+Write your FULL analysis output to: `.codedoc/component-analysis.md`
+Format the file with a YAML frontmatter block:
+---
+project: {project_name}
+analyst: component
+timestamp: <ISO-8601>
+---
+Followed by your complete structured analysis.
+
+Return to the orchestrator ONLY a compact summary (max 15 lines):
+- File written: `.codedoc/component-analysis.md`
+- Components found: N, State management: [type]
+- Notable: any inconsistencies or unusual patterns
 ```
 
 ---
@@ -1391,6 +1463,24 @@ GitHub Actions → AWS Secrets Manager → Kubernetes Secret → Pod env var
 - **Architecture Analyst**: Entry points should match Docker CMD and K8s containers
 - **API Surface Analyst**: Ingress routes should align with API endpoints
 - **Data Model Analyst**: Database connection requires `DATABASE_URL` secret
+
+---
+
+## Output Delegation
+
+Write your FULL analysis output to: `.codedoc/infrastructure-analysis.md`
+Format the file with a YAML frontmatter block:
+---
+project: {project_name}
+analyst: infrastructure
+timestamp: <ISO-8601>
+---
+Followed by your complete structured analysis.
+
+Return to the orchestrator ONLY a compact summary (max 15 lines):
+- File written: `.codedoc/infrastructure-analysis.md`
+- CI pipelines: N, Deploy targets: [list]
+- Notable: any inconsistencies or unusual patterns
 ```
 
 ---
@@ -2925,7 +3015,11 @@ public class UserService(IOptions<DatabaseSettings> options)
 
 # Analysis Reference — §4: Synthesis & Workflow Reconstruction
 
-> How to merge analyst outputs + native extractor outputs into a unified codebase model
+> How to merge analyst outputs from `.codedoc/` files + native extractor outputs into a unified codebase model
+
+## Input: .codedoc/ Analysis Files
+
+Synthesis reads from `{project}/.codedoc/` files produced by Step 4 sub-agents. Read files selectively — do not load all files into context simultaneously.
 
 ---
 
@@ -2933,7 +3027,7 @@ public class UserService(IOptions<DatabaseSettings> options)
 
 ### Unified Model Structure
 
-The synthesis phase merges all analyst Markdown outputs and native extractor data into a single unified codebase model:
+The synthesis phase merges all analyst outputs from `.codedoc/` files and native extractor data into a single unified codebase model:
 
 ```typescript
 interface UnifiedCodebaseModel {
@@ -3072,7 +3166,7 @@ When native extractor and LLM analysis disagree:
    - Add: purpose, patterns, architectural role
    - Discard: any mismatched signatures/types
    
-4. **Cross-reference analyst outputs**
+4. **Cross-reference analyst outputs** from `.codedoc/` files
    - Architecture analyst → API surface analyst (route→handler mapping)
    - Data model analyst → Architecture analyst (model→service mapping)
    - Component analyst → API analyst (component→endpoint mapping)
@@ -3091,7 +3185,7 @@ When native extractor and LLM analysis disagree:
 
 ## §4.2 Cross-Cutting Correlation
 
-Map relationships across analyst outputs for common architectures.
+Map relationships across analyst outputs (read from `.codedoc/` files) for common architectures.
 
 ### Architecture 1: REST API
 
@@ -3692,7 +3786,7 @@ Common Modifications:
 
 Before presenting User Checkpoint, verify:
 
-- [ ] All analyst outputs loaded and parsed
+- [ ] All analyst outputs loaded from `.codedoc/` files and parsed
 - [ ] Native extractor output loaded (if available)
 - [ ] Merge conflicts resolved (extractor wins for signatures)
 - [ ] Module list deduplicated and confidence-scored

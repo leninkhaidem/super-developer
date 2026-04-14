@@ -1,6 +1,6 @@
-# Generation Reference — Document Templates & Mermaid Patterns
+# Generation Reference — Document Templates, Mermaid Patterns & Doc Writer Agents
 
-This reference defines the document templates and diagram patterns used by the code-doc skill during the generation phase. Section 3 (Update & Merge Logic) is in a separate file.
+This reference defines the document templates (§1), diagram patterns (§2), and doc writer agent prompts (§2.5) used by the code-doc skill during the generation phase. Doc writers are spawned as parallel background agents using the fan-out pattern. Section 3 (Update & Merge Logic) covers re-analysis workflows.
 
 ---
 
@@ -1477,6 +1477,143 @@ flowchart LR
    - `[()]` cylinders for databases/storage
 6. **Icons:** Use emoji sparingly for layer headers: 🎯 Presentation, ⚙️ Application, 💾 Data, ☁️ External
 
+---
+
+## §2.5 Doc Writer Agent Prompts
+
+Each doc writer is spawned as `task(agent_type='general-purpose')` and reads assigned `.codedoc/` analysis files to produce one output document. Writers follow the template specs from §1 and diagram patterns from §2.
+
+The orchestrator fans out to all applicable writers in parallel, then collects completion summaries before proceeding to review.
+
+### Common Prompt Prefix
+
+```
+Prompt prefix (prepend to all doc writers):
+  You are generating documentation for: {project_name}
+  Project path: {project_path}
+  Analysis directory: {project_path}/.codedoc/
+
+  Follow the template spec in references/generation.md for your assigned section.
+  Use references/generation.md Mermaid patterns for all diagrams.
+  Write your output directly to the assigned file path.
+  Apply frontmatter: codedoc_version: 1, generated: <ISO-8601>, project_hash: <git-hash>
+  Return a compact summary: file written, line count, sections generated, diagrams included.
+```
+
+### README Writer
+
+```
+Prompt (append to common prefix):
+  Assigned output: {project_path}/README.md
+  Template: §1.1 (or first core document template)
+  Input: read ALL .codedoc/*.md files for project overview
+  Target: 100–200 lines
+
+Invocation:
+  task(agent_type="general-purpose", mode="background", name="doc-readme", prompt=<above>)
+```
+
+### Architecture Guide Writer
+
+```
+Prompt (append to common prefix):
+  Assigned output: {project_path}/docs/architecture-guide.md
+  Template: §1.2 (architecture guide template)
+  Input: read .codedoc/architecture-analysis.md + .codedoc/synthesis.md
+  Target: 200–400 lines
+  Focus: System design, component relationships, data flow diagrams
+
+Invocation:
+  task(agent_type="general-purpose", mode="background", name="doc-architecture", prompt=<above>)
+```
+
+### Developer Guide Writer
+
+```
+Prompt (append to common prefix):
+  Assigned output: {project_path}/docs/developer-guide.md
+  Template: §1.3 (developer guide template)
+  Input: read .codedoc/architecture-analysis.md + .codedoc/api-analysis.md + .codedoc/synthesis.md
+  Target: 150–300 lines
+  Focus: Dev setup, workflow, code structure, API usage, extension points
+
+Invocation:
+  task(agent_type="general-purpose", mode="background", name="doc-dev-guide", prompt=<above>)
+```
+
+### Codebase Context Writer
+
+```
+Prompt (append to common prefix):
+  Assigned output: {project_path}/docs/codebase-context.md
+  Template: §1.4 (codebase context template)
+  Input: read ALL .codedoc/*.md files for metadata extraction
+  Target: 300–500 lines
+  Focus: Machine-readable context for LLMs, dependency graph, file inventory
+
+Invocation:
+  task(agent_type="general-purpose", mode="background", name="doc-codebase-ctx", prompt=<above>)
+```
+
+### API Reference Writer (Optional)
+
+```
+Prompt (append to common prefix):
+  Assigned output: {project_path}/docs/api-reference.md
+  Template: §1.5 (API reference template, if exists)
+  Input: read .codedoc/api-analysis.md + .codedoc/native-extractors/ output
+  Target: 200–500 lines
+  Focus: Endpoint documentation, request/response schemas, auth patterns
+
+Invocation:
+  task(agent_type="general-purpose", mode="background", name="doc-api-ref", prompt=<above>)
+```
+
+### Data Model Writer (Optional)
+
+```
+Prompt (append to common prefix):
+  Assigned output: {project_path}/docs/data-model.md
+  Template: §1.6 (data model template, if exists)
+  Input: read .codedoc/data-model-analysis.md + .codedoc/native-extractors/ output
+  Target: 150–300 lines
+  Focus: Schema documentation, relationships, migrations, ER diagrams
+
+Invocation:
+  task(agent_type="general-purpose", mode="background", name="doc-data-model", prompt=<above>)
+```
+
+### Component Guide Writer (Optional)
+
+```
+Prompt (append to common prefix):
+  Assigned output: {project_path}/docs/component-guide.md
+  Template: §1.7 (component guide template, if exists)
+  Input: read .codedoc/component-analysis.md
+  Target: 200–400 lines
+  Focus: UI components, props/state, component tree, interaction patterns
+
+Invocation:
+  task(agent_type="general-purpose", mode="background", name="doc-components", prompt=<above>)
+```
+
+### Infrastructure Writer (Optional)
+
+```
+Prompt (append to common prefix):
+  Assigned output: {project_path}/docs/infrastructure.md
+  Template: §1.8 (infrastructure template, if exists)
+  Input: read .codedoc/infrastructure-analysis.md
+  Target: 100–200 lines
+  Focus: CI/CD pipeline, deployment, Docker setup, environment config
+
+Invocation:
+  task(agent_type="general-purpose", mode="background", name="doc-infra", prompt=<above>)
+```
+
+Spawn all applicable doc writers in parallel. Collect completion summaries before proceeding to review.
+
+---
 
 # Generation Reference — §3: Update & Merge Logic
 
@@ -1518,10 +1655,11 @@ check_doc_state(project_root):
 
 **Workflow:**
 1. Run full analysis pipeline (scout → analysts → synthesis)
-2. Generate all core documents from templates
-3. Generate optional documents based on scout findings
-4. Set `codedoc_version: 1` in all generated document frontmatter
-5. Write to `{project}/docs/`
+2. Fan out to doc writer agents (§2.5) — spawn all core writers in parallel
+3. Fan out to optional doc writer agents based on scout findings
+4. Collect completion summaries from all writers
+5. Set `codedoc_version: 1` in all generated document frontmatter
+6. Write to `{project}/docs/`
 
 **Frontmatter for fresh generation:**
 ```yaml
@@ -1589,11 +1727,11 @@ Entire sections without codedoc markers but with substantive content (>10 lines 
 
 ### Step 3: Regenerate Fresh Docs
 
-Run the full analysis pipeline as if Mode (a):
+Run the full analysis pipeline as if Mode (a), then fan out to doc writer agents (§2.5):
 - Scout the codebase
 - Run analysts
 - Synthesize findings
-- Generate fresh documents from templates
+- Spawn doc writer agents in parallel to generate fresh documents from templates
 
 ### Step 4: Re-insert Human Blocks
 

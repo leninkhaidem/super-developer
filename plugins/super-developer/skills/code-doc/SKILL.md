@@ -17,12 +17,15 @@ documentation for any codebase — zero-config default, just point at a repo.
 
 ## Delegation Model
 
-**Scout orchestrates, Analysts read code.**
+**Scout orchestrates, Analysts write to files, Doc Writers fan out.**
 
-- The **Scout** (you, the orchestrator) handles detection, sizing, planning, and synthesis
-- **Analyst agents** are spawned via `task(agent_type='explore')` to read code and produce findings
+- The **Scout** (you, the orchestrator) handles detection, sizing, planning, and coordination
+- **Analyst agents** are spawned via `task(agent_type='explore')` to read code and write full analysis to `{project}/.codedoc/` files — they return only compact summaries (max 15 lines) to the orchestrator. The orchestrator holds summaries, not full analysis — this prevents context overflow on large codebases.
+- **Doc Writer agents** are spawned via `task(agent_type='general-purpose')` in parallel — each reads assigned `.codedoc/` files and produces one output document
 - **Reviewer agents** are spawned via `task(agent_type='explore')` to validate generated docs
 - All agents are stateless — provide complete context in each spawn
+
+The `.codedoc/` directory is transient — created at analysis start, consumed by doc writers, cleaned up after generation. Never commit `.codedoc/` files.
 
 ---
 
@@ -144,7 +147,13 @@ Wait for user confirmation before proceeding to analysis.
 
 ## Step 4 — Analyze
 
-Run analysis using native extractors first, then LLM analysts.
+Run analysis using native extractors first, then LLM analysts. Analysts write full output to `.codedoc/` files.
+
+### Setup Analysis Directory
+
+```bash
+mkdir -p {project}/.codedoc
+```
 
 ### Native Extractors (Run First)
 
@@ -159,27 +168,26 @@ Execute language-native documentation extractors for API-level accuracy:
 | Rust | rustdoc | HTML/JSON |
 | C# | DocFX, XML docs | XML/HTML |
 
-Native extractor output is fed to analysts as ground truth for function signatures, types, and
-module structure.
+Native extractor output is saved to `{project}/.codedoc/native-extractors/` and fed to analysts as ground truth for function signatures, types, and module structure.
 
 ### Analyst Agents (Spawned by Tier)
 
 READ `references/analysis.md` sections 2–3 for complete analyst prompt templates and
 language-specific patterns.
 
-| Agent | Spawn Condition | Focus Area |
-|-------|-----------------|------------|
-| **Architecture Analyst** | Always | System structure, component relationships, data flow |
-| **API Surface Analyst** | Routes/endpoints detected | REST/GraphQL endpoints, request/response schemas |
-| **Data Model Analyst** | ORM/schema detected | Database schema, relationships, migrations |
-| **Component Analyst** | Frontend detected | UI components, props, state management |
-| **Infrastructure Analyst** | CI/Docker/IaC detected | Build pipeline, deployment, configuration |
+| Agent | Spawn Condition | Focus Area | Output File |
+|-------|-----------------|------------|-------------|
+| **Architecture Analyst** | Always | System structure, component relationships, data flow | `.codedoc/architecture-analysis.md` |
+| **API Surface Analyst** | Routes/endpoints detected | REST/GraphQL endpoints, request/response schemas | `.codedoc/api-analysis.md` |
+| **Data Model Analyst** | ORM/schema detected | Database schema, relationships, migrations | `.codedoc/data-model-analysis.md` |
+| **Component Analyst** | Frontend detected | UI components, props, state management | `.codedoc/component-analysis.md` |
+| **Infrastructure Analyst** | CI/Docker/IaC detected | Build pipeline, deployment, configuration | `.codedoc/infrastructure-analysis.md` |
 
 ### Tiered Agent Strategy
 
 | Tier | Approach |
 |------|----------|
-| **Small** (< 200 files) | Scout performs analysis directly — no sub-agents |
+| **Small** (< 200 files) | Scout performs analysis directly — writes results to `.codedoc/scout-analysis.md` |
 | **Medium** (200–1000 files) | Scout + 2–3 most relevant analysts based on detection |
 | **Large** (> 1000 files) | Full pipeline: scout + all relevant analysts in parallel |
 
@@ -187,24 +195,40 @@ language-specific patterns.
 
 All analysts spawned via `task(agent_type='explore')` with:
 - Complete context (project type, framework, file scope)
-- Native extractor output as ground truth
+- Native extractor output path as ground truth reference
+- Assigned output file path (agent writes full analysis to this file)
 - Structured Markdown output format
 - Cross-reference requirements
+
+Each analyst prompt includes:
+```
+Write your FULL analysis output to: {output_file}
+Format the file with a YAML frontmatter (project, analyst, timestamp) followed by your structured analysis.
+
+Return to the orchestrator ONLY a compact summary (max 15 lines):
+- File written: {output_file}
+- Key stats (counts, patterns found)
+- Notable findings or anomalies
+```
+
+Collect agent **summaries** (NOT full outputs). Full analysis persists in `.codedoc/` files.
 
 ---
 
 ## Step 5 — Synthesize
 
-Merge analyst outputs and native extractor data into a unified model.
+Merge analyst outputs from `.codedoc/` files and native extractor data into a unified model.
 
 READ `references/analysis.md` section 4 for synthesis protocol.
 
 ### Synthesis Tasks
 
-1. **Unify data models** — merge native extractor types with analyst findings
-2. **Correlate cross-cutting concerns** — trace flows across components
-3. **Detect inconsistencies** — flag contradictions between analyst outputs
-4. **Identify documentation-worthy flows** — user journeys, critical paths
+1. **Read `.codedoc/` files selectively** — load only the sections needed for each synthesis step, not all files simultaneously
+2. **Unify data models** — merge native extractor types with analyst findings from `.codedoc/` files
+3. **Correlate cross-cutting concerns** — trace flows across components
+4. **Detect inconsistencies** — flag contradictions between analyst outputs
+5. **Identify documentation-worthy flows** — user journeys, critical paths
+6. **Write synthesis output** to `{project}/.codedoc/synthesis.md`
 
 ### Unified Model Structure
 
@@ -268,16 +292,57 @@ Ready to generate documentation?
 
 ## Step 7 — Generate
 
-Produce documentation from synthesis model.
+Fan out documentation generation to parallel doc writer sub-agents.
 
-READ `references/generation.md` for document templates, Mermaid patterns, and update/merge logic.
+READ `references/generation.md` for document templates, Mermaid patterns, doc writer prompts, and update/merge logic.
 
 ### Generation Tasks
 
-1. **Select templates** based on doc plan
-2. **Populate templates** with synthesis data
-3. **Generate diagrams** (Mermaid) for visual documentation
-4. **Apply frontmatter** with generation metadata
+1. **Plan doc structure** — identify which documents to generate based on doc plan (Step 3)
+2. **Spawn doc writer agents** in parallel — each reads assigned `.codedoc/` files and produces one output document
+3. **Collect writer summaries** (confirmation of files written, line counts, sections generated)
+
+### Doc Writer Architecture
+
+Each doc writer is spawned via `task(agent_type='general-purpose')` with:
+- Assigned output file path
+- List of `.codedoc/` analysis files to read
+- Template spec from `references/generation.md`
+- Mermaid diagram patterns from `references/generation.md`
+
+| Writer | Input Files | Output |
+|--------|-------------|--------|
+| **README Writer** | All `.codedoc/*.md` summaries | `README.md` |
+| **Architecture Guide Writer** | `.codedoc/architecture-analysis.md` + `synthesis.md` | `docs/architecture-guide.md` |
+| **Developer Guide Writer** | `.codedoc/architecture-analysis.md` + `.codedoc/api-analysis.md` + `synthesis.md` | `docs/developer-guide.md` |
+| **Codebase Context Writer** | All `.codedoc/*.md` files | `docs/codebase-context.md` |
+| **API Reference Writer** | `.codedoc/api-analysis.md` + native extractor output | `docs/api-reference.md` |
+| **Data Model Writer** | `.codedoc/data-model-analysis.md` + native extractor output | `docs/data-model.md` |
+| **Component Guide Writer** | `.codedoc/component-analysis.md` | `docs/component-guide.md` |
+| **Infrastructure Writer** | `.codedoc/infrastructure-analysis.md` | `docs/infrastructure.md` |
+
+Core writers (README, Architecture, Developer, Codebase Context) always spawn. Optional writers spawn based on doc plan.
+
+### Writer Prompt Template
+
+Each writer receives:
+```
+You are generating documentation for: {project_name}
+Project path: {project_path}
+Analysis directory: {project_path}/.codedoc/
+
+Read the following analysis files:
+{list of assigned .codedoc/ files}
+
+Follow the template spec in references/generation.md for your assigned document.
+Use references/generation.md Mermaid patterns for all diagrams.
+Write your output directly to: {output_file}
+Apply frontmatter with generation metadata.
+
+Return a compact summary: file written, line count, sections generated, diagrams included.
+```
+
+Spawn all doc writers in parallel. Collect completion summaries before proceeding to Step 8.
 
 ### Frontmatter Schema
 
@@ -335,27 +400,29 @@ Spawn 3 Sonnet-class reviewers in parallel:
 - Fix all 🔴 BLOCKERs
 - User decides on 🟠 WARNINGs
 
-### Commit
+### Commit & Cleanup
 
 After review passes:
 1. Stage generated docs
 2. Commit with message: `docs: generate codebase documentation via code-doc`
-3. Report summary to user
+3. Clean up: `rm -rf {project}/.codedoc` (analysis artifacts are transient)
+4. Report summary to user
 
 ---
 
 ## Sub-Agent Architecture
 
-| Agent Type | Model | Spawn Tool | Purpose |
-|------------|-------|------------|---------|
-| Analyst (Architecture) | Haiku | `task(agent_type='explore')` | System structure analysis |
-| Analyst (API Surface) | Haiku | `task(agent_type='explore')` | Endpoint mapping |
-| Analyst (Data Model) | Haiku | `task(agent_type='explore')` | Schema analysis |
-| Analyst (Component) | Haiku | `task(agent_type='explore')` | UI component mapping |
-| Analyst (Infrastructure) | Haiku | `task(agent_type='explore')` | CI/CD analysis |
-| Reviewer (Accuracy) | Sonnet | `task(agent_type='explore')` | Fact verification |
-| Reviewer (Completeness) | Sonnet | `task(agent_type='explore')` | Coverage check |
-| Reviewer (Clarity) | Sonnet | `task(agent_type='explore')` | Writing quality |
+| Agent Type | Model | Spawn Tool | Purpose | Output |
+|------------|-------|------------|---------|--------|
+| Analyst (Architecture) | Haiku | `task(agent_type='explore')` | System structure analysis | `.codedoc/architecture-analysis.md` |
+| Analyst (API Surface) | Haiku | `task(agent_type='explore')` | Endpoint mapping | `.codedoc/api-analysis.md` |
+| Analyst (Data Model) | Haiku | `task(agent_type='explore')` | Schema analysis | `.codedoc/data-model-analysis.md` |
+| Analyst (Component) | Haiku | `task(agent_type='explore')` | UI component mapping | `.codedoc/component-analysis.md` |
+| Analyst (Infrastructure) | Haiku | `task(agent_type='explore')` | CI/CD analysis | `.codedoc/infrastructure-analysis.md` |
+| Doc Writer (per doc) | Sonnet | `task(agent_type='general-purpose')` | Generate one output doc | `docs/{doc-name}.md` |
+| Reviewer (Accuracy) | Sonnet | `task(agent_type='explore')` | Fact verification | (in-memory results) |
+| Reviewer (Completeness) | Sonnet | `task(agent_type='explore')` | Coverage check | (in-memory results) |
+| Reviewer (Clarity) | Sonnet | `task(agent_type='explore')` | Writing quality | (in-memory results) |
 
 ### Agent Counts by Tier
 
@@ -401,6 +468,38 @@ After review passes:
 ### Archive Location
 
 Previous code-doc output archived to `.docs-archive/<timestamp>/` before regeneration.
+
+---
+
+## Analysis Artifacts
+
+The `.codedoc/` directory under `{project}/` contains transient analysis files written by sub-agents during Step 4. These are consumed by doc writers in Step 7 and cleaned up in Step 8.
+
+### File Layout
+
+```
+{project}/.codedoc/
+├── architecture-analysis.md    # Architecture Analyst output
+├── api-analysis.md             # API Surface Analyst output (if spawned)
+├── data-model-analysis.md      # Data Model Analyst output (if spawned)
+├── component-analysis.md       # Component Analyst output (if spawned)
+├── infrastructure-analysis.md  # Infrastructure Analyst output (if spawned)
+├── scout-analysis.md           # Scout direct analysis (Small tier only)
+├── synthesis.md                # Unified model from Step 5
+└── native-extractors/          # Raw output from language-native tools
+    ├── typedoc-output/
+    ├── sphinx-output/
+    └── ...
+```
+
+### Cleanup
+
+After Step 8 (review passes and docs are committed):
+```bash
+rm -rf {project}/.codedoc
+```
+
+If code-doc crashes mid-pipeline, `.codedoc/` may persist. Add `.codedoc/` to the project's `.gitignore` as a safety net. Never commit `.codedoc/` files.
 
 ---
 
@@ -473,17 +572,21 @@ Proceed? [y/n]
 
 ### Step 4 — Analysis
 
-Spawn analysts (Medium tier = 3 analysts):
+Create `.codedoc/` directory. Spawn analysts (Medium tier = 3 analysts):
 
-1. **Architecture Analyst** → maps Next.js app structure, page routing, data flow
-2. **API Surface Analyst** → documents 12 API routes with request/response schemas
-3. **Data Model Analyst** → extracts Prisma schema, relationships, indexes
+1. **Architecture Analyst** → writes `.codedoc/architecture-analysis.md`, returns summary
+2. **API Surface Analyst** → writes `.codedoc/api-analysis.md`, returns summary
+3. **Data Model Analyst** → writes `.codedoc/data-model-analysis.md`, returns summary
 
 Native extractors:
-- TypeDoc → TypeScript type definitions
-- Prisma CLI → schema introspection
+- TypeDoc → output saved to `.codedoc/native-extractors/typedoc/`
+- Prisma CLI → output saved to `.codedoc/native-extractors/prisma/`
+
+Orchestrator collects 3 compact summaries (not full analysis).
 
 ### Step 5 — Synthesis
+
+Read `.codedoc/` files selectively to build unified model. Write to `.codedoc/synthesis.md`.
 
 ```
 ## Synthesis Summary
@@ -513,15 +616,20 @@ User confirms synthesis, proceeds to generation.
 
 ### Step 7 — Generate
 
-Produce 7 documents with Mermaid diagrams:
-- Architecture component diagram
-- Data flow diagram
-- Prisma ER diagram
-- API endpoint documentation
+Fan out 7 doc writer sub-agents in parallel:
+- README Writer → reads all `.codedoc/` summaries → writes `README.md`
+- Architecture Guide Writer → reads `.codedoc/architecture-analysis.md` + `synthesis.md` → writes `docs/architecture-guide.md`
+- Developer Guide Writer → reads `.codedoc/architecture-analysis.md` + `api-analysis.md` + `synthesis.md` → writes `docs/developer-guide.md`
+- Codebase Context Writer → reads all `.codedoc/` files → writes `docs/codebase-context.md`
+- API Reference Writer → reads `.codedoc/api-analysis.md` + TypeDoc output → writes `docs/api-reference.md`
+- Data Model Writer → reads `.codedoc/data-model-analysis.md` + Prisma output → writes `docs/data-model.md`
+- Component Guide Writer → reads `.codedoc/component-analysis.md` → writes `docs/component-guide.md`
+
+Collect 7 writer summaries (confirmation of files written).
 
 ### Step 8 — Review & Write
 
-3 reviewers validate, no blockers found. Commit generated docs.
+3 reviewers validate, no blockers found. Commit generated docs. Clean up `.codedoc/`.
 
 ---
 
