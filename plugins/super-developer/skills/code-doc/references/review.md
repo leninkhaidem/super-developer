@@ -74,10 +74,10 @@ For each generated doc, verify:
 ### 🔴 Blockers
 - **[doc-name.md, line ~N]:** [specific wrong reference] — actual: [correct value from source]
 
-### 🟡 Warnings
+### 🟠 Warnings
 - **[doc-name.md, section]:** [issue description]
 
-### ℹ️ Info
+### 🟡 Info
 - **[doc-name.md]:** [suggestion]
 
 ### Verdict: PASS | BLOCK
@@ -161,10 +161,10 @@ You are reviewing generated documentation for coverage gaps.
 ### 🔴 Blockers
 - **[doc-name.md, line ~N]:** [missing coverage] — expected: [what should be there]
 
-### 🟡 Warnings
+### 🟠 Warnings
 - **[doc-name.md, section]:** [issue description]
 
-### ℹ️ Info
+### 🟡 Info
 - **[doc-name.md]:** [suggestion]
 
 ### Verdict: PASS | BLOCK
@@ -252,10 +252,10 @@ You are reviewing generated documentation for clarity and usability.
 ### 🔴 Blockers
 - **[doc-name.md, line ~N]:** [clarity issue blocking comprehension]
 
-### 🟡 Warnings
+### 🟠 Warnings
 - **[doc-name.md, section]:** [issue description]
 
-### ℹ️ Info
+### 🟡 Info
 - **[doc-name.md]:** [suggestion]
 
 ### Verdict: PASS | BLOCK
@@ -272,8 +272,8 @@ Contradictions between docs = 🔴 Blocker.
 | Severity | Icon | Definition | Examples | Action |
 |----------|------|------------|----------|--------|
 | **BLOCKER** | 🔴 | Factually wrong code reference OR missing major module/entry point | Wrong function name (`getUser` → actual is `fetchUser`), non-existent file path (`src/auth.ts` doesn't exist), entry point `main.go` not documented | Must fix before writing. Triggers re-review. |
-| **WARNING** | 🟡 | Minor inaccuracy, unclear wording, incomplete detail | Typo in config path, unclear sentence, missing optional parameter in signature | Fix inline. No re-review. |
-| **INFO** | ℹ️ | Style suggestion, formatting, nice-to-have | "Consider adding example", "Could reorder sections", "Diagram would help here" | Fix if time permits. |
+| **WARNING** | 🟠 | Minor inaccuracy, unclear wording, incomplete detail | Typo in config path, unclear sentence, missing optional parameter in signature | Fix inline. No re-review. |
+| **INFO** | 🟡 | Style suggestion, formatting, nice-to-have | "Consider adding example", "Could reorder sections", "Diagram would help here" | Fix if time permits. |
 
 ### Severity Decision Tree
 
@@ -288,8 +288,8 @@ Is it factually wrong about code? (wrong name, wrong path, wrong signature)
       ├─ Yes → 🔴 BLOCKER (clarity)
       └─ No
          Is it unclear, incomplete, or has minor inaccuracy?
-         ├─ Yes → 🟡 WARNING
-         └─ No → ℹ️ INFO
+         ├─ Yes → 🟠 WARNING
+         └─ No → 🟡 INFO
 ```
 
 ---

@@ -283,7 +283,7 @@ READ `references/generation.md` for document templates, Mermaid patterns, and up
 
 ```yaml
 ---
-codedoc_version: "1.0"
+codedoc_version: 1
 generated: "2024-01-15T10:30:00Z"
 project_hash: "<short git hash or file content hash>"
 ---
@@ -363,7 +363,7 @@ After review passes:
 |------|----------|-----------|
 | Small (< 200 files) | 0 (scout direct) | 3 |
 | Medium (200–1000) | 2–3 | 3 |
-| Large (> 1000) | 3–5 | 3 |
+| Large (> 1000) | 4–5 | 3 |
 
 ---
 
