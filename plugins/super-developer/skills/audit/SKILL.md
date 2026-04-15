@@ -110,7 +110,7 @@ If audit verdict is FAIL, present issues and STOP. Do not invoke the next stage.
 
 If PASS and blanket approval was given (e.g., "proceed through all stages", "run end to end", "do everything"), invoke immediately. If PASS without blanket approval, state: "Audit passed. Merge worktree at `.worktrees/<feature>/merge/`." Wait for user confirmation. Then invoke:
 
-Use the Skill tool with: skill: "super-developer:review-code", args: "<feature-name>"
+Use the Skill tool with: skill: "review-code", args: "<feature-name>"
 
 Do NOT attempt to execute the next skill's logic inline. The Skill tool loads it properly.
 

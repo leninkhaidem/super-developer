@@ -281,9 +281,9 @@ How do you want to proceed?
 
 | Selection | Action |
 |---|---|
-| `audit` | Use the Skill tool with: skill: "super-developer:audit", args: "<feature-name>" |
-| `review` | Use the Skill tool with: skill: "super-developer:review-code", args: "<feature-name>" |
-| `both` | Use the Skill tool with: skill: "super-developer:audit", args: "<feature-name>". Treat as blanket pipeline approval — audit will automatically proceed to review-code upon PASS. |
+| `audit` | Use the Skill tool with: skill: "audit", args: "<feature-name>" |
+| `review` | Use the Skill tool with: skill: "review-code", args: "<feature-name>" |
+| `both` | Use the Skill tool with: skill: "audit", args: "<feature-name>". Treat as blanket pipeline approval — audit will automatically proceed to review-code upon PASS. |
 | `done` | No action. Pipeline ends. |
 
 Do NOT attempt to execute audit or review-code logic inline. The Skill tool loads each properly.

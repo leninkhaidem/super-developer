@@ -91,7 +91,7 @@ If this stage failed or requires user intervention, STOP. Do not invoke the next
 
 If blanket approval was given (e.g., "proceed through all stages", "run end to end", "do everything"), invoke immediately. Otherwise, state: "Plan reviewed and approved." Wait for user confirmation. Then invoke:
 
-Use the Skill tool with: skill: "super-developer:implement", args: "<feature-name>"
+Use the Skill tool with: skill: "implement", args: "<feature-name>"
 
 Do NOT attempt to execute the next skill's logic inline. The Skill tool loads it properly.
 
