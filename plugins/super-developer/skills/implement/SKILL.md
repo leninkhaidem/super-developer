@@ -104,6 +104,44 @@ Analyze actionable tasks and decide on parallelism:
 1. **Independent tasks** (no mutual dependencies, touch different files) — spawn concurrent sub-agents.
 2. **Dependent or overlapping tasks** — execute serially.
 
+### 5a. Micro-Task Consolidation
+
+Before assigning tasks to sub-agents, run a consolidation pass over the actionable set. The goal is to prevent spawning a sub-agent for work that is too thin to justify its own agent context.
+
+**Consolidation criteria — batch together tasks that meet ALL of:**
+1. Both are independent (no mutual dependency)
+2. Both are Sonnet-level complexity (in `adaptive` strategy) or trivially scoped
+3. They share a domain affinity: same module, same directory, same subsystem, or same logical concern (e.g., two config changes, two small model updates, two test additions)
+4. All have the same branching base — either all are independent of earlier feature work (branch from `main`) or all depend on the same completed phases (branch from `feature/<feature>`). Tasks with different dependency profiles cannot share a worktree.
+
+**Consolidation limits:**
+- A consolidated batch targets **one worktree**. All tasks in the batch must be non-conflicting in the files they touch.
+- Maximum **5 tasks** per consolidated batch to keep sub-agent scope manageable.
+- If a task has Opus-level complexity, it always gets its own sub-agent — never batch it.
+
+**How to apply:** When forming parallel batches (below), treat consolidated groups as a single sub-agent assignment. The sub-agent receives all task IDs in the group and implements them sequentially within the same worktree.
+
+Announce consolidation in the execution plan:
+
+```
+Actionable tasks: P1-T001, P1-T002, P1-T003, P1-T004, P2-T001
+Strategy: adaptive
+
+Micro-task consolidation:
+  P1-T002 (add email validator) + P1-T003 (add phone validator) + P1-T004 (update config) → consolidated (same domain, Sonnet-level)
+
+Execution plan:
+  Parallel batch 1:
+    Sub-agent A [Opus]:   P1-T001 (user model) — new schema, no pattern to follow
+    Sub-agent B [Sonnet]: P1-T002, P1-T003, P1-T004 (consolidated — validation + config)
+  Serial (after batch 1):
+    P2-T001 (login endpoint) [Opus] — depends on P1-T001, auth-sensitive
+```
+
+If no tasks qualify for consolidation, skip this sub-step and note "No consolidation needed" in the plan.
+
+### 5b. Assign Batches
+
 Announce the plan before executing. If using the `adaptive` strategy, include model selection:
 
 ```
@@ -148,6 +186,12 @@ git worktree add .worktrees/<feature>/task-<task> -b task/<feature>/<task> main
 git worktree add .worktrees/<feature>/task-<task> -b task/<feature>/<task> feature/<feature>
 ```
 
+**Consolidated tasks:** Use the first task ID in the group for the worktree and branch name. For example, if P1-T002, P1-T003, and P1-T004 are consolidated, create one worktree:
+```bash
+git worktree add .worktrees/<feature>/task-P1-T002 -b task/<feature>/P1-T002 main
+```
+The sub-agent implements all consolidated tasks within this single worktree.
+
 Branching from the feature ref gives the task access to all previously merged work.
 
 ### 6b. Update Status
@@ -184,6 +228,7 @@ Each sub-agent must:
 - Read existing files relevant to the task(s) before making changes
 - **Work exclusively within the assigned worktree directory**
 - Implement the changes and commit within the worktree
+- **When handling multiple consolidated tasks, commit after completing each task** (separate commit per task ID) so the orchestrator can assess per-task completion
 - Verify each acceptance criterion
 - Report what was done and which criteria were verified
 
@@ -191,21 +236,21 @@ Each sub-agent must:
 
 ### 6d. Merge Completed Tasks into Feature Branch
 
-After all sub-agents in the current batch complete, merge their work before starting the next batch:
+After all sub-agents in the current batch complete, merge their work before starting the next batch. Merge once **per sub-agent branch** (not per task ID). For consolidated batches, multiple tasks share one branch — merge it once.
 
 ```bash
 # Create merge worktree on the feature branch (if not already created)
 git worktree add .worktrees/<feature>/merge feature/<feature>
 cd .worktrees/<feature>/merge
 
-# Merge each completed task branch
+# Merge each sub-agent's branch (one branch per sub-agent, even if consolidated)
 git merge task/<feature>/<task-name> --no-edit
 ```
 
 **Merge conflict handling:** If `git merge` reports conflicts:
 1. Inspect the conflicting files. If conflicts are trivially resolvable (adjacent non-overlapping changes in the same file), resolve them and commit.
 2. If conflicts are substantive (overlapping logic, incompatible changes), abort the merge: `git merge --abort`
-3. Set the conflicting task's status to `blocked` with `blocked_reason: "merge conflict with <other-task> in <file(s)>"`.
+3. Set the conflicting task's status to `blocked` with `blocked_reason: "merge conflict with <other-task> in <file(s)>"`. For consolidated batches, block all tasks in the group.
 4. Report the conflict to the user and suggest re-sequencing the conflicting tasks (run them serially instead of in parallel).
 
 Complete Steps 6d and 6e for the current batch before returning to Step 4. Dependent tasks in the next batch require the feature ref to contain all previously merged work.
@@ -216,7 +261,7 @@ Complete Steps 6d and 6e for the current batch before returning to Step 4. Depen
 ```bash
 cd .worktrees/<feature>/merge
 git merge-base --is-ancestor task/<feature>/<task> HEAD && echo "merged" || echo "NOT MERGED"
-# ALL must print "merged" before proceeding
+# Verify each sub-agent's branch (one per sub-agent). ALL must print "merged".
 ```
 
 **Only if ALL verify as merged:**
@@ -226,13 +271,16 @@ git worktree remove .worktrees/<feature>/task-<task>
 git branch -d task/<feature>/<task>
 ```
 
+For consolidated batches, there is one worktree and one branch to remove (named after the first task ID in the group).
+
 **Keep the merge worktree** — it holds the feature branch checkout needed for subsequent steps.
 
 ## Step 7: Collect Results and Update
 
 1. Update each completed task's `status` to `done` in tasks.json. Add `completed_at` timestamp.
 2. If a sub-agent could not complete a task, set `status` to `blocked` with `blocked_reason`.
-3. Report to the user:
+3. **Consolidated batch partial failures:** If a sub-agent reports partial completion of a consolidated batch, assess per-task status from the sub-agent's report and the per-task commits (as required in Step 6c). Mark completed tasks as `done` and failed ones as `blocked`. Merge the branch to preserve completed work; blocked tasks can be retried in a future batch.
+4. Report to the user:
 
 ```
 Batch complete:

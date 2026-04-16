@@ -132,6 +132,23 @@ Create a JSON file following this schema:
 - Dependencies must not be circular. Tasks in phase N may depend on tasks in phases 1..N only.
 - Task IDs must be unique across all phases.
 
+### Task Substance Rule
+
+Each task must have a **self-contained, verifiable outcome** — a change that is independently meaningful when described in one sentence.
+
+**Merge tasks that lack standalone intent.** If a task is only a mechanical step toward another task's goal (adding an import, creating a type alias, updating a config key), it is usually not a task — it is part of the task that needs that change. Fold it into the task that gives it meaning, unless the integration step itself has independent acceptance criteria (e.g., configuring a DI container registration that requires specific binding rules).
+
+**Consolidation test:** For each candidate task, ask: *"Can a reviewer verify this task's acceptance criteria without seeing any other task?"* If the answer is no, the task is too thin — merge it with the task it serves.
+
+Examples of tasks that **fail** this test and should be merged:
+- "Add import for `UserService`" → merge into the task that uses `UserService`
+- "Create empty migration file" → merge into the task that defines the migration
+- "Add route constant" → merge into the task that implements the route handler
+
+Examples of tasks that **pass** despite being small:
+- "Add rate-limiting middleware to auth endpoints" (3 lines, but independently verifiable and meaningful)
+- "Configure CORS policy for the new API namespace" (small, but self-contained security concern)
+
 ## Step 5: Validate
 
 Before writing files, verify:
@@ -141,6 +158,7 @@ Before writing files, verify:
 - No circular dependencies
 - All dependency references point to valid task IDs
 - Every task has at least one acceptance criterion
+- Every task passes the substance consolidation test (self-contained, verifiable outcome)
 - Phase order is sequential with no gaps
 - Task IDs are unique across all phases
 
