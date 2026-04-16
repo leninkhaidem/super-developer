@@ -37,7 +37,7 @@ Produce a problem brief containing:
 
 Based on the nature of the problem, decide:
 
-1. **How many perspectives** — typically 3-5, depending on complexity. More for ambiguous or cross-cutting problems, fewer for well-scoped ones.
+1. **How many perspectives** — 2-3 for well-scoped problems with clear boundaries, 4-5 for ambiguous or cross-cutting challenges. Prefer fewer, high-quality perspectives over exhaustive coverage.
 2. **What each perspective is.** Each must be a genuinely distinct lens — not a variation of the same approach. The goal is divergence.
 
 Perspective types (inspiration, not a fixed menu):
@@ -49,7 +49,7 @@ Perspective types (inspiration, not a fixed menu):
 | Data / IO | Database, caching, data flow |
 | Operational / Pragmatic | Quickest path to stability, minimal changes, buy-vs-build |
 | Defensive / Resilience | Fault tolerance, graceful degradation, circuit breaking |
-| Root Cause | Challenge the premise — is the stated problem the real problem? |
+| Root Cause | Challenge the premise — is the stated problem the real problem? **Trigger only when the problem describes symptoms without clear diagnosis** ("it's slow", "crashes occur", "users report errors"). Skip for well-scoped design/architecture decisions. |
 | Domain-Specific | Patterns specific to the domain (event sourcing, CQRS, etc.) |
 | Unconventional | An approach the team likely hasn't considered |
 
@@ -112,7 +112,7 @@ Spawn one final **Opus-class sub-agent** — the Skeptic — with the problem br
 
 The Skeptic must:
 
-- **Stress-test each proposal:** What breaks? What edge cases are missed? What assumptions are wrong?
+- **Stress-test each proposal:** What breaks? What edge cases are missed? What assumptions are wrong? **Challenge the premise:** Is the proposal solving the real problem, or just the stated one?
 - **Identify complementary elements:** Are there proposals that solve different facets and could be combined?
 - **Rank the proposals** by: effectiveness (does it solve the problem?), risk (what could go wrong?), effort (cost to implement), and durability (fix or band-aid?).
 - **Produce a final recommendation:** Endorse one proposal, propose a hybrid combining the strongest elements, or recommend a phased approach (quick fix now, proper solution later).
