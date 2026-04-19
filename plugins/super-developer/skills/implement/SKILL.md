@@ -10,9 +10,9 @@ description: >
 
 # Implement: Execute Tasks from Plan
 
-Execute tasks from a feature's task plan. The main agent acts as an orchestrator — analyzing the dependency graph, identifying parallelizable work, managing git worktrees, and spawning sub-agents for implementation. Sub-agents write the code. The orchestrator manages all git infrastructure.
+Execute tasks from a feature's task plan. The main agent acts as an orchestrator — analyzing the dependency graph, assessing task complexity, managing git worktrees, and dispatching work. For complex tasks, sub-agents write the code in isolated worktrees. For simple, well-defined tasks, the main agent executes directly.
 
-**Do not implement tasks as the main agent. Sub-agents write the code. The main agent orchestrates.**
+**The main agent orchestrates and may execute simple tasks inline. Sub-agents handle complex or parallel work.**
 
 ## Arguments
 
@@ -80,7 +80,7 @@ PROJECT_ROOT=$(git rev-parse --show-toplevel)
 
 1. Ensure `.worktrees/` is in `.gitignore`.
 2. Create the feature branch as a ref (not a worktree): `git branch feature/<name> main`
-3. Create the feature namespace directory: `mkdir -p .worktrees/<feature>/`
+3. If any tasks will be delegated to sub-agents (per Step 5.2), create the feature namespace directory: `mkdir -p .worktrees/<feature>/`. If all actionable tasks are classified as inline, defer worktree directory creation until a delegated task appears.
 
 **The main working tree always stays on `main`.** Never run `git checkout` in the project root.
 
@@ -97,78 +97,40 @@ Collect **all** currently actionable tasks — not just the next one.
 - **Tasks `blocked`:** List with `blocked_reason`. Ask how to proceed.
 - **Tasks `in-progress`:** Likely from an interrupted session. Show details and ask: continue, or reset to `pending`?
 
-## Step 5: Plan Execution Strategy
+## Step 5: Plan Dispatching
 
-Analyze actionable tasks and decide on parallelism:
+For each set of actionable tasks, reason through these sub-steps in order:
 
-1. **Independent tasks** (no mutual dependencies, touch different files) — spawn concurrent sub-agents.
-2. **Dependent or overlapping tasks** — execute serially.
+### 5.1. Analyze File Impact
 
-### 5a. Micro-Task Consolidation
+Read each task's description and acceptance criteria. Determine which files each task will likely create or modify. This analysis drives all subsequent decisions.
 
-Before assigning tasks to sub-agents, run a consolidation pass over the actionable set. The goal is to prevent spawning a sub-agent for work that is too thin to justify its own agent context.
+### 5.2. Classify Execution Mode
 
-**Consolidation criteria — batch together tasks that meet ALL of:**
-1. Both are independent (no mutual dependency)
-2. Both are Sonnet-level complexity (in `adaptive` strategy) or trivially scoped
-3. They share a domain affinity: same module, same directory, same subsystem, or same logical concern (e.g., two config changes, two small model updates, two test additions)
-4. All have the same branching base — either all are independent of earlier feature work (branch from `main`) or all depend on the same completed phases (branch from `feature/<feature>`). Tasks with different dependency profiles cannot share a worktree.
+For each task, decide:
 
-**Consolidation limits:**
-- A consolidated batch targets **one worktree**. All tasks in the batch must be non-conflicting in the files they touch.
-- Maximum **5 tasks** per consolidated batch to keep sub-agent scope manageable.
-- If a task has Opus-level complexity, it always gets its own sub-agent — never batch it.
+- **Inline** — execute as the main agent. No sub-agent, no worktree. Use when: the task affects ≤3 files, follows an existing pattern in the codebase, and has unambiguous acceptance criteria.
+- **Delegate** — spawn a sub-agent in a worktree. Use when: the task is complex enough to benefit from focused context, needs parallel execution with other work, or requires isolation.
 
-**How to apply:** When forming parallel batches (below), treat consolidated groups as a single sub-agent assignment. The sub-agent receives all task IDs in the group and implements them sequentially within the same worktree.
+When using the `adaptive` model strategy (Step 2), apply model selection to delegated tasks only. Inline tasks do not use model preferences.
 
-Announce consolidation in the execution plan:
+### 5.3. Detect and Resolve Overlap
 
-```
-Actionable tasks: P1-T001, P1-T002, P1-T003, P1-T004, P2-T001
-Strategy: adaptive
+Compare file-impact maps across all tasks planned for concurrent execution. If any two tasks could touch the same file:
 
-Micro-task consolidation:
-  P1-T002 (add email validator) + P1-T003 (add phone validator) + P1-T004 (update config) → consolidated (same domain, Sonnet-level)
+- **Serialize them** (run one after the other), OR
+- **Consolidate them** into a single sub-agent in a single worktree
 
-Execution plan:
-  Parallel batch 1:
-    Sub-agent A [Opus]:   P1-T001 (user model) — new schema, no pattern to follow
-    Sub-agent B [Sonnet]: P1-T002, P1-T003, P1-T004 (consolidated — validation + config)
-  Serial (after batch 1):
-    P2-T001 (login endpoint) [Opus] — depends on P1-T001, auth-sensitive
-```
+Never parallelize tasks with potential file overlap. When file-impact is ambiguous or unpredictable from the task description, default to serialization — the cost of unnecessary serialization is latency; the cost of incorrect parallelization is merge conflicts.
 
-If no tasks qualify for consolidation, skip this sub-step and note "No consolidation needed" in the plan.
+### 5.4. Consolidate Where Natural
 
-### 5b. Assign Batches
+Tasks in the same module, directory, or logical subsystem that are all being delegated — prefer consolidating into fewer sub-agents rather than one-agent-per-task. Fewer agents with related work produce more coherent code than many agents working in isolation.
 
-Announce the plan before executing. If using the `adaptive` strategy, include model selection:
+### 5.5. Announce and Justify
 
-```
-Actionable tasks: P1-T001, P1-T002, P1-T003, P2-T001
-Strategy: adaptive
+Before executing, present the dispatching plan. For each task, state whether it is inline or delegated, which tasks are consolidated, and briefly why. This lets the user validate dispatching reasoning before execution begins.
 
-Execution plan:
-  Parallel batch 1:
-    Sub-agent A [Opus]:   P1-T001 (user model), P1-T002 (email validation) — new schema, no pattern to follow
-    Sub-agent B [Sonnet]: P1-T003 (login page component) — matches existing component pattern
-  Serial (after batch 1):
-    P2-T001 (login endpoint) [Opus] — depends on P1-T001, auth-sensitive
-```
-
-If using `inherit`, omit model labels:
-
-```
-Actionable tasks: P1-T001, P1-T002, P1-T003, P2-T001
-Strategy: inherit (using orchestrator model)
-
-Execution plan:
-  Parallel batch 1:
-    Sub-agent A: P1-T001 (user model), P1-T002 (email validation)
-    Sub-agent B: P1-T003 (login page component)
-  Serial (after batch 1):
-    P2-T001 (login endpoint) — depends on P1-T001
-```
 
 ## Step 6: Create Worktrees and Execute
 
@@ -176,17 +138,19 @@ For each batch of tasks:
 
 ### 6a. Create Task Worktrees
 
-**Independent tasks (no dependencies on earlier feature work):**
+**For inline tasks (classified in Step 5.2):** Skip worktree creation. The main agent creates a task branch without a worktree: `git branch task/<feature>/<task> <base>` (where `<base>` is `main` for independent tasks or `feature/<feature>` for dependent tasks). The main agent works directly and commits to this branch.
+
+**For delegated tasks — independent (no dependencies on earlier feature work):**
 ```bash
 git worktree add .worktrees/<feature>/task-<task> -b task/<feature>/<task> main
 ```
 
-**Dependent tasks (needs earlier phases merged into feature ref):**
+**For delegated tasks — dependent (needs earlier phases merged into feature ref):**
 ```bash
 git worktree add .worktrees/<feature>/task-<task> -b task/<feature>/<task> feature/<feature>
 ```
 
-**Consolidated tasks:** Use the first task ID in the group for the worktree and branch name. For example, if P1-T002, P1-T003, and P1-T004 are consolidated, create one worktree:
+**Consolidated delegated tasks:** Use the first task ID in the group for the worktree and branch name. For example, if P1-T002, P1-T003, and P1-T004 are consolidated, create one worktree:
 ```bash
 git worktree add .worktrees/<feature>/task-P1-T002 -b task/<feature>/P1-T002 main
 ```
@@ -198,20 +162,32 @@ Branching from the feature ref gives the task access to all previously merged wo
 
 Set assigned tasks to `in-progress` in tasks.json. Write immediately.
 
-### 6c. Spawn Sub-Agents
+### 6c. Execute Inline Tasks
+
+For tasks classified as inline in Step 5.2, the main agent executes directly:
+
+1. Read CONTEXT.md to understand the feature holistically.
+2. Read the task's description and acceptance criteria from tasks.json.
+3. Read existing files relevant to the task before making changes.
+4. Implement the changes and commit to the task branch with a descriptive message.
+5. Verify each acceptance criterion.
+6. Update task status to `done` with `completed_at` timestamp.
+
+**Inline failure handling:** If an inline task turns out to be more complex than expected (ambiguous requirements, unexpected codebase interactions), reclassify it as delegated. Reset the task branch (`git branch -D task/<feature>/<task>` and recreate), then spawn a sub-agent for it in the next batch.
+
+**Mixed batch ordering:** When a batch contains both inline and delegated tasks, execute inline tasks first, then spawn sub-agents for delegated tasks. This ensures inline commits are on their task branches before merge operations.
+
+**All-inline scenario:** When all tasks in the feature are executed inline, no merge worktree is needed. Step 7 still updates tasks.json. Step 8 runs tests from the working directory or a feature branch checkout instead of a merge worktree. The Pipeline Continuation prompt applies only when sub-agents produced work requiring a merge worktree.
+
+### 6d. Spawn Sub-Agents
+
+For tasks classified as delegated in Step 5.2, spawn sub-agents.
 
 **Model selection** depends on the strategy loaded in Step 2:
 
-**`inherit` strategy:** Do not pass a `model` parameter to sub-agents. They inherit the orchestrator's model. Skip the complexity analysis below.
+**`inherit` strategy:** Do not pass a `model` parameter to sub-agents. They inherit the orchestrator's model.
 
-**`adaptive` strategy (default):** Select per-task based on complexity:
-
-| Model | When to use | Examples |
-|---|---|---|
-| **Sonnet** | Trivial or standard tasks with well-defined scope and existing patterns to follow | Add a constant, rename a file, update an import, write tests for existing code, add a CRUD endpoint following an established pattern, add a component matching an existing one |
-| **Opus** | Complex tasks with ambiguity, cross-module impact, security sensitivity, concurrency, or no clear existing pattern to follow | New architecture, cross-module refactor, concurrency logic, auth/security-sensitive code, tasks with vague acceptance criteria |
-
-The orchestrator logs its model choice per task in the batch announcement (Step 5). Bias toward Opus when uncertain — the cost of a wrong downgrade is a subtle bug that survives audit.
+**`adaptive` strategy (default):** Use the complexity classification from Step 5.2. The inline/delegate boundary already captures this: delegated tasks are complex enough to warrant a sub-agent. Within delegated tasks, bias toward Opus when uncertain — the cost of a wrong downgrade is a subtle bug that survives audit. Use Sonnet only for delegated tasks that follow well-established patterns and have unambiguous scope.
 
 Each sub-agent receives:
 - `.tasks/$ARGUMENTS/CONTEXT.md` — project brief
@@ -234,16 +210,16 @@ Each sub-agent must:
 
 **Do not pass conversation history to sub-agents.** They work from files only.
 
-### 6d. Merge Completed Tasks into Feature Branch
+### 6e. Merge Completed Tasks into Feature Branch
 
-After all sub-agents in the current batch complete, merge their work before starting the next batch. Merge once **per sub-agent branch** (not per task ID). For consolidated batches, multiple tasks share one branch — merge it once.
+After all sub-agents in the current batch complete, merge their work before starting the next batch. Merge once **per sub-agent branch** (not per task ID). For consolidated batches, multiple tasks share one branch — merge it once. For inline tasks, merge the task branch into the feature branch the same way.
 
 ```bash
 # Create merge worktree on the feature branch (if not already created)
 git worktree add .worktrees/<feature>/merge feature/<feature>
 cd .worktrees/<feature>/merge
 
-# Merge each sub-agent's branch (one branch per sub-agent, even if consolidated)
+# Merge each task branch (one branch per sub-agent or inline task)
 git merge task/<feature>/<task-name> --no-edit
 ```
 
@@ -253,9 +229,9 @@ git merge task/<feature>/<task-name> --no-edit
 3. Set the conflicting task's status to `blocked` with `blocked_reason: "merge conflict with <other-task> in <file(s)>"`. For consolidated batches, block all tasks in the group.
 4. Report the conflict to the user and suggest re-sequencing the conflicting tasks (run them serially instead of in parallel).
 
-Complete Steps 6d and 6e for the current batch before returning to Step 4. Dependent tasks in the next batch require the feature ref to contain all previously merged work.
+Complete Steps 6e and 6f for the current batch before returning to Step 4. Dependent tasks in the next batch require the feature ref to contain all previously merged work.
 
-### 6e. Verify and Clean Up Task Worktrees
+### 6f. Verify and Clean Up Task Worktrees
 
 **Pre-cleanup verification (mandatory):**
 ```bash
@@ -279,7 +255,7 @@ For consolidated batches, there is one worktree and one branch to remove (named 
 
 1. Update each completed task's `status` to `done` in tasks.json. Add `completed_at` timestamp.
 2. If a sub-agent could not complete a task, set `status` to `blocked` with `blocked_reason`.
-3. **Consolidated batch partial failures:** If a sub-agent reports partial completion of a consolidated batch, assess per-task status from the sub-agent's report and the per-task commits (as required in Step 6c). Mark completed tasks as `done` and failed ones as `blocked`. Merge the branch to preserve completed work; blocked tasks can be retried in a future batch.
+3. **Consolidated batch partial failures:** If a sub-agent reports partial completion of a consolidated batch, assess per-task status from the sub-agent's report and the per-task commits (as required in Step 6d). Mark completed tasks as `done` and failed ones as `blocked`. Merge the branch to preserve completed work; blocked tasks can be retried in a future batch.
 4. Report to the user:
 
 ```
@@ -302,8 +278,8 @@ When all tasks in a phase are `done`:
 
 When all phases are complete:
 1. Update feature `status` to `completed` in tasks.json.
-2. Run tests from the merge worktree to validate the integrated feature.
-3. Push the feature branch: `git push -u origin feature/<feature>` from the merge worktree.
+2. Run tests to validate the integrated feature. If a merge worktree exists (`.worktrees/<feature>/merge`), run from there. If all tasks were executed inline (no merge worktree), run from a temporary feature branch checkout or the working directory.
+3. Push the feature branch: `git push -u origin feature/<feature>`.
 4. **Do NOT merge to main.** Wait for explicit user approval per the git worktree strategy. "Push to remote" does NOT mean "merge to main."
 
 ---
@@ -338,9 +314,9 @@ Do NOT attempt to execute audit or review-code logic inline. The Skill tool load
 
 ## Rules
 
-- **Sub-agents own execution.** The main agent orchestrates (dependency analysis, worktree management, status updates) but does not write implementation code.
+- **The main agent orchestrates and may execute inline.** For simple, well-defined tasks (per Step 5.2), the main agent implements directly. For complex or parallel work, sub-agents write the code.
 - **The main agent owns git infrastructure.** Sub-agents work in assigned worktree directories only. They do not create worktrees, branches, or run merge operations.
-- **Maximize parallelism, respect dependencies.** Spawn concurrent sub-agents for independent tasks. Never parallelize tasks that share file dependencies or have explicit dependency links.
+- **Maximize parallelism, respect dependencies.** Spawn concurrent sub-agents for independent tasks. Never parallelize tasks that share file dependencies, have potential file overlap (per Step 5.3), or have explicit dependency links.
 - **Do not modify CONTEXT.md** during implementation.
 - **Do not add new tasks** during implementation. If additional work is discovered, note it and suggest a plan update separately.
 - **Follow project conventions.** Ensure sub-agents read CLAUDE.md / AGENTS.md if present.
