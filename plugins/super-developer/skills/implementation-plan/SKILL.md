@@ -95,7 +95,7 @@ Create a JSON file following this schema:
         {
           "id": "P1-T001",
           "title": "Short descriptive title",
-          "description": "WHAT to build and WHY. References affected files/modules. Includes non-discoverable constraints. Does NOT prescribe exact code or implementation steps.",
+          "description": "WHAT to build and key constraints. References affected files/modules. Includes non-discoverable constraints. Does NOT prescribe exact code or implementation steps.",
           "status": "pending",
           "dependencies": [],
           "acceptance_criteria": [
@@ -146,19 +146,9 @@ Do not include in task descriptions:
 
 When deviating from these guidelines for a legitimate reason (external API contract, complex migration ordering), note the justification in the task's `context` field.
 
-#### Before/After Example
+#### Reference Example
 
 ```
-❌ VERBOSE (1,847 chars):
-"Create `src/auth/middleware.ts`. Import `jsonwebtoken` and `express`.
-Export `authMiddleware = (req, res, next) => {...}`. Extract token from
-`Authorization: Bearer <token>` header. Use `jwt.verify(token,
-process.env.JWT_SECRET)`. If invalid, return 401 with JSON body
-`{error: 'Invalid token'}`. Attach decoded payload to `req.user`.
-Call `next()`. Add rate limiting using express-rate-limit, 100 requests
-per 15 minutes per IP. Write tests covering: valid token, expired token,
-missing header, malformed token, rate limit exceeded..."
-
 ✅ INTENT-DRIVEN (285 chars):
 "Implement JWT authentication middleware protecting all `/api/*` routes.
 Reject invalid/missing tokens with 401. Attach decoded user identity to
