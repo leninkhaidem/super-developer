@@ -95,7 +95,7 @@ Create a JSON file following this schema:
         {
           "id": "P1-T001",
           "title": "Short descriptive title",
-          "description": "Detailed implementation guidance. Include what to build, how, which files to touch, and technical approach. A sub-agent should execute from CONTEXT.md + this description alone.",
+          "description": "WHAT to build and WHY. References affected files/modules. Includes non-discoverable constraints. Does NOT prescribe exact code or implementation steps.",
           "status": "pending",
           "dependencies": [],
           "acceptance_criteria": [
@@ -125,12 +125,57 @@ Create a JSON file following this schema:
 
 ### Task Authoring Guidelines
 
-- **Tasks carry the implementation detail, not CONTEXT.md.** The task `description` must contain everything a sub-agent needs: files to create or modify, patterns to follow, specific technical instructions.
+- **Descriptions state WHAT to build, not HOW to code it.** Reference affected files and modules so the agent knows where to work. Include constraints that aren't discoverable from the codebase — external API contracts, security policies, performance bounds, decisions made during planning. The implementing agent derives the actual code from codebase exploration.
+- **"Discoverable" means:** exists in CONTEXT.md, the referenced files, or their immediate imports. If an agent reading those files would find it, don't repeat it in the description.
+- **Anchor patterns, don't prescribe code.** When a task should follow an existing pattern, reference it: "Follow middleware pattern in `src/middleware/cors.ts`." The agent explores, finds the pattern, follows it.
+- **Description budget:** Target 200-400 characters. Descriptions exceeding 600 characters likely contain implementation prescriptions — review and trim.
+- The `description` field covers WHAT + constraints. The `context` field covers WHY — one or two sentences linking back to a design decision. Don't mix them.
 - Each task: scoped for a single focused agent session.
 - Group tasks into phases that deliver a testable increment.
-- The `context` field: a brief "why" — one or two sentences linking back to a design decision.
 - Dependencies must not be circular. Tasks in phase N may depend on tasks in phases 1..N only.
 - Task IDs must be unique across all phases.
+
+#### Description Anti-Patterns
+
+Do not include in task descriptions:
+- Exact code snippets or function bodies
+- Line number references (fragile, become stale)
+- Step-by-step implementation instructions
+- Library or parser choices (unless security-mandated — see acceptance criteria guidance below)
+- Defensive coding prescriptions the agent should already know
+
+When deviating from these guidelines for a legitimate reason (external API contract, complex migration ordering), note the justification in the task's `context` field.
+
+#### Before/After Example
+
+```
+❌ VERBOSE (1,847 chars):
+"Create `src/auth/middleware.ts`. Import `jsonwebtoken` and `express`.
+Export `authMiddleware = (req, res, next) => {...}`. Extract token from
+`Authorization: Bearer <token>` header. Use `jwt.verify(token,
+process.env.JWT_SECRET)`. If invalid, return 401 with JSON body
+`{error: 'Invalid token'}`. Attach decoded payload to `req.user`.
+Call `next()`. Add rate limiting using express-rate-limit, 100 requests
+per 15 minutes per IP. Write tests covering: valid token, expired token,
+missing header, malformed token, rate limit exceeded..."
+
+✅ INTENT-DRIVEN (285 chars):
+"Implement JWT authentication middleware protecting all `/api/*` routes.
+Reject invalid/missing tokens with 401. Attach decoded user identity to
+request context. Add rate limiting (100 req/15min/IP). Follow existing
+middleware pattern in `src/middleware/cors.ts`."
+```
+
+#### Acceptance Criteria Guidance
+
+Criteria must describe **verifiable outcomes**, not implementation details:
+- ✅ "Returns empty list on any network or parse error" (behavioral)
+- ✅ "XML parsing is safe against XXE attacks (use defusedxml or equivalent)" (security outcome with verification hint)
+- ✅ "Response latency ≤200ms at p95 under 100 concurrent requests" (measurable)
+- ❌ "Uses `express-rate-limit` library" (implementation prescription)
+- ❌ "Parser tries lxml first, falls back to html.parser" (internal implementation detail)
+
+**Security-mandated specifics are acceptable.** When a security outcome requires a specific implementation (XXE-safe parser, bcrypt over MD5, parameterized queries), name it in the criterion as a verification hint — this is a security constraint, not an implementation detail.
 
 ### Task Substance Rule
 
@@ -138,7 +183,9 @@ Each task must have a **self-contained, verifiable outcome** — a change that i
 
 **Merge tasks that lack standalone intent.** If a task is only a mechanical step toward another task's goal (adding an import, creating a type alias, updating a config key), it is usually not a task — it is part of the task that needs that change. Fold it into the task that gives it meaning, unless the integration step itself has independent acceptance criteria (e.g., configuring a DI container registration that requires specific binding rules).
 
-**Consolidation test:** For each candidate task, ask: *"Can a reviewer verify this task's acceptance criteria without seeing any other task?"* If the answer is no, the task is too thin — merge it with the task it serves.
+**Independence test:** For each candidate task, ask: *"Can a reviewer verify this task's acceptance criteria without seeing any other task?"* If the answer is no, the task is too thin — merge it with the task it serves.
+
+**Description quality test:** For each task, ask: *"Does this description tell the agent WHAT to achieve, or HOW to code it?"* If it reads like a code tutorial, trim to intent + constraints.
 
 Examples of tasks that **fail** this test and should be merged:
 - "Add import for `UserService`" → merge into the task that uses `UserService`
@@ -158,7 +205,8 @@ Before writing files, verify:
 - No circular dependencies
 - All dependency references point to valid task IDs
 - Every task has at least one acceptance criterion
-- Every task passes the substance consolidation test (self-contained, verifiable outcome)
+- Every task passes the independence test (self-contained, verifiable outcome)
+- Every task passes the description quality test (intent + constraints, not implementation tutorial)
 - Phase order is sequential with no gaps
 - Task IDs are unique across all phases
 

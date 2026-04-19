@@ -38,7 +38,7 @@ Evaluates the plan for structural soundness. Must assess:
 - **Coverage gaps:** Are there tasks or steps implied by CONTEXT.md that are missing from tasks.json?
 - **Dependency integrity:** Are dependencies correctly specified? Are there implicit dependencies not captured?
 - **Acceptance criteria quality:** Can every criterion be objectively verified? Are any vague or untestable?
-- **Context sufficiency:** Could an agent with only these two files execute every task without guessing? Are there unstated assumptions?
+- **Context sufficiency:** For each task, can an agent determine WHAT to build from the task description alone? It should NOT need to determine exact implementation from the description — that comes from codebase exploration. If two reasonable agents would build fundamentally different things from the same description, the description needs clarifying constraints. But if the difference is only in implementation approach (not outcome), the description is sufficient.
 - **Phase coherence:** Does each phase deliver a testable increment? Are tasks in the right phase?
 - **Edge cases:** Are failure modes, error handling, and boundary conditions accounted for?
 
@@ -53,7 +53,8 @@ Aggressively challenges design decisions — not just correctness, but *whether 
 - **Flag unjustified complexity:** Identify elements that introduce complexity without a clear stated benefit. Challenge whether simpler alternatives were considered.
 - **Probe for missing "why not" reasoning:** Surface approaches the plan implicitly rejects and require explicit reasoning for their exclusion.
 - **Challenge task decomposition:** Is the breakdown the right granularity? Too coarse (risky for a single session) or too fine (overhead without value)?
-- **Stress-test CONTEXT.md:** Does it actually give enough direction, or would an implementing agent make different design choices than intended?
+- **Stress-test CONTEXT.md:** Does it give enough direction on intent, architecture, and constraints? An implementing agent should know WHAT to build and WHERE it fits — but derives HOW from codebase exploration. Flag missing intent or missing constraints, not missing implementation details.
+- **Challenge task description verbosity:** If task descriptions prescribe exact code, line numbers, or step-by-step instructions, flag this as over-specification. Task descriptions should state intent and constraints; implementing agents derive the rest.
 
 ---
 
