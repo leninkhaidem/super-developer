@@ -85,14 +85,44 @@ Present the plan to the user for confirmation before proceeding.
 | `docs/developer-guide.md` | Setup, development workflow |
 | `docs/codebase-context.md` | LLM-optimized codebase summary |
 
-**Optional documents** (proposed based on detection):
+**Artifact catalog** (scout recommends based on codebase analysis):
 
-| Document | Condition |
-|----------|-----------|
-| `docs/api-reference.md` | Routes/endpoints detected |
-| `docs/data-model.md` | ORM/schema/database detected |
-| `docs/component-guide.md` | Frontend/UI components detected |
-| `docs/infrastructure.md` | CI/CD, Docker, IaC detected |
+| Document | Purpose | Condition |
+|----------|---------|-----------|
+| `docs/navigation.md` | Entry points, capability-to-file map, "how do I add X" guides | Codebase has >10 source files |
+| `docs/patterns.md` | Naming conventions, code patterns, anti-hallucination index, inconsistencies | Always recommended |
+| `docs/config.md` | Env vars, config files, feature flags with defaults and locations | `process.env`/config file usage detected |
+| `docs/errors.md` | Error taxonomy, throw/catch mapping, unhandled gaps | Custom error classes or >5 distinct throw sites |
+| `docs/flows.md` | Request lifecycle, state machines, event propagation | HTTP middleware, state enums, or event emitters detected |
+| `docs/boundaries.md` | Layer rules, module contracts, import violations | Multi-directory architecture with >3 top-level modules |
+| `docs/inventory.md` | Utility registry — "before you write it, we have it" | `utils/`, `lib/`, `helpers/`, or `shared/` directories |
+| `docs/security.md` | Route auth matrix, input validation audit, concerns | Auth middleware, route definitions, or secrets handling |
+
+**Scout recommendation process:**
+
+1. After detection (Step 1), evaluate each catalog artifact's condition against the codebase
+2. Recommend artifacts whose conditions are met, with a one-line justification per selection
+3. Optionally propose up to **3 custom artifacts** not in the catalog — each requires a name,
+   purpose, and justification explaining why this codebase warrants it
+4. Present the full doc plan (core documents + recommended artifacts) to the user for confirmation
+
+Example scout output:
+
+```
+Core: README.md, architecture-guide.md, developer-guide.md, codebase-context.md
+
+Recommended artifacts:
+  ✅ navigation.md — 47 source files across 8 directories
+  ✅ patterns.md — always recommended
+  ✅ config.md — 12 process.env references found
+  ✅ flows.md — Express middleware chain + 3 state enums detected
+  ⬚ errors.md — only 2 throw sites, insufficient for standalone doc
+  ⬚ boundaries.md — flat directory structure
+  ⬚ inventory.md — no utils/lib/helpers directories
+  ⬚ security.md — no auth middleware detected
+
+Custom: (none proposed)
+```
 
 Wait for user confirmation before proceeding.
 
@@ -105,15 +135,16 @@ Wait for user confirmation before proceeding.
 1. Create analysis directory: `mkdir -p {project}/.codedoc`
 2. Run **native extractors** first (if available): TypeDoc, Sphinx, godoc, javadoc, rustdoc, DocFX.
    Save output to `.codedoc/native-extractors/`. This provides ground-truth for signatures and types.
-3. **Spawn analyst agents** in parallel based on what you detected:
+3. **Spawn analyst agents** in parallel based on the confirmed doc plan:
 
 | Agent | Condition | Output File |
 |-------|-----------|-------------|
 | Architecture Analyst | Always | `.codedoc/architecture-analysis.md` |
-| API Surface Analyst | Routes/endpoints detected | `.codedoc/api-analysis.md` |
-| Data Model Analyst | ORM/schema detected | `.codedoc/data-model-analysis.md` |
-| Component Analyst | Frontend detected | `.codedoc/component-analysis.md` |
-| Infrastructure Analyst | CI/Docker/IaC detected | `.codedoc/infrastructure-analysis.md` |
+| Catalog Artifact Analyst (×N) | One per selected artifact from Step 3 | `.codedoc/{artifact-name}-analysis.md` |
+| Custom Artifact Analyst (×M) | One per approved custom artifact | `.codedoc/{custom-name}-analysis.md` |
+
+For example, if Step 3 selected `navigation`, `patterns`, `config`, and `flows`, spawn 5 analysts:
+Architecture + Navigation + Patterns + Config + Flows.
 
 Each analyst receives: project context, framework info, file scope, native extractor output path,
 and their assigned output file. They write full analysis and return a compact summary.
