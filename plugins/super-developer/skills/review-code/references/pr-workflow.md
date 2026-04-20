@@ -49,41 +49,11 @@ _(Phases 2-3 are shared pipeline steps defined in SKILL.md — return there now.
 
 Compile and **present the following to the user — do NOT post anything to GitHub yet.**
 
-Show **only Skeptic-confirmed findings**. Disputed findings are silently excluded. 🟡 Suggestions
-from specialist agents are included as-is (Skeptic verification applies only to 🔴 and 🟠).
+Use the canonical report template from SKILL.md with:
+- **HEADER:** `PR Review — #<number> \`<head branch>\` → \`<base branch>\``
+- **METADATA:** _(none for PR mode)_
+
 The report should read exactly as it would appear when posted as a PR comment.
-
-````markdown
-## PR Review — #<number> `<head branch>` → `<base branch>`
-
-### 🔴 Blockers
-1. [Finding] — `<filename>`, Line <line>
-   <explanation>
-
-### 🟠 Critical Issues
-1. [Finding] — `<filename>`, Line <line>
-   <explanation>
-
-### 🟡 Suggestions _(non-blocking)_
-1. [Finding] — `<filename>`, Line <line>
-
----
-_Review generated via multi-agent analysis. All blockers and critical issues independently
-verified by adversarial Skeptic Agent before reporting._
-````
-
-**Omit any section that has zero findings** (e.g., if no blockers, omit the Blockers heading
-entirely). If all sections are empty, the body should read:
-
-```markdown
-## PR Review — #<number> `<head branch>` → `<base branch>`
-
-No issues found. ✅
-
----
-_Review generated via multi-agent analysis. Findings independently verified by adversarial
-Skeptic Agent before reporting._
-```
 
 **Verdict** (shown after the preview, not inside it):
 - **APPROVE** — No 🔴 or 🟠 findings.
@@ -124,26 +94,9 @@ gh api \
   --field body="<review body>"
 ```
 
-**Review body format:**
-
-```markdown
-## PR Review — Changes Requested
-
-### 🔴 Blockers
-- [Finding] — `<filename>`, Line <line>
-  <explanation>
-
-### 🟠 Critical Issues
-- [Finding] — `<filename>`, Line <line>
-  <explanation>
-
-### 🟡 Suggestions _(non-blocking)_
-- [Finding] — `<filename>`, Line <line>
-
----
-_Review generated via multi-agent analysis. All blockers and critical issues independently
-verified by adversarial Skeptic Agent before reporting._
-```
+**Review body:** Use the canonical report template from SKILL.md with:
+- **HEADER:** `PR Review — Changes Requested`
+- **METADATA:** _(none)_
 
 > **Override Rule:** If 🔴 BLOCKERS or 🟠 CRITICALS are present, the agent **must** post
 > `REQUEST_CHANGES` — even if the user responds `approve`. Inform the user:
@@ -191,16 +144,3 @@ git checkout $ORIGINAL_BRANCH
 **Why Squash & Merge is hardcoded:** One PR = one commit on `main`. Clean, readable history.
 Easy single-commit revert if needed. Granular commit history preserved within the PR on GitHub.
 Rebase is never automated — it is a deliberate, manual operation only.
-
----
-
-## Design Rationale
-
-| Aspect | Decision |
-|---|---|
-| All GitHub interactions via `gh` CLI | Explicit, auditable commands |
-| Preflight checks auth + mergeability | Fail fast before spending review effort |
-| Report preview before any GitHub action | User stays in control |
-| Blocker/critical override on approve | Safety gate cannot be bypassed for any serious finding |
-| Branch restore after review | Original branch is restored after review completes or aborts |
-| Squash & Merge hardcoded | Consistent, clean history; rebase is manual-only |

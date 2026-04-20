@@ -89,6 +89,35 @@ Every finding must be classified — no exceptions:
 | 🟠 | **CRITICAL** | Strongly recommended fix. Significant quality or risk issue. |
 | 🟡 | **SUGGESTION** | Non-blocking improvement. |
 
+### Specialist Output Format
+
+Each specialist must return findings in this exact format — no preamble, no summary, no prose
+outside the format:
+
+```
+[SEV] FILE:LINE — TITLE
+WHY: <1 sentence, root cause>
+FIX: <1 sentence, concrete action>
+```
+
+Rules:
+- `SEV`: Use emoji (🔴, 🟠, or 🟡)
+- Top 5 findings, ranked by severity. If more exist, append: `+N more findings omitted`
+- No introductory text, no concluding summaries
+- 🟡 findings may omit the `FIX:` line if no action is needed
+- If no findings: respond with exactly `NONE`
+- Do NOT append `NONE` after findings — `NONE` means zero findings only
+
+Example:
+```
+🔴 src/api/users.ts:89 — SQL injection via string concatenation
+WHY: User input interpolated directly into query string.
+FIX: Use parameterized query with $1 placeholder.
+
+🟡 src/api/users.ts:45 — Redundant type assertion
+WHY: TypeScript already narrows the type via the guard on line 42.
+```
+
 ---
 
 ## Step 3 — Adversarial Verification (Skeptic Agent)
@@ -144,25 +173,14 @@ Reason: <one sentence — what the Skeptic found or failed to find>
 
 ---
 
-## Step 4 — Report & Actions
+## Report Template
 
-Return to the mode-specific workflow:
-
-- **PR Mode** → `references/pr-workflow.md` — Phase 4 (report preview) and Phase 5
-  (approve / request-changes / edit / abort)
-- **Local Mode** → `references/local-workflow.md` — Phase 4 (report) and Phase 5
-  (fix / commit / details / abort)
-- **Pipeline context** → Use the report format below, then pipeline-specific gated actions.
-
-### Pipeline Context — Report & Actions
-
-Present the report using this format:
+All modes use this canonical report structure. Substitute `<HEADER>` and `<METADATA>` per mode.
 
 ````markdown
-## Feature Branch Review — `feature/<name>` vs `main`
+## <HEADER>
 
-**Worktree:** `.worktrees/<feature>/merge/`
-**Files:** <count> changed
+<METADATA>
 
 ### 🔴 Blockers
 1. [Finding] — `<filename>`, Line <line>
@@ -180,7 +198,30 @@ _Review generated via multi-agent analysis. All blockers and critical issues ind
 verified by adversarial Skeptic Agent before reporting._
 ````
 
-**Omit empty sections.** If all sections are empty: "No issues found."
+**Universal format rules:**
+- **Omit empty sections.** If all sections are empty: "No issues found. ✅"
+- **Disputed findings:** Silently excluded. Do not list, count, or mention them.
+- **Show only Skeptic-confirmed findings** for 🔴 and 🟠. 🟡 Suggestions from specialists are
+  included as-is (Skeptic verification applies only to 🔴 and 🟠).
+
+---
+
+## Step 4 — Report & Actions
+
+Return to the mode-specific workflow:
+
+- **PR Mode** → `references/pr-workflow.md` — Phase 4 (report preview) and Phase 5
+  (approve / request-changes / edit / abort)
+- **Local Mode** → `references/local-workflow.md` — Phase 4 (report) and Phase 5
+  (fix / commit / details / abort)
+- **Pipeline context** → Use the canonical report template above with these slot values,
+  then pipeline-specific gated actions below.
+
+### Pipeline Context — Report & Actions
+
+Use the canonical report template with:
+- **HEADER:** `Feature Branch Review — \`feature/<name>\` vs \`main\``
+- **METADATA:** `**Worktree:** \`.worktrees/<feature>/merge/\`` + `**Files:** <count> changed`
 
 **Verdict:**
 - **CLEAN** — No 🔴 or 🟠 findings. Feature branch is ready for merge approval.

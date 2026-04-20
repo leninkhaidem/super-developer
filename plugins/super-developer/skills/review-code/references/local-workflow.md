@@ -82,47 +82,11 @@ _(Phases 2-3 are shared pipeline steps defined in SKILL.md — return there now.
 
 ## Phase 4 — Review Report
 
-Present to the user. Show confirmed findings only. 🟡 Suggestions from specialist agents are
-included as-is (Skeptic verification applies only to 🔴 and 🟠). Disputed findings are
-silently excluded — do not list them, count them, or mention them.
+Present to the user.
 
-````markdown
-## Local Code Review
-
-**Branch:** `<current branch>` | **Scope:** <staged | uncommitted | branch diff against origin/<branch>>
-**Files:** <count> changed
-
-### 🔴 Blockers
-1. [Finding] — `<filename>`, Line <line>
-   <explanation>
-
-### 🟠 Critical Issues
-1. [Finding] — `<filename>`, Line <line>
-   <explanation>
-
-### 🟡 Suggestions _(non-blocking)_
-1. [Finding] — `<filename>`, Line <line>
-
----
-_Review generated via multi-agent analysis. All blockers and critical issues independently
-verified by adversarial Skeptic Agent before reporting._
-````
-
-**Omit any section that has zero findings** (e.g., if no blockers, omit the Blockers heading
-entirely). If all sections are empty, the body should read:
-
-```markdown
-## Local Code Review
-
-**Branch:** `<current branch>` | **Scope:** <scope>
-**Files:** <count> changed
-
-No issues found. ✅
-
----
-_Review generated via multi-agent analysis. Findings independently verified by adversarial
-Skeptic Agent before reporting._
-```
+Use the canonical report template from SKILL.md with:
+- **HEADER:** `Local Code Review`
+- **METADATA:** `**Branch:** \`<current branch>\` | **Scope:** <staged | uncommitted | branch diff against origin/<branch>>` + `**Files:** <count> changed`
 
 **Verdict** (shown after the report, not inside it):
 - **CLEAN** — No 🔴 or 🟠 findings.
@@ -185,16 +149,3 @@ git commit -m "<concise summary of changes>"
 > If 🔴 BLOCKERS exist and the user responds `commit`, **refuse** and report:
 > *"Blockers detected. Resolve before committing. Run the review again after fixing, or
 > respond `fix` to attempt auto-fixes."*
-
----
-
-## Design Rationale
-
-| Aspect | Decision |
-|---|---|
-| No GitHub dependency | Entirely local, works offline, only needs `git` |
-| Auto-detects review scope | Staged → unstaged → branch diff, no manual flags |
-| User context via arguments | Free-form context reduces false positives |
-| Same pipeline as PR review | Identical specialist agents + skeptic agent + severity taxonomy |
-| `fix` with per-fix approval | Auto-fix is convenient but dangerous; individual approval keeps dev in control |
-| `commit` blocked by blockers | Safety gate cannot be bypassed |
