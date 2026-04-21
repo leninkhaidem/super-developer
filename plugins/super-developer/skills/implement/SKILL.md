@@ -70,7 +70,7 @@ Carry the resolved strategy forward into Step 6c.
 
 ## Step 3: Initialize Git Worktree Infrastructure
 
-Read `${CLAUDE_PLUGIN_ROOT}/skills/worktree/SKILL.md` for the complete git workflow reference.
+invoke `worktree` skill for the complete git workflow reference.
 
 Resolve the project root and set up the feature:
 

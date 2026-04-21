@@ -23,7 +23,7 @@ Determine the review scope using this priority order:
 
 If a feature was just implemented in this session (feature name and merge worktree path are
 known from the implementation step), review the feature branch directly.
-Worktree path conventions are defined in the worktree skill (`skills/worktree/SKILL.md`).
+Worktree path conventions are defined in the `worktree` skill. Invoke it if necessary
 
 - Work from the merge worktree at `.worktrees/<feature>/merge/`
 - `DIFF_CMD="git diff main...feature/<feature>"`
