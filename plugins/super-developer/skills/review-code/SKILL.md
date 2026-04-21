@@ -65,17 +65,17 @@ for the **report format** and **gated actions**.
 
 ### Model Selection
 
-Check for `.claude/model-preferences.yml` in the project root. If missing or invalid, default
-to `inherit`.
+Read `${CLAUDE_PLUGIN_ROOT}/references/model-preferences.md` for the canonical schema and resolution procedure.
 
-| Strategy | Specialists | Skeptic |
-|----------|-------------|---------|
-| `inherit` (default) | No model override — uses orchestrator's model | No model override |
-| `adaptive` | Sonnet | Opus |
+Resolve model preferences for two agent roles:
+- **Specialists** (security, logic, performance, architecture): Use the `review-code` key. Hardcoded default: `inherit`.
+- **Skeptic Agent:** Uses the `skeptic-agent` key. Hardcoded default: `inherit`.
+
+**Adaptive interpretation for review-code:** Specialists use Sonnet for focused pattern-matching. Skeptic uses Opus for adversarial reasoning across all findings (via `skeptic-agent` key — when it resolves to `adaptive`, use the strongest available model). When the resolved value is `inherit`, all agents use the orchestrator's model. When the resolved value is a specific model name, pass it directly.
 
 **Large diff handling:** If the diff exceeds 2,000 lines, split into batches by grouping related files (by directory or module). Run the full 4-specialist + Skeptic pipeline on each batch sequentially, then merge findings into a single consolidated report. Do not ask the user to scope the review — handle the batching autonomously.
 
-Spawn 4 specialist sub-agents **in parallel** (model per strategy above). Each receives:
+Spawn 4 specialist sub-agents **in parallel** (model per resolved preference above). Each receives:
 - The full diff (or the current batch's diff if batching)
 - Change context (PR description + title, commit messages, user-supplied context, or feature CONTEXT.md)
 
@@ -88,7 +88,7 @@ Spawn 4 specialist sub-agents **in parallel** (model per strategy above). Each r
 | **Performance** | N+1 queries, unnecessary allocations, blocking I/O, missing indexes, inefficient algorithms |
 | **Architecture & Maintainability** | Violations of existing patterns, coupling issues, naming inconsistencies, dead code, complexity hotspots |
 
-In `adaptive` mode, specialists do focused pattern-matching (Sonnet) while the Skeptic does adversarial reasoning across all findings (Opus). In `inherit` mode, all agents use the orchestrator's model.
+When model preferences resolve to `adaptive`, specialists do focused pattern-matching (Sonnet) while the Skeptic does adversarial reasoning across all findings (Opus via `skeptic-agent` key). When resolved to `inherit`, all agents use the orchestrator's model. When resolved to a specific model name, all agents in that role use that model.
 
 ### Severity Taxonomy
 
@@ -132,7 +132,7 @@ WHY: TypeScript already narrows the type via the guard on line 42.
 
 ## Step 3 — Adversarial Verification (Skeptic Agent)
 
-Spawn a Skeptic Agent (model per strategy from Step 2) that receives all findings from Step 2.
+Spawn a Skeptic Agent (model per resolved preference from Step 2) that receives all findings from Step 2.
 
 For every 🔴 BLOCKER and 🟠 CRITICAL finding, the Skeptic Agent independently locates
 supporting evidence in the diff or codebase:

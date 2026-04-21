@@ -25,7 +25,19 @@ Do not execute this as the main agent. Spawn sub-agents for each reviewer role.
 1. Verify `.tasks/$ARGUMENTS/` exists. If not, list available features and ask the user to pick one.
 2. Sub-agents read the files themselves. Do not pre-summarize or inject context — the point is to test whether the files are self-sufficient.
 
-## Step 2: Pre-Review Announcement (Gate 1)
+## Step 2: Load Model Preferences
+
+Read `${CLAUDE_PLUGIN_ROOT}/references/model-preferences.md` for the canonical schema and resolution procedure.
+
+Resolve model preferences for two agent roles:
+- **Agent A (completeness reviewer):** Uses the `review-plan` key. Hardcoded default: `adaptive`.
+- **Agent B (adversarial challenger):** Uses the `skeptic-agent` key. Hardcoded default: `adaptive`.
+
+**Adaptive interpretation for review-plan:** Agent A uses Sonnet. Agent B is governed by the `skeptic-agent` key — when `skeptic-agent` resolves to `adaptive`, use the strongest available model (Opus).
+
+Carry the resolved models forward into Step 4.
+
+## Step 3: Pre-Review Announcement (Gate 1)
 
 Before spawning reviewers, present the user with a plain-language summary of what the plan delivers. This is a **projection** from plan artifacts — do not synthesize or add content not backed by CONTEXT.md or tasks.json.
 
@@ -45,11 +57,11 @@ Before spawning reviewers, present the user with a plain-language summary of wha
 **Rules:**
 - Every bullet must trace to a specific plan element (task ID or CONTEXT.md section).
 - **Blocking gate** — the user must explicitly approve before review proceeds.
-- If the user rejects: ask what to change, apply edits to CONTEXT.md or tasks.json, and re-present Gate 1. Do not proceed to Step 3 until approved.
+- If the user rejects: ask what to change, apply edits to CONTEXT.md or tasks.json, and re-present Gate 1. Do not proceed to Step 4 until approved.
 
-## Step 3: Spawn Review Sub-Agents in Parallel
+## Step 4: Spawn Review Sub-Agents in Parallel
 
-Launch **two Opus-class sub-agents in parallel**, each reading `.tasks/$ARGUMENTS/CONTEXT.md` and `.tasks/$ARGUMENTS/tasks.json` from scratch:
+Launch **two sub-agents in parallel** (models per Step 2), each reading `.tasks/$ARGUMENTS/CONTEXT.md` and `.tasks/$ARGUMENTS/tasks.json` from scratch:
 
 ### Reviewer Output Format
 
@@ -137,7 +149,7 @@ Aggressively challenges design decisions — not just correctness, but *whether 
 
 ---
 
-## Step 4: Merge and Resolve
+## Step 5: Merge and Resolve
 
 Collect structured findings from both agents. Apply severity resolution rules:
 
@@ -145,7 +157,7 @@ Collect structured findings from both agents. Apply severity resolution rules:
 2. **`[CRITICAL]` findings:** Either provide documented rationale and record it in CONTEXT.md under "Design Decisions", OR accept the alternative and revise the plan. Each critical must be explicitly addressed.
 3. **`[SUGGESTION]` findings:** Log for consideration. No resolution required.
 
-## Step 5: Re-Review if Changes Were Made
+## Step 6: Re-Review if Changes Were Made
 
 If any changes were made to CONTEXT.md or tasks.json:
 
@@ -154,11 +166,11 @@ If any changes were made to CONTEXT.md or tasks.json:
 
 **Maximum 3 re-review rounds.** If issues remain unresolved after 3 iterations, present the remaining issues to the user with a summary of what was resolved and what remains. Ask for manual resolution rather than continuing to loop.
 
-## Step 6: Post-Review Announcement (Gate 2)
+## Step 7: Post-Review Announcement (Gate 2)
 
 When both agents approve, present the user with the **final** plain-language summary of what the plan delivers. This reflects the state after all review rounds — including any changes made during merge-and-resolve.
 
-Use the same template as Gate 1 (Step 2), with one addition: tag items that were added or modified during review:
+Use the same template as Gate 1 (Step 3), with one addition: tag items that were added or modified during review:
 
 ```markdown
 ### What Will Be Delivered
@@ -171,10 +183,10 @@ Use the same template as Gate 1 (Step 2), with one addition: tag items that were
 **Rules:**
 - Every `← added by review` or `← modified by review` marker must map to a specific review finding that caused the change.
 - **Blocking gate** — the user must explicitly approve before finalization.
-- If the user rejects: ask what to change, apply edits to CONTEXT.md or tasks.json, and **re-review from Step 3** (mandatory — plan changes after review require re-verification). Gate 2 is re-presented after the new review completes.
-- **No plan edits are permitted between Gate 2 approval and Step 7 finalization.**
+- If the user rejects: ask what to change, apply edits to CONTEXT.md or tasks.json, and **re-review from Step 4** (mandatory — plan changes after review require re-verification). Gate 2 is re-presented after the new review completes.
+- **No plan edits are permitted between Gate 2 approval and Step 8 finalization.**
 
-## Step 7: Finalize
+## Step 8: Finalize
 
 When the user approves the post-review announcement:
 
