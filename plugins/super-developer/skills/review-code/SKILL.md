@@ -75,7 +75,7 @@ Resolve model preferences for two agent roles:
 
 **Large diff handling:** If the diff exceeds 2,000 lines, split into batches by grouping related files (by directory or module). Run the full 4-specialist + Skeptic pipeline on each batch sequentially, then merge findings into a single consolidated report. Do not ask the user to scope the review — handle the batching autonomously.
 
-Spawn 4 specialist sub-agents **in parallel** (model per strategy above). Each receives:
+Spawn 4 specialist sub-agents **in parallel** (model per resolved preference above). Each receives:
 - The full diff (or the current batch's diff if batching)
 - Change context (PR description + title, commit messages, user-supplied context, or feature CONTEXT.md)
 
@@ -132,7 +132,7 @@ WHY: TypeScript already narrows the type via the guard on line 42.
 
 ## Step 3 — Adversarial Verification (Skeptic Agent)
 
-Spawn a Skeptic Agent (model per strategy from Step 2) that receives all findings from Step 2.
+Spawn a Skeptic Agent (model per resolved preference from Step 2) that receives all findings from Step 2.
 
 For every 🔴 BLOCKER and 🟠 CRITICAL finding, the Skeptic Agent independently locates
 supporting evidence in the diff or codebase:
