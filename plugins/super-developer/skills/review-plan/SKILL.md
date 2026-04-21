@@ -29,6 +29,59 @@ Do not execute this as the main agent. Spawn sub-agents for each reviewer role.
 
 Launch **two Opus-class sub-agents in parallel**, each reading `.tasks/$ARGUMENTS/CONTEXT.md` and `.tasks/$ARGUMENTS/tasks.json` from scratch:
 
+### Reviewer Output Format
+
+Both agents must return findings in this exact format — no preamble, no summary, no prose outside
+the format:
+
+```
+[SEV] TARGET — TITLE
+ISSUE: <1 sentence, what's wrong>
+FIX: <1 sentence, concrete resolution>
+```
+
+### Severity Taxonomy
+
+Every finding must be classified:
+
+| Severity | Label | Meaning |
+|---|---|---|
+| `[BLOCKER]` | Must resolve | Plan cannot proceed to implementation. |
+| `[CRITICAL]` | Strongly recommended | Significant quality, completeness, or design risk. |
+| `[SUGGESTION]` | Non-blocking | Improvement opportunity. May omit the `FIX:` line. |
+
+### TARGET Locator Grammar
+
+Each finding must reference its plan element using one of these locator patterns:
+
+| Pattern | Example | Use for |
+|---|---|---|
+| `CONTEXT:<section-slug>` | `CONTEXT:architecture` | Findings about CONTEXT.md sections |
+| `TASK:<task-id>` | `TASK:P1-T003` | Findings about a specific task |
+| `TASK:<task-id>.<field>` | `TASK:P2-T001.dependencies` | Findings about a specific task field |
+| `PHASE:<phase-id>` | `PHASE:P1` | Findings about phase-level concerns |
+| `PHASE:<phase-id>.<aspect>` | `PHASE:P1.coherence` | Findings about a specific phase aspect |
+| `GLOBAL:<concern>` | `GLOBAL:scope` | Cross-cutting findings (scope, acceptance criteria patterns) |
+
+Multi-target findings: use the primary target, note others in the ISSUE line.
+
+### Format Rules
+
+- All `[BLOCKER]` and `[CRITICAL]` findings reported — no count caps.
+- `[SUGGESTION]` findings: report up to 10 in detail. If more exist, append: `+N more suggestions omitted`
+- No introductory text, no concluding summaries.
+- `[SUGGESTION]` may omit the `FIX:` line if no specific action is needed.
+- If no findings: respond with exactly `NONE`
+- Do NOT append `NONE` after findings — `NONE` means zero findings only.
+
+### Severity Resolution Rules
+
+The orchestrator applies these rules during merge-and-resolve:
+
+- **`[BLOCKER]`** — Must be resolved before the plan advances. All blockers require plan edits and re-verification.
+- **`[CRITICAL]`** — Must be explicitly accepted with documented rationale OR resolved with plan edits.
+- **`[SUGGESTION]`** — Logged for consideration. No resolution required.
+
 ---
 
 ### Agent A — Completeness Reviewer
@@ -41,6 +94,8 @@ Evaluates the plan for structural soundness. Must assess:
 - **Context sufficiency:** For each task, can an agent determine WHAT to build from the task description alone? It should NOT need to determine exact implementation from the description — that comes from codebase exploration. If two reasonable agents would build fundamentally different things from the same description, the description needs clarifying constraints. But if the difference is only in implementation approach (not outcome), the description is sufficient.
 - **Phase coherence:** Does each phase deliver a testable increment? Are tasks in the right phase?
 - **Edge cases:** Are failure modes, error handling, and boundary conditions accounted for?
+
+**Output:** Use the Reviewer Output Format above. Primarily use `TASK:*`, `PHASE:*`, and `GLOBAL:*` targets. Findings in other TARGET domains are not prohibited.
 
 ---
 
@@ -55,6 +110,8 @@ Aggressively challenges design decisions — not just correctness, but *whether 
 - **Challenge task decomposition:** Is the breakdown the right granularity? Too coarse (risky for a single session) or too fine (overhead without value)?
 - **Stress-test CONTEXT.md:** Does it give enough direction on intent, architecture, and constraints? An implementing agent should know WHAT to build and WHERE it fits — but derives HOW from codebase exploration. Flag missing intent or missing constraints, not missing implementation details.
 - **Challenge task description verbosity:** If task descriptions prescribe exact code, line numbers, or step-by-step instructions, flag this as over-specification. Task descriptions should state intent and constraints; implementing agents derive the rest.
+
+**Output:** Use the Reviewer Output Format above. Primarily use `CONTEXT:*`, `GLOBAL:*`, and `PHASE:*` targets. Findings in other TARGET domains are not prohibited.
 
 ---
 
