@@ -113,7 +113,6 @@ FIX: <1 sentence, concrete action>
 
 Rules:
 - `SEV`: Use emoji (🔴, 🟠, or 🟡)
-- Top 5 findings, ranked by severity. If more exist, append: `+N more findings omitted`
 - No introductory text, no concluding summaries
 - 🟡 findings may omit the `FIX:` line if no action is needed
 - If no findings: respond with exactly `NONE`
