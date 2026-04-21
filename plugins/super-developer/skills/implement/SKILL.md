@@ -34,39 +34,13 @@ Current phase: <phase name>
 
 ## Step 2: Load Model Preferences
 
-Check for `.claude/model-preferences.yml` in the project root:
+Read `${CLAUDE_PLUGIN_ROOT}/references/model-preferences.md` for the canonical schema and resolution procedure.
 
-```bash
-cat "$PROJECT_ROOT/.claude/model-preferences.yml" 2>/dev/null
-```
+Resolve the model preference for the `implement` skill key. Hardcoded default: `adaptive`.
 
-If the file exists and contains a valid `strategy` field (`adaptive` or `inherit`), use it.
-If the file is missing, malformed, or contains an unrecognized strategy, ask the user:
+**Adaptive interpretation for implement:** Opus for complex/ambiguous tasks, Sonnet for simple/patterned ones. The inline/delegate boundary from Step 5.2 captures complexity — delegated tasks are complex enough to warrant a sub-agent. Within delegated tasks, bias toward Opus when uncertain.
 
-```
-How should sub-agent models be selected?
-
-  adaptive  — Opus for complex tasks, Sonnet for simple ones (default)
-  inherit   — All sub-agents use the same model as you (the orchestrator)
-```
-
-Save their choice (overwriting any corrupt file):
-
-```yaml
-# .claude/model-preferences.yml
-# Controls how the implement skill selects models for sub-agents.
-#   adaptive — Opus for complex/ambiguous tasks, Sonnet for simple/patterned ones
-#   inherit  — All sub-agents use the orchestrator's model (no model override)
-strategy: adaptive
-```
-
-Add `.claude/model-preferences.yml` to `.gitignore` if not already present — this is a local developer preference, not committed:
-
-```bash
-grep -qF '.claude/model-preferences.yml' .gitignore 2>/dev/null || echo '.claude/model-preferences.yml' >> .gitignore
-```
-
-Carry the resolved strategy forward into Step 6c.
+Carry the resolved preference forward into Step 6d.
 
 ## Step 3: Initialize Git Worktree Infrastructure
 
@@ -112,7 +86,7 @@ For each task, decide:
 - **Inline** — execute as the main agent. No sub-agent, no worktree. Use when: the task affects ≤3 files, follows an existing pattern in the codebase, and has unambiguous acceptance criteria.
 - **Delegate** — spawn a sub-agent in a worktree. Use when: the task is complex enough to benefit from focused context, needs parallel execution with other work, or requires isolation.
 
-When using the `adaptive` model strategy (Step 2), apply model selection to delegated tasks only. Inline tasks do not use model preferences.
+When the resolved model preference (Step 2) is `adaptive`, apply model selection to delegated tasks only. Inline tasks do not use model preferences.
 
 ### 5.3. Detect and Resolve Overlap
 
@@ -183,11 +157,13 @@ For tasks classified as inline in Step 5.2, the main agent executes directly:
 
 For tasks classified as delegated in Step 5.2, spawn sub-agents.
 
-**Model selection** depends on the strategy loaded in Step 2:
+**Model selection** depends on the resolved preference from Step 2:
 
-**`inherit` strategy:** Do not pass a `model` parameter to sub-agents. They inherit the orchestrator's model.
+**`inherit`:** Do not pass a `model` parameter to sub-agents. They inherit the orchestrator's model.
 
-**`adaptive` strategy (default):** Use the complexity classification from Step 5.2. The inline/delegate boundary already captures this: delegated tasks are complex enough to warrant a sub-agent. Within delegated tasks, bias toward Opus when uncertain — the cost of a wrong downgrade is a subtle bug that survives audit. Use Sonnet only for delegated tasks that follow well-established patterns and have unambiguous scope.
+**`adaptive` (default):** Use the complexity classification from Step 5.2. The inline/delegate boundary already captures this: delegated tasks are complex enough to warrant a sub-agent. Within delegated tasks, bias toward Opus when uncertain — the cost of a wrong downgrade is a subtle bug that survives audit. Use Sonnet only for delegated tasks that follow well-established patterns and have unambiguous scope.
+
+**Specific model name (e.g., `claude-opus-4`):** Pass it directly as the `model` parameter to all sub-agents.
 
 Each sub-agent receives:
 - `.tasks/$ARGUMENTS/CONTEXT.md` — project brief
