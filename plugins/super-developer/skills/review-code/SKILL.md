@@ -22,7 +22,8 @@ Determine the review scope using this priority order:
 ### Priority 0: Pipeline Context
 
 If a feature was just implemented in this session (feature name and merge worktree path are
-known from the implementation step), review the feature branch directly:
+known from the implementation step), review the feature branch directly.
+Worktree path conventions are defined in the worktree skill (`skills/worktree/SKILL.md`).
 
 - Work from the merge worktree at `.worktrees/<feature>/merge/`
 - `DIFF_CMD="git diff main...feature/<feature>"`

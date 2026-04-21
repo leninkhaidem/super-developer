@@ -1,3 +1,13 @@
+---
+name: worktree
+description: >
+  Git worktree strategy for branch-isolated development. Use this skill when the user wants to
+  work with git worktrees, implement a feature with branch isolation, do a bug fix in an isolated
+  branch, apply a hotfix, or manage feature branches. Triggers on phrases like "use worktrees",
+  "worktree", "branch isolation", "feature branch workflow", "bugfix branch", "hotfix",
+  "isolated branch", "worktree setup". Also used by the implement skill for git infrastructure.
+---
+
 # Git Worktree Strategy
 
 A branch-isolated, agent-managed git workflow using worktrees. Designed for AI coding agents that manage all git operations on behalf of the user.

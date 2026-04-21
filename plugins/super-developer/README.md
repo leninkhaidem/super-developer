@@ -66,7 +66,7 @@ project/                              <- always on 'main'
 |   |   +-- merge/                    <- branch: feature/auth
 ```
 
-See [`references/git-worktree-strategy.md`](references/git-worktree-strategy.md) for the complete workflow including bugfix, hotfix, and multi-phase dependency handling.
+See [`skills/worktree/SKILL.md`](skills/worktree/SKILL.md) for the complete workflow including bugfix, hotfix, and multi-phase dependency handling.
 
 ---
 
@@ -151,8 +151,10 @@ super-developer/
 +-- .claude-plugin/
 |   +-- plugin.json                     # Plugin manifest
 +-- references/
-|   +-- git-worktree-strategy.md        # Shared git workflow reference
+|   +-- clean-code-rules.md               # Code quality rules
 +-- skills/
+|   +-- worktree/
+|   |   +-- SKILL.md                       # Git worktree strategy
 |   +-- perspectives/
 |   |   +-- SKILL.md                    # Divergent problem-solving
 |   +-- implementation-plan/

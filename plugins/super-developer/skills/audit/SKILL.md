@@ -27,7 +27,7 @@ Launch an **Opus-class sub-agent** with:
 
 - `.tasks/$ARGUMENTS/CONTEXT.md`
 - `.tasks/$ARGUMENTS/tasks.json`
-- **The merge worktree path** — if the feature was implemented using git worktrees, direct the sub-agent to work from `.worktrees/<feature>/merge/` where the feature branch is checked out. If no worktree exists (e.g., standalone audit), use the current working directory.
+- **The merge worktree path** — if the feature was implemented using git worktrees (see the worktree skill for path conventions), direct the sub-agent to work from `.worktrees/<feature>/merge/` where the feature branch is checked out. If no worktree exists (e.g., standalone audit), use the current working directory.
 - Access to the project codebase from that worktree
 
 The sub-agent must **not** receive any conversation history. It reads the plan cold and verifies against the actual codebase in the correct worktree.
