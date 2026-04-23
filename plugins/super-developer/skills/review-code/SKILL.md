@@ -212,6 +212,7 @@ verified by adversarial Skeptic Agent before reporting._
 **Universal format rules:**
 - **Omit empty sections.** If all sections are empty: "No issues found. ✅"
 - **Disputed findings:** Silently excluded. Do not list, count, or mention them.
+- **Downgraded findings:** Reclassified from 🔴/🟠 to 🟡 by the Skeptic (e.g., dead code paths). Include in the 🟡 Suggestions section with their original context.
 - **Show only Skeptic-confirmed findings** for 🔴 and 🟠. 🟡 Suggestions from specialists are
   included as-is (Skeptic verification applies only to 🔴 and 🟠).
 
