@@ -78,6 +78,7 @@ Resolve model preferences for two agent roles:
 Spawn 4 specialist sub-agents **in parallel** (model per resolved preference above). Each receives:
 - The full diff (or the current batch's diff if batching)
 - Change context (PR description + title, commit messages, user-supplied context, or feature CONTEXT.md)
+- **Codebase path** for file exploration: the review worktree path (`.worktrees/pr-review/<number>/` for PR mode, `.worktrees/<feature>/merge/` for pipeline mode, or the project root for local mode)
 
 ### Specialist Agents
 

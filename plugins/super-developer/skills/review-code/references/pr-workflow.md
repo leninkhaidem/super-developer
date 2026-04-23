@@ -25,13 +25,17 @@ gh pr view <PR_IDENTIFIER> --json number,title,body,author,baseRefName,headRefNa
 # 4. Fetch the full diff
 gh pr diff <PR_IDENTIFIER>
 
-# 5. Save current branch, then checkout the PR branch locally
-ORIGINAL_BRANCH=$(git branch --show-current)
-gh pr checkout <PR_IDENTIFIER>
+# 5. Create a detached worktree at the PR's HEAD (main working tree stays on its branch)
+PR_NUMBER=<extracted from metadata>
+git fetch origin pull/${PR_NUMBER}/head
+PR_SHA=$(git rev-parse FETCH_HEAD)
+git worktree remove .worktrees/pr-review/${PR_NUMBER} 2>/dev/null || true
+git worktree add .worktrees/pr-review/${PR_NUMBER} $PR_SHA --detach
 ```
 
-> **Branch Restore:** After the review is complete (Phase 5 actions finished or aborted),
-> restore the original branch: `git checkout $ORIGINAL_BRANCH`
+> **Worktree Cleanup:** After the review is complete (Phase 5 actions finished or aborted),
+> remove the worktree: `git worktree remove .worktrees/pr-review/${PR_NUMBER}`
+> The main working tree is never switched — no branch restore needed.
 
 ### Hard Stop Rules
 
@@ -137,8 +141,8 @@ gh pr view <PR_IDENTIFIER> --json state,mergeCommit
 Report: `Merged successfully. Merge commit: <SHA>. Branch deleted.`
 
 ```bash
-# 4. Restore original branch
-git checkout $ORIGINAL_BRANCH
+# 4. Remove review worktree
+git worktree remove .worktrees/pr-review/${PR_NUMBER}
 ```
 
 **Why Squash & Merge is hardcoded:** One PR = one commit on `main`. Clean, readable history.
