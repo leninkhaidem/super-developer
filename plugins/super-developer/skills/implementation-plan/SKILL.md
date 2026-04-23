@@ -44,7 +44,7 @@ If `.tasks/<feature-name>/` already exists, ask whether to overwrite or pick a d
 
 CONTEXT.md is a **concise architectural brief** — not a detailed spec. It answers "what are we building and why" so a sub-agent can orient itself. All implementation detail belongs in tasks.json.
 
-**Hard constraint: CONTEXT.md must not exceed 50 lines.** If writing more, move implementation detail to task descriptions.
+**Hard constraint: CONTEXT.md must not exceed 50 lines at initial creation.** If writing more, move implementation detail to task descriptions. After review-plan processing, the post-review cap is **75 lines** to accommodate design decisions and rationale added during review. If a review addition would breach 75 lines, compress existing content before adding.
 
 Structure:
 
@@ -190,7 +190,7 @@ Examples of tasks that **pass** despite being small:
 
 Before writing files, verify:
 
-- CONTEXT.md is under 50 lines
+- CONTEXT.md is under 50 lines (75 post-review — see Step 3)
 - No content duplicated between CONTEXT.md and tasks.json
 - No circular dependencies
 - All dependency references point to valid task IDs

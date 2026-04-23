@@ -72,6 +72,7 @@ the format:
 [SEV] TARGET — TITLE
 ISSUE: <1 sentence, what's wrong>
 FIX: <1 sentence, concrete resolution>
+COST: <complexity burden of the proposed fix — see Format Rules>
 ```
 
 ### Severity Taxonomy
@@ -105,6 +106,7 @@ Multi-target findings: use the primary target, note others in the ISSUE line.
 - `[SUGGESTION]` findings: report up to 10 in detail. If more exist, append: `+N more suggestions omitted`
 - No introductory text, no concluding summaries.
 - `[SUGGESTION]` may omit the `FIX:` line if no specific action is needed.
+- `COST:` line is **required** for Agent B's `[BLOCKER]` and `[CRITICAL]` findings. Must be specific: "adds 2 tasks, new caching dependency, invalidation logic" — not "some complexity." The orchestrator uses `COST:` during merge-and-resolve to weigh proportionality. Optional for Agent A and for `[SUGGESTION]` findings.
 - If no findings: respond with exactly `NONE`
 - Do NOT append `NONE` after findings — `NONE` means zero findings only.
 
@@ -113,7 +115,7 @@ Multi-target findings: use the primary target, note others in the ISSUE line.
 The orchestrator applies these rules during merge-and-resolve:
 
 - **`[BLOCKER]`** — Must be resolved before the plan advances. All blockers require plan edits and re-verification.
-- **`[CRITICAL]`** — Must be explicitly accepted with documented rationale OR resolved with plan edits.
+- **`[CRITICAL]`** — Must be explicitly addressed via one of: (a) documented rationale recorded in CONTEXT.md under "Design Decisions", (b) plan edits accepting the alternative, or (c) **dismissed as disproportionate** — the fix's complexity cost exceeds the risk it addresses. Dismissal requires referencing the finding's `COST:` line and recording a one-line justification. Dismissed findings are logged (not silently dropped) and appear in Gate 2 summary with a `← dismissed (disproportionate)` marker. A dismissed CRITICAL does not trigger a re-review round — it is considered resolved.
 - **`[SUGGESTION]`** — Logged for consideration. No resolution required.
 
 ---
@@ -128,6 +130,14 @@ Evaluates the plan for structural soundness. Must assess:
 - **Context sufficiency:** For each task, can an agent determine WHAT to build from the task description alone? It should NOT need to determine exact implementation from the description — that comes from codebase exploration. If two reasonable agents would build fundamentally different things from the same description, the description needs clarifying constraints. But if the difference is only in implementation approach (not outcome), the description is sufficient.
 - **Phase coherence:** Does each phase deliver a testable increment? Are tasks in the right phase?
 - **Edge cases:** Are failure modes, error handling, and boundary conditions accounted for?
+- **Plan conformance:** Do tasks adhere to the plan's own authoring standards? Check:
+  - Independence test: each task has a self-contained, verifiable outcome (a reviewer can verify acceptance criteria without seeing any other task)
+  - Description quality: states WHAT to build and key constraints, not HOW to code it
+  - Description budget: 200-400 chars target; flag descriptions exceeding 600 chars as likely over-specification → `[CRITICAL]`
+  - Anti-pattern scan: no code snippets, line numbers, step-by-step instructions, or library prescriptions unless security-mandated → `[CRITICAL]`
+  - No-duplication: task descriptions do not repeat CONTEXT.md content
+  - Acceptance criteria format: behavioral outcomes, not implementation details
+  - Independence test failures → `[BLOCKER]` (non-independent tasks cannot be verified). Other conformance issues → Agent A's judgment.
 
 **Output:** Use the Reviewer Output Format above. Primarily use `TASK:*`, `PHASE:*`, and `GLOBAL:*` targets. Findings in other TARGET domains are not prohibited.
 
@@ -154,7 +164,7 @@ Aggressively challenges design decisions — not just correctness, but *whether 
 Collect structured findings from both agents. Apply severity resolution rules:
 
 1. **`[BLOCKER]` findings:** Resolve by updating CONTEXT.md or tasks.json. All blockers must be resolved before advancing.
-2. **`[CRITICAL]` findings:** Either provide documented rationale and record it in CONTEXT.md under "Design Decisions", OR accept the alternative and revise the plan. Each critical must be explicitly addressed.
+2. **`[CRITICAL]` findings:** Address each via one of three paths: (a) provide documented rationale and record it in CONTEXT.md under "Design Decisions", (b) accept the alternative and revise the plan, or (c) dismiss as disproportionate — reference the finding's `COST:` line, explain why the cost exceeds the risk, and log the dismissal. Each critical must be explicitly addressed.
 3. **`[SUGGESTION]` findings:** Log for consideration. No resolution required.
 
 ## Step 6: Re-Review if Changes Were Made
@@ -177,6 +187,7 @@ Use the same template as Gate 1 (Step 3), with one addition: tag items that were
 - JWT auth middleware on all /api/* routes
 - Rate limiting (200 req/15min/IP) ← modified by review
 - Error recovery for token refresh failures ← added by review
+- Distributed cache layer ← dismissed (disproportionate)
 - CORS configuration for new namespace
 ```
 
