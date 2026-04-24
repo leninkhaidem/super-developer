@@ -1,6 +1,6 @@
 # Super Developer
 
-A Claude Code plugin that orchestrates the full development lifecycle — from divergent ideation through structured planning, parallel implementation with git worktree isolation, and multi-agent adversarial code review.
+A Claude Code plugin that orchestrates the full development lifecycle — from divergent ideation through requirements-spec-driven planning, parallel implementation with git worktree isolation, and multi-agent adversarial code review.
 
 One plugin. Eight skills. Zero manual git juggling.
 
@@ -29,8 +29,8 @@ The pipeline flows automatically with confirmation gates. Say **"proceed through
 | Skill | What It Does | Usage |
 |---|---|---|
 | **perspectives** | Divergent problem-solving. Spawns 3-5 Opus-class sub-agents, each approaching the problem from a distinct angle (Infrastructure, Architecture, Data, Root Cause, etc.). A final Skeptic agent stress-tests and synthesizes proposals into a ranked recommendation. | Standalone |
-| **implementation-plan** | Converts a brainstorming session or design discussion into a structured task plan under `.tasks/<feature>/` with `CONTEXT.md` and `tasks.json`. Infers the feature name from context — no need to provide one. | Pipeline + Standalone |
-| **review-plan** | Design review gate. Spawns two Opus-class sub-agents in parallel — a **Completeness Reviewer** and an **Adversarial Design Challenger** — to validate the plan cold from files only. Re-reviews until both approve (max 3 rounds). | Pipeline + Standalone |
+| **implementation-plan** | Converts a completed brainstorming or requirements discussion into a structured task plan under `.tasks/<feature>/` with `SPEC.md` and `tasks.json`. Infers the feature name from context — no need to provide one. | Pipeline + Standalone |
+| **review-plan** | Plan review gate. Spawns two review sub-agents in parallel — a **Completeness Reviewer** and an **Adversarial Plan Challenger** — to validate `SPEC.md` and `tasks.json` cold from files only. Re-reviews until both approve (max 3 rounds). | Pipeline + Standalone |
 | **tasks** | Implementation status dashboard. Shows progress across all features or drills into a specific one with phase-by-phase breakdown. Can modify task status on request. | Standalone |
 | **implement** | Orchestrator. Analyzes the dependency graph, creates git worktrees for each task, spawns parallel Opus-class sub-agents to write code, merges completed work into the feature branch, and loops until all tasks are done. The main agent manages all git infrastructure; sub-agents only write code. | Pipeline + Standalone |
 | **audit** | Post-implementation verification. Spawns a read-only sub-agent that checks every acceptance criterion against the actual codebase. Produces a PASS/FAIL report. Always runs in the pipeline after implement; also invocable standalone. | Pipeline + Standalone |
@@ -121,7 +121,7 @@ Start a conversation, discuss what you want to build, then:
 > Plan this feature
 ```
 
-The agent infers the feature name, creates the task plan, and asks to continue. Say **"proceed through all stages"** to run the full pipeline end-to-end, or confirm each step individually.
+The agent infers the feature name, creates `SPEC.md` and `tasks.json`, and asks to continue. Say **"proceed through all stages"** to run the full pipeline end-to-end, or confirm each step individually.
 
 ### Individual Skills
 
@@ -137,8 +137,8 @@ The agent infers the feature name, creates the task plan, and asks to continue. 
 
 | What you say | What happens |
 |---|---|
-| "Plan this feature" | Creates implementation plan, asks to continue |
-| "Proceed through all stages" | Runs implementation-plan -> review-plan -> implement -> review-code without stopping |
+| "Plan this feature" | Creates `SPEC.md` and `tasks.json`, asks to continue |
+| "Proceed through all stages" | Runs implementation-plan -> review-plan -> implement -> audit -> review-code without stopping |
 | "Skip audit" | Skips the audit step (included by default in the pipeline) |
 | Confirm at each gate | Step-by-step control over the pipeline |
 
@@ -158,9 +158,9 @@ super-developer/
 |   +-- perspectives/
 |   |   +-- SKILL.md                    # Divergent problem-solving
 |   +-- implementation-plan/
-|   |   +-- SKILL.md                    # Discussion -> structured tasks
+|   |   +-- SKILL.md                    # Requirements -> SPEC.md + tasks.json
 |   +-- review-plan/
-|   |   +-- SKILL.md                    # Design review gate
+|   |   +-- SKILL.md                    # Plan review gate
 |   +-- tasks/
 |   |   +-- SKILL.md                    # Status dashboard
 |   +-- implement/
@@ -193,7 +193,7 @@ super-developer/
 | Decision | Rationale |
 |---|---|
 | Main agent orchestrates, sub-agents implement | Separation of concerns — orchestrator manages git state, sub-agents write code without risk of infrastructure conflicts |
-| Adversarial review at every gate | Completeness + Challenger for plans, 4 specialists + Skeptic for code — false positives are filtered, not just flagged |
+| Adversarial review at every gate | Completeness + Plan Challenger for plans, 4 specialists + Skeptic for code — false positives are filtered, not just flagged |
 | Git worktree isolation | Parallel sub-agents work in separate worktrees — no branch switching, no merge conflicts during implementation |
 | Pipeline with confirmation gates | Flows automatically but stays under user control — blanket approval for speed, step-by-step for precision |
 | Audit always runs in pipeline | Verifies "did we build what we planned" before code review begins — standalone review-code skips it |

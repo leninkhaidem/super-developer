@@ -12,7 +12,7 @@ description: >
 
 # Plan: Convert Discussion to Structured Implementation Tasks
 
-Translate the current brainstorming or research session into a structured, agent-executable task plan. Produces a feature directory under `.tasks/` containing a self-contained context document and a JSON task file.
+Translate a completed brainstorming or requirements discussion into a structured, agent-executable task plan. Produces a feature directory under `.tasks/` containing a requirements specification (`SPEC.md`) and a JSON task file.
 
 Execute this directly as the main agent — do not delegate to a sub-agent. The main agent has the conversation context needed to create the plan.
 
@@ -24,7 +24,7 @@ Execute this directly as the main agent — do not delegate to a sub-agent. The 
 
 ## Step 1: Identify the Feature
 
-Review the full conversation history from this session. Determine a short, descriptive kebab-case name (e.g., `user-auth`, `api-redesign`, `search-indexing`).
+Review the full conversation history from this session. Extract only requirements, constraints, acceptance criteria, and out-of-scope decisions that the user stated or approved. If core requirements are missing or contradictory, ask for clarification before writing files. Determine a short, descriptive kebab-case name (e.g., `user-auth`, `api-redesign`, `search-indexing`).
 
 **Infer the feature name from the discussion context.** Do not ask the user for a name unless the conversation is genuinely ambiguous with multiple unrelated features discussed. If `$ARGUMENTS` is provided, use that directly.
 
@@ -36,43 +36,53 @@ If `.tasks/<feature-name>/` already exists, ask whether to overwrite or pick a d
 
 ```
 .tasks/<feature-name>/
-├── CONTEXT.md
+├── SPEC.md
 └── tasks.json
 ```
 
-## Step 3: Generate CONTEXT.md
+## Step 3: Generate SPEC.md
 
-CONTEXT.md is a **concise architectural brief** — not a detailed spec. It answers "what are we building and why" so a sub-agent can orient itself. All implementation detail belongs in tasks.json.
+SPEC.md is a **concise requirements specification** — not an architecture brief and not an implementation plan. It is the source of truth for WHAT the user wants, how success is judged, and what is excluded. All task decomposition and implementation detail belongs in tasks.json or in the codebase exploration done during implementation.
 
-**Hard constraint: CONTEXT.md must not exceed 50 lines at initial creation.** If writing more, move implementation detail to task descriptions. After review-plan processing, the post-review cap is **75 lines** to accommodate design decisions and rationale added during review. If a review addition would breach 75 lines, compress existing content before adding.
+**Requirement source rule:** For normative product content, include only requirements, constraints, acceptance criteria, and exclusions stated or explicitly approved by the user in the prior discussion. Code References are non-normative and may include only verified path-level references from lightweight codebase inspection. Do not invent product behavior, architecture, or non-functional requirements to make the spec feel complete. If a needed requirement is ambiguous, ask before writing files.
 
 Structure:
 
 ```markdown
-# <Feature Name — Human Readable>
+# <Feature Name — Human Readable> Specification
 
 ## Overview
-1-2 sentences: what we are building and why.
+1-2 sentences: user goal and intended outcome.
 
-## Design Decisions
-Key decisions with brief rationale. Include rejected alternatives to prevent re-exploration.
-- Decision A: chose X over Y because Z.
-- Decision B: ruled out W because V.
+## Requirements
+User-facing functional requirements. Use stable IDs for traceability.
+- REQ-1: ...
+- REQ-2: ...
 
-## Architecture
-How this integrates with the existing system. Key components, entry points, relevant files.
+## Acceptance Criteria
+Feature-level, user-visible outcomes. Use stable IDs; prefer Given/When/Then when useful.
+- AC-1: ...
+- AC-2: ...
 
 ## Constraints
-Non-negotiable requirements: security, performance, compatibility.
+Non-negotiable user-stated constraints: compatibility, security, performance, policy, timing.
+
+## Code References
+Verified existing files/modules to inspect. Reference paths only; no code excerpts or change instructions. Use `None identified` when no safe references are known.
+- `path/to/file`: why it is relevant.
 
 ## Out of Scope
-What we explicitly excluded.
+User-stated exclusions and boundaries.
 ```
 
 Rules:
-- Every section: terse bullets or single sentences, not paragraphs.
-- Reference specific file paths and integration points, but do not describe what to do with them (that goes in task descriptions).
-- **No duplication with tasks.json.** Task-level concerns belong only in tasks.
+- Keep concise, but never omit a user-stated requirement to satisfy brevity.
+- Redact secrets, credentials, tokens, PII, and proprietary sensitive values; use placeholders and describe the requirement without persisting raw sensitive data.
+- SPEC.md may reference file paths, APIs, or existing modules, but must not include code snippets, pseudo-code, line numbers, or instructions for how to change code.
+- Include Code References only after lightweight codebase inspection verifies the paths. If no relevant paths are known, write `None identified`.
+- Do not include architecture/design decisions unless the user explicitly made them a requirement.
+- Do not include task breakdowns or implementation sequencing.
+- Use requirement/acceptance IDs so tasks.json can trace to the spec without duplicating whole sections.
 
 ## Step 4: Generate tasks.json
 
@@ -101,7 +111,7 @@ Create a JSON file following this schema:
           "acceptance_criteria": [
             "Specific, verifiable criterion"
           ],
-          "context": "Why this task exists — the design decision or requirement that motivated it"
+          "context": "Why this task exists — the SPEC.md requirement or acceptance criterion that motivated it"
         }
       ]
     }
@@ -125,11 +135,11 @@ Create a JSON file following this schema:
 
 ### Task Authoring Guidelines
 
-- **Descriptions state WHAT to build, not HOW to code it.** Reference affected files and modules so the agent knows where to work. Include constraints that aren't discoverable from the codebase — external API contracts, security policies, performance bounds, decisions made during planning. The implementing agent derives the actual code from codebase exploration.
-- **"Discoverable" means:** exists in CONTEXT.md, the referenced files, or their immediate imports. If an agent reading those files would find it, don't repeat it in the description.
+- **Descriptions state WHAT to build, not HOW to code it.** Reference affected files and modules so the agent knows where to work. Include constraints that aren't discoverable from the codebase — external API contracts, security policies, performance bounds, requirements confirmed during planning. The implementing agent derives the actual code from codebase exploration.
+- **"Discoverable" means:** exists in SPEC.md, the referenced files, or their immediate imports. If an agent reading those files would find it, don't repeat it in the description.
 - **Anchor patterns, don't prescribe code.** When a task should follow an existing pattern, reference it: "Follow middleware pattern in `src/middleware/cors.ts`." The agent explores, finds the pattern, follows it.
 - **Description budget:** Target 200-400 characters. Descriptions exceeding 600 characters likely contain implementation prescriptions — review and trim.
-- The `description` field covers WHAT + constraints. The `context` field covers WHY — one or two sentences linking back to a design decision. Don't mix them.
+- The `description` field covers WHAT + constraints. The `context` field covers WHY — one or two sentences linking back to a SPEC.md requirement or acceptance criterion. Don't mix them.
 - Each task: scoped for a single focused agent session.
 - Group tasks into phases that deliver a testable increment.
 - Dependencies must not be circular. Tasks in phase N may depend on tasks in phases 1..N only.
@@ -190,8 +200,11 @@ Examples of tasks that **pass** despite being small:
 
 Before writing files, verify:
 
-- CONTEXT.md is under 50 lines (75 post-review — see Step 3)
-- No content duplicated between CONTEXT.md and tasks.json
+- SPEC.md contains all user-stated requirements, acceptance criteria, constraints, and out-of-scope items from the discussion
+- SPEC.md contains no raw secrets, credentials, tokens, PII, or proprietary sensitive values
+- SPEC.md contains no implementation details, code snippets, pseudo-code, line numbers, or task breakdowns
+- SPEC.md Code References are verified path-only references or `None identified`
+- No unnecessary verbatim duplication between SPEC.md and tasks.json; tasks should trace to spec IDs while adding task-level verification detail
 - No circular dependencies
 - All dependency references point to valid task IDs
 - Every task has at least one acceptance criterion
@@ -203,7 +216,7 @@ Before writing files, verify:
 ## Step 6: Write Files
 
 1. Create `.tasks/<feature-name>/` directory.
-2. Write `CONTEXT.md`.
+2. Write `SPEC.md`.
 3. Write `tasks.json` (pretty-printed, 2-space indentation).
 
 ## Step 7: Present Summary
