@@ -1,6 +1,6 @@
 # Super Developer
 
-A Claude Code plugin that orchestrates the full development lifecycle — from divergent ideation through structured planning, parallel implementation with git worktree isolation, and multi-agent adversarial code review.
+A Claude Code plugin that orchestrates the full development lifecycle — from divergent ideation through requirements-spec-driven planning, parallel implementation with git worktree isolation, and multi-agent adversarial code review.
 
 One plugin. Eight skills. Zero manual git juggling.
 
@@ -121,7 +121,7 @@ Start a conversation, discuss what you want to build, then:
 > Plan this feature
 ```
 
-The agent infers the feature name, creates the task plan, and asks to continue. Say **"proceed through all stages"** to run the full pipeline end-to-end, or confirm each step individually.
+The agent infers the feature name, creates `SPEC.md` and `tasks.json`, and asks to continue. Say **"proceed through all stages"** to run the full pipeline end-to-end, or confirm each step individually.
 
 ### Individual Skills
 
@@ -138,7 +138,7 @@ The agent infers the feature name, creates the task plan, and asks to continue. 
 | What you say | What happens |
 |---|---|
 | "Plan this feature" | Creates `SPEC.md` and `tasks.json`, asks to continue |
-| "Proceed through all stages" | Runs implementation-plan -> review-plan -> implement -> review-code without stopping |
+| "Proceed through all stages" | Runs implementation-plan -> review-plan -> implement -> audit -> review-code without stopping |
 | "Skip audit" | Skips the audit step (included by default in the pipeline) |
 | Confirm at each gate | Step-by-step control over the pipeline |
 
@@ -158,7 +158,7 @@ super-developer/
 |   +-- perspectives/
 |   |   +-- SKILL.md                    # Divergent problem-solving
 |   +-- implementation-plan/
-|   |   +-- SKILL.md                    # Discussion -> structured tasks
+|   |   +-- SKILL.md                    # Requirements -> SPEC.md + tasks.json
 |   +-- review-plan/
 |   |   +-- SKILL.md                    # Plan review gate
 |   +-- tasks/
@@ -193,7 +193,7 @@ super-developer/
 | Decision | Rationale |
 |---|---|
 | Main agent orchestrates, sub-agents implement | Separation of concerns — orchestrator manages git state, sub-agents write code without risk of infrastructure conflicts |
-| Adversarial review at every gate | Completeness + Challenger for plans, 4 specialists + Skeptic for code — false positives are filtered, not just flagged |
+| Adversarial review at every gate | Completeness + Plan Challenger for plans, 4 specialists + Skeptic for code — false positives are filtered, not just flagged |
 | Git worktree isolation | Parallel sub-agents work in separate worktrees — no branch switching, no merge conflicts during implementation |
 | Pipeline with confirmation gates | Flows automatically but stays under user control — blanket approval for speed, step-by-step for precision |
 | Audit always runs in pipeline | Verifies "did we build what we planned" before code review begins — standalone review-code skips it |

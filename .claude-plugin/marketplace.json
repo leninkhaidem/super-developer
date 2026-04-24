@@ -8,8 +8,8 @@
   "plugins": [
     {
       "name": "super-developer",
-      "description": "Orchestrates the full development lifecycle with 8 skills — divergent ideation, structured planning, parallel implementation with git worktree isolation, multi-agent adversarial code review, and codebase documentation.",
-      "version": "1.11.2",
+      "description": "Orchestrates the full development lifecycle with 8 skills — divergent ideation, requirements-spec-driven planning, parallel implementation with git worktree isolation, multi-agent adversarial code review, and codebase documentation.",
+      "version": "1.12.0",
       "category": "development",
       "author": {
         "name": "lenin khaidem",
