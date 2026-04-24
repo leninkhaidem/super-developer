@@ -22,8 +22,8 @@ Execute tasks from a feature's task plan. The main agent acts as an orchestrator
 
 ## Step 1: Load and Assess
 
-1. Verify `.tasks/$ARGUMENTS/` exists. If not, list available features and ask.
-2. Read `.tasks/$ARGUMENTS/tasks.json` to assess current state.
+1. Verify `.tasks/$ARGUMENTS/` exists and contains `SPEC.md` and `tasks.json`. If not, list available features and ask.
+2. Read `.tasks/$ARGUMENTS/SPEC.md` and `.tasks/$ARGUMENTS/tasks.json` to assess current state.
 3. Display status summary:
 
 ```
@@ -77,7 +77,7 @@ For each set of actionable tasks, reason through these sub-steps in order:
 
 ### 5.1. Analyze File Impact
 
-Read each task's description and acceptance criteria. Determine which files each task will likely create or modify. This analysis drives all subsequent decisions.
+Read SPEC.md plus each task's description and acceptance criteria. Determine which files each task will likely create or modify. This analysis drives all subsequent decisions.
 
 ### 5.2. Classify Execution Mode
 
@@ -140,7 +140,7 @@ Set assigned tasks to `in-progress` in tasks.json. Write immediately.
 
 For tasks classified as inline in Step 5.2, the main agent executes directly:
 
-1. Read CONTEXT.md to understand the feature holistically.
+1. Read SPEC.md to understand the feature requirements holistically.
 2. Read the task's description and acceptance criteria from tasks.json.
 3. Read existing files relevant to the task before making changes.
 4. Implement the changes and commit to the task branch with a descriptive message.
@@ -166,7 +166,7 @@ For tasks classified as delegated in Step 5.2, spawn sub-agents.
 **Specific model name (e.g., `claude-opus-4`):** Pass it directly as the `model` parameter to all sub-agents.
 
 Each sub-agent receives:
-- `.tasks/$ARGUMENTS/CONTEXT.md` — project brief
+- `.tasks/$ARGUMENTS/SPEC.md` — requirements specification
 - `.tasks/$ARGUMENTS/tasks.json` — for specific task details
 - The assigned task ID(s)
 - **The worktree path to work in** (e.g., `.worktrees/<feature>/task-<task>/`)
@@ -174,7 +174,7 @@ Each sub-agent receives:
 - Project-level instructions (CLAUDE.md, AGENTS.md) if they exist
 
 Each sub-agent must:
-- Read CONTEXT.md to understand the feature holistically
+- Read SPEC.md to understand the feature requirements holistically
 - Locate its assigned task(s) by ID in tasks.json
 - Read the clean code rules and follow them while writing code
 - Read existing files relevant to the task(s) before making changes
@@ -293,7 +293,7 @@ Do NOT attempt to execute audit or review-code logic inline. The Skill tool load
 - **The main agent orchestrates and may execute inline.** For simple, well-defined tasks (per Step 5.2), the main agent implements directly. For complex or parallel work, sub-agents write the code.
 - **The main agent owns git infrastructure.** Sub-agents work in assigned worktree directories only. They do not create worktrees, branches, or run merge operations.
 - **Maximize parallelism, respect dependencies.** Spawn concurrent sub-agents for independent tasks. Never parallelize tasks that share file dependencies, have potential file overlap (per Step 5.3), or have explicit dependency links.
-- **Do not modify CONTEXT.md** during implementation.
+- **Do not modify SPEC.md** during implementation.
 - **Do not add new tasks** during implementation. If additional work is discovered, note it and suggest a plan update separately.
 - **Follow project conventions.** Ensure sub-agents read CLAUDE.md / AGENTS.md if present.
 - **Never merge to main without explicit user approval.** Even if the user says "push to remote."

@@ -23,9 +23,10 @@ Lightweight verification that all tasks in a feature plan have been completed as
 
 ## Step 1: Spawn Audit Sub-Agent
 
-Launch an **Opus-class sub-agent** with:
+1. Verify `.tasks/$ARGUMENTS/` exists and contains `SPEC.md` and `tasks.json`. If not, list available features and ask.
+2. Launch an **Opus-class sub-agent** with:
 
-- `.tasks/$ARGUMENTS/CONTEXT.md`
+- `.tasks/$ARGUMENTS/SPEC.md`
 - `.tasks/$ARGUMENTS/tasks.json`
 - **The merge worktree path** — if the feature was implemented using git worktrees (see the worktree skill for path conventions), direct the sub-agent to work from `.worktrees/<feature>/merge/` where the feature branch is checked out. If no worktree exists (e.g., standalone audit), use the current working directory.
 - Access to the project codebase from that worktree
@@ -34,11 +35,18 @@ The sub-agent must **not** receive any conversation history. It reads the plan c
 
 ## Step 2: Audit Procedure (executed by sub-agent)
 
+First, read SPEC.md and verify every listed requirement and feature-level acceptance criterion against the current codebase:
+
+- If a SPEC item describes a user-visible behavior, confirm the behavior exists and matches the requirement.
+- If a SPEC item describes a constraint, confirm the implementation respects it.
+- If a SPEC item cannot be verified programmatically, note it as "manual verification required."
+- If no task covers a SPEC requirement or acceptance criterion, flag it as `[GAP]` even if all task-level criteria pass.
+
 For every task marked `done` in tasks.json:
 
-### 2a. Acceptance Criteria Verification
+### 2a. Task Acceptance Criteria Verification
 
-Go through each acceptance criterion and verify it holds in the current codebase:
+Go through each task acceptance criterion and verify it holds in the current codebase:
 
 - If a criterion specifies a file, function, or endpoint — confirm it exists and behaves as described.
 - If a criterion specifies a testable behavior — run the relevant test or command if possible.
@@ -58,7 +66,7 @@ Flag violations as `[CODE-QUALITY]` issues in the audit report. Note the file, l
 
 ### 2c. Completeness Check
 
-- Cross-reference CONTEXT.md against the implementation. Are there requirements described in the context document that no task addresses?
+- Cross-reference SPEC.md against the implementation. Are there requirements described in the specification that no task addresses?
 - Are there tasks marked `skipped` or `blocked`? Flag these with their reasons.
 - Are there any TODO, FIXME, or HACK comments introduced during implementation that indicate incomplete work?
 
@@ -79,12 +87,14 @@ The sub-agent produces a structured report:
 - Tasks completed: X/Y
 - Tasks skipped: N (with reasons)
 - Tasks blocked: N (with reasons)
-- Acceptance criteria: X/Y verified, N require manual check
+- SPEC requirements/acceptance criteria: X/Y verified, N require manual check
+- Task acceptance criteria: X/Y verified, N require manual check
 
 ### Issues Found
-1. [ISSUE] <description> — task <ID>, criterion <N>
-2. [GAP] <description> — requirement from CONTEXT.md not covered
-3. [TODO] <file:line> — incomplete work marker found
+1. [SPEC] <description> — SPEC item <REQ/AC ID>
+2. [ISSUE] <description> — task <ID>, criterion <N>
+3. [GAP] <description> — requirement from SPEC.md not covered
+4. [TODO] <file:line> — incomplete work marker found
 
 ### Passed
 - [list of tasks that fully passed verification]

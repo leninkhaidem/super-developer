@@ -77,7 +77,7 @@ Resolve model preferences for two agent roles:
 
 Spawn 4 specialist sub-agents **in parallel** (model per resolved preference above). Each receives:
 - The full diff (or the current batch's diff if batching)
-- Change context (PR description + title, commit messages, user-supplied context, or feature CONTEXT.md)
+- Change context (PR description + title, commit messages, user-supplied context, or feature SPEC.md)
 - **Codebase path** for file exploration: the review worktree path (`.worktrees/pr-review/<number>/` for PR mode, `.worktrees/<feature>/merge/` for pipeline mode, or the project root for local mode)
 
 ### Specialist Agents
@@ -167,7 +167,9 @@ mark **DOWNGRADED** (reclassify as 🟡 SUGGESTION).
 
 **5 Intentional Design** — Is this a deliberate, documented decision? Check PR description,
 commit messages, inline comments, AGENTS.md, ARCHITECTURE.md, ADR files, user-supplied
-context, and CONTEXT.md. If intentional and documented, mark **DISPUTED.**
+context, and SPEC.md. If intentional and documented, mark **DISPUTED** only for non-security,
+non-privacy, and non-safety findings. Security/privacy/safety risks that are real and intentional
+remain reportable; mark them **CONFIRMED** and note the documented intent in the reason.
 
 **6 Test-Scope Confusion** — Does this finding apply only to test code, fixtures, mocks,
 or seed data? If exclusively in test scope, mark **DISPUTED** for 🔴/🟠.
