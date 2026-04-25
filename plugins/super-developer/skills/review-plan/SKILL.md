@@ -274,6 +274,8 @@ When editing SPEC.md, preserve the requirement source rule: do not add requireme
 
 ## Step 8: Re-Review if Changes Were Made
 
+**Per-round auto-applied accumulator.** Step 7 records auto-applied edits to a per-round buffer (e.g., `auto_applied[round_n]`). When Step 8 enters a new round, append a new buffer; do not overwrite. Step 9's Gate 2 summary reads all buffers across rounds 1..N. When all rounds collapse to a single round, the round headers are omitted in Gate 2 and the listing reverts to a flat bullet list.
+
 Re-review only at the depth required by the changes:
 
 1. If only deterministic/schema issues changed, rerun deterministic validation only.
