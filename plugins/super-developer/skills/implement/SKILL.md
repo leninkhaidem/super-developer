@@ -38,7 +38,7 @@ Read `${CLAUDE_PLUGIN_ROOT}/references/model-preferences.md` for the canonical s
 
 Resolve the model preference for the `implement` skill key. Hardcoded default: `adaptive`.
 
-**Adaptive interpretation for implement:** Opus for complex/ambiguous packages, Sonnet for simple/patterned ones. The inline/delegate boundary from Step 6.4 captures complexity — delegated packages are substantial enough to warrant a sub-agent. Within delegated packages, bias toward Opus when uncertain.
+**Adaptive interpretation for implement:** Opus for complex/ambiguous packages, Sonnet for simple/patterned ones. The inline/delegate boundary from Step 6.5 captures complexity — delegated packages are substantial enough to warrant a sub-agent. Within delegated packages, bias toward Opus when uncertain.
 
 Carry the resolved preference forward into Step 7d.
 
@@ -58,7 +58,7 @@ PROJECT_ROOT=$(git rev-parse --show-toplevel)
 
 1. Ensure `.worktrees/` is in `.gitignore`.
 2. Create the feature branch as a ref (not a worktree): `git branch feature/<name> main`
-3. If any packages will be delegated to sub-agents (per Step 6.4), create the feature namespace directory: `mkdir -p .worktrees/<feature>/`. If all actionable packages are classified as inline, defer worktree directory creation until a delegated package appears.
+3. If any packages will be delegated to sub-agents (per Step 6.5), create the feature namespace directory: `mkdir -p .worktrees/<feature>/`. If all actionable packages are classified as inline, defer worktree directory creation until a delegated package appears.
 
 **The main working tree always stays on `main`.** Never run `git checkout` in the project root.
 
@@ -101,7 +101,16 @@ Merge, split, defer, or serialize packages if runtime file impact or current sta
 
 Run packages in parallel only when they are substantial and file impact does not overlap. Do not maximize fanout for its own sake. When file-impact overlap is ambiguous, default to serializing — the cost of unnecessary serialization is latency; the cost of incorrect parallelization is merge conflicts.
 
-### 6.5. Announce and Justify
+### 6.5. Classify Execution Mode
+
+For each package selected into the batch, decide:
+
+- **Inline** — execute as the main agent. No sub-agent, no worktree. Use when the package contains a single small task with unambiguous acceptance criteria, follows an existing pattern, and touches ≤3 files.
+- **Delegate** — spawn a sub-agent in a dedicated worktree. Use for every other package, including all multi-task packages.
+
+Inline tasks do not use sub-agent model preferences (Step 2). Delegated packages do.
+
+### 6.6. Announce and Justify
 
 Before execution, present package IDs, task IDs, worktree branch names, primary paths, expected verification commands, and whether packages run in parallel or serially. This lets the user validate dispatching reasoning before execution begins.
 
@@ -112,7 +121,7 @@ For each batch of tasks:
 
 ### 7a. Create Package Worktrees
 
-**For inline tasks (classified per Step 6.4 — small or one-task packages eligible for inline execution):** Skip worktree creation. The main agent creates a task branch without a worktree: `git branch task/<feature>/<package-id-or-task> <base>` (where `<base>` is `main` for independent tasks or `feature/<feature>` for dependent tasks). The main agent works directly and commits to this branch.
+**For inline tasks (classified per Step 6.5 — small or one-task packages eligible for inline execution):** Skip worktree creation. The main agent creates a task branch without a worktree: `git branch task/<feature>/<package-id> <base>` (where `<base>` is `main` for independent tasks or `feature/<feature>` for dependent tasks). The main agent works directly and commits to this branch.
 
 **For delegated tasks — independent (no dependencies on earlier feature work):**
 ```bash
@@ -136,7 +145,7 @@ Set assigned tasks to `in-progress` in tasks.json. Write immediately.
 
 ### 7c. Execute Inline Tasks
 
-For tasks classified as inline per Step 6.4, the main agent executes directly:
+For tasks classified as inline per Step 6.5, the main agent executes directly:
 
 1. Read SPEC.md to understand the feature requirements holistically.
 2. Read the task's description and acceptance criteria from tasks.json.
@@ -153,13 +162,13 @@ For tasks classified as inline per Step 6.4, the main agent executes directly:
 
 ### 7d. Spawn Sub-Agents
 
-For packages classified as delegated in Step 6.4, spawn sub-agents.
+For packages classified as delegated in Step 6.5, spawn sub-agents.
 
 **Model selection** depends on the resolved preference from Step 2:
 
 **`inherit`:** Do not pass a `model` parameter to sub-agents. They inherit the orchestrator's model.
 
-**`adaptive` (default):** Use the complexity classification from Step 6.4. The inline/delegate boundary already captures this: delegated packages are substantial enough to warrant a sub-agent. Within delegated packages, bias toward Opus when uncertain — the cost of a wrong downgrade is a subtle bug that survives audit. Use Sonnet only for delegated packages that follow well-established patterns and have unambiguous scope.
+**`adaptive` (default):** Use the complexity classification from Step 6.5. The inline/delegate boundary already captures this: delegated packages are substantial enough to warrant a sub-agent. Within delegated packages, bias toward Opus when uncertain — the cost of a wrong downgrade is a subtle bug that survives audit. Use Sonnet only for delegated packages that follow well-established patterns and have unambiguous scope.
 
 **Specific model name (e.g., `claude-opus-4`):** Pass it directly as the `model` parameter to all sub-agents.
 
@@ -204,7 +213,7 @@ git merge task/<feature>/<task-name> --no-edit
 3. Set the conflicting task's status to `blocked` with `blocked_reason: "merge conflict with <other-task> in <file(s)>"`. For consolidated batches, block all tasks in the group.
 4. Report the conflict to the user and suggest re-sequencing the conflicting tasks (run them serially instead of in parallel).
 
-Complete Steps 7e and 7f for the current batch before returning to Step 5. Dependent packages in the next batch require the feature ref to contain all previously merged work.
+Complete Steps 7e, 7e-bis, and 7f for the current batch before returning to Step 5. Dependent packages in the next batch require the feature ref to contain all previously merged work.
 
 ### 7e-bis. Lightweight Integration Checkpoint
 
@@ -300,7 +309,7 @@ Do NOT attempt to execute audit or review-code logic inline. The Skill tool load
 
 ## Rules
 
-- **The main agent orchestrates and may execute inline.** For small, well-defined packages (per Step 7.2), the main agent implements directly. For substantial or parallel work, sub-agents write the code.
+- **The main agent orchestrates and may execute inline.** For small, well-defined packages (per Step 6.5), the main agent implements directly. For substantial or parallel work, sub-agents write the code.
 - **The main agent owns git infrastructure.** Sub-agents work in assigned worktree directories only. They do not create worktrees, branches, or run merge operations.
 - **Delegate work packages, not individual small tasks.** Sub-agents should receive substantial coherent packages that amortize context-loading cost.
 - **Use parallelism selectively.** Parallelize substantial packages only when dependencies and likely file impact are safe. Do not maximize sub-agent fanout for its own sake.
