@@ -129,6 +129,17 @@ Create a JSON file following this schema:
             "Specific, verifiable criterion"
           ],
           "context": "Why this task exists — the SPEC.md requirement or acceptance criterion that motivated it"
+        },
+        {
+          "id": "P1-T002",
+          "title": "Second task in the same package",
+          "description": "Sibling task delivering related work in the same subsystem.",
+          "status": "pending",
+          "dependencies": ["P1-T001"],
+          "acceptance_criteria": [
+            "Specific, verifiable criterion"
+          ],
+          "context": "Why this task exists — the SPEC.md requirement or acceptance criterion that motivated it"
         }
       ]
     }
@@ -150,6 +161,9 @@ Create a JSON file following this schema:
 | Task | `completed_at` | string | ISO 8601 timestamp (added when status changes to `done`) |
 | Task | `blocked_reason` | string | Reason for blocking (added when status changes to `blocked`) |
 | Work Package | `id` | string | `WP<N>` (e.g., `WP1`) |
+| Work Package | `title` | string | Short human-readable package name |
+| Work Package | `description` | string | Coherent implementation bundle description |
+| Work Package | `rationale` | string | Why these tasks share one implementation context; required and reviewer-judged for one-task packages |
 | Work Package | `task_ids` | string[] | Task IDs included in this package; every task appears exactly once across packages |
 | Work Package | `depends_on` | string[] | Work package IDs that must be integrated first |
 | Work Package | `parallel_safe_with` | string[] | Work package IDs safe to run in the same implementation batch |
@@ -229,7 +243,7 @@ Examples of tasks that **pass** despite being small:
 - Use `depends_on` only for dependencies on other work packages. Internal task dependencies do not require package-level dependencies.
 - Fill `primary_paths` with likely files or directories to inspect first when known from Code References or task descriptions.
 - Fill `verification_commands` only with commands known to exist or strongly implied by the project. Use `[]` rather than inventing commands.
-- Use `parallel_safe_with` conservatively. When file impact is ambiguous, leave it empty and let implementation serialize or adjust.
+- Use `parallel_safe_with` conservatively. When file impact is ambiguous, leave it empty. If two packages cannot run in parallel because they touch the same subsystem or files, prefer combining them into one package over leaving them separate (per `references/work-packages.md`).
 
 ## Step 6: Validate
 
@@ -255,7 +269,7 @@ Before writing files, verify:
 - A work package does not list itself in `depends_on` or `parallel_safe_with`
 - Package dependencies do not contradict task dependencies
 - One-task work packages include a rationale explaining why the task is substantial, risky, or isolated. This rationale is reviewer-judged, not mechanically enforced
-- `parallel_safe_with` claims are conservative based on likely file/module impact
+- `parallel_safe_with` claims are conservative based on likely file/module impact (reviewer-judged, not mechanically enforceable)
 
 ## Step 7: Write Files
 
