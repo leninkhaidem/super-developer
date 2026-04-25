@@ -224,7 +224,46 @@ Must:
 
 ## Step 7: Merge and Resolve
 
-Collect structured findings from the spawned reviewer(s). Apply severity resolution rules:
+### Outcome Filter
+
+Before resolving severity, classify each finding's proposed fix:
+
+A finding **requires a user-facing decision card** if its `FIX:` would, when accepted, do any of:
+
+- Add or remove a task
+- Add or remove a work package
+- Add or remove an acceptance criterion that describes user-visible behavior
+- Rewrite an acceptance criterion in any way other than purely cosmetic (whitespace, punctuation, grammar with no operator-meaning shift). Rewrites that introduce or remove a numeric bound, an HTTP status, an error code, a verification environment, or any other testable specific are outcome-changing.
+- Add or remove a phase
+- Move a task between phases or packages such that order or dependency shifts
+- Move a boundary between in-scope and out-of-scope items
+- Change the verification scope, environment, or test surface required by an acceptance criterion (e.g., "unit tests pass" → "integration tests pass against staging DB")
+- Realign a task's spec-traceability identifier when the realignment would leave the original SPEC requirement uncovered (no remaining task cites it)
+- The finding is tagged security, privacy, or safety, regardless of the above
+
+A finding is **auto-applied** (recommendation taken silently, surfaced in Gate 2 summary) when its `FIX:` does any of:
+
+- Rewrites or rephrases task description wording without changing the user-visible outcome
+- Trims a description that exceeds the 600-character budget
+- Removes anti-pattern content (code snippets, line numbers, step-by-step instructions in task descriptions)
+- Performs a purely cosmetic acceptance-criterion rewrite (whitespace, punctuation, grammar; no testable specifics added or removed)
+- Realigns spec ↔ task traceability identifiers when both source and target SPEC requirements remain covered by some task after the realignment
+- Reshapes work packages while preserving task membership and external dependencies
+- Adjusts `parallel_safe_with` claims (sub-agent scheduling, not shipped outcome)
+
+**Safety-tag override.** Any finding tagged security, privacy, or safety prompts regardless of which auto-apply category it would otherwise fall into.
+
+**Ambiguous-rewrite default.** When an acceptance-criterion rewrite is neither obviously cosmetic nor obviously testable-specific, prompt. The "any other testable specific" catch-all covers a list that cannot be exhaustively enumerated; when the orchestrator cannot determine the rewrite's category mechanically, defer to the user.
+
+### Decision-Card Flow
+
+For each finding classified as requiring a user-facing decision, present a card using `${CLAUDE_PLUGIN_ROOT}/references/decision-prompts.md`. Read that reference once at the start of Step 7; do not re-read it per finding.
+
+Apply the blanket-mode threshold from the reference: when running unattended (`proceed through all stages` or equivalent) AND the threshold conditions all hold, take the reviewer's recommendation silently and tag the entry `← auto (blanket-approved, low-risk)` for the Gate 2 summary. Otherwise present the card and wait for user input.
+
+For each auto-applied finding, take the reviewer's recommendation silently. Append the finding to the round's auto-applied accumulator (see Step 8) for surfacing in Gate 2.
+
+Collect structured findings from the spawned reviewer(s). Classify each finding using the Outcome Filter above. For findings requiring a user-facing decision, present cards via the Decision-Card Flow above. For auto-applied findings, take the reviewer's recommendation silently and record in the round's auto-applied accumulator. Then apply severity resolution rules:
 
 1. **`[BLOCKER]` findings:** Resolve by updating SPEC.md or tasks.json. All blockers must be resolved before advancing.
 2. **`[CRITICAL]` findings:** Address each via one of three paths: (a) clarify SPEC.md when the finding concerns requirements, acceptance criteria, constraints, or scope and the clarification is supported by prior user input, (b) accept the alternative and revise tasks.json only when every changed task traces to existing SPEC requirement or acceptance IDs, or (c) dismiss as disproportionate — reference the finding's `COST:` line, explain why the cost exceeds the risk, and log the dismissal. Each critical must be explicitly addressed.
