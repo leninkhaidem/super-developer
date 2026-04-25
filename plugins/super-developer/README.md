@@ -30,11 +30,11 @@ The pipeline flows automatically with confirmation gates. Say **"proceed through
 |---|---|---|
 | **perspectives** | Divergent problem-solving. Spawns 3-5 Opus-class sub-agents, each approaching the problem from a distinct angle (Infrastructure, Architecture, Data, Root Cause, etc.). A final Skeptic agent stress-tests and synthesizes proposals into a ranked recommendation. | Standalone |
 | **implementation-plan** | Converts a completed brainstorming or requirements discussion into a structured task plan under `.tasks/<feature>/` with `SPEC.md`, task-level acceptance criteria, and work packages that define right-sized implementation delegation. | Pipeline + Standalone |
-| **review-plan** | Plan review gate. Performs deterministic schema validation, then spawns a **Plan Quality Reviewer**; escalates to an **Adversarial Plan Challenger** for high-risk or ambiguous plans. Validates `SPEC.md` and `tasks.json` cold from files only. Re-reviews adaptively (max 3 semantic rounds). | Pipeline + Standalone |
+| **review-plan** | Plan review gate. Performs deterministic schema validation, then spawns a **Plan Quality Reviewer**; escalates to an **Adversarial Plan Challenger** for high-risk or ambiguous plans. Validates `SPEC.md` and `tasks.json` cold from files only. Re-reviews adaptively (max 3 semantic rounds). Findings that change what ships — or are tagged security/privacy/safety — are presented one decision card at a time; the rest are auto-applied at the reviewer's recommendation and surfaced in the Gate 2 summary. | Pipeline + Standalone |
 | **tasks** | Implementation status dashboard. Shows progress across all features or drills into a specific one with phase-by-phase breakdown. Can modify task status on request. | Standalone |
 | **implement** | Orchestrator. Analyzes planned work packages, creates git worktrees per package, dispatches substantial coherent packages to sub-agents, merges package branches into the feature branch, and runs lightweight integration checkpoints before downstream work begins. | Pipeline + Standalone |
 | **audit** | Post-implementation verification. Spawns a read-only sub-agent that checks every acceptance criterion against the actual codebase. Produces a PASS/FAIL report. Always runs in the pipeline after implement; also invocable standalone. | Pipeline + Standalone |
-| **review-code** | Multi-agent code review. Spawns 4 specialist agents (Security, Logic, Performance, Architecture) in parallel, then an adversarial **Skeptic Agent** that independently tries to disprove every serious finding using a 6-point false-positive checklist. | Pipeline + Standalone + PR review |
+| **review-code** | Multi-agent code review. Spawns 4 specialist agents (Security, Logic, Performance, Architecture) in parallel, then an adversarial **Skeptic Agent** that independently tries to disprove every serious finding using a 6-point false-positive checklist. Under blanket pipeline mode, the `fix` action prompts only when a finding has multiple valid fix approaches with different runtime behavior; all other fixes apply silently. Local mode preserves per-fix `yes/skip` semantics. | Pipeline + Standalone + PR review |
 | **code-doc** | Generate comprehensive documentation for any codebase via hybrid analysis (native extractors + LLM agents). Adaptive 8-step pipeline: Scout → Existing Doc Assessment → Doc Plan → Analyze (delegate to sub-agents) → Synthesize → User Checkpoint → Generate (fan-out doc writers) → Review & Commit. Outputs 4 core docs (README, architecture-guide, developer-guide, codebase-context) plus optional docs (api-reference, data-model, component-guide, infrastructure). | Standalone |
 
 `review-code` works in **3 modes** — it auto-detects which to use:
@@ -154,6 +154,7 @@ super-developer/
 |   +-- clean-code-rules.md               # Code quality rules
 |   +-- model-preferences.md              # Sub-agent model selection schema
 |   +-- work-packages.md                  # Work-package delegation contract
+|   +-- decision-prompts.md               # Decision-card UX mechanics (review-plan + review-code)
 +-- skills/
 |   +-- worktree/
 |   |   +-- SKILL.md                       # Git worktree strategy
@@ -201,6 +202,7 @@ super-developer/
 | Audit always runs in pipeline | Verifies "did we build what we planned" before code review begins — standalone review-code skips it |
 | Feature name inference | The agent reads the conversation and proposes a name — no need to interrupt the flow for something obvious |
 | Work packages as delegation unit | Sub-agents are valuable, but each spawn has fixed context cost. Bundling related tasks into substantial packages reduces repeated codebase exploration while preserving parallelism for independent workstreams. |
+| One decision at a time | Reviewer findings that change what ships are presented as individual decision cards (recommendation + alternatives + tradeoffs); wording, traceability, and scheduling fixes auto-apply at the reviewer's recommendation and surface in the post-review summary. Cuts overwhelm without losing audit trust. |
 
 ---
 
