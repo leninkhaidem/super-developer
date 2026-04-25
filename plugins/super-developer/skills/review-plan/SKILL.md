@@ -299,8 +299,8 @@ Use the same template as Gate 1 (Step 4), with one addition: tag items that were
 
 ### Decisions made (4)
 - WP1 over-scope        → P1-T003 moved to tests/regression/
-- Orphan sweep          → kept
-- Read-fail-fast guard  → kept
+- Orphan sweep          → kept    ← auto (blanket-approved, low-risk)
+- Read-fail-fast guard  → kept    ← auto (blanket-approved, low-risk)
 - picture_area threshold → bundled with WP2
 
 ### Auto-applied refinements (8 total)

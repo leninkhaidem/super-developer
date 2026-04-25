@@ -157,8 +157,8 @@ Auto-taken decisions surface in the post-review summary as
 choices when reading the summary.
 
 **Single-reviewer plan review.** When `review-plan` runs with only the
-Plan Quality Reviewer (no escalation), the threshold's third condition
-is not satisfied, so blanket mode does **not** auto-apply
+Plan Quality Reviewer (no escalation), the threshold's first condition
+(escalated mode) is not satisfied, so blanket mode does **not** auto-apply
 outcome-changing findings. Every outcome-changing finding prompts,
 even under `proceed through all stages`. This keeps the user as the
 tiebreaker whenever there is no second reviewer to provide consensus

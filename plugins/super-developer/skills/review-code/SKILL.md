@@ -268,7 +268,7 @@ Use the canonical report template with:
 
 | Keyword | Action |
 |---|---|
-| `fix` | Fix confirmed 🔴 and 🟠 findings in the merge worktree. Under blanket mode, design-decision findings (see Design-Decision Filter below) are presented as decision cards via `${CLAUDE_PLUGIN_ROOT}/references/decision-prompts.md`; all other fixes apply silently. Outside blanket mode, per-fix `yes/skip` semantics from `references/local-workflow.md` and `references/pr-workflow.md` are preserved. Commit fixes to the feature branch. |
+| `fix` | Fix confirmed 🔴 and 🟠 findings in the merge worktree. Under blanket mode, design-decision findings (see Design-Decision Filter above) are presented as decision cards via `${CLAUDE_PLUGIN_ROOT}/references/decision-prompts.md`; all other fixes apply silently. Outside blanket mode, per-fix `yes/skip` semantics from `references/local-workflow.md` and `references/pr-workflow.md` are preserved. Commit fixes to the feature branch. |
 | `details <N>` | Expand finding N with full context and recommended fix. Return to gated actions. |
 | `abort` | No changes. Close review. |
 
