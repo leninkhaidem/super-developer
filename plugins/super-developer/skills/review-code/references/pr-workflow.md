@@ -148,3 +148,9 @@ git worktree remove .worktrees/pr-review/${PR_NUMBER}
 **Why Squash & Merge is hardcoded:** One PR = one commit on `main`. Clean, readable history.
 Easy single-commit revert if needed. Granular commit history preserved within the PR on GitHub.
 Rebase is never automated — it is a deliberate, manual operation only.
+
+---
+
+### Blanket-mode override
+
+When the user has authorized blanket mode (`proceed through all stages` or equivalent), the per-fix `yes/skip` flow above is replaced by the design-decision filter in the parent SKILL — see `### Design-Decision Filter` in `${CLAUDE_PLUGIN_ROOT}/skills/review-code/SKILL.md`. Design-decision findings present a card via `${CLAUDE_PLUGIN_ROOT}/references/decision-prompts.md`; all other fixes apply silently.
