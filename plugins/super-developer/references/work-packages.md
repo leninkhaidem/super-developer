@@ -25,19 +25,31 @@ Prefer packages that are:
 - independently mergeable
 - clear about which paths to inspect first
 
+## Package IDs
+
+Package IDs use the `WP<N>` format with sequential numbering and no gaps (`WP1`, `WP2`, `WP3`, ...). Renumber when packages are reordered, split, or merged so the sequence stays contiguous.
+
 ## Internal Dependencies
 
 A work package may contain tasks that depend on each other. The sub-agent handles internal dependencies sequentially and commits after each task ID. A package is blocked only by dependencies outside the package that are not yet done or integrated.
 
 ## Parallel Safety
 
-Mark packages as parallel-safe only when likely file ownership and subsystem boundaries do not overlap. When unsure, serialize or combine packages. The cost of serialization is latency; the cost of unsafe parallelism is merge conflicts and inconsistent design.
+Mark packages as parallel-safe only when likely file ownership and subsystem boundaries do not overlap. When unsure, combine or serialize packages. The cost of serialization is latency; the cost of unsafe parallelism is merge conflicts and inconsistent design.
 
 `parallel_safe_with` is a symmetric relation: if `WPx` lists `WPy`, then `WPy` must list `WPx`. A package never lists itself.
 
 ## Primary Paths
 
 `primary_paths` are starting points for code exploration, not hard boundaries. Agents should inspect those paths first and broaden only when imports, tests, or acceptance criteria require it.
+
+## Verification Commands
+
+Each package's `verification_commands` lists concrete shell commands the orchestrator runs after the package merges (for example, `npm test -- auth`). Populate it only with commands known to exist in the project or strongly implied by it. Use `[]` rather than inventing commands; an empty list is preferable to a guessed one.
+
+## Rationale
+
+Every package carries a `rationale` field explaining why its tasks should share one sub-agent context. For multi-task packages, the rationale describes the shared subsystem, file surface, or coherent outcome. For one-task packages, the rationale must explain why the task is substantial, risky, or naturally isolated enough to warrant a dedicated package. Rationale text is reviewer-judged, not mechanically enforced.
 
 ## Runtime Adjustment
 
