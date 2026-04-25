@@ -16,8 +16,8 @@ Super Developer turns Claude Code into an opinionated development workflow engin
        v
   implementation-plan  --->  review-plan  --->  implement  --->  audit  --->  review-code
                      |                  |              |               |
-              2 adversarial       git worktrees +  verify vs     4 specialists +
-              review agents      parallel agents    plan         Skeptic agent
+              1–2 reviewers       work-package      verify vs       4 specialists +
+              (adaptive)          dispatch          plan            Skeptic agent
 ```
 
 The pipeline flows automatically with confirmation gates. Say **"proceed through all stages"** and it runs end-to-end without stopping. Or invoke any skill independently — they work standalone too.
@@ -152,6 +152,8 @@ super-developer/
 |   +-- plugin.json                     # Plugin manifest
 +-- references/
 |   +-- clean-code-rules.md               # Code quality rules
+|   +-- model-preferences.md              # Sub-agent model selection schema
+|   +-- work-packages.md                  # Work-package delegation contract
 +-- skills/
 |   +-- worktree/
 |   |   +-- SKILL.md                       # Git worktree strategy
@@ -193,7 +195,7 @@ super-developer/
 | Decision | Rationale |
 |---|---|
 | Main agent orchestrates, sub-agents implement | Separation of concerns — orchestrator manages git state, sub-agents write code without risk of infrastructure conflicts |
-| Adversarial review at every gate | Completeness + Plan Challenger for plans, 4 specialists + Skeptic for code — false positives are filtered, not just flagged |
+| Adaptive adversarial review | Plan Quality Reviewer always; Adversarial Plan Challenger escalates on risk. Code review pairs 4 specialists with a Skeptic agent — false positives are filtered, not just flagged. |
 | Git worktree isolation | Parallel sub-agents work in separate worktrees — no branch switching, no merge conflicts during implementation |
 | Pipeline with confirmation gates | Flows automatically but stays under user control — blanket approval for speed, step-by-step for precision |
 | Audit always runs in pipeline | Verifies "did we build what we planned" before code review begins — standalone review-code skips it |

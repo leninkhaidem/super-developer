@@ -196,7 +196,7 @@ Each sub-agent must:
 
 ### 7e. Merge Completed Tasks into Feature Branch
 
-After all sub-agents in the current batch complete, merge their work before starting the next batch. Merge once **per sub-agent branch** (not per task ID). For consolidated batches, multiple tasks share one branch — merge it once. For inline tasks, merge the task branch into the feature branch the same way.
+After all sub-agents in the current batch complete, merge their work before starting the next batch. Merge once **per package branch** (not per task ID). For packages containing multiple tasks, the tasks share one branch — merge it once. For inline tasks, merge the task branch into the feature branch the same way.
 
 ```bash
 # Create merge worktree on the feature branch (if not already created)
@@ -210,7 +210,7 @@ git merge task/<feature>/<task-name> --no-edit
 **Merge conflict handling:** If `git merge` reports conflicts:
 1. Inspect the conflicting files. If conflicts are trivially resolvable (adjacent non-overlapping changes in the same file), resolve them and commit.
 2. If conflicts are substantive (overlapping logic, incompatible changes), abort the merge: `git merge --abort`
-3. Set the conflicting task's status to `blocked` with `blocked_reason: "merge conflict with <other-task> in <file(s)>"`. For consolidated batches, block all tasks in the group.
+3. Set the conflicting task's status to `blocked` with `blocked_reason: "merge conflict with <other-task> in <file(s)>"`. For packages containing multiple tasks, block all tasks in the package.
 4. Report the conflict to the user and suggest re-sequencing the conflicting tasks (run them serially instead of in parallel).
 
 Complete Steps 7e, 7e-bis, and 7f for the current batch before returning to Step 5. Dependent packages in the next batch require the feature ref to contain all previously merged work.
