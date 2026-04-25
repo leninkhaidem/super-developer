@@ -110,7 +110,7 @@ Do not execute semantic plan review as the main agent. The main agent performs d
 
 Every spawned reviewer must validate work packages as well as tasks:
 - Every task appears in exactly one work package.
-- Package boundaries are coherent and substantial.
+- Package boundaries are coherent and substantial (reviewer-judged, not mechanically enforceable).
 - One-task packages are justified.
 - Package dependencies are consistent with task dependencies: if any task in package `WPa` depends on a task in package `WPb`, then `WPa.depends_on` includes `WPb`. Dependencies between tasks inside the same package do not require package-level `depends_on`.
 - `parallel_safe_with` claims are conservative and plausible.
@@ -179,13 +179,46 @@ Package-level blockers include missing `work_packages`, a task omitted from all 
 
 ### Plan Quality Reviewer
 
-Combines the current completeness checks with practical implementability review. It verifies that the plan is complete, task acceptance criteria are clear, work packages are coherent, and a cold implementation agent can execute the plan from files only.
+Combines the standard completeness and quality checks with practical implementability review. Verifies that the plan is complete, task acceptance criteria are clear, work packages are coherent, and a cold implementation agent can execute the plan from files only.
+
+Must assess:
+
+- **Coverage gaps:** Are there requirements, acceptance criteria, constraints, or out-of-scope boundaries in SPEC.md that are not reflected correctly in tasks.json?
+- **Dependency integrity:** Are dependencies correctly specified? Are there implicit dependencies not captured?
+- **Acceptance criteria quality:** Can every criterion be objectively verified? Are any vague or untestable?
+- **Context sufficiency:** For each task, can an agent determine WHAT to build from the task description alone? It should NOT need to determine exact implementation from the description — that comes from codebase exploration. If two reasonable agents would build fundamentally different things from the same description, the description needs clarifying constraints. But if the difference is only in implementation approach (not outcome), the description is sufficient.
+- **Phase coherence:** Does each phase deliver a testable increment? Are tasks in the right phase?
+- **Edge cases:** Are failure modes, error handling, and boundary conditions required or implied by SPEC.md accounted for? Do not add new behavior for edge cases unless it traces to SPEC.md or the user approves a SPEC update.
+- **Plan conformance:** Do tasks adhere to the plan's own authoring standards? Check:
+  - Independence test: each task has a self-contained, verifiable outcome (a reviewer can verify acceptance criteria without seeing any other task)
+  - Description quality: states WHAT to build and key constraints, not HOW to code it
+  - Description budget: 200-400 chars target; flag descriptions exceeding 600 chars as likely over-specification → `[CRITICAL]`
+  - Anti-pattern scan: no code snippets, line numbers, step-by-step instructions, or library prescriptions unless security-mandated → `[CRITICAL]`
+  - No-duplication: task descriptions do not repeat SPEC.md content verbatim; they trace to spec IDs while adding task-level detail
+  - Acceptance criteria format: behavioral outcomes, not implementation details
+  - Independence test failures → `[BLOCKER]` (non-independent tasks cannot be verified). Other conformance issues → reviewer judgment.
+- **Work-package quality (in addition to the shared package mandate above):** Are package groupings sensible by subsystem/file surface? Are one-task packages adequately justified by `rationale`?
+
+**Output:** Use the Reviewer Output Format above. Primarily use `TASK:*`, `PHASE:*`, `WP:*`, and `GLOBAL:*` targets. Findings in other TARGET domains are not prohibited.
 
 ---
 
 ### Adversarial Plan Challenger
 
 Runs only when escalation triggers. It stress-tests assumptions, over/under-scoping, risky package boundaries, hidden dependencies, and disproportionate complexity.
+
+Must:
+
+- **Question non-obvious planning choices:** For significant task breakdown, dependency, scope, or sequencing choices, ask why this plan is preferable to a simpler concrete alternative.
+- **Propose counter-alternatives:** Present plausible task-plan alternatives with trade-off analysis. Do not invent new product requirements or architecture unless required to satisfy SPEC.md.
+- **Flag unjustified complexity:** Identify tasks, dependencies, or acceptance criteria that add complexity without a clear link to SPEC.md. Challenge whether simpler alternatives were considered.
+- **Probe for missing requirements clarity:** Surface ambiguous or conflicting requirements, acceptance criteria, constraints, or out-of-scope boundaries in SPEC.md. Require clarification rather than assuming behavior.
+- **Challenge task decomposition:** Is the breakdown the right granularity? Too coarse (risky for a single session) or too fine (overhead without value)?
+- **Stress-test SPEC.md:** Does it state WHAT the user wants, how success is judged, and what is excluded? Flag missing intent or constraints, not missing implementation details.
+- **Challenge task description verbosity:** If task descriptions prescribe exact code, line numbers, or step-by-step instructions, flag this as over-specification. Task descriptions should state intent and constraints; implementing agents derive the rest.
+- **Stress-test work packages:** Challenge package boundaries — could two packages collide on the same files in parallel? Are `parallel_safe_with` claims optimistic? Are package sizes proportionate to risk?
+
+**Output:** Use the Reviewer Output Format above. Primarily use `SPEC:*`, `GLOBAL:*`, `WP:*`, and `PHASE:*` targets. Findings in other TARGET domains are not prohibited.
 
 ---
 
@@ -227,7 +260,7 @@ Use the same template as Gate 1 (Step 4), with one addition: tag items that were
 **Rules:**
 - Every `← added by review` or `← modified by review` marker must map to a specific review finding that caused the change.
 - **Blocking gate** — the user must explicitly approve before finalization.
-- If the user rejects: ask what to change, apply edits to SPEC.md or tasks.json, and **re-review from Step 6** (mandatory — plan changes after review require re-verification). Gate 2 is re-presented after the new review completes.
+- If the user rejects: ask what to change, apply edits to SPEC.md or tasks.json, and **re-review from Step 5** (mandatory — plan changes after review require re-verification). Gate 2 is re-presented after the new review completes.
 - **No plan edits are permitted between Gate 2 approval and Step 10 finalization.**
 
 ## Step 10: Finalize
