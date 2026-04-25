@@ -108,10 +108,22 @@ conventions are normative; the borders are not.
 
 **Plain-language headline.** ≤80 characters. Derived from the
 reviewer's `TITLE` line by stripping target-locator prefixes
-(`TASK:P1-T003 — `, `WP:WP1.parallel_safe_with — `) and any acronyms
-that already appear in `references/work-packages.md` glossary terms.
-No further paraphrasing — the goal is recognizability for someone who
-read the original finding, not translation for someone who didn't.
+(`TASK:P1-T003 — `, `WP:WP1.parallel_safe_with — `). No further
+paraphrasing — the goal is recognizability for someone who read the
+original finding, not translation for someone who didn't.
+
+**Card field source mapping.** Every other card field maps to a
+specific reviewer-output element. The orchestrator does not synthesize
+prose from scratch.
+
+| Card field | Source |
+|---|---|
+| `<plain-language headline>` | Reviewer's `TITLE` line, prefix-stripped |
+| `Outcome impact:` | One sentence naming the filter category that promoted the finding (e.g., "Adds a task" / "Removes an acceptance criterion" / "Tagged security") |
+| `<Reviewer's case>` | Reviewer's `ISSUE:` line verbatim, optionally truncated to 3 lines with an ellipsis if longer |
+| `What ships either way:` | Bullets enumerating items the reviewer's `FIX:` line does not touch (only present when the reviewer's `COST:` line explicitly enumerates preserved items) |
+| `[<key>] <option>` | Reviewer's `FIX:` line (verbatim, see Constructing the Recommendation) |
+| `<pro/con>` | Reviewer's `COST:` line, one bullet per cost item; omitted when `COST:` is absent |
 
 ### 2. Letter-Prompt Convention
 
@@ -130,14 +142,14 @@ read the original finding, not translation for someone who didn't.
 
 When the user has authorized end-to-end automation
 (`proceed through all stages` or equivalent), the orchestrator
-auto-takes the recommendation when **all three** conditions hold:
+auto-takes the recommendation when **all** conditions hold:
 
-- The reviewer's verdict on the recommendation is unanimous (no
-  conflicting alternative path was raised by another reviewer)
-- The finding is **not** tagged security, privacy, or safety
 - The plan review is operating in escalated (multi-reviewer) mode —
   i.e., both the Plan Quality Reviewer and the Adversarial Plan
-  Challenger ran and agree
+  Challenger ran
+- Those reviewers agree on the recommended path (no conflicting
+  alternative path was raised by another reviewer)
+- The finding is **not** tagged security, privacy, or safety
 
 Otherwise the orchestrator pauses the pipeline and presents the card.
 Auto-taken decisions surface in the post-review summary as
@@ -173,11 +185,24 @@ prompt that lists both `FIX:` lines as alternatives, marks the
 finding as a forced prompt regardless of severity tag, and lets the
 user resolve.
 
-When the reviewer's `FIX:` line is multi-clause (the reviewer proposed
-more than one concrete action separated by "AND" or by enumeration),
-each clause becomes a separate option on the card and the
-recommendation is the first clause unless the reviewer explicitly
-ordered them otherwise.
+When the reviewer's `FIX:` line contains multiple clauses, the
+orchestrator distinguishes conjunction from disjunction:
+
+- **Conjunction** (clauses joined by `AND`, `and`, `+`, or
+  enumerated as a sequence the reviewer expects to apply together):
+  treat as a single recommended option whose text is the entire
+  multi-clause line verbatim. Both/all actions apply when the option
+  is selected.
+- **Disjunction** (clauses joined by `OR`, `or alternatively`, or
+  presented as numbered/lettered alternatives): split into separate
+  options on the card. The first listed alternative is the default
+  recommendation unless the reviewer explicitly ordered them
+  otherwise.
+
+When the connector is ambiguous (e.g., a comma-separated list with no
+explicit `AND` / `OR`), default to conjunction — the safer choice,
+since splitting a conjunction loses required actions while combining
+a disjunction merely costs the user one extra prompt-key.
 
 ## Per-Skill Filter Rules
 
@@ -231,6 +256,19 @@ in Gate 2 summary) when its proposed fix:
   dependencies
 - Adjusts `parallel_safe_with` claims (sub-agent scheduling, not
   shipped outcome)
+
+**Safety-tag override.** Any finding tagged security, privacy, or
+safety prompts regardless of which auto-apply category it would
+otherwise fall into. This honors Locked Decision 1 globally — the
+auto-apply categories above are short-circuited whenever a safety tag
+is present.
+
+**Ambiguous-rewrite default.** When an acceptance-criterion rewrite is
+neither obviously cosmetic nor obviously testable-specific, the rule
+is to **prompt**. The "any other testable specific" catch-all covers
+a list that cannot be exhaustively enumerated; when the orchestrator
+cannot determine the rewrite's category mechanically, it defers to
+the user rather than guess.
 
 ### `review-code` filter
 
@@ -294,9 +332,27 @@ If either section is empty, omit it.
 
 **Re-review interaction.** If `review-plan` enters re-review (Step 8)
 because of remaining blockers, the Gate 2 summary lists auto-applied
-edits **cumulatively across all rounds**, not just the final round.
-A blocker raised in round 2 may be caused by an edit auto-applied in
-round 1; cumulative listing keeps that audit trail intact.
+edits **cumulatively across all rounds**, grouped by round. A blocker
+raised in round 2 may be caused by an edit auto-applied in round 1;
+cumulative listing keeps that audit trail intact. Format:
+
+```markdown
+### Auto-applied refinements (<N> total)
+
+Round 1 (<n1>):
+- ...
+
+Round 2 (<n2>):
+- ...
+```
+
+When all rounds collapse to a single round, the round headers are
+omitted and the section reverts to a flat bullet list.
+
+The Step 8 implementation must maintain a per-round accumulator of
+auto-applied edits across rounds — this is new state required by the
+cumulative-listing rule and should be called out explicitly when the
+implementation plan is written.
 
 ## Files Touched
 
