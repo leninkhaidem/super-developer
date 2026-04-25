@@ -149,3 +149,9 @@ git commit -m "<concise summary of changes>"
 > If 🔴 BLOCKERS exist and the user responds `commit`, **refuse** and report:
 > *"Blockers detected. Resolve before committing. Run the review again after fixing, or
 > respond `fix` to attempt auto-fixes."*
+
+---
+
+### Blanket-mode override
+
+When the user has authorized blanket mode (`proceed through all stages` or equivalent), the per-fix `yes/skip` flow above is replaced by the design-decision filter in the parent SKILL — see `### Design-Decision Filter` in `${CLAUDE_PLUGIN_ROOT}/skills/review-code/SKILL.md`. Design-decision findings present a card via `${CLAUDE_PLUGIN_ROOT}/references/decision-prompts.md`; all other fixes apply silently.
