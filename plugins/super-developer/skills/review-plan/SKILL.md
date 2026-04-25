@@ -296,11 +296,35 @@ Use the same template as Gate 1 (Step 4), with one addition: tag items that were
 - Error recovery for token refresh failures ← added by review
 - Distributed cache layer ← dismissed (disproportionate)
 - CORS configuration for new namespace
+
+### Decisions made (4)
+- WP1 over-scope        → P1-T003 moved to tests/regression/
+- Orphan sweep          → kept
+- Read-fail-fast guard  → kept
+- picture_area threshold → bundled with WP2
+
+### Auto-applied refinements (8 total)
+
+Round 1 (5):
+- AC-7 reworded (S3 atomicity already covers torn writes)
+  - before: "no torn writes / no partial bytes"
+  - after:  "two concurrent writes produce a coherent body matching one of the writes' bodies"
+- AC-2 perf bound removed (was undefined)
+- ACs 3, 5, 9 tightened (rephrasing only)
+- WP9 split into WP9a + WP9b (delegation only)
+- Spec/task traceability IDs aligned (both sides remain covered)
+
+Round 2 (3):
+- P3-T001, P2-T002 trimmed to intent
+- Backend-down integration tests added to P5-T002
+- SPEC.md softened on cached-pipeline error wording
 ```
 
 **Rules:**
 - Every `← added by review` or `← modified by review` marker must map to a specific review finding that caused the change.
-- **Blocking gate** — the user must explicitly approve before finalization.
+- The `### Decisions made` section lists each user-facing decision (one per outcome-changing finding) with its resolved outcome. Omit the section when no user-facing decisions were taken.
+- The `### Auto-applied refinements` section lists every finding the orchestrator resolved silently, grouped by re-review round when the review entered re-review (Step 8); a flat bullet list otherwise. For acceptance-criterion rewrites, include the before → after text inline so the user can spot any locked-in implementation detail. Omit the section when nothing was auto-applied.
+- **Blocking gate** — the user must explicitly approve before finalization. **Gate 2 always blocks regardless of blanket-mode authorization** (`proceed through all stages` does not bypass it). Bypassing Gate 2 would defeat the purpose of the auto-applied audit trail — the user would only see silent decisions after implementation has run.
 - If the user rejects: ask what to change, apply edits to SPEC.md or tasks.json, and **re-review from Step 5** (mandatory — plan changes after review require re-verification). Gate 2 is re-presented after the new review completes.
 - **No plan edits are permitted between Gate 2 approval and Step 10 finalization.**
 
