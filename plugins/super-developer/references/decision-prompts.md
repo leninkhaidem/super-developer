@@ -1,10 +1,10 @@
 # Decision Prompts — Shared Mechanics
 
-Pure UX mechanics consumed by `review-plan` and `review-code`. Each skill defines its own outcome filter inline; this reference defines only how prompts are presented and how blanket mode interacts with them.
+Pure UX mechanics consumed by `review-plan` and `review-code`. Each skill defines its own outcome filter inline; this reference defines only how prompts are presented, how blanket mode interacts with them, and how the orchestrator constructs the recommended option for each card. The four sections below are independent: the card template, the letter-prompt convention, the blanket-mode threshold, and the recommendation-construction algorithm.
 
 ## 1. Prompt Card Template
 
-Single canonical layout. Both skills emit cards in this exact shape. The box-drawing borders below are **illustrative** — implementers may substitute simpler horizontal-rule formatting if the host environment renders monospace poorly. The element order, content, and prompt-key conventions are normative; the borders are not.
+Single canonical layout. Both skills emit cards in this exact shape. The box-drawing borders below are **illustrative only** — implementers may substitute simpler horizontal-rule formatting if the host environment renders monospace poorly. The element order, the content of each field, and the letter-key conventions are required; the borders are not.
 
 ```
 ─────────────────────────────────────────────────────────────────
@@ -30,6 +30,8 @@ Single canonical layout. Both skills emit cards in this exact shape. The box-dra
   Your call ▸ _
 ```
 
+The `Progress: ●○○○` indicator visualises the `<X> of <Y>` counter from the header line. Filled circles mark decisions already resolved; hollow circles mark remaining decisions. Implementers may substitute any equivalent left-to-right progress glyph if circles render poorly.
+
 ### Plain-language headline
 
 ≤80 characters. Derived from the reviewer's `TITLE` line by stripping target-locator prefixes (`TASK:P1-T003 — `, `WP:WP1.parallel_safe_with — `). No further paraphrasing — the goal is recognizability for someone who read the original finding, not translation for someone who didn't.
@@ -53,7 +55,7 @@ Every card field maps to a specific reviewer-output element. The orchestrator do
 - **Reserved keys: `B` and `D`.** Option keys may not use these.
 - Recommendation always tagged `(recommended)`.
 - Default Enter takes the recommended option.
-- Every card with more than one decision remaining offers `[B] Apply my recommendation to all <N> remaining`. `[B]` skips any remaining findings tagged security, privacy, or safety — those continue to prompt individually even after `[B]` is used.
+- Every card with more than one decision remaining offers `[B] Apply my recommendation to all <N> remaining`. `[B]` skips any remaining findings tagged security, privacy, or safety — those continue to prompt individually even after `[B]` is used. In `review-code`, the only findings that surface as decision cards are those that pass the Design-Decision Filter (typically a small subset); `[B]` applies the reviewer's recommendation to that remaining subset only and never bypasses non-design-decision fixes.
 - Optional `[D] More details` per card when the reviewer's case has supporting context worth showing on demand.
 
 ## 3. Pipeline Blanket-Mode Threshold
