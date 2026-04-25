@@ -32,7 +32,11 @@ Review the full conversation history from this session. Extract only requirement
 
 If `.tasks/<feature-name>/` already exists, ask whether to overwrite or pick a different name.
 
-## Step 2: Create Directory Structure
+## Step 2: Load Work Package Rules
+
+Read `${CLAUDE_PLUGIN_ROOT}/references/work-packages.md`. Use it when deciding task granularity, package grouping, package dependencies, and package parallel-safety.
+
+## Step 3: Create Directory Structure
 
 ```
 .tasks/<feature-name>/
@@ -40,7 +44,7 @@ If `.tasks/<feature-name>/` already exists, ask whether to overwrite or pick a d
 └── tasks.json
 ```
 
-## Step 3: Generate SPEC.md
+## Step 4: Generate SPEC.md
 
 SPEC.md is a **concise requirements specification** — not an architecture brief and not an implementation plan. It is the source of truth for WHAT the user wants, how success is judged, and what is excluded. All task decomposition and implementation detail belongs in tasks.json or in the codebase exploration done during implementation.
 
@@ -84,7 +88,7 @@ Rules:
 - Do not include task breakdowns or implementation sequencing.
 - Use requirement/acceptance IDs so tasks.json can trace to the spec without duplicating whole sections.
 
-## Step 4: Generate tasks.json
+## Step 5: Generate tasks.json
 
 Create a JSON file following this schema:
 
@@ -95,6 +99,19 @@ Create a JSON file following this schema:
   "description": "One-line summary of what this feature delivers",
   "created_at": "<ISO 8601>",
   "status": "planned",
+  "work_packages": [
+    {
+      "id": "WP1",
+      "title": "Short package title",
+      "description": "Coherent implementation bundle delivered by one sub-agent.",
+      "task_ids": ["P1-T001", "P1-T002"],
+      "depends_on": [],
+      "parallel_safe_with": [],
+      "primary_paths": ["path/to/module/"],
+      "verification_commands": [],
+      "rationale": "Why these tasks should share one implementation context."
+    }
+  ],
   "phases": [
     {
       "id": "P1",
@@ -108,6 +125,17 @@ Create a JSON file following this schema:
           "description": "WHAT to build and key constraints. References affected files/modules. Includes non-discoverable constraints. Does NOT prescribe exact code or implementation steps.",
           "status": "pending",
           "dependencies": [],
+          "acceptance_criteria": [
+            "Specific, verifiable criterion"
+          ],
+          "context": "Why this task exists — the SPEC.md requirement or acceptance criterion that motivated it"
+        },
+        {
+          "id": "P1-T002",
+          "title": "Second task in the same package",
+          "description": "Sibling task delivering related work in the same subsystem.",
+          "status": "pending",
+          "dependencies": ["P1-T001"],
           "acceptance_criteria": [
             "Specific, verifiable criterion"
           ],
@@ -132,6 +160,15 @@ Create a JSON file following this schema:
 | Task | `dependencies` | string[] | Task IDs within this feature |
 | Task | `completed_at` | string | ISO 8601 timestamp (added when status changes to `done`) |
 | Task | `blocked_reason` | string | Reason for blocking (added when status changes to `blocked`) |
+| Work Package | `id` | string | `WP<N>` (e.g., `WP1`) |
+| Work Package | `title` | string | Short human-readable package name |
+| Work Package | `description` | string | Coherent implementation bundle description |
+| Work Package | `rationale` | string | Why these tasks share one implementation context; required and reviewer-judged for one-task packages |
+| Work Package | `task_ids` | string[] | Task IDs included in this package; every task appears exactly once across packages |
+| Work Package | `depends_on` | string[] | Work package IDs that must be integrated first |
+| Work Package | `parallel_safe_with` | string[] | Work package IDs safe to run in the same implementation batch |
+| Work Package | `primary_paths` | string[] | Likely files/directories to inspect first; may be empty only when no safe paths are known |
+| Work Package | `verification_commands` | string[] | Concrete commands for package-level checks; empty when unknown |
 
 ### Task Authoring Guidelines
 
@@ -196,7 +233,19 @@ Examples of tasks that **pass** despite being small:
 - "Add rate-limiting middleware to auth endpoints" (3 lines, but independently verifiable and meaningful)
 - "Configure CORS policy for the new API namespace" (small, but self-contained security concern)
 
-## Step 5: Validate
+### Work Package Authoring Guidelines
+
+- Create `work_packages` for every generated plan. Tasks remain the tracking unit; work packages are the delegation unit.
+- Every task ID must appear in exactly one work package.
+- Group tasks by subsystem, module, directory, API surface, UI flow, data model, or shared test surface.
+- Prefer substantial coherent packages over one-task packages. A one-task package requires a clear rationale that the task is large, risky, or naturally isolated.
+- A package may include tasks with internal dependencies when one sub-agent can complete them sequentially in the same worktree.
+- Use `depends_on` only for dependencies on other work packages. Internal task dependencies do not require package-level dependencies.
+- Fill `primary_paths` with likely files or directories to inspect first when known from Code References or task descriptions.
+- Fill `verification_commands` only with commands known to exist or strongly implied by the project. Use `[]` rather than inventing commands.
+- Use `parallel_safe_with` conservatively. When file impact is ambiguous, leave it empty. If two packages cannot run in parallel because they touch the same subsystem or files, prefer combining them into one package over leaving them separate (per `references/work-packages.md`).
+
+## Step 6: Validate
 
 Before writing files, verify:
 
@@ -212,14 +261,23 @@ Before writing files, verify:
 - Every task passes the description quality test (intent + constraints, not implementation tutorial)
 - Phase order is sequential with no gaps
 - Task IDs are unique across all phases
+- `work_packages` exists and contains every task exactly once
+- Work package IDs are unique and sequential (`WP1`, `WP2`, ...)
+- Every `work_packages[].task_ids[]` reference points to a valid task ID
+- Every `depends_on` and `parallel_safe_with` reference points to a valid work package ID
+- `parallel_safe_with` is symmetric: if `WPx.parallel_safe_with` includes `WPy`, then `WPy.parallel_safe_with` must include `WPx`
+- A work package does not list itself in `depends_on` or `parallel_safe_with`
+- Package dependencies do not contradict task dependencies
+- One-task work packages include a rationale explaining why the task is substantial, risky, or isolated. This rationale is reviewer-judged, not mechanically enforced
+- `parallel_safe_with` claims are conservative based on likely file/module impact (reviewer-judged, not mechanically enforceable)
 
-## Step 6: Write Files
+## Step 7: Write Files
 
 1. Create `.tasks/<feature-name>/` directory.
 2. Write `SPEC.md`.
 3. Write `tasks.json` (pretty-printed, 2-space indentation).
 
-## Step 7: Present Summary
+## Step 8: Present Summary
 
 Display:
 1. Feature name and path
