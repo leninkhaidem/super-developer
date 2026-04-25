@@ -231,6 +231,29 @@ Return to the mode-specific workflow:
 - **Pipeline context** → Use the canonical report template above with these slot values,
   then pipeline-specific gated actions below.
 
+### Design-Decision Filter
+
+When applying fixes under blanket mode, a finding is **promoted to a decision card** only when **all three** conditions hold:
+
+1. Severity is `[BLOCKER]` or `[CRITICAL]`.
+2. The reviewer surfaced two or more valid fix approaches with different runtime behavior, blast radius, or public surface area.
+3. Picking among the approaches is a product or architecture decision rather than a code-quality decision.
+
+Examples that prompt:
+
+- "SQL injection — parameterize the query (status quo) OR migrate to ORM (3 callers affected, behavior preserved)"
+- "Auth bypass — fix at middleware (centralized) OR per-route guard (explicit but verbose)"
+- "Race condition — pessimistic lock (slower) OR optimistic retry (more code, faster happy path)"
+
+Examples that do **not** prompt (fixed silently with the only sensible fix):
+
+- "SQL injection — switch to parameterized query" (only one approach)
+- "Off-by-one — change `<` to `<=`" (only one approach)
+- "Missing null check — add guard" (only one approach)
+- Any test-only fix, regardless of approach count, since it does not change shipped runtime behavior
+
+When promoted, the card uses the shared template at `${CLAUDE_PLUGIN_ROOT}/references/decision-prompts.md`. Outside blanket mode, the existing per-fix `yes/skip` semantics in the workflow references continue to apply.
+
 ### Pipeline Context — Report & Actions
 
 Use the canonical report template with:
@@ -245,7 +268,7 @@ Use the canonical report template with:
 
 | Keyword | Action |
 |---|---|
-| `fix` | Fix confirmed 🔴 and 🟠 findings in the merge worktree, with per-fix approval. Commit fixes to the feature branch. |
+| `fix` | Fix confirmed 🔴 and 🟠 findings in the merge worktree. Under blanket mode, design-decision findings (see Design-Decision Filter above) are presented as decision cards via `${CLAUDE_PLUGIN_ROOT}/references/decision-prompts.md`; all other fixes apply silently. Outside blanket mode, per-fix `yes/skip` semantics from `references/local-workflow.md` and `references/pr-workflow.md` are preserved. Commit fixes to the feature branch. |
 | `details <N>` | Expand finding N with full context and recommended fix. Return to gated actions. |
 | `abort` | No changes. Close review. |
 

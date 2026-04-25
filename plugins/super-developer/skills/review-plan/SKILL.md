@@ -224,7 +224,46 @@ Must:
 
 ## Step 7: Merge and Resolve
 
-Collect structured findings from the spawned reviewer(s). Apply severity resolution rules:
+### Outcome Filter
+
+Before resolving severity, classify each finding's proposed fix:
+
+A finding **requires a user-facing decision card** if its `FIX:` would, when accepted, do any of:
+
+- Add or remove a task
+- Add or remove a work package
+- Add or remove an acceptance criterion that describes user-visible behavior
+- Rewrite an acceptance criterion in any way other than purely cosmetic (whitespace, punctuation, grammar with no operator-meaning shift). Rewrites that introduce or remove a numeric bound, an HTTP status, an error code, a verification environment, or any other testable specific are outcome-changing.
+- Add or remove a phase
+- Move a task between phases or packages such that order or dependency shifts
+- Move a boundary between in-scope and out-of-scope items
+- Change the verification scope, environment, or test surface required by an acceptance criterion (e.g., "unit tests pass" → "integration tests pass against staging DB")
+- Realign a task's spec-traceability identifier when the realignment would leave the original SPEC requirement uncovered (no remaining task cites it)
+- The finding is tagged security, privacy, or safety, regardless of the above
+
+A finding is **auto-applied** (recommendation taken silently, surfaced in Gate 2 summary) when its `FIX:` does any of:
+
+- Rewrites or rephrases task description wording without changing the user-visible outcome
+- Trims a description that exceeds the 600-character budget
+- Removes anti-pattern content (code snippets, line numbers, step-by-step instructions in task descriptions)
+- Performs a purely cosmetic acceptance-criterion rewrite (whitespace, punctuation, grammar; no testable specifics added or removed)
+- Realigns spec ↔ task traceability identifiers when both source and target SPEC requirements remain covered by some task after the realignment
+- Reshapes work packages while preserving task membership and inter-package dependencies (i.e., the `depends_on` arrow set between packages is unchanged)
+- Adjusts `parallel_safe_with` claims (sub-agent scheduling, not shipped outcome)
+
+**Safety-tag override.** Any finding tagged security, privacy, or safety prompts regardless of which auto-apply category it would otherwise fall into.
+
+**Ambiguous-rewrite default.** When an acceptance-criterion rewrite is neither obviously cosmetic nor obviously testable-specific, prompt. The "any other testable specific" catch-all covers a list that cannot be exhaustively enumerated; when the orchestrator cannot determine the rewrite's category mechanically, defer to the user.
+
+For each auto-applied finding, take the reviewer's recommendation silently. Append the finding to the round's auto-applied accumulator (see Step 8) for surfacing in Gate 2.
+
+### Decision-Card Flow
+
+For each finding classified as requiring a user-facing decision, present a card using `${CLAUDE_PLUGIN_ROOT}/references/decision-prompts.md`. Read that reference once at the start of Step 7; do not re-read it per finding.
+
+Apply the blanket-mode threshold from §3 of the reference: when running unattended (`proceed through all stages` or equivalent) AND the threshold conditions all hold, take the reviewer's recommendation silently and tag the entry `← auto (blanket-approved, low-risk)` for the Gate 2 summary. Otherwise present the card and wait for user input.
+
+Collect structured findings from the spawned reviewer(s). Classify each finding using the Outcome Filter above. For findings requiring a user-facing decision, present cards via the Decision-Card Flow above. For auto-applied findings, take the reviewer's recommendation silently and record in the round's auto-applied accumulator. Then apply severity resolution rules:
 
 1. **`[BLOCKER]` findings:** Resolve by updating SPEC.md or tasks.json. All blockers must be resolved before advancing.
 2. **`[CRITICAL]` findings:** Address each via one of three paths: (a) clarify SPEC.md when the finding concerns requirements, acceptance criteria, constraints, or scope and the clarification is supported by prior user input, (b) accept the alternative and revise tasks.json only when every changed task traces to existing SPEC requirement or acceptance IDs, or (c) dismiss as disproportionate — reference the finding's `COST:` line, explain why the cost exceeds the risk, and log the dismissal. Each critical must be explicitly addressed.
@@ -234,6 +273,8 @@ When editing SPEC.md, preserve the requirement source rule: do not add requireme
 3. **`[SUGGESTION]` findings:** Log for consideration. No resolution required.
 
 ## Step 8: Re-Review if Changes Were Made
+
+**Per-round auto-applied accumulator.** Step 7 records auto-applied edits to a per-round buffer (e.g., `auto_applied[round_n]`). When Step 8 enters a new round, append a new buffer; do not overwrite. Step 9's Gate 2 summary reads all buffers across rounds 1..N. When all rounds collapse to a single round, the round headers are omitted in Gate 2 and the listing reverts to a flat bullet list.
 
 Re-review only at the depth required by the changes:
 
@@ -255,11 +296,35 @@ Use the same template as Gate 1 (Step 4), with one addition: tag items that were
 - Error recovery for token refresh failures ← added by review
 - Distributed cache layer ← dismissed (disproportionate)
 - CORS configuration for new namespace
+
+### Decisions made (4)
+- WP1 over-scope        → P1-T003 moved to tests/regression/
+- Orphan sweep          → kept    ← auto (blanket-approved, low-risk)
+- Read-fail-fast guard  → kept    ← auto (blanket-approved, low-risk)
+- picture_area threshold → bundled with WP2
+
+### Auto-applied refinements (8 total)
+
+Round 1 (5):
+- AC-7 reworded (S3 atomicity already covers torn writes)
+  - before: "no torn writes / no partial bytes"
+  - after:  "two concurrent writes produce a coherent body matching one of the writes' bodies"
+- AC-2 perf bound removed (was undefined)
+- ACs 3, 5, 9 tightened (rephrasing only)
+- WP9 split into WP9a + WP9b (delegation only)
+- Spec/task traceability IDs aligned (both sides remain covered)
+
+Round 2 (3):
+- P3-T001, P2-T002 trimmed to intent
+- Backend-down integration tests added to P5-T002
+- SPEC.md softened on cached-pipeline error wording
 ```
 
 **Rules:**
 - Every `← added by review` or `← modified by review` marker must map to a specific review finding that caused the change.
-- **Blocking gate** — the user must explicitly approve before finalization.
+- The `### Decisions made` section lists each user-facing decision (one per outcome-changing finding) with its resolved outcome. Omit the section when no user-facing decisions were taken.
+- The `### Auto-applied refinements` section lists every finding the orchestrator resolved silently, grouped by re-review round when the review entered re-review (Step 8); a flat bullet list otherwise. For acceptance-criterion rewrites, include the before → after text inline so the user can spot any locked-in implementation detail. Omit the section when nothing was auto-applied.
+- **Blocking gate** — the user must explicitly approve before finalization. **Gate 2 always blocks regardless of blanket-mode authorization** (`proceed through all stages` does not bypass it). Bypassing Gate 2 would defeat the purpose of the auto-applied audit trail — the user would only see silent decisions after implementation has run.
 - If the user rejects: ask what to change, apply edits to SPEC.md or tasks.json, and **re-review from Step 5** (mandatory — plan changes after review require re-verification). Gate 2 is re-presented after the new review completes.
 - **No plan edits are permitted between Gate 2 approval and Step 10 finalization.**
 
