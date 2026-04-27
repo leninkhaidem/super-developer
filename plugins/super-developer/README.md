@@ -150,6 +150,8 @@ The agent infers the feature name, creates `SPEC.md` and `tasks.json`, and asks 
 super-developer/
 +-- .claude-plugin/
 |   +-- plugin.json                     # Plugin manifest
++-- assets/
+|   +-- validate-tasks-json.py             # tasks.json schema/dependency validator
 +-- references/
 |   +-- clean-code-rules.md               # Code quality rules
 |   +-- model-preferences.md              # Sub-agent model selection schema
@@ -186,6 +188,7 @@ super-developer/
 ## Requirements
 
 - **Claude Code** with plugin support
+- **Python 3** (tasks.json validation asset)
 - **git** (all skills)
 - **GitHub CLI (`gh`)** (review-code PR mode only) — [install](https://cli.github.com/)
 

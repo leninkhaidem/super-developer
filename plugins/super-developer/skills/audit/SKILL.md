@@ -24,7 +24,14 @@ Lightweight verification that all tasks in a feature plan have been completed as
 ## Step 1: Spawn Audit Sub-Agent
 
 1. Verify `.tasks/$ARGUMENTS/` exists and contains `SPEC.md` and `tasks.json`. If not, list available features and ask.
-2. Launch an **Opus-class sub-agent** with:
+2. Execute the shared validator before spawning the audit sub-agent:
+
+   ```bash
+   python3 "${CLAUDE_PLUGIN_ROOT}/assets/validate-tasks-json.py" ".tasks/$ARGUMENTS/tasks.json"
+   ```
+
+   If the validator exits non-zero, stop and resolve the reported `tasks.json` blockers before auditing implementation completeness.
+3. Launch an **Opus-class sub-agent** with:
 
 - `.tasks/$ARGUMENTS/SPEC.md`
 - `.tasks/$ARGUMENTS/tasks.json`
