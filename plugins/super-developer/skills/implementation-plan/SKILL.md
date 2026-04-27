@@ -271,11 +271,18 @@ Before writing files, verify:
 - One-task work packages include a rationale explaining why the task is substantial, risky, or isolated. This rationale is reviewer-judged, not mechanically enforced
 - `parallel_safe_with` claims are conservative based on likely file/module impact (reviewer-judged, not mechanically enforceable)
 
-## Step 7: Write Files
+## Step 7: Write Files and Validate tasks.json
 
 1. Create `.tasks/<feature-name>/` directory.
 2. Write `SPEC.md`.
 3. Write `tasks.json` (pretty-printed, 2-space indentation).
+4. Execute the shared validator against the concrete file path:
+
+   ```bash
+   python3 "${CLAUDE_PLUGIN_ROOT}/assets/validate-tasks-json.py" ".tasks/<feature-name>/tasks.json"
+   ```
+
+   If the validator exits non-zero, fix `tasks.json` and rerun the same command until it passes. Do not present the plan summary with an invalid `tasks.json`.
 
 ## Step 8: Present Summary
 

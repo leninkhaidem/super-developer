@@ -24,25 +24,17 @@ Do not execute this as the main agent. Spawn sub-agents for each reviewer role.
 
 1. Verify `.tasks/$ARGUMENTS/` exists and contains `SPEC.md` and `tasks.json`. If not, list available features and ask the user to pick one.
 2. Sub-agents read the files themselves. Do not pre-summarize or inject context — the point is to test whether the files are self-sufficient.
-3. Read `${CLAUDE_PLUGIN_ROOT}/references/work-packages.md`. The main agent uses it for deterministic package validation. Reviewers use it to judge whether task grouping, package sizing, and parallel-safety are appropriate.
+3. Read `${CLAUDE_PLUGIN_ROOT}/references/work-packages.md`. The main agent uses it for package-contract context around validation failures. Reviewers use it to judge whether task grouping, package sizing, and parallel-safety are appropriate.
 
 ## Step 2: Deterministic Plan Validation
 
-Before spawning any review sub-agent, validate the plan mechanically from `.tasks/$ARGUMENTS/tasks.json`:
+Before spawning any review sub-agent, execute the shared validator against the concrete plan file:
 
-- JSON is valid and contains `phases` and `work_packages`.
-- Task IDs are unique across all phases.
-- Task dependencies reference valid task IDs and contain no cycles.
-- Work package IDs are unique and sequential (`WP1`, `WP2`, ...).
-- Every task appears in exactly one work package.
-- Every `work_packages[].task_ids[]` reference points to a valid task ID.
-- Every `depends_on` and `parallel_safe_with` reference points to a valid work package ID.
-- `parallel_safe_with` is symmetric across the package list.
-- No package lists itself in `depends_on` or `parallel_safe_with`.
-- Package dependencies do not contradict task dependencies: if any task in package `WPa` depends on a task in package `WPb`, then `WPa.depends_on` includes `WPb`. Dependencies between tasks inside the same package do not require package-level `depends_on`.
-- One-task work packages include a non-empty `rationale` (semantic adequacy is reviewer-judged, not mechanically enforced).
+```bash
+python3 "${CLAUDE_PLUGIN_ROOT}/assets/validate-tasks-json.py" ".tasks/$ARGUMENTS/tasks.json"
+```
 
-If deterministic validation fails, report the failures as blockers and resolve them before spawning reviewers. Do not spend sub-agent tokens on a structurally invalid plan.
+If the validator exits non-zero, report its failures as blockers and resolve them before spawning reviewers. Do not spend sub-agent tokens on a structurally invalid plan.
 
 ## Step 3: Load Model Preferences
 

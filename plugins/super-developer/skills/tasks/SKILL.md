@@ -20,8 +20,15 @@ Display current status of task plans. Quick overview of progress across all feat
 ## All Features View (no argument)
 
 1. Scan `.tasks/` for subdirectories.
-2. For each feature, read `tasks.json` and compute: feature name, title, status, total tasks, count by status, progress percentage.
-3. Display sorted by status (`in-progress` first, then `planned`/`reviewed`, then `completed`, then `on-hold`):
+2. For each feature, execute the shared validator before reading `tasks.json`:
+
+   ```bash
+   python3 "${CLAUDE_PLUGIN_ROOT}/assets/validate-tasks-json.py" ".tasks/<feature>/tasks.json"
+   ```
+
+   If validation fails for a feature, display it as invalid with the validator failure summary and skip derived progress calculations for that file.
+3. For each valid feature, read `tasks.json` and compute: feature name, title, status, total tasks, count by status, progress percentage.
+4. Display sorted by status (`in-progress` first, then `planned`/`reviewed`, then `completed`, then `on-hold`):
 
 ```
 Task Status Dashboard
@@ -35,8 +42,15 @@ payment-flow         completed    ████████  8/8   ✅8
 
 ## Single Feature View (argument provided)
 
-1. Read `.tasks/$ARGUMENTS/tasks.json`.
-2. If `work_packages` exists, display a package summary before the phase breakdown:
+1. Execute the shared validator before reading `tasks.json`:
+
+   ```bash
+   python3 "${CLAUDE_PLUGIN_ROOT}/assets/validate-tasks-json.py" ".tasks/$ARGUMENTS/tasks.json"
+   ```
+
+   If validation fails, show the validator output and stop; the dashboard cannot reliably compute status from an invalid plan.
+2. Read `.tasks/$ARGUMENTS/tasks.json`.
+3. If `work_packages` exists, display a package summary before the phase breakdown:
 
    ```
    Work Packages
@@ -51,7 +65,7 @@ payment-flow         completed    ████████  8/8   ✅8
    - 🔄 any contained task `in-progress`
    - ⬜ otherwise
 
-3. Display phase-by-phase breakdown:
+4. Display phase-by-phase breakdown:
 
 ```
 Feature: <title> (<status>)
@@ -70,7 +84,7 @@ Phase 2: <phase name>
   ⬜ P2-T003  Write auth middleware                  deps: P2-T002
 ```
 
-4. At the bottom, show:
+5. At the bottom, show:
    - **Next actionable task** — first `pending` task with all dependencies `done`.
    - **Next actionable work package** — first package with pending work whose package dependencies and external task dependencies are done. Show this only when `work_packages` exists.
    - **Blocked tasks** — with `blocked_reason` if present.

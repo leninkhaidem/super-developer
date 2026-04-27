@@ -23,8 +23,15 @@ Execute tasks from a feature's task plan. The main agent acts as an orchestrator
 ## Step 1: Load and Assess
 
 1. Verify `.tasks/$ARGUMENTS/` exists and contains `SPEC.md` and `tasks.json`. If not, list available features and ask.
-2. Read `.tasks/$ARGUMENTS/SPEC.md` and `.tasks/$ARGUMENTS/tasks.json` to assess current state.
-3. Display status summary:
+2. Execute the shared validator before trusting `tasks.json`:
+
+   ```bash
+   python3 "${CLAUDE_PLUGIN_ROOT}/assets/validate-tasks-json.py" ".tasks/$ARGUMENTS/tasks.json"
+   ```
+
+   If the validator exits non-zero, stop and resolve the reported `tasks.json` blockers before dispatching or updating work.
+3. Read `.tasks/$ARGUMENTS/SPEC.md` and `.tasks/$ARGUMENTS/tasks.json` to assess current state.
+4. Display status summary:
 
 ```
 Feature: <title> (<status>)
