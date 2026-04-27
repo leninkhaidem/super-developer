@@ -46,7 +46,7 @@ Resolve model preferences for two possible reviewer roles:
 
 **Adaptive interpretation for review-plan:** The Plan Quality Reviewer uses Sonnet. The Adversarial Plan Challenger is governed by the `skeptic-agent` key — when `skeptic-agent` resolves to `adaptive`, use the strongest available model (Opus).
 
-This is a role-name change only. The `review-plan` and `skeptic-agent` keys, fallback chain, and adaptive resolution semantics defined in `references/model-preferences.md` are unchanged.
+This is a role-name change only. The `review-plan` and `skeptic-agent` keys, fallback chain, and adaptive resolution semantics defined in `${CLAUDE_PLUGIN_ROOT}/references/model-preferences.md` are unchanged.
 
 Carry the resolved models forward into Step 6.
 

@@ -243,7 +243,7 @@ Examples of tasks that **pass** despite being small:
 - Use `depends_on` only for dependencies on other work packages. Internal task dependencies do not require package-level dependencies.
 - Fill `primary_paths` with likely files or directories to inspect first when known from Code References or task descriptions.
 - Fill `verification_commands` only with commands known to exist or strongly implied by the project. Use `[]` rather than inventing commands.
-- Use `parallel_safe_with` conservatively. When file impact is ambiguous, leave it empty. If two packages cannot run in parallel because they touch the same subsystem or files, prefer combining them into one package over leaving them separate (per `references/work-packages.md`).
+- Use `parallel_safe_with` conservatively. When file impact is ambiguous, leave it empty. If two packages cannot run in parallel because they touch the same subsystem or files, prefer combining them into one package over leaving them separate (per `${CLAUDE_PLUGIN_ROOT}/references/work-packages.md`).
 
 ## Step 6: Validate
 
