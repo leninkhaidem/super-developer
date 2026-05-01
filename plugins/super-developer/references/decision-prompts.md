@@ -1,6 +1,6 @@
 # Decision Prompts — Shared Mechanics
 
-Pure UX mechanics consumed by `review-plan` and `review-code`. Each skill defines its own outcome filter inline; this reference defines only how prompts are presented, how blanket mode interacts with them, and how the orchestrator constructs the recommended option for each card. The four sections below are independent: the card template, the letter-prompt convention, the blanket-mode threshold, and the recommendation-construction algorithm.
+Pure UX mechanics consumed by `review-plan` and `review-code`. Each skill defines its own outcome filter, blanket-mode eligibility, and side-effect gates inline; this reference defines only how prompts are presented and how the orchestrator constructs the recommended option for each card. The four sections below are independent: the card template, the letter-prompt convention, skill-owned blanket-mode policy, and the recommendation-construction algorithm.
 
 ## 1. Prompt Card Template
 
@@ -55,14 +55,16 @@ Every card field maps to a specific reviewer-output element. The orchestrator do
 - **Reserved keys: `B` and `D`.** Option keys may not use these.
 - Recommendation always tagged `(recommended)`.
 - Default Enter takes the recommended option.
-- Every card with more than one decision remaining offers `[B] Apply my recommendation to all <N> remaining`. `[B]` skips any remaining findings tagged security, privacy, or safety — those continue to prompt individually even after `[B]` is used. In `review-code`, the only findings that surface as decision cards are those that pass the Design-Decision Filter (typically a small subset); `[B]` applies the reviewer's recommendation to that remaining subset only and never bypasses non-design-decision fixes.
+- Every card with more than one decision remaining offers `[B] Apply my recommendation to all <N> remaining`. `[B]` applies only to the remaining cards that the invoking skill has already deemed eligible for blanket handling; findings tagged security, privacy, or safety continue to prompt individually unless that skill explicitly defines a stricter rule. Review-code eligibility is owned by `skills/review-code/SKILL.md` (`Design-Decision Filter`) and mode-specific workflow references.
 - Optional `[D] More details` per card when the reviewer's case has supporting context worth showing on demand.
 
-## 3. Pipeline Blanket-Mode Threshold
+## 3. Skill-Owned Blanket-Mode Policy
 
-When the user has authorized end-to-end automation (`proceed through all stages` or equivalent), the orchestrator auto-takes the recommendation when **all** conditions hold:
+This shared reference does not decide which findings qualify for blanket mode. Each invoking skill owns its outcome filters, side-effect gates, and safety exceptions; this file only defines how an eligible decision card is displayed once the skill has chosen to present or auto-apply it.
 
-- The plan review is operating in escalated (multi-reviewer) mode — i.e., the Plan Reviewer and Security/Failure-Mode Reviewer both ran.
+For `review-plan`, preserve the existing pipeline threshold: when the user has authorized end-to-end automation (`proceed through all stages` or equivalent), the orchestrator auto-takes the recommendation only when **all** conditions hold:
+
+- The plan review is operating in escalated multi-reviewer mode, meaning both the Plan Reviewer and the Security/Failure-Mode Reviewer participated.
 - Those reviewers agree on the recommended path (no conflicting alternative path was raised by another reviewer).
 - The finding is **not** tagged security, privacy, or safety.
 
