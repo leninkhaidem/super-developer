@@ -47,11 +47,11 @@ If the validator exits non-zero, report its failures as blockers and resolve the
 
 Read `${CLAUDE_PLUGIN_ROOT}/references/model-preferences.md` for the canonical schema and resolution procedure.
 
-Resolve model preferences for two reviewer classes:
-- **Plan Quality Reviewer:** Uses the `review-plan` key. Hardcoded default: `adaptive`.
-- **Plan Review Challengers:** Use the `skeptic-agent` key. Hardcoded default: `adaptive`. Spawn only the adaptive challenger roles selected in Step 5.
+Resolve model preferences for two reviewer roles:
+- **Plan Reviewer:** Uses the `review-plan` key. Hardcoded default: `adaptive`.
+- **Security/Failure-Mode Reviewer:** Uses the `skeptic-agent` key. Hardcoded default: `adaptive`. Spawn only when Step 5 selects dedicated security review.
 
-**Adaptive interpretation for review-plan:** The Plan Quality Reviewer uses Sonnet. Plan Review Challengers are governed by the `skeptic-agent` key; when `skeptic-agent` resolves to `adaptive`, use the strongest available model (Opus).
+**Adaptive interpretation for review-plan:** The Plan Reviewer uses Sonnet. The Security/Failure-Mode Reviewer is governed by the `skeptic-agent` key; when `skeptic-agent` resolves to `adaptive`, use the strongest available model (Opus).
 
 This is a role-shape change only. The `review-plan` and `skeptic-agent` keys, fallback chain, and adaptive resolution semantics defined in `${CLAUDE_PLUGIN_ROOT}/references/model-preferences.md` are unchanged.
 
@@ -87,24 +87,21 @@ Before spawning reviewers, present the user with a plain-language summary of wha
 
 Use adaptive review depth:
 
-- **Standard review:** Spawn one Plan Quality Reviewer. This is the default.
-- **Escalated review:** Add one or more Plan Review Challengers from `plan-review-rubrics.md` only when their risk surface applies.
+- **Standard review:** Spawn one Plan Reviewer. This is the default for simple and complex non-security plans.
+- **Security escalation:** Add one Security/Failure-Mode Reviewer only when the plan is security/privacy/safety-sensitive or when the Plan Reviewer requests `ESCALATE_SECURITY_REVIEW`.
 
-Escalation triggers:
-- The plan has more than 10 tasks, more than 4 work packages, or more than 3 phases.
-- The feature touches security, authentication, authorization, payments, permissions, data migration, data deletion, privacy, or safety-sensitive behavior.
-- The plan introduces new architecture, new external dependencies, cross-cutting changes, or broad refactors.
-- Work-package boundaries are unclear, cross-cutting, or rely on many `parallel_safe_with` claims.
-- Accepted `design_decisions` affect architecture, security/privacy/safety, implementation ordering, or acceptance-criterion verifiability.
-- The Plan Quality Reviewer reports `[BLOCKER]` or `[CRITICAL]` findings involving ambiguity, scope, unsafe package boundaries, or conflicting requirements.
-- The user asks for strict/adversarial review.
-- The main agent is uncertain whether one reviewer is enough.
+Security escalation triggers:
+- The feature touches security, authentication, authorization, permissions, secrets, privacy, payments, financial/medical/infrastructure data, data deletion, destructive actions, migrations, rollback, concurrency, external input, network boundaries, persistence, cleanup, error handling, or safety-sensitive behavior.
+- Accepted `design_decisions` affect security/privacy/safety posture, destructive behavior, rollback, or failure-mode handling.
+- The Plan Reviewer reports `ESCALATE_SECURITY_REVIEW` or a `[BLOCKER]`/`[CRITICAL]` finding involving security, privacy, safety, destructive actions, or failure modes.
+- The user asks for strict security/failure-mode review.
+- The main agent is uncertain whether a dedicated security review is needed.
 
-Select only the challenger rubric(s) that match the risk surface: Architecture/Feasibility, Security/Failure-Mode, and/or Scope/Requirements. When escalation is triggered before review, run Plan Quality and selected challengers in parallel. When escalation is triggered by Plan Quality Reviewer findings, run only the relevant challenger(s) after those findings are collected.
+Do not split architecture, feasibility, and scope into separate sub-agents. The Plan Reviewer handles combined challenge first and artifact QA second. If security escalation is known before review, run both reviewers in parallel. If the Plan Reviewer requests escalation, run Security/Failure-Mode Reviewer after its findings are collected.
 
 ## Step 6: Spawn Review Sub-Agent(s)
 
-Launch the Plan Quality Reviewer for every valid plan. Launch selected Plan Review Challengers only when Step 5 selects their rubric.
+Launch the Plan Reviewer for every valid plan. Launch the Security/Failure-Mode Reviewer only when Step 5 selects dedicated security review or the Plan Reviewer requests escalation.
 
 Give sub-agents narrowed contracts, not the full `review-plan` skill. Each reviewer receives only:
 - `.tasks/$ARGUMENTS/SPEC.md`
@@ -121,10 +118,8 @@ Reviewer contract:
 - Reviewer comments are evidence, not commands.
 
 Reviewer roles:
-- **Plan Quality Reviewer:** Always run. Focus on requirements coverage, dependency integrity, acceptance-criteria verifiability, task self-sufficiency, phase coherence, edge cases traceable to SPEC, task-authoring conformance, and package quality.
-- **Architecture/Feasibility Challenger:** Plan Review Challenger for nontrivial design, cross-subsystem work, migrations, new abstractions, persistence, external APIs, or unresolved tradeoffs.
-- **Security/Failure-Mode Challenger:** Plan Review Challenger for auth, permissions, secrets, privacy, safety, financial/medical/infrastructure data, external inputs, network boundaries, persistence, migrations, concurrency, cleanup, rollback, or error handling.
-- **Scope/Requirements Challenger:** Plan Review Challenger for ambiguous requirements, broad user intent, behavior additions/removals, or product-semantics-vs-implementation-detail risk.
+- **Plan Reviewer:** Always run. Use the Plan Reviewer rubric: combined challenge first, then artifact QA. If the challenge pass finds a `[BLOCKER]` or `[CRITICAL]` semantic issue likely to change the plan, limit artifact QA to obvious mechanical/schema defects.
+- **Security/Failure-Mode Reviewer:** Run only for security/privacy/safety-sensitive plans or `ESCALATE_SECURITY_REVIEW`. Focus on security, privacy, safety, destructive actions, rollback, concurrency, malicious inputs, and failure modes.
 
 ## Step 7: Merge, Triage, and Resolve
 
@@ -158,8 +153,8 @@ Maintain a per-round accumulator of auto-applied refinements, deferred concerns,
 Re-review is focused, delta-only, and bounded:
 
 1. If only deterministic/schema issues changed, rerun deterministic validation only.
-2. If task content, acceptance criteria, requirements traceability, `design_decisions`, or work-package semantics changed, rerun only the reviewer role(s) whose rubric covers the changed area.
-3. If challenger review was previously triggered, rerun only the selected challenger reviewer(s) whose rubric covers the delta, prior findings, accepted `design_decisions`, or still-active escalation trigger.
+2. If task content, acceptance criteria, requirements traceability, `design_decisions`, or work-package semantics changed, rerun the Plan Reviewer only for the changed targets.
+3. If security review was previously triggered, rerun the Security/Failure-Mode Reviewer only when the delta affects security/privacy/safety posture, destructive behavior, rollback, concurrency, malicious inputs, failure modes, or its prior findings.
 4. Do not re-review dismissed findings, deferred implementation-time concerns, or suggestions with no plan edits.
 5. Maximum 3 semantic re-review rounds. If unresolved true blockers remain after 3 rounds, present the remaining blockers to the user and ask for manual resolution.
 

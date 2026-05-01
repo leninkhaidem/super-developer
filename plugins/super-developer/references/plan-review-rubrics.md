@@ -24,11 +24,29 @@ A materially simpler lower-risk alternative with the same outcome is not enough 
 
 Challenges must target `DD:<design-decision-id>` and cite evidence. Preference, style, or a different valid architecture is not enough.
 
-## Mandatory Plan Quality Reviewer
+## Plan Reviewer
 
-Always run the Plan Quality Reviewer.
+Always run one Plan Reviewer. This reviewer combines challenge and artifact QA in sequence.
 
-Rubric:
+### Pass 1: Combined Challenge
+
+First, challenge the plan before spending effort on detailed artifact QA:
+
+- Does the plan choose one coherent representation instead of leaving parallel designs reachable?
+- Is there a materially simpler lower-risk alternative with the same outcome?
+- Are task boundaries aligned with the actual architecture and dependency direction?
+- Does sequencing prevent broken intermediate states?
+- Does the plan implement the actual request rather than a wished-for adjacent problem?
+- Are product requirements separated from architecture and process choices?
+- Are non-goals and exclusions respected?
+- Are user-visible tradeoffs escalated instead of silently decided?
+- Should a dedicated Security/Failure-Mode Reviewer be run?
+
+If Pass 1 finds a `BLOCKER` or `CRITICAL` semantic issue likely to change the plan, limit Pass 2 to obvious mechanical/schema defects. Detailed QA against a plan that should change creates waste and review-loop pressure.
+
+### Pass 2: Artifact QA
+
+When the accepted approach is coherent enough to review, check artifact quality:
 
 - Are requirements represented without architecture rationale leaking into `SPEC.md`?
 - Are tasks self-contained, sequenced, and verifiable?
@@ -37,26 +55,15 @@ Rubric:
 - Are `design_decisions` IDs sequential (`DD-1`, `DD-2`, ...) with no gaps and valid `source` values?
 - Are plan artifacts internally consistent and schema-compatible?
 
-Primary failure mode: implementation agents receive ambiguous, contradictory, or unverifiable work.
+### Security Escalation Sniff Test
 
-## Adaptive Architecture/Feasibility Challenger
+The Plan Reviewer performs only a light security/failure-mode sniff test. It should recommend `ESCALATE_SECURITY_REVIEW` when the plan touches auth, permissions, secrets, privacy, safety, financial/medical/infrastructure data, external inputs, network boundaries, persistence, migrations, concurrency, cleanup, rollback, destructive actions, or error handling in a way that needs dedicated review.
 
-Run when the plan includes nontrivial design, cross-subsystem work, migrations, new abstractions, persistence, external APIs, or unresolved tradeoffs.
+Primary failure mode: implementation agents receive a plan that is coherent on paper but wrong, unsafe, ambiguous, unverifiable, or misaligned with the actual request.
 
-Rubric:
+## Security/Failure-Mode Reviewer
 
-- Does the plan choose one coherent representation instead of leaving parallel designs reachable?
-- Are task boundaries aligned with the actual architecture and dependency direction?
-- Does the plan preserve domain distinctions in types, data, or acceptance criteria?
-- Does sequencing prevent broken intermediate states?
-- Are rejected alternatives or constraints captured where future reviewers need them?
-- Is there a materially simpler lower-risk alternative with the same outcome?
-
-Primary failure mode: the plan can be implemented but leaves the system conceptually incoherent.
-
-## Adaptive Security/Failure-Mode Reviewer
-
-Run when the plan touches auth, permissions, secrets, privacy, safety, financial/medical/infrastructure data, external inputs, network boundaries, persistence, migrations, concurrency, cleanup, rollback, or error handling.
+Run this reviewer only when the feature is security/privacy/safety-sensitive or when the Plan Reviewer recommends `ESCALATE_SECURITY_REVIEW`.
 
 Rubric:
 
@@ -69,21 +76,6 @@ Rubric:
 
 Primary failure mode: implementation ships a dangerous edge case because the plan never made it visible.
 
-## Adaptive Scope/Requirements Reviewer
-
-Run when requirements are ambiguous, user intent is broad, the plan adds/removes behavior, or reviewers may need to distinguish product semantics from internal implementation details.
-
-Rubric:
-
-- Does the plan implement the actual request rather than a wished-for adjacent problem?
-- Are product requirements separated from architecture and process choices?
-- Are non-goals and exclusions respected?
-- Do tasks avoid unapproved semantic changes?
-- Are user-visible tradeoffs escalated instead of silently decided?
-- Are acceptance criteria sufficient to prove the requested outcome?
-
-Primary failure mode: the plan is technically coherent but solves the wrong problem or changes semantics without approval.
-
 ## Reviewer Selection
 
-The Plan Quality Reviewer is mandatory. Add adaptive reviewers only when their trigger conditions apply. More reviewers are not inherently better; each added reviewer must have a distinct risk surface and a narrowed rubric.
+Default to one Plan Reviewer. Add the Security/Failure-Mode Reviewer only for security/privacy/safety-sensitive plans or when the Plan Reviewer requests escalation. More reviewers are not inherently better; split review only when a distinct risk surface needs dedicated attention.
