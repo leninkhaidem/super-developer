@@ -126,8 +126,8 @@ to the immutable reviewed state.
 
 ## Workflow A — `request-changes`
 
-Triggered when user responds `request-changes`, **OR when 🔴 BLOCKERS or 🟠 CRITICALS are
-present regardless of user response.**
+Triggered only when the user explicitly responds `request-changes`. Confirmed 🔴 BLOCKERS or 🟠
+CRITICALS block approval, but they do not authorize posting to GitHub without that explicit response.
 
 Run the PR Reviewed-State Revalidation Gate immediately before posting. If it fails, halt without
 posting and report the stale state.
@@ -145,10 +145,10 @@ gh api \
 - **HEADER:** `PR Review — Changes Requested`
 - **METADATA:** _(none)_
 
-> **Override Rule:** If 🔴 BLOCKERS or 🟠 CRITICALS are present, the agent **must** post
-> `REQUEST_CHANGES` — even if the user responds `approve`. Inform the user:
-> *"Blockers or critical issues were detected. Posting as Request Changes to protect the
-> branch. Resolve the issues and re-run the review to re-evaluate."*
+> **Approval Block Rule:** If 🔴 BLOCKERS or 🟠 CRITICALS are present and the user responds
+> `approve`, refuse approval and do not post to GitHub. Inform the user:
+> *"Blockers or critical issues were detected, so approval is blocked. Respond with
+> `request-changes` to post the review, or `abort` to take no GitHub action."*
 
 ---
 
