@@ -6,7 +6,7 @@ A collection of Claude Code plugins for software development.
 
 | Plugin | Description |
 |---|---|
-| [**super-developer**](plugins/super-developer/) | Full development lifecycle — divergent ideation, requirements-spec-driven planning, parallel implementation with git worktree isolation, and multi-agent adversarial code review. 8 skills. |
+| [**super-developer**](plugins/super-developer/) | Full development lifecycle — divergent ideation, requirements-spec-driven planning, parallel implementation with git worktree isolation, multi-agent adversarial code review, and gated release publishing. 9 skills. |
 
 More plugins coming soon: GitHub issue management, and others.
 
@@ -43,15 +43,15 @@ More plugins coming soon: GitHub issue management, and others.
 
 ### super-developer
 
-Orchestrates the full development lifecycle with 8 skills:
+Orchestrates the full development lifecycle with 9 skills:
 
 ```
-implementation-plan → review-plan → implement → audit → review-code
+implementation-plan → review-plan → implement → audit → review-code → release
 ```
 
 The planning stage uses triggered Design Preflight for nontrivial or risky features, then creates `.tasks/<feature>/SPEC.md` for user requirements, feature-level acceptance criteria, constraints, code references, and out-of-scope boundaries, plus `tasks.json` for agent-executable work, work packages, and accepted `design_decisions`.
 
-Plus standalone skills: **perspectives** (divergent problem-solving), **tasks** (status dashboard), **review-code** (works independently for PR and local code review), and **code-doc** (generate comprehensive codebase documentation via hybrid analysis).
+Plus standalone skills: **perspectives** (divergent problem-solving), **tasks** (status dashboard), **review-code** (works independently for PR and local code review), **code-doc** (generate comprehensive codebase documentation via hybrid analysis), and **release** (prepare/publish releases with approval gates).
 
 See the [full documentation](plugins/super-developer/README.md).
 
