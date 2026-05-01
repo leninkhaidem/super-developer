@@ -45,7 +45,7 @@ review-code: inherit
 | Key | Controls | Fallback |
 |---|---|---|
 | `default-model` | Global default for all agents | Skill's hardcoded default |
-| `skeptic-agent` | Adversarial reviewers: review-code Skeptic, review-plan Adversarial Plan Challenger | `default-model` → hardcoded default |
+| `skeptic-agent` | Adversarial reviewers: review-code Skeptic, review-plan Plan Review Challengers | `default-model` → hardcoded default |
 | `implement` | Implementation sub-agents (delegated tasks) | `default-model` → hardcoded default |
 | `review-plan` | Review-plan Plan Quality Reviewer | `default-model` → hardcoded default |
 | `review-code` | Review-code specialist agents (security, logic, performance, architecture) | `default-model` → hardcoded default |
@@ -57,7 +57,7 @@ Per-skill keys control **standard agents only**. The `skeptic-agent` key control
 | Skill | Standard Agents | Adversarial Agent |
 |---|---|---|
 | `implement` | `implement` key | N/A (no adversarial role) |
-| `review-plan` | `review-plan` key → Plan Quality Reviewer | `skeptic-agent` key → Adversarial Plan Challenger |
+| `review-plan` | `review-plan` key → Plan Quality Reviewer | `skeptic-agent` key → selected Plan Review Challengers |
 | `review-code` | `review-code` key → 4 specialists | `skeptic-agent` key → Skeptic Agent |
 
 ---
@@ -78,7 +78,7 @@ When a skill resolves `adaptive`, it applies its own role-based logic:
 |---|---|
 | `implement` | Opus for complex/ambiguous tasks, Sonnet for simple/patterned ones |
 | `review-code` | Sonnet for specialists, Opus for Skeptic (via `skeptic-agent`) |
-| `review-plan` | Sonnet for Plan Quality Reviewer, Adversarial Plan Challenger governed by `skeptic-agent` key |
+| `review-plan` | Sonnet for Plan Quality Reviewer, selected Plan Review Challengers governed by `skeptic-agent` key |
 
 ---
 
@@ -157,7 +157,7 @@ default-model: adaptive
 
 ```yaml
 # Standard agents use Sonnet across all skills.
-# Adversarial agents (review-code Skeptic, review-plan Adversarial Plan Challenger) use Opus.
+# Adversarial agents (review-code Skeptic, review-plan Plan Review Challengers) use Opus.
 default-model: claude-sonnet-4
 skeptic-agent: claude-opus-4
 ```
@@ -184,6 +184,6 @@ review-plan: claude-sonnet-4
 review-code: claude-sonnet-4
 # Result:
 #   implement sub-agents → claude-opus-4
-#   review-plan Plan Quality Reviewer → claude-sonnet-4, Adversarial Plan Challenger → claude-opus-4
+#   review-plan Plan Quality Reviewer → claude-sonnet-4, Plan Review Challengers → claude-opus-4
 #   review-code specialists → claude-sonnet-4, Skeptic → claude-opus-4
 ```

@@ -49,7 +49,7 @@ Orchestrates the full development lifecycle with 8 skills:
 implementation-plan → review-plan → implement → audit → review-code
 ```
 
-The planning stage creates `.tasks/<feature>/SPEC.md` for user requirements, feature-level acceptance criteria, constraints, code references, and out-of-scope boundaries, plus `tasks.json` for agent-executable work.
+The planning stage uses triggered Design Preflight for nontrivial or risky features, then creates `.tasks/<feature>/SPEC.md` for user requirements, feature-level acceptance criteria, constraints, code references, and out-of-scope boundaries, plus `tasks.json` for agent-executable work, work packages, and accepted `design_decisions`.
 
 Plus standalone skills: **perspectives** (divergent problem-solving), **tasks** (status dashboard), **review-code** (works independently for PR and local code review), and **code-doc** (generate comprehensive codebase documentation via hybrid analysis).
 

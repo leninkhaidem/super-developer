@@ -18,9 +18,11 @@ from typing import Any
 
 FEATURE_STATUSES = {"planned", "reviewed", "in-progress", "completed", "on-hold"}
 TASK_STATUSES = {"pending", "in-progress", "done", "blocked", "skipped"}
+DESIGN_DECISION_SOURCES = {"design-preflight", "planner"}
 PHASE_ID_RE = re.compile(r"P[1-9]\d*")
 TASK_ID_RE = re.compile(r"(P[1-9]\d*)-T\d{3}")
 WORK_PACKAGE_ID_RE = re.compile(r"WP[1-9]\d*")
+DESIGN_DECISION_ID_RE = re.compile(r"DD-[1-9]\d*")
 
 
 def main() -> int:
@@ -95,6 +97,59 @@ def validate_top_level(data: dict[str, Any], errors: list[str]) -> None:
     created_at = data.get("created_at")
     if isinstance(created_at, str) and created_at.strip():
         validate_iso_datetime(created_at, "created_at", errors)
+
+    if "design_decisions" not in data:
+        return
+
+    design_decisions = data["design_decisions"]
+    if not isinstance(design_decisions, list):
+        errors.append("design_decisions: expected array")
+        return
+    validate_design_decisions(design_decisions, errors)
+
+
+
+def validate_design_decisions(
+    design_decisions: list[Any], errors: list[str]
+) -> None:
+    decision_ids: list[str] = []
+
+    for decision_index, decision in enumerate(design_decisions):
+        decision_path = f"design_decisions[{decision_index}]"
+        if not isinstance(decision, dict):
+            errors.append(f"{decision_path}: expected object")
+            continue
+
+        for field in ("id", "decision", "rationale", "source"):
+            require_non_empty_string(decision, field, f"{decision_path}.{field}", errors)
+
+        decision_id = decision.get("id")
+        if isinstance(decision_id, str) and decision_id.strip():
+            if not DESIGN_DECISION_ID_RE.fullmatch(decision_id):
+                errors.append(
+                    f"{decision_path}.id: expected DD-<N>, got {decision_id!r}"
+                )
+            decision_ids.append(decision_id)
+
+        source = decision.get("source")
+        if isinstance(source, str) and source.strip():
+            if source not in DESIGN_DECISION_SOURCES:
+                errors.append(
+                    f"{decision_path}.source: expected one of "
+                    f"{sorted(DESIGN_DECISION_SOURCES)}, got {source!r}"
+                )
+
+        require_string_list(
+            decision,
+            "alternatives_considered",
+            f"{decision_path}.alternatives_considered",
+            errors,
+        )
+
+    add_duplicate_errors(
+        decision_ids, "design decision id", "design_decisions", errors
+    )
+    validate_sequential_ids(decision_ids, "DD-", "design_decisions", errors)
 
 
 def validate_phases(

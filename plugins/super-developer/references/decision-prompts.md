@@ -62,7 +62,7 @@ Every card field maps to a specific reviewer-output element. The orchestrator do
 
 When the user has authorized end-to-end automation (`proceed through all stages` or equivalent), the orchestrator auto-takes the recommendation when **all** conditions hold:
 
-- The plan review is operating in escalated (multi-reviewer) mode — i.e., both the Plan Quality Reviewer and the Adversarial Plan Challenger ran.
+- The plan review is operating in escalated (multi-reviewer) mode — i.e., the Plan Quality Reviewer and at least one selected Plan Review Challenger ran.
 - Those reviewers agree on the recommended path (no conflicting alternative path was raised by another reviewer).
 - The finding is **not** tagged security, privacy, or safety.
 

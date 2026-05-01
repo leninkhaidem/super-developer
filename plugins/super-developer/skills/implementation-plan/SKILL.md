@@ -36,7 +36,17 @@ If `.tasks/<feature-name>/` already exists, ask whether to overwrite or pick a d
 
 Read `${CLAUDE_PLUGIN_ROOT}/references/work-packages.md`. Use it when deciding task granularity, package grouping, package dependencies, and package parallel-safety.
 
-## Step 3: Create Directory Structure
+## Step 3: Run Design Preflight When Triggered
+
+Read `${CLAUDE_PLUGIN_ROOT}/references/design-preflight.md`. Before creating `.tasks/<feature-name>/` or writing `SPEC.md`/`tasks.json`, determine whether the plan is nontrivial or risky enough to trigger Design Preflight using the reference's trigger conditions. Skip preflight for straightforward, low-risk plans; when skipped, continue with planner-only decisions as needed.
+
+When preflight runs, the main agent creates an **ephemeral, neutral Preflight Brief** from user-stated requirements and constraints, verified code references, any proposed approach already under consideration, and open assumptions. The brief is an analysis artifact only: do not persist it under `.tasks/`, include it in `SPEC.md`, or write it as a durable project file.
+
+Preflight challengers are read-only sub-agents. Give them only the Preflight Brief plus bounded code references needed for their rubric. They must not edit files, spawn agents, ask the user, or write final JSON. Their findings are evidence for the main agent, not commands.
+
+Resolve every unresolved `MUST_DECIDE` or `BLOCKERS` finding before writing `SPEC.md` or `tasks.json`. Resolution may be a user clarification, a planner decision recorded in `design_decisions`, or a scoped change to the proposed plan. If resolution changes user-visible semantics or acceptance criteria, ask the user before writing files.
+
+## Step 4: Create Directory Structure
 
 ```
 .tasks/<feature-name>/
@@ -44,7 +54,7 @@ Read `${CLAUDE_PLUGIN_ROOT}/references/work-packages.md`. Use it when deciding t
 └── tasks.json
 ```
 
-## Step 4: Generate SPEC.md
+## Step 5: Generate SPEC.md
 
 SPEC.md is a **concise requirements specification** — not an architecture brief and not an implementation plan. It is the source of truth for WHAT the user wants, how success is judged, and what is excluded. All task decomposition and implementation detail belongs in tasks.json or in the codebase exploration done during implementation.
 
@@ -84,11 +94,11 @@ Rules:
 - Redact secrets, credentials, tokens, PII, and proprietary sensitive values; use placeholders and describe the requirement without persisting raw sensitive data.
 - SPEC.md may reference file paths, APIs, or existing modules, but must not include code snippets, pseudo-code, line numbers, or instructions for how to change code.
 - Include Code References only after lightweight codebase inspection verifies the paths. If no relevant paths are known, write `None identified`.
-- Do not include architecture/design decisions unless the user explicitly made them a requirement.
+- Keep SPEC.md requirements-only. Do not include architecture rationale or design decisions unless the user explicitly made them a product requirement. Persist accepted design decisions in tasks.json instead.
 - Do not include task breakdowns or implementation sequencing.
 - Use requirement/acceptance IDs so tasks.json can trace to the spec without duplicating whole sections.
 
-## Step 5: Generate tasks.json
+## Step 6: Generate tasks.json
 
 Create a JSON file following this schema:
 
@@ -99,6 +109,24 @@ Create a JSON file following this schema:
   "description": "One-line summary of what this feature delivers",
   "created_at": "<ISO 8601>",
   "status": "planned",
+  "design_decisions": [
+    {
+      "id": "DD-1",
+      "decision": "Concise accepted design decision",
+      "rationale": "Why this decision best satisfies the requirements and constraints",
+      "alternatives_considered": [
+        "Alternative considered and why it was not chosen"
+      ],
+      "source": "design-preflight"
+    },
+    {
+      "id": "DD-2",
+      "decision": "Planner decision worth preserving for implementers/reviewers",
+      "rationale": "Why this decision is necessary",
+      "alternatives_considered": [],
+      "source": "planner"
+    }
+  ],
   "work_packages": [
     {
       "id": "WP1",
@@ -153,6 +181,12 @@ Create a JSON file following this schema:
 |---|---|---|---|
 | Feature | `status` | string | `planned`, `reviewed`, `in-progress`, `completed`, `on-hold` |
 | Feature | `created_at` | string | ISO 8601 timestamp |
+| Feature | `design_decisions` | object[] | Top-level array of accepted design decisions; use `[]` when none |
+| Design Decision | `id` | string | `DD-<N>` (e.g., `DD-1`, `DD-2`), sequential with no gaps |
+| Design Decision | `decision` | string | Concise accepted design decision |
+| Design Decision | `rationale` | string | Brief rationale for the accepted decision |
+| Design Decision | `alternatives_considered` | string[] | Alternatives considered; may be empty for simple planner decisions |
+| Design Decision | `source` | string | `design-preflight` or `planner` |
 | Phase | `id` | string | `P<N>` (e.g., `P1`, `P2`) |
 | Phase | `order` | number | Sequential, no gaps |
 | Task | `id` | string | `<PhaseID>-T<NNN>` (e.g., `P1-T001`) |
@@ -169,6 +203,15 @@ Create a JSON file following this schema:
 | Work Package | `parallel_safe_with` | string[] | Work package IDs safe to run in the same implementation batch |
 | Work Package | `primary_paths` | string[] | Likely files/directories to inspect first; may be empty only when no safe paths are known |
 | Work Package | `verification_commands` | string[] | Concrete commands for package-level checks; empty when unknown |
+
+### Design Decision Authoring Guidelines
+
+- Add top-level `design_decisions` to every tasks.json. Use `[]` when Design Preflight is skipped and there are no planner decisions worth preserving.
+- Persist concise accepted decisions only, not the full reviewer debate, discarded comments, or transient Preflight Brief content.
+- Use IDs `DD-1`, `DD-2`, ... sequentially with no gaps.
+- Use `source: "design-preflight"` for decisions accepted from preflight resolution and `source: "planner"` for simple decisions made by the main agent without preflight.
+- Record decisions that materially affect implementation boundaries, verification, security/privacy/safety posture, or task decomposition. Do not record obvious restatements of SPEC requirements.
+- Keep SPEC.md requirements-only; design rationale belongs here, not in SPEC.md.
 
 ### Task Authoring Guidelines
 
@@ -243,9 +286,9 @@ Examples of tasks that **pass** despite being small:
 - Use `depends_on` only for dependencies on other work packages. Internal task dependencies do not require package-level dependencies.
 - Fill `primary_paths` with likely files or directories to inspect first when known from Code References or task descriptions.
 - Fill `verification_commands` only with commands known to exist or strongly implied by the project. Use `[]` rather than inventing commands.
-- Use `parallel_safe_with` conservatively. When file impact is ambiguous, leave it empty. If two packages cannot run in parallel because they touch the same subsystem or files, prefer combining them into one package over leaving them separate (per `${CLAUDE_PLUGIN_ROOT}/references/work-packages.md`).
+- Use `parallel_safe_with` conservatively. Default to `[]` unless independent file/module impact is verified. When file impact is ambiguous, leave it empty. If two packages cannot run in parallel because they touch the same subsystem or files, prefer combining them into one package over leaving them separate (per `${CLAUDE_PLUGIN_ROOT}/references/work-packages.md`).
 
-## Step 6: Validate
+## Step 7: Validate
 
 Before writing files, verify:
 
@@ -253,7 +296,13 @@ Before writing files, verify:
 - SPEC.md contains no raw secrets, credentials, tokens, PII, or proprietary sensitive values
 - SPEC.md contains no implementation details, code snippets, pseudo-code, line numbers, or task breakdowns
 - SPEC.md Code References are verified path-only references or `None identified`
+- SPEC.md remains requirements-only and does not contain architecture rationale or design decisions unless explicitly user-stated as product requirements
+- If Design Preflight was triggered, all `MUST_DECIDE` and `BLOCKERS` findings are resolved before writing files
 - No unnecessary verbatim duplication between SPEC.md and tasks.json; tasks should trace to spec IDs while adding task-level verification detail
+- `design_decisions` exists at the top level; when empty, it is `[]`
+- `design_decisions[].id` values are sequential `DD-1`, `DD-2`, ... with no gaps
+- `design_decisions[].source` is only `design-preflight` or `planner`
+- `design_decisions[]` entries include `decision`, `rationale`, `alternatives_considered`, and `source`, and persist concise accepted decisions rather than reviewer debate
 - No circular dependencies
 - All dependency references point to valid task IDs
 - Every task has at least one acceptance criterion
@@ -271,7 +320,9 @@ Before writing files, verify:
 - One-task work packages include a rationale explaining why the task is substantial, risky, or isolated. This rationale is reviewer-judged, not mechanically enforced
 - `parallel_safe_with` claims are conservative based on likely file/module impact (reviewer-judged, not mechanically enforceable)
 
-## Step 7: Write Files and Validate tasks.json
+## Step 8: Write Files and Validate tasks.json
+
+Do not write any `.tasks/<feature-name>/` files until any triggered Design Preflight is complete and all unresolved `MUST_DECIDE` or `BLOCKERS` findings are resolved.
 
 1. Create `.tasks/<feature-name>/` directory.
 2. Write `SPEC.md`.
@@ -284,7 +335,7 @@ Before writing files, verify:
 
    If the validator exits non-zero, fix `tasks.json` and rerun the same command until it passes. Do not present the plan summary with an invalid `tasks.json`.
 
-## Step 8: Present Summary
+## Step 9: Present Summary
 
 Display:
 1. Feature name and path
