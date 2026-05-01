@@ -29,8 +29,8 @@ The pipeline flows automatically with confirmation gates. Say **"proceed through
 | Skill | What It Does | Usage |
 |---|---|---|
 | **perspectives** | Divergent problem-solving. Spawns 3-5 Opus-class sub-agents, each approaching the problem from a distinct angle (Infrastructure, Architecture, Data, Root Cause, etc.). A final Skeptic agent stress-tests and synthesizes proposals into a ranked recommendation. | Standalone |
-| **implementation-plan** | Converts a completed brainstorming or requirements discussion into a structured task plan under `.tasks/<feature>/` with `SPEC.md`, task-level acceptance criteria, and work packages that define right-sized implementation delegation. | Pipeline + Standalone |
-| **review-plan** | Plan review gate. Performs deterministic schema validation, then spawns a **Plan Quality Reviewer**; escalates to an **Adversarial Plan Challenger** for high-risk or ambiguous plans. Validates `SPEC.md` and `tasks.json` cold from files only. Re-reviews adaptively (max 3 semantic rounds). Findings that change what ships — or are tagged security/privacy/safety — are presented one decision card at a time; the rest are auto-applied at the reviewer's recommendation and surfaced in the Gate 2 summary. | Pipeline + Standalone |
+| **implementation-plan** | Converts a completed brainstorming or requirements discussion into a structured task plan under `.tasks/<feature>/` with `SPEC.md`, task-level acceptance criteria, `design_decisions`, and work packages. Runs triggered Design Preflight before writing plans for nontrivial/risky features. | Pipeline + Standalone |
+| **review-plan** | Plan review gate. Performs deterministic schema validation, then spawns a **Plan Quality Reviewer** and selected **Plan Review Challengers** for applicable risk surfaces. Validates `SPEC.md`, `tasks.json`, work packages, and accepted `design_decisions` cold from files only. Re-reviews focused deltas only (max 3 semantic rounds) and treats reviewer comments as evidence, not commands. | Pipeline + Standalone |
 | **tasks** | Implementation status dashboard. Shows progress across all features or drills into a specific one with phase-by-phase breakdown. Can modify task status on request. | Standalone |
 | **implement** | Orchestrator. Analyzes planned work packages, creates git worktrees per package, dispatches substantial coherent packages to sub-agents, merges package branches into the feature branch, and runs lightweight integration checkpoints before downstream work begins. | Pipeline + Standalone |
 | **audit** | Post-implementation verification. Spawns a read-only sub-agent that checks every acceptance criterion against the actual codebase. Produces a PASS/FAIL report. Always runs in the pipeline after implement; also invocable standalone. | Pipeline + Standalone |
@@ -157,6 +157,10 @@ super-developer/
 |   +-- model-preferences.md              # Sub-agent model selection schema
 |   +-- work-packages.md                  # Work-package delegation contract
 |   +-- decision-prompts.md               # Decision-card UX mechanics (review-plan + review-code)
+|   +-- design-preflight.md              # Triggered planning challenge before durable task plans
+|   +-- plan-review-findings.md          # Plan reviewer finding format and severity contract
+|   +-- plan-review-rubrics.md           # Narrowed plan reviewer role rubrics
+|   +-- plan-review-resolution.md        # Main-agent plan review triage and re-review rules
 +-- skills/
 |   +-- worktree/
 |   |   +-- SKILL.md                       # Git worktree strategy
@@ -199,7 +203,7 @@ super-developer/
 | Decision | Rationale |
 |---|---|
 | Main agent orchestrates, sub-agents implement | Separation of concerns — orchestrator manages git state, sub-agents write code without risk of infrastructure conflicts |
-| Adaptive adversarial review | Plan Quality Reviewer always; Adversarial Plan Challenger escalates on risk. Code review pairs 4 specialists with a Skeptic agent — false positives are filtered, not just flagged. |
+| Adaptive adversarial review | Plan Quality Reviewer always; selected Plan Review Challengers escalate by risk surface. Code review pairs 4 specialists with a Skeptic agent — false positives are filtered, not just flagged. |
 | Git worktree isolation | Parallel sub-agents work in separate worktrees — no branch switching, no merge conflicts during implementation |
 | Pipeline with confirmation gates | Flows automatically but stays under user control — blanket approval for speed, step-by-step for precision |
 | Audit always runs in pipeline | Verifies "did we build what we planned" before code review begins — standalone review-code skips it |
