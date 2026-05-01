@@ -117,16 +117,76 @@ The Code Reviewer receives:
 - Change context: PR description and title, commit messages, user-supplied context, or feature context
 - Codebase path for file exploration: the review worktree path (`.worktrees/pr-review/<number>/`
   for PR mode, `.worktrees/<feature>/merge/` for pipeline mode, or the project root for local mode)
-- When available: `SPEC.md`, `tasks.json`, and audit results as task-awareness context
+- When usable as a pair: `SPEC.md` and `tasks.json`, plus audit results as strict task-compliance context
 
 The Code Reviewer must always perform and report a baseline security/privacy/safety sniff. Blanket
 mode cannot skip, silence, or replace this sniff. The sniff is not a substitute for an on-demand
 specialist security review when risk triggers require one.
 
-When task-awareness context is available, the Code Reviewer flags apparent planned requirement or
-acceptance-criteria omissions, contradictions, or regressions. These are review-code findings, not
-completion proof: the audit skill remains the authoritative completeness gate for proving all
-planned tasks and acceptance criteria.
+### Mandatory Task-Compliance Check
+
+Task-compliance context is usable only when both `SPEC.md` and `tasks.json` are present, current for
+the reviewed feature, valid, and readable in full. Truncated, paginated, or partially read plan
+artifacts are not usable context.
+
+If the review mode or supplied context expects plan artifacts — including pipeline mode, explicit
+feature/plan context, audit results for a planned feature, or a discoverable `.tasks/<feature>/` plan
+— missing, mislocated, stale, invalid, unreadable, truncated, paginated, or partially read paired
+artifacts are serious `task-awareness` findings with `task_awareness_signal: incomplete-plan-context`.
+This includes the case where both `SPEC.md` and `tasks.json` are absent or unusable, and it blocks
+`NONE`, `CLEAN`, and approval language.
+
+Before taking the standalone PR/local "no plan artifacts expected or discoverable" branch,
+the default Code Reviewer must perform plan-artifact discovery against the invoking project
+root/source repo `.tasks/` directory, not only the detached PR/merge review worktree. `.tasks/`
+may be gitignored and absent from review worktrees; when plan artifacts are discovered or expected,
+the orchestrator must collect and pass exact paired artifact paths or full artifact contents to
+reviewers. Check pipeline feature context, explicit user feature/plan context, audit result feature
+context, PR/head/current branch names (for example `feature/<name>` or `task/<feature>/...`), and
+matching or partial `.tasks/<feature>/SPEC.md` plus `.tasks/<feature>/tasks.json` paths when
+available. If a planned feature is expected or a matching/partial plan path is discoverable,
+paired-artifact rules apply. If multiple plausible `.tasks/*` plans match ambiguously, do not guess;
+report a serious `task-awareness` finding with `task_awareness_signal: incomplete-plan-context`.
+Ambiguity blocks `NONE`, `CLEAN`, and approval language.
+
+Only after discovery finds no expected or discoverable plan context for standalone PR or local
+review may the review proceed without task-compliance context.
+
+If exactly one artifact exists, is readable, or is expected while its paired artifact is missing,
+stale, invalid, unreadable, truncated, paginated, or only partially read, the Code Reviewer must
+report a serious `task-awareness` finding with `task_awareness_signal: incomplete-plan-context`.
+Do not build a partial checklist, do not treat the check as complete, and do not return `NONE`,
+`CLEAN`, or approval language from a partial artifact read.
+
+When both artifacts are usable, the Code Reviewer must independently check the reviewed diff against
+every requirement in the complete `SPEC.md` and every task and acceptance criterion in the complete
+`tasks.json`. This check is mandatory for the default Code Reviewer; it is not delegated only to
+audit and cannot be skipped in blanket mode.
+
+The Code Reviewer must:
+1. Build a concise checklist from the complete `SPEC.md` requirement IDs and acceptance criteria,
+   plus every `tasks.json` task ID, task description, task status, and task-level acceptance
+   criterion.
+2. Compare that checklist with code, tests, docs, and audit results in the reviewed state.
+3. Treat missing, contradicted, or regressed required behavior as a review finding, not as a note.
+4. Include exact requirement/task/acceptance IDs in `TASK_AWARENESS` evidence whenever available.
+5. When task-compliance context is expected or usable, never return `NONE`, `CLEAN`, or approval
+   language until the reviewer can enumerate all requirements, phases, tasks, and acceptance
+   criteria from the paired artifacts and complete the paired-artifact task-compliance check.
+
+Severity rules:
+
+- 🔴 **BLOCKER** — A required acceptance criterion, done task, or user-visible requirement is absent,
+  contradicted, or unverifiable in the reviewed state, especially when implementation was reported
+  complete.
+- 🟠 **CRITICAL** — Evidence is ambiguous or incomplete enough that completion cannot be trusted, but
+  the reviewer cannot prove the requirement is missing from code/diff context.
+- 🟡 **SUGGESTION** — Non-blocking traceability/test/doc improvement only; never use suggestions for
+  unmet required behavior.
+
+Audit remains the authoritative PASS/FAIL completeness gate, but it does not excuse the Code Reviewer
+from reporting visible SPEC/tasks/acceptance-criteria gaps, audit contradictions, or completion claims
+unsupported by the reviewed code.
 
 ### Specialist Mandate
 
@@ -142,18 +202,25 @@ If the diff exceeds 2,000 lines or is too broad for one coherent review, split i
 batches by related files, module boundaries, ownership boundaries, or feature areas. Do not add extra
 reviewer types by default just because a diff is large.
 
+When task-compliance context is expected or usable, the default Code Reviewer owns one whole-diff
+task-compliance checklist before batching. This is not an extra reviewer. Build the complete
+SPEC/tasks checklist once, before per-batch review, from all requirement, task, and acceptance-criterion IDs.
 For each batch:
 
-1. Preserve mode context and reviewed-state metadata.
+1. Preserve mode context, reviewed-state metadata, and the global task-compliance checklist.
 2. Run the bounded reviewer topology for that batch.
-3. Keep the per-batch reviewer cap: normal batches cap at 2 reviewers; risky batches cap at 3.
-4. Assign stable dedupe keys to every finding.
-5. Carry confirmed, disputed, downgraded, and suggestion findings into a cross-batch dedupe set.
+3. Record every checklist requirement/task/acceptance ID covered by the batch and by each finding.
+4. Keep the per-batch reviewer cap: normal batches cap at 2 reviewers; risky batches cap at 3.
+5. Assign stable dedupe keys to every finding.
+6. Carry confirmed, disputed, downgraded, suggestion, and checklist-coverage data into a cross-batch dedupe set.
 
 After all batches, run one final global integration verification pass over the consolidated finding
-set and the whole reviewed state. This pass verifies cross-batch serious findings, detects conflicts
-or duplicates across batches, and confirms that no batch-local recommendation breaks another batch.
-It does not reopen the default reviewer fanout.
+set, the whole reviewed state, and the global task-compliance checklist. This pass verifies
+cross-batch serious findings, detects conflicts or duplicates across batches, confirms that no
+batch-local recommendation breaks another batch, and reconciles checklist coverage across all
+batches. Any uncovered or uncertain required requirement/task/acceptance ID is a serious
+`task-awareness` finding, and blocks `NONE`, `CLEAN`, approval language, and clean report status
+until whole-checklist coverage is complete. It does not reopen the default reviewer fanout.
 
 ---
 
@@ -182,7 +249,7 @@ fix workflows without adding hidden fields later. Each finding must include:
 | `title` | Short, specific summary. |
 | `evidence` | Diff/code evidence sufficient for a maintainer to reproduce the concern. Serious findings require enough evidence for independent Skeptic verification. |
 | `introduced_by_change` | `yes`, `no`, or `unclear`, with the reason. Findings not introduced by the reviewed change are disputed for 🔴/🟠 unless the mode explicitly asks for broader audit. |
-| `task_awareness_signal` | `none`, `omission`, `contradiction`, or `regression`; include the referenced planned requirement or acceptance criterion when available. Audit remains authoritative for completeness. |
+| `task_awareness_signal` | `none`, `omission`, `contradiction`, `regression`, or `incomplete-plan-context`; include the referenced SPEC requirement ID, task ID, acceptance criterion, or paired-plan artifact defect when available. Missing required behavior must be reported with appropriate severity, not downgraded to a note. |
 | `recommendation` | Concrete fix recommendation, or alternatives when materially different approaches exist. Alternatives must identify runtime behavior, blast radius, and public-surface tradeoffs. |
 | `dedupe_key` | Stable key based on normalized root cause plus location/symbol, used across reviewers and big-diff batches. |
 | `skeptic_verdict` | `not-required`, `confirmed`, `disputed`, or `downgraded`. Reviewers initialize this as `not-required`; the Skeptic updates 🔴/🟠 findings before reporting. |
@@ -196,7 +263,7 @@ Reviewer output format:
 TAGS: <comma-separated tags>
 EVIDENCE: <diff/code evidence; include repro reasoning for serious findings>
 INTRODUCED_BY_CHANGE: <yes/no/unclear> — <reason>
-TASK_AWARENESS: <none/omission/contradiction/regression> — <requirement or acceptance criterion if any>
+TASK_AWARENESS: <none/omission/contradiction/regression/incomplete-plan-context> — <SPEC req ID, task ID, acceptance criterion, or paired-plan artifact defect if any>
 RECOMMENDATION: <concrete fix, or alternatives with tradeoffs>
 DEDUPE_KEY: <stable normalized key>
 SKEPTIC_VERDICT: not-required
@@ -204,7 +271,8 @@ SUGGESTION_ACTIONABILITY: <required for 🟡, otherwise n/a>
 FIX_STATUS: unfixed
 ```
 
-If no findings, respond with exactly `NONE`. Do not append `NONE` after findings.
+If no findings and no `incomplete-plan-context` task-awareness signal, respond with exactly `NONE`.
+Do not append `NONE` after findings.
 
 Reviewers must include `SKEPTIC_VERDICT: not-required` on initial output. The Skeptic is the only
 actor that changes this field, setting it to `confirmed`, `disputed`, or `downgraded` for 🔴/🟠
@@ -218,8 +286,9 @@ pre-existing unrelated issues are not reportable suggestions.
 ### Adversarial Verification (Skeptic Agent)
 
 Spawn a Skeptic Agent (model per resolved preference from Step 2) that receives all 🔴 BLOCKER and
-🟠 CRITICAL findings, the reviewed-state metadata, and any task-awareness context. The Skeptic
-independently locates supporting evidence in the diff or codebase.
+🟠 CRITICAL findings, the reviewed-state metadata, and any task-compliance context or
+`incomplete-plan-context` findings. The Skeptic independently locates supporting evidence in the
+diff or codebase.
 
 The Skeptic Agent's job is to *disprove* findings. Confirmation is a byproduct of failed disproof.
 Do not reuse the same reasoning chain from the reviewer — that defeats the purpose.
@@ -262,9 +331,10 @@ data? If exclusively in test scope, mark **DISPUTED** for 🔴/🟠 unless the t
 real production regression.
 
 **7 Task-Awareness Overclaim** — Does the finding claim a planned requirement omission,
-contradiction, or regression without SPEC/tasks/audit evidence? If yes, remove the
-`task-awareness` tag or mark **DISPUTED**. Review-code flags apparent inconsistencies only; audit
-remains the authoritative completeness gate.
+contradiction, regression, or `incomplete-plan-context` without SPEC/tasks/audit or artifact-state
+evidence? If yes, remove the `task-awareness` tag or mark **DISPUTED**. Do not dispute a visible
+acceptance-criteria gap merely because audit is also responsible for completeness; audit authority
+does not hide review evidence.
 
 Skeptic output format:
 
@@ -307,13 +377,16 @@ All modes use this canonical report structure. Substitute `<HEADER>` and `<METAD
 
 ---
 _Review generated via bounded multi-agent analysis. All reported blockers and critical issues were
-independently verified by the Skeptic Agent. Task-awareness findings are consistency signals only;
-audit remains authoritative for planned-task and acceptance-criteria completeness._
+independently verified by the Skeptic Agent. When paired SPEC/tasks context is usable, the default
+Code Reviewer performs a strict task-compliance check against requirements, tasks, and acceptance
+criteria; visible planned gaps are review-code findings, while audit remains the authoritative
+PASS/FAIL completeness gate._
 ````
 
 **Universal format rules:**
 
-- **Omit empty sections.** If all sections are empty: "No issues found. ✅"
+- **Omit empty sections.** If all sections are empty, there is no `incomplete-plan-context`
+  signal, and any batched-review checklist is fully covered: "No issues found. ✅"
 - **Disputed findings:** Silently excluded. Do not list, count, or mention them.
 - **Downgraded findings:** Reclassified from 🔴/🟠 to 🟡 by the Skeptic only when still actionable,
   diff-relevant, and deduplicated.
@@ -371,7 +444,7 @@ Use the canonical report template with:
 
 **Verdict:**
 
-- **CLEAN** — No 🔴 or 🟠 findings. Feature branch is ready for merge approval.
+- **CLEAN** — No 🔴 or 🟠 findings, no `incomplete-plan-context` signal, and any batched-review checklist is fully covered. Feature branch is ready for merge approval.
 - **ISSUES FOUND** — One or more 🔴 or 🟠 findings confirmed.
 
 **Pipeline Gated Actions:**
