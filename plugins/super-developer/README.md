@@ -1,8 +1,8 @@
 # Super Developer
 
-A Claude Code plugin that orchestrates the full development lifecycle — from divergent ideation through requirements-spec-driven planning, parallel implementation with git worktree isolation, and multi-agent adversarial code review.
+A Claude Code plugin that orchestrates the full development lifecycle — from divergent ideation through requirements-spec-driven planning, parallel implementation with git worktree isolation, multi-agent adversarial code review, and gated release publishing.
 
-One plugin. Eight skills. Zero manual git juggling.
+One plugin. Nine skills. Zero manual git juggling.
 
 ---
 
@@ -36,6 +36,7 @@ The pipeline flows automatically with confirmation gates. Say **"proceed through
 | **audit** | Post-implementation verification. Spawns a read-only sub-agent that checks every acceptance criterion against the actual codebase. Produces a PASS/FAIL report. Always runs in the pipeline after implement; also invocable standalone. | Pipeline + Standalone |
 | **review-code** | Bounded multi-agent code review. Always runs one **Code Reviewer**, adds at most one optional **Specialist Reviewer** for the highest-priority risk trigger, and uses a **Skeptic Agent** to verify serious findings before reporting. It uses available plan and audit artifacts as task-awareness context, but audit remains the authoritative completeness gate. Local `fix` delegates non-trivial fixes to a Fix Implementer and verifies the fix delta with a Fix Reviewer; PR mode is review-only and has no code-fix path. | Pipeline + Standalone + PR review |
 | **code-doc** | Generate comprehensive documentation for any codebase via hybrid analysis (native extractors + LLM agents). Adaptive 8-step pipeline: Scout → Existing Doc Assessment → Doc Plan → Analyze (delegate to sub-agents) → Synthesize → User Checkpoint → Generate (fan-out doc writers) → Review & Commit. Outputs 4 core docs (README, architecture-guide, developer-guide, codebase-context) plus optional docs (api-reference, data-model, component-guide, infrastructure). | Standalone |
+| **release** | Prepare and publish releases with explicit gates for base-branch detection (`main`/`master`), changelog creation/update, README/docs changes, version bumps, pushes/tags/GitHub releases, and scoped cleanup of release worktrees and feature branches. | Standalone |
 
 `review-code` works in **3 modes** — it auto-detects which to use:
 
@@ -120,7 +121,7 @@ claude --plugin-dir /path/to/super-developer/plugins/super-developer
 | Project | `--scope project` | Shared with team via `.claude/settings.json` |
 | Local | `--scope local` | This project only, gitignored |
 
-The plugin loads all 8 skills automatically via Claude Code's auto-discovery mechanism. No configuration required. Run `/reload-plugins` after installation to activate without restarting.
+The plugin loads all 9 skills automatically via Claude Code's auto-discovery mechanism. No configuration required. Run `/reload-plugins` after installation to activate without restarting.
 
 ---
 
@@ -198,6 +199,8 @@ super-developer/
 |       +-- SKILL.md                    # Codebase documentation generator
 |       +-- references/
 |           +-- update-merge.md         # Update/merge logic for existing docs
+|   +-- release/
+|       +-- SKILL.md                    # Gated release preparation and publishing
 ```
 
 ---
