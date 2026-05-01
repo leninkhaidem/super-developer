@@ -30,7 +30,7 @@ The pipeline flows automatically with confirmation gates. Say **"proceed through
 |---|---|---|
 | **perspectives** | Divergent problem-solving. Spawns 3-5 Opus-class sub-agents, each approaching the problem from a distinct angle (Infrastructure, Architecture, Data, Root Cause, etc.). A final Skeptic agent stress-tests and synthesizes proposals into a ranked recommendation. | Standalone |
 | **implementation-plan** | Converts a completed brainstorming or requirements discussion into a structured task plan under `.tasks/<feature>/` with `SPEC.md`, task-level acceptance criteria, `design_decisions`, and work packages. Runs triggered Design Preflight before writing plans for nontrivial/risky features. | Pipeline + Standalone |
-| **review-plan** | Plan review gate. Performs deterministic schema validation, then spawns a **Plan Quality Reviewer** and selected **Plan Review Challengers** for applicable risk surfaces. Validates `SPEC.md`, `tasks.json`, work packages, and accepted `design_decisions` cold from files only. Re-reviews focused deltas only (max 3 semantic rounds) and treats reviewer comments as evidence, not commands. | Pipeline + Standalone |
+| **review-plan** | Plan review gate. Performs deterministic schema validation, then spawns one **Plan Reviewer** that challenges the approach first and checks artifact quality second. Adds a dedicated **Security/Failure-Mode Reviewer** only for security/privacy/safety-sensitive plans or explicit escalation. Validates `SPEC.md`, `tasks.json`, work packages, and accepted `design_decisions` cold from files only. | Pipeline + Standalone |
 | **tasks** | Implementation status dashboard. Shows progress across all features or drills into a specific one with phase-by-phase breakdown. Can modify task status on request. | Standalone |
 | **implement** | Orchestrator. Analyzes planned work packages, creates git worktrees per package, dispatches substantial coherent packages to sub-agents, merges package branches into the feature branch, and runs lightweight integration checkpoints before downstream work begins. | Pipeline + Standalone |
 | **audit** | Post-implementation verification. Spawns a read-only sub-agent that checks every acceptance criterion against the actual codebase. Produces a PASS/FAIL report. Always runs in the pipeline after implement; also invocable standalone. | Pipeline + Standalone |
@@ -203,7 +203,7 @@ super-developer/
 | Decision | Rationale |
 |---|---|
 | Main agent orchestrates, sub-agents implement | Separation of concerns — orchestrator manages git state, sub-agents write code without risk of infrastructure conflicts |
-| Adaptive adversarial review | Plan Quality Reviewer always; selected Plan Review Challengers escalate by risk surface. Code review pairs 4 specialists with a Skeptic agent — false positives are filtered, not just flagged. |
+| Adaptive adversarial review | One Plan Reviewer runs by default; a Security/Failure-Mode Reviewer is added only for security/privacy/safety-sensitive plans or escalation. Code review pairs 4 specialists with a Skeptic agent — false positives are filtered, not just flagged. |
 | Git worktree isolation | Parallel sub-agents work in separate worktrees — no branch switching, no merge conflicts during implementation |
 | Pipeline with confirmation gates | Flows automatically but stays under user control — blanket approval for speed, step-by-step for precision |
 | Audit always runs in pipeline | Verifies "did we build what we planned" before code review begins — standalone review-code skips it |

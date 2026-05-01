@@ -62,7 +62,7 @@ Every card field maps to a specific reviewer-output element. The orchestrator do
 
 When the user has authorized end-to-end automation (`proceed through all stages` or equivalent), the orchestrator auto-takes the recommendation when **all** conditions hold:
 
-- The plan review is operating in escalated (multi-reviewer) mode — i.e., the Plan Quality Reviewer and at least one selected Plan Review Challenger ran.
+- The plan review is operating in escalated (multi-reviewer) mode — i.e., the Plan Reviewer and Security/Failure-Mode Reviewer both ran.
 - Those reviewers agree on the recommended path (no conflicting alternative path was raised by another reviewer).
 - The finding is **not** tagged security, privacy, or safety.
 
@@ -70,7 +70,7 @@ Otherwise the orchestrator pauses the pipeline and presents the card. Auto-taken
 
 ### Single-reviewer plan review
 
-When `review-plan` runs with only the Plan Quality Reviewer (no escalation), the threshold's first condition is not satisfied, so blanket mode does **not** auto-apply outcome-changing findings. Every outcome-changing finding prompts, even under `proceed through all stages`. This keeps the user as the tiebreaker whenever there is no second reviewer to provide consensus signal.
+When `review-plan` runs with only the Plan Reviewer (no security escalation), the threshold's first condition is not satisfied, so blanket mode does **not** auto-apply outcome-changing findings. Every outcome-changing finding prompts, even under `proceed through all stages`. This keeps the user as the tiebreaker whenever there is no second reviewer to provide consensus signal.
 
 ### Gate 2 always blocks
 
