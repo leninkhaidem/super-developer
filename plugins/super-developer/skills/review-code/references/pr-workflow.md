@@ -185,31 +185,55 @@ Report: Approval posted. Merge was not performed; respond with `merge` to run th
 ## Workflow C — `merge`
 
 Triggered only when the user explicitly responds `merge` after a clean review and approval. Merge is
-separate from approval and is never implied by `approve`.
+separate from approval and is never implied by `approve`, including under blanket mode.
 
 Before merging, re-run the PR Reviewed-State Revalidation Gate immediately. Revalidate PR head SHA,
 base SHA, mergeability, merge context, and reviewed diff/file-list state against the immutable state
 captured during review. If the gate fails, do not merge; report that the PR changed or became
 ambiguous and must be reviewed again before merge.
 
-Do not merge if 🔴 BLOCKERS or 🟠 CRITICALS exist, if the PR is not approved, or if mergeability is
-not clean for the reviewed state.
+Then verify the PR's actual approval state for the same reviewed head state. Use `gh pr view` and
+`gh api` as appropriate to inspect review decision, latest reviews, review dismissal state, and the
+reviewed commit SHA before any merge command:
 
 ```bash
-# 1. Squash & Merge
+# 1. Fetch current PR approval/review metadata
+gh pr view <PR_IDENTIFIER> --json number,reviewDecision,latestReviews,headRefOid
+
+# 2. If needed, inspect full review records including commit IDs and dismissed/stale state
+gh api /repos/{owner}/{repo}/pulls/{pull_number}/reviews
+```
+
+The approval-state gate passes only when:
+
+- At least one approving review exists for the exact current head SHA already validated against the
+  reviewed head SHA.
+- The approving review is not stale, dismissed, superseded by a later change-request review, or tied
+  to a different commit SHA.
+- The review decision and review records are consistent enough to prove approval for the reviewed
+  head state.
+
+If approval is absent, stale, dismissed, superseded, tied to another head SHA, or ambiguous, halt
+without merging and report that the PR must be approved for the reviewed head state first.
+
+Do not merge if 🔴 BLOCKERS or 🟠 CRITICALS exist, if the PR is not approved for the reviewed state,
+or if mergeability is not clean for the reviewed state.
+
+```bash
+# 3. Squash & Merge
 gh pr merge <PR_IDENTIFIER> \
   --squash \
   --delete-branch \
   --subject "<PR title> (#<PR number>)"
 
-# 2. Confirm merge success
+# 4. Confirm merge success
 gh pr view <PR_IDENTIFIER> --json state,mergeCommit
 ```
 
 Report: `Merged successfully. Merge commit: <SHA>. Branch deleted.`
 
 ```bash
-# 4. Remove review worktree
+# 5. Remove review worktree
 git worktree remove .worktrees/pr-review/${PR_NUMBER}
 ```
 
@@ -225,6 +249,11 @@ When the user has authorized blanket mode (`proceed through all stages` or equiv
 side-effect gates above still apply. Blanket mode may proceed through preview and gated posting only
 when the user's authorization explicitly covers GitHub side effects and the PR Reviewed-State
 Revalidation Gate passes at each side-effect boundary.
+
+Blanket authorization may cover posting a request-changes or approval review, but it never flows
+directly from approval to merge. Blanket mode does not auto-merge, does not treat approval as merge
+authorization, and still requires the user to give an explicit `merge` response/action before
+Workflow C may run.
 
 Blanket mode does not create a PR code-fix path, does not invoke delegated Fix Verification Review,
 does not bypass the Code Reviewer's baseline security/privacy/safety sniff, and does not bypass
