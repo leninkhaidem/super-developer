@@ -16,8 +16,8 @@ Super Developer turns Claude Code into an opinionated development workflow engin
        v
   implementation-plan  --->  review-plan  --->  implement  --->  audit  --->  review-code
                      |                  |              |               |
-              1–2 reviewers       work-package      verify vs       4 specialists +
-              (adaptive)          dispatch          plan            Skeptic agent
+              1–2 reviewers       work-package      verify vs       bounded reviewer
+              (adaptive)          dispatch          plan            topology
 ```
 
 The pipeline flows automatically with confirmation gates. Say **"proceed through all stages"** and it runs end-to-end without stopping. Or invoke any skill independently — they work standalone too.
@@ -34,17 +34,30 @@ The pipeline flows automatically with confirmation gates. Say **"proceed through
 | **tasks** | Implementation status dashboard. Shows progress across all features or drills into a specific one with phase-by-phase breakdown. Can modify task status on request. | Standalone |
 | **implement** | Orchestrator. Analyzes planned work packages, creates git worktrees per package, dispatches substantial coherent packages to sub-agents, merges package branches into the feature branch, and runs lightweight integration checkpoints before downstream work begins. | Pipeline + Standalone |
 | **audit** | Post-implementation verification. Spawns a read-only sub-agent that checks every acceptance criterion against the actual codebase. Produces a PASS/FAIL report. Always runs in the pipeline after implement; also invocable standalone. | Pipeline + Standalone |
-| **review-code** | Multi-agent code review. Spawns 4 specialist agents (Security, Logic, Performance, Architecture) in parallel, then an adversarial **Skeptic Agent** that independently tries to disprove every serious finding using a 6-point false-positive checklist. Under blanket pipeline mode, the `fix` action prompts only when a finding has multiple valid fix approaches with different runtime behavior; all other fixes apply silently. Local mode preserves per-fix `yes/skip` semantics. | Pipeline + Standalone + PR review |
+| **review-code** | Bounded multi-agent code review. Always runs one **Code Reviewer**, adds at most one optional **Specialist Reviewer** for the highest-priority risk trigger, and uses a **Skeptic Agent** to verify serious findings before reporting. It uses available plan and audit artifacts as task-awareness context, but audit remains the authoritative completeness gate. Local `fix` delegates non-trivial fixes to a Fix Implementer and verifies the fix delta with a Fix Reviewer; PR mode is review-only and has no code-fix path. | Pipeline + Standalone + PR review |
 | **code-doc** | Generate comprehensive documentation for any codebase via hybrid analysis (native extractors + LLM agents). Adaptive 8-step pipeline: Scout → Existing Doc Assessment → Doc Plan → Analyze (delegate to sub-agents) → Synthesize → User Checkpoint → Generate (fan-out doc writers) → Review & Commit. Outputs 4 core docs (README, architecture-guide, developer-guide, codebase-context) plus optional docs (api-reference, data-model, component-guide, infrastructure). | Standalone |
 
 `review-code` works in **3 modes** — it auto-detects which to use:
 
-| Mode | When | What it reviews |
-|---|---|---|
-| **Pipeline** | After `implement` completes in the same session | Feature branch diff against `main` from the merge worktree |
-| **PR** | You provide a PR identifier (`owner/repo#42`, URL, or `#42`) | Full PR diff from GitHub via `gh` CLI |
-| **Local** | No pipeline context, no PR identifier | Staged changes, unstaged changes, or branch diff (auto-detected) |
+| Mode | When | What it reviews | Fix boundary |
+|---|---|---|---|
+| **Pipeline** | After `implement` completes in the same session | Feature branch diff against `main` from the merge worktree, with available plan/audit artifacts as task-awareness context | Can apply pipeline-context fixes in the merge worktree, but does **not** use the delegated local Fix Implementer / Fix Reviewer workflow |
+| **PR** | You provide a PR identifier (`owner/repo#42`, URL, or `#42`) | Full PR diff from GitHub via `gh` CLI | Review-only: can approve, request changes, edit the report, or abort; no code-fix path and no local Fix Verification Review |
+| **Local** | No pipeline context, no PR identifier | Staged changes, unstaged changes, or branch diff (auto-detected) | `fix` delegates non-trivial fixes to a Fix Implementer, then requires a delegated Fix Reviewer before post-fix commit/readiness |
 
+
+### Review-Code Reviewer Topology
+
+`review-code` uses bounded reviewer caps instead of unconditional specialist fanout:
+
+- **Normal review cap:** Code Reviewer + conditional Skeptic Agent = 2 reviewers.
+- **Risky review cap:** Code Reviewer + one selected Specialist Reviewer + conditional Skeptic Agent = 3 reviewers.
+- **Specialist priority:** security/privacy/safety, then data integrity/persistence, then performance, then architecture/integration. If several triggers match, only the highest-priority specialist runs.
+- **Big diffs:** broad diffs are split into semantic batches; each batch keeps the same reviewer caps, and a final global integration pass deduplicates and checks cross-batch conflicts without reopening full fanout.
+- **Task-awareness:** available `SPEC.md`, `tasks.json`, and audit results help review-code flag apparent omissions, contradictions, or regressions. These are consistency signals only; audit remains authoritative for acceptance-criteria and planned-task completeness.
+- **Local fixes:** non-trivial local `fix` work is delegated to a Fix Implementer and then verified by a Fix Reviewer against the fix delta. The main agent only handles super-simple mechanical typo/formatting fixes inline.
+- **PR boundary:** PR mode is review-only for code changes; it does not apply fixes and does not run local Fix Verification Review.
+- **Pipeline boundary:** pipeline review may fix confirmed findings in the merge worktree, but it does not use the delegated local Fix Implementer or local Fix Reviewer workflow in this redesign.
 ---
 
 ## Git Worktree Strategy
@@ -203,13 +216,13 @@ super-developer/
 | Decision | Rationale |
 |---|---|
 | Main agent orchestrates, sub-agents implement | Separation of concerns — orchestrator manages git state, sub-agents write code without risk of infrastructure conflicts |
-| Adaptive adversarial review | One Plan Reviewer runs by default; a Security/Failure-Mode Reviewer is added only for security/privacy/safety-sensitive plans or escalation. Code review pairs 4 specialists with a Skeptic agent — false positives are filtered, not just flagged. |
+| Adaptive adversarial review | One Plan Reviewer runs by default; a Security/Failure-Mode Reviewer is added only for security/privacy/safety-sensitive plans or escalation. Code review uses a bounded topology: Code Reviewer always, at most one Specialist Reviewer selected by risk priority, and a conditional Skeptic Agent to verify serious findings before reporting. |
 | Git worktree isolation | Parallel sub-agents work in separate worktrees — no branch switching, no merge conflicts during implementation |
 | Pipeline with confirmation gates | Flows automatically but stays under user control — blanket approval for speed, step-by-step for precision |
-| Audit always runs in pipeline | Verifies "did we build what we planned" before code review begins — standalone review-code skips it |
+| Audit remains authoritative | Pipeline audit verifies "did we build what we planned" before code review begins. Review-code may use plan and audit artifacts as task-awareness context, but its task-awareness findings are consistency signals, not completeness proof. |
 | Feature name inference | The agent reads the conversation and proposes a name — no need to interrupt the flow for something obvious |
 | Work packages as delegation unit | Sub-agents are valuable, but each spawn has fixed context cost. Bundling related tasks into substantial packages reduces repeated codebase exploration while preserving parallelism for independent workstreams. |
-| One decision at a time | Reviewer findings that change what ships are presented as individual decision cards (recommendation + alternatives + tradeoffs); wording, traceability, and scheduling fixes auto-apply at the reviewer's recommendation and surface in the post-review summary. Cuts overwhelm without losing audit trust. |
+| One decision at a time | Reviewer findings that change what ships are presented as individual decision cards (recommendation + alternatives + tradeoffs). For review-code, decision cards are limited to confirmed serious findings with multiple materially different fix approaches; blanket mode does not bypass security/privacy/safety sniffing, Skeptic verification, or stale-state gates. |
 
 ---
 

@@ -45,10 +45,10 @@ review-code: inherit
 | Key | Controls | Fallback |
 |---|---|---|
 | `default-model` | Global default for all agents | Skill's hardcoded default |
-| `skeptic-agent` | Adversarial reviewers: review-code Skeptic, review-plan Security/Failure-Mode Reviewer | `default-model` → hardcoded default |
+| `skeptic-agent` | Adversarial verification agents: review-code Skeptic Agent, review-plan Security/Failure-Mode Reviewer | `default-model` → hardcoded default |
 | `implement` | Implementation sub-agents (delegated tasks) | `default-model` → hardcoded default |
 | `review-plan` | Review-plan Plan Reviewer | `default-model` → hardcoded default |
-| `review-code` | Review-code specialist agents (security, logic, performance, architecture) | `default-model` → hardcoded default |
+| `review-code` | Review-code standard reviewers: Code Reviewer and optional Specialist Reviewer | `default-model` → hardcoded default |
 
 ### Role-to-Key Mapping
 
@@ -58,7 +58,7 @@ Per-skill keys control **standard agents only**. The `skeptic-agent` key control
 |---|---|---|
 | `implement` | `implement` key | N/A (no adversarial role) |
 | `review-plan` | `review-plan` key → Plan Reviewer | `skeptic-agent` key → Security/Failure-Mode Reviewer |
-| `review-code` | `review-code` key → 4 specialists | `skeptic-agent` key → Skeptic Agent |
+| `review-code` | `review-code` key → Code Reviewer and optional Specialist Reviewer | `skeptic-agent` key → Skeptic Agent |
 
 ---
 
@@ -77,7 +77,7 @@ When a skill resolves `adaptive`, it applies its own role-based logic:
 | Skill | Adaptive Behavior |
 |---|---|
 | `implement` | Opus for complex/ambiguous tasks, Sonnet for simple/patterned ones |
-| `review-code` | Sonnet for specialists, Opus for Skeptic (via `skeptic-agent`) |
+| `review-code` | Sonnet for the Code Reviewer and any selected Specialist Reviewer; Opus for the Skeptic Agent via `skeptic-agent` |
 | `review-plan` | Sonnet for Plan Reviewer, Security/Failure-Mode Reviewer governed by `skeptic-agent` key |
 
 ---
@@ -89,7 +89,7 @@ When a skill needs to determine the model for a sub-agent, follow this procedure
 ### For Standard Agents
 
 1. Read `.claude/model-preferences.yml`. If missing, auto-create with `default-model: adaptive`.
-2. Check the **skill-specific key** (e.g., `review-code` for review-code specialists). If present, use its value.
+2. Check the **skill-specific key** (e.g., `review-code` for review-code standard reviewers). If present, use its value.
 3. If absent, check `default-model`. If present, use its value.
 4. If absent, use the skill's **hardcoded default**.
 
@@ -169,8 +169,8 @@ skeptic-agent: claude-opus-4
 # But implementation tasks get Opus for complex work.
 default-model: inherit
 implement: adaptive
-# Note: review-code specialists will inherit the orchestrator's model.
-#       review-code Skeptic will also inherit (skeptic-agent falls back to default-model).
+# Note: review-code standard reviewers will inherit the orchestrator's model.
+#       review-code Skeptic Agent will also inherit (skeptic-agent falls back to default-model).
 ```
 
 ### 4. Full Control
@@ -185,5 +185,5 @@ review-code: claude-sonnet-4
 # Result:
 #   implement sub-agents → claude-opus-4
 #   review-plan Plan Reviewer → claude-sonnet-4, Security/Failure-Mode Reviewer → claude-opus-4
-#   review-code specialists → claude-sonnet-4, Skeptic → claude-opus-4
+#   review-code Code Reviewer and optional Specialist Reviewer → claude-sonnet-4, Skeptic Agent → claude-opus-4
 ```
