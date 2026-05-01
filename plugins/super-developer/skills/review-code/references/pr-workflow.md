@@ -90,7 +90,8 @@ Only proceed when the user responds with one of these keywords:
 
 | Keyword | Action |
 |---|---|
-| `approve` | Execute approval + merge (Workflow B) — **blocked if 🔴 BLOCKERS or 🟠 CRITICALS exist; see Workflow A** |
+| `approve` | Post approval review only (Workflow B) — **blocked if 🔴 BLOCKERS or 🟠 CRITICALS exist; see Workflow A** |
+| `merge` | Merge an already-approved clean PR only (Workflow C) — requires explicit `merge` response and a fresh revalidation gate immediately before merge |
 | `request-changes` | Post request-changes review (Workflow A below) |
 | `edit` | Accept user edits to the report, then return to start of Phase 5 |
 | `abort` | No GitHub action. Close session cleanly. |
@@ -99,7 +100,7 @@ Only proceed when the user responds with one of these keywords:
 available in PR mode. If the user asks to fix PR code, explain that PR mode is review-only and the
 author must update the PR or the user must switch to an explicit local workflow.
 
-> Any response other than these four → clarification prompt.
+> Any response other than these five → clarification prompt.
 > **Never interpret ambiguity, silence, or partial confirmation as approval.**
 
 ### PR Reviewed-State Revalidation Gate
@@ -159,8 +160,10 @@ Triggered when user responds `approve` **AND** no 🔴 BLOCKERS or 🟠 CRITICAL
 Run the PR Reviewed-State Revalidation Gate immediately before approval. If it fails, halt without
 posting and report the stale state.
 
+Approval is a standalone side effect. It posts the approval review only; it must not merge the PR,
+delete the branch, or run any merge command.
+
 ```bash
-# 1. Post approval review
 gh pr review <PR_IDENTIFIER> \
   --approve \
   --body "## PR Approved ✅
@@ -175,19 +178,31 @@ _Review generated via bounded multi-agent analysis. All serious findings were in
 verified by the Skeptic Agent before reporting._"
 ```
 
-Approval and merge are separate side effects. After posting approval and immediately before merging,
-re-run the PR Reviewed-State Revalidation Gate, including PR head SHA, base SHA, mergeability, and
-merge context. If the gate fails, do not merge; report that approval was posted for the reviewed
-state but merge requires a fresh review.
+Report: Approval posted. Merge was not performed; respond with `merge` to run the separate merge workflow.
+
+---
+
+## Workflow C — `merge`
+
+Triggered only when the user explicitly responds `merge` after a clean review and approval. Merge is
+separate from approval and is never implied by `approve`.
+
+Before merging, re-run the PR Reviewed-State Revalidation Gate immediately. Revalidate PR head SHA,
+base SHA, mergeability, merge context, and reviewed diff/file-list state against the immutable state
+captured during review. If the gate fails, do not merge; report that the PR changed or became
+ambiguous and must be reviewed again before merge.
+
+Do not merge if 🔴 BLOCKERS or 🟠 CRITICALS exist, if the PR is not approved, or if mergeability is
+not clean for the reviewed state.
 
 ```bash
-# 2. Squash & Merge
+# 1. Squash & Merge
 gh pr merge <PR_IDENTIFIER> \
   --squash \
   --delete-branch \
   --subject "<PR title> (#<PR number>)"
 
-# 3. Confirm merge success
+# 2. Confirm merge success
 gh pr view <PR_IDENTIFIER> --json state,mergeCommit
 ```
 

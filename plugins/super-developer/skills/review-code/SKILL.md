@@ -185,7 +185,7 @@ fix workflows without adding hidden fields later. Each finding must include:
 | `task_awareness_signal` | `none`, `omission`, `contradiction`, or `regression`; include the referenced planned requirement or acceptance criterion when available. Audit remains authoritative for completeness. |
 | `recommendation` | Concrete fix recommendation, or alternatives when materially different approaches exist. Alternatives must identify runtime behavior, blast radius, and public-surface tradeoffs. |
 | `dedupe_key` | Stable key based on normalized root cause plus location/symbol, used across reviewers and big-diff batches. |
-| `skeptic_verdict` | `not-required`, `confirmed`, `disputed`, or `downgraded`. 🔴/🟠 findings cannot be reported until the Skeptic sets this. |
+| `skeptic_verdict` | `not-required`, `confirmed`, `disputed`, or `downgraded`. Reviewers initialize this as `not-required`; the Skeptic updates 🔴/🟠 findings before reporting. |
 | `suggestion_actionability` | For 🟡 only: explain why the suggestion is actionable, diff-relevant, and non-duplicative; otherwise do not report it. |
 | `fix_status` | `unfixed`, `fix-proposed`, `fix-applied`, `verified`, `reopened`, or `not-applicable`. |
 
@@ -199,11 +199,17 @@ INTRODUCED_BY_CHANGE: <yes/no/unclear> — <reason>
 TASK_AWARENESS: <none/omission/contradiction/regression> — <requirement or acceptance criterion if any>
 RECOMMENDATION: <concrete fix, or alternatives with tradeoffs>
 DEDUPE_KEY: <stable normalized key>
+SKEPTIC_VERDICT: not-required
 SUGGESTION_ACTIONABILITY: <required for 🟡, otherwise n/a>
 FIX_STATUS: unfixed
 ```
 
 If no findings, respond with exactly `NONE`. Do not append `NONE` after findings.
+
+Reviewers must include `SKEPTIC_VERDICT: not-required` on initial output. The Skeptic is the only
+actor that changes this field, setting it to `confirmed`, `disputed`, or `downgraded` for 🔴/🟠
+findings during adversarial verification. This keeps the finding lifecycle explicit in the finding
+record rather than relying on hidden orchestration state.
 
 Suggestions are reportable only when they are actionable, relevant to the reviewed diff, and
 deduplicated. Non-actionable preferences, style-only opinions without repository grounding, and
