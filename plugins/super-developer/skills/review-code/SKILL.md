@@ -123,10 +123,10 @@ The Code Reviewer must always perform and report a baseline security/privacy/saf
 mode cannot skip, silence, or replace this sniff. The sniff is not a substitute for an on-demand
 specialist security review when risk triggers require one.
 
-When task-awareness context is available, the Code Reviewer flags apparent planned requirement or
-acceptance-criteria omissions, contradictions, or regressions. These are review-code findings, not
-completion proof: the audit skill remains the authoritative completeness gate for proving all
-planned tasks and acceptance criteria.
+When task-awareness context is available, use it as context only. Review-code may report clear
+diff-visible contradictions/regressions against SPEC/tasks, or audit-reported failures/stale audit
+evidence, but it does not re-audit every task or acceptance criterion. If audit is missing or skipped,
+do not claim planned completeness; state that plan completeness was not verified by review-code.
 
 ### Specialist Mandate
 
@@ -182,7 +182,7 @@ fix workflows without adding hidden fields later. Each finding must include:
 | `title` | Short, specific summary. |
 | `evidence` | Diff/code evidence sufficient for a maintainer to reproduce the concern. Serious findings require enough evidence for independent Skeptic verification. |
 | `introduced_by_change` | `yes`, `no`, or `unclear`, with the reason. Findings not introduced by the reviewed change are disputed for 🔴/🟠 unless the mode explicitly asks for broader audit. |
-| `task_awareness_signal` | `none`, `omission`, `contradiction`, or `regression`; include the referenced planned requirement or acceptance criterion when available. Audit remains authoritative for completeness. |
+| `task_awareness_signal` | `none`, `contradiction`, `regression`, `audit-fail`, or `stale-audit`; include the referenced planned requirement, acceptance criterion, audit finding, or audit state when available. Audit remains authoritative for completeness. |
 | `recommendation` | Concrete fix recommendation, or alternatives when materially different approaches exist. Alternatives must identify runtime behavior, blast radius, and public-surface tradeoffs. |
 | `dedupe_key` | Stable key based on normalized root cause plus location/symbol, used across reviewers and big-diff batches. |
 | `skeptic_verdict` | `not-required`, `confirmed`, `disputed`, or `downgraded`. Reviewers initialize this as `not-required`; the Skeptic updates 🔴/🟠 findings before reporting. |
@@ -196,7 +196,7 @@ Reviewer output format:
 TAGS: <comma-separated tags>
 EVIDENCE: <diff/code evidence; include repro reasoning for serious findings>
 INTRODUCED_BY_CHANGE: <yes/no/unclear> — <reason>
-TASK_AWARENESS: <none/omission/contradiction/regression> — <requirement or acceptance criterion if any>
+TASK_AWARENESS: <none/contradiction/regression/audit-fail/stale-audit> — <requirement, acceptance criterion, audit finding, or audit state if any>
 RECOMMENDATION: <concrete fix, or alternatives with tradeoffs>
 DEDUPE_KEY: <stable normalized key>
 SKEPTIC_VERDICT: not-required
@@ -261,10 +261,10 @@ intentional remain reportable; mark them **CONFIRMED** and note the documented i
 data? If exclusively in test scope, mark **DISPUTED** for 🔴/🟠 unless the test behavior masks a
 real production regression.
 
-**7 Task-Awareness Overclaim** — Does the finding claim a planned requirement omission,
-contradiction, or regression without SPEC/tasks/audit evidence? If yes, remove the
-`task-awareness` tag or mark **DISPUTED**. Review-code flags apparent inconsistencies only; audit
-remains the authoritative completeness gate.
+**7 Task-Awareness Overclaim** — Does the finding claim a planned requirement contradiction or
+regression without SPEC/tasks/audit evidence? If yes, remove the `task-awareness` tag or mark
+**DISPUTED**. Review-code flags apparent inconsistencies only; audit remains the authoritative
+completeness gate.
 
 Skeptic output format:
 
@@ -307,7 +307,7 @@ All modes use this canonical report structure. Substitute `<HEADER>` and `<METAD
 
 ---
 _Review generated via bounded multi-agent analysis. All reported blockers and critical issues were
-independently verified by the Skeptic Agent. Task-awareness findings are consistency signals only;
+independently verified by the Skeptic Agent. Review-code uses plan/audit artifacts as context only;
 audit remains authoritative for planned-task and acceptance-criteria completeness._
 ````
 
