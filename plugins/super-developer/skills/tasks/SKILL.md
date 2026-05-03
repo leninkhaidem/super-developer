@@ -23,7 +23,7 @@ Display current status of task plans. Quick overview of progress across all feat
 2. For each feature, execute the shared validator before reading `tasks.json`:
 
    ```bash
-   python3 "${CLAUDE_PLUGIN_ROOT}/assets/validate-tasks-json.py" ".tasks/<feature>/tasks.json"
+   python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/validate-tasks-json.py" ".tasks/<feature>/tasks.json"
    ```
 
    If validation fails for a feature, display it as invalid with the validator failure summary and skip derived progress calculations for that file.
@@ -45,7 +45,7 @@ payment-flow         completed    ████████  8/8   ✅8
 1. Execute the shared validator before reading `tasks.json`:
 
    ```bash
-   python3 "${CLAUDE_PLUGIN_ROOT}/assets/validate-tasks-json.py" ".tasks/$ARGUMENTS/tasks.json"
+   python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/validate-tasks-json.py" ".tasks/$ARGUMENTS/tasks.json"
    ```
 
    If validation fails, show the validator output and stop; the dashboard cannot reliably compute status from an invalid plan.

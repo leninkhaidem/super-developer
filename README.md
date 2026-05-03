@@ -1,6 +1,6 @@
 # Super Developer Marketplace
 
-A collection of Claude Code plugins for software development.
+A marketplace for portable coding-assistant workflow skills, currently packaged for Claude Code.
 
 ## Plugins
 

@@ -34,11 +34,11 @@ If `.tasks/<feature-name>/` already exists, ask whether to overwrite or pick a d
 
 ## Step 2: Load Work Package Rules
 
-Read `${CLAUDE_PLUGIN_ROOT}/references/work-packages.md`. Use it when deciding task granularity, package grouping, package dependencies, and package parallel-safety.
+Read `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/work-packages.md`. Use it when deciding task granularity, package grouping, package dependencies, and package parallel-safety.
 
 ## Step 3: Run Design Preflight When Triggered
 
-Read `${CLAUDE_PLUGIN_ROOT}/references/design-preflight.md`. Before creating `.tasks/<feature-name>/` or writing `SPEC.md`/`tasks.json`, determine whether the plan is nontrivial or risky enough to trigger Design Preflight using the reference's trigger conditions. Skip preflight for straightforward, low-risk plans; when skipped, continue with planner-only decisions as needed.
+Read `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/design-preflight.md`. Before creating `.tasks/<feature-name>/` or writing `SPEC.md`/`tasks.json`, determine whether the plan is nontrivial or risky enough to trigger Design Preflight using the reference's trigger conditions. Skip preflight for straightforward, low-risk plans; when skipped, continue with planner-only decisions as needed.
 
 When preflight runs, the main agent creates an **ephemeral, neutral Preflight Brief** from user-stated requirements and constraints, verified code references, any proposed approach already under consideration, and open assumptions. The brief is an analysis artifact only: do not persist it under `.tasks/`, include it in `SPEC.md`, or write it as a durable project file.
 
@@ -286,7 +286,7 @@ Examples of tasks that **pass** despite being small:
 - Use `depends_on` only for dependencies on other work packages. Internal task dependencies do not require package-level dependencies.
 - Fill `primary_paths` with likely files or directories to inspect first when known from Code References or task descriptions.
 - Fill `verification_commands` only with commands known to exist or strongly implied by the project. Use `[]` rather than inventing commands.
-- Use `parallel_safe_with` conservatively. Default to `[]` unless independent file/module impact is verified. When file impact is ambiguous, leave it empty. If two packages cannot run in parallel because they touch the same subsystem or files, prefer combining them into one package over leaving them separate (per `${CLAUDE_PLUGIN_ROOT}/references/work-packages.md`).
+- Use `parallel_safe_with` conservatively. Default to `[]` unless independent file/module impact is verified. When file impact is ambiguous, leave it empty. If two packages cannot run in parallel because they touch the same subsystem or files, prefer combining them into one package over leaving them separate (per `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/work-packages.md`).
 
 ## Step 7: Validate
 
@@ -330,7 +330,7 @@ Do not write any `.tasks/<feature-name>/` files until any triggered Design Prefl
 4. Execute the shared validator against the concrete file path:
 
    ```bash
-   python3 "${CLAUDE_PLUGIN_ROOT}/assets/validate-tasks-json.py" ".tasks/<feature-name>/tasks.json"
+   python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/validate-tasks-json.py" ".tasks/<feature-name>/tasks.json"
    ```
 
    If the validator exits non-zero, fix `tasks.json` and rerun the same command until it passes. Do not present the plan summary with an invalid `tasks.json`.

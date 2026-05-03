@@ -235,8 +235,8 @@ git commit -m "<concise summary of changes>"
 
 When the user has authorized blanket mode (`proceed through all stages` or equivalent), per-finding
 fix confirmation is replaced by the design-decision filter in the parent SKILL — see
-`### Design-Decision Filter` in `${CLAUDE_PLUGIN_ROOT}/skills/review-code/SKILL.md`. Design-decision
-findings present a card via `${CLAUDE_PLUGIN_ROOT}/references/decision-prompts.md`; all other
+`### Design-Decision Filter` in `${SUPER_DEVELOPER_PLUGIN_ROOT}/skills/review-code/SKILL.md`. Design-decision
+findings present a card via `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/decision-prompts.md`; all other
 eligible local fixes are delegated to the Fix Implementer silently.
 
 Blanket mode does not bypass the Code Reviewer's baseline security/privacy/safety sniff, Skeptic

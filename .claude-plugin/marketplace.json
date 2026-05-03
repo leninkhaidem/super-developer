@@ -1,6 +1,6 @@
 {
   "name": "super-developer-marketplace",
-  "description": "A collection of Claude Code plugins for software development — workflow orchestration, code review, GitHub automation, and more.",
+  "description": "A marketplace for portable coding-assistant workflow skills, currently packaged for Claude Code.",
   "owner": {
     "name": "lenin khaidem",
     "email": "leninkhaidem@gmail.com"
@@ -9,7 +9,7 @@
     {
       "name": "super-developer",
       "description": "Orchestrates the full development lifecycle with 9 skills — divergent ideation, requirements-spec-driven planning, parallel implementation with git worktree isolation, multi-agent adversarial code review, codebase documentation, and gated release publishing.",
-      "version": "1.17.0",
+      "version": "1.17.1",
       "category": "development",
       "author": {
         "name": "lenin khaidem",

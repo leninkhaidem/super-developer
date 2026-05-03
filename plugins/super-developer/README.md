@@ -1,6 +1,6 @@
 # Super Developer
 
-A Claude Code plugin that orchestrates the full development lifecycle — from divergent ideation through requirements-spec-driven planning, parallel implementation with git worktree isolation, multi-agent adversarial code review, and gated release publishing.
+A portable coding-assistant workflow, currently packaged as a Claude Code plugin, that orchestrates the full development lifecycle — from divergent ideation through requirements-spec-driven planning, parallel implementation with git worktree isolation, multi-agent adversarial code review, and gated release publishing.
 
 One plugin. Nine skills. Zero manual git juggling.
 
@@ -8,7 +8,7 @@ One plugin. Nine skills. Zero manual git juggling.
 
 ## What It Does
 
-Super Developer turns Claude Code into an opinionated development workflow engine. Instead of scattered slash commands and ad-hoc prompts, it provides a structured pipeline where each stage feeds the next — with right-sized sub-agent work packages, git worktree isolation, and adversarial review gates catching issues before they ship.
+Super Developer packages portable skill instructions into an opinionated development workflow engine. In Claude Code, it replaces scattered slash commands and ad-hoc prompts with a structured pipeline where each stage feeds the next — with right-sized sub-agent work packages, git worktree isolation, and adversarial review gates catching issues before they ship.
 
 ```
 [perspectives]              Optional — divergent problem-solving for complex decisions
@@ -121,7 +121,7 @@ claude --plugin-dir /path/to/super-developer/plugins/super-developer
 | Project | `--scope project` | Shared with team via `.claude/settings.json` |
 | Local | `--scope local` | This project only, gitignored |
 
-The plugin loads all 9 skills automatically via Claude Code's auto-discovery mechanism. No configuration required. Run `/reload-plugins` after installation to activate without restarting.
+Claude Code loads all 9 skills automatically via plugin auto-discovery. Other hosts need equivalent skill/plugin discovery and a `SUPER_DEVELOPER_PLUGIN_ROOT` variable pointing at the plugin root.
 
 ---
 
@@ -207,7 +207,7 @@ super-developer/
 
 ## Requirements
 
-- **Claude Code** with plugin support
+- **Claude Code with plugin support** for packaged installation; other hosts need equivalent skill/plugin support and `SUPER_DEVELOPER_PLUGIN_ROOT`
 - **Python 3** (tasks.json validation asset)
 - **git** (all skills)
 - **GitHub CLI (`gh`)** (review-code PR mode only) — [install](https://cli.github.com/)

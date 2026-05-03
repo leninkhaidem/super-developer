@@ -26,7 +26,7 @@ Execute tasks from a feature's task plan. The main agent acts as an orchestrator
 2. Execute the shared validator before trusting `tasks.json`:
 
    ```bash
-   python3 "${CLAUDE_PLUGIN_ROOT}/assets/validate-tasks-json.py" ".tasks/$ARGUMENTS/tasks.json"
+   python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/validate-tasks-json.py" ".tasks/$ARGUMENTS/tasks.json"
    ```
 
    If the validator exits non-zero, stop and resolve the reported `tasks.json` blockers before dispatching or updating work.
@@ -41,7 +41,7 @@ Current phase: <phase name>
 
 ## Step 2: Load Model Preferences
 
-Read `${CLAUDE_PLUGIN_ROOT}/references/model-preferences.md` for the canonical schema and resolution procedure.
+Read `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/model-preferences.md` for the canonical schema and resolution procedure.
 
 Resolve the model preference for the `implement` skill key. Hardcoded default: `adaptive`.
 
@@ -51,7 +51,7 @@ Carry the resolved preference forward into Step 7d.
 
 ## Step 3: Load Work Package Rules
 
-Read `${CLAUDE_PLUGIN_ROOT}/references/work-packages.md`. Use it to validate planned packages, decide runtime adjustments, and avoid one-sub-agent-per-small-task dispatch.
+Read `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/work-packages.md`. Use it to validate planned packages, decide runtime adjustments, and avoid one-sub-agent-per-small-task dispatch.
 
 ## Step 4: Initialize Git Worktree Infrastructure
 
@@ -186,7 +186,7 @@ Each sub-agent receives:
 - Package `primary_paths` to inspect first
 - Package `verification_commands`, if any
 - The worktree path to work in (e.g., `.worktrees/<feature>/wp-WP1/`)
-- `${CLAUDE_PLUGIN_ROOT}/references/clean-code-rules.md` — code quality rules to follow
+- `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/clean-code-rules.md` — code quality rules to follow
 - Project-level instructions (CLAUDE.md, AGENTS.md) if they exist
 
 Each sub-agent must:

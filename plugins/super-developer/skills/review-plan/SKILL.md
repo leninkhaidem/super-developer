@@ -24,12 +24,12 @@ Do not execute semantic review as the main agent. Spawn sub-agents for reviewer 
 
 1. Verify `.tasks/$ARGUMENTS/` exists and contains `SPEC.md` and `tasks.json`. If not, list available features and ask the user to pick one.
 2. Read the review references before spawning reviewers:
-   - `${CLAUDE_PLUGIN_ROOT}/references/design-preflight.md` — Design Preflight contract and accepted-decision source semantics when reviewing `design_decisions`.
-   - `${CLAUDE_PLUGIN_ROOT}/references/work-packages.md` — work-package schema and package-quality expectations.
-   - `${CLAUDE_PLUGIN_ROOT}/references/plan-review-findings.md` — reviewer output grammar, target locators, severity labels, and finding format rules.
-   - `${CLAUDE_PLUGIN_ROOT}/references/plan-review-rubrics.md` — narrowed reviewer rubrics, escalation guidance, and design-decision challenge rules.
-   - `${CLAUDE_PLUGIN_ROOT}/references/plan-review-resolution.md` — finding triage, resolution categories, dismissal/defer rules, and re-review bounds.
-   - `${CLAUDE_PLUGIN_ROOT}/references/decision-prompts.md` — decision-card mechanics and blanket-mode threshold.
+   - `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/design-preflight.md` — Design Preflight contract and accepted-decision source semantics when reviewing `design_decisions`.
+   - `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/work-packages.md` — work-package schema and package-quality expectations.
+   - `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/plan-review-findings.md` — reviewer output grammar, target locators, severity labels, and finding format rules.
+   - `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/plan-review-rubrics.md` — narrowed reviewer rubrics, escalation guidance, and design-decision challenge rules.
+   - `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/plan-review-resolution.md` — finding triage, resolution categories, dismissal/defer rules, and re-review bounds.
+   - `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/decision-prompts.md` — decision-card mechanics and blanket-mode threshold.
 3. If `.tasks/$ARGUMENTS/tasks.json` contains `design_decisions`, load them as accepted planning context. Reviewers receive `SPEC.md` and `tasks.json` cold and may challenge accepted decisions only under the high-bar reopening rule in `plan-review-rubrics.md`: conflict with SPEC, security/privacy/safety issue, codebase evidence contradicts rationale, or accepted decision makes acceptance criteria unverifiable. Simpler alternatives alone are suggestions, not reopeners.
 4. Sub-agents read plan files themselves. Do not pre-summarize or inject conversation history; the review tests whether the files are self-sufficient.
 
@@ -38,14 +38,14 @@ Do not execute semantic review as the main agent. Spawn sub-agents for reviewer 
 Before spawning any review sub-agent, execute the shared validator against the concrete plan file:
 
 ```bash
-python3 "${CLAUDE_PLUGIN_ROOT}/assets/validate-tasks-json.py" ".tasks/$ARGUMENTS/tasks.json"
+python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/validate-tasks-json.py" ".tasks/$ARGUMENTS/tasks.json"
 ```
 
 If the validator exits non-zero, report its failures as blockers and resolve them before spawning reviewers. Do not spend sub-agent tokens on a structurally invalid plan.
 
 ## Step 3: Load Model Preferences
 
-Read `${CLAUDE_PLUGIN_ROOT}/references/model-preferences.md` for the canonical schema and resolution procedure.
+Read `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/model-preferences.md` for the canonical schema and resolution procedure.
 
 Resolve model preferences for two reviewer roles:
 - **Plan Reviewer:** Uses the `review-plan` key. Hardcoded default: `adaptive`.
@@ -53,7 +53,7 @@ Resolve model preferences for two reviewer roles:
 
 **Adaptive interpretation for review-plan:** The Plan Reviewer uses Sonnet. The Security/Failure-Mode Reviewer is governed by the `skeptic-agent` key; when `skeptic-agent` resolves to `adaptive`, use the strongest available model (Opus).
 
-This is a role-shape change only. The `review-plan` and `skeptic-agent` keys, fallback chain, and adaptive resolution semantics defined in `${CLAUDE_PLUGIN_ROOT}/references/model-preferences.md` are unchanged.
+This is a role-shape change only. The `review-plan` and `skeptic-agent` keys, fallback chain, and adaptive resolution semantics defined in `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/model-preferences.md` are unchanged.
 
 Carry the resolved models forward into Step 6.
 
@@ -106,9 +106,9 @@ Launch the Plan Reviewer for every valid plan. Launch the Security/Failure-Mode 
 Give sub-agents narrowed contracts, not the full `review-plan` skill. Each reviewer receives only:
 - `.tasks/$ARGUMENTS/SPEC.md`
 - `.tasks/$ARGUMENTS/tasks.json`
-- The relevant rubric excerpt from `${CLAUDE_PLUGIN_ROOT}/references/plan-review-rubrics.md`
-- The finding format from `${CLAUDE_PLUGIN_ROOT}/references/plan-review-findings.md`
-- Work-package expectations from `${CLAUDE_PLUGIN_ROOT}/references/work-packages.md`
+- The relevant rubric excerpt from `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/plan-review-rubrics.md`
+- The finding format from `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/plan-review-findings.md`
+- Work-package expectations from `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/work-packages.md`
 
 Reviewer contract:
 - Review from files only; no conversation history, no pre-summaries.
@@ -123,7 +123,7 @@ Reviewer roles:
 
 ## Step 7: Merge, Triage, and Resolve
 
-Collect structured findings from reviewers. The main agent owns classification and resolution using `${CLAUDE_PLUGIN_ROOT}/references/plan-review-resolution.md` and `${CLAUDE_PLUGIN_ROOT}/references/decision-prompts.md`.
+Collect structured findings from reviewers. The main agent owns classification and resolution using `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/plan-review-resolution.md` and `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/decision-prompts.md`.
 
 Triage each finding into exactly one resolution category:
 

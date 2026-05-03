@@ -66,7 +66,7 @@ for the **report format** and **gated actions**.
 
 ### Model Selection
 
-Read `${CLAUDE_PLUGIN_ROOT}/references/model-preferences.md` for the canonical schema and resolution procedure.
+Read `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/model-preferences.md` for the canonical schema and resolution procedure.
 
 Resolve model preferences for these roles:
 
@@ -378,7 +378,7 @@ Use the canonical report template with:
 
 | Keyword | Action |
 |---|---|
-| `fix` | Pipeline-context only: fix confirmed 🔴 and 🟠 findings in the merge worktree, then commit fixes to the feature branch. Under blanket mode, design-decision findings (see Design-Decision Filter above) are presented as decision cards via `${CLAUDE_PLUGIN_ROOT}/references/decision-prompts.md`; unambiguous non-design fixes may apply silently. Outside blanket mode, present each proposed fix with its finding evidence and ask `yes`/`skip` before applying that fix. PR mode has no code-fix path. |
+| `fix` | Pipeline-context only: fix confirmed 🔴 and 🟠 findings in the merge worktree, then commit fixes to the feature branch. Under blanket mode, design-decision findings (see Design-Decision Filter above) are presented as decision cards via `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/decision-prompts.md`; unambiguous non-design fixes may apply silently. Outside blanket mode, present each proposed fix with its finding evidence and ask `yes`/`skip` before applying that fix. PR mode has no code-fix path. |
 | `details <N>` | Expand finding N with full context and recommended fix. Return to gated actions. |
 | `abort` | No changes. Close review. |
 

@@ -27,7 +27,7 @@ Lightweight verification that all tasks in a feature plan have been completed as
 2. Execute the shared validator before spawning the audit sub-agent:
 
    ```bash
-   python3 "${CLAUDE_PLUGIN_ROOT}/assets/validate-tasks-json.py" ".tasks/$ARGUMENTS/tasks.json"
+   python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/validate-tasks-json.py" ".tasks/$ARGUMENTS/tasks.json"
    ```
 
    If the validator exits non-zero, stop and resolve the reported `tasks.json` blockers before auditing implementation completeness.
@@ -61,7 +61,7 @@ Go through each task acceptance criterion and verify it holds in the current cod
 
 ### 2b. Clean Code Compliance
 
-Read `${CLAUDE_PLUGIN_ROOT}/references/clean-code-rules.md` and verify the implemented code follows the rules:
+Read `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/clean-code-rules.md` and verify the implemented code follows the rules:
 
 - **File-level:** No file exceeds 300 lines. Each file has a single concern. No orphan files.
 - **Function-level:** No function exceeds 50 lines. No more than 4 parameters. No nesting beyond 3 levels.
