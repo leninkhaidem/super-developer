@@ -9,7 +9,7 @@
     {
       "name": "super-developer",
       "description": "Orchestrates the full development lifecycle with 11 skills — divergent ideation, evidence-first planning and bug fixing, requirements-spec-driven planning, empirical feature spikes, parallel implementation with git worktree isolation, multi-agent adversarial code review, codebase documentation, and gated release publishing.",
-      "version": "1.18.0",
+      "version": "1.19.0",
       "category": "development",
       "author": {
         "name": "lenin khaidem",
