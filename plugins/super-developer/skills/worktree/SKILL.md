@@ -42,6 +42,7 @@ project/                                  <- main repo, ALWAYS on 'main'
 |   |   +-- merge/                        <- (branch: feature/search)
 |   +-- bugfix-null-check/                <- bugfix worktree
 |   +-- hotfix-crash-on-load/             <- hotfix worktree (urgent, off main)
+|   +-- spike-checkout-regression/        <- temporary spike worktree (branch: spike/checkout-regression)
 +-- src/
 ```
 
@@ -53,6 +54,7 @@ project/                                  <- main repo, ALWAYS on 'main'
 | Task | `task/<feature>/<task>` | `task/auth/login` |
 | Bugfix | `bugfix/<name>` | `bugfix/null-check` |
 | Hotfix | `hotfix/<name>` | `hotfix/crash-on-load` |
+| Spike | `spike/<name>` | `spike/checkout-regression` |
 
 Feature-namespaced task branches prevent collisions when multiple features use identical task names.
 
@@ -60,7 +62,7 @@ Feature-namespaced task branches prevent collisions when multiple features use i
 
 1. **`main` never switches.** No `git checkout` in the project root -- ever.
 2. **Feature branches are refs, not worktrees.** Create them with `git branch`, never `git worktree add`. This keeps them unlocked -- available for merging and testing from any worktree.
-3. **All development happens in worktrees.** Task, bugfix, and hotfix branches each get their own worktree under `.worktrees/`.
+3. **All development happens in worktrees.** Task, bugfix, hotfix, and temporary spike branches each get their own worktree under `.worktrees/`.
 4. **A branch checked out in a worktree is locked.** Git prevents the same branch from being checked out in two places. Keeping feature branches as refs avoids this lock.
 5. **Bugfixes branch off their relevant context.** A bugfix for a feature branches off that feature ref. A hotfix for production branches off `main`.
 
@@ -202,6 +204,18 @@ NEVER remove any worktree before the merge to main is complete and pushed.
 ---
 
 ## Bugfix Workflow
+
+### Temporary spike before durable fix
+
+For ambiguous bugs, create a short-lived spike worktree to validate the failure mode and candidate fix without polluting final history:
+
+```bash
+git worktree add .worktrees/spike-<name> -b spike/<name> <base-ref>
+cd .worktrees/spike-<name>
+# reproduce, instrument, test candidate fixes, capture evidence
+```
+
+Do not commit or merge spike branches as final work. After extracting durable regression tests, fixtures, and evidence, remove the spike worktree/branch and create the clean `bugfix/<name>` or `hotfix/<name>` branch from the correct base.
 
 ### Bugfix against a feature (non-urgent)
 
