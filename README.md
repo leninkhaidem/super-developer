@@ -6,7 +6,7 @@ A marketplace for portable coding-assistant workflow skills, currently packaged 
 
 | Plugin | Description |
 |---|---|
-| [**super-developer**](plugins/super-developer/) | Full development lifecycle — divergent ideation, evidence-first bug fixing, requirements-spec-driven planning, parallel implementation with git worktree isolation, multi-agent adversarial code review, and gated release publishing. 10 skills. |
+| [**super-developer**](plugins/super-developer/) | Full development lifecycle — divergent ideation, evidence-first planning and bug fixing, requirements-spec-driven planning, parallel implementation with git worktree isolation, multi-agent adversarial code review, and gated release publishing. 11 skills. |
 
 More plugins coming soon: GitHub issue management, and others.
 
@@ -43,15 +43,15 @@ More plugins coming soon: GitHub issue management, and others.
 
 ### super-developer
 
-Orchestrates the full development lifecycle with 10 skills:
+Orchestrates the full development lifecycle with 11 skills:
 
 ```
 implementation-plan → review-plan → implement → audit → review-code → release
 ```
 
-The planning stage uses triggered Design Preflight for nontrivial or risky features, then creates `.tasks/<feature>/SPEC.md` for user requirements, feature-level acceptance criteria, constraints, code references, and out-of-scope boundaries, plus `tasks.json` for agent-executable work, work packages, and accepted `design_decisions`.
+The planning stage uses triggered Design Preflight for nontrivial or risky features, conditionally invokes `spike-to-plan` when material assumptions need empirical evidence, then creates `.tasks/<feature>/SPEC.md` for user requirements, feature-level acceptance criteria, constraints, code references, and out-of-scope boundaries, plus `tasks.json` for agent-executable work, work packages, and accepted `design_decisions`.
 
-Plus standalone skills: **perspectives** (divergent problem-solving), **spike-and-fix** (evidence-first bug diagnosis with isolated spike validation), **tasks** (status dashboard), **review-code** (works independently for PR and local code review), **code-doc** (generate comprehensive codebase documentation via hybrid analysis), and **release** (prepare/publish releases with approval gates).
+Plus standalone skills: **perspectives** (divergent problem-solving), **spike-to-plan** (empirical feature spikes before implementation planning), **spike-and-fix** (evidence-first bug diagnosis with isolated spike validation), **tasks** (status dashboard), **review-code** (works independently for PR and local code review), **code-doc** (generate comprehensive codebase documentation via hybrid analysis), and **release** (prepare/publish releases with approval gates).
 
 See the [full documentation](plugins/super-developer/README.md).
 

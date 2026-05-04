@@ -8,7 +8,7 @@
   "plugins": [
     {
       "name": "super-developer",
-      "description": "Orchestrates the full development lifecycle with 10 skills — divergent ideation, evidence-first bug fixing, requirements-spec-driven planning, parallel implementation with git worktree isolation, multi-agent adversarial code review, codebase documentation, and gated release publishing.",
+      "description": "Orchestrates the full development lifecycle with 11 skills — divergent ideation, evidence-first planning and bug fixing, requirements-spec-driven planning, empirical feature spikes, parallel implementation with git worktree isolation, multi-agent adversarial code review, codebase documentation, and gated release publishing.",
       "version": "1.18.0",
       "category": "development",
       "author": {
@@ -25,7 +25,10 @@
         "documentation",
         "release",
         "bugfix",
-        "troubleshooting"
+        "troubleshooting",
+        "spike",
+        "feasibility",
+        "prototype"
       ],
       "homepage": "https://github.com/leninkhaidem/super-developer",
       "source": "./plugins/super-developer"
