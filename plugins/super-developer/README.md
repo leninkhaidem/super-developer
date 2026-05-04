@@ -2,7 +2,7 @@
 
 A portable coding-assistant workflow, currently packaged as a Claude Code plugin, that orchestrates the full development lifecycle — from divergent ideation through requirements-spec-driven planning, parallel implementation with git worktree isolation, multi-agent adversarial code review, and gated release publishing.
 
-One plugin. Nine skills. Zero manual git juggling.
+One plugin. Ten skills. Zero manual git juggling.
 
 ---
 
@@ -32,6 +32,7 @@ The pipeline flows automatically with confirmation gates. Say **"proceed through
 | **implementation-plan** | Converts a completed brainstorming or requirements discussion into a structured task plan under `.tasks/<feature>/` with `SPEC.md`, task-level acceptance criteria, `design_decisions`, and work packages. Runs triggered Design Preflight before writing plans for nontrivial/risky features. | Pipeline + Standalone |
 | **review-plan** | Plan review gate. Performs deterministic schema validation, then spawns one **Plan Reviewer** that challenges the approach first and checks artifact quality second. Adds a dedicated **Security/Failure-Mode Reviewer** only for security/privacy/safety-sensitive plans or explicit escalation. Validates `SPEC.md`, `tasks.json`, work packages, and accepted `design_decisions` cold from files only. | Pipeline + Standalone |
 | **tasks** | Implementation status dashboard. Shows progress across all features or drills into a specific one with phase-by-phase breakdown. Can modify task status on request. | Standalone |
+| **spike-and-fix** | Bug-report troubleshooting that runs evidence-first diagnosis, validates candidate fixes in an isolated spike, then extracts a clean regression-tested bugfix/hotfix. Escalates to implementation planning when the blast radius is large. | Standalone |
 | **implement** | Orchestrator. Analyzes planned work packages, creates git worktrees per package, dispatches substantial coherent packages to sub-agents, merges package branches into the feature branch, and runs lightweight integration checkpoints before downstream work begins. | Pipeline + Standalone |
 | **audit** | Post-implementation verification. Spawns a read-only sub-agent that checks every acceptance criterion against the actual codebase. Produces a PASS/FAIL report. Always runs in the pipeline after implement; also invocable standalone. | Pipeline + Standalone |
 | **review-code** | Bounded multi-agent code review. Always runs one **Code Reviewer**, adds at most one optional **Specialist Reviewer** for the highest-priority risk trigger, and uses a **Skeptic Agent** to verify serious findings before reporting. It uses available plan and audit artifacts as task-awareness context, but audit remains the authoritative completeness gate. Local `fix` delegates non-trivial fixes to a Fix Implementer and verifies the fix delta with a Fix Reviewer; PR mode is review-only and has no code-fix path. | Pipeline + Standalone + PR review |
@@ -80,7 +81,7 @@ project/                              <- always on 'main'
 |   |   +-- merge/                    <- branch: feature/auth
 ```
 
-See [`skills/worktree/SKILL.md`](skills/worktree/SKILL.md) for the complete workflow including bugfix, hotfix, and multi-phase dependency handling.
+See [`skills/worktree/SKILL.md`](skills/worktree/SKILL.md) for the complete workflow including spike, bugfix, hotfix, and multi-phase dependency handling.
 
 ---
 
@@ -121,7 +122,7 @@ claude --plugin-dir /path/to/super-developer/plugins/super-developer
 | Project | `--scope project` | Shared with team via `.claude/settings.json` |
 | Local | `--scope local` | This project only, gitignored |
 
-Claude Code loads all 9 skills automatically via plugin auto-discovery. Other hosts need equivalent skill/plugin discovery and a `SUPER_DEVELOPER_PLUGIN_ROOT` variable pointing at the plugin root.
+Claude Code loads all 10 skills automatically via plugin auto-discovery. Other hosts need equivalent skill/plugin discovery and a `SUPER_DEVELOPER_PLUGIN_ROOT` variable pointing at the plugin root.
 
 ---
 
@@ -145,6 +146,7 @@ The agent infers the feature name, creates `SPEC.md` and `tasks.json`, and asks 
 > Review this PR: owner/repo#42
 > Review my code
 > Audit the auth-system feature
+> Spike and fix this regression: checkout fails when the cart has a deleted item
 ```
 
 ### Pipeline Flow Control
@@ -178,6 +180,8 @@ super-developer/
 +-- skills/
 |   +-- worktree/
 |   |   +-- SKILL.md                       # Git worktree strategy
+|   +-- spike-and-fix/
+|   |   +-- SKILL.md                    # Evidence-first bug diagnosis + clean fix
 |   +-- perspectives/
 |   |   +-- SKILL.md                    # Divergent problem-solving
 |   +-- implementation-plan/
@@ -221,6 +225,7 @@ super-developer/
 | Main agent orchestrates, sub-agents implement | Separation of concerns — orchestrator manages git state, sub-agents write code without risk of infrastructure conflicts |
 | Adaptive adversarial review | One Plan Reviewer runs by default; a Security/Failure-Mode Reviewer is added only for security/privacy/safety-sensitive plans or escalation. Code review uses a bounded topology: Code Reviewer always, at most one Specialist Reviewer selected by risk priority, and a conditional Skeptic Agent to verify serious findings before reporting. |
 | Git worktree isolation | Parallel sub-agents work in separate worktrees — no branch switching, no merge conflicts during implementation |
+| Evidence-first bug fixing | Bug work starts from reproduced evidence, uses isolated spike validation for candidate fixes, then extracts durable tests and a clean fix branch instead of shipping exploratory changes. |
 | Pipeline with confirmation gates | Flows automatically but stays under user control — blanket approval for speed, step-by-step for precision |
 | Audit remains authoritative | Pipeline audit verifies "did we build what we planned" before code review begins. Review-code may use plan and audit artifacts as task-awareness context, but its task-awareness findings are consistency signals, not completeness proof. |
 | Feature name inference | The agent reads the conversation and proposes a name — no need to interrupt the flow for something obvious |
