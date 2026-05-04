@@ -2,7 +2,7 @@
 
 A portable coding-assistant workflow, currently packaged as a Claude Code plugin, that orchestrates the full development lifecycle — from divergent ideation through requirements-spec-driven planning, parallel implementation with git worktree isolation, multi-agent adversarial code review, and gated release publishing.
 
-One plugin. Ten skills. Zero manual git juggling.
+One plugin. Eleven skills. Zero manual git juggling.
 
 ---
 
@@ -29,7 +29,8 @@ The pipeline flows automatically with confirmation gates. Say **"proceed through
 | Skill | What It Does | Usage |
 |---|---|---|
 | **perspectives** | Divergent problem-solving. Spawns 3-5 Opus-class sub-agents, each approaching the problem from a distinct angle (Infrastructure, Architecture, Data, Root Cause, etc.). A final Skeptic agent stress-tests and synthesizes proposals into a ranked recommendation. | Standalone |
-| **implementation-plan** | Converts a completed brainstorming or requirements discussion into a structured task plan under `.tasks/<feature>/` with `SPEC.md`, task-level acceptance criteria, `design_decisions`, and work packages. Runs triggered Design Preflight before writing plans for nontrivial/risky features. | Pipeline + Standalone |
+| **implementation-plan** | Converts a completed brainstorming or requirements discussion into a structured task plan under `.tasks/<feature>/` with `SPEC.md`, task-level acceptance criteria, `design_decisions`, and work packages. Runs triggered Design Preflight and conditional `spike-to-plan` evidence collection before durable plan artifacts for nontrivial/risky features. | Pipeline + Standalone |
+| **spike-to-plan** | Empirical feature spikes that validate uncertain assumptions before implementation planning. Produces planning evidence only; accepted outcomes become `design_decisions`, not persisted spike code. | Standalone + Planning hook |
 | **review-plan** | Plan review gate. Performs deterministic schema validation, then spawns one **Plan Reviewer** that challenges the approach first and checks artifact quality second. Adds a dedicated **Security/Failure-Mode Reviewer** only for security/privacy/safety-sensitive plans or explicit escalation. Validates `SPEC.md`, `tasks.json`, work packages, and accepted `design_decisions` cold from files only. | Pipeline + Standalone |
 | **tasks** | Implementation status dashboard. Shows progress across all features or drills into a specific one with phase-by-phase breakdown. Can modify task status on request. | Standalone |
 | **spike-and-fix** | Bug-report troubleshooting that runs evidence-first diagnosis, validates candidate fixes in an isolated spike, then extracts a clean regression-tested bugfix/hotfix. Escalates to implementation planning when the blast radius is large. | Standalone |
@@ -122,7 +123,7 @@ claude --plugin-dir /path/to/super-developer/plugins/super-developer
 | Project | `--scope project` | Shared with team via `.claude/settings.json` |
 | Local | `--scope local` | This project only, gitignored |
 
-Claude Code loads all 10 skills automatically via plugin auto-discovery. Other hosts need equivalent skill/plugin discovery and a `SUPER_DEVELOPER_PLUGIN_ROOT` variable pointing at the plugin root.
+Claude Code loads all 11 skills automatically via plugin auto-discovery. Other hosts need equivalent skill/plugin discovery and a `SUPER_DEVELOPER_PLUGIN_ROOT` variable pointing at the plugin root.
 
 ---
 
@@ -147,6 +148,7 @@ The agent infers the feature name, creates `SPEC.md` and `tasks.json`, and asks 
 > Review my code
 > Audit the auth-system feature
 > Spike and fix this regression: checkout fails when the cart has a deleted item
+> Spike this feature assumption before planning: can the vendor API stream partial results with retries?
 ```
 
 ### Pipeline Flow Control
@@ -182,6 +184,8 @@ super-developer/
 |   |   +-- SKILL.md                       # Git worktree strategy
 |   +-- spike-and-fix/
 |   |   +-- SKILL.md                    # Evidence-first bug diagnosis + clean fix
+|   +-- spike-to-plan/
+|   |   +-- SKILL.md                    # Empirical feature spike before durable planning
 |   +-- perspectives/
 |   |   +-- SKILL.md                    # Divergent problem-solving
 |   +-- implementation-plan/
@@ -226,6 +230,7 @@ super-developer/
 | Adaptive adversarial review | One Plan Reviewer runs by default; a Security/Failure-Mode Reviewer is added only for security/privacy/safety-sensitive plans or escalation. Code review uses a bounded topology: Code Reviewer always, at most one Specialist Reviewer selected by risk priority, and a conditional Skeptic Agent to verify serious findings before reporting. |
 | Git worktree isolation | Parallel sub-agents work in separate worktrees — no branch switching, no merge conflicts during implementation |
 | Evidence-first bug fixing | Bug work starts from reproduced evidence, uses isolated spike validation for candidate fixes, then extracts durable tests and a clean fix branch instead of shipping exploratory changes. |
+| Evidence-first planning for uncertain features | Planning uses triggered Design Preflight and, only when repo/docs inspection cannot resolve material assumptions, `spike-to-plan` to gather empirical evidence before durable `.tasks/` artifacts. Accepted outcomes are recorded as `design_decisions`; exploratory spike code is not persisted as the plan. |
 | Pipeline with confirmation gates | Flows automatically but stays under user control — blanket approval for speed, step-by-step for precision |
 | Audit remains authoritative | Pipeline audit verifies "did we build what we planned" before code review begins. Review-code may use plan and audit artifacts as task-awareness context, but its task-awareness findings are consistency signals, not completeness proof. |
 | Feature name inference | The agent reads the conversation and proposes a name — no need to interrupt the flow for something obvious |

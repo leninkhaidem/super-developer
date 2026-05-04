@@ -46,7 +46,18 @@ Preflight challengers are read-only sub-agents. Give them only the Preflight Bri
 
 Resolve every unresolved `MUST_DECIDE` or `BLOCKERS` finding before writing `SPEC.md` or `tasks.json`. Resolution may be a user clarification, a planner decision recorded in `design_decisions`, or a scoped change to the proposed plan. If resolution changes user-visible semantics or acceptance criteria, ask the user before writing files.
 
-## Step 4: Create Directory Structure
+## Step 4: Run Conditional Empirical Spike When Needed
+
+After Design Preflight resolution (or after deciding preflight is not triggered), check whether preflight findings or planner analysis exposed an assumption that cannot be resolved through repo/docs inspection and materially affects task shape, acceptance criteria, architecture, sequencing, risk, or feasibility. If so, invoke `spike-to-plan` before creating `.tasks/<feature-name>/` or writing `SPEC.md`/`tasks.json`.
+
+Use `spike-to-plan` only for empirical planning evidence, not as a default gate for every feature. Appropriate triggers include uncertain API/library behavior, unknown feasibility, unclear integration path, performance or concurrency risk, risky UX/data-model choices, or multiple viable designs where repo inspection is insufficient.
+
+Treat spike output as planning evidence only. Do not persist spike code in the planned feature. Record accepted spike outcomes as `design_decisions` in `tasks.json`; keep `SPEC.md` requirements-only.
+
+If validating the assumption would require broad or invasive production changes, external access, irreversible side effects, or credentials the current session does not have, stop and ask the user instead of writing tasks around unverified assumptions.
+
+
+## Step 5: Create Directory Structure
 
 ```
 .tasks/<feature-name>/
@@ -54,7 +65,7 @@ Resolve every unresolved `MUST_DECIDE` or `BLOCKERS` finding before writing `SPE
 └── tasks.json
 ```
 
-## Step 5: Generate SPEC.md
+## Step 6: Generate SPEC.md
 
 SPEC.md is a **concise requirements specification** — not an architecture brief and not an implementation plan. It is the source of truth for WHAT the user wants, how success is judged, and what is excluded. All task decomposition and implementation detail belongs in tasks.json or in the codebase exploration done during implementation.
 
@@ -98,7 +109,7 @@ Rules:
 - Do not include task breakdowns or implementation sequencing.
 - Use requirement/acceptance IDs so tasks.json can trace to the spec without duplicating whole sections.
 
-## Step 6: Generate tasks.json
+## Step 7: Generate tasks.json
 
 Create a JSON file following this schema:
 
@@ -124,6 +135,15 @@ Create a JSON file following this schema:
       "decision": "Planner decision worth preserving for implementers/reviewers",
       "rationale": "Why this decision is necessary",
       "alternatives_considered": [],
+      "source": "planner"
+    },
+    {
+      "id": "DD-3",
+      "decision": "Empirically validated planning decision from a scoped spike",
+      "rationale": "What the spike proved and why it shapes the plan",
+      "alternatives_considered": [
+        "Alternative considered and why spike evidence rejected it"
+      ],
       "source": "planner"
     }
   ],
@@ -206,10 +226,10 @@ Create a JSON file following this schema:
 
 ### Design Decision Authoring Guidelines
 
-- Add top-level `design_decisions` to every tasks.json. Use `[]` when Design Preflight is skipped and there are no planner decisions worth preserving.
+- Add top-level `design_decisions` to every tasks.json. Use `[]` when there are no Design Preflight, `spike-to-plan`, or planner decisions worth preserving.
 - Persist concise accepted decisions only, not the full reviewer debate, discarded comments, or transient Preflight Brief content.
 - Use IDs `DD-1`, `DD-2`, ... sequentially with no gaps.
-- Use `source: "design-preflight"` for decisions accepted from preflight resolution and `source: "planner"` for simple decisions made by the main agent without preflight.
+- Use `source: "design-preflight"` for decisions accepted from preflight resolution and `source: "planner"` for simple planner decisions or accepted `spike-to-plan` evidence adopted by the main agent.
 - Record decisions that materially affect implementation boundaries, verification, security/privacy/safety posture, or task decomposition. Do not record obvious restatements of SPEC requirements.
 - Keep SPEC.md requirements-only; design rationale belongs here, not in SPEC.md.
 
@@ -288,7 +308,7 @@ Examples of tasks that **pass** despite being small:
 - Fill `verification_commands` only with commands known to exist or strongly implied by the project. Use `[]` rather than inventing commands.
 - Use `parallel_safe_with` conservatively. Default to `[]` unless independent file/module impact is verified. When file impact is ambiguous, leave it empty. If two packages cannot run in parallel because they touch the same subsystem or files, prefer combining them into one package over leaving them separate (per `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/work-packages.md`).
 
-## Step 7: Validate
+## Step 8: Validate
 
 Before writing files, verify:
 
@@ -298,6 +318,7 @@ Before writing files, verify:
 - SPEC.md Code References are verified path-only references or `None identified`
 - SPEC.md remains requirements-only and does not contain architecture rationale or design decisions unless explicitly user-stated as product requirements
 - If Design Preflight was triggered, all `MUST_DECIDE` and `BLOCKERS` findings are resolved before writing files
+- If `spike-to-plan` was triggered, accepted spike outcomes are recorded as `design_decisions` in tasks.json and not in SPEC.md
 - No unnecessary verbatim duplication between SPEC.md and tasks.json; tasks should trace to spec IDs while adding task-level verification detail
 - `design_decisions` exists at the top level; when empty, it is `[]`
 - `design_decisions[].id` values are sequential `DD-1`, `DD-2`, ... with no gaps
@@ -320,9 +341,9 @@ Before writing files, verify:
 - One-task work packages include a rationale explaining why the task is substantial, risky, or isolated. This rationale is reviewer-judged, not mechanically enforced
 - `parallel_safe_with` claims are conservative based on likely file/module impact (reviewer-judged, not mechanically enforceable)
 
-## Step 8: Write Files and Validate tasks.json
+## Step 9: Write Files and Validate tasks.json
 
-Do not write any `.tasks/<feature-name>/` files until any triggered Design Preflight is complete and all unresolved `MUST_DECIDE` or `BLOCKERS` findings are resolved.
+Do not write any `.tasks/<feature-name>/` files until any triggered Design Preflight is complete, all unresolved `MUST_DECIDE` or `BLOCKERS` findings are resolved, and any required `spike-to-plan` evidence has been accepted or the user has resolved the uncertainty.
 
 1. Create `.tasks/<feature-name>/` directory.
 2. Write `SPEC.md`.
@@ -335,7 +356,7 @@ Do not write any `.tasks/<feature-name>/` files until any triggered Design Prefl
 
    If the validator exits non-zero, fix `tasks.json` and rerun the same command until it passes. Do not present the plan summary with an invalid `tasks.json`.
 
-## Step 9: Present Summary
+## Step 10: Present Summary
 
 Display:
 1. Feature name and path
