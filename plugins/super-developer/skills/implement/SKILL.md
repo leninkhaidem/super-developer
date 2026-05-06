@@ -156,10 +156,12 @@ For tasks classified as inline per Step 6.5, the main agent executes directly:
 
 1. Read SPEC.md to understand the feature requirements holistically.
 2. Read the task's description and acceptance criteria from tasks.json.
-3. Read existing files relevant to the task before making changes.
-4. Implement the changes and commit to the task branch with a descriptive message.
-5. Verify each acceptance criterion.
-6. Update task status to `done` with `completed_at` timestamp.
+3. Read `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/clean-code-rules.md` and apply the Development Quality Contract.
+4. Read existing files relevant to the task before making changes.
+5. Implement the changes and commit to the task branch with a descriptive message.
+6. Verify each acceptance criterion and run directly relevant tests/checks.
+7. For non-trivial inline work, capture Quality Contract Evidence: inspection outcome, boundary/design choice, affected artifacts, verification run, and rule exceptions.
+8. Update task status to `done` with `completed_at` timestamp.
 
 **Inline failure handling:** If an inline task turns out to be more complex than expected (ambiguous requirements, unexpected codebase interactions), reclassify it as delegated. Reset the task branch (`git branch -D task/<feature>/<task>` and recreate), then spawn a sub-agent for it in the next batch.
 
@@ -186,7 +188,7 @@ Each sub-agent receives:
 - Package `primary_paths` to inspect first
 - Package `verification_commands`, if any
 - The worktree path to work in (e.g., `.worktrees/<feature>/wp-WP1/`)
-- `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/clean-code-rules.md` — code quality rules to follow
+- `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/clean-code-rules.md` — the Development Quality Contract to follow
 - Project-level instructions (CLAUDE.md, AGENTS.md) if they exist
 
 Each sub-agent must:
@@ -197,7 +199,7 @@ Each sub-agent must:
 - Work exclusively within the assigned worktree directory
 - Commit after completing each task ID so the orchestrator can assess per-task completion
 - Run package `verification_commands` when provided, plus any directly relevant tests/checks discovered during implementation
-- Report completed task IDs, acceptance criteria verified, commands run, files changed, and any follow-up risks
+- Report completed task IDs, acceptance criteria verified, Quality Contract Evidence (inspection outcome, boundary/design choice, affected artifacts, verification run, rule exceptions), files changed, and any follow-up risks
 
 **Do not pass conversation history to sub-agents.** They work from files only.
 
@@ -259,6 +261,7 @@ For each work package, there is one worktree and one branch to remove (named aft
 2. If a sub-agent could not complete a task, set `status` to `blocked` with `blocked_reason`.
 3. **Package partial failures:** If a sub-agent reports partial completion of a package, assess per-task status from the sub-agent's report and the per-task commits (as required in Step 7d). Mark completed tasks as `done` and failed ones as `blocked`. Merge the branch to preserve completed work; blocked tasks can be retried in a future batch.
 4. Report to the user:
+   Include Quality Contract Evidence for any non-trivial inline work and note where delegated sub-agent evidence was reported.
 
 ```
 Batch complete:
@@ -299,7 +302,7 @@ Implementation complete. Merge worktree at `.worktrees/<feature>/merge/`.
 
 How do you want to proceed?
 
-  audit   — Verify acceptance criteria and clean code compliance
+  audit   — Verify acceptance criteria and Development Quality Contract compliance
   review  — Multi-agent code review (security, logic, performance, architecture)
   both    — Audit first, then code review if audit passes (sequential)
   done    — No further verification

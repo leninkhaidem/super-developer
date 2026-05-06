@@ -171,7 +171,7 @@ super-developer/
 +-- assets/
 |   +-- validate-tasks-json.py             # tasks.json schema/dependency validator
 +-- references/
-|   +-- clean-code-rules.md               # Code quality rules
+|   +-- clean-code-rules.md               # Development Quality Contract for agents
 |   +-- model-preferences.md              # Sub-agent model selection schema
 |   +-- work-packages.md                  # Work-package delegation contract
 |   +-- decision-prompts.md               # Decision-card UX mechanics (review-plan + review-code)
