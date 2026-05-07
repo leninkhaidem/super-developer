@@ -59,17 +59,17 @@ Go through each task acceptance criterion and verify it holds in the current cod
 - If a criterion specifies a testable behavior — run the relevant test or command if possible.
 - If a criterion cannot be verified programmatically — note it as "manual verification required."
 
-### 2b. Clean Code Compliance
+### 2b. Development Quality Contract Compliance
 
-Read `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/clean-code-rules.md` and verify the implemented code follows the rules:
+Read `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/clean-code-rules.md` and verify the implementation against the **Development Quality Contract**:
 
-- **File-level:** No file exceeds 300 lines. Each file has a single concern. No orphan files.
-- **Function-level:** No function exceeds 50 lines. No more than 4 parameters. No nesting beyond 3 levels.
-- **Naming and structure:** No magic numbers/strings. Follows existing patterns in the codebase.
-- **Safety:** No `any` types (TypeScript), no empty catch blocks, no hardcoded secrets.
-- **Anti-patterns:** No unnecessary abstractions or speculative code.
+- Enforce **BLOCKER** findings for MUST-level violations, missing required verification, fake success states, caller-contract failures, unsafe trust-boundary behavior, security/privacy/safety/data-integrity risks, incompatible API/contract changes, or unresolved acceptance criteria.
+- Enforce **CODE-QUALITY** findings for unjustified SHOULD-level maintainability violations, unclear boundaries, harmful duplication, unnecessary coupling, complexity, or spreading legacy-bad patterns.
+- Use **ADVISORY** for optional, actionable, non-blocking improvements grounded in the diff and local conventions.
+- Do not rely only on legacy file/function-size heuristics. Use the contract's workflow gates: discovery, design, implementation, testing/verification, completion evidence, and audit/review enforcement.
+- Verify non-trivial changes include the compact Quality Contract Evidence block or equivalent evidence: inspection outcome, boundary/design choice, affected artifacts, verification run, and rule exceptions.
 
-Flag violations as `[CODE-QUALITY]` issues in the audit report. Note the file, line, and which rule was violated.
+Note the file, line, severity, and violated contract clause for each finding.
 
 ### 2c. Completeness Check
 
@@ -98,18 +98,21 @@ The sub-agent produces a structured report:
 - Task acceptance criteria: X/Y verified, N require manual check
 
 ### Issues Found
-1. [SPEC] <description> — SPEC item <REQ/AC ID>
-2. [ISSUE] <description> — task <ID>, criterion <N>
-3. [GAP] <description> — requirement from SPEC.md not covered
-4. [TODO] <file:line> — incomplete work marker found
+1. [BLOCKER] <description> — violated requirement/criterion/contract clause
+2. [CODE-QUALITY] <description> — maintainability contract clause
+3. [ADVISORY] <description> — optional improvement
+4. [SPEC] <description> — SPEC item <REQ/AC ID>
+5. [ISSUE] <description> — task <ID>, criterion <N>
+6. [GAP] <description> — requirement from SPEC.md not covered
+7. [TODO] <file:line> — incomplete work marker found
 
 ### Passed
 - [list of tasks that fully passed verification]
 
 ### Verdict
-PASS — All tasks completed and verified.
+PASS — All tasks completed and verified, with no [BLOCKER], [CODE-QUALITY], [SPEC], [ISSUE], [GAP], or [TODO] findings. [ADVISORY] findings may be listed without blocking completion.
 or
-FAIL — Issues require attention before feature is considered complete.
+FAIL — Any [BLOCKER], [CODE-QUALITY], [SPEC], [ISSUE], [GAP], or [TODO] finding requires attention before the feature is considered complete.
 ```
 
 ## Step 4: Handle Results
@@ -133,6 +136,6 @@ Do NOT attempt to execute the next skill's logic inline. The Skill tool loads it
 
 ## Constraints
 
-- This is an audit, not a code review. It checks "did we build what we said we would" — not "is the code well-written."
+- This is an audit, not a full code review. It proves planned acceptance criteria, enforces BLOCKER/CODE-QUALITY outcomes from the Development Quality Contract, and may report non-blocking ADVISORY outcomes; review-code remains responsible for broader diff-risk analysis.
 - The sub-agent must not modify any code or tasks.json. It is read-only.
 - If the audit finds that tasks.json status is out of sync with reality (e.g., a task marked `done` but the code doesn't reflect it), flag it but do not auto-correct.

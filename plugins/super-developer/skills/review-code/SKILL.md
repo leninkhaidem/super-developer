@@ -118,10 +118,13 @@ The Code Reviewer receives:
 - Codebase path for file exploration: the review worktree path (`.worktrees/pr-review/<number>/`
   for PR mode, `.worktrees/<feature>/merge/` for pipeline mode, or the project root for local mode)
 - When available: `SPEC.md`, `tasks.json`, and audit results as task-awareness context
+- `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/clean-code-rules.md` — the Development Quality Contract for safety, maintainability, caller-contract, boundary, and verification expectations
 
 The Code Reviewer must always perform and report a baseline security/privacy/safety sniff. Blanket
 mode cannot skip, silence, or replace this sniff. The sniff is not a substitute for an on-demand
 specialist security review when risk triggers require one.
+
+The Code Reviewer must use the Development Quality Contract for maintainability, safety, API compatibility, caller-contract, error-handling, trust-boundary, dependency, migration, performance, concurrency, privacy, and dependency findings. Map contract **BLOCKER** issues to 🔴 BLOCKER. Map significant **CODE-QUALITY** issues to 🟠 CRITICAL when they materially raise operational, maintenance, or regression risk; otherwise map non-blocking actionable issues to 🟡 SUGGESTION. Use **ADVISORY** only as 🟡 SUGGESTION. Do not duplicate audit's completeness proof: review-code may flag apparent omissions or regressions, but audit remains authoritative for proving every planned task and acceptance criterion.
 
 When task-awareness context is available, the Code Reviewer flags apparent planned requirement or
 acceptance-criteria omissions, contradictions, or regressions. These are review-code findings, not
@@ -180,7 +183,7 @@ fix workflows without adding hidden fields later. Each finding must include:
 | `tags` | Domain tags such as `security`, `privacy`, `safety`, `data-integrity`, `migration`, `persistence`, `performance`, `public-api`, `architecture`, `cross-module`, `tests`, `docs`, or `task-awareness`. |
 | `location` | File and line range when available; otherwise the smallest diff hunk, symbol, or module that supports the finding. |
 | `title` | Short, specific summary. |
-| `evidence` | Diff/code evidence sufficient for a maintainer to reproduce the concern. Serious findings require enough evidence for independent Skeptic verification. |
+| `evidence` | Diff/code evidence sufficient for a reviewer to reproduce the concern. Serious findings require enough evidence for independent Skeptic verification. |
 | `introduced_by_change` | `yes`, `no`, or `unclear`, with the reason. Findings not introduced by the reviewed change are disputed for 🔴/🟠 unless the mode explicitly asks for broader audit. |
 | `task_awareness_signal` | `none`, `omission`, `contradiction`, or `regression`; include the referenced planned requirement or acceptance criterion when available. Audit remains authoritative for completeness. |
 | `recommendation` | Concrete fix recommendation, or alternatives when materially different approaches exist. Alternatives must identify runtime behavior, blast radius, and public-surface tradeoffs. |
