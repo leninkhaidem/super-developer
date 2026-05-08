@@ -32,9 +32,13 @@ Review the full conversation history from this session. Extract only requirement
 
 If `.tasks/<feature-name>/` already exists, ask whether to overwrite or pick a different name.
 
-## Step 2: Load Work Package Rules
+## Step 2: Load Planning Quality References
 
-Read `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/work-packages.md`. Use it when deciding task granularity, package grouping, package dependencies, and package parallel-safety.
+Read `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/work-packages.md` and `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/clean-code-rules.md` before creating plan artifacts. Use work-package rules when deciding task granularity, package grouping, package dependencies, and package parallel-safety. Use the Development Quality Contract to shape task boundaries, acceptance criteria, verification commands, work packages, and design decisions.
+
+Do not paste generic clean-code rules into every task. Encode only feature-specific quality constraints that materially affect the plan and can be observed or verified by implementers/reviewers.
+
+During planning, check foreseeable quality risks and make them visible where relevant: caller contracts and public API compatibility; trust-boundary validation; success, failure, partial-success, and invalid-input behavior; migration, rollback, and idempotency; verification tied to acceptance criteria; module/dependency boundaries; performance or concurrency implications; and work-package boundaries that avoid unnecessary coupling or oversized edits.
 
 ## Step 3: Run Design Preflight When Triggered
 
@@ -231,11 +235,13 @@ Create a JSON file following this schema:
 - Use IDs `DD-1`, `DD-2`, ... sequentially with no gaps.
 - Use `source: "design-preflight"` for decisions accepted from preflight resolution and `source: "planner"` for simple planner decisions or accepted `spike-to-plan` evidence adopted by the main agent.
 - Record decisions that materially affect implementation boundaries, verification, security/privacy/safety posture, or task decomposition. Do not record obvious restatements of SPEC requirements.
+- Use the Development Quality Contract when a decision materially affects caller contracts, API compatibility, trust boundaries, failure behavior, migration/rollback/idempotency, verification strategy, module/dependency boundaries, performance/concurrency, or work-package boundaries. Record only the feature-specific decision, not generic clean-code advice.
 - Keep SPEC.md requirements-only; design rationale belongs here, not in SPEC.md.
 
 ### Task Authoring Guidelines
 
 - **Descriptions state WHAT to build, not HOW to code it.** Reference affected files and modules so the agent knows where to work. Include constraints that aren't discoverable from the codebase — external API contracts, security policies, performance bounds, requirements confirmed during planning. The implementing agent derives the actual code from codebase exploration.
+- Include feature-specific Development Quality Contract constraints only when they are not safely discoverable from the referenced code and materially affect implementation: caller contract, compatibility, trust-boundary validation, failure behavior, migration/rollback/idempotency, performance/concurrency, or module/dependency boundary.
 - **"Discoverable" means:** exists in SPEC.md, the referenced files, or their immediate imports. If an agent reading those files would find it, don't repeat it in the description.
 - **Anchor patterns, don't prescribe code.** When a task should follow an existing pattern, reference it: "Follow middleware pattern in `src/middleware/cors.ts`." The agent explores, finds the pattern, follows it.
 - **Description budget:** Target 200-400 characters. Descriptions exceeding 600 characters likely contain implementation prescriptions — review and trim.
@@ -277,6 +283,8 @@ Criteria must describe **verifiable outcomes**, not implementation details:
 
 **Security-mandated specifics are acceptable.** When a security outcome requires a specific implementation (XXE-safe parser, bcrypt over MD5, parameterized queries), name it in the criterion as a verification hint — this is a security constraint, not an implementation detail.
 
+Apply Development Quality Contract constraints only when relevant to the task and keep them observable/verifiable. Prefer criteria such as "malformed external payloads produce a distinguishable error and do not persist partial data" over generic instructions such as "write clean error handling."
+
 ### Task Substance Rule
 
 Each task must have a **self-contained, verifiable outcome** — a change that is independently meaningful when described in one sentence.
@@ -307,6 +315,7 @@ Examples of tasks that **pass** despite being small:
 - Fill `primary_paths` with likely files or directories to inspect first when known from Code References or task descriptions.
 - Fill `verification_commands` only with commands known to exist or strongly implied by the project. Use `[]` rather than inventing commands.
 - Use `parallel_safe_with` conservatively. Default to `[]` unless independent file/module impact is verified. When file impact is ambiguous, leave it empty. If two packages cannot run in parallel because they touch the same subsystem or files, prefer combining them into one package over leaving them separate (per `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/work-packages.md`).
+- Use package boundaries to reduce unnecessary coupling and oversized edits. If Development Quality Contract risks require one agent to see a caller contract, migration boundary, shared failure mode, or cross-module invariant end-to-end, group that work in one coherent package instead of splitting it for artificial parallelism.
 
 ## Step 8: Validate
 
@@ -340,6 +349,7 @@ Before writing files, verify:
 - Package dependencies do not contradict task dependencies
 - One-task work packages include a rationale explaining why the task is substantial, risky, or isolated. This rationale is reviewer-judged, not mechanically enforced
 - `parallel_safe_with` claims are conservative based on likely file/module impact (reviewer-judged, not mechanically enforceable)
+- Feature-specific Development Quality Contract risks are encoded where relevant in `tasks.json` as observable/verifiable task acceptance criteria, verification commands, work-package boundaries, or `design_decisions`; generic quality rules are not copied into every task.
 
 ## Step 9: Write Files and Validate tasks.json
 

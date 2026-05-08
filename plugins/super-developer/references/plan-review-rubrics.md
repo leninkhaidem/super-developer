@@ -8,8 +8,10 @@ Plan review uses narrowed reviewer rubrics. Sub-agents work cold from the files 
 - Treat `SPEC.md` as requirements-only.
 - Treat `tasks.json` as the durable task, work-package, and `design_decisions` source.
 - Respect accepted `design_decisions` by default.
+- Use the Development Quality Contract (`clean-code-rules.md`) as a planning lens: reviewers check whether foreseeable quality risks are visible, actionable, and verifiable in the plan.
 - Return findings using the `plan-review-findings.md` schema.
 - Do not edit files, spawn agents, ask the user, or implement.
+- This is plan review, not code review. Do not critique nonexistent code; check whether the artifacts create conditions for clean implementation.
 
 ## Reopening Accepted `design_decisions`
 
@@ -40,6 +42,7 @@ First, challenge the plan before spending effort on detailed artifact QA:
 - Are product requirements separated from architecture and process choices?
 - Are non-goals and exclusions respected?
 - Are user-visible tradeoffs escalated instead of silently decided?
+- Are foreseeable Development Quality Contract risks represented where relevant: caller contracts/API compatibility, trust boundaries, failure states, migration/rollback/idempotency, module/dependency boundaries, performance/concurrency implications, and work-package coherence?
 - Should a dedicated Security/Failure-Mode Reviewer be run?
 
 If Pass 1 finds a `BLOCKER` or `CRITICAL` semantic issue likely to change the plan, limit Pass 2 to obvious mechanical/schema defects. Detailed QA against a plan that should change creates waste and review-loop pressure.
@@ -52,6 +55,12 @@ When the accepted approach is coherent enough to review, check artifact quality:
 - Are tasks self-contained, sequenced, and verifiable?
 - Are acceptance criteria observable and tied to requested outcomes?
 - Are dependencies, work packages, and verification commands coherent?
+- Do nontrivial changes have observable verification tied to acceptance criteria and changed behavior?
+- Are caller contracts and public API compatibility preserved or explicitly planned as accepted changes?
+- Are trust boundaries, invalid/malicious input handling, and distinguishable failure states visible where relevant?
+- Are migration, rollback, idempotency, partial-failure, and data-integrity concerns addressed when persistence or destructive actions are involved?
+- Are module/dependency boundaries coherent, with work packages grouped to avoid unnecessary coupling, oversized edits, or artificial parallelism?
+- Are performance/concurrency implications called out with measurable bounds or verification when the plan can affect resource usage, fanout, latency, races, cancellation, or cleanup?
 - Are `design_decisions` IDs sequential (`DD-1`, `DD-2`, ...) with no gaps and valid `source` values?
 - Are plan artifacts internally consistent and schema-compatible?
 
@@ -75,6 +84,13 @@ Rubric:
 - Do acceptance criteria cover failure modes, not only the happy path?
 
 Primary failure mode: implementation ships a dangerous edge case because the plan never made it visible.
+
+## Development Quality Contract Severity Guidance
+
+- Report `BLOCKER` when a Development Quality Contract issue makes the plan unsafe, unverifiable, internally incoherent, or likely to violate caller contracts, public API compatibility, security/privacy/safety/data contracts, trust-boundary validation, migration safety, or required verification.
+- Report `CRITICAL` when the plan can proceed only after a high-risk quality-contract ambiguity is resolved, especially around failure behavior, rollback/idempotency, destructive actions, data integrity, or concurrency.
+- Report `SUGGESTION` when the issue is a maintainability concern that implementation can safely resolve without changing requirements, accepted `design_decisions`, caller/security/data contracts, or acceptance criteria. Omit non-actionable advisory concerns instead of inventing lower severities.
+- Do not escalate generic cleanliness preferences. A quality-contract finding must target a concrete plan artifact and explain the foreseeable implementation risk.
 
 ## Reviewer Selection
 
