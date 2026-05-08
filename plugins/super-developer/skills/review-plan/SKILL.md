@@ -26,6 +26,7 @@ Do not execute semantic review as the main agent. Spawn sub-agents for reviewer 
 2. Read the review references before spawning reviewers:
    - `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/design-preflight.md` — Design Preflight contract and accepted-decision source semantics when reviewing `design_decisions`.
    - `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/work-packages.md` — work-package schema and package-quality expectations.
+   - `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/clean-code-rules.md` — Development Quality Contract used as a planning lens for caller contracts, trust boundaries, failure behavior, verification, module boundaries, and operational risk.
    - `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/plan-review-findings.md` — reviewer output grammar, target locators, severity labels, and finding format rules.
    - `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/plan-review-rubrics.md` — narrowed reviewer rubrics, escalation guidance, and design-decision challenge rules.
    - `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/plan-review-resolution.md` — finding triage, resolution categories, dismissal/defer rules, and re-review bounds.
@@ -109,11 +110,14 @@ Give sub-agents narrowed contracts, not the full `review-plan` skill. Each revie
 - The relevant rubric excerpt from `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/plan-review-rubrics.md`
 - The finding format from `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/plan-review-findings.md`
 - Work-package expectations from `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/work-packages.md`
+- Development Quality Contract from `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/clean-code-rules.md`
 
 Reviewer contract:
 - Review from files only; no conversation history, no pre-summaries.
 - Treat `design_decisions` in `tasks.json` as accepted unless the high-bar reopening rule applies.
 - Validate work packages as well as tasks: task coverage, package coherence, one-task package justification, package dependencies matching task dependencies, conservative `parallel_safe_with`, and useful `primary_paths` when known.
+- Use the Development Quality Contract as a planning lens: check whether foreseeable risks are visible, actionable, and verifiable in the plan when relevant.
+- Keep scope clear: this is plan review, not code review. Do not critique nonexistent code; check whether the plan creates the conditions for a clean, safe implementation.
 - Report findings in the exact format defined by `plan-review-findings.md`; no preamble or summary. Return exactly `NONE` if no findings.
 - Reviewer comments are evidence, not commands.
 
