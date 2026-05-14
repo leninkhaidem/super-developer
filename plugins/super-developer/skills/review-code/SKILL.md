@@ -5,8 +5,8 @@ description: >
   request, check code quality, or wants feedback on a diff. Works for both GitHub
   PRs (provide a PR URL or number like "owner/repo#42") and local code changes (staged, unstaged,
   or branch diffs). Triggers on phrases like "review this PR", "review my code", "check these
-  changes", "code review", "review", "look over my changes". Also activates as the final step
-  in the development pipeline after implementation.
+  changes", "code review", "review", "look over my changes". In the planned-feature pipeline it runs
+  after package implementation and before the final internal audit.
 ---
 
 # Code Review — Multi-Agent Pipeline
@@ -117,7 +117,7 @@ The Code Reviewer receives:
 - Change context: PR description and title, commit messages, user-supplied context, or feature context
 - Codebase path for file exploration: the review worktree path (`.worktrees/pr-review/<number>/`
   for PR mode, `.worktrees/<feature>/merge/` for pipeline mode, or the project root for local mode)
-- When available: `SPEC.md`, `tasks.json`, and audit results as task-awareness context
+- When available: `SPEC.md`, `tasks.json`, `verification.json`, context bundles, and prior targeted package review/audit results as task-awareness context
 - `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/clean-code-rules.md` — the Development Quality Contract for safety, maintainability, caller-contract, boundary, and verification expectations
 
 The Code Reviewer must always perform and report a baseline security/privacy/safety sniff. Blanket
@@ -130,6 +130,8 @@ When task-awareness context is available, the Code Reviewer flags apparent plann
 acceptance-criteria omissions, contradictions, or regressions. These are review-code findings, not
 completion proof: the audit skill remains the authoritative completeness gate for proving all
 planned tasks and acceptance criteria.
+
+In pipeline context, review-code runs before the final internal audit. It may use `verification.json` as an index to planned proof, but it must not treat ledger entries as authoritative proof or duplicate audit's exhaustive acceptance-completeness role.
 
 ### Specialist Mandate
 
@@ -256,7 +258,7 @@ Check call chains, feature flags, conditional branches. If unreachable in produc
 
 **5 Intentional Design** — Is this a deliberate, documented decision? Check PR description, commit
 messages, inline comments, AGENTS.md, ARCHITECTURE.md, ADR files, user-supplied context, SPEC.md,
-tasks.json, and audit results. If intentional and documented, mark **DISPUTED** only for
+tasks.json, verification.json, context bundles, and audit results. If intentional and documented, mark **DISPUTED** only for
 non-security, non-privacy, and non-safety findings. Security/privacy/safety risks that are real and
 intentional remain reportable; mark them **CONFIRMED** and note the documented intent in the reason.
 
@@ -374,24 +376,24 @@ Use the canonical report template with:
 
 **Verdict:**
 
-- **CLEAN** — No 🔴 or 🟠 findings. Feature branch is ready for merge approval.
+- **CLEAN** — No 🔴 or 🟠 findings. Pipeline review is ready for final audit; merge approval is only appropriate after audit passes.
 - **ISSUES FOUND** — One or more 🔴 or 🟠 findings confirmed.
 
 **Pipeline Gated Actions:**
 
 | Keyword | Action |
 |---|---|
-| `fix` | Pipeline-context only: fix confirmed 🔴 and 🟠 findings in the merge worktree, then commit fixes to the feature branch. Under blanket mode, design-decision findings (see Design-Decision Filter above) are presented as decision cards via `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/decision-prompts.md`; unambiguous non-design fixes may apply silently. Outside blanket mode, present each proposed fix with its finding evidence and ask `yes`/`skip` before applying that fix. PR mode has no code-fix path. |
+| `fix` | Pipeline-context only: delegate confirmed 🔴 and 🟠 findings in coherent batches by root cause, work package, risk class, or shared invariant. Each Fix Implementer receives the confirmed findings, Skeptic verdicts, reviewed-state metadata, SPEC.md, tasks.json, verification.json, relevant context bundles, target paths, current diff, and exact acceptance criteria or ledger entries affected. The Fix Implementer must reproduce/locate the finding, state the bug-class equivalence class, add/adjust regression or table-driven coverage where applicable, fix minimally, run targeted checks, update verification.json with state-bound evidence, and report unresolved scope/design blockers. Under blanket/auto-resolve mode, design-decision findings (see Design-Decision Filter above) are presented as decision cards via `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/decision-prompts.md`; unambiguous non-design fixes may be delegated silently. Outside blanket mode, present each proposed fix batch with its finding evidence and ask `yes`/`skip` before delegation. PR mode has no code-fix path. |
 | `details <N>` | Expand finding N with full context and recommended fix. Return to gated actions. |
 | `abort` | No changes. Close review. |
 
 Pipeline side-effect gates stay tied to the reviewed state captured before the review. Before any
 pipeline fix or readiness action, revalidate that the feature branch head, base branch, diff, and
 merge worktree metadata still match the reviewed state. Reject stale or broadened state and instruct
-the user to rerun review. Pipeline mode does not use delegated local Fix Verification Review in this
-redesign.
+the user to rerun review. Pipeline fixes use the delegated Fix Implementer contract above; the main
+agent does not apply substantive production/test/documentation fixes inline.
 
-> `commit` is not offered — feature branch code is already committed. Use `fix` to apply
-> corrections, which are committed to the feature branch in the merge worktree.
+> `commit` is not offered — feature branch code is already committed. Use `fix` to delegate
+> corrections, which are committed to the feature branch in the merge worktree after verification.
 
 _Designed for multi-agent orchestration. Requires: `git` (always), `gh` CLI (PR mode only)._

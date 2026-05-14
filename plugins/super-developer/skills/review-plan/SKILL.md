@@ -115,7 +115,9 @@ Give sub-agents narrowed contracts, not the full `review-plan` skill. Each revie
 Reviewer contract:
 - Review from files only; no conversation history, no pre-summaries.
 - Treat `design_decisions` in `tasks.json` as accepted unless the high-bar reopening rule applies.
-- Validate work packages as well as tasks: task coverage, package coherence, one-task package justification, package dependencies matching task dependencies, conservative `parallel_safe_with`, and useful `primary_paths` when known.
+- Validate work packages as well as tasks: task coverage, package coherence, one-task package justification, package dependencies matching task dependencies, conservative `parallel_safe_with`, useful `primary_paths`, safe/scoped `verification_commands`, controlled `risk_tags`, `targeted_review_required` consistency, and required context bundles when known.
+- Validate structured acceptance criteria: every task criterion has a stable ID, observable criterion text, typed source refs, and a verification hint when proof depends on an edge case, command, library/runtime behavior, manual evidence, or no-mocks constraint.
+- Validate traceability: every SPEC `REQ-*` and `AC-*` is covered by at least one task acceptance criterion, and every task criterion cites valid `source_refs`. Missing coverage is a blocker, not a review suggestion.
 - Use the Development Quality Contract as a planning lens: check whether foreseeable risks are visible, actionable, and verifiable in the plan when relevant.
 - Keep scope clear: this is plan review, not code review. Do not critique nonexistent code; check whether the plan creates the conditions for a clean, safe implementation.
 - Report findings in the exact format defined by `plan-review-findings.md`; no preamble or summary. Return exactly `NONE` if no findings.
@@ -124,6 +126,7 @@ Reviewer contract:
 Reviewer roles:
 - **Plan Reviewer:** Always run. Use the Plan Reviewer rubric: combined challenge first, then artifact QA. If the challenge pass finds a `[BLOCKER]` or `[CRITICAL]` semantic issue likely to change the plan, limit artifact QA to obvious mechanical/schema defects.
 - **Security/Failure-Mode Reviewer:** Run only for security/privacy/safety-sensitive plans or `ESCALATE_SECURITY_REVIEW`. Focus on security, privacy, safety, destructive actions, rollback, concurrency, malicious inputs, and failure modes.
+- **Security/Failure-Mode Reviewer must also check evidence failure modes:** stale verification ledger evidence, manual evidence reduced to a bare approval flag, unsafe verification commands, mocks for the contract under test, and packages that disable targeted review despite triggering risk tags.
 
 ## Step 7: Merge, Triage, and Resolve
 
@@ -138,7 +141,7 @@ Triage each finding into exactly one resolution category:
 5. **Disproportionate recommendation / dismissal** — the recommendation's cost or complexity exceeds the risk it addresses. Dismiss only with a one-line justification tied to the reviewer's `COST:` or stated trade-off.
 6. **Suggestion** — non-blocking improvement. Log for visibility; no resolution required.
 
-Package boundary and parallelism concerns that can be safely adjusted by `implement` are implementation-time concerns and should be defer-to-implement unless they make the plan incoherent, unsafe, or impossible to execute from files. Deferred concerns must still leave a durable handoff in `tasks.json`; Gate 2 logging alone is not sufficient.
+Package boundary, context-bundle, risk-tag, targeted-review, command-safety, and parallelism concerns that can be safely adjusted by `implement` are implementation-time concerns and should be defer-to-implement unless they make the plan incoherent, unsafe, or impossible to execute from files. Deferred concerns must still leave a durable handoff in `tasks.json`; Gate 2 logging alone is not sufficient.
 
 ### Outcome and Approval Rules
 
@@ -157,7 +160,7 @@ Maintain a per-round accumulator of auto-applied refinements, deferred concerns,
 Re-review is focused, delta-only, and bounded:
 
 1. If only deterministic/schema issues changed, rerun deterministic validation only.
-2. If task content, acceptance criteria, requirements traceability, `design_decisions`, or work-package semantics changed, rerun the Plan Reviewer only for the changed targets.
+2. If task content, acceptance criteria, requirements traceability, context bundles, risk tags, targeted-review semantics, command-safety metadata, `design_decisions`, or work-package semantics changed, rerun the Plan Reviewer only for the changed targets.
 3. If security review was previously triggered, rerun the Security/Failure-Mode Reviewer only when the delta affects security/privacy/safety posture, destructive behavior, rollback, concurrency, malicious inputs, failure modes, or its prior findings.
 4. Do not re-review dismissed findings, deferred implementation-time concerns, or suggestions with no plan edits.
 5. Maximum 3 semantic re-review rounds. If unresolved true blockers remain after 3 rounds, present the remaining blockers to the user and ask for manual resolution.

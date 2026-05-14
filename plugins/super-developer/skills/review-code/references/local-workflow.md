@@ -167,10 +167,13 @@ Pass the Fix Implementer:
 - Instruction to avoid unrelated cleanup, opportunistic refactors, broad rewrites, or touching files
   outside the target paths unless required to close a confirmed finding
 - Any decision-card outcomes from the SKILL.md Design-Decision Filter
+- For planned-feature contexts, available `SPEC.md`, `tasks.json`, `verification.json`, and relevant context bundles
 
 The Fix Implementer returns the fix delta, files changed, findings attempted, findings intentionally
 left unresolved, and any scope-expansion request. A scope-expansion request must identify the exact
 trigger and why the original scope cannot close the finding.
+
+The Fix Implementer must reproduce or locate each finding, state the bug-class/equivalence class for every 🔴/🟠 finding, add or adjust regression/table-driven coverage where applicable, run targeted checks, and update `verification.json` when a planned-feature criterion or ledger entry is affected. Do not patch only the exact reported example when the finding represents a class of inputs or states.
 
 ### Local Fix Verification Review
 

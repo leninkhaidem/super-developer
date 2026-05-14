@@ -65,15 +65,17 @@ Implementation MUST:
 
 ### Testing and Verification Gate
 
-Non-trivial behavior changes MUST have relevant tests or verification. Implementers MUST run the targeted verification that covers the changed behavior before completion. Internal behavior SHOULD be tested with real integration paths instead of mocks; mocks MAY be used at external service boundaries or when isolation is the behavior under test.
+Non-trivial behavior changes MUST have relevant tests or verification. Implementers MUST run the targeted verification that covers the changed behavior before completion. Internal behavior SHOULD be tested with real integration paths instead of mocks. Mocks MUST NOT replace the contract under test: external/library/runtime/API boundary behavior that the feature depends on proving must use the real library, documented fixture shape, captured real payload, or an already-verified seam. Mocks MAY be used behind already-verified seams, at external service boundaries, or when isolation is the behavior under test, and MUST be disclosed in completion evidence or `verification.json`.
 
 ### Completion Evidence Gate
 
-Non-trivial completion reports MUST include the compact evidence block in §9. Missing or vague evidence is a BLOCKER for audit.
+Non-trivial completion reports MUST include the compact evidence block in §9. Planned-feature package work MUST also update `verification.json` with criterion-level evidence. The ledger is an index to proof, not proof by itself; missing, vague, stale, failed, blocked, or unapproved manual evidence is a BLOCKER for audit.
 
 ### Audit and Review Gate
 
 Audit MUST verify acceptance criteria and MUST-level quality-contract compliance. Review-code MUST use this contract for maintainability, safety, API, and failure-mode findings without replacing audit as the authoritative completeness proof.
+
+In the unified delivery pipeline, implementer/fix sub-agents own substantive code/test/documentation changes and targeted verification. The orchestrator owns git, dispatch, merge, evidence validation, and integration checks; it MUST NOT apply substantive production/test/documentation fixes inline except for explicit user-approved plan/status/metadata or mechanical merge-conflict artifacts.
 
 ## 3. Contracts, Boundaries, and Errors
 
@@ -89,6 +91,10 @@ Audit MUST verify acceptance criteria and MUST-level quality-contract compliance
 - A file SHOULD have one primary responsibility and a name that explains it.
 - Broad cleanup is separate work. Local cleanup MAY be done when it directly supports the current change, reduces risk, or makes verification possible.
 - Generated code is exempt from manual structure rules only when clearly generated and not manually edited. Generator inputs/templates remain subject to this contract.
+
+### Contract-Preserving Open/Closed Principle
+
+Existing behavior, caller contracts, public APIs, persistence semantics, security/privacy posture, and operational contracts are closed unless the accepted plan explicitly approves a change. Internal edits are allowed when they preserve those contracts and are the natural responsibility location. Do not create speculative wrappers, subclasses, flags, or adapter layers merely to avoid touching existing code; do create or use seams when new behavior would otherwise mix responsibilities or change existing contracts implicitly.
 
 ## 5. Duplication and Abstraction
 
@@ -139,6 +145,8 @@ Quality Contract Evidence:
 - Verification run: <commands/tests/scenarios run, with observed result>
 - Rule exceptions: <MUST/SHOULD exception and justification, or "none">
 ```
+
+For planned-feature pipeline work, this evidence block does not replace `verification.json`. The ledger entry for each completed acceptance criterion MUST include state binding, source refs, file/symbol evidence, command results or manual evidence, context-bundle citations when applicable, mock disclosure, and observed behavior.
 
 ## 10. Language Adapters
 

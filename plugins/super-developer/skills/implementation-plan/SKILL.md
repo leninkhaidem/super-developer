@@ -119,6 +119,7 @@ Create a JSON file following this schema:
 
 ```json
 {
+  "schema_version": 2,
   "feature": "<feature-name>",
   "title": "Human-readable feature title",
   "description": "One-line summary of what this feature delivers",
@@ -133,22 +134,25 @@ Create a JSON file following this schema:
         "Alternative considered and why it was not chosen"
       ],
       "source": "design-preflight"
-    },
+    }
+  ],
+  "context_bundles": [
     {
-      "id": "DD-2",
-      "decision": "Planner decision worth preserving for implementers/reviewers",
-      "rationale": "Why this decision is necessary",
-      "alternatives_considered": [],
-      "source": "planner"
-    },
-    {
-      "id": "DD-3",
-      "decision": "Empirically validated planning decision from a scoped spike",
-      "rationale": "What the spike proved and why it shapes the plan",
-      "alternatives_considered": [
-        "Alternative considered and why spike evidence rejected it"
+      "id": "CTX-1",
+      "title": "External/runtime contract title",
+      "required_for": ["WP1"],
+      "sources": [
+        {
+          "type": "docs",
+          "path_or_url": "https://docs.example.invalid/contract",
+          "claims": [
+            "Specific behavior implementers must not infer or mock."
+          ]
+        }
       ],
-      "source": "planner"
+      "verification_required": [
+        "Tests must use the documented/captured contract shape for this boundary."
+      ]
     }
   ],
   "work_packages": [
@@ -161,6 +165,9 @@ Create a JSON file following this schema:
       "parallel_safe_with": [],
       "primary_paths": ["path/to/module/"],
       "verification_commands": [],
+      "risk_tags": ["library-contract"],
+      "required_context_bundles": ["CTX-1"],
+      "targeted_review_required": true,
       "rationale": "Why these tasks should share one implementation context."
     }
   ],
@@ -178,19 +185,17 @@ Create a JSON file following this schema:
           "status": "pending",
           "dependencies": [],
           "acceptance_criteria": [
-            "Specific, verifiable criterion"
+            {
+              "id": "P1-T001-AC1",
+              "criterion": "Specific, verifiable outcome.",
+              "source_refs": [
+                { "type": "spec_req", "id": "REQ-1" },
+                { "type": "spec_ac", "id": "AC-1" }
+              ],
+              "verification_hint": "Optional concrete proof hint, command, edge case, or library-contract constraint."
+            }
           ],
-          "context": "Why this task exists — the SPEC.md requirement or acceptance criterion that motivated it"
-        },
-        {
-          "id": "P1-T002",
-          "title": "Second task in the same package",
-          "description": "Sibling task delivering related work in the same subsystem.",
-          "status": "pending",
-          "dependencies": ["P1-T001"],
-          "acceptance_criteria": [
-            "Specific, verifiable criterion"
-          ],
+          "required_context_bundles": ["CTX-1"],
           "context": "Why this task exists — the SPEC.md requirement or acceptance criterion that motivated it"
         }
       ]
@@ -203,9 +208,16 @@ Create a JSON file following this schema:
 
 | Level | Field | Type | Values |
 |---|---|---|---|
+| Feature | `schema_version` | number | `2` |
 | Feature | `status` | string | `planned`, `reviewed`, `in-progress`, `completed`, `on-hold` |
 | Feature | `created_at` | string | ISO 8601 timestamp |
 | Feature | `design_decisions` | object[] | Top-level array of accepted design decisions; use `[]` when none |
+| Feature | `context_bundles` | object[] | Durable external/runtime/library/security/persistence/cross-package ground truth; use `[]` when none |
+| Context Bundle | `id` | string | `CTX-<N>` (e.g., `CTX-1`), sequential with no gaps |
+| Context Bundle | `required_for` | string[] | Work package IDs or task IDs that must read and cite the bundle |
+| Context Bundle | `sources[].type` | string | `docs`, `code`, `spec`, `external`, or `repo` |
+| Context Bundle | `sources[].claims` | string[] | Specific source-backed claims implementers must not infer |
+| Context Bundle | `verification_required` | string[] | Required proof obligations tied to this bundle |
 | Design Decision | `id` | string | `DD-<N>` (e.g., `DD-1`, `DD-2`), sequential with no gaps |
 | Design Decision | `decision` | string | Concise accepted design decision |
 | Design Decision | `rationale` | string | Brief rationale for the accepted decision |
@@ -216,6 +228,11 @@ Create a JSON file following this schema:
 | Task | `id` | string | `<PhaseID>-T<NNN>` (e.g., `P1-T001`) |
 | Task | `status` | string | `pending`, `in-progress`, `done`, `blocked`, `skipped` |
 | Task | `dependencies` | string[] | Task IDs within this feature |
+| Task | `acceptance_criteria[].id` | string | `<TaskID>-AC<N>` (e.g., `P1-T001-AC1`) |
+| Task | `acceptance_criteria[].criterion` | string | Specific, verifiable outcome |
+| Task | `acceptance_criteria[].source_refs[]` | object[] | Typed references to `spec_req`, `spec_ac`, `design_decision`, or `context_bundle` |
+| Task | `acceptance_criteria[].verification_hint` | string | Optional proof hint; required when non-obvious verification context matters |
+| Task | `required_context_bundles` | string[] | Context bundle IDs required for this task; use `[]` or omit when none |
 | Task | `completed_at` | string | ISO 8601 timestamp (added when status changes to `done`) |
 | Task | `blocked_reason` | string | Reason for blocking (added when status changes to `blocked`) |
 | Work Package | `id` | string | `WP<N>` (e.g., `WP1`) |
@@ -227,6 +244,9 @@ Create a JSON file following this schema:
 | Work Package | `parallel_safe_with` | string[] | Work package IDs safe to run in the same implementation batch |
 | Work Package | `primary_paths` | string[] | Likely files/directories to inspect first; may be empty only when no safe paths are known |
 | Work Package | `verification_commands` | string[] | Concrete commands for package-level checks; empty when unknown |
+| Work Package | `risk_tags` | string[] | Controlled risk tags used for targeted review and edge-case checklist obligations |
+| Work Package | `required_context_bundles` | string[] | Context bundle IDs package agents must read and cite |
+| Work Package | `targeted_review_required` | boolean | `true` when risk tags trigger package-level review; may also be true by conservative planner choice |
 
 ### Design Decision Authoring Guidelines
 
@@ -285,6 +305,21 @@ Criteria must describe **verifiable outcomes**, not implementation details:
 
 Apply Development Quality Contract constraints only when relevant to the task and keep them observable/verifiable. Prefer criteria such as "malformed external payloads produce a distinguishable error and do not persist partial data" over generic instructions such as "write clean error handling."
 
+Task acceptance criteria are **objects**, not strings. Each criterion MUST:
+- use `id: "<TaskID>-AC<N>"` so implementers, `verification.json`, reviewers, and audit can cite it unambiguously;
+- include `criterion` as the observable outcome;
+- include typed `source_refs` that cite the SPEC requirement/acceptance criterion, an accepted `design_decision`, or a `context_bundle`;
+- include `verification_hint` when proof depends on an edge case, command, performance bound, library/runtime behavior, manual evidence, or no-mocks constraint.
+
+Complete traceability is mandatory: every SPEC `REQ-*` and `AC-*` MUST be covered by at least one task acceptance criterion, and every task criterion MUST cite at least one valid source ref. Do not create "floating" criteria that are merely nice-to-have implementation work.
+
+### Context Bundle Guidance
+
+Use `context_bundles` only when future agents need durable ground truth that is not safely discoverable from SPEC.md and local code. Appropriate triggers include external API/library/runtime behavior, security/privacy policy, persistence semantics, command safety, cross-package assumptions, or verified spike findings.
+
+A context bundle is not a design essay. It must contain source-backed claims and verification obligations. Implementers/fixers/reviewers/auditors must be able to read the bundle cold and know what they must not infer, mock, or silently change.
+
+
 ### Task Substance Rule
 
 Each task must have a **self-contained, verifiable outcome** — a change that is independently meaningful when described in one sentence.
@@ -314,8 +349,11 @@ Examples of tasks that **pass** despite being small:
 - Use `depends_on` only for dependencies on other work packages. Internal task dependencies do not require package-level dependencies.
 - Fill `primary_paths` with likely files or directories to inspect first when known from Code References or task descriptions.
 - Fill `verification_commands` only with commands known to exist or strongly implied by the project. Use `[]` rather than inventing commands.
+- Treat `verification_commands` as executable inputs. Record only commands known to be safe, scoped, and strongly implied by the project. Commands that are destructive, externally visible, credential/network-sensitive, install dependencies/services, or exceed the advertised verification scope must be surfaced for Execution Contract approval instead of being silently run.
 - Use `parallel_safe_with` conservatively. Default to `[]` unless independent file/module impact is verified. When file impact is ambiguous, leave it empty. If two packages cannot run in parallel because they touch the same subsystem or files, prefer combining them into one package over leaving them separate (per `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/work-packages.md`).
 - Use package boundaries to reduce unnecessary coupling and oversized edits. If Development Quality Contract risks require one agent to see a caller contract, migration boundary, shared failure mode, or cross-module invariant end-to-end, group that work in one coherent package instead of splitting it for artificial parallelism.
+- Fill `risk_tags` from the controlled taxonomy used by `validate-tasks-json.py`. Targeted-review-triggering tags include security/privacy/safety, persistence/data-integrity/migration, runtime/library contracts, public API/exported types, concurrency/idempotency/replay, performance/resource bounds, cross-package integration, schema/traceability/validation, orchestration/git-state/integration/subagent-contract, review/audit/fix-loop, and quality-contract risks. A package with any triggering tag must set `targeted_review_required: true`.
+- Use `required_context_bundles` when a package depends on a bundle. Each listed bundle must also list the package or one of its tasks in `required_for`.
 
 ## Step 8: Validate
 
@@ -336,10 +374,14 @@ Before writing files, verify:
 - No circular dependencies
 - All dependency references point to valid task IDs
 - Every task has at least one acceptance criterion
+- Every task acceptance criterion is an object with `id`, `criterion`, and non-empty typed `source_refs`; string acceptance criteria are invalid.
+- Every SPEC `REQ-*` and `AC-*` is covered by at least one task acceptance criterion.
 - Every task passes the independence test (self-contained, verifiable outcome)
 - Every task passes the description quality test (intent + constraints, not implementation tutorial)
 - Phase order is sequential with no gaps
 - Task IDs are unique across all phases
+- `context_bundles` exists at the top level; when empty, it is `[]`.
+- Context bundle IDs are unique and sequential (`CTX-1`, `CTX-2`, ...), and every `required_context_bundles` reference points to a valid bundle.
 - `work_packages` exists and contains every task exactly once
 - Work package IDs are unique and sequential (`WP1`, `WP2`, ...)
 - Every `work_packages[].task_ids[]` reference points to a valid task ID
@@ -350,6 +392,8 @@ Before writing files, verify:
 - One-task work packages include a rationale explaining why the task is substantial, risky, or isolated. This rationale is reviewer-judged, not mechanically enforced
 - `parallel_safe_with` claims are conservative based on likely file/module impact (reviewer-judged, not mechanically enforceable)
 - Feature-specific Development Quality Contract risks are encoded where relevant in `tasks.json` as observable/verifiable task acceptance criteria, verification commands, work-package boundaries, or `design_decisions`; generic quality rules are not copied into every task.
+- `risk_tags` use the controlled taxonomy and `targeted_review_required` is true for every package with a targeted-review-triggering tag.
+- `verification_commands` are scoped, known-safe commands or are surfaced for Execution Contract approval rather than silently run.
 
 ## Step 9: Write Files and Validate tasks.json
 
