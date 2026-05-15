@@ -10,321 +10,181 @@ description: >
 
 # Implement: Execute Tasks from Plan
 
-Execute tasks from a feature's task plan. The main agent acts as an orchestrator — analyzing planned work packages, validating dependency and file-impact boundaries, managing git worktrees, dispatching substantial coherent packages to sub-agents, merging completed package branches, and running lightweight integration checkpoints before downstream work begins.
+Execute reviewed feature tasks from `.tasks/<feature>/`. The main agent is an orchestrator only: it validates plan state, presents the Execution Contract, manages package worktrees/branches, dispatches work packages to sub-agents, validates evidence, merges package branches, runs integration checkpoints, delegates repairs, then continues to review-code and audit.
 
-**Tasks remain the tracking unit. Work packages are the delegation unit. Sub-agents handle substantial coherent packages; the main agent orchestrates git, package dispatch, merge, and checkpoint verification.**
+Tasks remain the tracking unit. Work packages are the delegation unit. Planned-feature package branches/worktrees are package-scoped; the compatibility branch prefix remains `task/<feature>/<WP-ID>`.
 
 ## Arguments
 
-- `$ARGUMENTS` — Feature name (required). Must match a directory under `.tasks/`. If invoked from the pipeline, inherited from the review-plan step.
+- `$ARGUMENTS` — Feature name (required). Must match a directory under `.tasks/`. Pipeline invocations inherit it from review-plan.
 
----
+## Step 1: Load and Validate the Plan
 
-## Step 1: Load and Assess
-
-1. Verify `.tasks/$ARGUMENTS/` exists and contains `SPEC.md` and `tasks.json`. If not, list available features and ask.
-2. Execute the shared validator before trusting `tasks.json`:
+1. Verify `.tasks/$ARGUMENTS/` contains `SPEC.md` and `tasks.json`; if not, list available features and ask.
+2. Run the shared validator before trusting `tasks.json`:
 
    ```bash
    python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/validate-tasks-json.py" ".tasks/$ARGUMENTS/tasks.json"
    ```
 
-   If the validator exits non-zero, stop and resolve the reported `tasks.json` blockers before dispatching or updating work.
-3. Read `.tasks/$ARGUMENTS/SPEC.md` and `.tasks/$ARGUMENTS/tasks.json` to assess current state.
-4. Display status summary:
+   If it fails, stop and resolve reported blockers before dispatching or updating work.
+3. Read `SPEC.md`, `tasks.json`, accepted `design_decisions`, and `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/work-packages.md`.
+4. Display feature status, progress, and current phase.
 
-```
-Feature: <title> (<status>)
-Progress: <done>/<total> tasks
-Current phase: <phase name>
-```
+## Step 2: Load Execution Settings
 
-## Step 2: Load Model Preferences
+Read `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/model-preferences.md` and resolve the `implement` key. Hardcoded default: `adaptive`.
 
-Read `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/model-preferences.md` for the canonical schema and resolution procedure.
+Adaptive means delegated packages usually use Opus; use Sonnet only for simple, patterned, unambiguous packages. `inherit` omits a model parameter. Specific model names are passed directly.
 
-Resolve the model preference for the `implement` skill key. Hardcoded default: `adaptive`.
+## Step 3: Execution Contract Gate
 
-**Adaptive interpretation for implement:** Opus for complex/ambiguous packages, Sonnet for simple/patterned ones. The inline/delegate boundary from Step 6.5 captures complexity — delegated packages are substantial enough to warrant a sub-agent. Within delegated packages, bias toward Opus when uncertain.
+Before creating worktrees or dispatching packages, present an Execution Contract derived only from `SPEC.md`, `tasks.json`, accepted `design_decisions`, and validated work-package metadata:
 
-Carry the resolved preference forward into Step 7d.
+```text
+Execution Contract for <feature>
 
-## Step 3: Load Work Package Rules
+Git refs:
+  base ref: <base-ref, default main unless SPEC/tasks/user selected a stacked-feature base>
+  feature ref: feature/<feature>
+  target ref: <target-ref, default main; may be feature/<base> for stacked features>
 
-Read `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/work-packages.md`. Use it to validate planned packages, decide runtime adjustments, and avoid one-sub-agent-per-small-task dispatch.
+Packages:
+- <WP-ID>: <title>
+  tasks: <task IDs>
+  branch/worktree: task/<feature>/<WP-ID> / .worktrees/<feature>/wp-<WP-ID>
+  primary paths: <paths>
+  risk tags: <risk_tags>
+  targeted package review: yes/no and why
+  required context bundles: <bundle IDs or none>
+  verification commands: <safe/scoped commands or commands requiring approval>
 
-## Step 4: Initialize Git Worktree Infrastructure
+Pipeline:
+1. package implementation + sub-agent self-verification
+2. orchestrator evidence/integration checkpoint
+3. risk-triggered targeted package review and delegated fixes
+4. full review-code/fix loop
+5. final internal audit
 
-invoke `worktree` skill for the complete git workflow reference.
+Stop conditions:
+- design/product behavior changes
+- existing-feature contract changes
+- destructive actions
+- new dependencies or services
+- security/privacy risk acceptance
+- missing external facts or credentials
+- scope expansion beyond SPEC/tasks
+- stale git or reviewed state
+- repeated same-class failure needing strategy change
 
-Resolve the project root and set up the feature:
-
-```bash
-PROJECT_ROOT=$(git rev-parse --show-toplevel)
-```
-
-1. Ensure `.worktrees/` is in `.gitignore`.
-2. Create the feature branch as a ref (not a worktree): `git branch feature/<name> main`
-3. If any packages will be delegated to sub-agents (per Step 6.5), create the feature namespace directory: `mkdir -p .worktrees/<feature>/`. If all actionable packages are classified as inline, defer worktree directory creation until a delegated package appears.
-
-**The main working tree always stays on `main`.** Never run `git checkout` in the project root.
-
-## Step 5: Analyze Actionable Work Packages
-
-Use `work_packages` from `tasks.json` as the starting point. Plans without `work_packages` are invalid and must fail deterministic validation upstream — implementation does not infer packages at runtime.
-
-A work package is **externally actionable** when:
-- It contains at least one `pending` task.
-- No task in the package is `blocked` unless the whole package is being reported as blocked.
-- Every package in `depends_on` has all tasks `done`.
-- Any task dependency outside the package points to a task with `status: "done"`.
-
-Task dependencies inside the same work package do not block dispatch. The sub-agent completes internal dependencies sequentially and commits after each task ID.
-
-Collect all externally actionable work packages — not just the next task.
-
-**Edge cases:**
-- **All tasks `done`:** Update feature `status` to `completed`. Proceed to pipeline continuation.
-- **Tasks `blocked`:** List with `blocked_reason`. Ask how to proceed.
-- **Tasks `in-progress`:** Likely from an interrupted session. Show details and ask: continue, or reset to `pending`?
-
-## Step 6: Plan Dispatching
-
-For each set of externally actionable work packages, reason through these sub-steps in order:
-
-### 6.1. Validate Package Shape
-
-Confirm each package is coherent, substantial, and has valid task IDs. One-task packages are allowed only when the task is substantial, risky, or isolated. If a planned package looks unsafe or incoherent at runtime, prefer adjustment (Sub-step 6.3) over dispatching as-is.
-
-### 6.2. Analyze File Impact
-
-Use SPEC.md, task descriptions, package `primary_paths`, and acceptance criteria to determine likely files/modules touched by each package.
-
-### 6.3. Adjust Packages When Needed
-
-Merge, split, defer, or serialize packages if runtime file impact or current status makes the planned shape unsafe or inefficient. Briefly explain every adjustment.
-
-### 6.4. Select Batch
-
-Run packages in parallel only when they are substantial and file impact does not overlap. Do not maximize fanout for its own sake. When file-impact overlap is ambiguous, default to serializing — the cost of unnecessary serialization is latency; the cost of incorrect parallelization is merge conflicts.
-
-### 6.5. Classify Execution Mode
-
-For each package selected into the batch, decide:
-
-- **Inline** — execute as the main agent. No sub-agent, no worktree. Use when the package contains a single small task with unambiguous acceptance criteria, follows an existing pattern, and touches ≤3 files.
-- **Delegate** — spawn a sub-agent in a dedicated worktree. Use for every other package, including all multi-task packages.
-
-Inline tasks do not use sub-agent model preferences (Step 2). Delegated packages do.
-
-### 6.6. Announce and Justify
-
-Before execution, present package IDs, task IDs, worktree branch names, primary paths, expected verification commands, and whether packages run in parallel or serially. This lets the user validate dispatching reasoning before execution begins.
-
-
-## Step 7: Create Worktrees and Execute
-
-For each batch of tasks:
-
-### 7a. Create Package Worktrees
-
-**For inline tasks (classified per Step 6.5 — small or one-task packages eligible for inline execution):** Skip worktree creation. The main agent creates a task branch without a worktree: `git branch task/<feature>/<package-id> <base>` (where `<base>` is `main` for independent tasks or `feature/<feature>` for dependent tasks). The main agent works directly and commits to this branch.
-
-**For delegated tasks — independent (no dependencies on earlier feature work):**
-```bash
-git worktree add .worktrees/<feature>/wp-<package-id> -b task/<feature>/<package-id> main
+Choices:
+  approve auto-resolve  — recommended; run until clean or a stop condition
+  step-by-step          — ask before each major gate/fix round
+  abort                 — stop before worktree creation
 ```
 
-**For delegated tasks — dependent (needs earlier phases merged into feature ref):**
-```bash
-git worktree add .worktrees/<feature>/wp-<package-id> -b task/<feature>/<package-id> feature/<feature>
-```
+The user must approve this contract unless blanket approval already applies. Blanket approval selects `approve auto-resolve`.
 
-**Each delegated work package gets one worktree and one branch.** Use the work package ID for the worktree directory and branch name. The sub-agent implements all of the package's tasks within this single worktree, committing after each task ID.
+**Command-safety approval rule:** Treat plan verification commands as executable inputs. Stop for explicit user approval before running or delegating any command that is destructive, externally visible, credential/network-sensitive, installs dependencies/services, mutates outside the package or merge worktree, or exceeds the advertised verification scope, even in auto-resolve mode.
 
-Branching from the feature ref gives the package access to all previously merged work.
+## Step 4: Initialize Worktree Infrastructure
 
-**Keep branch prefix `task/<feature>/`** to avoid broad branch naming refactors, but note that `<package-id>` names a package branch (one branch per work package, not one per task).
+Invoke the `worktree` skill for git invariants, then load `plugins/super-developer/skills/implement/references/worktree-merge-cleanup.md` for implement-specific creation, merge, conflict, and cleanup commands.
 
-### 7b. Update Status
+Required inline invariants:
+- Root worktree is user-owned; never switch it and never assume it is on `main`.
+- Base ref: `<base-ref>` (default `main`; may be a parent feature branch such as `feature/<base>`).
+- Feature ref: `feature/<feature>`.
+- Target ref: `<target-ref>` (default `main`; for stacked features, usually the parent feature branch).
+- Package worktree: `.worktrees/<feature>/wp-<WP-ID>`.
+- Package branch: `task/<feature>/<WP-ID>`; `<WP-ID>` is a work package ID, not a task ID.
+- Integration worktree: `.worktrees/<feature>/merge`.
+- Merge package branches into the feature ref once per package branch.
+- Prove package branches are merged with `git merge-base --is-ancestor` before removing worktrees/branches.
+- Push `feature/<feature>` for review/testing when final implementation validation passes, but never merge into `<target-ref>` without explicit user approval for that exact target.
 
-Set assigned tasks to `in-progress` in tasks.json. Write immediately.
+## Step 5: Analyze Actionable Packages
 
-### 7c. Execute Inline Tasks
+Use `work_packages` from validated `tasks.json`; implementation does not infer packages when they are absent. Load `plugins/super-developer/skills/implement/references/package-dispatch.md` for package shape, file-impact, runtime adjustment, and batch selection rules.
 
-For tasks classified as inline per Step 6.5, the main agent executes directly:
+A package is externally actionable when:
+- it contains at least one `pending` task;
+- no task is `blocked` unless the whole package is reported blocked;
+- every package in `depends_on` has all tasks `done`;
+- every task dependency outside the package is `done`.
 
-1. Read SPEC.md to understand the feature requirements holistically.
-2. Read the task's description and acceptance criteria from tasks.json.
-3. Read `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/clean-code-rules.md` and apply the Development Quality Contract.
-4. Read existing files relevant to the task before making changes.
-5. Implement the changes and commit to the task branch with a descriptive message.
-6. Verify each acceptance criterion and run directly relevant tests/checks.
-7. For non-trivial inline work, capture Quality Contract Evidence: inspection outcome, boundary/design choice, affected artifacts, verification run, and rule exceptions.
-8. Update task status to `done` with `completed_at` timestamp.
+Internal task dependencies do not block dispatch; the package sub-agent sequences them and commits after each task ID.
 
-**Inline failure handling:** If an inline task turns out to be more complex than expected (ambiguous requirements, unexpected codebase interactions), reclassify it as delegated. Reset the task branch (`git branch -D task/<feature>/<task>` and recreate), then spawn a sub-agent for it in the next batch.
+Edge cases:
+- All tasks `done`: do not update feature status here; proceed to final validation/completion.
+- Any task `blocked`: list `blocked_reason` and ask how to proceed.
+- Any task `in-progress`: treat as interrupted state; ask whether to continue or reset to `pending`.
 
-**Mixed batch ordering:** When a batch contains both inline and delegated tasks, execute inline tasks first, then spawn sub-agents for delegated tasks. This ensures inline commits are on their task branches before merge operations.
+## Step 6: Dispatch Packages
 
-**All-inline scenario:** When all tasks in the feature are executed inline, no merge worktree is needed. Step 8 still updates tasks.json. Step 9 runs tests from the working directory or a feature branch checkout instead of a merge worktree. The Pipeline Continuation prompt applies only when sub-agents produced work requiring a merge worktree.
+Every selected planned-feature package is delegated to a sub-agent in its own package worktree. The orchestrator does not perform substantive production/test/documentation implementation or fixes inline. If a package is too small, merge it with a related package or serialize it; do not turn the orchestrator into the implementer.
 
-### 7d. Spawn Sub-Agents
+Before spawning, announce package IDs, task IDs, branch/worktree names, primary paths, context bundles, risk tags, targeted-review decisions, screened verification commands, model choice, and parallel/serial rationale.
 
-For packages classified as delegated in Step 6.5, spawn sub-agents.
+Before spawning package agents, set assigned task statuses to `in-progress` in `tasks.json` and write the file. If `.tasks/$ARGUMENTS/verification.json` does not exist, create a minimal shell with `schema_version: 1`, `feature`, and empty `entries`.
 
-**Model selection** depends on the resolved preference from Step 2:
+Load `plugins/super-developer/skills/implement/references/subagent-contract.md` and pass its contract to each package agent. Direct orchestrator edits are limited to workflow metadata (`tasks.json`, `verification.json` merge/rejection bookkeeping), mechanical merge-conflict/status artifacts, and explicit user-approved plan/status changes.
 
-**`inherit`:** Do not pass a `model` parameter to sub-agents. They inherit the orchestrator's model.
+## Step 7: Merge and Integration Checkpoint
 
-**`adaptive` (default):** Use the complexity classification from Step 6.5. The inline/delegate boundary already captures this: delegated packages are substantial enough to warrant a sub-agent. Within delegated packages, bias toward Opus when uncertain — the cost of a wrong downgrade is a subtle bug that survives audit. Use Sonnet only for delegated packages that follow well-established patterns and have unambiguous scope.
+After all package agents in the current batch return:
 
-**Specific model name (e.g., `claude-opus-4`):** Pass it directly as the `model` parameter to all sub-agents.
+1. Validate their reports and `verification.json` entries before merge.
+2. Merge each completed package branch once into `.worktrees/<feature>/merge`.
+3. Run the lightweight integration checkpoint before marking tasks done or dispatching downstream packages.
+4. Run targeted package review when `targeted_review_required` is true or risk tags trigger it.
+5. Delegate fresh repair/verification agents for rejected packages or confirmed review findings; do not fix inline.
 
-Each sub-agent receives:
-- `.tasks/$ARGUMENTS/SPEC.md` — requirements specification
-- `.tasks/$ARGUMENTS/tasks.json` — task and work-package details
-- The assigned work package ID and task IDs
-- Package `primary_paths` to inspect first
-- Package `verification_commands`, if any
-- The worktree path to work in (e.g., `.worktrees/<feature>/wp-WP1/`)
-- `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/clean-code-rules.md` — the Development Quality Contract to follow
-- Project-level instructions (CLAUDE.md, AGENTS.md) if they exist
+Load `plugins/super-developer/skills/implement/references/integration-checkpoint.md` for ledger validation, package verification, targeted package review, rejection rules, and repair packets.
 
-Each sub-agent must:
-- Locate its assigned work package in tasks.json
-- Complete the package's tasks in dependency order when internal dependencies exist
-- Start code exploration with package `primary_paths`, then broaden only when imports, tests, or acceptance criteria require it
-- Read existing files relevant to the assigned package before making changes
-- Work exclusively within the assigned worktree directory
-- Commit after completing each task ID so the orchestrator can assess per-task completion
-- Run package `verification_commands` when provided, plus any directly relevant tests/checks discovered during implementation
-- Report completed task IDs, acceptance criteria verified, Quality Contract Evidence (inspection outcome, boundary/design choice, affected artifacts, verification run, rule exceptions), files changed, and any follow-up risks
+Evidence/ledger gate: do not mark a task `done` merely because code was committed. Done requires accepted ledger evidence for every assigned acceptance criterion, successful package verification, and any required targeted package review/fix pass.
 
-**Do not pass conversation history to sub-agents.** They work from files only.
+## Step 8: Update Status and Continue Batches
 
-### 7e. Merge Completed Tasks into Feature Branch
+Only after the integration checkpoint and targeted package review pass:
 
-After all sub-agents in the current batch complete, merge their work before starting the next batch. Merge once **per package branch** (not per task ID). For packages containing multiple tasks, the tasks share one branch — merge it once. For inline tasks, merge the task branch into the feature branch the same way.
+1. Set completed package tasks to `done` and add `completed_at`.
+2. If evidence is rejected or package work is incomplete, set `blocked` with `blocked_reason` or delegate the repair packet from the integration checkpoint reference.
+3. Report delegated evidence locations, ledger-entry status, orchestrator-rerun commands, targeted package review outcome, files changed, and unresolved risks.
+4. Re-evaluate actionable packages and loop to Step 5 until no dispatchable work remains.
 
-```bash
-# Create merge worktree on the feature branch (if not already created)
-git worktree add .worktrees/<feature>/merge feature/<feature>
-cd .worktrees/<feature>/merge
+## Step 9: Final Feature Completion
 
-# Merge each task branch (one branch per sub-agent or inline task)
-git merge task/<feature>/<task-name> --no-edit
-```
+When all phases/tasks are complete:
 
-**Merge conflict handling:** If `git merge` reports conflicts:
-1. Inspect the conflicting files. If conflicts are trivially resolvable (adjacent non-overlapping changes in the same file), resolve them and commit.
-2. If conflicts are substantive (overlapping logic, incompatible changes), abort the merge: `git merge --abort`
-3. Set the conflicting task's status to `blocked` with `blocked_reason: "merge conflict with <other-task> in <file(s)>"`. For packages containing multiple tasks, block all tasks in the package.
-4. Report the conflict to the user and suggest re-sequencing the conflicting tasks (run them serially instead of in parallel).
-
-Complete Steps 7e, 7e-bis, and 7f for the current batch before returning to Step 5. Dependent packages in the next batch require the feature ref to contain all previously merged work.
-
-### 7e-bis. Lightweight Integration Checkpoint
-
-Before marking package tasks `done` or dispatching downstream packages, the main agent verifies the integrated feature branch state:
-
-1. Confirm each package branch is merged into `.worktrees/<feature>/merge` using `git merge-base --is-ancestor`.
-2. Confirm the merge worktree is clean or contains only intentional merge-resolution commits.
-3. Review each sub-agent report for completed task IDs, acceptance criteria verification, commands run, and unresolved risks.
-4. Run package `verification_commands` from the merge worktree when provided.
-5. Run cheap relevant global checks when discoverable and appropriate for the project, such as targeted tests, typecheck, or lint. Do not run expensive full-suite checks after every package unless project convention indicates they are cheap.
-6. If verification fails, do not dispatch downstream packages. Mark affected tasks `blocked` with a concise `blocked_reason`, or create a fix package if the issue is directly repairable within the current implementation scope.
-
-### 7f. Verify and Clean Up Task Worktrees
-
-**Pre-cleanup verification (mandatory):**
-```bash
-cd .worktrees/<feature>/merge
-git merge-base --is-ancestor task/<feature>/<package-id> HEAD && echo "merged" || echo "NOT MERGED"
-# Verify each package branch (one per work package). ALL must print "merged".
-```
-
-**Only if ALL verify as merged:**
-```bash
-cd $PROJECT_ROOT
-git worktree remove .worktrees/<feature>/wp-<package-id>
-git branch -d task/<feature>/<package-id>
-```
-
-For each work package, there is one worktree and one branch to remove (named after the package ID). Tasks within the package were committed individually but share the package branch.
-
-**Keep the merge worktree** — it holds the feature branch checkout needed for subsequent steps.
-
-## Step 8: Collect Results and Update
-
-1. Update each completed task's `status` to `done` in tasks.json. Add `completed_at` timestamp.
-2. If a sub-agent could not complete a task, set `status` to `blocked` with `blocked_reason`.
-3. **Package partial failures:** If a sub-agent reports partial completion of a package, assess per-task status from the sub-agent's report and the per-task commits (as required in Step 7d). Mark completed tasks as `done` and failed ones as `blocked`. Merge the branch to preserve completed work; blocked tasks can be retried in a future batch.
-4. Report to the user:
-   Include Quality Contract Evidence for any non-trivial inline work and note where delegated sub-agent evidence was reported.
-
-```
-Batch complete:
-  ✅ P1-T001 — Create user model
-  ✅ P1-T002 — Add email validation
-  ✅ P1-T003 — Login page component
-  🚫 P1-T004 — Session store (blocked: Redis not configured)
-
-Progress: 7/24
-```
-
-4. **Re-evaluate.** Completing tasks may unlock new actionable work packages. Loop back to Step 5 to find the next batch.
-
-## Step 9: Phase and Feature Completion
-
-When all tasks in a phase are `done`:
-- Note the phase completion to the user.
-- If more phases exist, continue to the next phase.
-
-When all phases are complete:
-1. Update feature `status` to `completed` in tasks.json.
-2. Run tests to validate the integrated feature. If a merge worktree exists (`.worktrees/<feature>/merge`), run from there. If all tasks were executed inline (no merge worktree), run from a temporary feature branch checkout or the working directory.
-3. Push the feature branch: `git push -u origin feature/<feature>`.
-4. **Do NOT merge to main.** Wait for explicit user approval per the git worktree strategy. "Push to remote" does NOT mean "merge to main."
-
----
+1. Run final ledger validation with `python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/validate-tasks-json.py" --final ".tasks/<feature>/tasks.json"` from the integrated merge worktree when one exists. Reject stale, missing, failed, blocked, or unapproved manual-required entries.
+2. Update feature `status` to `completed` only after final ledger validation passes.
+3. Run integrated feature tests/checks from `.worktrees/<feature>/merge` when it exists, applying the command-safety approval rule.
+4. Push the feature branch: `git push -u origin feature/<feature>`.
+5. **Do not merge to the target branch.** Wait for explicit user approval for the named `<target-ref>`. "Push to remote" does not mean "merge to target."
 
 ## Pipeline Continuation
 
-If this stage failed or requires user intervention, STOP. Do not invoke the next stage.
+If implementation failed or requires user intervention, stop. Do not invoke the next stage.
 
-If blanket approval was given (e.g., "proceed through all stages", "run end to end", "do everything"), default to `both` without asking.
+If blanket approval or `approve auto-resolve` was given:
+1. Invoke `review-code` with `<feature-name>`.
+2. Delegate confirmed 🔴/🟠 findings in coherent fix batches unless a stop condition or design-decision card requires the user.
+3. Rerun review-code after each fix batch until it returns CLEAN or a stop condition applies.
+4. Only after CLEAN review-code, invoke `audit` with `<feature-name>` as the final internal acceptance gate.
 
-Otherwise, present:
+If step-by-step mode was selected, present review-code as the next recommended gate and audit as the final gate after clean review. Do not offer separate `audit`, `review`, and `both` choices as the normal post-implementation UX.
 
-```
-Implementation complete. Merge worktree at `.worktrees/<feature>/merge/`.
-
-How do you want to proceed?
-
-  audit   — Verify acceptance criteria and Development Quality Contract compliance
-  review  — Multi-agent code review (security, logic, performance, architecture)
-  both    — Audit first, then code review if audit passes (sequential)
-  done    — No further verification
-```
-
-| Selection | Action |
-|---|---|
-| `audit` | Use the Skill tool with: skill: "audit", args: "<feature-name>" |
-| `review` | Use the Skill tool with: skill: "review-code", args: "<feature-name>" |
-| `both` | Use the Skill tool with: skill: "audit", args: "<feature-name>". Treat as blanket pipeline approval — audit will automatically proceed to review-code upon PASS. |
-| `done` | No action. Pipeline ends. |
-
-Do NOT attempt to execute audit or review-code logic inline. The Skill tool loads each properly.
+Do not execute review-code or audit logic inline; load each skill normally.
 
 ## Rules
 
-- **The main agent orchestrates and may execute inline.** For small, well-defined packages (per Step 6.5), the main agent implements directly. For substantial or parallel work, sub-agents write the code.
-- **The main agent owns git infrastructure.** Sub-agents work in assigned worktree directories only. They do not create worktrees, branches, or run merge operations.
-- **Delegate work packages, not individual small tasks.** Sub-agents should receive substantial coherent packages that amortize context-loading cost.
-- **Use parallelism selectively.** Parallelize substantial packages only when dependencies and likely file impact are safe. Do not maximize sub-agent fanout for its own sake.
-- **Verify before downstream delegation.** After merging a package batch, run the lightweight integration checkpoint before marking tasks done and unlocking later packages.
-- **Do not modify SPEC.md** during implementation.
-- **Do not add new tasks** during implementation. If additional work is discovered, note it and suggest a plan update separately.
-- **Follow project conventions.** Ensure sub-agents read CLAUDE.md / AGENTS.md if present.
-- **Never merge to main without explicit user approval.** Even if the user says "push to remote."
+- The main agent orchestrates and verifies; it does not implement planned-feature packages or fixes inline.
+- Sub-agents implement and self-verify; they update `verification.json` with criterion-level evidence tied to stable acceptance criterion IDs.
+- The main agent owns git infrastructure. Sub-agents work only in assigned worktrees and do not create worktrees, branches, or merges.
+- Delegate work packages, not individual small tasks. Parallelize selectively only when dependencies and likely file impact are safe.
+- Validate package evidence, integrated state, and required targeted review before downstream delegation.
+- Fix findings by delegation with current evidence, diff, context bundles, ledger state, and exact criteria still unproven.
+- Do not modify `SPEC.md` or add tasks during implementation. Surface discovered additional work as a plan-update need.
+- Follow project conventions and ensure package agents read CLAUDE.md / AGENTS.md if present.
+- Never merge into `main` or any other target branch without explicit user approval for that exact target.

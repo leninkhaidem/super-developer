@@ -47,6 +47,32 @@ Mark packages as parallel-safe only when likely file ownership and subsystem bou
 
 Each package's `verification_commands` lists concrete shell commands the orchestrator runs after the package merges (for example, `npm test -- auth`). Populate it only with commands known to exist in the project or strongly implied by it. Use `[]` rather than inventing commands; an empty list is preferable to a guessed one.
 
+Treat `verification_commands` as executable inputs from a plan artifact. They must be scoped, deterministic, and known-safe. If a command is destructive, externally visible, credential/network-sensitive, installs dependencies or services, mutates data outside the worktree, or exceeds the advertised verification scope, the Execution Contract must stop for explicit user approval before it runs.
+
+
+## Risk Metadata and Targeted Review
+
+Plans include:
+
+- `risk_tags`: controlled tags used for targeted package review and edge-case checklist obligations.
+- `required_context_bundles`: context bundle IDs package agents must read and cite.
+- `targeted_review_required`: `true` when tags or planner judgment require package-level review.
+
+Targeted-review-triggering tags include:
+
+- `security`, `privacy`, `safety`
+- `persistence`, `data-integrity`, `migration`
+- `runtime-contract`, `library-contract`
+- `public-api`, `exported-types`
+- `concurrency`, `idempotency`, `replay`
+- `performance`, `resource-bounds`
+- `cross-package-integration`
+- `schema`, `traceability`, `validation`
+- `orchestration`, `git-state`, `integration`, `subagent-contract`
+- `review`, `audit`, `fix-loop`, `quality-contract`
+
+Documentation-only tags such as `documentation`, `docs`, `consistency`, and `validation-samples` do not require targeted review by themselves. A package with any targeted-review-triggering tag must set `targeted_review_required: true`; a package may also set it true conservatively even without a triggering tag.
+
 ## Rationale
 
 Every package carries a `rationale` field explaining why its tasks should share one sub-agent context. For multi-task packages, the rationale describes the shared subsystem, file surface, or coherent outcome. For one-task packages, the rationale must explain why the task is substantial, risky, or naturally isolated enough to warrant a dedicated package. Rationale text is reviewer-judged, not mechanically enforced.
@@ -54,6 +80,8 @@ Every package carries a `rationale` field explaining why its tasks should share 
 ## Runtime Adjustment
 
 The implementation orchestrator may merge, split, defer, or reorder planned packages when current task status, file impact, or previous merged work makes the plan unsafe or inefficient. It must briefly state the reason before dispatching.
+
+When runtime adjustment changes package risk, context-bundle needs, verification commands, or targeted-review decisions, the orchestrator must state the reason and update the Execution Contract before dispatch. It must not silently downgrade a package from targeted review when a triggering risk tag remains.
 
 ## Anti-Patterns
 

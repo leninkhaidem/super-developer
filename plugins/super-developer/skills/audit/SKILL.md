@@ -5,15 +5,15 @@ description: >
   acceptance criteria", "post-implementation check", "verify the build", "validate completion",
   or wants to confirm that all tasks in a plan were completed as specified. Triggers on phrases
   like "audit", "verify", "check completion", "acceptance criteria", "did we build what we
-  planned". Always runs as part of the development pipeline after implementation. Also
+  planned". Runs as the final internal acceptance gate in the planned-feature pipeline after review-code/fix loop. Also
   invocable standalone.
 ---
 
 # Audit: Post-Implementation Verification
 
-Lightweight verification that all tasks in a feature plan have been completed as specified. Checks completeness and acceptance criteria against the plan — this is not a full code review.
+Strict verification that all planned feature requirements and acceptance criteria are complete in the current codebase. Checks SPEC.md, tasks.json, verification.json, final code state, and Development Quality Contract MUST-level compliance — this is not a full code review.
 
-**Spawn a sub-agent for the audit. It must work from files only — no conversation history.**
+**Spawn a sub-agent for the audit. It must work from files only — no conversation history. In the planned-feature pipeline, audit is the final internal acceptance gate after review-code/fix loop has completed.**
 
 ## Arguments
 
@@ -23,18 +23,20 @@ Lightweight verification that all tasks in a feature plan have been completed as
 
 ## Step 1: Spawn Audit Sub-Agent
 
-1. Verify `.tasks/$ARGUMENTS/` exists and contains `SPEC.md` and `tasks.json`. If not, list available features and ask.
-2. Execute the shared validator before spawning the audit sub-agent:
+1. Verify `.tasks/$ARGUMENTS/` exists and contains `SPEC.md`, `tasks.json`, and `verification.json`. If not, list available features and ask.
+2. Resolve the audit worktree before validation. Prefer `.worktrees/$ARGUMENTS/merge/` when it exists; otherwise use the current repository root.
+3. Execute the shared validator before spawning the audit sub-agent, pointing stale-evidence checks at the resolved audit worktree:
 
    ```bash
-   python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/validate-tasks-json.py" ".tasks/$ARGUMENTS/tasks.json"
+   python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/validate-tasks-json.py" --final --worktree "<audit-worktree>" ".tasks/$ARGUMENTS/tasks.json"
    ```
 
-   If the validator exits non-zero, stop and resolve the reported `tasks.json` blockers before auditing implementation completeness.
-3. Launch an **Opus-class sub-agent** with:
+   If the validator exits non-zero, stop and resolve the reported `tasks.json` / `verification.json` blockers before auditing implementation completeness.
+4. Launch an **Opus-class sub-agent** with:
 
 - `.tasks/$ARGUMENTS/SPEC.md`
 - `.tasks/$ARGUMENTS/tasks.json`
+- `.tasks/$ARGUMENTS/verification.json`
 - **The merge worktree path** — if the feature was implemented using git worktrees (see the worktree skill for path conventions), direct the sub-agent to work from `.worktrees/<feature>/merge/` where the feature branch is checked out. If no worktree exists (e.g., standalone audit), use the current working directory.
 - Access to the project codebase from that worktree
 
@@ -42,12 +44,15 @@ The sub-agent must **not** receive any conversation history. It reads the plan c
 
 ## Step 2: Audit Procedure (executed by sub-agent)
 
-First, read SPEC.md and verify every listed requirement and feature-level acceptance criterion against the current codebase:
+First, read SPEC.md, tasks.json, and verification.json. Verification ledger evidence is required for every planned-feature audit, including standalone invocation against `.tasks/<feature>/`.
+
+Verify every listed requirement and feature-level acceptance criterion against the current codebase and final integrated state:
 
 - If a SPEC item describes a user-visible behavior, confirm the behavior exists and matches the requirement.
 - If a SPEC item describes a constraint, confirm the implementation respects it.
-- If a SPEC item cannot be verified programmatically, note it as "manual verification required."
-- If no task covers a SPEC requirement or acceptance criterion, flag it as `[GAP]` even if all task-level criteria pass.
+- If a SPEC item cannot be verified programmatically, require durable user-approved manual evidence in verification.json; otherwise flag `[SPEC]` and fail.
+- If no task acceptance criterion covers a SPEC requirement or acceptance criterion, flag it as `[GAP]` even if all task-level criteria pass.
+- Verify every task acceptance criterion has a ledger entry tied to its criterion ID and source refs.
 
 For every task marked `done` in tasks.json:
 
@@ -55,9 +60,10 @@ For every task marked `done` in tasks.json:
 
 Go through each task acceptance criterion and verify it holds in the current codebase:
 
-- If a criterion specifies a file, function, or endpoint — confirm it exists and behaves as described.
-- If a criterion specifies a testable behavior — run the relevant test or command if possible.
-- If a criterion cannot be verified programmatically — note it as "manual verification required."
+- If a criterion specifies a file, function, endpoint, command, behavior, edge case, or context bundle — confirm the referenced implementation/evidence exists and behaves as described.
+- If a criterion specifies testable behavior — run the relevant test or command if possible, using the command safety rules from the plan and Execution Contract.
+- If `verification.json` has missing, malformed, stale, failed, blocked, or unapproved `manual_required` evidence for the criterion — flag `[ISSUE]` and fail.
+- If a criterion cannot be verified programmatically and no complete user-approved manual evidence exists — flag `[ISSUE]` and fail.
 
 ### 2b. Development Quality Contract Compliance
 
@@ -70,6 +76,15 @@ Read `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/clean-code-rules.md` and verify 
 - Verify non-trivial changes include the compact Quality Contract Evidence block or equivalent evidence: inspection outcome, boundary/design choice, affected artifacts, verification run, and rule exceptions.
 
 Note the file, line, severity, and violated contract clause for each finding.
+
+### 2b-bis. Verification Ledger Check
+
+Apply this section for every audit. Missing `verification.json` is a [LEDGER] failure.
+
+- Treat `verification.json` as an index to proof, not proof itself.
+- For each completed task acceptance criterion, confirm the ledger entry references the correct criterion ID, task ID, package ID, source refs, context bundles, state/commit/worktree, files or symbols, commands/results when applicable, observed result, edge cases when relevant, and mock disclosure.
+- Fail stale evidence when cited files, symbols, commands, or package outputs changed after the recorded proof state.
+- `manual_required` passes only when durable manual evidence includes affected criterion IDs, approval provenance or supplied artifact, observed result, scope, limits, approval date, and state reference. A bare approval boolean is never enough.
 
 ### 2c. Completeness Check
 
@@ -94,8 +109,8 @@ The sub-agent produces a structured report:
 - Tasks completed: X/Y
 - Tasks skipped: N (with reasons)
 - Tasks blocked: N (with reasons)
-- SPEC requirements/acceptance criteria: X/Y verified, N require manual check
-- Task acceptance criteria: X/Y verified, N require manual check
+- SPEC requirements/acceptance criteria: X/Y verified, N failed, N approved manual
+- Task acceptance criteria: X/Y verified, N failed, N approved manual
 
 ### Issues Found
 1. [BLOCKER] <description> — violated requirement/criterion/contract clause
@@ -105,14 +120,15 @@ The sub-agent produces a structured report:
 5. [ISSUE] <description> — task <ID>, criterion <N>
 6. [GAP] <description> — requirement from SPEC.md not covered
 7. [TODO] <file:line> — incomplete work marker found
+8. [LEDGER] <description> — verification.json missing, malformed, stale, blocked/failed, or unapproved manual evidence
 
 ### Passed
 - [list of tasks that fully passed verification]
 
 ### Verdict
-PASS — All tasks completed and verified, with no [BLOCKER], [CODE-QUALITY], [SPEC], [ISSUE], [GAP], or [TODO] findings. [ADVISORY] findings may be listed without blocking completion.
+PASS — All tasks completed and verified in the final state, with no [BLOCKER], [CODE-QUALITY], [SPEC], [ISSUE], [GAP], [TODO], or [LEDGER] findings. [ADVISORY] findings may be listed without blocking completion.
 or
-FAIL — Any [BLOCKER], [CODE-QUALITY], [SPEC], [ISSUE], [GAP], or [TODO] finding requires attention before the feature is considered complete.
+FAIL — Any [BLOCKER], [CODE-QUALITY], [SPEC], [ISSUE], [GAP], [TODO], or [LEDGER] finding requires attention before the feature is considered complete. Manual-required criteria are failures unless durable user-approved manual evidence is present and scoped to the criterion.
 ```
 
 ## Step 4: Handle Results
@@ -126,13 +142,9 @@ Based on the sub-agent's report:
 
 ## Pipeline Continuation
 
-If audit verdict is FAIL, present issues and STOP. Do not invoke the next stage.
+If audit verdict is FAIL, present issues and STOP. Do not invoke another broad review/audit loop automatically. In auto-resolve mode, return findings to the implement/review-code fix delegation flow with bug-class guidance.
 
-If PASS and blanket approval was given (e.g., "proceed through all stages", "run end to end", "do everything"), invoke immediately. If PASS without blanket approval, state: "Audit passed. Merge worktree at `.worktrees/<feature>/merge/`." Wait for user confirmation. Then invoke:
-
-Use the Skill tool with: skill: "review-code", args: "<feature-name>"
-
-Do NOT attempt to execute the next skill's logic inline. The Skill tool loads it properly.
+If PASS, state: "Final audit passed. Merge worktree at `.worktrees/<feature>/merge/` is ready for merge approval." Do not invoke review-code after PASS; review-code already runs before final audit in the planned-feature pipeline.
 
 ## Constraints
 

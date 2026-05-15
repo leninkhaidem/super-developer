@@ -12,366 +12,128 @@ description: >
 
 # Plan: Convert Discussion to Structured Implementation Tasks
 
-Translate a completed brainstorming or requirements discussion into a structured, agent-executable task plan. Produces a feature directory under `.tasks/` containing a requirements specification (`SPEC.md`) and a JSON task file.
-
-Execute this directly as the main agent — do not delegate to a sub-agent. The main agent has the conversation context needed to create the plan.
+Translate completed requirements discussion into `.tasks/<feature-name>/SPEC.md` and `.tasks/<feature-name>/tasks.json`. Execute as the main agent; do not delegate the planning decision to a sub-agent because the main agent has the conversation context.
 
 ## Arguments
 
-- `$ARGUMENTS` — Optional feature name in kebab-case (e.g., `auth-system`). If not provided, infer from the discussion context.
+- `$ARGUMENTS` — Optional feature name in kebab-case. If absent, infer from discussion context.
 
 ---
 
 ## Step 1: Identify the Feature
 
-Review the full conversation history from this session. Extract only requirements, constraints, acceptance criteria, and out-of-scope decisions that the user stated or approved. If core requirements are missing or contradictory, ask for clarification before writing files. Determine a short, descriptive kebab-case name (e.g., `user-auth`, `api-redesign`, `search-indexing`).
+Extract only requirements, constraints, acceptance criteria, exclusions, and decisions the user stated or explicitly approved. If core requirements are missing or contradictory, ask before writing files.
 
-**Infer the feature name from the discussion context.** Do not ask the user for a name unless the conversation is genuinely ambiguous with multiple unrelated features discussed. If `$ARGUMENTS` is provided, use that directly.
+Infer a short descriptive feature name from discussion context. Use `$ARGUMENTS` directly when provided. Ask for a name only when multiple unrelated features make inference genuinely ambiguous.
 
-**Validate the feature name:** Ensure it matches `^[a-z0-9][a-z0-9-]*$` (lowercase alphanumeric and hyphens only). Reject names containing path traversal sequences (`../`), shell metacharacters, or spaces. This name is used in filesystem paths and git branch names.
-
-If `.tasks/<feature-name>/` already exists, ask whether to overwrite or pick a different name.
+Validate the feature name before using it in paths or branch names:
+- Must match `^[a-z0-9][a-z0-9-]*$`.
+- Reject path traversal (`../`), shell metacharacters, spaces, and uppercase characters.
+- If `.tasks/<feature-name>/` already exists, ask whether to overwrite or pick a different name.
 
 ## Step 2: Load Planning Quality References
 
-Read `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/work-packages.md` and `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/clean-code-rules.md` before creating plan artifacts. Use work-package rules when deciding task granularity, package grouping, package dependencies, and package parallel-safety. Use the Development Quality Contract to shape task boundaries, acceptance criteria, verification commands, work packages, and design decisions.
+Read these now, before creating artifacts:
+- `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/work-packages.md` — work-package granularity, grouping, dependencies, parallel safety, risk metadata, and targeted review rules.
+- `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/clean-code-rules.md` — Development Quality Contract used as a planning lens.
 
-Do not paste generic clean-code rules into every task. Encode only feature-specific quality constraints that materially affect the plan and can be observed or verified by implementers/reviewers.
+Use them to shape task boundaries, acceptance criteria, verification commands, work packages, and design decisions. Do not paste generic quality rules into every task; encode only feature-specific risks that materially affect the plan and can be observed or verified.
 
-During planning, check foreseeable quality risks and make them visible where relevant: caller contracts and public API compatibility; trust-boundary validation; success, failure, partial-success, and invalid-input behavior; migration, rollback, and idempotency; verification tied to acceptance criteria; module/dependency boundaries; performance or concurrency implications; and work-package boundaries that avoid unnecessary coupling or oversized edits.
+During planning, surface foreseeable risks where relevant: caller contracts and public API compatibility; trust-boundary validation; success, failure, partial-success, and invalid-input behavior; migration, rollback, and idempotency; verification tied to acceptance criteria; module/dependency boundaries; performance or concurrency implications; and work-package boundaries that avoid unnecessary coupling or oversized edits.
 
 ## Step 3: Run Design Preflight When Triggered
 
-Read `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/design-preflight.md`. Before creating `.tasks/<feature-name>/` or writing `SPEC.md`/`tasks.json`, determine whether the plan is nontrivial or risky enough to trigger Design Preflight using the reference's trigger conditions. Skip preflight for straightforward, low-risk plans; when skipped, continue with planner-only decisions as needed.
+Read `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/design-preflight.md`. Before creating `.tasks/<feature-name>/` or writing files, decide whether Design Preflight is triggered by nontrivial or risky planning. Skip only for straightforward, low-risk plans.
 
-When preflight runs, the main agent creates an **ephemeral, neutral Preflight Brief** from user-stated requirements and constraints, verified code references, any proposed approach already under consideration, and open assumptions. The brief is an analysis artifact only: do not persist it under `.tasks/`, include it in `SPEC.md`, or write it as a durable project file.
+When preflight runs:
+- Create an ephemeral, neutral Preflight Brief from user-stated requirements, verified code references, any proposed approach under consideration, and open assumptions.
+- Do not persist the brief under `.tasks/`, include it in `SPEC.md`, or write it as a durable project file.
+- Preflight challengers are read-only sub-agents. Give them only the brief plus bounded code references needed for their rubric. They must not edit files, spawn agents, ask the user, or write final JSON.
+- Treat challenger findings as evidence, not commands.
 
-Preflight challengers are read-only sub-agents. Give them only the Preflight Brief plus bounded code references needed for their rubric. They must not edit files, spawn agents, ask the user, or write final JSON. Their findings are evidence for the main agent, not commands.
-
-Resolve every unresolved `MUST_DECIDE` or `BLOCKERS` finding before writing `SPEC.md` or `tasks.json`. Resolution may be a user clarification, a planner decision recorded in `design_decisions`, or a scoped change to the proposed plan. If resolution changes user-visible semantics or acceptance criteria, ask the user before writing files.
+Resolve every unresolved `MUST_DECIDE` or `BLOCKERS` finding before writing `SPEC.md` or `tasks.json`. Resolution may be user clarification, a planner decision recorded in `design_decisions`, or a scoped plan change. If resolution changes user-visible semantics or acceptance criteria, ask the user before writing files.
 
 ## Step 4: Run Conditional Empirical Spike When Needed
 
-After Design Preflight resolution (or after deciding preflight is not triggered), check whether preflight findings or planner analysis exposed an assumption that cannot be resolved through repo/docs inspection and materially affects task shape, acceptance criteria, architecture, sequencing, risk, or feasibility. If so, invoke `spike-to-plan` before creating `.tasks/<feature-name>/` or writing `SPEC.md`/`tasks.json`.
+After preflight resolution, or after deciding preflight is not triggered, check for assumptions that cannot be resolved through repo/docs inspection and materially affect task shape, acceptance criteria, architecture, sequencing, risk, or feasibility.
 
-Use `spike-to-plan` only for empirical planning evidence, not as a default gate for every feature. Appropriate triggers include uncertain API/library behavior, unknown feasibility, unclear integration path, performance or concurrency risk, risky UX/data-model choices, or multiple viable designs where repo inspection is insufficient.
+Invoke `spike-to-plan` before creating `.tasks/<feature-name>/` or writing files only when empirical evidence is required. Appropriate triggers include uncertain API/library behavior, unknown feasibility, unclear integration path, performance or concurrency risk, risky UX/data-model choices, or multiple viable designs where repo inspection is insufficient.
 
 Treat spike output as planning evidence only. Do not persist spike code in the planned feature. Record accepted spike outcomes as `design_decisions` in `tasks.json`; keep `SPEC.md` requirements-only.
 
-If validating the assumption would require broad or invasive production changes, external access, irreversible side effects, or credentials the current session does not have, stop and ask the user instead of writing tasks around unverified assumptions.
+If validating the assumption would require broad or invasive production changes, external access, irreversible side effects, or unavailable credentials, stop and ask the user instead of writing tasks around unverified assumptions.
 
+## Step 5: Load Artifact Authoring References
 
-## Step 5: Create Directory Structure
+Do not write files until all triggered Design Preflight and spike gates are resolved.
 
-```
-.tasks/<feature-name>/
-├── SPEC.md
-└── tasks.json
-```
+Load only the references needed for the artifact you are about to draft:
+- `${SUPER_DEVELOPER_PLUGIN_ROOT}/skills/implementation-plan/references/spec-template.md` — SPEC.md structure plus source/purity rules.
+- `${SUPER_DEVELOPER_PLUGIN_ROOT}/skills/implementation-plan/references/tasks-json-authoring.md` — tasks.json example shape, design decisions, context bundles, task substance, acceptance criteria, and work-package authoring.
+- `${SUPER_DEVELOPER_PLUGIN_ROOT}/skills/implementation-plan/references/schema-reference.md` — concise human schema map; `validate-tasks-json.py` remains the machine source of truth.
 
-## Step 6: Generate SPEC.md
+## Step 6: Draft SPEC.md
 
-SPEC.md is a **concise requirements specification** — not an architecture brief and not an implementation plan. It is the source of truth for WHAT the user wants, how success is judged, and what is excluded. All task decomposition and implementation detail belongs in tasks.json or in the codebase exploration done during implementation.
+`SPEC.md` is a concise requirements specification, not an architecture brief and not an implementation plan.
 
-**Requirement source rule:** For normative product content, include only requirements, constraints, acceptance criteria, and exclusions stated or explicitly approved by the user in the prior discussion. Code References are non-normative and may include only verified path-level references from lightweight codebase inspection. Do not invent product behavior, architecture, or non-functional requirements to make the spec feel complete. If a needed requirement is ambiguous, ask before writing files.
+Inline invariants:
+- Normative product content may include only requirements, constraints, acceptance criteria, and exclusions stated or explicitly approved by the user.
+- Code References are non-normative and may include only verified path-level references from lightweight codebase inspection.
+- Do not invent product behavior, architecture, or non-functional requirements to make the spec feel complete.
+- If a needed requirement is ambiguous, ask before writing files.
+- Redact secrets, credentials, tokens, PII, and proprietary sensitive values.
+- Do not include code snippets, pseudo-code, line numbers, task breakdowns, implementation sequencing, architecture rationale, or design decisions unless the user explicitly made them product requirements.
+- Use requirement/acceptance IDs so `tasks.json` can trace to the spec.
 
-Structure:
+Use `spec-template.md` for the exact template and detailed purity rules.
 
-```markdown
-# <Feature Name — Human Readable> Specification
+## Step 7: Draft tasks.json
 
-## Overview
-1-2 sentences: user goal and intended outcome.
+Create `tasks.json` with schema version 2, top-level `design_decisions`, `context_bundles`, `work_packages`, and `phases`. Use `tasks-json-authoring.md` for the example shape and authoring rules. Use `schema-reference.md` for a human schema map, and defer machine-owned details to `${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/validate-tasks-json.py`.
 
-## Requirements
-User-facing functional requirements. Use stable IDs for traceability.
-- REQ-1: ...
-- REQ-2: ...
+Planning invariants:
+- Keep `SPEC.md` requirements-only; task decomposition and design rationale belong in `tasks.json`.
+- Persist accepted preflight, spike, or planner decisions as concise `design_decisions`; do not persist reviewer debate or the Preflight Brief.
+- Record only feature-specific execution constraints or replan triggers that would invalidate the plan if violated; do not add boilerplate sections, generic stop conditions, or quality-rule copies to `tasks.json`.
+- Every SPEC `REQ-*` and `AC-*` must be covered by task acceptance criteria.
+- Task acceptance criteria are objects with stable IDs, observable criteria, typed source refs, and verification hints when proof depends on non-obvious context.
+- Every task must have a self-contained, verifiable outcome; merge tasks that are merely mechanical steps toward another task.
+- Work packages are required for every plan and are the implementation delegation unit; tasks remain the tracking and acceptance-criteria unit.
+- Use controlled risk tags and targeted-review semantics from `validate-tasks-json.py` and `work-packages.md`; do not maintain a competing taxonomy in the plan text.
 
-## Acceptance Criteria
-Feature-level, user-visible outcomes. Use stable IDs; prefer Given/When/Then when useful.
-- AC-1: ...
-- AC-2: ...
+## Step 8: Pre-Write Validation
 
-## Constraints
-Non-negotiable user-stated constraints: compatibility, security, performance, policy, timing.
+Before creating `.tasks/<feature-name>/` or writing files, load `${SUPER_DEVELOPER_PLUGIN_ROOT}/skills/implementation-plan/references/validation-checklist.md` and run its pre-write checklist.
 
-## Code References
-Verified existing files/modules to inspect. Reference paths only; no code excerpts or change instructions. Use `None identified` when no safe references are known.
-- `path/to/file`: why it is relevant.
-
-## Out of Scope
-User-stated exclusions and boundaries.
-```
-
-Rules:
-- Keep concise, but never omit a user-stated requirement to satisfy brevity.
-- Redact secrets, credentials, tokens, PII, and proprietary sensitive values; use placeholders and describe the requirement without persisting raw sensitive data.
-- SPEC.md may reference file paths, APIs, or existing modules, but must not include code snippets, pseudo-code, line numbers, or instructions for how to change code.
-- Include Code References only after lightweight codebase inspection verifies the paths. If no relevant paths are known, write `None identified`.
-- Keep SPEC.md requirements-only. Do not include architecture rationale or design decisions unless the user explicitly made them a product requirement. Persist accepted design decisions in tasks.json instead.
-- Do not include task breakdowns or implementation sequencing.
-- Use requirement/acceptance IDs so tasks.json can trace to the spec without duplicating whole sections.
-
-## Step 7: Generate tasks.json
-
-Create a JSON file following this schema:
-
-```json
-{
-  "feature": "<feature-name>",
-  "title": "Human-readable feature title",
-  "description": "One-line summary of what this feature delivers",
-  "created_at": "<ISO 8601>",
-  "status": "planned",
-  "design_decisions": [
-    {
-      "id": "DD-1",
-      "decision": "Concise accepted design decision",
-      "rationale": "Why this decision best satisfies the requirements and constraints",
-      "alternatives_considered": [
-        "Alternative considered and why it was not chosen"
-      ],
-      "source": "design-preflight"
-    },
-    {
-      "id": "DD-2",
-      "decision": "Planner decision worth preserving for implementers/reviewers",
-      "rationale": "Why this decision is necessary",
-      "alternatives_considered": [],
-      "source": "planner"
-    },
-    {
-      "id": "DD-3",
-      "decision": "Empirically validated planning decision from a scoped spike",
-      "rationale": "What the spike proved and why it shapes the plan",
-      "alternatives_considered": [
-        "Alternative considered and why spike evidence rejected it"
-      ],
-      "source": "planner"
-    }
-  ],
-  "work_packages": [
-    {
-      "id": "WP1",
-      "title": "Short package title",
-      "description": "Coherent implementation bundle delivered by one sub-agent.",
-      "task_ids": ["P1-T001", "P1-T002"],
-      "depends_on": [],
-      "parallel_safe_with": [],
-      "primary_paths": ["path/to/module/"],
-      "verification_commands": [],
-      "rationale": "Why these tasks should share one implementation context."
-    }
-  ],
-  "phases": [
-    {
-      "id": "P1",
-      "name": "Phase name",
-      "description": "What this phase accomplishes as a unit",
-      "order": 1,
-      "tasks": [
-        {
-          "id": "P1-T001",
-          "title": "Short descriptive title",
-          "description": "WHAT to build and key constraints. References affected files/modules. Includes non-discoverable constraints. Does NOT prescribe exact code or implementation steps.",
-          "status": "pending",
-          "dependencies": [],
-          "acceptance_criteria": [
-            "Specific, verifiable criterion"
-          ],
-          "context": "Why this task exists — the SPEC.md requirement or acceptance criterion that motivated it"
-        },
-        {
-          "id": "P1-T002",
-          "title": "Second task in the same package",
-          "description": "Sibling task delivering related work in the same subsystem.",
-          "status": "pending",
-          "dependencies": ["P1-T001"],
-          "acceptance_criteria": [
-            "Specific, verifiable criterion"
-          ],
-          "context": "Why this task exists — the SPEC.md requirement or acceptance criterion that motivated it"
-        }
-      ]
-    }
-  ]
-}
-```
-
-### Schema Reference
-
-| Level | Field | Type | Values |
-|---|---|---|---|
-| Feature | `status` | string | `planned`, `reviewed`, `in-progress`, `completed`, `on-hold` |
-| Feature | `created_at` | string | ISO 8601 timestamp |
-| Feature | `design_decisions` | object[] | Top-level array of accepted design decisions; use `[]` when none |
-| Design Decision | `id` | string | `DD-<N>` (e.g., `DD-1`, `DD-2`), sequential with no gaps |
-| Design Decision | `decision` | string | Concise accepted design decision |
-| Design Decision | `rationale` | string | Brief rationale for the accepted decision |
-| Design Decision | `alternatives_considered` | string[] | Alternatives considered; may be empty for simple planner decisions |
-| Design Decision | `source` | string | `design-preflight` or `planner` |
-| Phase | `id` | string | `P<N>` (e.g., `P1`, `P2`) |
-| Phase | `order` | number | Sequential, no gaps |
-| Task | `id` | string | `<PhaseID>-T<NNN>` (e.g., `P1-T001`) |
-| Task | `status` | string | `pending`, `in-progress`, `done`, `blocked`, `skipped` |
-| Task | `dependencies` | string[] | Task IDs within this feature |
-| Task | `completed_at` | string | ISO 8601 timestamp (added when status changes to `done`) |
-| Task | `blocked_reason` | string | Reason for blocking (added when status changes to `blocked`) |
-| Work Package | `id` | string | `WP<N>` (e.g., `WP1`) |
-| Work Package | `title` | string | Short human-readable package name |
-| Work Package | `description` | string | Coherent implementation bundle description |
-| Work Package | `rationale` | string | Why these tasks share one implementation context; required and reviewer-judged for one-task packages |
-| Work Package | `task_ids` | string[] | Task IDs included in this package; every task appears exactly once across packages |
-| Work Package | `depends_on` | string[] | Work package IDs that must be integrated first |
-| Work Package | `parallel_safe_with` | string[] | Work package IDs safe to run in the same implementation batch |
-| Work Package | `primary_paths` | string[] | Likely files/directories to inspect first; may be empty only when no safe paths are known |
-| Work Package | `verification_commands` | string[] | Concrete commands for package-level checks; empty when unknown |
-
-### Design Decision Authoring Guidelines
-
-- Add top-level `design_decisions` to every tasks.json. Use `[]` when there are no Design Preflight, `spike-to-plan`, or planner decisions worth preserving.
-- Persist concise accepted decisions only, not the full reviewer debate, discarded comments, or transient Preflight Brief content.
-- Use IDs `DD-1`, `DD-2`, ... sequentially with no gaps.
-- Use `source: "design-preflight"` for decisions accepted from preflight resolution and `source: "planner"` for simple planner decisions or accepted `spike-to-plan` evidence adopted by the main agent.
-- Record decisions that materially affect implementation boundaries, verification, security/privacy/safety posture, or task decomposition. Do not record obvious restatements of SPEC requirements.
-- Use the Development Quality Contract when a decision materially affects caller contracts, API compatibility, trust boundaries, failure behavior, migration/rollback/idempotency, verification strategy, module/dependency boundaries, performance/concurrency, or work-package boundaries. Record only the feature-specific decision, not generic clean-code advice.
-- Keep SPEC.md requirements-only; design rationale belongs here, not in SPEC.md.
-
-### Task Authoring Guidelines
-
-- **Descriptions state WHAT to build, not HOW to code it.** Reference affected files and modules so the agent knows where to work. Include constraints that aren't discoverable from the codebase — external API contracts, security policies, performance bounds, requirements confirmed during planning. The implementing agent derives the actual code from codebase exploration.
-- Include feature-specific Development Quality Contract constraints only when they are not safely discoverable from the referenced code and materially affect implementation: caller contract, compatibility, trust-boundary validation, failure behavior, migration/rollback/idempotency, performance/concurrency, or module/dependency boundary.
-- **"Discoverable" means:** exists in SPEC.md, the referenced files, or their immediate imports. If an agent reading those files would find it, don't repeat it in the description.
-- **Anchor patterns, don't prescribe code.** When a task should follow an existing pattern, reference it: "Follow middleware pattern in `src/middleware/cors.ts`." The agent explores, finds the pattern, follows it.
-- **Description budget:** Target 200-400 characters. Descriptions exceeding 600 characters likely contain implementation prescriptions — review and trim.
-- The `description` field covers WHAT + constraints. The `context` field covers WHY — one or two sentences linking back to a SPEC.md requirement or acceptance criterion. Don't mix them.
-- Each task: scoped for a single focused agent session.
-- Group tasks into phases that deliver a testable increment.
-- Dependencies must not be circular. Tasks in phase N may depend on tasks in phases 1..N only.
-- Task IDs must be unique across all phases.
-
-#### Description Anti-Patterns
-
-Do not include in task descriptions:
-- Exact code snippets or function bodies
-- Line number references (fragile, become stale)
-- Step-by-step implementation instructions
-- Library or parser choices (unless security-mandated — see acceptance criteria guidance below)
-- Defensive coding prescriptions the agent should already know
-
-When deviating from these guidelines for a legitimate reason (external API contract, complex migration ordering), note the justification in the task's `context` field.
-
-#### Reference Example
-
-```
-✅ INTENT-DRIVEN (285 chars):
-"Implement JWT authentication middleware protecting all `/api/*` routes.
-Reject invalid/missing tokens with 401. Attach decoded user identity to
-request context. Add rate limiting (100 req/15min/IP). Follow existing
-middleware pattern in `src/middleware/cors.ts`."
-```
-
-#### Acceptance Criteria Guidance
-
-Criteria must describe **verifiable outcomes**, not implementation details:
-- ✅ "Returns empty list on any network or parse error" (behavioral)
-- ✅ "XML parsing is safe against XXE attacks (use defusedxml or equivalent)" (security outcome with verification hint)
-- ✅ "Response latency ≤200ms at p95 under 100 concurrent requests" (measurable)
-- ❌ "Uses `express-rate-limit` library" (implementation prescription)
-- ❌ "Parser tries lxml first, falls back to html.parser" (internal implementation detail)
-
-**Security-mandated specifics are acceptable.** When a security outcome requires a specific implementation (XXE-safe parser, bcrypt over MD5, parameterized queries), name it in the criterion as a verification hint — this is a security constraint, not an implementation detail.
-
-Apply Development Quality Contract constraints only when relevant to the task and keep them observable/verifiable. Prefer criteria such as "malformed external payloads produce a distinguishable error and do not persist partial data" over generic instructions such as "write clean error handling."
-
-### Task Substance Rule
-
-Each task must have a **self-contained, verifiable outcome** — a change that is independently meaningful when described in one sentence.
-
-**Merge tasks that lack standalone intent.** If a task is only a mechanical step toward another task's goal (adding an import, creating a type alias, updating a config key), it is usually not a task — it is part of the task that needs that change. Fold it into the task that gives it meaning, unless the integration step itself has independent acceptance criteria (e.g., configuring a DI container registration that requires specific binding rules).
-
-**Independence test:** For each candidate task, ask: *"Can a reviewer verify this task's acceptance criteria without seeing any other task?"* If the answer is no, the task is too thin — merge it with the task it serves.
-
-**Description quality test:** For each task, ask: *"Does this description tell the agent WHAT to achieve, or HOW to code it?"* If it reads like a code tutorial, trim to intent + constraints.
-
-Examples of tasks that **fail** this test and should be merged:
-- "Add import for `UserService`" → merge into the task that uses `UserService`
-- "Create empty migration file" → merge into the task that defines the migration
-- "Add route constant" → merge into the task that implements the route handler
-
-Examples of tasks that **pass** despite being small:
-- "Add rate-limiting middleware to auth endpoints" (3 lines, but independently verifiable and meaningful)
-- "Configure CORS policy for the new API namespace" (small, but self-contained security concern)
-
-### Work Package Authoring Guidelines
-
-- Create `work_packages` for every generated plan. Tasks remain the tracking unit; work packages are the delegation unit.
-- Every task ID must appear in exactly one work package.
-- Group tasks by subsystem, module, directory, API surface, UI flow, data model, or shared test surface.
-- Prefer substantial coherent packages over one-task packages. A one-task package requires a clear rationale that the task is large, risky, or naturally isolated.
-- A package may include tasks with internal dependencies when one sub-agent can complete them sequentially in the same worktree.
-- Use `depends_on` only for dependencies on other work packages. Internal task dependencies do not require package-level dependencies.
-- Fill `primary_paths` with likely files or directories to inspect first when known from Code References or task descriptions.
-- Fill `verification_commands` only with commands known to exist or strongly implied by the project. Use `[]` rather than inventing commands.
-- Use `parallel_safe_with` conservatively. Default to `[]` unless independent file/module impact is verified. When file impact is ambiguous, leave it empty. If two packages cannot run in parallel because they touch the same subsystem or files, prefer combining them into one package over leaving them separate (per `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/work-packages.md`).
-- Use package boundaries to reduce unnecessary coupling and oversized edits. If Development Quality Contract risks require one agent to see a caller contract, migration boundary, shared failure mode, or cross-module invariant end-to-end, group that work in one coherent package instead of splitting it for artificial parallelism.
-
-## Step 8: Validate
-
-Before writing files, verify:
-
-- SPEC.md contains all user-stated requirements, acceptance criteria, constraints, and out-of-scope items from the discussion
-- SPEC.md contains no raw secrets, credentials, tokens, PII, or proprietary sensitive values
-- SPEC.md contains no implementation details, code snippets, pseudo-code, line numbers, or task breakdowns
-- SPEC.md Code References are verified path-only references or `None identified`
-- SPEC.md remains requirements-only and does not contain architecture rationale or design decisions unless explicitly user-stated as product requirements
-- If Design Preflight was triggered, all `MUST_DECIDE` and `BLOCKERS` findings are resolved before writing files
-- If `spike-to-plan` was triggered, accepted spike outcomes are recorded as `design_decisions` in tasks.json and not in SPEC.md
-- No unnecessary verbatim duplication between SPEC.md and tasks.json; tasks should trace to spec IDs while adding task-level verification detail
-- `design_decisions` exists at the top level; when empty, it is `[]`
-- `design_decisions[].id` values are sequential `DD-1`, `DD-2`, ... with no gaps
-- `design_decisions[].source` is only `design-preflight` or `planner`
-- `design_decisions[]` entries include `decision`, `rationale`, `alternatives_considered`, and `source`, and persist concise accepted decisions rather than reviewer debate
-- No circular dependencies
-- All dependency references point to valid task IDs
-- Every task has at least one acceptance criterion
-- Every task passes the independence test (self-contained, verifiable outcome)
-- Every task passes the description quality test (intent + constraints, not implementation tutorial)
-- Phase order is sequential with no gaps
-- Task IDs are unique across all phases
-- `work_packages` exists and contains every task exactly once
-- Work package IDs are unique and sequential (`WP1`, `WP2`, ...)
-- Every `work_packages[].task_ids[]` reference points to a valid task ID
-- Every `depends_on` and `parallel_safe_with` reference points to a valid work package ID
-- `parallel_safe_with` is symmetric: if `WPx.parallel_safe_with` includes `WPy`, then `WPy.parallel_safe_with` must include `WPx`
-- A work package does not list itself in `depends_on` or `parallel_safe_with`
-- Package dependencies do not contradict task dependencies
-- One-task work packages include a rationale explaining why the task is substantial, risky, or isolated. This rationale is reviewer-judged, not mechanically enforced
-- `parallel_safe_with` claims are conservative based on likely file/module impact (reviewer-judged, not mechanically enforceable)
-- Feature-specific Development Quality Contract risks are encoded where relevant in `tasks.json` as observable/verifiable task acceptance criteria, verification commands, work-package boundaries, or `design_decisions`; generic quality rules are not copied into every task.
+Minimum inline gate:
+- All triggered Design Preflight `MUST_DECIDE` and `BLOCKERS` findings are resolved.
+- Any required spike evidence is accepted or the user resolved the uncertainty.
+- `SPEC.md` contains only sourced requirements content and verified path-only Code References.
+- `tasks.json` covers all SPEC IDs, has no circular dependencies, and uses valid references for tasks, work packages, design decisions, and context bundles.
 
 ## Step 9: Write Files and Validate tasks.json
 
-Do not write any `.tasks/<feature-name>/` files until any triggered Design Preflight is complete, all unresolved `MUST_DECIDE` or `BLOCKERS` findings are resolved, and any required `spike-to-plan` evidence has been accepted or the user has resolved the uncertainty.
+Only after the Step 8 gate passes:
 
-1. Create `.tasks/<feature-name>/` directory.
+1. Create `.tasks/<feature-name>/`.
 2. Write `SPEC.md`.
-3. Write `tasks.json` (pretty-printed, 2-space indentation).
+3. Write `tasks.json` using pretty-printed JSON with 2-space indentation.
 4. Execute the shared validator against the concrete file path:
 
    ```bash
    python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/validate-tasks-json.py" ".tasks/<feature-name>/tasks.json"
    ```
 
-   If the validator exits non-zero, fix `tasks.json` and rerun the same command until it passes. Do not present the plan summary with an invalid `tasks.json`.
+If the validator exits non-zero, fix `tasks.json` and rerun the same command until it passes. Do not present the plan summary with an invalid `tasks.json`.
+
+After the validator passes, run the post-write checklist in `validation-checklist.md`.
 
 ## Step 10: Present Summary
 
 Display:
-1. Feature name and path
-2. Phase-by-phase task listing (ID, title, dependencies)
-3. Any assumptions that should be verified
+1. Feature name and path.
+2. Phase-by-phase task listing: ID, title, dependencies.
+3. Any assumptions that should be verified.
 
 ---
 
@@ -379,7 +141,7 @@ Display:
 
 If this stage failed or requires user intervention, STOP. Do not invoke the next stage.
 
-If blanket approval was given (e.g., "proceed through all stages", "run end to end", "do everything"), invoke immediately. Otherwise, state: "Plan created for `<feature-name>`." Wait for user confirmation. Then invoke:
+If blanket approval was given (for example, "proceed through all stages", "run end to end", "do everything"), invoke immediately. Otherwise, state: "Plan created for `<feature-name>`." Wait for user confirmation. Then invoke:
 
 Use the Skill tool with: skill: "review-plan", args: "<feature-name>"
 
