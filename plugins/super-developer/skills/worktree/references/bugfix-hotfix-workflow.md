@@ -1,6 +1,6 @@
 # Bugfix and Hotfix Workflow
 
-Use this reference for diagnostic spikes, feature bugfixes, production hotfixes, and hotfix propagation. Root `main` still never switches branches.
+Use this reference for diagnostic spikes, feature bugfixes, production hotfixes, and hotfix propagation. The root worktree is user-owned and must not be switched.
 
 ## Temporary Spike Before Durable Fix
 
@@ -30,7 +30,7 @@ git branch -D spike/<name>
 
 ## Feature Bugfix
 
-Use this when the bug belongs to an in-progress feature and should land in `feature/<feature>` before the feature goes to `main`.
+Use this when the bug belongs to an in-progress feature and should land in `feature/<feature>` before the feature merges into its approved target branch.
 
 ### Create bugfix worktree from the feature ref
 
@@ -63,7 +63,7 @@ After the merge, apply the cleanup-safety reference before removing the bugfix w
 
 ## Production Hotfix
 
-Use this when production is broken and the fix must land on `main` directly. Hotfixes start from `main` in their own worktree; the root worktree remains on `main` and does not checkout the hotfix branch.
+Use this when production is broken and the fix must land on `main` directly. Hotfixes start from `main` in their own worktree; do not switch the root worktree to the hotfix branch.
 
 ### Create hotfix worktree
 
@@ -76,14 +76,18 @@ cd .worktrees/hotfix-<name>
 
 ### Merge hotfix to main after approval
 
-Do not merge to `main` without explicit user approval. Once approved:
+Do not merge to `main` without explicit user approval. Once approved, merge from a worktree already on `main`; never switch the root worktree to make that true. If no existing worktree is on `main`, create a temporary hotfix-merge worktree:
 
 ```bash
 cd "$PROJECT_ROOT"
+git worktree add .worktrees/hotfix-merge-<name> main
+cd .worktrees/hotfix-merge-<name>
 git merge --squash hotfix/<name>
 git commit -m "hotfix: <name> -- <summary>"
-git push
+git push origin main
 ```
+
+If the root or another worktree is already on `main`, use that existing worktree without switching it.
 
 Keep `.worktrees/hotfix-<name>` until the merge and push complete. Then use cleanup-safety before branch/worktree removal.
 

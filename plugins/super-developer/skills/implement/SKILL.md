@@ -44,6 +44,11 @@ Before creating worktrees or dispatching packages, present an Execution Contract
 ```text
 Execution Contract for <feature>
 
+Git refs:
+  base ref: <base-ref, default main unless SPEC/tasks/user selected a stacked-feature base>
+  feature ref: feature/<feature>
+  target ref: <target-ref, default main; may be feature/<base> for stacked features>
+
 Packages:
 - <WP-ID>: <title>
   tasks: <task IDs>
@@ -87,14 +92,16 @@ The user must approve this contract unless blanket approval already applies. Bla
 Invoke the `worktree` skill for git invariants, then load `plugins/super-developer/skills/implement/references/worktree-merge-cleanup.md` for implement-specific creation, merge, conflict, and cleanup commands.
 
 Required inline invariants:
-- The root working tree always stays on `main`; never run root `git checkout`.
+- Root worktree is user-owned; never switch it and never assume it is on `main`.
+- Base ref: `<base-ref>` (default `main`; may be a parent feature branch such as `feature/<base>`).
 - Feature ref: `feature/<feature>`.
+- Target ref: `<target-ref>` (default `main`; for stacked features, usually the parent feature branch).
 - Package worktree: `.worktrees/<feature>/wp-<WP-ID>`.
 - Package branch: `task/<feature>/<WP-ID>`; `<WP-ID>` is a work package ID, not a task ID.
 - Integration worktree: `.worktrees/<feature>/merge`.
 - Merge package branches into the feature ref once per package branch.
 - Prove package branches are merged with `git merge-base --is-ancestor` before removing worktrees/branches.
-- Push `feature/<feature>` for review/testing when final implementation validation passes, but never merge to `main` without explicit user approval.
+- Push `feature/<feature>` for review/testing when final implementation validation passes, but never merge into `<target-ref>` without explicit user approval for that exact target.
 
 ## Step 5: Analyze Actionable Packages
 
@@ -154,7 +161,7 @@ When all phases/tasks are complete:
 2. Update feature `status` to `completed` only after final ledger validation passes.
 3. Run integrated feature tests/checks from `.worktrees/<feature>/merge` when it exists, applying the command-safety approval rule.
 4. Push the feature branch: `git push -u origin feature/<feature>`.
-5. **Do not merge to main.** Wait for explicit user approval. "Push to remote" does not mean "merge to main."
+5. **Do not merge to the target branch.** Wait for explicit user approval for the named `<target-ref>`. "Push to remote" does not mean "merge to target."
 
 ## Pipeline Continuation
 
@@ -180,4 +187,4 @@ Do not execute review-code or audit logic inline; load each skill normally.
 - Fix findings by delegation with current evidence, diff, context bundles, ledger state, and exact criteria still unproven.
 - Do not modify `SPEC.md` or add tasks during implementation. Surface discovered additional work as a plan-update need.
 - Follow project conventions and ensure package agents read CLAUDE.md / AGENTS.md if present.
-- Never merge to `main` without explicit user approval.
+- Never merge into `main` or any other target branch without explicit user approval for that exact target.

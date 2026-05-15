@@ -26,7 +26,7 @@ gh pr view <PR_IDENTIFIER> --json number,title,body,author,baseRefName,headRefNa
 # 4. Fetch the full diff
 gh pr diff <PR_IDENTIFIER>
 
-# 5. Create a detached worktree at the PR's HEAD (main working tree stays on its branch)
+# 5. Create a detached worktree at the PR's HEAD (root worktree stays on its current branch)
 PR_NUMBER=<extracted from metadata>
 git fetch origin pull/${PR_NUMBER}/head
 PR_SHA=$(git rev-parse FETCH_HEAD)
@@ -44,7 +44,7 @@ Capture reviewed-state metadata before returning to the shared review pipeline:
 - Reviewed file list and file status
 
 > **Worktree Cleanup:** After the review is complete (after `pr-actions.md` finishes or the user aborts), remove the worktree: `git worktree remove .worktrees/pr-review/${PR_NUMBER}`
-> The main working tree is never switched — no branch restore needed.
+> The root worktree is never switched — no branch restore needed.
 
 ### Hard Stop Rules
 

@@ -4,8 +4,10 @@ Load this reference at implement Step 4 and Step 7 for package-scoped planned-fe
 
 ## Naming Contract
 
-- Root worktree: project root, always on `main`.
+- Root worktree: project root, user-owned; never switch it or assume its branch.
+- Base ref: `<base-ref>` (default `main`; may be `feature/<base>` for stacked features).
 - Feature ref: `feature/<feature>`.
+- Target ref: `<target-ref>` (default `main`; often the same as `<base-ref>` for stacked features).
 - Package worktree: `.worktrees/<feature>/wp-<WP-ID>`.
 - Package branch: `task/<feature>/<WP-ID>`.
 - Integration worktree: `.worktrees/<feature>/merge`.
@@ -20,23 +22,23 @@ Resolve the project root and keep all worktree commands rooted there:
 PROJECT_ROOT=$(git rev-parse --show-toplevel)
 ```
 
-Ensure `.worktrees/` is ignored. Create the feature as a ref, not as a root checkout:
+Ensure `.worktrees/` is ignored. Create the feature as a ref from the explicit base ref, not as a root checkout:
 
 ```bash
 cd "$PROJECT_ROOT"
-git branch feature/<feature> main
+git branch feature/<feature> <base-ref>
 mkdir -p .worktrees/<feature>/
 ```
 
-Never run `git checkout` in the project root.
+Never run `git checkout` in the project root, and do not assume the root is on `main` or on the target branch.
 
 ## Create Package Worktrees
 
-For packages that can start from `main`:
+For packages that can start from the feature base:
 
 ```bash
 cd "$PROJECT_ROOT"
-git worktree add .worktrees/<feature>/wp-<WP-ID> -b task/<feature>/<WP-ID> main
+git worktree add .worktrees/<feature>/wp-<WP-ID> -b task/<feature>/<WP-ID> <base-ref>
 ```
 
 For packages that require earlier feature work already merged into `feature/<feature>`:
@@ -115,7 +117,7 @@ cd "$PROJECT_ROOT/.worktrees/<feature>/merge"
 git branch -d task/<feature>/<WP-ID>
 ```
 
-Keep `.worktrees/<feature>/merge` until final implementation validation, review-code/fix loop, audit, push, and any explicitly approved merge-to-main safety boundary are complete.
+Keep `.worktrees/<feature>/merge` until final implementation validation, review-code/fix loop, audit, push, and any explicitly approved merge-to-target safety boundary are complete.
 
 ## Status Examples
 
@@ -144,7 +146,7 @@ Reason: overlapping behavior/API change requires sequencing or design decision.
 Next: repair package or user decision before downstream dispatch.
 ```
 
-## Push and Main-Merge Boundary
+## Push and Target-Merge Boundary
 
 Final implementation push runs from the integration worktree:
 
@@ -153,6 +155,6 @@ cd "$PROJECT_ROOT/.worktrees/<feature>/merge"
 git push -u origin feature/<feature>
 ```
 
-This publishes the feature branch only. It is not approval to merge to `main`.
+This publishes the feature branch only. It is not approval to merge into `<target-ref>`.
 
-Never merge to `main` without explicit user approval for that exact action. If approval is later granted, follow the worktree skill's cleanup-safety reference and keep the integration worktree until merge and push complete.
+Never merge into `main` or any other target branch without explicit user approval for that exact target. If approval is later granted, follow the worktree skill's cleanup-safety reference and keep the integration worktree until merge and push complete.

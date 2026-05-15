@@ -27,14 +27,15 @@ from the implementation step), review the feature branch directly. Worktree path
 defined in the `worktree` skill; invoke it if necessary.
 
 - Work from the merge worktree at `.worktrees/<feature>/merge/`
-- `DIFF_CMD="git diff main...feature/<feature>"`
-- Collect file list: `git diff main...feature/<feature> --stat`
-- Scope: complete feature branch diff against main
+- Resolve the reviewed base/target ref from implementation context; default to `main` when no stacked-feature target was declared.
+- `DIFF_CMD="git diff <target-ref>...feature/<feature>"`
+- Collect file list: `git diff <target-ref>...feature/<feature> --stat`
+- Scope: complete feature branch diff against `<target-ref>`
 
 Report scope before proceeding:
 
 ```text
-Review Scope: feature branch `feature/<name>` vs main
+Review Scope: feature branch `feature/<name>` vs `<target-ref>`
 Worktree: .worktrees/<feature>/merge/
 Files changed: <count>
 Insertions: +<count>  Deletions: -<count>

@@ -1,6 +1,6 @@
 # Cleanup Safety
 
-Use this reference before removing worktrees, deleting branches, pushing a feature branch for review, merging to `main`, or doing final teardown. Cleanup must protect unmerged work first.
+Use this reference before removing worktrees, deleting branches, pushing a feature branch for review, merging into any target branch, or doing final teardown. Cleanup must protect unmerged work first.
 
 ## Pre-Cleanup Merge-Base Checks
 
@@ -39,11 +39,11 @@ cd "$PROJECT_ROOT/.worktrees/<feature>/merge"
 git branch -d task/<feature>/<WP-ID>
 ```
 
-Run `git branch -d` from the feature integration worktree so Git checks merge status against `feature/<feature>` rather than root `main`. Use force deletion only for explicitly disposable spike branches or when the orchestrator has separately proven the branch is redundant and safe to discard.
+Run `git branch -d` from the feature integration worktree so Git checks merge status against `feature/<feature>` rather than the root worktree's current branch. Use force deletion only for explicitly disposable spike branches or when the orchestrator has separately proven the branch is redundant and safe to discard.
 
 Do not remove the feature integration worktree at this stage. It is the safety-net checkout for verification, review updates, final merge, and rollback while the feature is not fully merged and pushed.
 
-## Push and Merge-to-Main Separation
+## Push and Merge-to-Target Separation
 
 Pushing a feature branch publishes review/test state only:
 
@@ -52,7 +52,7 @@ cd "$PROJECT_ROOT/.worktrees/<feature>/merge"
 git push -u origin feature/<feature>
 ```
 
-This is not approval to merge to `main`. Never infer merge approval from:
+This is not approval to merge into `main` or any other `<target-ref>`. Never infer merge approval from:
 
 - "push it"
 - "looks good"
@@ -60,11 +60,11 @@ This is not approval to merge to `main`. Never infer merge approval from:
 - remote branch creation
 - review requested
 
-Proceed to merge `feature/<feature>` to `main` only when the user explicitly says to merge to `main` or gives equivalent unambiguous approval for that exact action.
+Proceed to merge `feature/<feature>` into `<target-ref>` only when the user explicitly names or approves that exact target branch.
 
-## Pre-Main-Merge Safety Checks
+## Pre-Target-Merge Safety Checks
 
-Before an approved merge to `main`:
+Before an approved merge into `<target-ref>`:
 
 ```bash
 cd "$PROJECT_ROOT/.worktrees/<feature>/merge"
@@ -74,24 +74,39 @@ git log --oneline -5
 
 The integration worktree must be clean and must contain the intended package merges. Resolve any uncertainty before merging.
 
-After approval, merge from the root worktree while leaving the integration worktree in place:
+Merge from a worktree that is already on `<target-ref>`. Never switch the root worktree to make this true. If no existing worktree is on `<target-ref>`, create a temporary target-merge worktree:
 
 ```bash
 cd "$PROJECT_ROOT"
+git worktree add .worktrees/<feature>/target-merge <target-ref>
+cd .worktrees/<feature>/target-merge
 git merge --no-ff feature/<feature> -m "feat: <feature> -- <summary>"
-git push
+git push origin <target-ref>
 ```
 
-The merge and push are one safety boundary. If push fails, keep the integration worktree and feature ref until the remote state is resolved.
+If `<target-ref>` is already checked out in the root or another worktree, use that existing worktree without switching it:
+
+```bash
+cd "<worktree-already-on-target-ref>"
+git merge --no-ff feature/<feature> -m "feat: <feature> -- <summary>"
+git push origin <target-ref>
+```
+
+The merge and push are one safety boundary. If push fails, keep the integration worktree, any target-merge worktree, and feature ref until the remote state is resolved.
 
 ## Final Cleanup Rules
 
-Only after the authorized merge to `main` and push are complete:
+Only after the authorized merge into `<target-ref>` and push are complete:
 
 ```bash
 cd "$PROJECT_ROOT"
 git worktree remove .worktrees/<feature>/merge
+cd "<worktree-on-target-ref>"
 git branch -d feature/<feature>
+cd "$PROJECT_ROOT"
+if [ -d .worktrees/<feature>/target-merge ]; then
+  git worktree remove .worktrees/<feature>/target-merge
+fi
 rmdir .worktrees/<feature>
 ```
 
@@ -118,7 +133,12 @@ Production hotfix worktrees stay until the hotfix merge to `main` and push compl
 ```bash
 cd "$PROJECT_ROOT"
 git worktree remove .worktrees/hotfix-<name>
+cd "<worktree-on-main>"
 git branch -d hotfix/<name>
+cd "$PROJECT_ROOT"
+if [ -d .worktrees/hotfix-merge-<name> ]; then
+  git worktree remove .worktrees/hotfix-merge-<name>
+fi
 ```
 
 Spike branches are disposable only if their evidence and durable changes have been captured elsewhere:

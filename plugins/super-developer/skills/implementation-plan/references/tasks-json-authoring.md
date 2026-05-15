@@ -94,6 +94,7 @@ Use `schema-reference.md` for a concise field map. The machine contract is `${SU
 - Always include top-level `design_decisions`; use `[]` when none are worth preserving.
 - Persist concise accepted decisions only, not full reviewer debate, discarded comments, transient Preflight Brief content, or raw spike notes.
 - Record decisions that materially affect implementation boundaries, verification, security/privacy/safety posture, compatibility, sequencing, or task decomposition.
+- If the user or repo context requires building on top of another feature branch, record the planned implementation base/target refs as a design decision so `implement` and `review-code` do not default silently to `main`.
 - Use `source: "design-preflight"` for decisions accepted from preflight resolution. Use `source: "planner"` for planner decisions and accepted empirical spike outcomes adopted by the main agent.
 - Do not record obvious restatements of SPEC requirements.
 - Keep rationale in `tasks.json`; do not leak architecture rationale into SPEC.md.

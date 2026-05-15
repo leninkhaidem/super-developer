@@ -8,7 +8,7 @@ pipeline report slots, verdicts, fix implementer packet, and stale-state gates. 
 
 Use `report-template.md` with:
 
-- **HEADER:** ``Feature Branch Review — `feature/<name>` vs `main` ``
+- **HEADER:** ``Feature Branch Review — `feature/<name>` vs `<target-ref>` ``
 - **METADATA:** ``**Worktree:** `.worktrees/<feature>/merge/` | **Files:** <count> changed``
 
 ## Verdict

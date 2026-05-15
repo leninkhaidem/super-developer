@@ -5,7 +5,7 @@ Use this reference for planned-feature execution. It is package-centric: one wor
 ## Directory Layout
 
 ```text
-project/                                      <- root worktree, always on main
+project/                                      <- root worktree, user-owned branch; agent never switches it
 +-- .worktrees/
 |   +-- auth/                                 <- feature namespace
 |   |   +-- wp-WP1/                           <- package worktree, branch task/auth/WP1
@@ -17,7 +17,7 @@ project/                                      <- root worktree, always on main
 +-- src/
 ```
 
-Keep `.worktrees/` ignored. Never put worktree-managed development in the root worktree.
+Keep `.worktrees/` ignored. Never put worktree-managed development in the root worktree, and never assume the root worktree is on `main`.
 
 ## Branch Naming
 
@@ -31,24 +31,26 @@ Keep `.worktrees/` ignored. Never put worktree-managed development in the root w
 
 `task/<feature>/<WP-ID>` is intentionally retained as a compatibility prefix. `<WP-ID>` is a work package ID (`WP1`, `WP2`, ...), not a task ID or task slug. Do not rename this branch family to `wp/`.
 
+`<base-ref>` is the starting point for the feature, defaulting to `main`. For stacked features it can be another feature branch such as `feature/base-capability`. `<target-ref>` is the branch the feature may later merge into after explicit approval; default `main`.
+
 ## Feature and Package Commands
 
 ### 1. Create the feature ref
 
 ```bash
 cd "$PROJECT_ROOT"
-git branch feature/<feature> main
+git branch feature/<feature> <base-ref>
 ```
 
-No feature worktree is created here. `feature/<feature>` is a movable integration ref that package branches merge into.
+No feature worktree is created here. `feature/<feature>` is a movable integration ref that starts from `<base-ref>` and package branches merge into.
 
 ### 2. Create package worktrees
 
-For a package that can start from `main`:
+For a package that can start from the feature base:
 
 ```bash
 cd "$PROJECT_ROOT"
-git worktree add .worktrees/<feature>/wp-<WP-ID> -b task/<feature>/<WP-ID> main
+git worktree add .worktrees/<feature>/wp-<WP-ID> -b task/<feature>/<WP-ID> <base-ref>
 ```
 
 For a package that depends on already-integrated feature work:
@@ -97,11 +99,11 @@ cd "$PROJECT_ROOT/.worktrees/<feature>/merge"
 git push -u origin feature/<feature>
 ```
 
-Push means publish the feature branch. It does not mean merge to `main`.
+Push means publish the feature branch. It does not mean merge into `<target-ref>`.
 
-### 7. Merge to main only after explicit approval
+### 7. Merge to target only after explicit approval
 
-After the user explicitly asks to merge to `main`, load `cleanup-safety.md` and complete its Pre-Main-Merge Safety Checks before running any merge command. The integration worktree stays in place as a safety net until merge and push complete.
+After the user explicitly asks to merge into the named `<target-ref>`, load `cleanup-safety.md` and complete its Pre-Target-Merge Safety Checks before running any merge command. The integration worktree stays in place as a safety net until merge and push complete.
 
 The actual merge/push commands live in `cleanup-safety.md`; do not duplicate or bypass that gate here.
 
@@ -111,11 +113,11 @@ Use the cleanup-safety reference before removing package branches, package workt
 
 ### Sequential phases
 
-Phase 1 packages can branch from `main` when they do not depend on feature work:
+Phase 1 packages can branch from `<base-ref>` when they do not depend on earlier feature work:
 
 ```bash
-git worktree add .worktrees/billing/wp-WP1 -b task/billing/WP1 main
-git worktree add .worktrees/billing/wp-WP2 -b task/billing/WP2 main
+git worktree add .worktrees/billing/wp-WP1 -b task/billing/WP1 <base-ref>
+git worktree add .worktrees/billing/wp-WP2 -b task/billing/WP2 <base-ref>
 ```
 
 After `WP1` and `WP2` merge into `feature/billing`, Phase 2 packages that need their work branch from the feature ref:
@@ -124,7 +126,7 @@ After `WP1` and `WP2` merge into `feature/billing`, Phase 2 packages that need t
 git worktree add .worktrees/billing/wp-WP3 -b task/billing/WP3 feature/billing
 ```
 
-Wrong: branch `WP3` from `main` when it requires Phase 1 code. It will not see the integrated feature work.
+Wrong: branch `WP3` from `<base-ref>` when it requires Phase 1 code. It will not see the integrated feature work.
 
 ### Internal package dependencies
 

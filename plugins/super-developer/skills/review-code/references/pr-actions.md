@@ -134,7 +134,7 @@ Report: `Merged successfully. Merge commit: <SHA>. Branch deleted.`
 git worktree remove .worktrees/pr-review/${PR_NUMBER}
 ```
 
-**Why Squash & Merge is hardcoded:** One PR = one commit on `main`. Clean, readable history. Easy single-commit revert if needed. Granular commit history preserved within the PR on GitHub. Rebase is never automated — it is a deliberate, manual operation only.
+**Why Squash & Merge is hardcoded:** One PR = one commit on the PR base branch. Clean, readable history. Easy single-commit revert if needed. Granular commit history preserved within the PR on GitHub. Rebase is never automated — it is a deliberate, manual operation only.
 
 ---
 
