@@ -99,6 +99,20 @@ Use `schema-reference.md` for a concise field map. The machine contract is `${SU
 - Do not record obvious restatements of SPEC requirements.
 - Keep rationale in `tasks.json`; do not leak architecture rationale into SPEC.md.
 
+## Lightweight Execution Constraints and Replan Triggers
+
+Do not add new schema fields or heavyweight architecture sections for this. Use the existing `design_decisions`, task acceptance criteria, `verification_hint`, `context_bundles`, work-package rationale, risk tags, and verification commands.
+
+Capture a trigger only when implementation must stop or replan if the assumption is false, such as:
+- external/API/runtime contract mismatch;
+- base/target ref ambiguity for stacked features;
+- public API or compatibility drift;
+- migration, rollback, destructive-data, or idempotency uncertainty;
+- security, privacy, safety, or no-mock integration constraint;
+- package boundary or parallelism assumption that proves invalid.
+
+Keep this sparse. Zero triggers is valid for straightforward work. Prefer one concise feature-specific sentence over a checklist. Never copy generic "run tests", "follow clean code", or broad quality rules into every task.
+
 ## Task Authoring Guidance
 
 - Descriptions state WHAT to build, not HOW to code it.

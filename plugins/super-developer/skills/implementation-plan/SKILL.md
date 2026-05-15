@@ -94,6 +94,7 @@ Create `tasks.json` with schema version 2, top-level `design_decisions`, `contex
 Planning invariants:
 - Keep `SPEC.md` requirements-only; task decomposition and design rationale belong in `tasks.json`.
 - Persist accepted preflight, spike, or planner decisions as concise `design_decisions`; do not persist reviewer debate or the Preflight Brief.
+- Record only feature-specific execution constraints or replan triggers that would invalidate the plan if violated; do not add boilerplate sections, generic stop conditions, or quality-rule copies to `tasks.json`.
 - Every SPEC `REQ-*` and `AC-*` must be covered by task acceptance criteria.
 - Task acceptance criteria are objects with stable IDs, observable criteria, typed source refs, and verification hints when proof depends on non-obvious context.
 - Every task must have a self-contained, verifiable outcome; merge tasks that are merely mechanical steps toward another task.

@@ -33,6 +33,7 @@ Do not create `.tasks/<feature-name>/` or write files until all items pass.
 
 - Top-level `design_decisions`, `context_bundles`, `work_packages`, and `phases` are present.
 - Accepted preflight, spike, and planner decisions that affect implementation or verification are persisted as concise `design_decisions`.
+- Any execution constraints or replan triggers are feature-specific, encoded in existing schema fields, and absent when not materially needed.
 - No Preflight Brief, reviewer debate, discarded comments, or raw spike notes are persisted.
 - No unnecessary verbatim duplication of SPEC sections; tasks trace to SPEC IDs and add task-level verification detail.
 - Every task has at least one acceptance criterion object with stable ID, observable criterion, non-empty typed `source_refs`, and a useful verification hint when proof is non-obvious.
