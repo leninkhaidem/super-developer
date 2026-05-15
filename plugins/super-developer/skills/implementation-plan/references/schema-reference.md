@@ -1,0 +1,95 @@
+# tasks.json Schema Reference
+
+Load this when you need a human-readable map of `tasks.json`. The machine source of truth is `${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/validate-tasks-json.py`; if this reference and the validator disagree, the validator wins. Work-package semantics, risk metadata, and targeted-review rules are owned by `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/work-packages.md` plus the validator.
+
+## Top-Level Object
+
+- `schema_version`: number. Current accepted version is owned by the validator.
+- `feature`: kebab-case feature name matching the `.tasks/<feature>/` directory.
+- `title`: human-readable feature title.
+- `description`: one-line feature summary.
+- `created_at`: ISO 8601 timestamp.
+- `status`: feature lifecycle status. Use the validator for accepted values.
+- `design_decisions`: array; include `[]` when none.
+- `context_bundles`: array; include `[]` when none.
+- `work_packages`: array; required for every generated plan.
+- `phases`: ordered array of phase objects.
+
+## Design Decisions
+
+Each decision records an accepted planning choice that materially affects implementation or verification.
+
+Fields:
+- `id`: sequential `DD-*` identifier with no gaps.
+- `decision`: concise accepted decision.
+- `rationale`: why this choice satisfies the requirements and constraints.
+- `alternatives_considered`: array, possibly empty for simple planner decisions.
+- `source`: accepted source value from the validator.
+
+Do not store the full Preflight Brief, debate, or raw spike notes.
+
+## Context Bundles
+
+Use bundles for durable ground truth that future agents must not infer or mock.
+
+Fields:
+- `id`: sequential `CTX-*` identifier with no gaps.
+- `title`: short contract title.
+- `required_for`: work package IDs or task IDs that must read and cite the bundle.
+- `sources`: source objects with a validator-accepted `type`, `path_or_url`, and concrete `claims`.
+- `verification_required`: proof obligations tied to the bundle.
+
+## Work Packages
+
+Work packages are implementation delegation units. See `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/work-packages.md` for semantics and sizing.
+
+Fields:
+- `id`: sequential `WP*` identifier with no gaps.
+- `title`, `description`, `rationale`: human package metadata; rationale is especially important for one-task packages.
+- `task_ids`: task IDs included in the package; every task appears exactly once across packages.
+- `depends_on`: other work package IDs that must be integrated first.
+- `parallel_safe_with`: symmetric list of package IDs safe to run in the same implementation batch.
+- `primary_paths`: likely files/directories to inspect first; starting points, not hard boundaries.
+- `verification_commands`: scoped, known-safe commands, or `[]` when unknown.
+- `risk_tags`: controlled tags owned by the validator.
+- `required_context_bundles`: context bundle IDs package agents must read and cite.
+- `targeted_review_required`: boolean governed by risk tags and planner judgment.
+
+Do not duplicate the long risk-tag or targeted-review taxonomy here. Use the validator and `work-packages.md`.
+
+## Phases and Tasks
+
+Phase fields:
+- `id`: sequential `P*` identifier.
+- `name`: short phase name.
+- `description`: what the phase accomplishes as a unit.
+- `order`: sequential order with no gaps.
+- `tasks`: task objects.
+
+Task fields:
+- `id`: phase-qualified task ID.
+- `title`: short task title.
+- `description`: WHAT to build plus non-discoverable constraints; not exact implementation steps.
+- `status`: task lifecycle status. Use the validator for accepted values.
+- `dependencies`: task IDs within this feature.
+- `acceptance_criteria`: non-empty array of criterion objects.
+- `required_context_bundles`: bundle IDs needed for this task; use `[]` or omit when none if accepted by validator.
+- `context`: WHY this task exists and which requirement/acceptance outcome motivated it.
+- `completed_at` and `blocked_reason`: status-dependent fields added later by execution/status workflows when required.
+
+Task acceptance criterion fields:
+- `id`: stable criterion ID derived from the task ID.
+- `criterion`: observable, verifiable outcome.
+- `source_refs`: non-empty typed references to SPEC requirements, SPEC acceptance criteria, design decisions, or context bundles.
+- `verification_hint`: proof hint when verification depends on an edge case, command, manual evidence, performance bound, library/runtime behavior, or no-mocks constraint.
+
+## Validator-Owned Details
+
+Do not maintain competing copies of these details in skills or plans:
+- accepted feature/task statuses;
+- exact ID regexes and sequential/no-gap checks;
+- accepted source-ref and context-bundle source types;
+- risk-tag taxonomy and targeted-review-trigger set;
+- final verification ledger schema and stale-evidence checks.
+
+For those details, inspect `${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/validate-tasks-json.py`; for package meaning and review expectations, inspect `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/work-packages.md`.

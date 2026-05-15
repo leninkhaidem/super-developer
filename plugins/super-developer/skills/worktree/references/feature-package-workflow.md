@@ -1,0 +1,150 @@
+# Feature Package Workflow
+
+Use this reference for planned-feature execution. It is package-centric: one worktree and branch per work package, not per small task. Tasks remain acceptance-tracking units inside the package.
+
+## Directory Layout
+
+```text
+project/                                      <- root worktree, always on main
++-- .worktrees/
+|   +-- auth/                                 <- feature namespace
+|   |   +-- wp-WP1/                           <- package worktree, branch task/auth/WP1
+|   |   +-- wp-WP2/                           <- package worktree, branch task/auth/WP2
+|   |   +-- merge/                            <- integration worktree, branch feature/auth
+|   +-- search/
+|   |   +-- wp-WP1/                           <- branch task/search/WP1
+|   |   +-- merge/                            <- branch feature/search
++-- src/
+```
+
+Keep `.worktrees/` ignored. Never put worktree-managed development in the root worktree.
+
+## Branch Naming
+
+| Type | Pattern | Example |
+|------|---------|---------|
+| Feature ref | `feature/<feature>` | `feature/auth` |
+| Package branch | `task/<feature>/<WP-ID>` | `task/auth/WP1` |
+| Bugfix | `bugfix/<name>` | `bugfix/null-check` |
+| Hotfix | `hotfix/<name>` | `hotfix/crash-on-load` |
+| Spike | `spike/<name>` | `spike/checkout-regression` |
+
+`task/<feature>/<WP-ID>` is intentionally retained as a compatibility prefix. `<WP-ID>` is a work package ID (`WP1`, `WP2`, ...), not a task ID or task slug. Do not rename this branch family to `wp/`.
+
+## Feature and Package Commands
+
+### 1. Create the feature ref
+
+```bash
+cd "$PROJECT_ROOT"
+git branch feature/<feature> main
+```
+
+No feature worktree is created here. `feature/<feature>` is a movable integration ref that package branches merge into.
+
+### 2. Create package worktrees
+
+For a package that can start from `main`:
+
+```bash
+cd "$PROJECT_ROOT"
+git worktree add .worktrees/<feature>/wp-<WP-ID> -b task/<feature>/<WP-ID> main
+```
+
+For a package that depends on already-integrated feature work:
+
+```bash
+cd "$PROJECT_ROOT"
+git worktree add .worktrees/<feature>/wp-<WP-ID> -b task/<feature>/<WP-ID> feature/<feature>
+```
+
+Branch from `feature/<feature>` only after prerequisite packages have been merged into that feature ref.
+
+### 3. Work inside the package worktree
+
+```bash
+cd "$PROJECT_ROOT/.worktrees/<feature>/wp-<WP-ID>"
+# implement all tasks assigned to this work package
+# commit the package's work on task/<feature>/<WP-ID>
+```
+
+A package may contain multiple task IDs. Do not create separate package branches for each small task unless the plan explicitly split them into separate work packages.
+
+### 4. Create the integration worktree
+
+```bash
+cd "$PROJECT_ROOT"
+git worktree add .worktrees/<feature>/merge feature/<feature>
+cd .worktrees/<feature>/merge
+```
+
+This is the only checkout of `feature/<feature>`. Keep it until feature merge/push completion and final cleanup.
+
+### 5. Merge package branches into the feature ref
+
+```bash
+cd "$PROJECT_ROOT/.worktrees/<feature>/merge"
+git merge task/<feature>/WP1 --no-edit
+git merge task/<feature>/WP2 --no-edit
+```
+
+Resolve conflicts in the integration worktree. Verification for the integrated feature runs from this worktree.
+
+### 6. Push feature branch for review/testing
+
+```bash
+cd "$PROJECT_ROOT/.worktrees/<feature>/merge"
+git push -u origin feature/<feature>
+```
+
+Push means publish the feature branch. It does not mean merge to `main`.
+
+### 7. Merge to main only after explicit approval
+
+After the user explicitly asks to merge to `main`, load `cleanup-safety.md` and complete its Pre-Main-Merge Safety Checks before running any merge command. The integration worktree stays in place as a safety net until merge and push complete.
+
+The actual merge/push commands live in `cleanup-safety.md`; do not duplicate or bypass that gate here.
+
+Use the cleanup-safety reference before removing package branches, package worktrees, or the integration worktree.
+
+## Multi-Phase Dependency Examples
+
+### Sequential phases
+
+Phase 1 packages can branch from `main` when they do not depend on feature work:
+
+```bash
+git worktree add .worktrees/billing/wp-WP1 -b task/billing/WP1 main
+git worktree add .worktrees/billing/wp-WP2 -b task/billing/WP2 main
+```
+
+After `WP1` and `WP2` merge into `feature/billing`, Phase 2 packages that need their work branch from the feature ref:
+
+```bash
+git worktree add .worktrees/billing/wp-WP3 -b task/billing/WP3 feature/billing
+```
+
+Wrong: branch `WP3` from `main` when it requires Phase 1 code. It will not see the integrated feature work.
+
+### Internal package dependencies
+
+If `WP4` contains tasks `P2-T001`, `P2-T002`, and `P2-T003`, all three tasks are implemented in `.worktrees/<feature>/wp-WP4` on branch `task/<feature>/WP4`. The package agent sequences internal task dependencies in that single worktree.
+
+### Concurrent features
+
+Two active features use separate namespaces:
+
+```text
+.worktrees/auth/wp-WP1      -> task/auth/WP1
+.worktrees/auth/merge       -> feature/auth
+.worktrees/search/wp-WP1    -> task/search/WP1
+.worktrees/search/merge     -> feature/search
+```
+
+Clean up only the namespace being finalized. Do not remove another feature's worktrees or branches because branch IDs such as `WP1` repeat across feature namespaces.
+
+## Concurrency Rules
+
+- Parallel package work is safe only when package file ownership and dependencies permit it.
+- A package depending on previous package output must wait until that output is merged into `feature/<feature>` or branch from a package branch only when the orchestrator deliberately chooses that dependency shape.
+- Prefer integrating dependency output into `feature/<feature>` before starting dependent packages; it keeps branch ancestry and cleanup checks simple.
