@@ -228,7 +228,15 @@ def mutate_package_lifecycle(args: argparse.Namespace, target_state: str) -> int
     package_id = proof["package_id"]
     previous_state = validator.package_lifecycle_state_name(proof)
 
-    if previous_state == target_state == "accepted":
+    changed = should_write_lifecycle_state(
+        validator,
+        proof,
+        target_state,
+        previous_state=previous_state,
+        worktree=worktree,
+    )
+
+    if previous_state == target_state == "accepted" and not changed:
         errors = validator.validate_package_proof_json(
             proof,
             plan.index,
@@ -254,7 +262,6 @@ def mutate_package_lifecycle(args: argparse.Namespace, target_state: str) -> int
     if transition_errors:
         raise TaskctlError(transition_errors)
 
-    changed = not (previous_state == target_state == "accepted")
     if changed:
         proof[validator.PACKAGE_LIFECYCLE_FIELD] = build_lifecycle_state(
             validator,
@@ -341,6 +348,32 @@ def load_proof_for_lifecycle_mutation(
         raise TaskctlError(["package proof.package_id: expected non-empty string"])
     require_package(plan, package_id)
     return proof
+
+
+def should_write_lifecycle_state(
+    validator: Any,
+    proof: dict[str, Any],
+    target_state: str,
+    *,
+    previous_state: str,
+    worktree: Path,
+) -> bool:
+    if not (previous_state == target_state == "accepted"):
+        return True
+    lifecycle = proof.get(validator.PACKAGE_LIFECYCLE_FIELD)
+    if not isinstance(lifecycle, dict):
+        return True
+    binding = lifecycle.get("state_binding")
+    if not isinstance(binding, dict):
+        return True
+    return not (
+        lifecycle.get("proof_digest") == validator.package_proof_digest(proof)
+        and binding.get("state") == target_state
+        and binding.get("worktree")
+        == str(validator.normalized_existing_or_candidate_path(worktree))
+        and binding.get("git_ref") == current_git_ref(worktree)
+        and binding.get("commit") == current_git_commit(worktree)
+    )
 
 
 def load_validated_proof(
