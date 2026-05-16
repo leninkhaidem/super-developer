@@ -459,6 +459,7 @@ class GuardrailDocumentationRegressionTests(unittest.TestCase):
 
     def test_taskctl_and_validator_import_only_stdlib_modules(self) -> None:
         allowed = {
+            "__future__",
             "argparse",
             "collections",
             "dataclasses",
@@ -551,7 +552,9 @@ class GuardrailDocumentationRegressionTests(unittest.TestCase):
         self.assertIn("final proof validation, final validator pass, final review-code/fix loop, and final audit pass", implement)
         self.assertIn("not a TUI, workflow engine, generic JSON patcher, central ledger reconciler", lifecycle)
         self.assertIn("event streams, checklist state, proof logs, or package status fields", lifecycle)
-        self.assertIn("They do not mark tasks done, finalize features", subagent)
+        self.assertIn("orchestrator remains authoritative for git infrastructure, status transitions", subagent)
+        self.assertIn("It must not edit `.tasks/<feature>/verification.json`, unrelated package proof files, `tasks.json` status fields", subagent)
+        self.assertIn("orchestrator validates the package proof, package verification, and required review gates before it changes task status", subagent)
         self.assertIn("Do not add new schema fields, central verification ledgers, persistent checklist sections", authoring)
         self.assertIn("not a TUI, workflow engine, generic JSON patch tool, central ledger reconciler", readme)
         self.assertIn("Manual task-status overrides", readme)
