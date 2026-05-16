@@ -338,6 +338,18 @@ class GuardrailDocumentationRegressionTests(unittest.TestCase):
             with self.subTest(relative=relative):
                 self.assertIn("references/tool-usage.md", self.read_doc(relative))
 
+    def test_release_skill_uses_single_release_contract_gate(self) -> None:
+        release_skill = self.read_doc("skills/release/SKILL.md")
+        readme = self.read_doc("README.md")
+
+        self.assertIn("Release Contract Approval", release_skill)
+        self.assertIn("Use one approval gate per release attempt", release_skill)
+        self.assertIn("Do not ask for staged re-approvals", release_skill)
+        self.assertNotIn("Gate 2", release_skill)
+        self.assertNotIn("Gate 3", release_skill)
+        self.assertNotIn("Gate 4", release_skill)
+        self.assertIn("one Release Contract", readme)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -41,7 +41,7 @@ The pipeline flows automatically with confirmation gates. Say **"proceed through
 | **audit** | Acceptance-completeness verification. Spawns a read-only sub-agent that checks every SPEC/task acceptance criterion and accepted package proof against the final codebase state. It is the final internal pipeline gate after review-code and remains invocable standalone. | Internal pipeline gate + Standalone |
 | **review-code** | Bounded multi-agent code review. Always runs one **Code Reviewer**, adds at most one optional **Specialist Reviewer** for the highest-priority risk trigger, and uses a **Skeptic Agent** to verify serious findings before reporting. It uses available plan, package-proof, context-bundle, and audit artifacts as task-awareness context, but audit remains the authoritative completeness gate. Local and pipeline `fix` paths delegate non-trivial fixes to Fix Implementers; PR mode is review-only and has no code-fix path. | Pipeline + Standalone + PR review |
 | **code-doc** | Generate comprehensive documentation for any codebase via hybrid analysis (native extractors + LLM agents). Adaptive 8-step pipeline: Scout → Existing Doc Assessment → Doc Plan → Analyze (delegate to sub-agents) → Synthesize → User Checkpoint → Generate (fan-out doc writers) → Review & Commit. Outputs 4 core docs (README, architecture-guide, developer-guide, codebase-context) plus optional docs (api-reference, data-model, component-guide, infrastructure). | Standalone |
-| **release** | Prepare and publish releases with explicit gates for base-branch detection (`main`/`master`), changelog creation/update, README/docs changes, version bumps, pushes/tags/GitHub releases, and scoped cleanup of release worktrees and feature branches. | Standalone |
+| **release** | Prepare and publish releases through one Release Contract covering base-branch detection (`main`/`master`), changelog/docs decisions, version bumps, checks, pushes/tags/GitHub releases, and exact cleanup of release worktrees and feature branches. | Standalone |
 
 `review-code` works in **3 modes** — it auto-detects which to use:
 
@@ -240,7 +240,7 @@ super-developer/
 |       +-- references/
 |           +-- update-merge.md         # Update/merge logic for existing docs
 |   +-- release/
-|       +-- SKILL.md                    # Gated release preparation and publishing
+|       +-- SKILL.md                    # Single-contract release preparation and publishing
 ```
 
 ---
