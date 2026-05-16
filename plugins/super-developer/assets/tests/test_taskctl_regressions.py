@@ -350,6 +350,36 @@ class GuardrailDocumentationRegressionTests(unittest.TestCase):
         self.assertNotIn("Gate 4", release_skill)
         self.assertIn("one Release Contract", readme)
 
+    def test_package_proof_handoff_forbids_invented_schema_and_committed_tasks_artifacts(self) -> None:
+        subagent_contract = self.read_doc("skills/implement/references/subagent-contract.md")
+        checkpoint = self.read_doc("skills/implement/references/integration-checkpoint.md")
+        tool_usage = self.read_doc("references/tool-usage.md")
+
+        for text in (subagent_contract, checkpoint, tool_usage):
+            with self.subTest(document=text[:40]):
+                self.assertIn("passed", text)
+                self.assertIn("automated", text)
+                self.assertIn("evidence.commands", text)
+                self.assertIn(".tasks", text)
+
+        self.assertIn("Do not `git add -f .tasks`", subagent_contract)
+        self.assertIn("did not force-add or commit ignored `.tasks`", checkpoint)
+        self.assertIn("must not be force-added or committed", tool_usage)
+
+    def test_stale_only_proof_refresh_is_mechanical_not_delegated_by_default(self) -> None:
+        lifecycle = self.read_doc("skills/implement/references/package-proof-lifecycle.md")
+        checkpoint = self.read_doc("skills/implement/references/integration-checkpoint.md")
+        tool_usage = self.read_doc("references/tool-usage.md")
+
+        for text in (lifecycle, checkpoint, tool_usage):
+            with self.subTest(document=text[:40]):
+                self.assertIn("stale-only", text)
+                self.assertIn("current integration `HEAD`", text)
+                self.assertIn("Do not delegate", text)
+
+        self.assertIn("Re-run the same cited command(s)", checkpoint)
+        self.assertIn("update state/evidence fields and rerun validation", lifecycle)
+
 
 if __name__ == "__main__":
     unittest.main()

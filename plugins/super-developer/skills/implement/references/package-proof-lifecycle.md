@@ -57,6 +57,8 @@ python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/taskctl.py" validate-proof --task
 
 Validation must pass for every assigned acceptance criterion and no criteria outside the package. Rejected proof is repaired by the package or repair agent, not by central ledger reconciliation.
 
+Exception: when validation fails only because entries are stale against the current integration worktree, the orchestrator performs a mechanical stale-only refresh. Refresh only the stale entries by re-running the cited commands or re-inspecting the cited files against current integration `HEAD`, then update state/evidence fields and rerun validation. Do not delegate proof repair unless the evidence cannot be reproduced or another validation class fails too.
+
 ## Package Proof Acceptance
 
 Only after package proof validation, package verification commands, and required targeted, semantic, or focused repair review pass, accept the proof lifecycle:

@@ -10,12 +10,13 @@ For each completed package batch:
 2. Merge each package branch once into `.worktrees/<feature>/merge`.
 3. Verify package branches are ancestors of the integration HEAD.
 4. Copy or otherwise hand off the assigned package proof file into `.tasks/<feature>/proofs/WP<N>.proof.json` for the integration feature state. `.tasks/` is ignored by git, so branch merges do not carry proof files.
-5. Confirm the integration worktree is clean or contains only intentional merge-resolution commits.
-6. Run package verification commands from the integration worktree after command-safety screening, and ensure the package proof cites each required command as passing evidence.
-7. Run targeted package review when required.
-8. For packages requiring targeted review, add the minimal root `targeted_review` proof object with `required`, `performed`, `reviewer`, `result`, `evidence`, and `reviewed_at`.
-9. Run `taskctl.py accept-package --tasks .tasks/<feature>/tasks.json --worktree .worktrees/<feature>/merge .tasks/<feature>/proofs/WP<N>.proof.json` for the package proof after code, verification, and review checks pass.
-10. Accept evidence and mark tasks done only after all required checks pass.
+5. Confirm package branches did not force-add or commit ignored `.tasks` proof artifacts. If they did, save the proof to the shared task store, reset or repair the package branch to code/doc changes only, and reject the package until the branch is clean.
+6. Confirm the integration worktree is clean or contains only intentional merge-resolution commits.
+7. Run package verification commands from the integration worktree after command-safety screening, and ensure the package proof cites each required command as passing evidence.
+8. Run targeted package review when required.
+9. For packages requiring targeted review, add the minimal root `targeted_review` proof object with `required`, `performed`, `reviewer`, `result`, `evidence`, and `reviewed_at`.
+10. Run `taskctl.py accept-package --tasks .tasks/<feature>/tasks.json --worktree .worktrees/<feature>/merge .tasks/<feature>/proofs/WP<N>.proof.json` for the package proof after code, verification, and review checks pass.
+11. Accept evidence and mark tasks done only after all required checks pass.
 
 Do not unlock downstream packages until this checkpoint passes for their dependencies.
 
@@ -24,10 +25,11 @@ Do not unlock downstream packages until this checkpoint passes for their depende
 Validate the assigned `.tasks/<feature>/proofs/WP<N>.proof.json` for every assigned acceptance criterion in the package. Reject the package if any entry is:
 
 - missing or malformed;
+- using invented `status` or `method` values such as `passed` or `automated`;
 - not tied to an assigned criterion ID and source refs;
 - missing state binding to the package/integrated branch state;
 - missing file/symbol evidence;
-- missing command result or concrete manual observation;
+- missing `evidence.commands` result object (`cwd`, exact `command`, `exit_code: 0`, `observed`) or concrete manual observation;
 - missing required context-bundle citation;
 - stale against the integrated branch;
 - failed, blocked, or manual-required without explicit approval;
@@ -42,6 +44,17 @@ Run package `verification_commands` from `.worktrees/<feature>/merge` only after
 Also run cheap relevant global checks when discoverable and appropriate for the project, such as targeted tests, typecheck, or lint. Do not run expensive full-suite checks after every package unless project convention indicates they are cheap.
 
 A committed package is not complete if verification fails, evidence is stale, or commands were skipped without approval when they are required to prove criteria. Accepted proof validation requires every listed package `verification_commands` entry to appear as passing command evidence in the package proof.
+
+## Stale-Only Proof Refresh
+
+When `validate-proof` fails only because entries are stale against the current integration worktree, keep the fix mechanical:
+
+1. Identify only entries with stale evidence errors.
+2. Re-run the same cited command(s) from the current integration worktree when commands are present, or re-inspect the same cited files/symbols when the entry is static-inspection evidence.
+3. Update only those entries' `state.git_ref`, `state.commit`, `state.worktree`, `state.captured_at`, and observed evidence needed to reflect current integration `HEAD`.
+4. Re-run `validate-proof`.
+
+Do not delegate a proof-repair sub-agent, re-run targeted review, reopen task status, or edit unrelated proof entries for stale-only refresh. Delegate or block only when the command fails, the cited behavior is unclear, the evidence cannot be reproduced, a criterion may no longer be true, or validation reports schema/coverage/manual/targeted-review/lifecycle errors in addition to staleness.
 
 ## Targeted Package Review
 

@@ -828,7 +828,26 @@ def package_must_prove(
         "verification_commands": package["verification_commands"],
         "task_status_counts": dict(sorted(package_task_statuses(plan, package).items())),
         "proof": proof,
+        "proof_schema_contract": {
+            "entry_status_values": sorted(validator.LEDGER_STATUSES),
+            "entry_method_values": sorted(validator.LEDGER_METHODS),
+            "command_evidence_methods": sorted(validator.COMMAND_EVIDENCE_METHODS),
+            "command_evidence_shape": {
+                "cwd": "<non-empty working directory>",
+                "command": "<exact command string>",
+                "exit_code": 0,
+                "observed": "<non-empty observed output or result summary>",
+            },
+            "notes": [
+                "Use the proof-template scaffold; do not invent status or method values such as passed or automated.",
+                "For command, test, or mixed methods, evidence.commands must contain at least one passing command object.",
+                "If validation reports only stale evidence, refresh only stale entries against current integration HEAD; do not delegate a proof repair unless behavior is unclear or evidence cannot be reproduced.",
+                "Do not edit lifecycle manually; accept-package/reopen-package owns lifecycle state.",
+                "Do not force-add or commit ignored .tasks proof artifacts.",
+            ],
+        },
         "package_must_prove": [
+            "proof entries must use the proof_schema_contract enums and command evidence shape",
             "accepted proof must cite passing evidence for every package verification command",
             "targeted package review must be recorded in targeted_review when required",
         ],

@@ -49,6 +49,15 @@ python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/taskctl.py" validate-proofs --tas
 - `proof-template` writes a deterministic proof scaffold when `--output` is used. Use `--force` only when deliberately replacing stale proof after rejection or repair.
 - `validate-proof` and `validate-proofs` validate proof files but do not accept lifecycle state.
 
+`must-prove` also emits `proof_schema_contract`. Package and repair agents must follow that contract when filling proof entries:
+
+- successful evidence uses `status: "verified"`, not `passed`;
+- automated command/test evidence uses one of the listed method values, not `automated`;
+- command-like methods require `evidence.commands[]` objects with `cwd`, exact `command`, integer `exit_code: 0`, and `observed`;
+- stale-only validation failures should be refreshed mechanically against current integration `HEAD`; Do not delegate proof repair unless evidence cannot be reproduced or another validation class also fails;
+- lifecycle state is written by `accept-package` / `reopen-package`, not by hand;
+- ignored `.tasks` proof artifacts must not be force-added or committed.
+
 ## taskctl.py Mutation Commands
 
 Package proof lifecycle:

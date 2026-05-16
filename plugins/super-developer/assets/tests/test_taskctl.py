@@ -505,6 +505,21 @@ class TaskctlCliTests(unittest.TestCase):
         self.assertEqual(["orchestration", "validation"], package["risk_tags"])
         self.assertEqual({"in-progress": 1}, package["task_status_counts"])
         self.assertEqual("unaccepted", package["proof"]["status"])
+        proof_contract = package["proof_schema_contract"]
+        self.assertIn("verified", proof_contract["entry_status_values"])
+        self.assertNotIn("passed", proof_contract["entry_status_values"])
+        self.assertIn("command", proof_contract["entry_method_values"])
+        self.assertNotIn("automated", proof_contract["entry_method_values"])
+        self.assertEqual(0, proof_contract["command_evidence_shape"]["exit_code"])
+        self.assertIn(
+            "If validation reports only stale evidence, refresh only stale entries against current integration HEAD; do not delegate a proof repair unless behavior is unclear or evidence cannot be reproduced.",
+            proof_contract["notes"],
+        )
+        self.assertIn("Do not force-add or commit ignored .tasks proof artifacts.", proof_contract["notes"])
+        self.assertIn(
+            "proof entries must use the proof_schema_contract enums and command evidence shape",
+            package["package_must_prove"],
+        )
         self.assertEqual(
             "Run proof-template and inspect stable JSON.",
             package["criteria"][0]["verification_hint"],

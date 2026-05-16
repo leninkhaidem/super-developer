@@ -55,7 +55,13 @@ The package agent updates only its assigned `.tasks/<feature>/proofs/WP<N>.proof
 - passing evidence for required package `verification_commands` when run in package or integration state;
 - status that is not failed, blocked, stale, or manual-required without approval.
 
+Use the generated `taskctl.py proof-template` shape. Proof entry `status` must be one of `verified`, `failed`, `blocked`, or `manual_required`; successful automated work uses `verified`, not `passed`. Proof entry `method` must be one of `unit_test`, `integration_test`, `e2e_test`, `table_driven_test`, `static_inspection`, `manual`, `command`, or `mixed`; do not use invented values such as `automated`.
+
+For `unit_test`, `integration_test`, `e2e_test`, `table_driven_test`, `command`, or `mixed`, `evidence.commands` must contain at least one object with non-empty `cwd`, exact `command`, integer `exit_code` of `0`, and non-empty `observed`. File-only static inspection may use `method: "static_inspection"` with concrete `evidence.files`.
+
 The proof file is the package evidence source. Vague, stale, untied, or missing evidence is rejection-worthy. Do not manually edit the proof `lifecycle` object; the orchestrator accepts or reopens package proofs with `taskctl.py` after integrated validation. The orchestrator records minimal root `targeted_review` evidence when targeted package review is required and passes.
+
+`.tasks/` proof files are task-store artifacts, not package-branch source files. Do not `git add -f .tasks`, do not commit proof files, and do not rely on package branch merges to carry proofs. The orchestrator copies validated proof artifacts into the shared task store.
 
 ## Completion Report
 
@@ -88,6 +94,8 @@ When integration checkpoint, targeted package review, review-code, or audit reje
 - required context bundles and citations expected;
 - risk tags and edge-case checklist;
 - safe verification commands to run after repair;
-- instruction to update package proof entries and report new evidence.
+- the proof schema contract from `taskctl.py must-prove`;
+- instruction to update only package proof entries and report new evidence;
+- instruction not to force-add or commit ignored `.tasks` proof artifacts.
 
 Repair scope is limited to making the assigned package criteria true and proven in the current integrated state. Design/product behavior changes, new dependencies/services, scope expansion, or unsafe commands still stop for user approval.
