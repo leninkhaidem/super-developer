@@ -158,11 +158,12 @@ Only after the integration checkpoint and targeted package review pass:
 
 When all phases/tasks are complete:
 
-1. Run final package proof validation with `python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/validate-tasks-json.py" --final --worktree ".worktrees/<feature>/merge" ".tasks/<feature>/tasks.json"` when an integrated merge worktree exists. Reject missing, invalid, stale, unaccepted, or reopened package proofs.
-2. Update feature `status` to `completed` only after final package proof validation passes.
-3. Run integrated feature tests/checks from `.worktrees/<feature>/merge` when it exists, applying the command-safety approval rule.
-4. Push the feature branch: `git push -u origin feature/<feature>`.
-5. **Do not merge to the target branch.** Wait for explicit user approval for the named `<target-ref>`. "Push to remote" does not mean "merge to target."
+1. Confirm every task is `done` with accepted package proof evidence; unresolved `pending`, `in-progress`, `blocked`, or `skipped` tasks are not final.
+2. Update feature `status` to `completed`.
+3. Run final package proof validation with `python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/validate-tasks-json.py" --final --worktree ".worktrees/<feature>/merge" ".tasks/<feature>/tasks.json"` when an integrated merge worktree exists. Reject incomplete task lifecycle, missing required command evidence, missing targeted-review evidence, invalid, stale, unaccepted, or reopened package proofs.
+4. Run integrated feature tests/checks from `.worktrees/<feature>/merge` when it exists, applying the command-safety approval rule.
+5. Push the feature branch: `git push -u origin feature/<feature>`.
+6. **Do not merge to the target branch.** Wait for explicit user approval for the named `<target-ref>`. "Push to remote" does not mean "merge to target."
 
 ## Pipeline Continuation
 

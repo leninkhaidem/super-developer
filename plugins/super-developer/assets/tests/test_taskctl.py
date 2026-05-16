@@ -276,12 +276,21 @@ class TaskctlCliTests(unittest.TestCase):
             entries = [self.entry("P1-T002-AC1", "WP2", ["CTX-2"])]
         else:
             raise AssertionError(f"unknown package {package_id}")
-        return {
+        proof = {
             "schema_version": 1,
             "feature": "cli-feature",
             "package_id": package_id,
             "entries": entries,
         }
+        proof["targeted_review"] = {
+            "required": True,
+            "performed": True,
+            "reviewer": "targeted package reviewer",
+            "result": "passed",
+            "evidence": "Targeted package review report: package delta and proof evidence passed.",
+            "reviewed_at": "2026-05-16T00:00:00Z",
+        }
+        return proof
 
     def final_ledger(self) -> dict:
         return {
@@ -299,6 +308,14 @@ class TaskctlCliTests(unittest.TestCase):
                 json.dumps(self.proof(package_id), indent=2),
                 encoding="utf-8",
             )
+
+    def mark_plan_complete(self) -> None:
+        self.tasks["status"] = "completed"
+        for phase in self.tasks["phases"]:
+            for task in phase["tasks"]:
+                task["status"] = "done"
+                task["completed_at"] = "2026-05-16T00:00:00Z"
+        self.tasks_path.write_text(json.dumps(self.tasks, indent=2), encoding="utf-8")
 
     def read_proof(self, package_id: str = "WP1") -> dict:
         return json.loads((self.proofs_dir / f"{package_id}.proof.json").read_text(encoding="utf-8"))
@@ -945,6 +962,7 @@ class TaskctlCliTests(unittest.TestCase):
         verification_path = self.feature_dir / "verification.json"
         self.accept_package("WP1")
         self.accept_package("WP2")
+        self.mark_plan_complete()
         invalid_ledger = self.final_ledger()
         invalid_ledger["entries"][0]["status"] = "failed"
         verification_path.write_text(json.dumps(invalid_ledger, indent=2), encoding="utf-8")

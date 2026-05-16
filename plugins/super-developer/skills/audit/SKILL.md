@@ -126,9 +126,9 @@ The sub-agent produces a structured report:
 - [list of tasks that fully passed verification]
 
 ### Verdict
-PASS — All tasks completed and verified in the final state, with no [BLOCKER], [CODE-QUALITY], [SPEC], [ISSUE], [GAP], [TODO], or [LEDGER] findings. [ADVISORY] findings may be listed without blocking completion.
+PASS — All tasks completed and verified in the final state, with no [BLOCKER], [CODE-QUALITY], [SPEC], [ISSUE], [GAP], [TODO], or [PROOF] findings. [ADVISORY] findings may be listed without blocking completion.
 or
-FAIL — Any [BLOCKER], [CODE-QUALITY], [SPEC], [ISSUE], [GAP], [TODO], or [LEDGER] finding requires attention before the feature is considered complete. Manual-required criteria are failures unless durable user-approved manual evidence is present and scoped to the criterion.
+FAIL — Any [BLOCKER], [CODE-QUALITY], [SPEC], [ISSUE], [GAP], [TODO], or [PROOF] finding requires attention before the feature is considered complete. Manual-required criteria are failures unless durable user-approved manual evidence is present and scoped to the criterion.
 ```
 
 ## Step 4: Handle Results

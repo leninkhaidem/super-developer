@@ -77,6 +77,9 @@ class TaskctlRegressionFixture:
     def read_plan(self) -> dict:
         return json.loads(self.tasks_path.read_text(encoding="utf-8"))
 
+    def write_plan(self, plan: dict) -> None:
+        self.tasks_path.write_text(json.dumps(plan, indent=2), encoding="utf-8")
+
     def plan(self) -> dict:
         return {
             "schema_version": 2,
@@ -240,6 +243,18 @@ class TaskctlRegressionTests(unittest.TestCase):
         self.assertEqual(0, next_before.returncode, next_before.stdout + next_before.stderr)
         self.assertEqual(["WP1"], [row["package_id"] for row in json.loads(next_before.stdout)["candidates"]])
 
+        interrupted_plan = self.fixture.read_plan()
+        interrupted_plan["phases"][0]["tasks"][0]["status"] = "in-progress"
+        self.fixture.write_plan(interrupted_plan)
+        next_interrupted = self.fixture.run("next-package")
+        self.assertEqual(0, next_interrupted.returncode, next_interrupted.stdout + next_interrupted.stderr)
+        interrupted = json.loads(next_interrupted.stdout)
+        self.assertEqual([], interrupted["candidates"])
+        self.assertEqual(["WP1"], [row["package_id"] for row in interrupted["interrupted"]])
+
+        interrupted_plan["phases"][0]["tasks"][0]["status"] = "pending"
+        self.fixture.write_plan(interrupted_plan)
+
         rejected = self.fixture.run("block-task", "P2-T001", "--reason", "   ")
         self.assertNotEqual(0, rejected.returncode)
         self.assertFalse((self.fixture.proofs_dir / "WP2.proof.json").exists())
@@ -275,7 +290,7 @@ class TaskctlRegressionTests(unittest.TestCase):
         self.assertNotIn("finalize-feature", help_result.stdout)
 
         source = TASKCTL_PATH.read_text(encoding="utf-8")
-        for forbidden in ("verification.json", "targeted_review", "event_history"):
+        for forbidden in ("verification.json", "event_history"):
             with self.subTest(forbidden=forbidden):
                 self.assertNotIn(forbidden, source)
 
@@ -301,7 +316,7 @@ class GuardrailDocumentationRegressionTests(unittest.TestCase):
         self.assertIn("reopen-package", lifecycle)
         self.assertIn("validate-tasks-json.py\" --final", lifecycle)
         self.assertNotIn("finalize-feature", lifecycle)
-        self.assertNotIn("targeted_review", lifecycle)
+        self.assertIn("targeted_review", lifecycle)
 
 
 if __name__ == "__main__":

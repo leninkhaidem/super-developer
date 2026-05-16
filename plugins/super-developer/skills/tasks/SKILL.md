@@ -89,7 +89,7 @@ Phase 2: <phase name>
 5. At the bottom, show:
    - **Evidence health** — for planned-feature pipelines, whether `.tasks/$ARGUMENTS/proofs/WP<N>.proof.json` files exist, validate, and are accepted for completed package criteria. Do not treat missing, invalid, stale, reopened/unaccepted, `failed`, `blocked`, or unapproved `manual_required` proof entries as verified work.
    - **Next actionable task** — first `pending` task with all dependencies `done`.
-   - **Next actionable work package** — first package with pending work whose package dependencies and external task dependencies are done. Show this only when `work_packages` exists.
+   - **Next actionable work package** — first package with pending work whose package dependencies have accepted proof evidence and whose external task dependencies are done. Show interrupted `in-progress` packages separately rather than redispatching them. Show this only when `work_packages` exists.
    - **Blocked tasks** — with `blocked_reason` if present.
 
 ## Status Icons

@@ -156,7 +156,7 @@ The agent infers the feature name, creates `SPEC.md` and schema-versioned `tasks
 
 ### Package Proof Helper
 
-`assets/taskctl.py` provides package-proof helpers for planned features. Package proofs are the planned-feature evidence surface: read-only commands inspect `.tasks/<feature>/tasks.json` and `.tasks/<feature>/proofs/WP<N>.proof.json`, while lifecycle commands write only the selected package proof's lifecycle state, including accepted/reopened timestamps. The helper does not mutate task-status lifecycle state, `tasks.json`, statuses, task-status timestamps, generated artifacts, proof history, or event logs.
+`assets/taskctl.py` provides package-proof helpers for planned features. Package proofs are the planned-feature evidence surface: read-only commands inspect `.tasks/<feature>/tasks.json` and `.tasks/<feature>/proofs/WP<N>.proof.json`, package lifecycle commands write only the selected package proof's accepted/reopened state, and task lifecycle helpers perform constrained block/reset mutations in `tasks.json`. The helper does not mutate generated artifacts, proof history, event logs, or unrelated proof files.
 
 Read-only commands:
 
@@ -165,13 +165,19 @@ Read-only commands:
 - `validate-proofs`: validate exactly one proof file for every work package.
 - `must-prove`: emit acceptance criteria and evidence obligations.
 - `summary`: emit task, package, and proof-health summary output.
+- `next-package`: emit proof-ready dependency candidates and interrupted packages without persisting package status.
 
 Package-level lifecycle proof writers:
 
 - `accept-package`: validate and write accepted lifecycle state for one package proof.
 - `reopen-package`: write reopened lifecycle state for one package proof.
 
-These commands do not run recorded package verification commands. Final implementation and audit gates require every planned work package to have a valid, current, lifecycle-accepted proof file. Historical `verification.json` files are not authoritative package or final evidence. See [`references/package-lifecycle.md`](references/package-lifecycle.md) for the targeted lifecycle transition, provenance, freshness, and final-gate contract.
+Constrained task lifecycle helpers:
+
+- `block-task`: mark one task blocked with a required reason.
+- `reset-task`: reset one interrupted or blocked task to pending after orchestrator review.
+
+These commands do not run recorded package verification commands. Accepted package proofs must cite passing evidence for required package verification commands and required targeted package review. Final implementation and audit gates require completed task lifecycle plus one valid, current, lifecycle-accepted proof file per planned work package. Historical `verification.json` files are not authoritative package or final evidence. See [`references/package-lifecycle.md`](references/package-lifecycle.md) for the targeted lifecycle transition, provenance, freshness, and final-gate contract.
 
 ### Pipeline Flow Control
 

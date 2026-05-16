@@ -111,7 +111,7 @@ def build_parser() -> argparse.ArgumentParser:
     next_package = subparsers.add_parser(
         "next-package",
         parents=[common],
-        help="Emit dependency-ready packages without persisting package status.",
+        help="Emit proof-ready dependency candidates and interrupted packages.",
     )
     next_package.set_defaults(func=cmd_next_package)
 
@@ -257,14 +257,17 @@ def cmd_summary(args: argparse.Namespace) -> int:
 
 
 def cmd_next_package(args: argparse.Namespace) -> int:
-    _validator, plan = load_plan(Path(args.tasks))
+    validator, plan = load_plan(Path(args.tasks))
+    worktree = Path(args.worktree)
     completed = {
         package["id"]
         for package in work_packages(plan)
         if all(plan.tasks[task_id]["status"] == "done" for task_id in package["task_ids"])
+        and proof_health(validator, plan, package, worktree)["final_ready"]
     }
     candidates = []
     blocked = []
+    interrupted = []
     for package in work_packages(plan):
         task_statuses = package_task_statuses(plan, package)
         missing_dependencies = [
@@ -284,10 +287,20 @@ def cmd_next_package(args: argparse.Namespace) -> int:
                     "missing_dependencies": missing_dependencies,
                 }
             )
+        if "in-progress" in task_statuses:
+            interrupted.append(
+                {
+                    "package_id": package["id"],
+                    "task_ids": package["task_ids"],
+                    "task_status_counts": dict(sorted(task_statuses.items())),
+                    "missing_dependencies": missing_dependencies,
+                }
+            )
         if (
             not missing_dependencies
             and not blocked_tasks
-            and any(status in task_statuses for status in ("pending", "in-progress"))
+            and "in-progress" not in task_statuses
+            and "pending" in task_statuses
         ):
             candidates.append(
                 {
@@ -305,6 +318,7 @@ def cmd_next_package(args: argparse.Namespace) -> int:
             "completed_packages": sorted(completed),
             "candidates": candidates,
             "blocked": blocked,
+            "interrupted": interrupted,
         },
     )
     return 0
@@ -810,8 +824,14 @@ def package_must_prove(
         "task_ids": package["task_ids"],
         "risk_tags": package["risk_tags"],
         "required_context_bundles": package["required_context_bundles"],
+        "targeted_review_required": package["targeted_review_required"],
+        "verification_commands": package["verification_commands"],
         "task_status_counts": dict(sorted(package_task_statuses(plan, package).items())),
         "proof": proof,
+        "package_must_prove": [
+            "accepted proof must cite passing evidence for every package verification command",
+            "targeted package review must be recorded in targeted_review when required",
+        ],
         "criteria": criteria,
     }
 
@@ -830,6 +850,8 @@ def package_summary(
         },
         "risk_tags": package["risk_tags"],
         "required_context_bundles": package["required_context_bundles"],
+        "targeted_review_required": package["targeted_review_required"],
+        "verification_commands": package["verification_commands"],
         "criteria_total": len(criteria),
         "proof": proof,
     }

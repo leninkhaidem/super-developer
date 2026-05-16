@@ -11,10 +11,11 @@ For each completed package batch:
 3. Verify package branches are ancestors of the integration HEAD.
 4. Copy or otherwise hand off the assigned package proof file into `.tasks/<feature>/proofs/WP<N>.proof.json` for the integration feature state. `.tasks/` is ignored by git, so branch merges do not carry proof files.
 5. Confirm the integration worktree is clean or contains only intentional merge-resolution commits.
-6. Run package verification commands from the integration worktree after command-safety screening.
+6. Run package verification commands from the integration worktree after command-safety screening, and ensure the package proof cites each required command as passing evidence.
 7. Run targeted package review when required.
-8. Run `taskctl.py accept-package --tasks .tasks/<feature>/tasks.json --worktree .worktrees/<feature>/merge .tasks/<feature>/proofs/WP<N>.proof.json` for the package proof after code, verification, and review checks pass.
-9. Accept evidence and mark tasks done only after all required checks pass.
+8. For packages requiring targeted review, add the minimal root `targeted_review` proof object with `required`, `performed`, `reviewer`, `result`, `evidence`, and `reviewed_at`.
+9. Run `taskctl.py accept-package --tasks .tasks/<feature>/tasks.json --worktree .worktrees/<feature>/merge .tasks/<feature>/proofs/WP<N>.proof.json` for the package proof after code, verification, and review checks pass.
+10. Accept evidence and mark tasks done only after all required checks pass.
 
 Do not unlock downstream packages until this checkpoint passes for their dependencies.
 
@@ -40,7 +41,7 @@ Run package `verification_commands` from `.worktrees/<feature>/merge` only after
 
 Also run cheap relevant global checks when discoverable and appropriate for the project, such as targeted tests, typecheck, or lint. Do not run expensive full-suite checks after every package unless project convention indicates they are cheap.
 
-A committed package is not complete if verification fails, evidence is stale, or commands were skipped without approval when they are required to prove criteria.
+A committed package is not complete if verification fails, evidence is stale, or commands were skipped without approval when they are required to prove criteria. Accepted proof validation requires every listed package `verification_commands` entry to appear as passing command evidence in the package proof.
 
 ## Targeted Package Review
 
@@ -60,6 +61,8 @@ The review focuses on:
 - whether evidence proves assigned criteria.
 
 Confirmed issues are delegated as package-scope repair work before downstream dispatch. The orchestrator does not fix them inline.
+
+When targeted review passes, record only the minimal `targeted_review` proof object. Do not add review histories, event streams, or a parallel review ledger.
 
 ## Rejection and Repair
 

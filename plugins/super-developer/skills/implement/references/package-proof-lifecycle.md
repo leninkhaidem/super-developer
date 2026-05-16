@@ -34,7 +34,7 @@ python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/taskctl.py" next-package --tasks 
 python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/taskctl.py" must-prove --tasks ".tasks/<feature>/tasks.json" --package WP1
 ```
 
-`summary` reports feature, task, package, and proof health. `next-package` reports dependency-ready packages without persisting package status. `must-prove` derives a transient checklist from existing plan data and the known-risk reference; do not persist that output into `tasks.json`.
+`summary` reports feature, task, package, and proof health. `next-package` reports dependency-ready packages without persisting package status, excludes interrupted `in-progress` packages, and reports them separately for orchestrator resolution. `must-prove` derives a transient checklist from existing plan data and the known-risk reference; do not persist that output into `tasks.json`.
 
 ## Proof Template Creation
 
@@ -67,6 +67,13 @@ python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/taskctl.py" accept-package --task
 
 `accept-package` writes accepted lifecycle state into that package proof file. It does not mark tasks done by itself; the orchestrator changes task status only after evidence, verification, and review gates pass. Manual status edits are explicit overrides and do not create package proof.
 
+Accepted package proofs are intentionally lean, but they must carry the gates that prevent review/fix loops:
+
+- each listed package `verification_commands` entry appears as passing command evidence under an existing proof entry;
+- packages with `targeted_review_required: true` include a minimal root `targeted_review` object with `required`, `performed`, `reviewer`, `result`, `evidence`, and `reviewed_at`.
+
+Do not add a parallel command ledger, review history, event stream, or generated checklist to the proof file.
+
 Use `reopen-package` before a repair that invalidates accepted proof content:
 
 ```bash
@@ -86,7 +93,7 @@ Block only when work needs user input, approved scope change, external credentia
 
 ## Final Proof Validation and Completion
 
-Before marking a feature complete, validate all package proofs and exact criterion coverage:
+After package tasks are marked `done` and feature status is `completed`, validate all package proofs, required package command evidence, targeted-review evidence, exact criterion coverage, and final task lifecycle:
 
 ```bash
 python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/validate-tasks-json.py" --final --worktree ".worktrees/<feature>/merge" ".tasks/<feature>/tasks.json"

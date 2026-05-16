@@ -52,9 +52,10 @@ The package agent updates only its assigned `.tasks/<feature>/proofs/WP<N>.proof
 - edge cases covered;
 - mock disclosure and justification, if any;
 - context-bundle citations when applicable;
+- passing evidence for required package `verification_commands` when run in package or integration state;
 - status that is not failed, blocked, stale, or manual-required without approval.
 
-The proof file is the package evidence source. Vague, stale, untied, or missing evidence is rejection-worthy. Do not manually edit the proof `lifecycle` object; the orchestrator accepts or reopens package proofs with `taskctl.py` after integrated validation.
+The proof file is the package evidence source. Vague, stale, untied, or missing evidence is rejection-worthy. Do not manually edit the proof `lifecycle` object; the orchestrator accepts or reopens package proofs with `taskctl.py` after integrated validation. The orchestrator records minimal root `targeted_review` evidence when targeted package review is required and passes.
 
 ## Completion Report
 

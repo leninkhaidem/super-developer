@@ -13,6 +13,7 @@ The Release 1 read-only commands remain read-only:
 - `validate-proofs`
 - `must-prove`
 - `summary`
+- `next-package`
 
 Lifecycle commands are not task-status helpers, feature finalizers, audit replacements, or future pipeline cutover instructions. They do not execute recorded package verification commands.
 
@@ -43,4 +44,4 @@ Reopened lifecycle state records the current proof lifecycle but is not accepted
 
 ## Final Gate Cutover
 
-Release 2 kept accepted package proofs as compatibility helpers while `verification.json` remained the final gate. In the current proof-native pipeline, final implementation and audit success require one valid, current, lifecycle-accepted `.tasks/<feature>/proofs/WP<N>.proof.json` file for every work package. Historical `verification.json` files are not authoritative package or final evidence.
+Release 2 kept accepted package proofs as compatibility helpers while `verification.json` remained the final gate. In the current proof-native pipeline, final implementation and audit success require completed task lifecycle plus one valid, current, lifecycle-accepted `.tasks/<feature>/proofs/WP<N>.proof.json` file for every work package. Accepted proofs must carry passing evidence for required package verification commands and minimal `targeted_review` evidence when targeted review is required. Historical `verification.json` files are not authoritative package or final evidence.

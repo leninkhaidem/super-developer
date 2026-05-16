@@ -68,7 +68,6 @@ PACKAGE_LIFECYCLE_FORBIDDEN_ROOT_FIELDS = {
     "history",
     "lifecycle_history",
     "proof_history",
-    "targeted_review",
     "targeted_review_state",
     "workflow_engine_state",
     "workflow_state",
@@ -204,6 +203,7 @@ def main() -> int:
     errors, plan_index = validate_tasks_json(data, tasks_path=tasks_path, spec_path=spec_path)
 
     if args.final:
+        errors.extend(validate_final_task_lifecycle(data, plan_index))
         errors.extend(
             validate_final_package_proofs(
                 tasks_path,
@@ -232,14 +232,18 @@ def validate_tasks_json(
     plan_index: dict[str, Any] = {
         "feature": None,
         "schema_version": 2,
+        "feature_status": None,
         "task_ids": set(),
         "task_ac_ids": set(),
         "task_ac_sources": {},
+        "task_statuses": {},
         "task_required_context_bundles": {},
         "task_to_package": {},
         "package_ids": set(),
         "package_required_context_bundles": {},
         "package_to_tasks": {},
+        "package_targeted_review_required": {},
+        "package_verification_commands": {},
         "context_bundle_ids": set(),
     }
     if not isinstance(data, dict):
@@ -248,6 +252,7 @@ def validate_tasks_json(
     schema_version = validate_schema_version(data, errors)
     plan_index["schema_version"] = schema_version
     plan_index["feature"] = data.get("feature")
+    plan_index["feature_status"] = data.get("status")
 
     validate_top_level(data, errors)
     if "context_bundles" not in data:
@@ -263,6 +268,7 @@ def validate_tasks_json(
     task_ids: set[str] = set()
     task_dependencies: dict[str, list[str]] = {}
     task_phase_order: dict[str, int] = {}
+    task_statuses: dict[str, str] = {}
     task_ac_ids: set[str] = set()
     task_ac_sources: dict[str, list[dict[str, str]]] = {}
     task_required_context_bundles: dict[str, set[str]] = {}
@@ -276,6 +282,7 @@ def validate_tasks_json(
             task_ids,
             task_dependencies,
             task_phase_order,
+            task_statuses,
             task_ac_ids=task_ac_ids,
             task_ac_sources=task_ac_sources,
             task_required_context_bundles=task_required_context_bundles,
@@ -320,6 +327,7 @@ def validate_tasks_json(
         )
 
     plan_index["task_ids"] = task_ids
+    plan_index["task_statuses"] = task_statuses
     plan_index["task_ac_ids"] = task_ac_ids
     plan_index["task_ac_sources"] = task_ac_sources
     plan_index["task_required_context_bundles"] = task_required_context_bundles
@@ -599,6 +607,7 @@ def validate_phases(
     task_ids: set[str],
     task_dependencies: dict[str, list[str]],
     task_phase_order: dict[str, int],
+    task_statuses: dict[str, str],
     task_ac_ids: set[str],
     task_ac_sources: dict[str, list[dict[str, str]]],
     task_required_context_bundles: dict[str, set[str]],
@@ -644,6 +653,7 @@ def validate_phases(
                 task_ids,
                 task_dependencies,
                 task_phase_order,
+                task_statuses,
                 task_ac_ids=task_ac_ids,
                 task_ac_sources=task_ac_sources,
                 task_required_context_bundles=task_required_context_bundles,
@@ -665,6 +675,7 @@ def validate_task(
     task_ids: set[str],
     task_dependencies: dict[str, list[str]],
     task_phase_order: dict[str, int],
+    task_statuses: dict[str, str],
     task_ac_ids: set[str],
     task_ac_sources: dict[str, list[dict[str, str]]],
     task_required_context_bundles: dict[str, set[str]],
@@ -698,6 +709,8 @@ def validate_task(
         errors.append(
             f"{task_path}.status: expected one of {sorted(TASK_STATUSES)}, got {status!r}"
         )
+    if isinstance(task_id, str) and task_id.strip() and isinstance(status, str):
+        task_statuses[task_id] = status
     if status == "done":
         if require_non_empty_string(
             task, "completed_at", f"{task_path}.completed_at", errors
@@ -1008,6 +1021,8 @@ def index_work_packages(work_packages: list[Any], plan_index: dict[str, Any]) ->
     package_ids: set[str] = set()
     package_to_tasks: dict[str, list[str]] = {}
     package_required_context_bundles: dict[str, set[str]] = {}
+    package_targeted_review_required: dict[str, bool] = {}
+    package_verification_commands: dict[str, list[str]] = {}
     for package in work_packages:
         if not isinstance(package, dict) or not isinstance(package.get("id"), str):
             continue
@@ -1023,9 +1038,19 @@ def index_work_packages(work_packages: list[Any], plan_index: dict[str, Any]) ->
             package_required_context_bundles[package_id] = {
                 bundle_ref for bundle_ref in bundle_refs if isinstance(bundle_ref, str)
             }
+        targeted = package.get("targeted_review_required")
+        if isinstance(targeted, bool):
+            package_targeted_review_required[package_id] = targeted
+        commands = package.get("verification_commands")
+        if isinstance(commands, list):
+            package_verification_commands[package_id] = [
+                command for command in commands if isinstance(command, str)
+            ]
     plan_index["package_ids"] = package_ids
     plan_index["package_to_tasks"] = package_to_tasks
     plan_index["package_required_context_bundles"] = package_required_context_bundles
+    plan_index["package_targeted_review_required"] = package_targeted_review_required
+    plan_index["package_verification_commands"] = package_verification_commands
 
 
 def validate_package_v2_fields(
@@ -1252,6 +1277,25 @@ def validate_final_package_proofs(
     return errors
 
 
+def validate_final_task_lifecycle(data: Any, plan_index: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
+    if not isinstance(data, dict):
+        return errors
+    status = data.get("status")
+    if status != "completed":
+        errors.append(
+            f"feature.status: expected 'completed' for final validation, got {status!r}"
+        )
+    task_statuses = plan_index.get("task_statuses", {})
+    if isinstance(task_statuses, dict):
+        for task_id, task_status in sorted(task_statuses.items()):
+            if task_status != "done":
+                errors.append(
+                    f"task {task_id}.status: expected 'done' for final validation, got {task_status!r}"
+                )
+    return errors
+
+
 def package_id_sort_key(package_id: str) -> tuple[int, str]:
     match = WORK_PACKAGE_ID_RE.fullmatch(package_id)
     if match:
@@ -1364,8 +1408,120 @@ def validate_package_proof_json(
         proof_path=proof_path,
         tasks_path=tasks_path,
     )
+    required_reviews = plan_index.get("package_targeted_review_required", {})
+    lifecycle_state = package_lifecycle_state_name(proof)
+    if lifecycle_state != "accepted":
+        validate_package_targeted_review(
+            proof.get("targeted_review"),
+            "package proof.targeted_review",
+            errors,
+            required_by_plan=bool(required_reviews.get(package_id))
+            if isinstance(package_id, str)
+            else False,
+            require_presence=False,
+        )
+    if isinstance(package_id, str) and lifecycle_state == "accepted":
+        validate_package_acceptance_gates(
+            proof,
+            "package proof",
+            errors,
+            plan_index,
+            package_id,
+        )
 
     return errors
+
+
+def validate_package_acceptance_gates(
+    proof: dict[str, Any],
+    path: str,
+    errors: list[str],
+    plan_index: dict[str, Any],
+    package_id: str,
+) -> None:
+    required_commands = plan_index.get("package_verification_commands", {}).get(package_id, [])
+    validate_package_verification_command_evidence(
+        proof,
+        required_commands if isinstance(required_commands, list) else [],
+        f"{path}.verification_commands",
+        errors,
+    )
+    required_reviews = plan_index.get("package_targeted_review_required", {})
+    validate_package_targeted_review(
+        proof.get("targeted_review"),
+        f"{path}.targeted_review",
+        errors,
+        required_by_plan=bool(required_reviews.get(package_id)),
+    )
+
+
+def validate_package_verification_command_evidence(
+    proof: dict[str, Any],
+    required_commands: list[str],
+    path: str,
+    errors: list[str],
+) -> None:
+    if not required_commands:
+        return
+    passing_commands: set[str] = set()
+    entries = proof.get("entries")
+    if isinstance(entries, list):
+        for entry in entries:
+            if not isinstance(entry, dict):
+                continue
+            evidence = entry.get("evidence")
+            if not isinstance(evidence, dict):
+                continue
+            commands = evidence.get("commands")
+            if not isinstance(commands, list):
+                continue
+            for command in commands:
+                if not isinstance(command, dict):
+                    continue
+                command_text = command.get("command")
+                if isinstance(command_text, str) and command.get("exit_code") == 0:
+                    passing_commands.add(command_text)
+    for required_command in required_commands:
+        if required_command not in passing_commands:
+            errors.append(
+                f"{path}: missing passing proof evidence for verification_commands entry {required_command!r}"
+            )
+
+
+def validate_package_targeted_review(
+    review: Any,
+    path: str,
+    errors: list[str],
+    *,
+    required_by_plan: bool,
+    require_presence: bool = True,
+) -> None:
+    if review is None:
+        if required_by_plan and require_presence:
+            errors.append(f"{path}: required for targeted_review_required package")
+        return
+    if not isinstance(review, dict):
+        errors.append(f"{path}: expected object")
+        return
+    expected_fields = {"required", "performed", "reviewer", "result", "evidence", "reviewed_at"}
+    actual_fields = set(review)
+    for missing in sorted(expected_fields - actual_fields):
+        errors.append(f"{path}.{missing}: expected field")
+    for extra in sorted(actual_fields - expected_fields):
+        errors.append(f"{path}.{extra}: unexpected field")
+    if review.get("required") is not required_by_plan:
+        errors.append(
+            f"{path}.required: expected {required_by_plan!r}, got {review.get('required')!r}"
+        )
+    if review.get("performed") is not True:
+        errors.append(f"{path}.performed: expected True")
+    if review.get("result") != "passed":
+        errors.append(f"{path}.result: expected 'passed', got {review.get('result')!r}")
+    for field in ("reviewer", "evidence", "reviewed_at"):
+        require_non_empty_string(review, field, f"{path}.{field}", errors)
+    reviewed_at = review.get("reviewed_at")
+    if isinstance(reviewed_at, str) and reviewed_at.strip():
+        validate_iso_datetime(reviewed_at, f"{path}.reviewed_at", errors)
 
 
 def package_proof_digest(proof: dict[str, Any]) -> str:

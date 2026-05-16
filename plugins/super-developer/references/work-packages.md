@@ -49,6 +49,8 @@ Each package's `verification_commands` lists concrete shell commands the orchest
 
 Treat `verification_commands` as executable inputs from a plan artifact. They must be scoped, deterministic, and known-safe. If a command is destructive, externally visible, credential/network-sensitive, installs dependencies or services, mutates data outside the worktree, or exceeds the advertised verification scope, the Execution Contract must stop for explicit user approval before it runs.
 
+Accepted package proofs must include passing command evidence for every listed `verification_commands` entry. Do not create a second command ledger; cite the command under the relevant proof entry's existing `evidence.commands`.
+
 
 ## Package Proof Files
 
@@ -61,6 +63,8 @@ Plans include:
 - `risk_tags`: controlled tags used for targeted package review and edge-case checklist obligations.
 - `required_context_bundles`: context bundle IDs package agents must read and cite.
 - `targeted_review_required`: `true` when tags or planner judgment require package-level review.
+
+When `targeted_review_required` is true, the accepted package proof must include a minimal root `targeted_review` object: `required`, `performed`, `reviewer`, `result`, `evidence`, and `reviewed_at`. Keep `evidence` to a concise pointer or summary of the targeted review report; do not add review histories or event logs.
 
 Targeted-review-triggering tags include:
 

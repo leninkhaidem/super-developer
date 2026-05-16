@@ -278,6 +278,16 @@ class PackageProofValidationTests(unittest.TestCase):
             "entries": entries,
         }
 
+    def targeted_review(self, *, required: bool = True) -> dict:
+        return {
+            "required": required,
+            "performed": True,
+            "reviewer": "targeted package reviewer",
+            "result": "passed",
+            "evidence": "Targeted package review report: package delta and proof evidence passed.",
+            "reviewed_at": "2026-05-16T00:00:00Z",
+        }
+
     def proof_path(self, package_id: str = "WP1") -> Path:
         return self.feature_dir / "proofs" / f"{package_id}.proof.json"
 
@@ -315,8 +325,41 @@ class PackageProofValidationTests(unittest.TestCase):
         self, state: str, package_id: str = "WP1", **overrides: object
     ) -> dict:
         proof = self.proof(package_id)
+        if state == "accepted":
+            proof["targeted_review"] = self.targeted_review(required=True)
         proof["lifecycle"] = self.lifecycle_state(proof, state, **overrides)
         return proof
+
+    def mark_plan_complete(self) -> None:
+        self.tasks["status"] = "completed"
+        for phase in self.tasks["phases"]:
+            for task in phase["tasks"]:
+                task["status"] = "done"
+                task["completed_at"] = "2026-05-16T00:00:00Z"
+        self.tasks_path.write_text(json.dumps(self.tasks, indent=2), encoding="utf-8")
+        errors, plan_index = validator.validate_tasks_json(
+            self.tasks,
+            tasks_path=self.tasks_path,
+            spec_path=self.feature_dir / "SPEC.md",
+        )
+        self.assertEqual([], errors)
+        self.plan_index = plan_index
+
+    def set_package_verification_commands(self, package_id: str, commands: list[str]) -> None:
+        for package in self.tasks["work_packages"]:
+            if package["id"] == package_id:
+                package["verification_commands"] = commands
+                break
+        else:
+            raise AssertionError(f"unknown package {package_id}")
+        self.tasks_path.write_text(json.dumps(self.tasks, indent=2), encoding="utf-8")
+        errors, plan_index = validator.validate_tasks_json(
+            self.tasks,
+            tasks_path=self.tasks_path,
+            spec_path=self.feature_dir / "SPEC.md",
+        )
+        self.assertEqual([], errors)
+        self.plan_index = plan_index
 
     def validate_proof_file(self, proof: dict, package_id: str = "WP1") -> list[str]:
         proof_path = self.write_proof_file(proof, package_id)
@@ -508,6 +551,45 @@ class PackageProofValidationTests(unittest.TestCase):
             "\n".join(self.validate_proof_file(manual)),
         )
 
+    def test_accepted_package_requires_targeted_review_when_plan_requires_it(self) -> None:
+        missing_review = self.proof()
+        missing_review["lifecycle"] = self.lifecycle_state(missing_review, "accepted")
+        self.assertIn(
+            "targeted_review: required for targeted_review_required package",
+            "\n".join(self.validate_proof_file(missing_review)),
+        )
+
+        malformed_review = self.proof_with_lifecycle("accepted")
+        malformed_review["targeted_review"]["result"] = "failed"
+        malformed_review["lifecycle"]["proof_digest"] = validator.package_proof_digest(malformed_review)
+        self.assertIn(
+            "targeted_review.result: expected 'passed'",
+            "\n".join(self.validate_proof_file(malformed_review)),
+        )
+
+    def test_accepted_package_requires_required_verification_command_evidence(self) -> None:
+        required_command = "python3 -m unittest discover plugins/super-developer/assets/tests"
+        self.set_package_verification_commands("WP1", [required_command])
+
+        missing_command = self.proof_with_lifecycle("accepted")
+        self.assertIn(
+            f"verification_commands: missing passing proof evidence for verification_commands entry {required_command!r}",
+            "\n".join(self.validate_proof_file(missing_command)),
+        )
+
+        proven = self.proof()
+        proven["targeted_review"] = self.targeted_review(required=True)
+        proven["entries"][0]["evidence"]["commands"].append(
+            {
+                "cwd": str(self.repo),
+                "command": required_command,
+                "exit_code": 0,
+                "observed": "Package verification command passed.",
+            }
+        )
+        proven["lifecycle"] = self.lifecycle_state(proven, "accepted")
+        self.assertEqual([], self.validate_proof_file(proven))
+
     def test_reopened_lifecycle_does_not_enforce_accepted_freshness(self) -> None:
         (self.repo / "tracked.txt").write_text("modified after lifecycle state\n", encoding="utf-8")
         self.git("add", "tracked.txt")
@@ -697,6 +779,7 @@ class PackageProofValidationTests(unittest.TestCase):
         self.assertInvalidProof(self.proof(), "stale evidence")
 
     def test_final_validation_requires_accepted_package_proofs(self) -> None:
+        self.mark_plan_complete()
         self.write_proof_file(self.proof_with_lifecycle("accepted"), "WP1")
         self.write_proof_file(self.proof_with_lifecycle("accepted", "WP2"), "WP2")
         verification_path = self.feature_dir / "verification.json"
@@ -722,7 +805,31 @@ class PackageProofValidationTests(unittest.TestCase):
         self.assertEqual(0, result.returncode, result.stdout + result.stderr)
         self.assertIn("package proofs are valid", result.stdout)
 
+    def test_final_validation_requires_completed_task_lifecycle(self) -> None:
+        self.write_proof_file(self.proof_with_lifecycle("accepted"), "WP1")
+        self.write_proof_file(self.proof_with_lifecycle("accepted", "WP2"), "WP2")
+
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(VALIDATOR_PATH),
+                "--final",
+                "--worktree",
+                str(self.repo),
+                str(self.tasks_path),
+            ],
+            cwd=self.repo,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+        )
+        self.assertNotEqual(0, result.returncode)
+        self.assertIn("feature.status: expected 'completed'", result.stdout)
+        self.assertIn("task P1-T001.status: expected 'done'", result.stdout)
+
     def test_final_validation_rejects_missing_or_reopened_package_proofs(self) -> None:
+        self.mark_plan_complete()
         verification_path = self.feature_dir / "verification.json"
         verification_path.write_text(json.dumps(self.final_ledger(), indent=2), encoding="utf-8")
         proofs = self.feature_dir / "proofs"
