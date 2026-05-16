@@ -144,7 +144,7 @@ Based on the sub-agent's report:
 
 If audit verdict is FAIL, present issues and STOP. Do not invoke another broad review/audit loop automatically. In auto-resolve mode, return findings to the implement/review-code fix delegation flow with bug-class guidance.
 
-If PASS, state: "Final audit passed. Merge worktree at `.worktrees/<feature>/merge/` is ready for merge approval." Do not invoke review-code after PASS; review-code already runs before final audit in the planned-feature pipeline.
+If PASS, state: "Final audit passed. Merge worktree at `.worktrees/<feature>/merge/` is ready for merge approval." In planned-feature auto-continuation, the orchestrator must pass the audit PASS provenance to `taskctl finalize-feature --final-audit-source` together with the preceding review-code CLEAN provenance as `--final-review-source`; do not invent or manually edit final gate schema fields. Do not invoke review-code after PASS; review-code already runs before final audit in the planned-feature pipeline.
 
 ## Constraints
 

@@ -80,11 +80,11 @@ Block only when work needs user input, approved scope change, external credentia
 
 ## Final Proof Validation and Completion
 
-Before marking a feature complete, validate all package proofs and exact criterion coverage, then finalize only after final integration review and final audit gates pass:
+Before marking a feature complete, validate all package proofs, exact criterion coverage, package verification commands, and targeted package review gates. After the final review-code result is CLEAN and final audit result is PASS, pass those provenances through the supported final-gate writer path:
 
 ```bash
 python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/taskctl.py" --tasks ".tasks/<feature>/tasks.json" --worktree ".worktrees/<feature>/merge" validate-proofs
-python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/taskctl.py" --tasks ".tasks/<feature>/tasks.json" --worktree ".worktrees/<feature>/merge" finalize-feature
+python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/taskctl.py" --tasks ".tasks/<feature>/tasks.json" --worktree ".worktrees/<feature>/merge" finalize-feature --final-review-source "<review-code CLEAN provenance>" --final-audit-source "<audit PASS provenance>"
 ```
 
-`validate-proofs` catches missing, extra, stale, malformed, failed, blocked, or wrong-package proof. `finalize-feature` must not be used to bypass final review-code, delegated fixes, or final audit; those gates remain mandatory before completed status is authoritative.
+`validate-proofs` catches missing, extra, stale, malformed, failed, blocked, wrong-package proof, missing package verification, and stale or mismatched targeted package review evidence. `finalize-feature` records current-commit `final_integration_review` and `final_audit` evidence only through explicit non-empty provenance options, then checks all final gates before writing completed status. It must not be used to bypass final review-code, delegated fixes, or final audit; those gates remain mandatory before completed status is authoritative.

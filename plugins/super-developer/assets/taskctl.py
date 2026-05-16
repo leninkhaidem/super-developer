@@ -283,10 +283,24 @@ def cmd_validate_proof(args: argparse.Namespace) -> int:
 
 
 def cmd_validate_proofs(args: argparse.Namespace) -> int:
-    _plan, plan_index, tasks_path = _load_plan(args)
+    plan, plan_index, tasks_path = _load_plan(args)
     result = validator.validate_all_package_proofs(_proofs_dir(args, tasks_path), plan_index, worktree=_worktree(args))
-    _ok({"ok": not result.errors, "errors": result.errors, "criterion_ids": sorted(result.criterion_ids)})
-    return 0 if not result.errors else 1
+    errors = list(result.errors)
+    for package in plan.get("work_packages", []):
+        if not isinstance(package, dict):
+            continue
+        package_id = package.get("id")
+        if not isinstance(package_id, str):
+            continue
+        try:
+            package_gates = _require_package_gates(args, plan, tasks_path, package_id)
+        except TaskctlError as exc:
+            errors.append(f"package {package_id}: {exc}")
+        else:
+            for gate in package_gates:
+                errors.append(f"package {package_id}: {gate}")
+    _ok({"ok": not errors, "errors": errors, "criterion_ids": sorted(result.criterion_ids)})
+    return 0 if not errors else 1
 
 
 def _proof_json(args: argparse.Namespace, tasks_path: Path, package_id: str) -> dict[str, Any]:
@@ -452,9 +466,44 @@ def _final_gate_errors(plan: dict[str, Any], worktree: Path) -> list[str]:
             errors.append(f"{field}.state.commit {commit!r} does not match current commit {current!r}")
     return errors
 
+def _final_gate_sources(args: argparse.Namespace) -> tuple[str, str] | None:
+    review_source = getattr(args, "final_review_source", None)
+    audit_source = getattr(args, "final_audit_source", None)
+    if review_source is None and audit_source is None:
+        return None
+    if not _non_empty(review_source) or not _non_empty(audit_source):
+        raise TaskctlError("--final-review-source and --final-audit-source must both be non-empty when recording final gates")
+    return review_source.strip(), audit_source.strip()
+
+
+def _record_final_gates(plan: dict[str, Any], args: argparse.Namespace) -> bool:
+    sources = _final_gate_sources(args)
+    if sources is None:
+        return False
+    current = _current_commit(_worktree(args))
+    if current is None:
+        raise TaskctlError("unable to determine current commit for final gate evidence")
+    reviewed_at = audited_at = _now_iso()
+    worktree = str(_worktree(args))
+    review_source, audit_source = sources
+    plan["final_integration_review"] = {
+        "status": "passed",
+        "source": review_source,
+        "reviewed_at": reviewed_at,
+        "state": {"git_ref": "HEAD", "commit": current, "worktree": worktree},
+    }
+    plan["final_audit"] = {
+        "status": "passed",
+        "source": audit_source,
+        "audited_at": audited_at,
+        "state": {"git_ref": "HEAD", "commit": current, "worktree": worktree},
+    }
+    return True
+
 
 def cmd_finalize_feature(args: argparse.Namespace) -> int:
     plan, plan_index, tasks_path = _load_plan(args)
+    final_gates_recorded = _record_final_gates(plan, args)
     proof_result = validator.validate_all_package_proofs(_proofs_dir(args, tasks_path), plan_index, worktree=_worktree(args))
     missing = list(proof_result.errors)
     for package in plan.get("work_packages", []):
@@ -474,14 +523,14 @@ def cmd_finalize_feature(args: argparse.Namespace) -> int:
             missing.append(f"task {task.get('id')} is not done")
     missing.extend(_final_gate_errors(plan, _worktree(args)))
     if missing:
-        _ok({"ok": False, "mutated": False, "missing_gates": missing})
+        _ok({"ok": False, "mutated": False, "final_gates_recorded": False, "missing_gates": missing})
         return 1
     completed_at = args.completed_at or _now_iso()
     plan["status"] = _feature_status("completed")
     plan["completed_at"] = completed_at
     _validate_after_mutation(plan, tasks_path, _spec_path(args, tasks_path))
     _write_json_atomic(tasks_path, plan)
-    return _ok({"ok": True, "mutated": True, "completed_at": completed_at})
+    return _ok({"ok": True, "mutated": True, "final_gates_recorded": final_gates_recorded, "completed_at": completed_at})
 
 
 def cmd_block_task(args: argparse.Namespace) -> int:
@@ -680,6 +729,8 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("finalize-feature", help="preflight or complete the feature after all proofs and final gates pass")
     p.add_argument("--proofs-dir", type=Path, help="proof directory; defaults to tasks.json sibling proofs/")
     p.add_argument("--completed-at", help="ISO-8601 timestamp to record when completion is allowed")
+    p.add_argument("--final-review-source", help="non-empty review-code CLEAN provenance to record as final integration review evidence")
+    p.add_argument("--final-audit-source", help="non-empty audit PASS provenance to record as final audit evidence")
     p.set_defaults(func=cmd_finalize_feature)
 
     p = sub.add_parser("block-task", help="mark one task blocked with a required reason")

@@ -159,9 +159,9 @@ Only after the integration checkpoint and targeted package review pass:
 
 When all phases/tasks are complete:
 
-1. Validate all package proofs with taskctl from the integrated merge worktree when one exists, then use the package-proof lifecycle final gate (`taskctl finalize-feature`) as the proof-only completion gate. Reject stale, missing, failed, blocked, wrong-package, wrong-targeted-review-package, or unapproved manual-required proof entries.
+1. Validate all package proofs with taskctl from the integrated merge worktree when one exists, then use the package-proof lifecycle final gate (`taskctl finalize-feature`) as the proof-only completion gate. Reject stale, missing, failed, blocked, wrong-package, missing package verification, wrong-targeted-review-package, or unapproved manual-required proof entries.
 2. Run integrated feature tests/checks from `.worktrees/<feature>/merge` when it exists, applying the command-safety approval rule.
-3. Do not update feature `status` to `completed` until final proof validation, package finalization gate, final review-code/fix loop, and final audit pass.
+3. Do not update feature `status` to `completed` until final proof validation, package finalization gate, final review-code/fix loop, and final audit pass have concrete provenance ready for `taskctl finalize-feature`.
 4. Push the feature branch: `git push -u origin feature/<feature>`.
 5. **Do not merge to the target branch.** Wait for explicit user approval for the named `<target-ref>`. "Push to remote" does not mean "merge to target."
 
@@ -174,7 +174,7 @@ If blanket approval or `approve auto-resolve` was given:
 2. Delegate confirmed 🔴/🟠 findings in coherent fix batches unless a stop condition or design-decision card requires the user.
 3. Rerun review-code after each fix batch until it returns CLEAN or a stop condition applies.
 4. Only after CLEAN review-code, invoke `audit` with `<feature-name>` as the final internal acceptance gate.
-5. After final audit passes, finalize feature status through the package-proof lifecycle path. A generic status mutation cannot bypass final review-code, repair, or audit gates.
+5. After final audit passes, finalize feature status through the package-proof lifecycle path by passing review-code CLEAN provenance as `--final-review-source` and audit PASS provenance as `--final-audit-source` to `taskctl finalize-feature`. A generic status mutation or manual schema edit cannot bypass final review-code, repair, or audit gates.
 
 If step-by-step mode was selected, present review-code as the next recommended gate and audit as the final gate after clean review. Do not offer separate `audit`, `review`, and `both` choices as the normal post-implementation UX.
 

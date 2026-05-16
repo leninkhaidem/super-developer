@@ -328,6 +328,7 @@ class TaskctlRegressionTests(unittest.TestCase):
         self.assertTrue(all_result["ok"])
         self.assertEqual(all_result["criterion_ids"], ["P1-T001-AC1", "P2-T001-AC1"])
 
+
         before = self.fixture.tasks_path.read_bytes()
         code, summary, err = self.fixture.run("summary")
         self.assertEqual((code, err), (0, ""))
@@ -350,6 +351,24 @@ class TaskctlRegressionTests(unittest.TestCase):
         self.assertTrue(checklist["targeted_review_required"])
         self.assertIn("Optional boundary fields", checklist["known_risk_prompt"]["prompt"])
         self.assertIn("mocks/stubs are absent", checklist["acceptance_criteria"][0]["must_prove"][-1])
+
+    def test_validate_proofs_enforces_package_acceptance_gates(self) -> None:
+        proof = self.fixture.valid_proof("WP1")
+        proof["package_verification"]["commands"][0]["observed"] = "<observed output>"
+        proof["targeted_review"]["package_id"] = "WP2"
+        self.fixture.write_proof("WP1", proof)
+        self.fixture.write_proof("WP2", self.fixture.valid_proof("WP2"))
+
+        code, all_result, err = self.fixture.run("validate-proofs")
+
+        self.assertEqual((code, err), (1, ""))
+        self.assertFalse(all_result["ok"])
+        self.assertIn(
+            "package WP1: package verification command not recorded as passing: python3 -m unittest discover plugins/super-developer/assets/tests",
+            all_result["errors"],
+        )
+        self.assertIn("package WP1: targeted package review package_id 'WP2' does not match 'WP1'", all_result["errors"])
+        self.assertEqual(self.fixture.read_plan()["status"], "in-progress")
 
     def test_accept_package_requires_valid_proof_recorded_verification_and_targeted_review_then_updates_only_package_tasks(self) -> None:
         missing_review = self.fixture.valid_proof("WP1", include_targeted_review=False)
@@ -483,13 +502,31 @@ class TaskctlRegressionTests(unittest.TestCase):
         self.assertEqual(self.fixture.read_plan()["status"], "in-progress")
         self.assertTrue(any("final_audit" in gate for gate in manual_status["missing_gates"]))
 
-        self.fixture.add_final_gates()
-        code, completed, err = self.fixture.run("finalize-feature", "--completed-at", "2026-05-16T00:08:00+00:00")
+        code, data, err = self.fixture.run("finalize-feature", "--final-review-source", "review-code CLEAN fixture", "--final-audit-source", "")
+        self.assertEqual(code, 2)
+        self.assertIsNone(data)
+        self.assertIn("--final-review-source and --final-audit-source must both be non-empty", err)
+        self.assertNotIn("final_integration_review", self.fixture.read_plan())
+
+        code, completed, err = self.fixture.run(
+            "finalize-feature",
+            "--completed-at",
+            "2026-05-16T00:08:00+00:00",
+            "--final-review-source",
+            "review-code CLEAN fixture",
+            "--final-audit-source",
+            "audit PASS fixture",
+        )
         self.assertEqual((code, err), (0, ""))
         self.assertTrue(completed["mutated"])
+        self.assertTrue(completed["final_gates_recorded"])
         plan = self.fixture.read_plan()
         self.assertEqual(plan["status"], "completed")
         self.assertEqual(plan["completed_at"], "2026-05-16T00:08:00+00:00")
+        self.assertEqual(plan["final_integration_review"]["source"], "review-code CLEAN fixture")
+        self.assertEqual(plan["final_integration_review"]["state"]["commit"], self.fixture.commit)
+        self.assertEqual(plan["final_audit"]["source"], "audit PASS fixture")
+        self.assertEqual(plan["final_audit"]["state"]["commit"], self.fixture.commit)
 
     def test_missing_targeted_review_blocks_package_and_therefore_final_completion(self) -> None:
         proof = self.fixture.valid_proof("WP1")
