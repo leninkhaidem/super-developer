@@ -156,7 +156,7 @@ The agent infers the feature name, creates `SPEC.md` and schema-versioned `tasks
 
 ### Package Proof Helper
 
-`assets/taskctl.py` provides package-proof helpers for planned features. Package proofs are additive evidence aids: read-only commands inspect `.tasks/<feature>/tasks.json` and `.tasks/<feature>/proofs/WP<N>.proof.json`, while lifecycle commands write only the selected package proof's lifecycle state. The helper does not mutate task lifecycle state, `tasks.json`, `verification.json`, statuses, timestamps, generated artifacts, proof history, or event logs.
+`assets/taskctl.py` provides package-proof helpers for planned features. Package proofs are additive evidence aids: read-only commands inspect `.tasks/<feature>/tasks.json` and `.tasks/<feature>/proofs/WP<N>.proof.json`, while lifecycle commands write only the selected package proof's lifecycle state, including accepted/reopened timestamps. The helper does not mutate task-status lifecycle state, `tasks.json`, `verification.json`, statuses, task-status timestamps, generated artifacts, proof history, or event logs.
 
 Read-only commands:
 

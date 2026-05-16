@@ -218,9 +218,37 @@ def mutate_package_lifecycle(args: argparse.Namespace, target_state: str) -> int
     validator, plan = load_plan(Path(args.tasks))
     worktree = Path(args.worktree)
     proof_path = Path(args.proof)
-    proof = load_validated_proof(validator, plan, proof_path, worktree)
+    proof = load_proof_for_lifecycle_mutation(
+        validator,
+        plan,
+        proof_path,
+        worktree,
+        target_state=target_state,
+    )
     package_id = proof["package_id"]
     previous_state = validator.package_lifecycle_state_name(proof)
+
+    if previous_state == target_state == "accepted":
+        errors = validator.validate_package_proof_json(
+            proof,
+            plan.index,
+            worktree=worktree,
+            proof_path=proof_path,
+            tasks_path=plan.tasks_path,
+            enforce_entry_freshness=False,
+        )
+        if errors:
+            raise TaskctlError(errors)
+        errors = validator.validate_package_proof_json(
+            proof,
+            plan.index,
+            worktree=worktree,
+            proof_path=proof_path,
+            tasks_path=plan.tasks_path,
+            enforce_entry_freshness=target_state == "accepted",
+        )
+        if errors:
+            raise TaskctlError(errors)
 
     transition_errors = validator.package_lifecycle_transition_errors(proof, target_state)
     if transition_errors:
@@ -241,6 +269,7 @@ def mutate_package_lifecycle(args: argparse.Namespace, target_state: str) -> int
             worktree=worktree,
             proof_path=proof_path,
             tasks_path=plan.tasks_path,
+            enforce_entry_freshness=target_state == "accepted",
         )
         if errors:
             raise TaskctlError(errors)
@@ -272,6 +301,48 @@ class Plan:
         self.criteria = index_criteria(data)
 
 
+def load_proof_for_lifecycle_mutation(
+    validator: Any,
+    plan: Plan,
+    proof_path: Path,
+    worktree: Path,
+    *,
+    target_state: str,
+) -> dict[str, Any]:
+    proof = load_package_proof_file(proof_path)
+    current_state = validator.package_lifecycle_state_name(proof)
+    proof_without_lifecycle = {
+        key: value
+        for key, value in proof.items()
+        if key != validator.PACKAGE_LIFECYCLE_FIELD
+    }
+    errors = validator.validate_package_proof_json(
+        proof_without_lifecycle,
+        plan.index,
+        worktree=worktree,
+        proof_path=proof_path,
+        tasks_path=plan.tasks_path,
+        enforce_entry_freshness=target_state == "accepted" and current_state != "accepted",
+    )
+    package_id = proof.get("package_id")
+    validator.validate_package_lifecycle_state_for_replacement(
+        proof,
+        "package proof.lifecycle",
+        errors,
+        plan.index,
+        worktree,
+        package_id=package_id if isinstance(package_id, str) else None,
+        proof_path=proof_path,
+        tasks_path=plan.tasks_path,
+    )
+    if errors:
+        raise TaskctlError(errors)
+    if not isinstance(package_id, str) or not package_id.strip():
+        raise TaskctlError(["package proof.package_id: expected non-empty string"])
+    require_package(plan, package_id)
+    return proof
+
+
 def load_validated_proof(
     validator: Any, plan: Plan, proof_path: Path, worktree: Path
 ) -> dict[str, Any]:
@@ -283,6 +354,15 @@ def load_validated_proof(
     )
     if errors:
         raise TaskctlError(errors)
+    proof = load_package_proof_file(proof_path)
+    package_id = proof.get("package_id")
+    if not isinstance(package_id, str) or not package_id.strip():
+        raise TaskctlError(["package proof.package_id: expected non-empty string"])
+    require_package(plan, package_id)
+    return proof
+
+
+def load_package_proof_file(proof_path: Path) -> dict[str, Any]:
     try:
         with proof_path.open("r", encoding="utf-8") as f:
             proof = json.load(f)
@@ -294,10 +374,6 @@ def load_validated_proof(
         raise TaskctlError([f"package proof: unable to read {proof_path}: {exc}"])
     if not isinstance(proof, dict):
         raise TaskctlError(["package proof root: expected object"])
-    package_id = proof.get("package_id")
-    if not isinstance(package_id, str) or not package_id.strip():
-        raise TaskctlError(["package proof.package_id: expected non-empty string"])
-    require_package(plan, package_id)
     return proof
 
 

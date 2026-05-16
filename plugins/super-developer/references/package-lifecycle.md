@@ -14,7 +14,7 @@ The Release 1 read-only commands remain read-only:
 - `must-prove`
 - `summary`
 
-Lifecycle commands are not task-status helpers, feature finalizers, audit replacements, or Release 3 pipeline cutover instructions. They do not execute recorded package verification commands.
+Lifecycle commands are not task-status helpers, feature finalizers, audit replacements, or future pipeline cutover instructions. They do not execute recorded package verification commands.
 
 ## State Transitions
 

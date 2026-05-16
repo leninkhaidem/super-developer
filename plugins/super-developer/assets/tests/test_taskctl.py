@@ -663,6 +663,48 @@ class TaskctlCliTests(unittest.TestCase):
         self.assertEqual("accepted", self.read_proof()["lifecycle"]["state"])
         self.assertFalse(self.sentinel.exists())
 
+    def test_reopen_package_clears_stale_accepted_lifecycle_state(self) -> None:
+        self.accept_package()
+        proof_path = self.proofs_dir / "WP1.proof.json"
+        proof = self.read_proof()
+        proof["entries"][0]["evidence"]["edge_cases"].append("proof edited after acceptance")
+        self.write_proof(proof)
+        (self.repo / "tracked.txt").write_text("changed after acceptance\n", encoding="utf-8")
+        before = self.snapshot_read_only_paths()
+
+        reopened = json.loads(self.reopen_package().stdout)
+        after = self.snapshot_read_only_paths()
+
+        self.assert_only_repo_path_changed(before, after, proof_path)
+        self.assertEqual("accepted", reopened["lifecycle"]["previous_state"])
+        self.assertEqual("reopened", reopened["lifecycle"]["state"])
+        self.assertTrue(reopened["lifecycle"]["changed"])
+        proof = self.read_proof()
+        self.assertEqual("reopened", proof["lifecycle"]["state"])
+        self.assertEqual("reopen-package", proof["lifecycle"]["writer"]["command"])
+        self.assertFalse(self.sentinel.exists())
+
+    def test_accept_package_replaces_stale_reopened_digest_after_valid_proof_edit(self) -> None:
+        self.accept_package()
+        self.reopen_package()
+        proof_path = self.proofs_dir / "WP1.proof.json"
+        proof = self.read_proof()
+        proof["entries"][0]["evidence"]["edge_cases"].append("valid proof edit after reopen")
+        self.write_proof(proof)
+        before = self.snapshot_read_only_paths()
+
+        accepted = json.loads(self.accept_package().stdout)
+        after = self.snapshot_read_only_paths()
+
+        self.assert_only_repo_path_changed(before, after, proof_path)
+        self.assertEqual("reopened", accepted["lifecycle"]["previous_state"])
+        self.assertEqual("accepted", accepted["lifecycle"]["state"])
+        self.assertTrue(accepted["lifecycle"]["changed"])
+        proof = self.read_proof()
+        self.assertEqual("accepted", proof["lifecycle"]["state"])
+        self.assertEqual(accepted["lifecycle"]["proof_digest"], proof["lifecycle"]["proof_digest"])
+        self.assertFalse(self.sentinel.exists())
+
     def test_reopen_package_rejects_invalid_transitions_without_write(self) -> None:
         reopen_command = (
             "reopen-package",
@@ -677,6 +719,13 @@ class TaskctlCliTests(unittest.TestCase):
         self.accept_package()
         self.reopen_package()
         self.assert_rejected_without_write(reopen_command, "reopened -> reopened is not allowed")
+
+        self.write_proof(self.proof("WP1"))
+        self.accept_package()
+        fake_writer = self.read_proof()
+        fake_writer["lifecycle"]["writer"]["tool"] = "manual-editor"
+        self.write_proof(fake_writer)
+        self.assert_rejected_without_write(reopen_command, "manual-editor")
 
     def test_lifecycle_commands_do_not_truncate_original_on_write_failure(self) -> None:
         taskctl = load_taskctl_module()

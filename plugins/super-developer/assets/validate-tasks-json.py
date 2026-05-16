@@ -1224,6 +1224,7 @@ def validate_package_proof_json(
     worktree: Path,
     proof_path: Path | None = None,
     tasks_path: Path | None = None,
+    enforce_entry_freshness: bool = True,
 ) -> list[str]:
     errors: list[str] = []
     if not isinstance(proof, dict):
@@ -1288,6 +1289,7 @@ def validate_package_proof_json(
             plan_index,
             worktree,
             package_id=package_id if isinstance(package_id, str) else None,
+            enforce_entry_freshness=enforce_entry_freshness,
         )
         if isinstance(entry, dict) and isinstance(entry.get("criterion_id"), str):
             criterion_id = entry["criterion_id"]
@@ -1417,6 +1419,53 @@ def validate_package_lifecycle_state(
     )
 
 
+def validate_package_lifecycle_state_for_replacement(
+    proof: dict[str, Any],
+    path: str,
+    errors: list[str],
+    plan_index: dict[str, Any],
+    worktree: Path,
+    *,
+    package_id: str | None,
+    proof_path: Path | None,
+    tasks_path: Path | None,
+) -> None:
+    lifecycle = proof.get(PACKAGE_LIFECYCLE_FIELD)
+    if lifecycle is None:
+        return
+    if not isinstance(lifecycle, dict):
+        errors.append(f"{path}: expected object")
+        return
+
+    state = lifecycle.get("state")
+    if not isinstance(state, str) or state not in PACKAGE_LIFECYCLE_STATES:
+        errors.append(f"{path}.state: expected one of {sorted(PACKAGE_LIFECYCLE_STATES)}, got {state!r}")
+        return
+    validate_lifecycle_exact_fields(lifecycle, path, errors, state)
+    validate_lifecycle_binding(
+        lifecycle,
+        path,
+        errors,
+        proof,
+        worktree,
+        package_id=package_id,
+        proof_path=proof_path,
+        tasks_path=tasks_path,
+        enforce_digest=False,
+        enforce_accepted_freshness=False,
+    )
+    validate_lifecycle_writer(lifecycle.get("writer"), f"{path}.writer", errors, state)
+    validate_lifecycle_state_binding(
+        lifecycle.get("state_binding"),
+        f"{path}.state_binding",
+        errors,
+        state,
+        proof,
+        worktree,
+        enforce_freshness=False,
+    )
+
+
 def validate_lifecycle_exact_fields(
     lifecycle: dict[str, Any], path: str, errors: list[str], state: str
 ) -> None:
@@ -1452,6 +1501,8 @@ def validate_lifecycle_binding(
     package_id: str | None,
     proof_path: Path | None,
     tasks_path: Path | None,
+    enforce_digest: bool = True,
+    enforce_accepted_freshness: bool = True,
 ) -> None:
     stored_package_id = lifecycle.get("package_id")
     if stored_package_id != package_id:
@@ -1461,10 +1512,12 @@ def validate_lifecycle_binding(
 
     stored_digest = lifecycle.get("proof_digest")
     expected_digest = package_proof_digest(proof)
-    if stored_digest != expected_digest:
+    if enforce_digest and stored_digest != expected_digest:
         errors.append(
             f"{path}.proof_digest: expected {expected_digest!r} for current proof content, got {stored_digest!r}"
         )
+    elif not enforce_digest and (not isinstance(stored_digest, str) or not stored_digest.strip()):
+        errors.append(f"{path}.proof_digest: expected non-empty string")
 
     stored_path = lifecycle.get("proof_path")
     expected_path = None
@@ -1479,7 +1532,7 @@ def validate_lifecycle_binding(
             f"{path}.proof_path: expected {str(normalized_existing_or_candidate_path(expected_path))!r}, got {stored_path!r}"
         )
 
-    if lifecycle.get("state") == "accepted":
+    if enforce_accepted_freshness and lifecycle.get("state") == "accepted":
         validate_accepted_lifecycle_freshness(
             proof,
             f"{path}.state_binding",
@@ -1519,6 +1572,8 @@ def validate_lifecycle_state_binding(
     expected_state: str,
     proof: dict[str, Any],
     worktree: Path,
+    *,
+    enforce_freshness: bool = True,
 ) -> None:
     if not isinstance(binding, dict):
         errors.append(f"{path}: expected object")
@@ -1541,7 +1596,13 @@ def validate_lifecycle_state_binding(
 
     commit = binding.get("commit")
     evidence_files = proof_lifecycle_evidence_paths(proof)
-    if isinstance(commit, str) and commit.strip() and evidence_files:
+    if (
+        enforce_freshness
+        and expected_state == "accepted"
+        and isinstance(commit, str)
+        and commit.strip()
+        and evidence_files
+    ):
         stale = evidence_paths_changed_since(commit, evidence_files, worktree)
         if stale is True:
             errors.append(
@@ -1593,9 +1654,17 @@ def validate_package_proof_entry(
     worktree: Path,
     *,
     package_id: str | None,
+    enforce_entry_freshness: bool = True,
 ) -> None:
     before_count = len(errors)
-    validate_ledger_entry(entry, path, errors, plan_index, worktree)
+    validate_ledger_entry(
+        entry,
+        path,
+        errors,
+        plan_index,
+        worktree,
+        enforce_state_freshness=enforce_entry_freshness,
+    )
     if not isinstance(entry, dict):
         return
 
@@ -1764,6 +1833,8 @@ def validate_ledger_entry(
     errors: list[str],
     plan_index: dict[str, Any],
     worktree: Path,
+    *,
+    enforce_state_freshness: bool = True,
 ) -> None:
     if not isinstance(entry, dict):
         errors.append(f"{path}: expected object")
@@ -1803,7 +1874,14 @@ def validate_ledger_entry(
         errors.append(f"{path}.method: expected one of {sorted(LEDGER_METHODS)}, got {method!r}")
 
     validate_ledger_source_refs(entry, path, errors, plan_index)
-    validate_ledger_state(entry.get("state"), f"{path}.state", errors, worktree, entry)
+    validate_ledger_state(
+        entry.get("state"),
+        f"{path}.state",
+        errors,
+        worktree,
+        entry,
+        enforce_freshness=enforce_state_freshness,
+    )
     validate_ledger_evidence(
         entry.get("evidence"), f"{path}.evidence", errors, method=method
     )
@@ -1850,6 +1928,8 @@ def validate_ledger_state(
     errors: list[str],
     worktree: Path,
     entry: dict[str, Any],
+    *,
+    enforce_freshness: bool = True,
 ) -> None:
     if not isinstance(state, dict):
         errors.append(f"{path}: expected object")
@@ -1863,7 +1943,7 @@ def validate_ledger_state(
     commit = state.get("commit")
     evidence = entry.get("evidence")
     evidence_files = extract_evidence_paths(evidence)
-    if isinstance(commit, str) and commit.strip() and evidence_files:
+    if enforce_freshness and isinstance(commit, str) and commit.strip() and evidence_files:
         stale = evidence_paths_changed_since(commit, evidence_files, worktree)
         if stale is True:
             errors.append(

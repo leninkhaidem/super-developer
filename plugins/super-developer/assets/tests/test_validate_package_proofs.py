@@ -499,6 +499,17 @@ class PackageProofValidationTests(unittest.TestCase):
             "\n".join(self.validate_proof_file(manual)),
         )
 
+    def test_reopened_lifecycle_does_not_enforce_accepted_freshness(self) -> None:
+        (self.repo / "tracked.txt").write_text("modified after lifecycle state\n", encoding="utf-8")
+        self.git("add", "tracked.txt")
+        self.git("commit", "-m", "update tracked evidence")
+        current_commit = self.git("rev-parse", "HEAD").stdout.strip()
+        reopened = self.proof_with_lifecycle("reopened")
+        for entry in reopened["entries"]:
+            entry["state"]["commit"] = current_commit
+        reopened["lifecycle"]["proof_digest"] = validator.package_proof_digest(reopened)
+        self.assertEqual([], self.validate_proof_file(reopened))
+
     def test_lifecycle_rejects_out_of_scope_release_two_persistence_fields(self) -> None:
         forbidden_fields = (
             "proof_history",
