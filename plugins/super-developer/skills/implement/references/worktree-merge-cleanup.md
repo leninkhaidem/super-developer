@@ -64,7 +64,7 @@ Keep the integration worktree for subsequent package merges, final validation, r
 
 ## Merge Package Branches
 
-After package reports and ledger entries pass pre-merge checks:
+After package reports and package proof files pass pre-merge checks:
 
 ```bash
 cd "$PROJECT_ROOT/.worktrees/<feature>/merge"

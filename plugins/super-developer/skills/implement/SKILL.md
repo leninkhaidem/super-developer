@@ -29,7 +29,8 @@ Tasks remain the tracking unit. Work packages are the delegation unit. Planned-f
 
    If it fails, stop and resolve reported blockers before dispatching or updating work.
 3. Read `SPEC.md`, `tasks.json`, accepted `design_decisions`, and `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/work-packages.md`.
-4. Display feature status, progress, and current phase.
+4. Load `plugins/super-developer/skills/implement/references/package-proof-lifecycle.md` before routine proof/status operations; use taskctl for proof templates, proof validation, package acceptance, final proof validation, constrained block/reset, summary, next-package, and must-prove queries.
+5. Display feature status, progress, current phase, package proof health, and current actionable package.
 
 ## Step 2: Load Execution Settings
 
@@ -105,7 +106,7 @@ Required inline invariants:
 
 ## Step 5: Analyze Actionable Packages
 
-Use `work_packages` from validated `tasks.json`; implementation does not infer packages when they are absent. Load `plugins/super-developer/skills/implement/references/package-dispatch.md` for package shape, file-impact, semantic review triggers, known-risk prompts, boundary-builder guidance, runtime adjustment, and batch selection rules.
+Use `work_packages` from validated `tasks.json`; implementation does not infer packages when they are absent. Load `plugins/super-developer/skills/implement/references/package-dispatch.md` for package shape, file-impact, semantic review triggers, known-risk prompts, boundary-builder guidance, runtime adjustment, and batch selection rules. Use the package-proof lifecycle reference for `summary`, `next-package`, and `must-prove` taskctl queries instead of ad hoc JSON inspection/mutation.
 
 A package is externally actionable when:
 - it contains at least one `pending` task;
@@ -126,40 +127,41 @@ Every selected planned-feature package is delegated to a sub-agent in its own pa
 
 Before spawning, announce package IDs, task IDs, branch/worktree names, primary paths, context bundles, risk tags, targeted-review decisions, screened verification commands, model choice, parallel/serial rationale, and any must-prove known-risk probes.
 
-Before spawning package agents, set assigned task statuses to `in-progress` in `tasks.json` and write the file. Evidence ledger/proof artifact paths remain governed by the loaded sub-agent contract until the proof-lifecycle cutover is complete; do not override them in Step 6.
+Before spawning package agents, record assigned task statuses as `in-progress` in `tasks.json` as orchestrator-owned workflow metadata. Use taskctl for the supported proof lifecycle and constrained block/reset/accept/finalize operations. Create or pass each assigned `.tasks/<feature>/proofs/<WP-ID>.proof.json` path; package agents must update only their package proof file.
 
-Load `plugins/super-developer/skills/implement/references/subagent-contract.md` and pass its contract to each package agent. Direct orchestrator edits are limited to workflow metadata (`tasks.json`, evidence acceptance/rejection bookkeeping), mechanical merge-conflict/status artifacts, and explicit user-approved plan/status changes.
+Load `plugins/super-developer/skills/implement/references/subagent-contract.md` and pass its contract to each package agent. Direct orchestrator edits are limited to workflow metadata (`tasks.json`, package proof acceptance/rejection bookkeeping), mechanical merge-conflict/status artifacts, and explicit user-approved plan/status changes.
 
 ## Step 7: Merge and Integration Checkpoint
 
 After all package agents in the current batch return:
 
-1. Validate their reports and criterion-level evidence before merge.
+1. Validate their reports and package proof files before merge.
 2. Merge each completed package branch once into `.worktrees/<feature>/merge`.
 3. Run the lightweight integration checkpoint before marking tasks done or dispatching downstream packages.
-4. Run targeted package review when `targeted_review_required` is true, risk tags trigger it, semantic high-risk package triggers apply, or serious-finding repair review requires exact-scope verification.
-5. Delegate fresh repair/verification agents for rejected packages or confirmed review findings; do not fix inline.
+4. Validate package proof against the integrated state using taskctl.
+5. Run targeted package review when `targeted_review_required` is true, risk tags trigger it, semantic high-risk package triggers apply, or serious-finding repair review requires exact-scope verification.
+6. Delegate fresh repair/verification agents for rejected packages or confirmed review findings; do not fix inline.
 
 Load `plugins/super-developer/skills/implement/references/integration-checkpoint.md` for evidence validation, package verification, targeted package review, semantic high-risk review triggers, focused repair verification, rejection rules, and repair packets.
 
-Evidence gate: do not mark a task `done` merely because code was committed. Done requires accepted criterion-level evidence for every assigned acceptance criterion, successful package verification, and any required targeted package review/fix pass.
+Evidence gate: do not mark a task `done` merely because code was committed. Done requires accepted criterion-level package proof for every assigned acceptance criterion, successful package verification, and any required targeted package review/fix pass.
 
 ## Step 8: Update Status and Continue Batches
 
 Only after the integration checkpoint and targeted package review pass:
 
-1. Set completed package tasks to `done` and add `completed_at`.
-2. If evidence is rejected or package work is incomplete, set `blocked` with `blocked_reason` or delegate the repair packet from the integration checkpoint reference.
-3. Report delegated evidence status, orchestrator-rerun commands, targeted/semantic package review outcome, files changed, and unresolved risks.
+1. Accept the package with taskctl so completed package tasks become `done` with `completed_at`.
+2. If evidence is rejected or package work is incomplete, set `blocked` with `blocked_reason` through taskctl or delegate the repair packet from the integration checkpoint reference.
+3. Report delegated evidence status, package proof file path, orchestrator-rerun commands, targeted/semantic package review outcome, files changed, and unresolved risks.
 4. Re-evaluate actionable packages and loop to Step 5 until no dispatchable work remains.
 
-## Step 9: Final Feature Completion
+## Step 9: Final Implementation Validation
 
 When all phases/tasks are complete:
 
-1. Run final validation with `python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/validate-tasks-json.py" --final ".tasks/<feature>/tasks.json"` from the integrated merge worktree when one exists. Reject stale, missing, failed, blocked, or unapproved manual-required evidence entries.
-2. Update feature `status` to `completed` only after final validation passes.
-3. Run integrated feature tests/checks from `.worktrees/<feature>/merge` when it exists, applying the command-safety approval rule.
+1. Validate all package proofs with taskctl from the integrated merge worktree when one exists. Then run final validation with `python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/validate-tasks-json.py" --final ".tasks/<feature>/tasks.json"`. Reject stale, missing, failed, blocked, wrong-package, or unapproved manual-required proof entries.
+2. Run integrated feature tests/checks from `.worktrees/<feature>/merge` when it exists, applying the command-safety approval rule.
+3. Do not update feature `status` to `completed` until final proof validation, final validator pass, final review-code/fix loop, and final audit pass.
 4. Push the feature branch: `git push -u origin feature/<feature>`.
 5. **Do not merge to the target branch.** Wait for explicit user approval for the named `<target-ref>`. "Push to remote" does not mean "merge to target."
 
@@ -172,6 +174,7 @@ If blanket approval or `approve auto-resolve` was given:
 2. Delegate confirmed 🔴/🟠 findings in coherent fix batches unless a stop condition or design-decision card requires the user.
 3. Rerun review-code after each fix batch until it returns CLEAN or a stop condition applies.
 4. Only after CLEAN review-code, invoke `audit` with `<feature-name>` as the final internal acceptance gate.
+5. After final audit passes, finalize feature status through the package-proof lifecycle path. A generic status mutation cannot bypass final review-code, repair, or audit gates.
 
 If step-by-step mode was selected, present review-code as the next recommended gate and audit as the final gate after clean review. Do not offer separate `audit`, `review`, and `both` choices as the normal post-implementation UX.
 
@@ -180,7 +183,7 @@ Do not execute review-code or audit logic inline; load each skill normally.
 ## Rules
 
 - The main agent orchestrates and verifies; it does not implement planned-feature packages or fixes inline.
-- Sub-agents implement and self-verify; they update the evidence ledger named by the loaded sub-agent contract with criterion-level evidence tied to stable acceptance criterion IDs.
+- Sub-agents implement and self-verify; they update only their assigned `.tasks/<feature>/proofs/<WP-ID>.proof.json` with criterion-level evidence tied to stable acceptance criterion IDs.
 - The main agent owns git infrastructure. Sub-agents work only in assigned worktrees and do not create worktrees, branches, or merges.
 - Delegate work packages, not individual small tasks. Parallelize selectively only when dependencies and likely file impact are safe.
 - Validate evidence, integrated state, and required targeted/focused repair review before downstream delegation.

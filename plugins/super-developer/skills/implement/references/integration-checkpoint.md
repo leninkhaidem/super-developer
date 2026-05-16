@@ -18,10 +18,13 @@ Do not unlock downstream packages until this checkpoint passes for their depende
 
 ## Package Proof Validation
 
-Validate `.tasks/<feature>/proofs/<WP-ID>.proof.json` for every assigned acceptance criterion in the package. Reject the package if any entry is:
+Validate `.tasks/<feature>/proofs/<WP-ID>.proof.json` for every assigned acceptance criterion in the package, preferably through `taskctl.py validate-proof <WP-ID>` with `--worktree` pointing at the integrated merge worktree. Package proof files replace central ledger entries for package evidence; do not reconcile a shared `verification.json` as part of package acceptance.
+
+Reject the package if any proof entry is:
 
 - missing or malformed;
 - not tied to an assigned criterion ID and source refs;
+- outside the assigned package;
 - missing state binding to the package/integrated branch state;
 - missing file/symbol evidence;
 - missing command result or concrete manual observation;
@@ -79,7 +82,7 @@ For in-scope failures, delegate a fresh repair/verification agent with the packe
 - required context bundles;
 - risk tags and edge cases;
 - safe verification commands;
-- instructions to update package proof and report evidence.
+- instructions to update the assigned package proof and report evidence.
 
 Set `blocked` with `blocked_reason` only when the issue requires user input, approved scope change, external credentials/facts, unsafe command approval, dependency/service approval, or a design/product decision.
 

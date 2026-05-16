@@ -101,8 +101,7 @@ Use `schema-reference.md` for a concise field map. The machine contract is `${SU
 
 ## Lightweight Execution Constraints and Replan Triggers
 
-Do not add new schema fields, persistent checklist sections, workflow history, repair-review state, semantic-review state, or known-risk sections for this. Use the existing `design_decisions`, task acceptance criteria, `verification_hint`, `context_bundles`, work-package rationale, risk tags, targeted-review flags, and verification commands.
-
+Do not add new schema fields, central verification ledgers, persistent checklist sections, workflow history, proof history, repair-review state, semantic-review state, package status fields, or known-risk sections for this. Use the existing `design_decisions`, task acceptance criteria, `verification_hint`, `context_bundles`, work-package rationale, risk tags, targeted-review flags, verification commands, and per-package proof files generated during implementation.
 Capture a trigger only when implementation must stop, replan, prove a specific edge, or route review differently if the assumption is false, such as:
 - external/API/runtime contract mismatch;
 - base/target ref ambiguity for stacked features;

@@ -48,9 +48,9 @@ When adjustment changes risk, context-bundle needs, verification commands, or ta
 
 ## Known-Risk and Must-Prove Prompts
 
-For each candidate package, derive the pre-dispatch must-prove prompts from existing acceptance criteria, verification hints, risk tags, context bundles, verification commands, and the known-risk reference. Keep the result transient in the dispatch/agent instructions.
+For each candidate package, derive the pre-dispatch must-prove prompts from existing acceptance criteria, verification hints, risk tags, context bundles, verification commands, and the known-risk reference. Use `taskctl.py must-prove <WP-ID>` as the routine read-only helper when available. Keep the result transient in the dispatch/agent instructions.
 
-Include a pollution-sensitive test-ordering requirement when changed tests mutate import caches, module registries such as `sys.modules`, environment variables, globals, singleton caches, import stubs, monkeypatches, or equivalent shared process state. The package proof should cite checks for the test alone, the test before and after likely consumers, and the combined affected suite, or state a concrete reason the trigger did not apply.
+Include a pollution-sensitive test-ordering requirement when changed tests mutate import caches, module registries such as `sys.modules`, environment variables, globals, singleton caches, import stubs, monkeypatches, or equivalent shared process state. The package proof should cite checks for the test alone, the test before and after likely consumers, and the combined affected suite, or state a concrete reason the trigger does not apply.
 
 When acceptance criteria involve boundary payloads, requests, configs, command descriptors, generated defaults, optional fields, default precedence, or contract drift, prefer a small exported pure builder plus observable contract tests over ad hoc construction in high-level orchestration, UI, or glue code. Do not require builders for trivial local values or purely presentational state.
 
