@@ -229,6 +229,18 @@ class TaskctlFixture:
                 "mocks": "No mocks used.",
             }
             entry.pop("manual_evidence", None)
+        package = next(package for package in self.plan["work_packages"] if package["id"] == package_id)
+        proof["package_verification"] = {
+            "commands": [
+                {
+                    "cwd": str(self.root),
+                    "command": command,
+                    "exit_code": 0,
+                    "observed": f"Observed passing fixture command: {command}",
+                }
+                for command in package.get("verification_commands", [])
+            ]
+        }
         if proof.get("targeted_review") is not None and include_targeted_review:
             proof["targeted_review"] = {
                 "status": "passed",
@@ -340,6 +352,17 @@ class TaskctlRegressionTests(unittest.TestCase):
         self.assertIn("targeted package review status is not passed", err)
         self.assertEqual(before, self.fixture.tasks_path.read_text(encoding="utf-8"))
 
+        placeholder_command_evidence = self.fixture.valid_proof("WP1")
+        for row in placeholder_command_evidence["package_verification"]["commands"]:
+            row["cwd"] = "<worktree>"
+            row["observed"] = "<observed output>"
+        self.fixture.write_proof("WP1", placeholder_command_evidence)
+        code, data, err = self.fixture.run("accept-package", "WP1", "--completed-at", "2026-05-16T00:06:00+00:00")
+        self.assertEqual(code, 2)
+        self.assertIsNone(data)
+        self.assertIn("package verification command not recorded as passing", err)
+        self.assertEqual(before, self.fixture.tasks_path.read_text(encoding="utf-8"))
+
         valid = self.fixture.valid_proof("WP1")
         self.fixture.write_proof("WP1", valid)
         code, accepted, err = self.fixture.run("accept-package", "WP1", "--completed-at", "2026-05-16T00:06:00+00:00")
@@ -404,6 +427,19 @@ class TaskctlRegressionTests(unittest.TestCase):
         self.assertNotIn("blocked_reason", task)
         self.assertNotIn("blocked_at", task)
         self.assertFalse((self.fixture.proofs_dir / "WP2.proof.json").exists())
+
+    def test_finalize_feature_reports_missing_package_proof_as_structured_preflight(self) -> None:
+        self.fixture.write_proof("WP1", self.fixture.valid_proof("WP1"))
+        self.fixture.mark_all_tasks_done_manually()
+        self.fixture.add_final_gates()
+        before = self.fixture.tasks_path.read_text(encoding="utf-8")
+
+        code, preflight, err = self.fixture.run("finalize-feature")
+
+        self.assertEqual((code, err), (1, ""))
+        self.assertFalse(preflight["mutated"])
+        self.assertTrue(any("WP2" in gate and "proof" in gate for gate in preflight["missing_gates"]))
+        self.assertEqual(before, self.fixture.tasks_path.read_text(encoding="utf-8"))
 
     def test_finalize_feature_cannot_be_bypassed_by_status_changes_or_preflight_and_requires_final_gates(self) -> None:
         self.fixture.write_proof("WP1", self.fixture.valid_proof("WP1"))

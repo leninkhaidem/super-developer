@@ -320,7 +320,15 @@ def _proof_commands(section: Any) -> set[str]:
         exit_code = row.get("exit_code")
         observed = row.get("observed")
         cwd = row.get("cwd")
-        if isinstance(command, str) and command and exit_code == 0 and _non_empty(observed) and _non_empty(cwd):
+        if (
+            isinstance(command, str)
+            and command
+            and exit_code == 0
+            and _non_empty(observed)
+            and observed.strip() != "<observed output>"
+            and _non_empty(cwd)
+            and cwd.strip() != "<worktree>"
+        ):
             commands.add(command)
     return commands
 
@@ -435,8 +443,13 @@ def cmd_finalize_feature(args: argparse.Namespace) -> int:
             continue
         package_id = package.get("id")
         if isinstance(package_id, str):
-            for gate in _require_package_gates(args, plan, tasks_path, package_id):
-                missing.append(f"package {package_id}: {gate}")
+            try:
+                package_gates = _require_package_gates(args, plan, tasks_path, package_id)
+            except TaskctlError as exc:
+                missing.append(f"package {package_id}: {exc}")
+            else:
+                for gate in package_gates:
+                    missing.append(f"package {package_id}: {gate}")
     for task in _iter_tasks(plan):
         if task.get("status") != _task_status("done"):
             missing.append(f"task {task.get('id')} is not done")
