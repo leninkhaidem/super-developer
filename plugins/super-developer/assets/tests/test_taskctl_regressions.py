@@ -634,8 +634,8 @@ class GuardrailDocumentationRegressionTests(unittest.TestCase):
 
         self.assertIn("Do not update feature `status` to `completed` until final proof validation", implement)
         self.assertIn("final review-code/fix loop, and final audit pass", implement)
-        self.assertIn("A generic status mutation cannot bypass final review-code", implement)
         self.assertIn("changed tests mutate import caches", integration)
+        self.assertIn("A generic status mutation or manual schema edit cannot bypass final review-code, repair, or audit gates.", implement)
         self.assertIn("test alone, test before and after likely consumers, and combined affected suite", integration)
         self.assertIn("fix commit alone does not close a serious finding", integration)
         self.assertIn("exact finding class no longer reproduces", integration)
