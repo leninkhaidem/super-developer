@@ -1153,7 +1153,11 @@ def expected_package_proof_path(tasks_path: Path, package_id: str) -> Path:
 
 
 def validate_package_proof_json_file(
-    proof_path: Path, plan_index: dict[str, Any], *, worktree: Path
+    proof_path: Path,
+    plan_index: dict[str, Any],
+    *,
+    worktree: Path,
+    tasks_path: Path | None = None,
 ) -> list[str]:
     errors: list[str] = []
     try:
@@ -1172,9 +1176,17 @@ def validate_package_proof_json_file(
             plan_index,
             worktree=worktree,
             proof_path=proof_path,
+            tasks_path=tasks_path,
         )
     )
     return errors
+
+
+def normalized_existing_or_candidate_path(path: Path) -> Path:
+    try:
+        return path.resolve(strict=False)
+    except OSError:
+        return path.absolute()
 
 
 def validate_package_proof_json(
@@ -1183,6 +1195,7 @@ def validate_package_proof_json(
     *,
     worktree: Path,
     proof_path: Path | None = None,
+    tasks_path: Path | None = None,
 ) -> list[str]:
     errors: list[str] = []
     if not isinstance(proof, dict):
@@ -1212,11 +1225,20 @@ def validate_package_proof_json(
         errors.append(f"package proof.package_id: unknown work package {package_id!r}")
 
     if proof_path is not None and isinstance(package_id, str):
-        expected_name = f"{package_id}.proof.json"
-        if proof_path.name != expected_name:
-            errors.append(
-                f"package proof path: expected filename {expected_name!r}, got {proof_path.name!r}"
-            )
+        if tasks_path is not None:
+            expected_path = expected_package_proof_path(tasks_path, package_id)
+            if normalized_existing_or_candidate_path(
+                proof_path
+            ) != normalized_existing_or_candidate_path(expected_path):
+                errors.append(
+                    f"package proof path: expected {expected_path}, got {proof_path}"
+                )
+        else:
+            expected_name = f"{package_id}.proof.json"
+            if proof_path.name != expected_name:
+                errors.append(
+                    f"package proof path: expected filename {expected_name!r}, got {proof_path.name!r}"
+                )
 
     entries = proof.get("entries")
     if not isinstance(entries, list):

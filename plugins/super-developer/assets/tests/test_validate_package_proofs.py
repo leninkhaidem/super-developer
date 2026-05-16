@@ -299,6 +299,44 @@ class PackageProofValidationTests(unittest.TestCase):
         self.assertEqual([], self.validate_proof(self.proof()))
         self.assertFalse(self.sentinel.exists())
 
+    def test_proof_file_path_must_match_feature_proofs_directory_and_filename(self) -> None:
+        proofs_dir = self.feature_dir / "proofs"
+        proofs_dir.mkdir()
+        expected_path = proofs_dir / "WP1.proof.json"
+        expected_path.write_text(json.dumps(self.proof(), indent=2), encoding="utf-8")
+        self.assertEqual(
+            [],
+            validator.validate_package_proof_json_file(
+                expected_path,
+                self.plan_index,
+                worktree=self.repo,
+                tasks_path=self.tasks_path,
+            ),
+        )
+
+        wrong_directory = self.repo / "not-the-feature-dir" / "WP1.proof.json"
+        wrong_directory.parent.mkdir()
+        wrong_directory.write_text(json.dumps(self.proof(), indent=2), encoding="utf-8")
+        wrong_directory_errors = validator.validate_package_proof_json_file(
+            wrong_directory,
+            self.plan_index,
+            worktree=self.repo,
+            tasks_path=self.tasks_path,
+        )
+        self.assertIn("package proof path: expected", "\n".join(wrong_directory_errors))
+        self.assertIn(str(expected_path), "\n".join(wrong_directory_errors))
+
+        wrong_filename = proofs_dir / "WP01.proof.json"
+        wrong_filename.write_text(json.dumps(self.proof(), indent=2), encoding="utf-8")
+        wrong_filename_errors = validator.validate_package_proof_json_file(
+            wrong_filename,
+            self.plan_index,
+            worktree=self.repo,
+            tasks_path=self.tasks_path,
+        )
+        self.assertIn("package proof path: expected", "\n".join(wrong_filename_errors))
+        self.assertIn(str(expected_path), "\n".join(wrong_filename_errors))
+
     def test_malformed_proof_json_and_document_shapes_are_rejected(self) -> None:
         proof_path = self.feature_dir / "proofs" / "WP1.proof.json"
         proof_path.parent.mkdir()
@@ -307,6 +345,7 @@ class PackageProofValidationTests(unittest.TestCase):
             proof_path,
             self.plan_index,
             worktree=self.repo,
+            tasks_path=self.tasks_path,
         )
         self.assertIn("invalid JSON", "\n".join(errors))
 
