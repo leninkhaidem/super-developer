@@ -154,6 +154,20 @@ The agent infers the feature name, creates `SPEC.md` and schema-versioned `tasks
 > Spike this feature assumption before planning: can the vendor API stream partial results with retries?
 ```
 
+### Package Proof Helper
+
+`assets/taskctl.py` provides Release 1 package-proof helpers for planned features. Package proofs are additive, read-only evidence aids: the helper reads `.tasks/<feature>/tasks.json` and `.tasks/<feature>/proofs/WP<N>.proof.json`, writes only stdout/stderr, and does not mutate task lifecycle state, `tasks.json`, `verification.json`, proof files, statuses, or timestamps.
+
+Approved read-only commands in this release:
+
+- `proof-template`: emit a deterministic proof template for one work package.
+- `validate-proof`: validate one package proof file.
+- `validate-proofs`: validate exactly one proof file for every work package.
+- `must-prove`: emit acceptance criteria and evidence obligations.
+- `summary`: emit task, package, and proof-health summary output.
+
+These commands do not run package verification commands and do not provide lifecycle commands such as `accept-package` or `finalize-feature`. In this release, package proofs do not replace the planned-feature final gates: `verification.json` remains the authoritative final implementation and audit ledger.
+
 ### Pipeline Flow Control
 
 | What you say | What happens |
