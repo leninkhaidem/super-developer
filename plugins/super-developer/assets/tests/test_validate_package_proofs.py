@@ -337,6 +337,29 @@ class PackageProofValidationTests(unittest.TestCase):
         self.assertIn("package proof path: expected", "\n".join(wrong_filename_errors))
         self.assertIn(str(expected_path), "\n".join(wrong_filename_errors))
 
+    def test_proof_file_validation_fails_closed_without_tasks_path(self) -> None:
+        proofs_dir = self.feature_dir / "proofs"
+        proofs_dir.mkdir()
+        expected_path = proofs_dir / "WP1.proof.json"
+        expected_path.write_text(json.dumps(self.proof(), indent=2), encoding="utf-8")
+
+        missing_tasks_path_errors = validator.validate_package_proof_json_file(
+            expected_path,
+            self.plan_index,
+            worktree=self.repo,
+        )
+        self.assertIn("tasks_path is required", "\n".join(missing_tasks_path_errors))
+
+        wrong_directory = self.repo / "not-the-feature-dir" / "WP1.proof.json"
+        wrong_directory.parent.mkdir()
+        wrong_directory.write_text(json.dumps(self.proof(), indent=2), encoding="utf-8")
+        wrong_directory_errors = validator.validate_package_proof_json_file(
+            wrong_directory,
+            self.plan_index,
+            worktree=self.repo,
+        )
+        self.assertIn("tasks_path is required", "\n".join(wrong_directory_errors))
+
     def test_malformed_proof_json_and_document_shapes_are_rejected(self) -> None:
         proof_path = self.feature_dir / "proofs" / "WP1.proof.json"
         proof_path.parent.mkdir()

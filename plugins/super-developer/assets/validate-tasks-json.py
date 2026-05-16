@@ -1160,6 +1160,9 @@ def validate_package_proof_json_file(
     tasks_path: Path | None = None,
 ) -> list[str]:
     errors: list[str] = []
+    if tasks_path is None:
+        return ["package proof path: tasks_path is required for file validation"]
+
     try:
         with proof_path.open("r", encoding="utf-8") as f:
             proof = json.load(f)
@@ -1234,11 +1237,7 @@ def validate_package_proof_json(
                     f"package proof path: expected {expected_path}, got {proof_path}"
                 )
         else:
-            expected_name = f"{package_id}.proof.json"
-            if proof_path.name != expected_name:
-                errors.append(
-                    f"package proof path: expected filename {expected_name!r}, got {proof_path.name!r}"
-                )
+            errors.append("package proof path: tasks_path is required for file validation")
 
     entries = proof.get("entries")
     if not isinstance(entries, list):
