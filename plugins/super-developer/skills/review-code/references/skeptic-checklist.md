@@ -43,7 +43,7 @@ Check call chains, feature flags, and conditional branches. If unreachable in pr
 
 **5 Intentional Design** — Is this a deliberate, documented decision? Check PR description, commit
 messages, inline comments, AGENTS.md, ARCHITECTURE.md, ADR files, user-supplied context, SPEC.md,
-tasks.json, verification.json, context bundles, and audit results. If intentional and documented,
+tasks.json, package proofs, context bundles, and audit results. If intentional and documented,
 mark **DISPUTED** only for non-security, non-privacy, and non-safety findings. Security/privacy/safety
 risks that are real and intentional remain reportable; mark them **CONFIRMED** and note the
 documented intent in the reason.

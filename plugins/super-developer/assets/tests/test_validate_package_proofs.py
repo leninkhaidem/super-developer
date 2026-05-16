@@ -15,13 +15,13 @@ SPEC = """# Proof Feature
 
 ## Requirements
 - REQ-1: Validate package proof roots.
-- REQ-2: Reuse ledger evidence semantics.
-- REQ-3: Preserve final ledger validation.
+- REQ-2: Reuse proof evidence semantics.
+- REQ-3: Validate proof-native final gates.
 
 ## Acceptance Criteria
 - AC-1: Package proof roots are validated.
-- AC-2: Ledger evidence semantics are reused.
-- AC-3: Final ledger validation remains authoritative.
+- AC-2: Proof evidence semantics are reused.
+- AC-3: Accepted package proofs are authoritative for final validation.
 """
 
 
@@ -137,8 +137,8 @@ class PackageProofValidationTests(unittest.TestCase):
                 },
                 {
                     "id": "WP2",
-                    "title": "Compatibility",
-                    "description": "Validate final ledger compatibility.",
+                    "title": "Final gate",
+                    "description": "Validate proof-native final gates.",
                     "task_ids": ["P1-T003"],
                     "depends_on": ["WP1"],
                     "parallel_safe_with": [],
@@ -147,7 +147,7 @@ class PackageProofValidationTests(unittest.TestCase):
                     "risk_tags": ["validation"],
                     "required_context_bundles": [],
                     "targeted_review_required": True,
-                    "rationale": "Final ledger checks are isolated compatibility coverage.",
+                    "rationale": "Final proof-gate checks are isolated coverage.",
                 },
             ],
             "phases": [
@@ -181,7 +181,7 @@ class PackageProofValidationTests(unittest.TestCase):
                         {
                             "id": "P1-T002",
                             "title": "Ledger semantics",
-                            "description": "Reuse ledger evidence validation.",
+                            "description": "Reuse proof evidence validation.",
                             "status": "in-progress",
                             "dependencies": ["P1-T001"],
                             "acceptance_criteria": [
@@ -201,19 +201,19 @@ class PackageProofValidationTests(unittest.TestCase):
                         },
                         {
                             "id": "P1-T003",
-                            "title": "Final compatibility",
-                            "description": "Keep final ledger validation authoritative.",
+                            "title": "Final proof gate",
+                            "description": "Require accepted package proofs for final validation.",
                             "status": "in-progress",
                             "dependencies": ["P1-T002"],
                             "acceptance_criteria": [
                                 {
                                     "id": "P1-T003-AC1",
-                                    "criterion": "Final validation remains authoritative.",
+                                    "criterion": "Final validation requires accepted package proofs.",
                                     "source_refs": [
                                         {"type": "spec_req", "id": "REQ-3"},
                                         {"type": "spec_ac", "id": "AC-3"},
                                     ],
-                                    "verification_hint": "Validate final ledger without proof consultation.",
+                                    "verification_hint": "Validate final proof gates without ledger consultation.",
                                 }
                             ],
                             "required_context_bundles": [],
@@ -261,15 +261,21 @@ class PackageProofValidationTests(unittest.TestCase):
             ),
         }
 
-    def proof(self) -> dict:
+    def proof(self, package_id: str = "WP1") -> dict:
+        if package_id == "WP1":
+            entries = [
+                self.entry("P1-T001-AC1", package_id="WP1"),
+                self.entry("P1-T002-AC1", package_id="WP1"),
+            ]
+        elif package_id == "WP2":
+            entries = [self.entry("P1-T003-AC1", package_id="WP2")]
+        else:
+            raise AssertionError(f"unknown package {package_id}")
         return {
             "schema_version": 1,
             "feature": "proof-feature",
-            "package_id": "WP1",
-            "entries": [
-                self.entry("P1-T001-AC1"),
-                self.entry("P1-T002-AC1"),
-            ],
+            "package_id": package_id,
+            "entries": entries,
         }
 
     def proof_path(self, package_id: str = "WP1") -> Path:
@@ -305,8 +311,10 @@ class PackageProofValidationTests(unittest.TestCase):
         lifecycle.update(overrides)
         return lifecycle
 
-    def proof_with_lifecycle(self, state: str, **overrides: object) -> dict:
-        proof = self.proof()
+    def proof_with_lifecycle(
+        self, state: str, package_id: str = "WP1", **overrides: object
+    ) -> dict:
+        proof = self.proof(package_id)
         proof["lifecycle"] = self.lifecycle_state(proof, state, **overrides)
         return proof
 
@@ -359,7 +367,8 @@ class PackageProofValidationTests(unittest.TestCase):
         unknown["lifecycle"] = {"state": "finalized"}
         self.assertIn("lifecycle.state: expected one of", "\n".join(self.validate_proof_file(unknown)))
 
-        wrong_package = self.proof_with_lifecycle("accepted", package_id="WP2")
+        wrong_package = self.proof_with_lifecycle("accepted")
+        wrong_package["lifecycle"]["package_id"] = "WP2"
         self.assertIn(
             "lifecycle.package_id: expected package proof package_id 'WP1'",
             "\n".join(self.validate_proof_file(wrong_package)),
@@ -687,12 +696,13 @@ class PackageProofValidationTests(unittest.TestCase):
         (self.repo / "tracked.txt").write_text("changed after proof\n", encoding="utf-8")
         self.assertInvalidProof(self.proof(), "stale evidence")
 
-    def test_final_ledger_compatibility_does_not_consult_package_proofs(self) -> None:
+    def test_final_validation_requires_accepted_package_proofs(self) -> None:
+        self.write_proof_file(self.proof_with_lifecycle("accepted"), "WP1")
+        self.write_proof_file(self.proof_with_lifecycle("accepted", "WP2"), "WP2")
         verification_path = self.feature_dir / "verification.json"
-        verification_path.write_text(json.dumps(self.final_ledger(), indent=2), encoding="utf-8")
-        proofs = self.feature_dir / "proofs"
-        proofs.mkdir()
-        (proofs / "WP1.proof.json").write_text("{", encoding="utf-8")
+        invalid_ledger = self.final_ledger()
+        invalid_ledger["entries"][0]["status"] = "failed"
+        verification_path.write_text(json.dumps(invalid_ledger, indent=2), encoding="utf-8")
 
         result = subprocess.run(
             [
@@ -710,7 +720,51 @@ class PackageProofValidationTests(unittest.TestCase):
             check=False,
         )
         self.assertEqual(0, result.returncode, result.stdout + result.stderr)
-        self.assertIn("verification.json are valid", result.stdout)
+        self.assertIn("package proofs are valid", result.stdout)
+
+    def test_final_validation_rejects_missing_or_reopened_package_proofs(self) -> None:
+        verification_path = self.feature_dir / "verification.json"
+        verification_path.write_text(json.dumps(self.final_ledger(), indent=2), encoding="utf-8")
+        proofs = self.feature_dir / "proofs"
+        proofs.mkdir()
+        self.write_proof_file(self.proof_with_lifecycle("accepted"), "WP1")
+
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(VALIDATOR_PATH),
+                "--final",
+                "--worktree",
+                str(self.repo),
+                str(self.tasks_path),
+            ],
+            cwd=self.repo,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+        )
+        self.assertNotEqual(0, result.returncode)
+        self.assertIn("WP2: package proof: file not found", result.stdout)
+
+        self.write_proof_file(self.proof_with_lifecycle("reopened", "WP2"), "WP2")
+        reopened = subprocess.run(
+            [
+                sys.executable,
+                str(VALIDATOR_PATH),
+                "--final",
+                "--worktree",
+                str(self.repo),
+                str(self.tasks_path),
+            ],
+            cwd=self.repo,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+        )
+        self.assertNotEqual(0, reopened.returncode)
+        self.assertIn("expected 'accepted'", reopened.stdout)
 
     def test_final_ledger_rejects_existing_invalid_cases(self) -> None:
         self.assertEqual(

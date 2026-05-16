@@ -8,7 +8,7 @@ Each package agent receives a self-contained assignment with:
 
 - `.tasks/<feature>/SPEC.md`.
 - `.tasks/<feature>/tasks.json`.
-- `.tasks/<feature>/verification.json` path; the orchestrator creates a minimal shell first if absent.
+- Assigned `.tasks/<feature>/proofs/WP<N>.proof.json` path. The orchestrator creates the proof directory/template first when needed and handles artifact handoff because `.tasks/` is ignored by git.
 - Assigned work package ID and task IDs.
 - Structured acceptance criteria for those tasks, including stable criterion IDs and source refs.
 - Required context bundle IDs and bundle content from `tasks.json`.
@@ -41,9 +41,9 @@ The package agent must:
 
 If a required command is unsafe under the command-safety rule, the agent must not run it. It reports the command and required approval instead.
 
-## Evidence Ledger Expectations
+## Package Proof Expectations
 
-The package agent updates `.tasks/<feature>/verification.json` with one entry per assigned acceptance criterion. Each entry must include:
+The package agent updates only its assigned `.tasks/<feature>/proofs/WP<N>.proof.json` with one entry per assigned acceptance criterion. Each entry must include:
 
 - criterion ID and source refs;
 - state binding: branch/commit/worktree or integrated state observed;
@@ -54,7 +54,7 @@ The package agent updates `.tasks/<feature>/verification.json` with one entry pe
 - context-bundle citations when applicable;
 - status that is not failed, blocked, stale, or manual-required without approval.
 
-The ledger is an index to proof, not proof by itself. Vague, stale, untied, or missing evidence is rejection-worthy.
+The proof file is the package evidence source. Vague, stale, untied, or missing evidence is rejection-worthy. Do not manually edit the proof `lifecycle` object; the orchestrator accepts or reopens package proofs with `taskctl.py` after integrated validation.
 
 ## Completion Report
 
@@ -62,7 +62,7 @@ The package agent report must include:
 
 - completed task IDs;
 - acceptance criteria verified;
-- ledger entries written/updated;
+- proof entries written/updated;
 - Quality Contract Evidence from `clean-code-rules.md`;
 - files changed;
 - commands run and observed results;
@@ -82,11 +82,11 @@ When integration checkpoint, targeted package review, review-code, or audit reje
 - current integrated worktree path or package worktree path as appropriate;
 - rejection report with exact failed criteria and why evidence was insufficient;
 - package diff or relevant changed files;
-- current `verification.json` entries;
+- current package proof entries and lifecycle state;
 - failed command output or observed bad behavior;
 - required context bundles and citations expected;
 - risk tags and edge-case checklist;
 - safe verification commands to run after repair;
-- instruction to update ledger entries and report new evidence.
+- instruction to update package proof entries and report new evidence.
 
 Repair scope is limited to making the assigned package criteria true and proven in the current integrated state. Design/product behavior changes, new dependencies/services, scope expansion, or unsafe commands still stop for user approval.

@@ -90,6 +90,6 @@ Do not maintain competing copies of these details in skills or plans:
 - exact ID regexes and sequential/no-gap checks;
 - accepted source-ref and context-bundle source types;
 - risk-tag taxonomy and targeted-review-trigger set;
-- final verification ledger schema and stale-evidence checks.
+- final package proof schema and stale-evidence checks.
 
 For those details, inspect `${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/validate-tasks-json.py`; for package meaning and review expectations, inspect `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/work-packages.md`.

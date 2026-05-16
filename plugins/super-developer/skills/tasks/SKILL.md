@@ -50,7 +50,7 @@ payment-flow         completed    ████████  8/8   ✅8
 
    If validation fails, show the validator output and stop; the dashboard cannot reliably compute status from an invalid plan.
 
-   If `verification.json` is missing or invalid, continue showing task status but include an **Evidence: missing/invalid** warning. Status alone is not proof that completed acceptance criteria are verified.
+   If package proofs are missing, invalid, stale, reopened, or unaccepted, continue showing task status but include an **Evidence: missing/invalid/unaccepted** warning. Status alone is not proof that completed acceptance criteria are verified.
 2. Read `.tasks/$ARGUMENTS/tasks.json`.
 3. If `work_packages` exists, display a package summary before the phase breakdown:
 
@@ -87,7 +87,7 @@ Phase 2: <phase name>
 ```
 
 5. At the bottom, show:
-   - **Evidence health** — for planned-feature pipelines, whether `.tasks/$ARGUMENTS/verification.json` exists and validates for completed criteria. Do not treat `failed`, `blocked`, or unapproved `manual_required` ledger entries as verified work.
+   - **Evidence health** — for planned-feature pipelines, whether `.tasks/$ARGUMENTS/proofs/WP<N>.proof.json` files exist, validate, and are accepted for completed package criteria. Do not treat missing, invalid, stale, reopened/unaccepted, `failed`, `blocked`, or unapproved `manual_required` proof entries as verified work.
    - **Next actionable task** — first `pending` task with all dependencies `done`.
    - **Next actionable work package** — first package with pending work whose package dependencies and external task dependencies are done. Show this only when `work_packages` exists.
    - **Blocked tasks** — with `blocked_reason` if present.
@@ -106,7 +106,7 @@ Phase 2: <phase name>
 
 If the user asks to change a task's status (e.g., "mark P1-T003 as done", "block P2-T001"):
 
-- **Marking `done`:** Update status and add `completed_at` with current ISO 8601 timestamp only when the user explicitly requests a status override. Warn that this does not create verification evidence and that audit/implement gates still require valid `verification.json` entries.
+- **Marking `done`:** Update status and add `completed_at` with current ISO 8601 timestamp only when the user explicitly requests a status override. Warn that this does not create verification evidence and that audit/implement gates still require accepted package proof entries.
 - **Marking `blocked`:** Ask for a `blocked_reason` and add it to the task.
 - **Marking `skipped`:** Ask for confirmation first.
 - **All tasks `done` or `skipped`:** Update feature `status` to `completed`.

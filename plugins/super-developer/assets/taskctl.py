@@ -45,8 +45,8 @@ def main(argv: list[str] | None = None) -> int:
 
 def build_parser() -> argparse.ArgumentParser:
     description = (
-        "Package-proof helper. This release adds package-level proof lifecycle "
-        "writers while preserving verification.json as the final gate."
+        "Package-proof helper. Accepted package proofs are the planned-feature "
+        "final evidence gate."
     )
     parser = argparse.ArgumentParser(description=description)
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -198,7 +198,7 @@ def cmd_summary(args: argparse.Namespace) -> int:
         "feature": plan.data["feature"],
         "status": plan.data["status"],
         "read_only": True,
-        "final_gate": "verification.json remains authoritative in this release.",
+        "final_gate": "accepted package proofs are authoritative in this release.",
         "proof_health": dict(sorted(proof_counts.items())),
         "packages": package_summaries,
     }
@@ -646,13 +646,23 @@ def proof_health(
         worktree=worktree,
         tasks_path=plan.tasks_path,
     )
-    status = "valid" if not errors else "invalid"
+    lifecycle_state = "unknown"
+    if not errors:
+        proof = load_package_proof_file(proof_path)
+        lifecycle_state = validator.package_lifecycle_state_name(proof)
+        status = "accepted" if lifecycle_state == "accepted" else lifecycle_state
+        if status == "none":
+            status = "unaccepted"
+    else:
+        status = "invalid"
     if errors and any("file not found" in error for error in errors):
         status = "missing"
     return {
         "status": status,
         "path": str(proof_path),
         "ok": not errors,
+        "final_ready": not errors and lifecycle_state == "accepted",
+        "lifecycle_state": lifecycle_state,
         "error_count": len(errors),
         "errors": errors,
     }

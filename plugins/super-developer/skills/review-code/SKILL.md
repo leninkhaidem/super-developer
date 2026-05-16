@@ -137,8 +137,8 @@ maintenance, or regression risk; otherwise map non-blocking actionable issues to
 When task-awareness context is available, the Code Reviewer flags apparent planned requirement or
 acceptance-criteria omissions, contradictions, or regressions. These are review-code findings, not
 completion proof: the audit skill remains authoritative for proving all planned tasks and acceptance
-criteria. In pipeline context, review-code may use `verification.json` as an index to planned proof,
-but must not treat ledger entries as authoritative proof or duplicate audit's exhaustive role.
+criteria. In pipeline context, review-code may use accepted package proofs as task-awareness context,
+but must not duplicate audit's exhaustive role.
 
 ### Specialist Mandate
 

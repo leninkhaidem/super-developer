@@ -1,6 +1,6 @@
 # Package Proof Lifecycle
 
-This reference covers the Release 2 package proof lifecycle boundary for `assets/taskctl.py`. It is intentionally separate from eager-loaded implementation and audit skill prompts.
+This reference covers the package proof lifecycle boundary for `assets/taskctl.py`. It is intentionally separate from eager-loaded implementation and audit skill prompts.
 
 ## Command Boundary
 
@@ -41,6 +41,6 @@ Accepted lifecycle state must stay bound to current proof content and git-tracke
 
 Reopened lifecycle state records the current proof lifecycle but is not accepted proof evidence. A reopened proof must pass validation before it can be accepted again.
 
-## Final Gate Compatibility
+## Final Gate Cutover
 
-Accepted package proofs do not replace `verification.json` final implementation or audit gates in Release 2. Implementation and audit final success remain driven by the planned-feature verification ledger and its criterion-level evidence.
+Release 2 kept accepted package proofs as compatibility helpers while `verification.json` remained the final gate. In the current proof-native pipeline, final implementation and audit success require one valid, current, lifecycle-accepted `.tasks/<feature>/proofs/WP<N>.proof.json` file for every work package. Historical `verification.json` files are not authoritative package or final evidence.
