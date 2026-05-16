@@ -618,7 +618,7 @@ class GuardrailDocumentationRegressionTests(unittest.TestCase):
         self.assertIn("Load `plugins/super-developer/skills/implement/references/package-proof-lifecycle.md` before routine proof/status operations", implement)
         self.assertIn("Load `plugins/super-developer/skills/implement/references/package-dispatch.md`", implement)
         self.assertIn("Evidence gate: do not mark a task `done` merely because code was committed", implement)
-        self.assertIn("final proof validation, final validator pass, final review-code/fix loop, and final audit pass", implement)
+        self.assertIn("final proof validation, package finalization gate, final review-code/fix loop, and final audit pass", implement)
         self.assertIn("not a TUI, workflow engine, generic JSON patcher, central ledger reconciler", lifecycle)
         self.assertIn("event streams, checklist state, proof logs, or package status fields", lifecycle)
         self.assertIn("orchestrator remains authoritative for git infrastructure, status transitions", subagent)
