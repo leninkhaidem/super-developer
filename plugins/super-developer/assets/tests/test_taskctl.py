@@ -1,13 +1,17 @@
 from __future__ import annotations
 
 import ast
+import contextlib
 import copy
+import importlib.util
+import io
 import json
 import shutil
 import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 from pathlib import Path
 
 
@@ -26,6 +30,19 @@ SPEC = """# CLI Proof Feature
 - AC-2: Proof validation is exposed through the CLI.
 - AC-3: Final verification ledgers remain authoritative.
 """
+
+
+def load_taskctl_module():
+    previous_dont_write_bytecode = sys.dont_write_bytecode
+    sys.dont_write_bytecode = True
+    try:
+        spec = importlib.util.spec_from_file_location("taskctl_under_test", TASKCTL_PATH)
+        module = importlib.util.module_from_spec(spec)
+        assert spec.loader is not None
+        spec.loader.exec_module(module)
+        return module
+    finally:
+        sys.dont_write_bytecode = previous_dont_write_bytecode
 
 
 class TaskctlCliTests(unittest.TestCase):
@@ -283,6 +300,15 @@ class TaskctlCliTests(unittest.TestCase):
                 encoding="utf-8",
             )
 
+    def read_proof(self, package_id: str = "WP1") -> dict:
+        return json.loads((self.proofs_dir / f"{package_id}.proof.json").read_text(encoding="utf-8"))
+
+    def write_proof(self, proof: dict, package_id: str = "WP1") -> None:
+        (self.proofs_dir / f"{package_id}.proof.json").write_text(
+            json.dumps(proof, indent=2),
+            encoding="utf-8",
+        )
+
     def taskctl(self, *args: str) -> subprocess.CompletedProcess[str]:
         return subprocess.run(
             [sys.executable, str(TASKCTL_PATH), *args],
@@ -319,12 +345,68 @@ class TaskctlCliTests(unittest.TestCase):
             "assets": self.snapshot_tree(ASSETS_DIR),
         }
 
+    def assert_only_repo_path_changed(
+        self,
+        before: dict[str, dict[str, tuple[str, bytes]]],
+        after: dict[str, dict[str, tuple[str, bytes]]],
+        changed_path: Path,
+    ) -> None:
+        changed_relative = str(changed_path.relative_to(self.repo))
+        self.assertEqual(before["assets"], after["assets"])
+        self.assertEqual(set(before["repo"]), set(after["repo"]))
+        changed = {
+            path
+            for path in before["repo"]
+            if before["repo"][path] != after["repo"][path]
+        }
+        self.assertEqual({changed_relative}, changed)
+
     def assert_read_only(self, *args: str, expected_returncode: int = 0) -> subprocess.CompletedProcess[str]:
         before = self.snapshot_read_only_paths()
         result = self.taskctl(*args)
         after = self.snapshot_read_only_paths()
         self.assertEqual(expected_returncode, result.returncode, result.stdout + result.stderr)
         self.assertEqual(before, after)
+        self.assertFalse(self.sentinel.exists())
+        return result
+
+    def accept_package(
+        self, package_id: str = "WP1", expected_returncode: int = 0
+    ) -> subprocess.CompletedProcess[str]:
+        result = self.taskctl(
+            "accept-package",
+            "--tasks",
+            str(self.tasks_path),
+            "--worktree",
+            str(self.repo),
+            str(self.proofs_dir / f"{package_id}.proof.json"),
+        )
+        self.assertEqual(expected_returncode, result.returncode, result.stdout + result.stderr)
+        return result
+
+    def reopen_package(
+        self, package_id: str = "WP1", expected_returncode: int = 0
+    ) -> subprocess.CompletedProcess[str]:
+        result = self.taskctl(
+            "reopen-package",
+            "--tasks",
+            str(self.tasks_path),
+            "--worktree",
+            str(self.repo),
+            str(self.proofs_dir / f"{package_id}.proof.json"),
+        )
+        self.assertEqual(expected_returncode, result.returncode, result.stdout + result.stderr)
+        return result
+
+    def assert_rejected_without_write(
+        self, command: tuple[str, ...], expected_error: str
+    ) -> subprocess.CompletedProcess[str]:
+        before = self.snapshot_read_only_paths()
+        result = self.taskctl(*command)
+        after = self.snapshot_read_only_paths()
+        self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+        self.assertEqual(before, after)
+        self.assertIn(expected_error, "\n".join(json.loads(result.stderr)["errors"]))
         self.assertFalse(self.sentinel.exists())
         return result
 
@@ -417,6 +499,211 @@ class TaskctlCliTests(unittest.TestCase):
         self.assertEqual("verification.json remains authoritative in this release.", summary["final_gate"])
         self.assertEqual({"valid": 2}, summary["proof_health"])
 
+    def test_accept_package_writes_selected_proof_lifecycle_state(self) -> None:
+        proof_path = self.proofs_dir / "WP1.proof.json"
+        before = self.snapshot_read_only_paths()
+
+        result = self.accept_package()
+        after = self.snapshot_read_only_paths()
+
+        self.assert_only_repo_path_changed(before, after, proof_path)
+        output = json.loads(result.stdout)
+        self.assertTrue(output["ok"])
+        self.assertEqual("accept-package", output["command"])
+        self.assertEqual("WP1", output["package_id"])
+        self.assertEqual("none", output["lifecycle"]["previous_state"])
+        self.assertEqual("accepted", output["lifecycle"]["state"])
+        self.assertTrue(output["lifecycle"]["changed"])
+        proof = self.read_proof()
+        lifecycle = proof["lifecycle"]
+        self.assertEqual("accepted", lifecycle["state"])
+        self.assertEqual("WP1", lifecycle["package_id"])
+        self.assertEqual(str(proof_path.resolve(strict=False)), lifecycle["proof_path"])
+        self.assertEqual(
+            {"tool": "taskctl.py", "command": "accept-package", "schema_version": 1},
+            lifecycle["writer"],
+        )
+        self.assertEqual("accepted", lifecycle["state_binding"]["state"])
+        self.assertEqual(str(self.repo.resolve(strict=False)), lifecycle["state_binding"]["worktree"])
+        self.assertEqual(self.commit, lifecycle["state_binding"]["commit"])
+        self.assertFalse(self.sentinel.exists())
+
+    def test_accept_package_is_idempotent_for_same_valid_proof(self) -> None:
+        first = json.loads(self.accept_package().stdout)
+        self.assertTrue(first["lifecycle"]["changed"])
+        before = self.snapshot_read_only_paths()
+
+        second = json.loads(self.accept_package().stdout)
+        after = self.snapshot_read_only_paths()
+
+        self.assertEqual(before, after)
+        self.assertEqual("accepted", second["lifecycle"]["previous_state"])
+        self.assertEqual("accepted", second["lifecycle"]["state"])
+        self.assertFalse(second["lifecycle"]["changed"])
+        self.assertFalse(self.sentinel.exists())
+
+    def test_accept_package_rejects_changed_or_fake_accepted_state_without_write(self) -> None:
+        accepted = self.read_proof()
+        self.accept_package()
+
+        changed = self.read_proof()
+        changed["entries"][0]["evidence"]["edge_cases"].append("proof changed after acceptance")
+        self.write_proof(changed)
+        self.assert_rejected_without_write(
+            (
+                "accept-package",
+                "--tasks",
+                str(self.tasks_path),
+                "--worktree",
+                str(self.repo),
+                str(self.proofs_dir / "WP1.proof.json"),
+            ),
+            "proof_digest",
+        )
+
+        self.write_proof(accepted)
+        self.accept_package()
+        missing_writer = self.read_proof()
+        missing_writer["lifecycle"].pop("writer")
+        self.write_proof(missing_writer)
+        self.assert_rejected_without_write(
+            (
+                "accept-package",
+                "--tasks",
+                str(self.tasks_path),
+                "--worktree",
+                str(self.repo),
+                str(self.proofs_dir / "WP1.proof.json"),
+            ),
+            "writer",
+        )
+
+        self.write_proof(accepted)
+        self.accept_package()
+        fake_writer = self.read_proof()
+        fake_writer["lifecycle"]["writer"]["tool"] = "manual-editor"
+        self.write_proof(fake_writer)
+        self.assert_rejected_without_write(
+            (
+                "accept-package",
+                "--tasks",
+                str(self.tasks_path),
+                "--worktree",
+                str(self.repo),
+                str(self.proofs_dir / "WP1.proof.json"),
+            ),
+            "manual-editor",
+        )
+
+        self.write_proof(accepted)
+        self.accept_package()
+        wrong_path = self.read_proof()
+        wrong_path["lifecycle"]["proof_path"] = str(self.repo / "wrong.proof.json")
+        self.write_proof(wrong_path)
+        self.assert_rejected_without_write(
+            (
+                "accept-package",
+                "--tasks",
+                str(self.tasks_path),
+                "--worktree",
+                str(self.repo),
+                str(self.proofs_dir / "WP1.proof.json"),
+            ),
+            "proof_path",
+        )
+
+    def test_accept_package_rejects_stale_or_wrong_proof_path_without_write(self) -> None:
+        self.accept_package()
+        (self.repo / "tracked.txt").write_text("changed after acceptance\n", encoding="utf-8")
+        self.assert_rejected_without_write(
+            (
+                "accept-package",
+                "--tasks",
+                str(self.tasks_path),
+                "--worktree",
+                str(self.repo),
+                str(self.proofs_dir / "WP1.proof.json"),
+            ),
+            "stale accepted proof state",
+        )
+        self.git("checkout", "--", "tracked.txt")
+
+        self.write_proof(self.proof("WP1"), package_id="WP2")
+        self.assert_rejected_without_write(
+            (
+                "accept-package",
+                "--tasks",
+                str(self.tasks_path),
+                "--worktree",
+                str(self.repo),
+                str(self.proofs_dir / "WP2.proof.json"),
+            ),
+            "package proof path: expected",
+        )
+
+    def test_reopen_package_writes_selected_proof_and_allows_reacceptance(self) -> None:
+        self.accept_package()
+        proof_path = self.proofs_dir / "WP1.proof.json"
+        before = self.snapshot_read_only_paths()
+
+        reopened = json.loads(self.reopen_package().stdout)
+        after = self.snapshot_read_only_paths()
+
+        self.assert_only_repo_path_changed(before, after, proof_path)
+        self.assertEqual("accepted", reopened["lifecycle"]["previous_state"])
+        self.assertEqual("reopened", reopened["lifecycle"]["state"])
+        proof = self.read_proof()
+        self.assertEqual("reopened", proof["lifecycle"]["state"])
+        self.assertEqual("reopen-package", proof["lifecycle"]["writer"]["command"])
+
+        reaccepted = json.loads(self.accept_package().stdout)
+        self.assertEqual("reopened", reaccepted["lifecycle"]["previous_state"])
+        self.assertEqual("accepted", reaccepted["lifecycle"]["state"])
+        self.assertTrue(reaccepted["lifecycle"]["changed"])
+        self.assertEqual("accepted", self.read_proof()["lifecycle"]["state"])
+        self.assertFalse(self.sentinel.exists())
+
+    def test_reopen_package_rejects_invalid_transitions_without_write(self) -> None:
+        reopen_command = (
+            "reopen-package",
+            "--tasks",
+            str(self.tasks_path),
+            "--worktree",
+            str(self.repo),
+            str(self.proofs_dir / "WP1.proof.json"),
+        )
+        self.assert_rejected_without_write(reopen_command, "none -> reopened is not allowed")
+
+        self.accept_package()
+        self.reopen_package()
+        self.assert_rejected_without_write(reopen_command, "reopened -> reopened is not allowed")
+
+    def test_lifecycle_commands_do_not_truncate_original_on_write_failure(self) -> None:
+        taskctl = load_taskctl_module()
+        proof_path = self.proofs_dir / "WP1.proof.json"
+        original = proof_path.read_bytes()
+        stdout = io.StringIO()
+        stderr = io.StringIO()
+
+        with mock.patch.object(taskctl.os, "replace", side_effect=OSError("simulated replace failure")):
+            with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                exit_code = taskctl.main(
+                    [
+                        "accept-package",
+                        "--tasks",
+                        str(self.tasks_path),
+                        "--worktree",
+                        str(self.repo),
+                        str(proof_path),
+                    ]
+                )
+
+        self.assertEqual(1, exit_code)
+        self.assertEqual(original, proof_path.read_bytes())
+        self.assertFalse(list(self.proofs_dir.glob("*.tmp")))
+        self.assertIn("unable to write", "\n".join(json.loads(stderr.getvalue())["errors"]))
+        self.assertEqual("", stdout.getvalue())
+
     def test_validate_proof_and_validate_proofs_return_structured_failures(self) -> None:
         valid_single = json.loads(
             self.assert_read_only(
@@ -503,10 +790,34 @@ class TaskctlCliTests(unittest.TestCase):
                 self.assert_read_only(*command)
                 self.assertFalse(self.sentinel.exists())
 
+    def test_recorded_command_evidence_is_inert_for_lifecycle_commands(self) -> None:
+        self.accept_package()
+        self.assertFalse(self.sentinel.exists())
+        self.reopen_package()
+        self.assertFalse(self.sentinel.exists())
+        self.accept_package()
+        self.assertFalse(self.sentinel.exists())
+        commands = [
+            (
+                "validate-proof",
+                "--tasks",
+                str(self.tasks_path),
+                str(self.proofs_dir / "WP1.proof.json"),
+            ),
+            ("validate-proofs", "--tasks", str(self.tasks_path)),
+            ("summary", "--tasks", str(self.tasks_path)),
+        ]
+        for command in commands:
+            with self.subTest(command=command[0]):
+                self.assert_read_only(*command)
+                self.assertFalse(self.sentinel.exists())
+
     def test_final_verification_json_compatibility_ignores_package_proofs(self) -> None:
         verification_path = self.feature_dir / "verification.json"
+        self.accept_package("WP1")
+        self.accept_package("WP2")
+        self.reopen_package("WP2")
         verification_path.write_text(json.dumps(self.final_ledger(), indent=2), encoding="utf-8")
-        (self.proofs_dir / "WP1.proof.json").write_text("{", encoding="utf-8")
         valid = self.validator(
             "--final",
             "--worktree",
