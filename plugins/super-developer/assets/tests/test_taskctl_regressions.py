@@ -207,6 +207,26 @@ class TaskctlFixture:
     def read_plan(self) -> dict:
         return json.loads(self.tasks_path.read_text(encoding="utf-8"))
 
+    def _required_context_bundles_for_entry(self, package_id: str, task_id: str) -> list[str]:
+        ids: list[str] = []
+        seen: set[str] = set()
+        package = next(package for package in self.plan["work_packages"] if package["id"] == package_id)
+        for bundle_id in package.get("required_context_bundles", []):
+            if isinstance(bundle_id, str) and bundle_id not in seen:
+                ids.append(bundle_id)
+                seen.add(bundle_id)
+        for phase in self.plan["phases"]:
+            for task in phase["tasks"]:
+                if task.get("id") != task_id:
+                    continue
+                for bundle_id in task.get("required_context_bundles", []):
+                    if isinstance(bundle_id, str) and bundle_id not in seen:
+                        ids.append(bundle_id)
+                        seen.add(bundle_id)
+                return ids
+        return ids
+
+
     def base_args(self) -> list[str]:
         return ["--tasks", str(self.tasks_path), "--worktree", str(self.root)]
 
@@ -230,7 +250,7 @@ class TaskctlFixture:
                 "worktree": str(self.root),
                 "captured_at": "2026-05-16T00:01:00+00:00",
             }
-            context_bundles = entry["evidence"]["context_bundles"]
+            context_bundles = self._required_context_bundles_for_entry(package_id, entry["task_id"])
             entry["evidence"] = {
                 "files": ["src/implemented.txt"],
                 "commands": [],
@@ -314,6 +334,7 @@ class TaskctlRegressionTests(unittest.TestCase):
         self.assertEqual([entry["criterion_id"] for entry in template["entries"]], ["P1-T001-AC1"])
         self.assertEqual(template["entries"][0]["source_refs"], self.fixture.plan["phases"][0]["tasks"][0]["acceptance_criteria"][0]["source_refs"])
         self.assertEqual(template["targeted_review"]["status"], "pending")
+        self.assertEqual(template["entries"][0]["evidence"]["context_bundles"], ["CTX-1", "CTX-2"])
 
         self.fixture.write_proof("WP1", self.fixture.valid_proof("WP1"))
         code, validated, err = self.fixture.run("validate-proof", "WP1")
