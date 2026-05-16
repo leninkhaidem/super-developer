@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate super-developer tasks.json and verification.json files."""
+"""Validate super-developer tasks.json, package proofs, and verification ledgers."""
 
 from __future__ import annotations
 
@@ -46,6 +46,38 @@ COMMAND_EVIDENCE_METHODS = {
     "command",
     "mixed",
 }
+PACKAGE_PROOF_SCHEMA_VERSION = 1
+VAGUE_MANUAL_VALUES = {
+    "approved",
+    "approval",
+    "done",
+    "good",
+    "looks good",
+    "manual approval",
+    "n/a",
+    "na",
+    "none",
+    "ok",
+    "passed",
+    "verified",
+    "yes",
+}
+STATE_REFERENCE_MARKERS = (
+    "/",
+    ":",
+    ".json",
+    ".md",
+    ".py",
+    "artifact",
+    "command",
+    "commit",
+    "evidence",
+    "file",
+    "ledger",
+    "proof",
+    "test",
+    "verification",
+)
 
 RISK_TAGS = {
     "security",
@@ -182,7 +214,11 @@ def validate_tasks_json(
         "task_ids": set(),
         "task_ac_ids": set(),
         "task_ac_sources": {},
+        "task_required_context_bundles": {},
         "task_to_package": {},
+        "package_ids": set(),
+        "package_required_context_bundles": {},
+        "package_to_tasks": {},
         "context_bundle_ids": set(),
     }
     if not isinstance(data, dict):
@@ -208,6 +244,7 @@ def validate_tasks_json(
     task_phase_order: dict[str, int] = {}
     task_ac_ids: set[str] = set()
     task_ac_sources: dict[str, list[dict[str, str]]] = {}
+    task_required_context_bundles: dict[str, set[str]] = {}
 
     design_decision_ids = collect_design_decision_ids(data.get("design_decisions"))
 
@@ -220,6 +257,7 @@ def validate_tasks_json(
             task_phase_order,
             task_ac_ids=task_ac_ids,
             task_ac_sources=task_ac_sources,
+            task_required_context_bundles=task_required_context_bundles,
             design_decision_ids=design_decision_ids,
             context_bundle_ids=context_bundle_ids,
         )
@@ -235,6 +273,7 @@ def validate_tasks_json(
             context_bundle_ids=context_bundle_ids,
         )
         plan_index["task_to_package"] = task_to_package
+        index_work_packages(work_packages, plan_index)
     else:
         errors.append("work_packages: expected array")
 
@@ -262,6 +301,7 @@ def validate_tasks_json(
     plan_index["task_ids"] = task_ids
     plan_index["task_ac_ids"] = task_ac_ids
     plan_index["task_ac_sources"] = task_ac_sources
+    plan_index["task_required_context_bundles"] = task_required_context_bundles
     return errors, plan_index
 
 
@@ -540,6 +580,7 @@ def validate_phases(
     task_phase_order: dict[str, int],
     task_ac_ids: set[str],
     task_ac_sources: dict[str, list[dict[str, str]]],
+    task_required_context_bundles: dict[str, set[str]],
     design_decision_ids: set[str],
     context_bundle_ids: set[str],
 ) -> None:
@@ -584,6 +625,7 @@ def validate_phases(
                 task_phase_order,
                 task_ac_ids=task_ac_ids,
                 task_ac_sources=task_ac_sources,
+                task_required_context_bundles=task_required_context_bundles,
                 design_decision_ids=design_decision_ids,
                 context_bundle_ids=context_bundle_ids,
             )
@@ -604,6 +646,7 @@ def validate_task(
     task_phase_order: dict[str, int],
     task_ac_ids: set[str],
     task_ac_sources: dict[str, list[dict[str, str]]],
+    task_required_context_bundles: dict[str, set[str]],
     design_decision_ids: set[str],
     context_bundle_ids: set[str],
 ) -> None:
@@ -670,6 +713,8 @@ def validate_task(
             errors.append(
                 f"{task_path}.required_context_bundles: unknown context bundle {bundle_ref!r}"
             )
+    if isinstance(task_id, str) and task_id.strip():
+        task_required_context_bundles[task_id] = set(bundle_refs)
 
 def validate_structured_acceptance_criteria(
     task: dict[str, Any],
@@ -938,6 +983,30 @@ def validate_work_packages(
     return task_to_package
 
 
+def index_work_packages(work_packages: list[Any], plan_index: dict[str, Any]) -> None:
+    package_ids: set[str] = set()
+    package_to_tasks: dict[str, list[str]] = {}
+    package_required_context_bundles: dict[str, set[str]] = {}
+    for package in work_packages:
+        if not isinstance(package, dict) or not isinstance(package.get("id"), str):
+            continue
+        package_id = package["id"]
+        package_ids.add(package_id)
+        task_ids = package.get("task_ids")
+        if isinstance(task_ids, list):
+            package_to_tasks[package_id] = [
+                task_id for task_id in task_ids if isinstance(task_id, str)
+            ]
+        bundle_refs = package.get("required_context_bundles")
+        if isinstance(bundle_refs, list):
+            package_required_context_bundles[package_id] = {
+                bundle_ref for bundle_ref in bundle_refs if isinstance(bundle_ref, str)
+            }
+    plan_index["package_ids"] = package_ids
+    plan_index["package_to_tasks"] = package_to_tasks
+    plan_index["package_required_context_bundles"] = package_required_context_bundles
+
+
 def validate_package_v2_fields(
     package: dict[str, Any],
     package_path: str,
@@ -1077,6 +1146,221 @@ def validate_cross_package_task_dependencies(
                     f"work package {package_id}: missing depends_on {dependency_package!r} "
                     f"because task {task_id} depends on {dependency}"
                 )
+
+
+def expected_package_proof_path(tasks_path: Path, package_id: str) -> Path:
+    return tasks_path.with_name("proofs") / f"{package_id}.proof.json"
+
+
+def validate_package_proof_json_file(
+    proof_path: Path, plan_index: dict[str, Any], *, worktree: Path
+) -> list[str]:
+    errors: list[str] = []
+    try:
+        with proof_path.open("r", encoding="utf-8") as f:
+            proof = json.load(f)
+    except FileNotFoundError:
+        return [f"package proof: file not found at {proof_path}"]
+    except json.JSONDecodeError as exc:
+        return [f"package proof: invalid JSON: {exc}"]
+    except (OSError, UnicodeDecodeError) as exc:
+        return [f"package proof: unable to read {proof_path}: {exc}"]
+
+    errors.extend(
+        validate_package_proof_json(
+            proof,
+            plan_index,
+            worktree=worktree,
+            proof_path=proof_path,
+        )
+    )
+    return errors
+
+
+def validate_package_proof_json(
+    proof: Any,
+    plan_index: dict[str, Any],
+    *,
+    worktree: Path,
+    proof_path: Path | None = None,
+) -> list[str]:
+    errors: list[str] = []
+    if not isinstance(proof, dict):
+        return ["package proof root: expected object"]
+
+    schema_version = proof.get("schema_version")
+    if (
+        isinstance(schema_version, bool)
+        or not isinstance(schema_version, int)
+        or schema_version != PACKAGE_PROOF_SCHEMA_VERSION
+    ):
+        errors.append(
+            f"package proof.schema_version: expected integer {PACKAGE_PROOF_SCHEMA_VERSION}, got {schema_version!r}"
+        )
+
+    feature = proof.get("feature")
+    if feature != plan_index.get("feature"):
+        errors.append(
+            f"package proof.feature: expected {plan_index.get('feature')!r}, got {feature!r}"
+        )
+
+    package_id = proof.get("package_id")
+    if not isinstance(package_id, str) or not package_id.strip():
+        errors.append("package proof.package_id: expected non-empty string")
+        package_id = None
+    elif package_id not in plan_index.get("package_ids", set()):
+        errors.append(f"package proof.package_id: unknown work package {package_id!r}")
+
+    if proof_path is not None and isinstance(package_id, str):
+        expected_name = f"{package_id}.proof.json"
+        if proof_path.name != expected_name:
+            errors.append(
+                f"package proof path: expected filename {expected_name!r}, got {proof_path.name!r}"
+            )
+
+    entries = proof.get("entries")
+    if not isinstance(entries, list):
+        errors.append("package proof.entries: expected array")
+        return errors
+
+    expected_ac_ids = (
+        package_acceptance_criteria(plan_index, package_id)
+        if isinstance(package_id, str)
+        else set()
+    )
+    seen_ac_ids: set[str] = set()
+    entry_ac_ids: list[str] = []
+    for index, entry in enumerate(entries):
+        entry_path = f"package proof.entries[{index}]"
+        validate_package_proof_entry(
+            entry,
+            entry_path,
+            errors,
+            plan_index,
+            worktree,
+            package_id=package_id if isinstance(package_id, str) else None,
+        )
+        if isinstance(entry, dict) and isinstance(entry.get("criterion_id"), str):
+            criterion_id = entry["criterion_id"]
+            seen_ac_ids.add(criterion_id)
+            entry_ac_ids.append(criterion_id)
+
+    for ac_id in sorted(expected_ac_ids - seen_ac_ids):
+        errors.append(f"package proof.entries: missing proof entry for acceptance criterion {ac_id}")
+    for ac_id in sorted(seen_ac_ids - expected_ac_ids):
+        errors.append(
+            f"package proof.entries: acceptance criterion {ac_id!r} is not owned by package {package_id!r}"
+        )
+    for duplicate in duplicates(entry_ac_ids):
+        errors.append(f"package proof.entries: duplicate criterion_id {duplicate!r}")
+
+    return errors
+
+
+def validate_package_proof_entry(
+    entry: Any,
+    path: str,
+    errors: list[str],
+    plan_index: dict[str, Any],
+    worktree: Path,
+    *,
+    package_id: str | None,
+) -> None:
+    before_count = len(errors)
+    validate_ledger_entry(entry, path, errors, plan_index, worktree)
+    if not isinstance(entry, dict):
+        return
+
+    entry_package_id = entry.get("package_id")
+    if (
+        package_id is not None
+        and isinstance(entry_package_id, str)
+        and entry_package_id != package_id
+    ):
+        errors.append(
+            f"{path}.package_id: expected package proof package_id {package_id!r}, got {entry_package_id!r}"
+        )
+
+    validate_required_context_bundle_citations(
+        entry,
+        path,
+        errors,
+        plan_index,
+        proof_package_id=package_id,
+    )
+    if len(errors) == before_count and entry.get("status") in {"failed", "blocked"}:
+        errors.append(f"{path}.status: package proof cannot contain {entry.get('status')!r} entry")
+
+
+def package_acceptance_criteria(plan_index: dict[str, Any], package_id: str | None) -> set[str]:
+    if package_id is None:
+        return set()
+    task_ids = set(plan_index.get("package_to_tasks", {}).get(package_id, []))
+    return {
+        ac_id
+        for ac_id in plan_index.get("task_ac_ids", set())
+        if ac_id.rsplit("-AC", 1)[0] in task_ids
+    }
+
+
+def required_context_bundles_for_entry(
+    entry: dict[str, Any],
+    plan_index: dict[str, Any],
+    *,
+    proof_package_id: str | None,
+) -> set[str]:
+    criterion_id = entry.get("criterion_id")
+    task_id = entry.get("task_id")
+    if not isinstance(task_id, str) and isinstance(criterion_id, str):
+        match = TASK_AC_ID_RE.fullmatch(criterion_id)
+        if match:
+            task_id = match.group(1)
+    package_id = proof_package_id
+    if package_id is None and isinstance(task_id, str):
+        package_id = plan_index.get("task_to_package", {}).get(task_id)
+
+    required = set()
+    if package_id is not None:
+        required.update(
+            plan_index.get("package_required_context_bundles", {}).get(package_id, set())
+        )
+    if isinstance(task_id, str):
+        required.update(
+            plan_index.get("task_required_context_bundles", {}).get(task_id, set())
+        )
+    if isinstance(criterion_id, str):
+        for ref in plan_index.get("task_ac_sources", {}).get(criterion_id, []):
+            if ref.get("type") == "context_bundle":
+                required.add(ref["id"])
+    return required
+
+
+def validate_required_context_bundle_citations(
+    entry: dict[str, Any],
+    path: str,
+    errors: list[str],
+    plan_index: dict[str, Any],
+    *,
+    proof_package_id: str | None,
+) -> None:
+    evidence = entry.get("evidence")
+    if not isinstance(evidence, dict):
+        return
+    required = required_context_bundles_for_entry(
+        entry, plan_index, proof_package_id=proof_package_id
+    )
+    cited = evidence.get("context_bundles")
+    if cited is None:
+        cited_set: set[str] = set()
+    elif isinstance(cited, list):
+        cited_set = {item for item in cited if isinstance(item, str)}
+    else:
+        cited_set = set()
+
+    for bundle_id in sorted(required - cited_set):
+        errors.append(
+            f"{path}.evidence.context_bundles: missing required context bundle citation {bundle_id!r}"
+        )
 
 
 def validate_verification_json_file(
@@ -1342,6 +1626,54 @@ def validate_manual_evidence(
     approved = evidence.get("approved")
     if approved is not True:
         errors.append(f"{path}.approved: expected true for approved manual evidence")
+    validate_manual_evidence_quality(evidence, path, errors)
+
+
+def validate_manual_evidence_quality(
+    evidence: dict[str, Any], path: str, errors: list[str]
+) -> None:
+    require_substantive_manual_text(
+        evidence.get("observed_result"),
+        f"{path}.observed_result",
+        errors,
+        minimum_words=5,
+    )
+    require_substantive_manual_text(
+        evidence.get("scope"),
+        f"{path}.scope",
+        errors,
+        minimum_words=3,
+    )
+    require_artifact_state_reference(
+        evidence.get("state_reference"),
+        f"{path}.state_reference",
+        errors,
+    )
+
+
+def require_substantive_manual_text(
+    value: Any, path: str, errors: list[str], *, minimum_words: int
+) -> None:
+    if not isinstance(value, str) or not value.strip():
+        return
+    normalized = " ".join(value.lower().split())
+    if normalized in VAGUE_MANUAL_VALUES or len(normalized.split()) < minimum_words:
+        errors.append(
+            f"{path}: expected verifiable observed behavior, not approval-only or vague text"
+        )
+
+
+def require_artifact_state_reference(value: Any, path: str, errors: list[str]) -> None:
+    if not isinstance(value, str) or not value.strip():
+        return
+    normalized = value.lower()
+    if " ".join(normalized.split()) in VAGUE_MANUAL_VALUES:
+        errors.append(f"{path}: expected artifact context, not approval-only or vague text")
+        return
+    if not any(marker in normalized for marker in STATE_REFERENCE_MARKERS):
+        errors.append(
+            f"{path}: expected artifact context such as file, command, commit, proof, or ledger reference"
+        )
 
 
 def extract_evidence_paths(evidence: Any) -> list[str]:
