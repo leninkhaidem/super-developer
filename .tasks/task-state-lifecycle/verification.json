@@ -1,0 +1,438 @@
+{
+  "schema_version": 1,
+  "feature": "task-state-lifecycle",
+  "entries": [
+    {
+      "criterion_id": "P1-T001-AC1",
+      "task_id": "P1-T001",
+      "package_id": "WP1",
+      "status": "verified",
+      "method": "mixed",
+      "source_refs": [
+        {"type": "spec_req", "id": "REQ-1"},
+        {"type": "spec_ac", "id": "AC-1"},
+        {"type": "design_decision", "id": "DD-3"},
+        {"type": "design_decision", "id": "DD-4"},
+        {"type": "context_bundle", "id": "CTX-1"}
+      ],
+      "state": {
+        "branch": "task/task-state-lifecycle/WP1",
+        "git_ref": "task/task-state-lifecycle/WP1",
+        "commit": "dac28a8ab83a5ba0476a6c229181485df515381b",
+        "worktree": "/home/lenin/work-repos/super-developer/.worktrees/task-state-lifecycle/wp-WP1",
+        "captured_at": "2026-05-16T15:13:15Z"
+      },
+      "evidence": {
+        "files": [
+          "plugins/super-developer/assets/validate-tasks-json.py",
+          "plugins/super-developer/assets/tests/test_validate_package_proofs.py"
+        ],
+        "symbols": [
+          "validate_package_lifecycle_state",
+          "validate_lifecycle_exact_fields",
+          "test_lifecycle_absent_accepted_and_reopened_states_are_validated"
+        ],
+        "commands": [
+          {
+            "cwd": "/home/lenin/work-repos/super-developer/.worktrees/task-state-lifecycle/wp-WP1",
+            "command": "python3 -m unittest plugins/super-developer/assets/tests/test_validate_package_proofs.py",
+            "exit_code": 0,
+            "observed": "Ran 15 tests in 1.079s; OK."
+          },
+          {
+            "cwd": "/home/lenin/work-repos/super-developer/.worktrees/task-state-lifecycle/wp-WP1",
+            "command": "python3 -m unittest discover plugins/super-developer/assets/tests",
+            "exit_code": 0,
+            "observed": "Ran 25 tests in 2.767s; OK."
+          },
+          {
+            "cwd": "/home/lenin/work-repos/super-developer/.worktrees/task-state-lifecycle/wp-WP1",
+            "command": "python3 -m py_compile plugins/super-developer/assets/validate-tasks-json.py",
+            "exit_code": 0,
+            "observed": "No stdout or stderr; process exited 0."
+          }
+        ],
+        "edge_cases": [
+          "absent lifecycle state remains valid and means not accepted",
+          "valid accepted lifecycle state passes",
+          "valid reopened lifecycle state passes",
+          "malformed lifecycle value, unknown state, and wrong package binding fail closed"
+        ],
+        "context_bundles": ["CTX-1", "CTX-2", "CTX-3"],
+        "mocks": "none; tests use real temporary git repositories"
+      }
+    },
+    {
+      "criterion_id": "P1-T001-AC2",
+      "task_id": "P1-T001",
+      "package_id": "WP1",
+      "status": "verified",
+      "method": "mixed",
+      "source_refs": [
+        {"type": "spec_req", "id": "REQ-3"},
+        {"type": "spec_req", "id": "REQ-4"},
+        {"type": "spec_ac", "id": "AC-1"},
+        {"type": "spec_ac", "id": "AC-2"},
+        {"type": "design_decision", "id": "DD-2"},
+        {"type": "design_decision", "id": "DD-9"},
+        {"type": "context_bundle", "id": "CTX-3"}
+      ],
+      "state": {
+        "branch": "task/task-state-lifecycle/WP1",
+        "git_ref": "task/task-state-lifecycle/WP1",
+        "commit": "dac28a8ab83a5ba0476a6c229181485df515381b",
+        "worktree": "/home/lenin/work-repos/super-developer/.worktrees/task-state-lifecycle/wp-WP1",
+        "captured_at": "2026-05-16T15:13:15Z"
+      },
+      "evidence": {
+        "files": [
+          "plugins/super-developer/assets/validate-tasks-json.py",
+          "plugins/super-developer/assets/tests/test_validate_package_proofs.py"
+        ],
+        "symbols": [
+          "package_proof_digest",
+          "validate_lifecycle_binding",
+          "validate_lifecycle_writer",
+          "validate_lifecycle_state_binding",
+          "test_lifecycle_provenance_digest_and_state_binding_fail_closed"
+        ],
+        "commands": [
+          {
+            "cwd": "/home/lenin/work-repos/super-developer/.worktrees/task-state-lifecycle/wp-WP1",
+            "command": "python3 -m unittest plugins/super-developer/assets/tests/test_validate_package_proofs.py",
+            "exit_code": 0,
+            "observed": "Ran 15 tests in 1.079s; OK."
+          },
+          {
+            "cwd": "/home/lenin/work-repos/super-developer/.worktrees/task-state-lifecycle/wp-WP1",
+            "command": "python3 -m unittest discover plugins/super-developer/assets/tests",
+            "exit_code": 0,
+            "observed": "Ran 25 tests in 2.767s; OK."
+          },
+          {
+            "cwd": "/home/lenin/work-repos/super-developer/.worktrees/task-state-lifecycle/wp-WP1",
+            "command": "python3 -m py_compile plugins/super-developer/assets/validate-tasks-json.py",
+            "exit_code": 0,
+            "observed": "No stdout or stderr; process exited 0."
+          }
+        ],
+        "edge_cases": [
+          "missing writer provenance fails",
+          "manual-editor provenance fails",
+          "wrong digest fails",
+          "wrong commit fails freshness verification",
+          "wrong proof path fails",
+          "changed proof content fails digest binding",
+          "stale accepted proof state fails",
+          "no tamper-proof authenticity claim is made for forgeable helper-shaped JSON"
+        ],
+        "context_bundles": ["CTX-1", "CTX-2", "CTX-3"],
+        "mocks": "none; tests use real temporary git repositories"
+      }
+    },
+    {
+      "criterion_id": "P1-T001-AC3",
+      "task_id": "P1-T001",
+      "package_id": "WP1",
+      "status": "verified",
+      "method": "mixed",
+      "source_refs": [
+        {"type": "spec_req", "id": "REQ-1"},
+        {"type": "spec_ac", "id": "AC-3"},
+        {"type": "design_decision", "id": "DD-4"},
+        {"type": "design_decision", "id": "DD-5"}
+      ],
+      "state": {
+        "branch": "task/task-state-lifecycle/WP1",
+        "git_ref": "task/task-state-lifecycle/WP1",
+        "commit": "dac28a8ab83a5ba0476a6c229181485df515381b",
+        "worktree": "/home/lenin/work-repos/super-developer/.worktrees/task-state-lifecycle/wp-WP1",
+        "captured_at": "2026-05-16T15:13:15Z"
+      },
+      "evidence": {
+        "files": [
+          "plugins/super-developer/assets/validate-tasks-json.py",
+          "plugins/super-developer/assets/tests/test_validate_package_proofs.py"
+        ],
+        "symbols": [
+          "PACKAGE_LIFECYCLE_TRANSITIONS",
+          "package_lifecycle_transition_errors",
+          "test_lifecycle_transition_table_and_idempotency_rules"
+        ],
+        "commands": [
+          {
+            "cwd": "/home/lenin/work-repos/super-developer/.worktrees/task-state-lifecycle/wp-WP1",
+            "command": "python3 -m unittest plugins/super-developer/assets/tests/test_validate_package_proofs.py",
+            "exit_code": 0,
+            "observed": "Ran 15 tests in 1.079s; OK."
+          },
+          {
+            "cwd": "/home/lenin/work-repos/super-developer/.worktrees/task-state-lifecycle/wp-WP1",
+            "command": "python3 -m unittest discover plugins/super-developer/assets/tests",
+            "exit_code": 0,
+            "observed": "Ran 25 tests in 2.767s; OK."
+          },
+          {
+            "cwd": "/home/lenin/work-repos/super-developer/.worktrees/task-state-lifecycle/wp-WP1",
+            "command": "python3 -m py_compile plugins/super-developer/assets/validate-tasks-json.py",
+            "exit_code": 0,
+            "observed": "No stdout or stderr; process exited 0."
+          }
+        ],
+        "edge_cases": [
+          "transition table is exactly none -> accepted, accepted -> reopened, reopened -> accepted",
+          "same accepted proof digest and accepted state is idempotent",
+          "accepted -> accepted with changed proof content is rejected",
+          "none -> reopened and reopened -> reopened are rejected"
+        ],
+        "context_bundles": ["CTX-1", "CTX-2", "CTX-3"],
+        "mocks": "none; tests use real temporary git repositories"
+      }
+    },
+    {
+      "criterion_id": "P1-T001-AC4",
+      "task_id": "P1-T001",
+      "package_id": "WP1",
+      "status": "verified",
+      "method": "mixed",
+      "source_refs": [
+        {"type": "spec_req", "id": "REQ-6"},
+        {"type": "spec_ac", "id": "AC-6"},
+        {"type": "design_decision", "id": "DD-7"},
+        {"type": "context_bundle", "id": "CTX-2"}
+      ],
+      "state": {
+        "branch": "task/task-state-lifecycle/WP1",
+        "git_ref": "task/task-state-lifecycle/WP1",
+        "commit": "dac28a8ab83a5ba0476a6c229181485df515381b",
+        "worktree": "/home/lenin/work-repos/super-developer/.worktrees/task-state-lifecycle/wp-WP1",
+        "captured_at": "2026-05-16T15:13:15Z"
+      },
+      "evidence": {
+        "files": [
+          "plugins/super-developer/assets/validate-tasks-json.py",
+          "plugins/super-developer/assets/tests/test_validate_package_proofs.py"
+        ],
+        "symbols": [
+          "validate_verification_json",
+          "validate_package_proof_json",
+          "test_final_ledger_compatibility_does_not_consult_package_proofs"
+        ],
+        "commands": [
+          {
+            "cwd": "/home/lenin/work-repos/super-developer/.worktrees/task-state-lifecycle/wp-WP1",
+            "command": "python3 -m unittest plugins/super-developer/assets/tests/test_validate_package_proofs.py",
+            "exit_code": 0,
+            "observed": "Ran 15 tests in 1.079s; OK."
+          },
+          {
+            "cwd": "/home/lenin/work-repos/super-developer/.worktrees/task-state-lifecycle/wp-WP1",
+            "command": "python3 -m unittest discover plugins/super-developer/assets/tests",
+            "exit_code": 0,
+            "observed": "Ran 25 tests in 2.767s; OK."
+          },
+          {
+            "cwd": "/home/lenin/work-repos/super-developer/.worktrees/task-state-lifecycle/wp-WP1",
+            "command": "python3 -m py_compile plugins/super-developer/assets/validate-tasks-json.py",
+            "exit_code": 0,
+            "observed": "No stdout or stderr; process exited 0."
+          }
+        ],
+        "edge_cases": [
+          "existing --final verification.json success ignores malformed package proofs",
+          "lifecycle validation code path is separate from final ledger validation",
+          "verification.json remains the final implementation/audit gate"
+        ],
+        "context_bundles": ["CTX-1", "CTX-2", "CTX-3"],
+        "mocks": "none; tests use real temporary git repositories"
+      }
+    },
+    {
+      "criterion_id": "P1-T002-AC1",
+      "task_id": "P1-T002",
+      "package_id": "WP1",
+      "status": "verified",
+      "method": "mixed",
+      "source_refs": [
+        {"type": "spec_req", "id": "REQ-4"},
+        {"type": "spec_req", "id": "REQ-9"},
+        {"type": "spec_ac", "id": "AC-2"},
+        {"type": "spec_ac", "id": "AC-6"},
+        {"type": "design_decision", "id": "DD-9"},
+        {"type": "context_bundle", "id": "CTX-3"}
+      ],
+      "state": {
+        "branch": "task/task-state-lifecycle/WP1",
+        "git_ref": "task/task-state-lifecycle/WP1",
+        "commit": "dac28a8ab83a5ba0476a6c229181485df515381b",
+        "worktree": "/home/lenin/work-repos/super-developer/.worktrees/task-state-lifecycle/wp-WP1",
+        "captured_at": "2026-05-16T15:13:15Z"
+      },
+      "evidence": {
+        "files": [
+          "plugins/super-developer/assets/tests/test_validate_package_proofs.py",
+          "plugins/super-developer/assets/validate-tasks-json.py"
+        ],
+        "symbols": [
+          "test_lifecycle_absent_accepted_and_reopened_states_are_validated",
+          "test_lifecycle_provenance_digest_and_state_binding_fail_closed",
+          "test_lifecycle_transition_table_and_idempotency_rules"
+        ],
+        "commands": [
+          {
+            "cwd": "/home/lenin/work-repos/super-developer/.worktrees/task-state-lifecycle/wp-WP1",
+            "command": "python3 -m unittest plugins/super-developer/assets/tests/test_validate_package_proofs.py",
+            "exit_code": 0,
+            "observed": "Ran 15 tests in 1.079s; OK."
+          },
+          {
+            "cwd": "/home/lenin/work-repos/super-developer/.worktrees/task-state-lifecycle/wp-WP1",
+            "command": "python3 -m unittest discover plugins/super-developer/assets/tests",
+            "exit_code": 0,
+            "observed": "Ran 25 tests in 2.767s; OK."
+          },
+          {
+            "cwd": "/home/lenin/work-repos/super-developer/.worktrees/task-state-lifecycle/wp-WP1",
+            "command": "python3 -m py_compile plugins/super-developer/assets/validate-tasks-json.py",
+            "exit_code": 0,
+            "observed": "No stdout or stderr; process exited 0."
+          }
+        ],
+        "edge_cases": [
+          "valid accepted lifecycle state",
+          "valid reopened lifecycle state",
+          "malformed manual prepopulation",
+          "missing provenance",
+          "stale accepted proof state",
+          "wrong digest",
+          "wrong commit",
+          "wrong package",
+          "changed proof content"
+        ],
+        "context_bundles": ["CTX-1", "CTX-2", "CTX-3"],
+        "mocks": "none; tests use real temporary git repositories"
+      }
+    },
+    {
+      "criterion_id": "P1-T002-AC2",
+      "task_id": "P1-T002",
+      "package_id": "WP1",
+      "status": "verified",
+      "method": "mixed",
+      "source_refs": [
+        {"type": "spec_req", "id": "REQ-5"},
+        {"type": "spec_req", "id": "REQ-9"},
+        {"type": "spec_ac", "id": "AC-4"},
+        {"type": "context_bundle", "id": "CTX-3"}
+      ],
+      "state": {
+        "branch": "task/task-state-lifecycle/WP1",
+        "git_ref": "task/task-state-lifecycle/WP1",
+        "commit": "dac28a8ab83a5ba0476a6c229181485df515381b",
+        "worktree": "/home/lenin/work-repos/super-developer/.worktrees/task-state-lifecycle/wp-WP1",
+        "captured_at": "2026-05-16T15:13:15Z"
+      },
+      "evidence": {
+        "files": [
+          "plugins/super-developer/assets/tests/test_validate_package_proofs.py",
+          "plugins/super-developer/assets/validate-tasks-json.py"
+        ],
+        "symbols": [
+          "validate_accepted_lifecycle_freshness",
+          "proof_lifecycle_evidence_paths",
+          "test_lifecycle_freshness_requires_git_tracked_path_scoped_evidence"
+        ],
+        "commands": [
+          {
+            "cwd": "/home/lenin/work-repos/super-developer/.worktrees/task-state-lifecycle/wp-WP1",
+            "command": "python3 -m unittest plugins/super-developer/assets/tests/test_validate_package_proofs.py",
+            "exit_code": 0,
+            "observed": "Ran 15 tests in 1.079s; OK."
+          },
+          {
+            "cwd": "/home/lenin/work-repos/super-developer/.worktrees/task-state-lifecycle/wp-WP1",
+            "command": "python3 -m unittest discover plugins/super-developer/assets/tests",
+            "exit_code": 0,
+            "observed": "Ran 25 tests in 2.767s; OK."
+          },
+          {
+            "cwd": "/home/lenin/work-repos/super-developer/.worktrees/task-state-lifecycle/wp-WP1",
+            "command": "python3 -m py_compile plugins/super-developer/assets/validate-tasks-json.py",
+            "exit_code": 0,
+            "observed": "No stdout or stderr; process exited 0."
+          }
+        ],
+        "edge_cases": [
+          "modified tracked file fails accepted lifecycle freshness",
+          "renamed tracked evidence path fails",
+          "deleted tracked evidence path fails",
+          "untracked evidence path fails",
+          "URL-only evidence fails because no path-scoped file freshness can be proven",
+          "manual evidence fails lifecycle acceptance even when manual evidence shape is substantive"
+        ],
+        "context_bundles": ["CTX-1", "CTX-2", "CTX-3"],
+        "mocks": "none; tests use real temporary git repositories"
+      }
+    },
+    {
+      "criterion_id": "P1-T002-AC3",
+      "task_id": "P1-T002",
+      "package_id": "WP1",
+      "status": "verified",
+      "method": "mixed",
+      "source_refs": [
+        {"type": "spec_req", "id": "REQ-6"},
+        {"type": "spec_ac", "id": "AC-5"},
+        {"type": "design_decision", "id": "DD-3"},
+        {"type": "design_decision", "id": "DD-7"}
+      ],
+      "state": {
+        "branch": "task/task-state-lifecycle/WP1",
+        "git_ref": "task/task-state-lifecycle/WP1",
+        "commit": "dac28a8ab83a5ba0476a6c229181485df515381b",
+        "worktree": "/home/lenin/work-repos/super-developer/.worktrees/task-state-lifecycle/wp-WP1",
+        "captured_at": "2026-05-16T15:13:15Z"
+      },
+      "evidence": {
+        "files": [
+          "plugins/super-developer/assets/tests/test_validate_package_proofs.py",
+          "plugins/super-developer/assets/validate-tasks-json.py"
+        ],
+        "symbols": [
+          "PACKAGE_LIFECYCLE_FORBIDDEN_ROOT_FIELDS",
+          "test_lifecycle_rejects_out_of_scope_release_two_persistence_fields"
+        ],
+        "commands": [
+          {
+            "cwd": "/home/lenin/work-repos/super-developer/.worktrees/task-state-lifecycle/wp-WP1",
+            "command": "python3 -m unittest plugins/super-developer/assets/tests/test_validate_package_proofs.py",
+            "exit_code": 0,
+            "observed": "Ran 15 tests in 1.079s; OK."
+          },
+          {
+            "cwd": "/home/lenin/work-repos/super-developer/.worktrees/task-state-lifecycle/wp-WP1",
+            "command": "python3 -m unittest discover plugins/super-developer/assets/tests",
+            "exit_code": 0,
+            "observed": "Ran 25 tests in 2.767s; OK."
+          },
+          {
+            "cwd": "/home/lenin/work-repos/super-developer/.worktrees/task-state-lifecycle/wp-WP1",
+            "command": "python3 -m py_compile plugins/super-developer/assets/validate-tasks-json.py",
+            "exit_code": 0,
+            "observed": "No stdout or stderr; process exited 0."
+          }
+        ],
+        "edge_cases": [
+          "proof_history is rejected",
+          "event_log is rejected",
+          "generated_checklist is rejected",
+          "targeted_review_state is rejected",
+          "workflow_engine_state is rejected",
+          "finalization is rejected"
+        ],
+        "context_bundles": ["CTX-1", "CTX-2", "CTX-3"],
+        "mocks": "none; tests use real temporary git repositories"
+      }
+    }
+  ]
+}
