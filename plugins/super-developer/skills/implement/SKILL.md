@@ -21,15 +21,16 @@ Tasks remain the tracking unit. Work packages are the delegation unit. Planned-f
 ## Step 1: Load and Validate the Plan
 
 1. Verify `.tasks/$ARGUMENTS/` contains `SPEC.md` and `tasks.json`; if not, list available features and ask.
-2. Run the shared validator before trusting `tasks.json`:
+2. Read `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/tool-usage.md` before invoking helper scripts.
+3. Run the shared validator before trusting `tasks.json`:
 
    ```bash
    python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/validate-tasks-json.py" ".tasks/$ARGUMENTS/tasks.json"
    ```
 
    If it fails, stop and resolve reported blockers before dispatching or updating work.
-3. Read `SPEC.md`, `tasks.json`, accepted `design_decisions`, and `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/work-packages.md`.
-4. Display feature status, progress, and current phase.
+4. Read `SPEC.md`, `tasks.json`, accepted `design_decisions`, and `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/work-packages.md`.
+5. Display feature status, progress, and current phase.
 
 ## Step 2: Load Execution Settings
 
@@ -126,7 +127,7 @@ Every selected planned-feature package is delegated to a sub-agent in its own pa
 
 Before spawning, announce package IDs, task IDs, branch/worktree names, primary paths, context bundles, risk tags, targeted-review decisions, screened verification commands, model choice, and parallel/serial rationale.
 
-Before spawning package agents, set assigned task statuses to `in-progress` in `tasks.json` and write the file. Ensure `.tasks/$ARGUMENTS/proofs/` exists in the shared task-artifact location and that each dispatched package has an assigned `.tasks/$ARGUMENTS/proofs/WP<N>.proof.json` target or template. Load `plugins/super-developer/skills/implement/references/package-proof-lifecycle.md` before routine `taskctl.py` proof, status, block/reset, next-package, or must-prove operations.
+Before spawning package agents, set assigned task statuses to `in-progress` in `tasks.json` and write the file. Ensure `.tasks/$ARGUMENTS/proofs/` exists in the shared task-artifact location and that each dispatched package has an assigned `.tasks/$ARGUMENTS/proofs/WP<N>.proof.json` target or template. Load `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/tool-usage.md` and `plugins/super-developer/skills/implement/references/package-proof-lifecycle.md` before routine `taskctl.py` proof, status, block/reset, next-package, or must-prove operations.
 
 Load `plugins/super-developer/skills/implement/references/subagent-contract.md` and pass its contract to each package agent. Direct orchestrator edits are limited to workflow metadata (`tasks.json`, package proof artifact handoff/validation/acceptance bookkeeping), mechanical merge-conflict/status artifacts, and explicit user-approved plan/status changes.
 

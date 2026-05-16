@@ -25,14 +25,15 @@ Strict verification that all planned feature requirements and acceptance criteri
 
 1. Verify `.tasks/$ARGUMENTS/` exists and contains `SPEC.md`, `tasks.json`, and `proofs/`. If not, list available features and ask.
 2. Resolve the audit worktree before validation. Prefer `.worktrees/$ARGUMENTS/merge/` when it exists; otherwise use the current repository root.
-3. Execute the shared validator before spawning the audit sub-agent, pointing stale-evidence checks at the resolved audit worktree:
+3. Read `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/tool-usage.md` before invoking helper scripts.
+4. Execute the shared validator before spawning the audit sub-agent, pointing stale-evidence checks at the resolved audit worktree:
 
    ```bash
    python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/validate-tasks-json.py" --final --worktree "<audit-worktree>" ".tasks/$ARGUMENTS/tasks.json"
    ```
 
    If the validator exits non-zero, stop and resolve the reported `tasks.json` / package proof blockers before auditing implementation completeness.
-4. Launch an **Opus-class sub-agent** with:
+5. Launch an **Opus-class sub-agent** with:
 
 - `.tasks/$ARGUMENTS/SPEC.md`
 - `.tasks/$ARGUMENTS/tasks.json`

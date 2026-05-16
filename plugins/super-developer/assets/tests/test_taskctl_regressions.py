@@ -318,6 +318,26 @@ class GuardrailDocumentationRegressionTests(unittest.TestCase):
         self.assertNotIn("finalize-feature", lifecycle)
         self.assertIn("targeted_review", lifecycle)
 
+    def test_tool_usage_reference_is_linked_from_helper_script_entrypoints(self) -> None:
+        tool_usage = self.read_doc("references/tool-usage.md")
+
+        self.assertIn("validate-tasks-json.py", tool_usage)
+        self.assertIn("taskctl.py", tool_usage)
+        self.assertIn("Read-Only Commands", tool_usage)
+        self.assertIn("Mutation Commands", tool_usage)
+        self.assertIn("Safety Rules", tool_usage)
+
+        for relative in (
+            "README.md",
+            "skills/implementation-plan/SKILL.md",
+            "skills/review-plan/SKILL.md",
+            "skills/implement/SKILL.md",
+            "skills/audit/SKILL.md",
+            "skills/tasks/SKILL.md",
+        ):
+            with self.subTest(relative=relative):
+                self.assertIn("references/tool-usage.md", self.read_doc(relative))
+
 
 if __name__ == "__main__":
     unittest.main()

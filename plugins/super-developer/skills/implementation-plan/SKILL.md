@@ -36,6 +36,7 @@ Validate the feature name before using it in paths or branch names:
 Read these now, before creating artifacts:
 - `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/work-packages.md` — work-package granularity, grouping, dependencies, parallel safety, risk metadata, and targeted review rules.
 - `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/clean-code-rules.md` — Development Quality Contract used as a planning lens.
+- `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/tool-usage.md` — helper-script command shape and validation boundaries.
 
 Use them to shape task boundaries, acceptance criteria, verification commands, work packages, and design decisions. Do not paste generic quality rules into every task; encode only feature-specific risks that materially affect the plan and can be observed or verified.
 

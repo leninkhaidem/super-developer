@@ -31,6 +31,7 @@ Do not execute semantic review as the main agent. Spawn sub-agents for reviewer 
    - `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/plan-review-rubrics.md` — narrowed reviewer rubrics, escalation guidance, and design-decision challenge rules.
    - `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/plan-review-resolution.md` — finding triage, resolution categories, dismissal/defer rules, and re-review bounds.
    - `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/decision-prompts.md` — decision-card mechanics and blanket-mode threshold.
+   - `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/tool-usage.md` — helper-script command shape and validator boundaries.
 3. If `.tasks/$ARGUMENTS/tasks.json` contains `design_decisions`, load them as accepted planning context. Reviewers receive `SPEC.md` and `tasks.json` cold and may challenge accepted decisions only under the high-bar reopening rule in `plan-review-rubrics.md`: conflict with SPEC, security/privacy/safety issue, codebase evidence contradicts rationale, or accepted decision makes acceptance criteria unverifiable. Simpler alternatives alone are suggestions, not reopeners.
 4. Sub-agents read plan files themselves. Do not pre-summarize or inject conversation history; the review tests whether the files are self-sufficient.
 

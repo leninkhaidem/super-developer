@@ -179,6 +179,8 @@ Constrained task lifecycle helpers:
 
 These commands do not run recorded package verification commands. Accepted package proofs must cite passing evidence for required package verification commands and required targeted package review. Final implementation and audit gates require completed task lifecycle plus one valid, current, lifecycle-accepted proof file per planned work package. Historical `verification.json` files are not authoritative package or final evidence. See [`references/package-lifecycle.md`](references/package-lifecycle.md) for the targeted lifecycle transition, provenance, freshness, and final-gate contract.
 
+For exact command shapes, read-only vs mutation boundaries, and helper-script safety rules, see [`references/tool-usage.md`](references/tool-usage.md).
+
 ### Pipeline Flow Control
 
 | What you say | What happens |
@@ -208,6 +210,7 @@ super-developer/
 |   +-- plan-review-rubrics.md           # Narrowed plan reviewer role rubrics
 |   +-- plan-review-resolution.md        # Main-agent plan review triage and re-review rules
 |   +-- package-lifecycle.md             # Targeted package proof lifecycle semantics
+|   +-- tool-usage.md                    # Helper script command shapes and safety rules
 +-- skills/
 |   +-- worktree/
 |   |   +-- SKILL.md                       # Git worktree strategy
