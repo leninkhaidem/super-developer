@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Read-only helper commands for planned-feature package proofs."""
+"""Helper commands for planned-feature package proofs."""
 
 from __future__ import annotations
 
@@ -104,7 +104,7 @@ def build_parser() -> argparse.ArgumentParser:
     accept_package = subparsers.add_parser(
         "accept-package",
         parents=[common],
-        help="Validate and mark one package proof accepted.",
+        help="Write accepted lifecycle state for one package proof.",
     )
     accept_package.add_argument("proof", help="Exact path to WP<N>.proof.json.")
     accept_package.set_defaults(func=cmd_accept_package)
@@ -112,7 +112,7 @@ def build_parser() -> argparse.ArgumentParser:
     reopen_package = subparsers.add_parser(
         "reopen-package",
         parents=[common],
-        help="Mark one accepted package proof reopened.",
+        help="Write reopened lifecycle state for one package proof.",
     )
     reopen_package.add_argument("proof", help="Exact path to WP<N>.proof.json.")
     reopen_package.set_defaults(func=cmd_reopen_package)

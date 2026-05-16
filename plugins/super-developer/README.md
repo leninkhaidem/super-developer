@@ -156,9 +156,9 @@ The agent infers the feature name, creates `SPEC.md` and schema-versioned `tasks
 
 ### Package Proof Helper
 
-`assets/taskctl.py` provides Release 1 package-proof helpers for planned features. Package proofs are additive, read-only evidence aids: the helper reads `.tasks/<feature>/tasks.json` and `.tasks/<feature>/proofs/WP<N>.proof.json`, writes only stdout/stderr, and does not mutate task lifecycle state, `tasks.json`, `verification.json`, proof files, statuses, or timestamps.
+`assets/taskctl.py` provides package-proof helpers for planned features. Package proofs are additive evidence aids: read-only commands inspect `.tasks/<feature>/tasks.json` and `.tasks/<feature>/proofs/WP<N>.proof.json`, while lifecycle commands write only the selected package proof's lifecycle state. The helper does not mutate task lifecycle state, `tasks.json`, `verification.json`, statuses, timestamps, generated artifacts, proof history, or event logs.
 
-Approved read-only commands in this release:
+Read-only commands:
 
 - `proof-template`: emit a deterministic proof template for one work package.
 - `validate-proof`: validate one package proof file.
@@ -166,7 +166,12 @@ Approved read-only commands in this release:
 - `must-prove`: emit acceptance criteria and evidence obligations.
 - `summary`: emit task, package, and proof-health summary output.
 
-These commands do not run package verification commands and do not provide lifecycle commands such as `accept-package` or `finalize-feature`. In this release, package proofs do not replace the planned-feature final gates: `verification.json` remains the authoritative final implementation and audit ledger.
+Package-level lifecycle proof writers:
+
+- `accept-package`: validate and write accepted lifecycle state for one package proof.
+- `reopen-package`: write reopened lifecycle state for one package proof.
+
+These commands do not run recorded package verification commands and do not provide feature finalization. In Release 2, accepted package proofs do not replace the planned-feature final gates: `verification.json` remains the authoritative final implementation and audit ledger. See [`references/package-lifecycle.md`](references/package-lifecycle.md) for the targeted lifecycle transition, provenance, and freshness contract.
 
 ### Pipeline Flow Control
 
@@ -196,6 +201,7 @@ super-developer/
 |   +-- plan-review-findings.md          # Plan reviewer finding format and severity contract
 |   +-- plan-review-rubrics.md           # Narrowed plan reviewer role rubrics
 |   +-- plan-review-resolution.md        # Main-agent plan review triage and re-review rules
+|   +-- package-lifecycle.md             # Targeted package proof lifecycle semantics
 +-- skills/
 |   +-- worktree/
 |   |   +-- SKILL.md                       # Git worktree strategy
