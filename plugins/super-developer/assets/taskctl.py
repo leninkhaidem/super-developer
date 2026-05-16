@@ -430,6 +430,13 @@ def cmd_finalize_feature(args: argparse.Namespace) -> int:
     plan, plan_index, tasks_path = _load_plan(args)
     proof_result = validator.validate_all_package_proofs(_proofs_dir(args, tasks_path), plan_index, worktree=_worktree(args))
     missing = list(proof_result.errors)
+    for package in plan.get("work_packages", []):
+        if not isinstance(package, dict):
+            continue
+        package_id = package.get("id")
+        if isinstance(package_id, str):
+            for gate in _require_package_gates(args, plan, tasks_path, package_id):
+                missing.append(f"package {package_id}: {gate}")
     for task in _iter_tasks(plan):
         if task.get("status") != _task_status("done"):
             missing.append(f"task {task.get('id')} is not done")
