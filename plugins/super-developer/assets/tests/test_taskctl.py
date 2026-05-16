@@ -328,14 +328,22 @@ class TaskctlCliTests(unittest.TestCase):
         self.assertFalse(self.sentinel.exists())
         return result
 
-    def test_help_lists_only_release_one_read_only_commands(self) -> None:
+    def test_help_lists_release_two_lifecycle_commands_without_finalizers(self) -> None:
         result = self.taskctl("--help")
         self.assertEqual(0, result.returncode, result.stdout + result.stderr)
-        for command in ("proof-template", "validate-proof", "validate-proofs", "must-prove", "summary"):
+        for command in (
+            "proof-template",
+            "validate-proof",
+            "validate-proofs",
+            "must-prove",
+            "summary",
+            "accept-package",
+            "reopen-package",
+        ):
             self.assertIn(command, result.stdout)
-        for forbidden in ("accept-package", "finalize-feature", "reopen-package", "status mutation"):
+        for forbidden in ("finalize-feature", "status mutation", "task status"):
             self.assertNotIn(forbidden, result.stdout)
-        self.assertIn("Read-only additive", result.stdout)
+        self.assertIn("package-level proof lifecycle", result.stdout)
 
     def test_all_approved_commands_are_read_only_on_success(self) -> None:
         commands = [
@@ -534,10 +542,14 @@ class TaskctlCliTests(unittest.TestCase):
                 "__future__",
                 "argparse",
                 "collections",
+                "datetime",
                 "importlib",
                 "json",
+                "os",
                 "pathlib",
+                "subprocess",
                 "sys",
+                "tempfile",
                 "typing",
             },
         )
