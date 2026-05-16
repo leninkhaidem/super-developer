@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate super-developer tasks.json and verification.json files."""
+"""Validate super-developer tasks.json and proof/evidence files."""
 
 from __future__ import annotations
 
@@ -9,6 +9,7 @@ import re
 import subprocess
 import sys
 from collections import Counter, defaultdict
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -111,20 +112,50 @@ TARGETED_REVIEW_RISK_TAGS = {
     "quality-contract",
 }
 
+@dataclass(frozen=True)
+class PlanValidationResult:
+    data: Any
+    errors: list[str]
+    plan_index: dict[str, Any]
+
+
+@dataclass(frozen=True)
+class ProofValidationResult:
+    errors: list[str]
+    package_id: str | None = None
+    criterion_ids: frozenset[str] = frozenset()
+
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Validate super-developer task plans and optional verification ledgers."
+        description="Validate super-developer task plans and optional proof/evidence files."
     )
     parser.add_argument("path", help="Path to .tasks/<feature>/tasks.json")
     parser.add_argument(
         "--final",
         action="store_true",
-        help="Also validate verification.json as a final/audit gate.",
+        help="Also validate verification.json as the legacy final/audit gate.",
     )
     parser.add_argument(
         "--verification",
         help="Path to verification.json (defaults to sibling verification.json).",
+    )
+    parser.add_argument(
+        "--proof-package",
+        help="Validate one .tasks/<feature>/proofs/<WP-ID>.proof.json file for WP-ID.",
+    )
+    parser.add_argument(
+        "--proof",
+        help="Path to package proof JSON (defaults to sibling proofs/<WP-ID>.proof.json).",
+    )
+    parser.add_argument(
+        "--proofs-all",
+        action="store_true",
+        help="Validate exactly one proof file per work package under proofs/.",
+    )
+    parser.add_argument(
+        "--proofs-dir",
+        help="Path to proof directory (defaults to sibling proofs/).",
     )
     parser.add_argument(
         "--worktree",
@@ -133,43 +164,74 @@ def main() -> int:
     args = parser.parse_args()
 
     tasks_path = Path(args.path)
-    try:
-        with tasks_path.open("r", encoding="utf-8") as f:
-            data = json.load(f)
-    except FileNotFoundError:
-        print(f"ERROR: file not found: {tasks_path}", file=sys.stderr)
+    plan_result = validate_plan_file(tasks_path)
+    if plan_result.data is None:
+        for error in plan_result.errors:
+            print(f"ERROR: {error}", file=sys.stderr)
         return 2
-    except json.JSONDecodeError as exc:
-        print(f"ERROR: invalid JSON: {exc}", file=sys.stderr)
-        return 2
-    except (OSError, UnicodeDecodeError) as exc:
-        print(f"ERROR: unable to read tasks.json: {exc}", file=sys.stderr)
-        return 2
+    errors = list(plan_result.errors)
+    plan_index = plan_result.plan_index
 
-    spec_path = tasks_path.with_name("SPEC.md")
-    errors, plan_index = validate_tasks_json(data, tasks_path=tasks_path, spec_path=spec_path)
-
+    worktree = Path(args.worktree) if args.worktree else Path.cwd()
     if args.final:
         verification_path = Path(args.verification) if args.verification else tasks_path.with_name("verification.json")
-        errors.extend(
-            validate_verification_json_file(
-                verification_path,
-                plan_index,
-                worktree=Path(args.worktree) if args.worktree else Path.cwd(),
-            )
+        errors.extend(validate_verification_json_file(verification_path, plan_index, worktree=worktree))
+    if args.proof_package:
+        proof_path = (
+            Path(args.proof)
+            if args.proof
+            else tasks_path.with_name("proofs") / f"{args.proof_package}.proof.json"
         )
+        result = validate_package_proof_file(
+            proof_path, plan_index, package_id=args.proof_package, worktree=worktree
+        )
+        errors.extend(result.errors)
+    elif args.proof:
+        errors.append("--proof requires --proof-package")
+    if args.proofs_all:
+        proofs_dir = Path(args.proofs_dir) if args.proofs_dir else tasks_path.with_name("proofs")
+        result = validate_all_package_proofs(proofs_dir, plan_index, worktree=worktree)
+        errors.extend(result.errors)
+    elif args.proofs_dir:
+        errors.append("--proofs-dir requires --proofs-all")
 
     if errors:
-        print(f"ERROR: tasks.json validation failed with {len(errors)} error(s):")
+        print(f"ERROR: tasks validation failed with {len(errors)} error(s):")
         for error in errors:
             print(f"  - {error}")
         return 1
 
-    if args.final:
+    if args.final and (args.proof_package or args.proofs_all):
+        print("OK: tasks.json and requested proof/evidence files are valid")
+    elif args.final:
         print("OK: tasks.json and verification.json are valid")
+    elif args.proof_package and args.proofs_all:
+        print("OK: tasks.json, package proof, and all package proofs are valid")
+    elif args.proof_package:
+        print("OK: tasks.json and package proof are valid")
+    elif args.proofs_all:
+        print("OK: tasks.json and all package proofs are valid")
     else:
         print("OK: tasks.json is valid")
     return 0
+
+
+def validate_plan_file(tasks_path: Path, *, spec_path: Path | None = None) -> PlanValidationResult:
+    try:
+        with tasks_path.open("r", encoding="utf-8") as f:
+            data = json.load(f)
+    except FileNotFoundError:
+        return PlanValidationResult(None, [f"tasks.json: file not found at {tasks_path}"], {})
+    except json.JSONDecodeError as exc:
+        return PlanValidationResult(None, [f"tasks.json: invalid JSON: {exc}"], {})
+    except (OSError, UnicodeDecodeError) as exc:
+        return PlanValidationResult(None, [f"tasks.json: unable to read {tasks_path}: {exc}"], {})
+
+    effective_spec_path = spec_path if spec_path is not None else tasks_path.with_name("SPEC.md")
+    errors, plan_index = validate_tasks_json(
+        data, tasks_path=tasks_path, spec_path=effective_spec_path
+    )
+    return PlanValidationResult(data, errors, plan_index)
 
 
 def validate_tasks_json(
@@ -183,6 +245,8 @@ def validate_tasks_json(
         "task_ac_ids": set(),
         "task_ac_sources": {},
         "task_to_package": {},
+        "package_ids": set(),
+        "package_to_tasks": {},
         "context_bundle_ids": set(),
     }
     if not isinstance(data, dict):
@@ -208,6 +272,8 @@ def validate_tasks_json(
     task_phase_order: dict[str, int] = {}
     task_ac_ids: set[str] = set()
     task_ac_sources: dict[str, list[dict[str, str]]] = {}
+    package_ids: set[str] = set()
+    package_to_tasks: dict[str, list[str]] = {}
 
     design_decision_ids = collect_design_decision_ids(data.get("design_decisions"))
 
@@ -227,14 +293,17 @@ def validate_tasks_json(
         errors.append("phases: expected array")
 
     if isinstance(work_packages, list):
-        task_to_package = validate_work_packages(
+        task_to_package, package_to_tasks = validate_work_packages(
             work_packages,
             errors,
             task_ids,
             task_dependencies,
             context_bundle_ids=context_bundle_ids,
         )
+        package_ids = set(package_to_tasks)
         plan_index["task_to_package"] = task_to_package
+        plan_index["package_to_tasks"] = package_to_tasks
+        plan_index["package_ids"] = package_ids
     else:
         errors.append("work_packages: expected array")
 
@@ -262,6 +331,7 @@ def validate_tasks_json(
     plan_index["task_ids"] = task_ids
     plan_index["task_ac_ids"] = task_ac_ids
     plan_index["task_ac_sources"] = task_ac_sources
+    plan_index["package_to_criteria"] = build_package_acceptance_criteria_index(plan_index)
     return errors, plan_index
 
 
@@ -854,7 +924,7 @@ def validate_work_packages(
     task_ids: set[str],
     task_dependencies: dict[str, list[str]],
     context_bundle_ids: set[str],
-) -> dict[str, str]:
+) -> tuple[dict[str, str], dict[str, list[str]]]:
     package_ids: list[str] = []
     package_task_refs: dict[str, list[str]] = {}
     package_dependencies: dict[str, list[str]] = {}
@@ -935,7 +1005,7 @@ def validate_work_packages(
     validate_cross_package_task_dependencies(
         package_task_refs, package_dependencies, task_dependencies, errors
     )
-    return task_to_package
+    return task_to_package, package_task_refs
 
 
 def validate_package_v2_fields(
@@ -1077,6 +1147,153 @@ def validate_cross_package_task_dependencies(
                     f"work package {package_id}: missing depends_on {dependency_package!r} "
                     f"because task {task_id} depends on {dependency}"
                 )
+
+
+
+def build_package_acceptance_criteria_index(
+    plan_index: dict[str, Any],
+) -> dict[str, set[str]]:
+    package_to_criteria: dict[str, set[str]] = {
+        package_id: set() for package_id in plan_index.get("package_ids", set())
+    }
+    task_to_package: dict[str, str] = plan_index.get("task_to_package", {})
+    for criterion_id in plan_index.get("task_ac_ids", set()):
+        match = TASK_AC_ID_RE.fullmatch(criterion_id)
+        if not match:
+            continue
+        package_id = task_to_package.get(match.group(1))
+        if package_id is not None:
+            package_to_criteria.setdefault(package_id, set()).add(criterion_id)
+    return package_to_criteria
+
+
+def get_package_acceptance_criteria(
+    plan_index: dict[str, Any], package_id: str
+) -> set[str]:
+    return set(plan_index.get("package_to_criteria", {}).get(package_id, set()))
+
+
+def validate_package_proof_file(
+    proof_path: Path, plan_index: dict[str, Any], *, package_id: str, worktree: Path
+) -> ProofValidationResult:
+    try:
+        with proof_path.open("r", encoding="utf-8") as f:
+            proof = json.load(f)
+    except FileNotFoundError:
+        return ProofValidationResult([f"proof {package_id}: file not found at {proof_path}"], package_id)
+    except json.JSONDecodeError as exc:
+        return ProofValidationResult([f"proof {package_id}: invalid JSON: {exc}"], package_id)
+    except (OSError, UnicodeDecodeError) as exc:
+        return ProofValidationResult(
+            [f"proof {package_id}: unable to read {proof_path}: {exc}"], package_id
+        )
+
+    return validate_package_proof(
+        proof, plan_index, package_id=package_id, worktree=worktree, label=f"proof {package_id}"
+    )
+
+
+def validate_package_proof(
+    proof: Any,
+    plan_index: dict[str, Any],
+    *,
+    package_id: str,
+    worktree: Path,
+    label: str = "proof",
+) -> ProofValidationResult:
+    errors: list[str] = []
+    if package_id not in plan_index.get("package_ids", set()):
+        errors.append(f"{label}: unknown work package {package_id!r}")
+    if not isinstance(proof, dict):
+        return ProofValidationResult([f"{label} root: expected object"], package_id)
+
+    schema_version = proof.get("schema_version")
+    if (
+        isinstance(schema_version, bool)
+        or not isinstance(schema_version, int)
+        or schema_version != 1
+    ):
+        errors.append(f"{label}.schema_version: expected integer 1, got {schema_version!r}")
+
+    feature = proof.get("feature")
+    if feature != plan_index.get("feature"):
+        errors.append(f"{label}.feature: expected {plan_index.get('feature')!r}, got {feature!r}")
+
+    actual_package_id = proof.get("package_id")
+    if actual_package_id != package_id:
+        errors.append(f"{label}.package_id: expected {package_id!r}, got {actual_package_id!r}")
+
+    entries = proof.get("entries")
+    if not isinstance(entries, list):
+        errors.append(f"{label}.entries: expected array")
+        return ProofValidationResult(errors, package_id)
+
+    expected_ac_ids = get_package_acceptance_criteria(plan_index, package_id)
+    seen_ac_ids: set[str] = set()
+    for index, entry in enumerate(entries):
+        entry_path = f"{label}.entries[{index}]"
+        validate_ledger_entry(entry, entry_path, errors, plan_index, worktree)
+        if isinstance(entry, dict):
+            criterion_id = entry.get("criterion_id")
+            row_package_id = entry.get("package_id")
+            if isinstance(criterion_id, str):
+                seen_ac_ids.add(criterion_id)
+            if isinstance(row_package_id, str) and row_package_id != package_id:
+                errors.append(
+                    f"{entry_path}.package_id: expected proof package {package_id!r}, got {row_package_id!r}"
+                )
+
+    for ac_id in sorted(expected_ac_ids - seen_ac_ids):
+        errors.append(f"{label}.entries: missing proof entry for acceptance criterion {ac_id}")
+    for ac_id in sorted(seen_ac_ids - expected_ac_ids):
+        errors.append(f"{label}.entries: criterion {ac_id!r} is not assigned to package {package_id}")
+    for duplicate in duplicates(
+        [
+            entry["criterion_id"]
+            for entry in entries
+            if isinstance(entry, dict) and isinstance(entry.get("criterion_id"), str)
+        ]
+    ):
+        errors.append(f"{label}.entries: duplicate criterion_id {duplicate!r}")
+
+    return ProofValidationResult(errors, package_id, frozenset(seen_ac_ids))
+
+
+def validate_all_package_proofs(
+    proofs_dir: Path, plan_index: dict[str, Any], *, worktree: Path
+) -> ProofValidationResult:
+    errors: list[str] = []
+    package_ids = set(plan_index.get("package_ids", set()))
+    expected_paths = {proofs_dir / f"{package_id}.proof.json" for package_id in package_ids}
+    try:
+        actual_paths = set(proofs_dir.glob("*.proof.json"))
+    except OSError as exc:
+        return ProofValidationResult([f"proofs: unable to list {proofs_dir}: {exc}"])
+
+    for missing in sorted(expected_paths - actual_paths):
+        errors.append(f"proofs: missing proof file {missing}")
+    for extra in sorted(actual_paths - expected_paths):
+        errors.append(f"proofs: unexpected proof file {extra}")
+
+    covered_ac_ids: list[str] = []
+    for package_id in sorted(package_ids):
+        proof_path = proofs_dir / f"{package_id}.proof.json"
+        result = validate_package_proof_file(
+            proof_path, plan_index, package_id=package_id, worktree=worktree
+        )
+        errors.extend(result.errors)
+        covered_ac_ids.extend(result.criterion_ids)
+
+    expected_ac_ids = set(plan_index.get("task_ac_ids", set()))
+    covered_set = set(covered_ac_ids)
+    for ac_id in sorted(expected_ac_ids - covered_set):
+        errors.append(f"proofs: missing aggregate proof for acceptance criterion {ac_id}")
+    for ac_id in sorted(covered_set - expected_ac_ids):
+        errors.append(f"proofs: unknown aggregate acceptance criterion {ac_id!r}")
+    for duplicate in duplicates(covered_ac_ids):
+        errors.append(f"proofs: duplicate aggregate criterion_id {duplicate!r}")
+
+    return ProofValidationResult(errors, criterion_ids=frozenset(covered_set))
 
 
 def validate_verification_json_file(
