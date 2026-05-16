@@ -1,13 +1,17 @@
 #!/usr/bin/env python3
-"""Read-only helper commands for planned-feature package proofs."""
+"""Helper commands for planned-feature package proofs."""
 
 from __future__ import annotations
 
 import argparse
 import importlib.util
 import json
+import os
+import subprocess
 import sys
+import tempfile
 from collections import Counter
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -41,9 +45,8 @@ def main(argv: list[str] | None = None) -> int:
 
 def build_parser() -> argparse.ArgumentParser:
     description = (
-        "Read-only additive package-proof helper. This release writes only "
-        "stdout/stderr and does not mutate task lifecycle state or replace the "
-        "verification.json final gate."
+        "Package-proof helper. This release adds package-level proof lifecycle "
+        "writers while preserving verification.json as the final gate."
     )
     parser = argparse.ArgumentParser(description=description)
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -97,6 +100,22 @@ def build_parser() -> argparse.ArgumentParser:
     )
     summary.add_argument("--package", help="Limit output to one work package.")
     summary.set_defaults(func=cmd_summary)
+
+    accept_package = subparsers.add_parser(
+        "accept-package",
+        parents=[common],
+        help="Write accepted lifecycle state for one package proof.",
+    )
+    accept_package.add_argument("proof", help="Exact path to WP<N>.proof.json.")
+    accept_package.set_defaults(func=cmd_accept_package)
+
+    reopen_package = subparsers.add_parser(
+        "reopen-package",
+        parents=[common],
+        help="Write reopened lifecycle state for one package proof.",
+    )
+    reopen_package.add_argument("proof", help="Exact path to WP<N>.proof.json.")
+    reopen_package.set_defaults(func=cmd_reopen_package)
     return parser
 
 
@@ -187,6 +206,92 @@ def cmd_summary(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_accept_package(args: argparse.Namespace) -> int:
+    return mutate_package_lifecycle(args, "accepted")
+
+
+def cmd_reopen_package(args: argparse.Namespace) -> int:
+    return mutate_package_lifecycle(args, "reopened")
+
+
+def mutate_package_lifecycle(args: argparse.Namespace, target_state: str) -> int:
+    validator, plan = load_plan(Path(args.tasks))
+    worktree = Path(args.worktree)
+    proof_path = Path(args.proof)
+    proof = load_proof_for_lifecycle_mutation(
+        validator,
+        plan,
+        proof_path,
+        worktree,
+        target_state=target_state,
+    )
+    package_id = proof["package_id"]
+    previous_state = validator.package_lifecycle_state_name(proof)
+
+    if previous_state == target_state == "accepted":
+        errors = validator.validate_package_proof_json(
+            proof,
+            plan.index,
+            worktree=worktree,
+            proof_path=proof_path,
+            tasks_path=plan.tasks_path,
+            enforce_entry_freshness=False,
+        )
+        if errors:
+            raise TaskctlError(errors)
+        errors = validator.validate_package_proof_json(
+            proof,
+            plan.index,
+            worktree=worktree,
+            proof_path=proof_path,
+            tasks_path=plan.tasks_path,
+            enforce_entry_freshness=target_state == "accepted",
+        )
+        if errors:
+            raise TaskctlError(errors)
+
+    transition_errors = validator.package_lifecycle_transition_errors(proof, target_state)
+    if transition_errors:
+        raise TaskctlError(transition_errors)
+
+    changed = not (previous_state == target_state == "accepted")
+    if changed:
+        proof[validator.PACKAGE_LIFECYCLE_FIELD] = build_lifecycle_state(
+            validator,
+            proof,
+            target_state,
+            proof_path=proof_path,
+            worktree=worktree,
+        )
+        errors = validator.validate_package_proof_json(
+            proof,
+            plan.index,
+            worktree=worktree,
+            proof_path=proof_path,
+            tasks_path=plan.tasks_path,
+            enforce_entry_freshness=target_state == "accepted",
+        )
+        if errors:
+            raise TaskctlError(errors)
+        atomic_write_json(proof_path, proof)
+
+    lifecycle = proof[validator.PACKAGE_LIFECYCLE_FIELD]
+    output = {
+        "ok": True,
+        "command": args.command,
+        "package_id": package_id,
+        "proof_path": str(proof_path),
+        "lifecycle": {
+            "previous_state": previous_state,
+            "state": target_state,
+            "changed": changed,
+            "proof_digest": lifecycle["proof_digest"],
+        },
+    }
+    write_json(sys.stdout, output)
+    return 0
+
+
 class Plan:
     def __init__(self, data: dict[str, Any], index: dict[str, Any], tasks_path: Path) -> None:
         self.data = data
@@ -194,6 +299,178 @@ class Plan:
         self.tasks_path = tasks_path
         self.tasks = index_tasks(data)
         self.criteria = index_criteria(data)
+
+
+def load_proof_for_lifecycle_mutation(
+    validator: Any,
+    plan: Plan,
+    proof_path: Path,
+    worktree: Path,
+    *,
+    target_state: str,
+) -> dict[str, Any]:
+    proof = load_package_proof_file(proof_path)
+    current_state = validator.package_lifecycle_state_name(proof)
+    proof_without_lifecycle = {
+        key: value
+        for key, value in proof.items()
+        if key != validator.PACKAGE_LIFECYCLE_FIELD
+    }
+    errors = validator.validate_package_proof_json(
+        proof_without_lifecycle,
+        plan.index,
+        worktree=worktree,
+        proof_path=proof_path,
+        tasks_path=plan.tasks_path,
+        enforce_entry_freshness=target_state == "accepted" and current_state != "accepted",
+    )
+    package_id = proof.get("package_id")
+    validator.validate_package_lifecycle_state_for_replacement(
+        proof,
+        "package proof.lifecycle",
+        errors,
+        plan.index,
+        worktree,
+        package_id=package_id if isinstance(package_id, str) else None,
+        proof_path=proof_path,
+        tasks_path=plan.tasks_path,
+    )
+    if errors:
+        raise TaskctlError(errors)
+    if not isinstance(package_id, str) or not package_id.strip():
+        raise TaskctlError(["package proof.package_id: expected non-empty string"])
+    require_package(plan, package_id)
+    return proof
+
+
+def load_validated_proof(
+    validator: Any, plan: Plan, proof_path: Path, worktree: Path
+) -> dict[str, Any]:
+    errors = validator.validate_package_proof_json_file(
+        proof_path,
+        plan.index,
+        worktree=worktree,
+        tasks_path=plan.tasks_path,
+    )
+    if errors:
+        raise TaskctlError(errors)
+    proof = load_package_proof_file(proof_path)
+    package_id = proof.get("package_id")
+    if not isinstance(package_id, str) or not package_id.strip():
+        raise TaskctlError(["package proof.package_id: expected non-empty string"])
+    require_package(plan, package_id)
+    return proof
+
+
+def load_package_proof_file(proof_path: Path) -> dict[str, Any]:
+    try:
+        with proof_path.open("r", encoding="utf-8") as f:
+            proof = json.load(f)
+    except FileNotFoundError:
+        raise TaskctlError([f"package proof: file not found at {proof_path}"])
+    except json.JSONDecodeError as exc:
+        raise TaskctlError([f"package proof: invalid JSON: {exc}"])
+    except (OSError, UnicodeDecodeError) as exc:
+        raise TaskctlError([f"package proof: unable to read {proof_path}: {exc}"])
+    if not isinstance(proof, dict):
+        raise TaskctlError(["package proof root: expected object"])
+    return proof
+
+
+def build_lifecycle_state(
+    validator: Any,
+    proof: dict[str, Any],
+    target_state: str,
+    *,
+    proof_path: Path,
+    worktree: Path,
+) -> dict[str, Any]:
+    timestamp_field = f"{target_state}_at"
+    command = "accept-package" if target_state == "accepted" else "reopen-package"
+    return {
+        "state": target_state,
+        "package_id": proof["package_id"],
+        "proof_path": str(validator.normalized_existing_or_candidate_path(proof_path)),
+        "proof_digest": validator.package_proof_digest(proof),
+        timestamp_field: datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
+        "writer": {
+            "tool": validator.PACKAGE_LIFECYCLE_WRITER_TOOL,
+            "command": command,
+            "schema_version": validator.PACKAGE_LIFECYCLE_WRITER_SCHEMA_VERSION,
+        },
+        "state_binding": {
+            "state": target_state,
+            "worktree": str(validator.normalized_existing_or_candidate_path(worktree)),
+            "git_ref": current_git_ref(worktree),
+            "commit": current_git_commit(worktree),
+        },
+    }
+
+
+def current_git_ref(worktree: Path) -> str:
+    result = run_git(worktree, "symbolic-ref", "--quiet", "--short", "HEAD", check=False)
+    if result.returncode == 0 and result.stdout.strip():
+        return result.stdout.strip()
+    return current_git_commit(worktree)
+
+
+def current_git_commit(worktree: Path) -> str:
+    return run_git(worktree, "rev-parse", "HEAD").stdout.strip()
+
+
+def run_git(
+    worktree: Path, *args: str, check: bool = True
+) -> subprocess.CompletedProcess[str]:
+    try:
+        result = subprocess.run(
+            ["git", *args],
+            cwd=worktree,
+            check=False,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+    except OSError as exc:
+        raise TaskctlError([f"git: unable to run {' '.join(args)} in {worktree}: {exc}"])
+    if check and result.returncode != 0:
+        message = result.stderr.strip() or result.stdout.strip() or f"exit {result.returncode}"
+        raise TaskctlError([f"git {' '.join(args)} failed in {worktree}: {message}"])
+    return result
+
+
+def atomic_write_json(path: Path, value: Any) -> None:
+    try:
+        payload = json.dumps(value, indent=2, sort_keys=True) + "\n"
+    except (TypeError, ValueError) as exc:
+        raise TaskctlError([f"package proof: unable to serialize lifecycle state: {exc}"])
+
+    tmp_name: str | None = None
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with tempfile.NamedTemporaryFile(
+            "w",
+            encoding="utf-8",
+            dir=path.parent,
+            prefix=f".{path.name}.",
+            suffix=".tmp",
+            delete=False,
+        ) as tmp:
+            tmp_name = tmp.name
+            tmp.write(payload)
+            tmp.flush()
+            os.fsync(tmp.fileno())
+        os.replace(tmp_name, path)
+        tmp_name = None
+    except OSError as exc:
+        raise TaskctlError([f"package proof: unable to write {path}: {exc}"])
+    finally:
+        if tmp_name is not None:
+            try:
+                os.unlink(tmp_name)
+            except FileNotFoundError:
+                pass
+            except OSError:
+                pass
 
 
 def load_plan(tasks_path: Path) -> tuple[Any, Plan]:

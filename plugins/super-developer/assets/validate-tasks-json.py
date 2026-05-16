@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import re
 import subprocess
@@ -47,6 +48,31 @@ COMMAND_EVIDENCE_METHODS = {
     "mixed",
 }
 PACKAGE_PROOF_SCHEMA_VERSION = 1
+PACKAGE_LIFECYCLE_FIELD = "lifecycle"
+PACKAGE_LIFECYCLE_STATES = {"accepted", "reopened"}
+PACKAGE_LIFECYCLE_WRITER_SCHEMA_VERSION = 1
+PACKAGE_LIFECYCLE_WRITER_TOOL = "taskctl.py"
+PACKAGE_PROOF_DIGEST_RE = re.compile(r"^sha256:[0-9a-fA-F]{64}$")
+PACKAGE_LIFECYCLE_TRANSITIONS = {
+    "none": {"accepted"},
+    "accepted": {"reopened"},
+    "reopened": {"accepted"},
+}
+PACKAGE_LIFECYCLE_FORBIDDEN_ROOT_FIELDS = {
+    "event_log",
+    "events",
+    "finalization",
+    "finalized_at",
+    "generated_checklist",
+    "generated_checklists",
+    "history",
+    "lifecycle_history",
+    "proof_history",
+    "targeted_review",
+    "targeted_review_state",
+    "workflow_engine_state",
+    "workflow_state",
+}
 VAGUE_MANUAL_VALUES = {
     "approved",
     "approval",
@@ -1199,10 +1225,14 @@ def validate_package_proof_json(
     worktree: Path,
     proof_path: Path | None = None,
     tasks_path: Path | None = None,
+    enforce_entry_freshness: bool = True,
 ) -> list[str]:
     errors: list[str] = []
     if not isinstance(proof, dict):
         return ["package proof root: expected object"]
+
+    for field in sorted(PACKAGE_LIFECYCLE_FORBIDDEN_ROOT_FIELDS & set(proof)):
+        errors.append(f"package proof.{field}: forbidden Release 2 lifecycle persistence field")
 
     schema_version = proof.get("schema_version")
     if (
@@ -1260,6 +1290,7 @@ def validate_package_proof_json(
             plan_index,
             worktree,
             package_id=package_id if isinstance(package_id, str) else None,
+            enforce_entry_freshness=enforce_entry_freshness,
         )
         if isinstance(entry, dict) and isinstance(entry.get("criterion_id"), str):
             criterion_id = entry["criterion_id"]
@@ -1275,7 +1306,348 @@ def validate_package_proof_json(
     for duplicate in duplicates(entry_ac_ids):
         errors.append(f"package proof.entries: duplicate criterion_id {duplicate!r}")
 
+    validate_package_lifecycle_state(
+        proof,
+        "package proof.lifecycle",
+        errors,
+        plan_index,
+        worktree,
+        package_id=package_id if isinstance(package_id, str) else None,
+        proof_path=proof_path,
+        tasks_path=tasks_path,
+    )
+
     return errors
+
+
+def package_proof_digest(proof: dict[str, Any]) -> str:
+    digestible = {
+        key: value
+        for key, value in proof.items()
+        if key != PACKAGE_LIFECYCLE_FIELD
+    }
+    canonical = json.dumps(
+        digestible,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=True,
+    ).encode("utf-8")
+    return "sha256:" + hashlib.sha256(canonical).hexdigest()
+
+
+def package_lifecycle_state_name(proof: dict[str, Any]) -> str:
+    lifecycle = proof.get(PACKAGE_LIFECYCLE_FIELD)
+    if lifecycle is None:
+        return "none"
+    if isinstance(lifecycle, dict) and isinstance(lifecycle.get("state"), str):
+        return lifecycle["state"]
+    return "invalid"
+
+
+def package_lifecycle_transition_errors(
+    proof: dict[str, Any],
+    target_state: str,
+) -> list[str]:
+    current_state = package_lifecycle_state_name(proof)
+    if target_state not in PACKAGE_LIFECYCLE_STATES:
+        return [f"package lifecycle transition: unknown target state {target_state!r}"]
+    if current_state == "invalid":
+        return ["package lifecycle transition: current lifecycle state is invalid"]
+
+    if current_state == "accepted" and target_state == "accepted":
+        lifecycle = proof.get(PACKAGE_LIFECYCLE_FIELD)
+        if (
+            isinstance(lifecycle, dict)
+            and lifecycle.get("proof_digest") == package_proof_digest(proof)
+            and isinstance(lifecycle.get("state_binding"), dict)
+            and lifecycle["state_binding"].get("state") == "accepted"
+        ):
+            return []
+        return [
+            "package lifecycle transition: accepted -> accepted is only allowed "
+            "as an idempotent rerun for the same proof digest and accepted state"
+        ]
+
+    allowed_targets = PACKAGE_LIFECYCLE_TRANSITIONS.get(current_state, set())
+    if target_state not in allowed_targets:
+        return [
+            f"package lifecycle transition: {current_state} -> {target_state} is not allowed"
+        ]
+    return []
+
+
+def validate_package_lifecycle_state(
+    proof: dict[str, Any],
+    path: str,
+    errors: list[str],
+    plan_index: dict[str, Any],
+    worktree: Path,
+    *,
+    package_id: str | None,
+    proof_path: Path | None,
+    tasks_path: Path | None,
+) -> None:
+    lifecycle = proof.get(PACKAGE_LIFECYCLE_FIELD)
+    if lifecycle is None:
+        return
+    if not isinstance(lifecycle, dict):
+        errors.append(f"{path}: expected object")
+        return
+
+    state = lifecycle.get("state")
+    if not isinstance(state, str) or state not in PACKAGE_LIFECYCLE_STATES:
+        errors.append(f"{path}.state: expected one of {sorted(PACKAGE_LIFECYCLE_STATES)}, got {state!r}")
+        return
+    validate_lifecycle_exact_fields(lifecycle, path, errors, state)
+    validate_lifecycle_binding(
+        lifecycle,
+        path,
+        errors,
+        proof,
+        worktree,
+        package_id=package_id,
+        proof_path=proof_path,
+        tasks_path=tasks_path,
+    )
+    validate_lifecycle_writer(lifecycle.get("writer"), f"{path}.writer", errors, state)
+    validate_lifecycle_state_binding(
+        lifecycle.get("state_binding"),
+        f"{path}.state_binding",
+        errors,
+        state,
+        proof,
+        worktree,
+    )
+
+
+def validate_package_lifecycle_state_for_replacement(
+    proof: dict[str, Any],
+    path: str,
+    errors: list[str],
+    plan_index: dict[str, Any],
+    worktree: Path,
+    *,
+    package_id: str | None,
+    proof_path: Path | None,
+    tasks_path: Path | None,
+) -> None:
+    lifecycle = proof.get(PACKAGE_LIFECYCLE_FIELD)
+    if lifecycle is None:
+        return
+    if not isinstance(lifecycle, dict):
+        errors.append(f"{path}: expected object")
+        return
+
+    state = lifecycle.get("state")
+    if not isinstance(state, str) or state not in PACKAGE_LIFECYCLE_STATES:
+        errors.append(f"{path}.state: expected one of {sorted(PACKAGE_LIFECYCLE_STATES)}, got {state!r}")
+        return
+    validate_lifecycle_exact_fields(lifecycle, path, errors, state)
+    validate_lifecycle_binding(
+        lifecycle,
+        path,
+        errors,
+        proof,
+        worktree,
+        package_id=package_id,
+        proof_path=proof_path,
+        tasks_path=tasks_path,
+        enforce_digest=False,
+        enforce_accepted_freshness=False,
+    )
+    validate_lifecycle_writer(lifecycle.get("writer"), f"{path}.writer", errors, state)
+    validate_lifecycle_state_binding(
+        lifecycle.get("state_binding"),
+        f"{path}.state_binding",
+        errors,
+        state,
+        proof,
+        worktree,
+        enforce_freshness=False,
+    )
+
+
+def validate_lifecycle_exact_fields(
+    lifecycle: dict[str, Any], path: str, errors: list[str], state: str
+) -> None:
+    timestamp_field = f"{state}_at"
+    expected_fields = {
+        "state",
+        "package_id",
+        "proof_path",
+        "proof_digest",
+        timestamp_field,
+        "writer",
+        "state_binding",
+    }
+    actual_fields = set(lifecycle)
+    for missing in sorted(expected_fields - actual_fields):
+        errors.append(f"{path}.{missing}: expected field for {state!r} lifecycle state")
+    for extra in sorted(actual_fields - expected_fields):
+        errors.append(f"{path}.{extra}: unexpected field for Release 2 lifecycle state")
+    timestamp = lifecycle.get(timestamp_field)
+    if isinstance(timestamp, str) and timestamp.strip():
+        validate_iso_datetime(timestamp, f"{path}.{timestamp_field}", errors)
+    else:
+        errors.append(f"{path}.{timestamp_field}: expected non-empty string")
+
+
+def validate_lifecycle_binding(
+    lifecycle: dict[str, Any],
+    path: str,
+    errors: list[str],
+    proof: dict[str, Any],
+    worktree: Path,
+    *,
+    package_id: str | None,
+    proof_path: Path | None,
+    tasks_path: Path | None,
+    enforce_digest: bool = True,
+    enforce_accepted_freshness: bool = True,
+) -> None:
+    stored_package_id = lifecycle.get("package_id")
+    if stored_package_id != package_id:
+        errors.append(
+            f"{path}.package_id: expected package proof package_id {package_id!r}, got {stored_package_id!r}"
+        )
+
+    stored_digest = lifecycle.get("proof_digest")
+    expected_digest = package_proof_digest(proof)
+    if enforce_digest and stored_digest != expected_digest:
+        errors.append(
+            f"{path}.proof_digest: expected {expected_digest!r} for current proof content, got {stored_digest!r}"
+        )
+    elif not enforce_digest and (
+        not isinstance(stored_digest, str)
+        or PACKAGE_PROOF_DIGEST_RE.fullmatch(stored_digest) is None
+    ):
+        errors.append(f"{path}.proof_digest: expected sha256 digest string")
+
+    stored_path = lifecycle.get("proof_path")
+    expected_path = None
+    if tasks_path is not None and package_id is not None:
+        expected_path = expected_package_proof_path(tasks_path, package_id)
+    elif proof_path is not None:
+        expected_path = proof_path
+    if expected_path is None:
+        errors.append(f"{path}.proof_path: tasks_path or proof_path is required for lifecycle binding")
+    elif stored_path != str(normalized_existing_or_candidate_path(expected_path)):
+        errors.append(
+            f"{path}.proof_path: expected {str(normalized_existing_or_candidate_path(expected_path))!r}, got {stored_path!r}"
+        )
+
+    if enforce_accepted_freshness and lifecycle.get("state") == "accepted":
+        validate_accepted_lifecycle_freshness(
+            proof,
+            f"{path}.state_binding",
+            errors,
+            worktree,
+        )
+
+
+def validate_lifecycle_writer(
+    writer: Any, path: str, errors: list[str], state: str
+) -> None:
+    if not isinstance(writer, dict):
+        errors.append(f"{path}: expected object")
+        return
+    expected_command = "accept-package" if state == "accepted" else "reopen-package"
+    expected = {
+        "tool": PACKAGE_LIFECYCLE_WRITER_TOOL,
+        "command": expected_command,
+        "schema_version": PACKAGE_LIFECYCLE_WRITER_SCHEMA_VERSION,
+    }
+    if set(writer) != set(expected):
+        missing = sorted(set(expected) - set(writer))
+        extra = sorted(set(writer) - set(expected))
+        if missing:
+            errors.append(f"{path}: missing writer field(s) {missing}")
+        if extra:
+            errors.append(f"{path}: unexpected writer field(s) {extra}")
+    for field, expected_value in expected.items():
+        if writer.get(field) != expected_value:
+            errors.append(f"{path}.{field}: expected {expected_value!r}, got {writer.get(field)!r}")
+
+
+def validate_lifecycle_state_binding(
+    binding: Any,
+    path: str,
+    errors: list[str],
+    expected_state: str,
+    proof: dict[str, Any],
+    worktree: Path,
+    *,
+    enforce_freshness: bool = True,
+) -> None:
+    if not isinstance(binding, dict):
+        errors.append(f"{path}: expected object")
+        return
+    expected_fields = {"state", "worktree", "git_ref", "commit"}
+    actual_fields = set(binding)
+    for missing in sorted(expected_fields - actual_fields):
+        errors.append(f"{path}.{missing}: expected field")
+    for extra in sorted(actual_fields - expected_fields):
+        errors.append(f"{path}.{extra}: unexpected field")
+    if binding.get("state") != expected_state:
+        errors.append(f"{path}.state: expected {expected_state!r}, got {binding.get('state')!r}")
+    for field in ("worktree", "git_ref", "commit"):
+        require_non_empty_string(binding, field, f"{path}.{field}", errors)
+
+    stored_worktree = binding.get("worktree")
+    expected_worktree = str(normalized_existing_or_candidate_path(worktree))
+    if isinstance(stored_worktree, str) and stored_worktree != expected_worktree:
+        errors.append(f"{path}.worktree: expected {expected_worktree!r}, got {stored_worktree!r}")
+
+    commit = binding.get("commit")
+    evidence_files = proof_lifecycle_evidence_paths(proof)
+    if (
+        enforce_freshness
+        and expected_state == "accepted"
+        and isinstance(commit, str)
+        and commit.strip()
+        and evidence_files
+    ):
+        stale = evidence_paths_changed_since(commit, evidence_files, worktree)
+        if stale is True:
+            errors.append(
+                f"{path}.commit: stale accepted proof state; cited files changed after {commit!r}"
+            )
+        elif stale is None:
+            errors.append(
+                f"{path}.commit: unable to verify accepted proof freshness for {commit!r} in {worktree}"
+            )
+
+
+def validate_accepted_lifecycle_freshness(
+    proof: dict[str, Any], path: str, errors: list[str], worktree: Path
+) -> None:
+    entries = proof.get("entries")
+    if not isinstance(entries, list):
+        return
+    for index, entry in enumerate(entries):
+        entry_path = f"package proof.entries[{index}]"
+        if not isinstance(entry, dict):
+            continue
+        if entry.get("status") == "manual_required" or entry.get("method") == "manual":
+            errors.append(
+                f"{entry_path}: accepted lifecycle requires git-tracked file evidence, not manual evidence"
+            )
+        evidence_paths = extract_evidence_paths(entry.get("evidence"))
+        if not evidence_paths:
+            errors.append(
+                f"{entry_path}.evidence.files: accepted lifecycle requires path-scoped file evidence"
+            )
+
+
+def proof_lifecycle_evidence_paths(proof: dict[str, Any]) -> list[str]:
+    entries = proof.get("entries")
+    if not isinstance(entries, list):
+        return []
+    paths: list[str] = []
+    for entry in entries:
+        if isinstance(entry, dict):
+            paths.extend(extract_evidence_paths(entry.get("evidence")))
+    return paths
 
 
 def validate_package_proof_entry(
@@ -1286,9 +1658,17 @@ def validate_package_proof_entry(
     worktree: Path,
     *,
     package_id: str | None,
+    enforce_entry_freshness: bool = True,
 ) -> None:
     before_count = len(errors)
-    validate_ledger_entry(entry, path, errors, plan_index, worktree)
+    validate_ledger_entry(
+        entry,
+        path,
+        errors,
+        plan_index,
+        worktree,
+        enforce_state_freshness=enforce_entry_freshness,
+    )
     if not isinstance(entry, dict):
         return
 
@@ -1457,6 +1837,8 @@ def validate_ledger_entry(
     errors: list[str],
     plan_index: dict[str, Any],
     worktree: Path,
+    *,
+    enforce_state_freshness: bool = True,
 ) -> None:
     if not isinstance(entry, dict):
         errors.append(f"{path}: expected object")
@@ -1496,7 +1878,14 @@ def validate_ledger_entry(
         errors.append(f"{path}.method: expected one of {sorted(LEDGER_METHODS)}, got {method!r}")
 
     validate_ledger_source_refs(entry, path, errors, plan_index)
-    validate_ledger_state(entry.get("state"), f"{path}.state", errors, worktree, entry)
+    validate_ledger_state(
+        entry.get("state"),
+        f"{path}.state",
+        errors,
+        worktree,
+        entry,
+        enforce_freshness=enforce_state_freshness,
+    )
     validate_ledger_evidence(
         entry.get("evidence"), f"{path}.evidence", errors, method=method
     )
@@ -1543,6 +1932,8 @@ def validate_ledger_state(
     errors: list[str],
     worktree: Path,
     entry: dict[str, Any],
+    *,
+    enforce_freshness: bool = True,
 ) -> None:
     if not isinstance(state, dict):
         errors.append(f"{path}: expected object")
@@ -1556,7 +1947,7 @@ def validate_ledger_state(
     commit = state.get("commit")
     evidence = entry.get("evidence")
     evidence_files = extract_evidence_paths(evidence)
-    if isinstance(commit, str) and commit.strip() and evidence_files:
+    if enforce_freshness and isinstance(commit, str) and commit.strip() and evidence_files:
         stale = evidence_paths_changed_since(commit, evidence_files, worktree)
         if stale is True:
             errors.append(
