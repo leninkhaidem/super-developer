@@ -272,6 +272,53 @@ class PackageProofValidationTests(unittest.TestCase):
             ],
         }
 
+    def proof_path(self, package_id: str = "WP1") -> Path:
+        return self.feature_dir / "proofs" / f"{package_id}.proof.json"
+
+    def write_proof_file(self, proof: dict, package_id: str = "WP1") -> Path:
+        proof_path = self.proof_path(package_id)
+        proof_path.parent.mkdir(exist_ok=True)
+        proof_path.write_text(json.dumps(proof, indent=2), encoding="utf-8")
+        return proof_path
+
+    def lifecycle_state(self, proof: dict, state: str, **overrides: object) -> dict:
+        timestamp_field = f"{state}_at"
+        command = "accept-package" if state == "accepted" else "reopen-package"
+        lifecycle = {
+            "state": state,
+            "package_id": proof["package_id"],
+            "proof_path": str(validator.normalized_existing_or_candidate_path(self.proof_path(proof["package_id"]))),
+            "proof_digest": validator.package_proof_digest(proof),
+            timestamp_field: "2026-05-16T00:00:00Z",
+            "writer": {
+                "tool": validator.PACKAGE_LIFECYCLE_WRITER_TOOL,
+                "command": command,
+                "schema_version": validator.PACKAGE_LIFECYCLE_WRITER_SCHEMA_VERSION,
+            },
+            "state_binding": {
+                "state": state,
+                "worktree": str(validator.normalized_existing_or_candidate_path(self.repo)),
+                "git_ref": "HEAD",
+                "commit": self.commit,
+            },
+        }
+        lifecycle.update(overrides)
+        return lifecycle
+
+    def proof_with_lifecycle(self, state: str, **overrides: object) -> dict:
+        proof = self.proof()
+        proof["lifecycle"] = self.lifecycle_state(proof, state, **overrides)
+        return proof
+
+    def validate_proof_file(self, proof: dict, package_id: str = "WP1") -> list[str]:
+        proof_path = self.write_proof_file(proof, package_id)
+        return validator.validate_package_proof_json_file(
+            proof_path,
+            self.plan_index,
+            worktree=self.repo,
+            tasks_path=self.tasks_path,
+        )
+
     def final_ledger(self) -> dict:
         return {
             "schema_version": 1,
@@ -298,6 +345,177 @@ class PackageProofValidationTests(unittest.TestCase):
     def test_valid_proof_covers_owned_criteria_and_keeps_commands_inert(self) -> None:
         self.assertEqual([], self.validate_proof(self.proof()))
         self.assertFalse(self.sentinel.exists())
+
+    def test_lifecycle_absent_accepted_and_reopened_states_are_validated(self) -> None:
+        self.assertEqual([], self.validate_proof(self.proof()))
+        self.assertEqual([], self.validate_proof_file(self.proof_with_lifecycle("accepted")))
+        self.assertEqual([], self.validate_proof_file(self.proof_with_lifecycle("reopened")))
+
+        malformed = self.proof()
+        malformed["lifecycle"] = "accepted"
+        self.assertIn("lifecycle: expected object", "\n".join(self.validate_proof_file(malformed)))
+
+        unknown = self.proof()
+        unknown["lifecycle"] = {"state": "finalized"}
+        self.assertIn("lifecycle.state: expected one of", "\n".join(self.validate_proof_file(unknown)))
+
+        wrong_package = self.proof_with_lifecycle("accepted", package_id="WP2")
+        self.assertIn(
+            "lifecycle.package_id: expected package proof package_id 'WP1'",
+            "\n".join(self.validate_proof_file(wrong_package)),
+        )
+
+    def test_lifecycle_provenance_digest_and_state_binding_fail_closed(self) -> None:
+        missing_provenance = self.proof_with_lifecycle("accepted")
+        missing_provenance["lifecycle"].pop("writer")
+        self.assertIn(
+            "lifecycle.writer: expected field",
+            "\n".join(self.validate_proof_file(missing_provenance)),
+        )
+
+        manual_prepopulation = self.proof_with_lifecycle("accepted")
+        manual_prepopulation["lifecycle"]["writer"] = {
+            "tool": "manual-editor",
+            "command": "accept-package",
+            "schema_version": 1,
+        }
+        self.assertIn(
+            "lifecycle.writer.tool: expected 'taskctl.py'",
+            "\n".join(self.validate_proof_file(manual_prepopulation)),
+        )
+
+        wrong_digest = self.proof_with_lifecycle("accepted", proof_digest="sha256:" + "0" * 64)
+        self.assertIn(
+            "lifecycle.proof_digest: expected",
+            "\n".join(self.validate_proof_file(wrong_digest)),
+        )
+
+        wrong_commit = self.proof_with_lifecycle("accepted")
+        wrong_commit["lifecycle"]["state_binding"]["commit"] = "deadbeef"
+        self.assertIn(
+            "unable to verify accepted proof freshness",
+            "\n".join(self.validate_proof_file(wrong_commit)),
+        )
+
+        wrong_path = self.proof_with_lifecycle("accepted", proof_path=str(self.repo / "other.proof.json"))
+        self.assertIn(
+            "lifecycle.proof_path: expected",
+            "\n".join(self.validate_proof_file(wrong_path)),
+        )
+
+        changed_content = self.proof_with_lifecycle("accepted")
+        changed_content["entries"][0]["evidence"]["edge_cases"].append("proof content changed after acceptance")
+        self.assertIn(
+            "lifecycle.proof_digest: expected",
+            "\n".join(self.validate_proof_file(changed_content)),
+        )
+
+        (self.repo / "tracked.txt").write_text("changed after acceptance\n", encoding="utf-8")
+        stale = self.proof_with_lifecycle("accepted")
+        self.assertIn(
+            "stale accepted proof state",
+            "\n".join(self.validate_proof_file(stale)),
+        )
+        self.git("checkout", "--", "tracked.txt")
+
+    def test_lifecycle_transition_table_and_idempotency_rules(self) -> None:
+        self.assertEqual(
+            {"none": {"accepted"}, "accepted": {"reopened"}, "reopened": {"accepted"}},
+            validator.PACKAGE_LIFECYCLE_TRANSITIONS,
+        )
+        self.assertEqual([], validator.package_lifecycle_transition_errors(self.proof(), "accepted"))
+
+        accepted = self.proof_with_lifecycle("accepted")
+        self.assertEqual([], validator.package_lifecycle_transition_errors(accepted, "accepted"))
+        self.assertEqual([], validator.package_lifecycle_transition_errors(accepted, "reopened"))
+        self.assertIn(
+            "accepted -> accepted is only allowed",
+            "\n".join(
+                validator.package_lifecycle_transition_errors(
+                    {**accepted, "entries": accepted["entries"][:1]},
+                    "accepted",
+                )
+            ),
+        )
+
+        reopened = self.proof_with_lifecycle("reopened")
+        self.assertEqual([], validator.package_lifecycle_transition_errors(reopened, "accepted"))
+        self.assertIn(
+            "reopened -> reopened is not allowed",
+            "\n".join(validator.package_lifecycle_transition_errors(reopened, "reopened")),
+        )
+        self.assertIn(
+            "none -> reopened is not allowed",
+            "\n".join(validator.package_lifecycle_transition_errors(self.proof(), "reopened")),
+        )
+
+    def test_lifecycle_freshness_requires_git_tracked_path_scoped_evidence(self) -> None:
+        modified = self.proof_with_lifecycle("accepted")
+        (self.repo / "tracked.txt").write_text("modified\n", encoding="utf-8")
+        self.assertIn("stale accepted proof state", "\n".join(self.validate_proof_file(modified)))
+        self.git("checkout", "--", "tracked.txt")
+
+        renamed = self.proof_with_lifecycle("accepted")
+        self.git("mv", "tracked.txt", "renamed.txt")
+        self.assertIn("stale accepted proof state", "\n".join(self.validate_proof_file(renamed)))
+        self.git("mv", "renamed.txt", "tracked.txt")
+
+        deleted = self.proof_with_lifecycle("accepted")
+        (self.repo / "tracked.txt").unlink()
+        self.assertIn("stale accepted proof state", "\n".join(self.validate_proof_file(deleted)))
+        self.git("checkout", "--", "tracked.txt")
+
+        untracked = self.proof()
+        (self.repo / "untracked.txt").write_text("not in git\n", encoding="utf-8")
+        untracked["entries"][0]["evidence"]["files"] = ["untracked.txt"]
+        untracked["lifecycle"] = self.lifecycle_state(untracked, "accepted")
+        self.assertIn("stale accepted proof state", "\n".join(self.validate_proof_file(untracked)))
+
+        url_only = self.proof()
+        url_only["entries"][0]["evidence"]["files"] = ["https://example.com/evidence"]
+        url_only["lifecycle"] = self.lifecycle_state(url_only, "accepted")
+        self.assertIn(
+            "accepted lifecycle requires path-scoped file evidence",
+            "\n".join(self.validate_proof_file(url_only)),
+        )
+
+        manual = self.proof()
+        manual["entries"][0]["status"] = "manual_required"
+        manual["entries"][0]["method"] = "manual"
+        manual["entries"][0]["evidence"]["commands"] = []
+        manual["entries"][0]["manual_evidence"] = {
+            "criterion_ids": ["P1-T001-AC1"],
+            "approval_provenance": "Reviewer confirmed the tracked file evidence in the package proof.",
+            "observed_result": "The reviewer inspected tracked.txt and confirmed the proof evidence matched.",
+            "scope": "Package proof lifecycle acceptance evidence.",
+            "limits": "Manual evidence cannot prove git path freshness.",
+            "state_reference": "tracked.txt at commit " + self.commit,
+            "approved_at": "2026-05-16T00:00:00Z",
+            "approved": True,
+        }
+        manual["lifecycle"] = self.lifecycle_state(manual, "accepted")
+        self.assertIn(
+            "accepted lifecycle requires git-tracked file evidence, not manual evidence",
+            "\n".join(self.validate_proof_file(manual)),
+        )
+
+    def test_lifecycle_rejects_out_of_scope_release_two_persistence_fields(self) -> None:
+        forbidden_fields = (
+            "proof_history",
+            "event_log",
+            "generated_checklist",
+            "targeted_review_state",
+            "workflow_engine_state",
+            "finalization",
+        )
+        for field in forbidden_fields:
+            with self.subTest(field=field):
+                proof = self.proof()
+                proof[field] = []
+                self.assertIn(
+                    f"package proof.{field}: forbidden Release 2 lifecycle persistence field",
+                    "\n".join(self.validate_proof_file(proof)),
+                )
 
     def test_proof_file_path_must_match_feature_proofs_directory_and_filename(self) -> None:
         proofs_dir = self.feature_dir / "proofs"
