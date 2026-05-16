@@ -9,7 +9,7 @@ description: >
 
 # Tasks: Implementation Status Dashboard
 
-Display current status of task plans. Quick overview of progress across all features or detailed view for a specific one. Also supports modifying task status on request.
+Display current status of task plans. Quick overview of progress across all features or detailed view for a specific one. Also supports modifying task status on explicit request. Prefer `taskctl.py` for proof-backed lifecycle reads/mutations that it supports; manual overrides are allowed only when the user asks for them and they do not create package proof.
 
 ## Arguments
 
@@ -50,7 +50,7 @@ payment-flow         completed    ████████  8/8   ✅8
 
    If validation fails, show the validator output and stop; the dashboard cannot reliably compute status from an invalid plan.
 
-   If `verification.json` is missing or invalid, continue showing task status but include an **Evidence: missing/invalid** warning. Status alone is not proof that completed acceptance criteria are verified.
+   If package proof files under `.tasks/$ARGUMENTS/proofs/` are missing or invalid, continue showing task status but include an **Evidence: missing/invalid** warning. Status alone is not proof that completed acceptance criteria are verified.
 2. Read `.tasks/$ARGUMENTS/tasks.json`.
 3. If `work_packages` exists, display a package summary before the phase breakdown:
 
@@ -87,9 +87,9 @@ Phase 2: <phase name>
 ```
 
 5. At the bottom, show:
-   - **Evidence health** — for planned-feature pipelines, whether `.tasks/$ARGUMENTS/verification.json` exists and validates for completed criteria. Do not treat `failed`, `blocked`, or unapproved `manual_required` ledger entries as verified work.
+   - **Evidence health** — for planned-feature pipelines, whether `.tasks/$ARGUMENTS/proofs/<WP-ID>.proof.json` files validate for completed package criteria. Use `taskctl.py --tasks ".tasks/$ARGUMENTS/tasks.json" summary` for routine proof health when available. Do not treat `failed`, `blocked`, stale, wrong-package, or unapproved `manual_required` proof entries as verified work.
    - **Next actionable task** — first `pending` task with all dependencies `done`.
-   - **Next actionable work package** — first package with pending work whose package dependencies and external task dependencies are done. Show this only when `work_packages` exists.
+   - **Next actionable work package** — first package with pending work whose package dependencies and external task dependencies are done. Prefer `taskctl.py --tasks ".tasks/$ARGUMENTS/tasks.json" next-package` when available. Show this only when `work_packages` exists.
    - **Blocked tasks** — with `blocked_reason` if present.
 
 ## Status Icons
@@ -106,12 +106,14 @@ Phase 2: <phase name>
 
 If the user asks to change a task's status (e.g., "mark P1-T003 as done", "block P2-T001"):
 
-- **Marking `done`:** Update status and add `completed_at` with current ISO 8601 timestamp only when the user explicitly requests a status override. Warn that this does not create verification evidence and that audit/implement gates still require valid `verification.json` entries.
-- **Marking `blocked`:** Ask for a `blocked_reason` and add it to the task.
+- **Proof-backed package acceptance:** In implementation workflow, use `taskctl.py accept-package <WP-ID>` only after the package proof file validates, package verification passes, and required targeted/focused review gates pass.
+- **Marking `done` manually:** Update status and add `completed_at` with current ISO 8601 timestamp only when the user explicitly requests a status override. Warn that this does not create package proof and that audit/implement gates still require valid per-package proof files.
+- **Marking `blocked`:** Prefer `taskctl.py block-task <task-id> --reason "<reason>"` when available. If editing manually, require a `blocked_reason` and add it to the task.
+- **Resetting interrupted work:** Prefer `taskctl.py reset-task <task-id>` when returning a blocked/interrupted task to `pending`.
 - **Marking `skipped`:** Ask for confirmation first.
-- **All tasks `done` or `skipped`:** Update feature `status` to `completed`.
+- **All tasks `done` or `skipped`:** Do not treat feature completion as proof-backed until all package proofs validate and final review/audit gates have passed.
 
-Work package status is derived from task statuses. Do not directly mark a work package done; update the contained task statuses instead.
+Work package status is derived from task statuses. Do not directly mark a work package done; update the contained task statuses instead. Manual overrides are status-only; they never write `.tasks/<feature>/proofs/<WP-ID>.proof.json`.
 
 ## Edge Cases
 

@@ -35,11 +35,11 @@ The pipeline flows automatically with confirmation gates. Say **"proceed through
 | **implementation-plan** | Converts a completed brainstorming or requirements discussion into a structured task plan under `.tasks/<feature>/` with `SPEC.md`, structured task-level acceptance criteria, traceability source refs, `context_bundles`, `design_decisions`, and work packages. Runs triggered Design Preflight and conditional `spike-to-plan` evidence collection before durable plan artifacts for nontrivial/risky features. | Pipeline + Standalone |
 | **spike-to-plan** | Empirical feature spikes that validate uncertain assumptions before implementation planning. Produces planning evidence only; accepted outcomes become `design_decisions`, not persisted spike code. | Standalone + Planning hook |
 | **review-plan** | Plan review gate. Performs deterministic schema/traceability validation, then spawns one **Plan Reviewer** that challenges the approach first and checks artifact quality second. Adds a dedicated **Security/Failure-Mode Reviewer** only for security/privacy/safety-sensitive plans or explicit escalation. Validates `SPEC.md`, `tasks.json`, context bundles, risk metadata, work packages, and accepted `design_decisions` cold from files only. | Pipeline + Standalone |
-| **tasks** | Implementation status dashboard. Shows progress across all features or drills into a specific one with phase-by-phase breakdown and evidence-health warnings for planned-feature ledgers. Can modify task status on request, but status overrides do not create verification evidence. | Standalone |
+| **tasks** | Implementation status dashboard. Shows progress across all features or drills into a specific one with phase-by-phase breakdown and per-package proof-health warnings. Can modify task status on explicit request, but manual status overrides do not create package proof. | Standalone |
 | **spike-and-fix** | Bug-report troubleshooting that runs evidence-first diagnosis, validates candidate fixes in an isolated spike, then extracts a clean regression-tested bugfix/hotfix. Escalates to implementation planning when the blast radius is large. | Standalone |
-| **implement** | Unified delivery orchestrator. Presents an Execution Contract, creates git worktrees per package, dispatches packages to self-verifying sub-agents, validates `verification.json` evidence before merge/unlock, runs risk-triggered targeted package review, coordinates delegated fixes, invokes full review-code, and finishes with final internal audit. | Pipeline + Standalone |
-| **audit** | Acceptance-completeness verification. Spawns a read-only sub-agent that checks every SPEC/task acceptance criterion and verification-ledger entry against the final codebase state. It is the final internal pipeline gate after review-code and remains invocable standalone. | Internal pipeline gate + Standalone |
-| **review-code** | Bounded multi-agent code review. Always runs one **Code Reviewer**, adds at most one optional **Specialist Reviewer** for the highest-priority risk trigger, and uses a **Skeptic Agent** to verify serious findings before reporting. It uses available plan, ledger, context-bundle, and audit artifacts as task-awareness context, but audit remains the authoritative completeness gate. Local and pipeline `fix` paths delegate non-trivial fixes to Fix Implementers; PR mode is review-only and has no code-fix path. | Pipeline + Standalone + PR review |
+| **implement** | Unified delivery orchestrator. Presents an Execution Contract, creates git worktrees per package, dispatches packages to self-verifying sub-agents, validates `.tasks/<feature>/proofs/<WP-ID>.proof.json` before merge/unlock, runs risk-triggered targeted package review, coordinates delegated fixes, invokes full review-code, and finishes with final internal audit. | Pipeline + Standalone |
+| **audit** | Acceptance-completeness verification. Spawns a read-only sub-agent that checks every SPEC/task acceptance criterion and package proof entry against the final codebase state. It is the final internal pipeline gate after review-code and remains invocable standalone. | Internal pipeline gate + Standalone |
+| **review-code** | Bounded multi-agent code review. Always runs one **Code Reviewer**, adds at most one optional **Specialist Reviewer** for the highest-priority risk trigger, and uses a **Skeptic Agent** to verify serious findings before reporting. It uses available plan, package proof, context-bundle, and audit artifacts as task-awareness context, but audit remains the authoritative completeness gate. Local and pipeline `fix` paths delegate non-trivial fixes to Fix Implementers; PR mode is review-only and has no code-fix path. | Pipeline + Standalone + PR review |
 | **code-doc** | Generate comprehensive documentation for any codebase via hybrid analysis (native extractors + LLM agents). Adaptive 8-step pipeline: Scout → Existing Doc Assessment → Doc Plan → Analyze (delegate to sub-agents) → Synthesize → User Checkpoint → Generate (fan-out doc writers) → Review & Commit. Outputs 4 core docs (README, architecture-guide, developer-guide, codebase-context) plus optional docs (api-reference, data-model, component-guide, infrastructure). | Standalone |
 | **release** | Prepare and publish releases with explicit gates for base-branch detection (`main`/`master`), changelog creation/update, README/docs changes, version bumps, pushes/tags/GitHub releases, and scoped cleanup of release worktrees and feature branches. | Standalone |
 
@@ -47,7 +47,7 @@ The pipeline flows automatically with confirmation gates. Say **"proceed through
 
 | Mode | When | What it reviews | Fix boundary |
 |---|---|---|---|
-| **Pipeline** | During unified delivery after `implement` package work completes | Feature branch diff against `main` from the merge worktree, with available plan/ledger/context artifacts as task-awareness context | Delegates confirmed serious fixes in coherent batches; final internal audit runs after review-code is clean |
+| **Pipeline** | During unified delivery after `implement` package work completes | Feature branch diff against `main` from the merge worktree, with available plan/package-proof/context artifacts as task-awareness context | Delegates confirmed serious fixes in coherent batches; final internal audit runs after review-code is clean |
 | **PR** | You provide a PR identifier (`owner/repo#42`, URL, or `#42`) | Full PR diff from GitHub via `gh` CLI | Review-only: can approve, request changes, edit the report, or abort; no code-fix path and no local Fix Verification Review |
 | **Local** | No pipeline context, no PR identifier | Staged changes, unstaged changes, or branch diff (auto-detected) | `fix` delegates non-trivial fixes to a Fix Implementer, then requires a delegated Fix Reviewer before post-fix commit/readiness |
 
@@ -60,7 +60,7 @@ The pipeline flows automatically with confirmation gates. Say **"proceed through
 - **Risky review cap:** Code Reviewer + one selected Specialist Reviewer + conditional Skeptic Agent = 3 reviewers.
 - **Specialist priority:** security/privacy/safety, then data integrity/persistence, then performance, then architecture/integration. If several triggers match, only the highest-priority specialist runs.
 - **Big diffs:** broad diffs are split into semantic batches; each batch keeps the same reviewer caps, and a final global integration pass deduplicates and checks cross-batch conflicts without reopening full fanout.
-- **Task-awareness:** available `SPEC.md`, `tasks.json`, `verification.json`, context bundles, and audit results help review-code flag apparent omissions, contradictions, stale evidence, or regressions. These are consistency signals only; audit remains authoritative for acceptance-criteria and planned-task completeness.
+- **Task-awareness:** available `SPEC.md`, `tasks.json`, package proof files, context bundles, and audit results help review-code flag apparent omissions, contradictions, stale evidence, or regressions. These are consistency signals only; audit remains authoritative for acceptance-criteria and planned-task completeness.
 - **Local fixes:** non-trivial local `fix` work is delegated to a Fix Implementer and then verified by a Fix Reviewer against the fix delta. The main agent only handles super-simple mechanical typo/formatting fixes inline.
 - **PR boundary:** PR mode is review-only for code changes; it does not apply fixes and does not run local Fix Verification Review.
 - **Pipeline boundary:** pipeline review runs before final internal audit. Confirmed serious findings are delegated to Fix Implementers in coherent root-cause/package/risk batches; the orchestrator does not apply substantive production/test/documentation fixes inline.
@@ -160,8 +160,22 @@ The agent infers the feature name, creates `SPEC.md` and schema-versioned `tasks
 |---|---|
 | "Plan this feature" | Creates `SPEC.md` and `tasks.json`, asks to continue |
 | "Proceed through all stages" | Runs implementation-plan -> review-plan -> implement -> review-code/fix -> final audit, stopping only at required decision/unsafe-state gates |
-| Approve auto-resolve at Execution Contract | Runs package implementation, sub-agent self-verification, targeted package review, delegated fixes, full review-code, and final audit until clean or blocked |
+| Approve auto-resolve at Execution Contract | Runs package implementation, sub-agent self-verification, package proof validation, targeted package review, delegated fixes, full review-code, and final audit until clean or blocked |
 | Confirm at each gate | Step-by-step control over plan review, Execution Contract, review/fix, and final audit |
+
+### Task State Helper
+
+`assets/taskctl.py` provides concise, repository-local helpers for planned-feature task state and per-package proof files:
+
+```bash
+python3 plugins/super-developer/assets/taskctl.py --tasks .tasks/<feature>/tasks.json summary
+python3 plugins/super-developer/assets/taskctl.py --tasks .tasks/<feature>/tasks.json next-package
+python3 plugins/super-developer/assets/taskctl.py --tasks .tasks/<feature>/tasks.json proof-template WP1 --output .tasks/<feature>/proofs/WP1.proof.json
+python3 plugins/super-developer/assets/taskctl.py --tasks .tasks/<feature>/tasks.json validate-proof WP1
+python3 plugins/super-developer/assets/taskctl.py --tasks .tasks/<feature>/tasks.json accept-package WP1
+```
+
+The helper is not a TUI, workflow engine, generic JSON patch tool, central ledger reconciler, or reason to add heavyweight lifecycle history to `tasks.json`. Manual task-status overrides remain explicit user-intent operations and do not create `.tasks/<feature>/proofs/<WP-ID>.proof.json`. Detailed runbook: [`skills/implement/references/package-proof-lifecycle.md`](skills/implement/references/package-proof-lifecycle.md).
 
 ---
 
@@ -173,6 +187,7 @@ super-developer/
 |   +-- plugin.json                     # Plugin manifest
 +-- assets/
 |   +-- validate-tasks-json.py             # tasks.json schema/dependency validator
+|   +-- taskctl.py                         # task/proof lifecycle helper
 +-- references/
 |   +-- clean-code-rules.md               # Development Quality Contract for agents
 |   +-- model-preferences.md              # Sub-agent model selection schema
@@ -229,14 +244,14 @@ super-developer/
 
 | Decision | Rationale |
 |---|---|
-| Main agent orchestrates, sub-agents implement and self-verify | Separation of concerns — orchestrator manages git state, dispatch, evidence validation, and integration checks; sub-agents write code, run targeted checks, and update criterion-level evidence |
+| Main agent orchestrates, sub-agents implement and self-verify | Separation of concerns — orchestrator manages git state, dispatch, package-proof validation, and integration checks; sub-agents write code, run targeted checks, and update only their assigned package proof file |
 | Adaptive adversarial review | One Plan Reviewer runs by default; a Security/Failure-Mode Reviewer is added only for security/privacy/safety-sensitive plans or escalation. Code review uses a bounded topology: Code Reviewer always, at most one Specialist Reviewer selected by risk priority, and a conditional Skeptic Agent to verify serious findings before reporting. |
 | Git worktree isolation | Parallel sub-agents work in separate worktrees — no branch switching, no merge conflicts during implementation |
-| Verification ledger as proof index | Planned-feature pipelines require `.tasks/<feature>/verification.json`, but audit/review treat it as an index to proof rather than as proof by itself. Ledger entries must be criterion-scoped and state-bound. |
-| Evidence-first bug fixing | Bug work starts from reproduced evidence, uses isolated spike validation for candidate fixes when needed, then extracts durable tests and a clean fix branch instead of shipping exploratory changes. Review/audit fixes generalize the bug class and update ledger evidence. |
+| Per-package proof files | Planned-feature pipelines require one `.tasks/<feature>/proofs/<WP-ID>.proof.json` per work package. Audit/review treat each file as an index to proof rather than as proof by itself; entries must be criterion-scoped, source-ref-backed, state-bound, and current. |
+| Evidence-first bug fixing | Bug work starts from reproduced evidence, uses isolated spike validation for candidate fixes when needed, then extracts durable tests and a clean fix branch instead of shipping exploratory changes. Review/audit fixes generalize the bug class and update the owning package proof when planned-feature evidence is affected. |
 | Evidence-first planning for uncertain features | Planning uses triggered Design Preflight and, only when repo/docs inspection cannot resolve material assumptions, `spike-to-plan` to gather empirical evidence before durable `.tasks/` artifacts. Accepted outcomes are recorded as `design_decisions`; exploratory spike code is not persisted as the plan. |
 | Pipeline with Execution Contract gates | Flows automatically but stays under user control — auto-resolve for speed, step-by-step for precision, and hard stops for design/product changes, unsafe commands, missing facts, stale state, or repeated same-class failures |
-| Audit remains authoritative | Pipeline audit verifies "did we build what we planned" after code review and delegated fixes complete. Review-code may use plan and ledger artifacts as task-awareness context, but its task-awareness findings are consistency signals, not completeness proof. |
+| Audit remains authoritative | Pipeline audit verifies "did we build what we planned" after code review and delegated fixes complete. Review-code may use plan and package-proof artifacts as task-awareness context, but its task-awareness findings are consistency signals, not completeness proof. |
 | Feature name inference | The agent reads the conversation and proposes a name — no need to interrupt the flow for something obvious |
 | Work packages as delegation unit | Sub-agents are valuable, but each spawn has fixed context cost. Bundling related tasks into substantial packages reduces repeated codebase exploration while preserving parallelism for independent workstreams. |
 | One decision at a time | Reviewer findings that change what ships are presented as individual decision cards (recommendation + alternatives + tradeoffs). For review-code, decision cards are limited to confirmed serious findings with multiple materially different fix approaches; blanket mode does not bypass security/privacy/safety sniffing, Skeptic verification, or stale-state gates. |
