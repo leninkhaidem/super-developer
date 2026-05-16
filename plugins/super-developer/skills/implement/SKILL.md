@@ -126,23 +126,23 @@ Every selected planned-feature package is delegated to a sub-agent in its own pa
 
 Before spawning, announce package IDs, task IDs, branch/worktree names, primary paths, context bundles, risk tags, targeted-review decisions, screened verification commands, model choice, parallel/serial rationale, and any must-prove known-risk probes.
 
-Before spawning package agents, set assigned task statuses to `in-progress` in `tasks.json` and write the file. Package evidence is written to `.tasks/$ARGUMENTS/proofs/<WP-ID>.proof.json`; do not create or update a central `verification.json` ledger for planned-feature proof.
+Before spawning package agents, set assigned task statuses to `in-progress` in `tasks.json` and write the file. Evidence ledger/proof artifact paths remain governed by the loaded sub-agent contract until the proof-lifecycle cutover is complete; do not override them in Step 6.
 
-Load `plugins/super-developer/skills/implement/references/subagent-contract.md` and pass its contract to each package agent. Direct orchestrator edits are limited to workflow metadata (`tasks.json`, package proof acceptance/rejection bookkeeping), mechanical merge-conflict/status artifacts, and explicit user-approved plan/status changes.
+Load `plugins/super-developer/skills/implement/references/subagent-contract.md` and pass its contract to each package agent. Direct orchestrator edits are limited to workflow metadata (`tasks.json`, evidence acceptance/rejection bookkeeping), mechanical merge-conflict/status artifacts, and explicit user-approved plan/status changes.
 
 ## Step 7: Merge and Integration Checkpoint
 
 After all package agents in the current batch return:
 
-1. Validate their reports and package proof files before merge.
+1. Validate their reports and criterion-level evidence before merge.
 2. Merge each completed package branch once into `.worktrees/<feature>/merge`.
 3. Run the lightweight integration checkpoint before marking tasks done or dispatching downstream packages.
 4. Run targeted package review when `targeted_review_required` is true, risk tags trigger it, semantic high-risk package triggers apply, or serious-finding repair review requires exact-scope verification.
 5. Delegate fresh repair/verification agents for rejected packages or confirmed review findings; do not fix inline.
 
-Load `plugins/super-developer/skills/implement/references/integration-checkpoint.md` for package proof validation, package verification, targeted package review, semantic high-risk review triggers, focused repair verification, rejection rules, and repair packets.
+Load `plugins/super-developer/skills/implement/references/integration-checkpoint.md` for evidence validation, package verification, targeted package review, semantic high-risk review triggers, focused repair verification, rejection rules, and repair packets.
 
-Evidence/proof gate: do not mark a task `done` merely because code was committed. Done requires accepted package-proof evidence for every assigned acceptance criterion, successful package verification, and any required targeted package review/fix pass.
+Evidence gate: do not mark a task `done` merely because code was committed. Done requires accepted criterion-level evidence for every assigned acceptance criterion, successful package verification, and any required targeted package review/fix pass.
 
 ## Step 8: Update Status and Continue Batches
 
@@ -150,15 +150,15 @@ Only after the integration checkpoint and targeted package review pass:
 
 1. Set completed package tasks to `done` and add `completed_at`.
 2. If evidence is rejected or package work is incomplete, set `blocked` with `blocked_reason` or delegate the repair packet from the integration checkpoint reference.
-3. Report delegated evidence locations, package-proof status, orchestrator-rerun commands, targeted/semantic package review outcome, files changed, and unresolved risks.
+3. Report delegated evidence status, orchestrator-rerun commands, targeted/semantic package review outcome, files changed, and unresolved risks.
 4. Re-evaluate actionable packages and loop to Step 5 until no dispatchable work remains.
 
 ## Step 9: Final Feature Completion
 
 When all phases/tasks are complete:
 
-1. Run final proof validation with `python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/validate-tasks-json.py" --final ".tasks/<feature>/tasks.json"` from the integrated merge worktree when one exists. Reject stale, missing, failed, blocked, or unapproved manual-required package proof entries.
-2. Update feature `status` to `completed` only after final proof validation passes.
+1. Run final validation with `python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/validate-tasks-json.py" --final ".tasks/<feature>/tasks.json"` from the integrated merge worktree when one exists. Reject stale, missing, failed, blocked, or unapproved manual-required evidence entries.
+2. Update feature `status` to `completed` only after final validation passes.
 3. Run integrated feature tests/checks from `.worktrees/<feature>/merge` when it exists, applying the command-safety approval rule.
 4. Push the feature branch: `git push -u origin feature/<feature>`.
 5. **Do not merge to the target branch.** Wait for explicit user approval for the named `<target-ref>`. "Push to remote" does not mean "merge to target."
@@ -180,11 +180,11 @@ Do not execute review-code or audit logic inline; load each skill normally.
 ## Rules
 
 - The main agent orchestrates and verifies; it does not implement planned-feature packages or fixes inline.
-- Sub-agents implement and self-verify; they update their assigned `.tasks/<feature>/proofs/<WP-ID>.proof.json` with criterion-level evidence tied to stable acceptance criterion IDs.
+- Sub-agents implement and self-verify; they update the evidence ledger named by the loaded sub-agent contract with criterion-level evidence tied to stable acceptance criterion IDs.
 - The main agent owns git infrastructure. Sub-agents work only in assigned worktrees and do not create worktrees, branches, or merges.
 - Delegate work packages, not individual small tasks. Parallelize selectively only when dependencies and likely file impact are safe.
-- Validate package proof, integrated state, and required targeted/focused repair review before downstream delegation.
-- Fix findings by delegation with current evidence, diff, context bundles, package proof state, and exact criteria still unproven.
+- Validate evidence, integrated state, and required targeted/focused repair review before downstream delegation.
+- Fix findings by delegation with current evidence, diff, context bundles, evidence state, and exact criteria still unproven.
 - Do not modify `SPEC.md` or add tasks during implementation. Surface discovered additional work as a plan-update need.
 - Follow project conventions and ensure package agents read CLAUDE.md / AGENTS.md if present.
 - Never merge into `main` or any other target branch without explicit user approval for that exact target.
