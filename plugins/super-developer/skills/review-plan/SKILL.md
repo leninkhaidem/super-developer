@@ -126,7 +126,7 @@ Reviewer contract:
 Reviewer roles:
 - **Plan Reviewer:** Always run. Use the Plan Reviewer rubric: combined challenge first, then artifact QA. If the challenge pass finds a `[BLOCKER]` or `[CRITICAL]` semantic issue likely to change the plan, limit artifact QA to obvious mechanical/schema defects.
 - **Security/Failure-Mode Reviewer:** Run only for security/privacy/safety-sensitive plans or `ESCALATE_SECURITY_REVIEW`. Focus on security, privacy, safety, destructive actions, rollback, concurrency, malicious inputs, and failure modes.
-- **Security/Failure-Mode Reviewer must also check evidence failure modes:** stale verification ledger evidence, manual evidence reduced to a bare approval flag, unsafe verification commands, mocks for the contract under test, and packages that disable targeted review despite triggering risk tags.
+- **Security/Failure-Mode Reviewer must also check evidence failure modes:** stale package proof evidence, manual evidence reduced to a bare approval flag, unsafe verification commands, mocks for the contract under test, and packages that disable targeted review despite triggering risk tags.
 
 ## Step 7: Merge, Triage, and Resolve
 

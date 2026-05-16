@@ -23,12 +23,12 @@ SPEC = """# CLI Proof Feature
 ## Requirements
 - REQ-1: Emit read-only proof templates.
 - REQ-2: Validate package proofs.
-- REQ-3: Preserve final verification ledgers.
+    - REQ-3: Use accepted package proofs for final validation.
 
 ## Acceptance Criteria
 - AC-1: Proof templates are deterministic.
 - AC-2: Proof validation is exposed through the CLI.
-- AC-3: Final verification ledgers remain authoritative.
+    - AC-3: Accepted package proofs are authoritative for final validation.
 """
 
 
@@ -121,7 +121,7 @@ class TaskctlCliTests(unittest.TestCase):
                         {
                             "type": "code",
                             "path_or_url": "plugins/super-developer/assets/validate-tasks-json.py",
-                            "claims": ["verification.json final validation remains authoritative."],
+                            "claims": ["accepted package proofs are authoritative for final validation."],
                         }
                     ],
                     "verification_required": ["Final-gate evidence cites CTX-2."],
@@ -144,8 +144,8 @@ class TaskctlCliTests(unittest.TestCase):
                 },
                 {
                     "id": "WP2",
-                    "title": "Final compatibility",
-                    "description": "Preserve final verification ledgers.",
+                    "title": "Final proof gate",
+                    "description": "Require accepted package proofs.",
                     "task_ids": ["P1-T002"],
                     "depends_on": ["WP1"],
                     "parallel_safe_with": [],
@@ -198,20 +198,20 @@ class TaskctlCliTests(unittest.TestCase):
                         },
                         {
                             "id": "P1-T002",
-                            "title": "Final compatibility",
-                            "description": "Keep verification.json authoritative.",
+                            "title": "Final proof gate",
+                            "description": "Require accepted package proofs.",
                             "status": "in-progress",
                             "dependencies": ["P1-T001"],
                             "acceptance_criteria": [
                                 {
                                     "id": "P1-T002-AC1",
-                                    "criterion": "Final verification ledger validation remains authoritative.",
+                                    "criterion": "Accepted package proof validation remains authoritative.",
                                     "source_refs": [
                                         {"type": "spec_req", "id": "REQ-3"},
                                         {"type": "spec_ac", "id": "AC-3"},
                                         {"type": "context_bundle", "id": "CTX-2"},
                                     ],
-                                    "verification_hint": "Run validate-tasks-json.py --final.",
+                                    "verification_hint": "Run validate-tasks-json.py --final with accepted proofs.",
                                 }
                             ],
                             "required_context_bundles": [],
@@ -425,7 +425,7 @@ class TaskctlCliTests(unittest.TestCase):
             self.assertIn(command, result.stdout)
         for forbidden in ("finalize-feature", "status mutation", "task status"):
             self.assertNotIn(forbidden, result.stdout)
-        self.assertIn("package-level proof lifecycle", result.stdout)
+        self.assertIn("Accepted package proofs", result.stdout)
 
     def test_all_approved_commands_are_read_only_on_success(self) -> None:
         commands = [
@@ -487,7 +487,7 @@ class TaskctlCliTests(unittest.TestCase):
         package = must_prove["packages"][0]
         self.assertEqual(["orchestration", "validation"], package["risk_tags"])
         self.assertEqual({"in-progress": 1}, package["task_status_counts"])
-        self.assertEqual("valid", package["proof"]["status"])
+        self.assertEqual("unaccepted", package["proof"]["status"])
         self.assertEqual(
             "Run proof-template and inspect stable JSON.",
             package["criteria"][0]["verification_hint"],
@@ -496,8 +496,10 @@ class TaskctlCliTests(unittest.TestCase):
         summary = json.loads(
             self.assert_read_only("summary", "--tasks", str(self.tasks_path)).stdout
         )
-        self.assertEqual("verification.json remains authoritative in this release.", summary["final_gate"])
-        self.assertEqual({"valid": 2}, summary["proof_health"])
+        self.assertEqual(
+            "accepted package proofs are authoritative in this release.", summary["final_gate"]
+        )
+        self.assertEqual({"unaccepted": 2}, summary["proof_health"])
 
     def test_accept_package_writes_selected_proof_lifecycle_state(self) -> None:
         proof_path = self.proofs_dir / "WP1.proof.json"
@@ -898,12 +900,13 @@ class TaskctlCliTests(unittest.TestCase):
                 self.assert_read_only(*command)
                 self.assertFalse(self.sentinel.exists())
 
-    def test_final_verification_json_compatibility_ignores_package_proofs(self) -> None:
+    def test_final_validation_requires_accepted_package_proofs(self) -> None:
         verification_path = self.feature_dir / "verification.json"
         self.accept_package("WP1")
         self.accept_package("WP2")
-        self.reopen_package("WP2")
-        verification_path.write_text(json.dumps(self.final_ledger(), indent=2), encoding="utf-8")
+        invalid_ledger = self.final_ledger()
+        invalid_ledger["entries"][0]["status"] = "failed"
+        verification_path.write_text(json.dumps(invalid_ledger, indent=2), encoding="utf-8")
         valid = self.validator(
             "--final",
             "--worktree",
@@ -911,11 +914,10 @@ class TaskctlCliTests(unittest.TestCase):
             str(self.tasks_path),
         )
         self.assertEqual(0, valid.returncode, valid.stdout + valid.stderr)
-        self.assertIn("verification.json are valid", valid.stdout)
+        self.assertIn("package proofs are valid", valid.stdout)
 
-        invalid_ledger = self.final_ledger()
-        invalid_ledger["entries"][0]["status"] = "failed"
-        verification_path.write_text(json.dumps(invalid_ledger, indent=2), encoding="utf-8")
+        self.reopen_package("WP2")
+        verification_path.write_text(json.dumps(self.final_ledger(), indent=2), encoding="utf-8")
         invalid = self.validator(
             "--final",
             "--worktree",
@@ -923,7 +925,7 @@ class TaskctlCliTests(unittest.TestCase):
             str(self.tasks_path),
         )
         self.assertNotEqual(0, invalid.returncode)
-        self.assertIn("cannot contain 'failed'", invalid.stdout)
+        self.assertIn("expected 'accepted'", invalid.stdout)
 
     def test_taskctl_uses_only_stdlib_imports(self) -> None:
         tree = ast.parse(TASKCTL_PATH.read_text(encoding="utf-8"))

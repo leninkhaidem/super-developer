@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate super-developer tasks.json, package proofs, and verification ledgers."""
+"""Validate super-developer tasks.json, package proofs, and historical verification ledgers."""
 
 from __future__ import annotations
 
@@ -172,17 +172,13 @@ TARGETED_REVIEW_RISK_TAGS = {
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Validate super-developer task plans and optional verification ledgers."
+        description="Validate super-developer task plans and optional package proof final gates."
     )
     parser.add_argument("path", help="Path to .tasks/<feature>/tasks.json")
     parser.add_argument(
         "--final",
         action="store_true",
-        help="Also validate verification.json as a final/audit gate.",
-    )
-    parser.add_argument(
-        "--verification",
-        help="Path to verification.json (defaults to sibling verification.json).",
+        help="Also validate accepted package proofs as a final/audit gate.",
     )
     parser.add_argument(
         "--worktree",
@@ -208,10 +204,9 @@ def main() -> int:
     errors, plan_index = validate_tasks_json(data, tasks_path=tasks_path, spec_path=spec_path)
 
     if args.final:
-        verification_path = Path(args.verification) if args.verification else tasks_path.with_name("verification.json")
         errors.extend(
-            validate_verification_json_file(
-                verification_path,
+            validate_final_package_proofs(
+                tasks_path,
                 plan_index,
                 worktree=Path(args.worktree) if args.worktree else Path.cwd(),
             )
@@ -224,7 +219,7 @@ def main() -> int:
         return 1
 
     if args.final:
-        print("OK: tasks.json and verification.json are valid")
+        print("OK: tasks.json and package proofs are valid")
     else:
         print("OK: tasks.json is valid")
     return 0
@@ -1211,6 +1206,59 @@ def validate_package_proof_json_file(
     return errors
 
 
+def validate_final_package_proofs(
+    tasks_path: Path, plan_index: dict[str, Any], *, worktree: Path
+) -> list[str]:
+    errors: list[str] = []
+    package_ids = sorted(plan_index.get("package_ids", set()), key=package_id_sort_key)
+    expected_paths = {
+        expected_package_proof_path(tasks_path, package_id) for package_id in package_ids
+    }
+    proofs_dir = tasks_path.with_name("proofs")
+    existing_paths = set(proofs_dir.glob("*.proof.json")) if proofs_dir.exists() else set()
+    for extra_path in sorted(existing_paths - expected_paths):
+        errors.append(f"package proof: unexpected proof file at {extra_path}")
+
+    for package_id in package_ids:
+        proof_path = expected_package_proof_path(tasks_path, package_id)
+        try:
+            with proof_path.open("r", encoding="utf-8") as f:
+                proof = json.load(f)
+        except FileNotFoundError:
+            errors.append(f"{package_id}: package proof: file not found at {proof_path}")
+            continue
+        except json.JSONDecodeError as exc:
+            errors.append(f"{package_id}: package proof: invalid JSON: {exc}")
+            continue
+        except (OSError, UnicodeDecodeError) as exc:
+            errors.append(f"{package_id}: package proof: unable to read {proof_path}: {exc}")
+            continue
+
+        proof_errors = validate_package_proof_json(
+            proof,
+            plan_index,
+            worktree=worktree,
+            proof_path=proof_path,
+            tasks_path=tasks_path,
+        )
+        errors.extend(f"{package_id}: {error}" for error in proof_errors)
+        if isinstance(proof, dict):
+            lifecycle_state = package_lifecycle_state_name(proof)
+            if lifecycle_state != "accepted":
+                errors.append(
+                    f"{package_id}: package proof.lifecycle.state: "
+                    f"expected 'accepted' for final validation, got {lifecycle_state!r}"
+                )
+    return errors
+
+
+def package_id_sort_key(package_id: str) -> tuple[int, str]:
+    match = WORK_PACKAGE_ID_RE.fullmatch(package_id)
+    if match:
+        return (int(package_id[2:]), package_id)
+    return (0, package_id)
+
+
 def normalized_existing_or_candidate_path(path: Path) -> Path:
     try:
         return path.resolve(strict=False)
@@ -1873,7 +1921,7 @@ def validate_ledger_entry(
     if isinstance(status, str) and status not in LEDGER_STATUSES:
         errors.append(f"{path}.status: expected one of {sorted(LEDGER_STATUSES)}, got {status!r}")
     if status in {"failed", "blocked"}:
-        errors.append(f"{path}.status: final ledger cannot contain {status!r} entry")
+        errors.append(f"{path}.status: final evidence cannot contain {status!r} entry")
     if isinstance(method, str) and method not in LEDGER_METHODS:
         errors.append(f"{path}.method: expected one of {sorted(LEDGER_METHODS)}, got {method!r}")
 
@@ -1987,7 +2035,7 @@ def validate_ledger_evidence(
         if isinstance(exit_code, bool) or not isinstance(exit_code, int):
             errors.append(f"{command_path}.exit_code: expected integer")
         elif exit_code != 0:
-            errors.append(f"{command_path}.exit_code: final ledger command must pass, got {exit_code}")
+            errors.append(f"{command_path}.exit_code: final evidence command must pass, got {exit_code}")
 
     require_string_list(evidence, "edge_cases", f"{path}.edge_cases", errors, required=False)
     require_string_list(evidence, "context_bundles", f"{path}.context_bundles", errors, required=False)
@@ -2028,7 +2076,7 @@ def validate_manual_evidence(
                     )
             if criterion_id is not None and criterion_id not in values:
                 errors.append(
-                    f"{path}.{field}: must include ledger criterion_id {criterion_id!r}"
+                    f"{path}.{field}: must include entry criterion_id {criterion_id!r}"
                 )
         else:
             require_non_empty_string(evidence, field, f"{path}.{field}", errors)
@@ -2084,7 +2132,7 @@ def require_artifact_state_reference(value: Any, path: str, errors: list[str]) -
         return
     if not any(marker in normalized for marker in STATE_REFERENCE_MARKERS):
         errors.append(
-            f"{path}: expected artifact context such as file, command, commit, proof, or ledger reference"
+            f"{path}: expected artifact context such as file, command, commit, or proof reference"
         )
 
 
