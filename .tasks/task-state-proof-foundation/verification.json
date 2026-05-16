@@ -1,0 +1,315 @@
+{
+  "schema_version": 1,
+  "feature": "task-state-proof-foundation",
+  "entries": [
+    {
+      "criterion_id": "P1-T001-AC1",
+      "task_id": "P1-T001",
+      "package_id": "WP1",
+      "status": "verified",
+      "method": "mixed",
+      "source_refs": [
+        {"type": "spec_req", "id": "REQ-1"},
+        {"type": "spec_req", "id": "REQ-2"},
+        {"type": "spec_ac", "id": "AC-1"},
+        {"type": "spec_ac", "id": "AC-3"},
+        {"type": "design_decision", "id": "DD-2"},
+        {"type": "context_bundle", "id": "CTX-1"}
+      ],
+      "state": {
+        "git_ref": "task/task-state-proof-foundation/WP1",
+        "commit": "3174146214cd19075c87463cd2924c1e308427f1",
+        "worktree": "/home/lenin/work-repos/super-developer/.worktrees/task-state-proof-foundation/wp-WP1",
+        "captured_at": "2026-05-16T13:21:38Z"
+      },
+      "evidence": {
+        "files": [
+          "plugins/super-developer/assets/validate-tasks-json.py",
+          "plugins/super-developer/assets/tests/test_validate_package_proofs.py"
+        ],
+        "commands": [
+          {
+            "cwd": "/home/lenin/work-repos/super-developer/.worktrees/task-state-proof-foundation/wp-WP1",
+            "command": "python3 -m unittest discover plugins/super-developer/assets/tests",
+            "exit_code": 0,
+            "observed": "Ran 9 tests successfully; valid proof file coverage now accepts only .tasks/<feature>/proofs/WP1.proof.json and rejects valid proofs in a wrong directory or with a wrong filename."
+          },
+          {
+            "cwd": "/home/lenin/work-repos/super-developer/.worktrees/task-state-proof-foundation/wp-WP1",
+            "command": "python3 -m py_compile plugins/super-developer/assets/validate-tasks-json.py",
+            "exit_code": 0,
+            "observed": "Validator compiled successfully after extending package proof file validation to compare proof_path against expected_package_proof_path(tasks_path, package_id)."
+          },
+          {
+            "cwd": "/home/lenin/work-repos/super-developer/.worktrees/task-state-proof-foundation/wp-WP1",
+            "command": "python3 plugins/super-developer/assets/validate-tasks-json.py .tasks/task-state-proof-foundation/tasks.json",
+            "exit_code": 0,
+            "observed": "Current task plan validation remains compatible and reports OK."
+          }
+        ],
+        "edge_cases": [
+          "proof root schema_version, feature, package_id, and entries type validation",
+          "full proof path binding to .tasks/<feature>/proofs/WP<N>.proof.json",
+          "wrong proof directory rejection",
+          "wrong proof filename rejection",
+          "exact package-owned acceptance criterion coverage"
+        ],
+        "context_bundles": ["CTX-1", "CTX-2"],
+        "mocks": "none"
+      }
+    },
+    {
+      "criterion_id": "P1-T001-AC2",
+      "task_id": "P1-T001",
+      "package_id": "WP1",
+      "status": "verified",
+      "method": "mixed",
+      "source_refs": [
+        {"type": "spec_req", "id": "REQ-2"},
+        {"type": "spec_req", "id": "REQ-5"},
+        {"type": "spec_ac", "id": "AC-2"},
+        {"type": "design_decision", "id": "DD-2"},
+        {"type": "context_bundle", "id": "CTX-1"}
+      ],
+      "state": {
+        "git_ref": "task/task-state-proof-foundation/WP1",
+        "commit": "3174146214cd19075c87463cd2924c1e308427f1",
+        "worktree": "/home/lenin/work-repos/super-developer/.worktrees/task-state-proof-foundation/wp-WP1",
+        "captured_at": "2026-05-16T13:21:38Z"
+      },
+      "evidence": {
+        "files": [
+          "plugins/super-developer/assets/validate-tasks-json.py",
+          "plugins/super-developer/assets/tests/test_validate_package_proofs.py"
+        ],
+        "commands": [
+          {
+            "cwd": "/home/lenin/work-repos/super-developer/.worktrees/task-state-proof-foundation/wp-WP1",
+            "command": "python3 -m unittest discover plugins/super-developer/assets/tests",
+            "exit_code": 0,
+            "observed": "Ran 9 tests successfully; proof validation rejects source-ref mismatch, failed/blocked status, malformed and vague manual evidence, stale file evidence, and keeps recorded commands inert."
+          },
+          {
+            "cwd": "/home/lenin/work-repos/super-developer/.worktrees/task-state-proof-foundation/wp-WP1",
+            "command": "python3 -m py_compile plugins/super-developer/assets/validate-tasks-json.py",
+            "exit_code": 0,
+            "observed": "Shared ledger validation helpers and package proof wrappers compile successfully."
+          }
+        ],
+        "edge_cases": [
+          "ledger source_refs exact match",
+          "status and method taxonomy reuse",
+          "state binding and stale cited-file checks",
+          "manual evidence rejects approval-only or vague text without artifact context",
+          "recorded command evidence is inspected and not executed"
+        ],
+        "context_bundles": ["CTX-1", "CTX-2"],
+        "mocks": "none"
+      }
+    },
+    {
+      "criterion_id": "P1-T001-AC3",
+      "task_id": "P1-T001",
+      "package_id": "WP1",
+      "status": "verified",
+      "method": "mixed",
+      "source_refs": [
+        {"type": "spec_req", "id": "REQ-5"},
+        {"type": "spec_ac", "id": "AC-2"},
+        {"type": "context_bundle", "id": "CTX-1"}
+      ],
+      "state": {
+        "git_ref": "task/task-state-proof-foundation/WP1",
+        "commit": "3174146214cd19075c87463cd2924c1e308427f1",
+        "worktree": "/home/lenin/work-repos/super-developer/.worktrees/task-state-proof-foundation/wp-WP1",
+        "captured_at": "2026-05-16T13:21:38Z"
+      },
+      "evidence": {
+        "files": [
+          "plugins/super-developer/assets/validate-tasks-json.py",
+          "plugins/super-developer/assets/tests/test_validate_package_proofs.py"
+        ],
+        "commands": [
+          {
+            "cwd": "/home/lenin/work-repos/super-developer/.worktrees/task-state-proof-foundation/wp-WP1",
+            "command": "python3 -m unittest discover plugins/super-developer/assets/tests",
+            "exit_code": 0,
+            "observed": "Ran 9 tests successfully; package-level CTX-1 and task/criterion-level CTX-2 citation omissions are both rejected."
+          },
+          {
+            "cwd": "/home/lenin/work-repos/super-developer/.worktrees/task-state-proof-foundation/wp-WP1",
+            "command": "python3 -m py_compile plugins/super-developer/assets/validate-tasks-json.py",
+            "exit_code": 0,
+            "observed": "Context-bundle proof citation helper compiles successfully."
+          }
+        ],
+        "edge_cases": [
+          "missing package required context bundle citation",
+          "missing task required context bundle citation",
+          "missing context_bundle source_ref citation"
+        ],
+        "context_bundles": ["CTX-1", "CTX-2"],
+        "mocks": "none"
+      }
+    },
+    {
+      "criterion_id": "P1-T001-AC4",
+      "task_id": "P1-T001",
+      "package_id": "WP1",
+      "status": "verified",
+      "method": "mixed",
+      "source_refs": [
+        {"type": "spec_req", "id": "REQ-4"},
+        {"type": "spec_ac", "id": "AC-5"},
+        {"type": "design_decision", "id": "DD-4"},
+        {"type": "context_bundle", "id": "CTX-2"}
+      ],
+      "state": {
+        "git_ref": "task/task-state-proof-foundation/WP1",
+        "commit": "3174146214cd19075c87463cd2924c1e308427f1",
+        "worktree": "/home/lenin/work-repos/super-developer/.worktrees/task-state-proof-foundation/wp-WP1",
+        "captured_at": "2026-05-16T13:21:38Z"
+      },
+      "evidence": {
+        "files": [
+          "plugins/super-developer/assets/validate-tasks-json.py",
+          "plugins/super-developer/assets/tests/test_validate_package_proofs.py"
+        ],
+        "commands": [
+          {
+            "cwd": "/home/lenin/work-repos/super-developer/.worktrees/task-state-proof-foundation/wp-WP1",
+            "command": "python3 plugins/super-developer/assets/validate-tasks-json.py .tasks/task-state-proof-foundation/tasks.json",
+            "exit_code": 0,
+            "observed": "Current task plan validation remains compatible and reports OK."
+          },
+          {
+            "cwd": "/home/lenin/work-repos/super-developer/.worktrees/task-state-proof-foundation/wp-WP1",
+            "command": "python3 -m unittest discover plugins/super-developer/assets/tests",
+            "exit_code": 0,
+            "observed": "Ran 9 tests successfully; final --final subprocess validation succeeds with malformed proof files present and final ledger invalid cases still reject without proof consultation."
+          },
+          {
+            "cwd": "/home/lenin/work-repos/super-developer/.worktrees/task-state-proof-foundation/wp-WP1",
+            "command": "python3 -m py_compile plugins/super-developer/assets/validate-tasks-json.py",
+            "exit_code": 0,
+            "observed": "Validator CLI remains syntactically valid."
+          }
+        ],
+        "edge_cases": [
+          "valid final verification.json success with malformed proof file present",
+          "final ledger stale, failed, blocked, missing, vague, malformed, and incomplete rejection",
+          "package proofs remain additive helpers, not final success authority"
+        ],
+        "context_bundles": ["CTX-1", "CTX-2"],
+        "mocks": "none"
+      }
+    },
+    {
+      "criterion_id": "P1-T002-AC1",
+      "task_id": "P1-T002",
+      "package_id": "WP1",
+      "status": "verified",
+      "method": "mixed",
+      "source_refs": [
+        {"type": "spec_req", "id": "REQ-5"},
+        {"type": "spec_req", "id": "REQ-7"},
+        {"type": "spec_ac", "id": "AC-2"},
+        {"type": "spec_ac", "id": "AC-6"},
+        {"type": "context_bundle", "id": "CTX-1"}
+      ],
+      "state": {
+        "git_ref": "task/task-state-proof-foundation/WP1",
+        "commit": "3174146214cd19075c87463cd2924c1e308427f1",
+        "worktree": "/home/lenin/work-repos/super-developer/.worktrees/task-state-proof-foundation/wp-WP1",
+        "captured_at": "2026-05-16T13:21:38Z"
+      },
+      "evidence": {
+        "files": [
+          "plugins/super-developer/assets/tests/test_validate_package_proofs.py",
+          "plugins/super-developer/assets/validate-tasks-json.py"
+        ],
+        "commands": [
+          {
+            "cwd": "/home/lenin/work-repos/super-developer/.worktrees/task-state-proof-foundation/wp-WP1",
+            "command": "python3 -m unittest discover plugins/super-developer/assets/tests",
+            "exit_code": 0,
+            "observed": "Ran 9 tests successfully; invalid proof regressions now include wrong proof directory and wrong filename alongside wrong feature/package binding, missing/extra/duplicate criteria, source-ref mismatch, failed/blocked statuses, malformed/vague manual evidence, missing context citations, and stale file evidence."
+          },
+          {
+            "cwd": "/home/lenin/work-repos/super-developer/.worktrees/task-state-proof-foundation/wp-WP1",
+            "command": "python3 -m py_compile plugins/super-developer/assets/validate-tasks-json.py",
+            "exit_code": 0,
+            "observed": "Validator compiles with the regression-tested proof path API extension."
+          },
+          {
+            "cwd": "/home/lenin/work-repos/super-developer/.worktrees/task-state-proof-foundation/wp-WP1",
+            "command": "python3 plugins/super-developer/assets/validate-tasks-json.py .tasks/task-state-proof-foundation/tasks.json",
+            "exit_code": 0,
+            "observed": "Current task plan validation remains compatible and reports OK."
+          }
+        ],
+        "edge_cases": [
+          "wrong proof directory accepted by the old file-level helper",
+          "wrong proof filename rejection with tasks_path-aware expected path",
+          "malformed proof JSON parse error",
+          "non-object proof root",
+          "non-list proof entries",
+          "missing and invalid schema_version",
+          "wrong root and entry field types",
+          "wrong binding and exact criterion coverage failures",
+          "stale evidence using a real temporary git repository"
+        ],
+        "context_bundles": ["CTX-1", "CTX-2"],
+        "mocks": "none"
+      }
+    },
+    {
+      "criterion_id": "P1-T002-AC2",
+      "task_id": "P1-T002",
+      "package_id": "WP1",
+      "status": "verified",
+      "method": "mixed",
+      "source_refs": [
+        {"type": "spec_req", "id": "REQ-5"},
+        {"type": "spec_req", "id": "REQ-6"},
+        {"type": "spec_req", "id": "REQ-7"},
+        {"type": "spec_ac", "id": "AC-4"},
+        {"type": "spec_ac", "id": "AC-6"},
+        {"type": "design_decision", "id": "DD-3"}
+      ],
+      "state": {
+        "git_ref": "task/task-state-proof-foundation/WP1",
+        "commit": "3174146214cd19075c87463cd2924c1e308427f1",
+        "worktree": "/home/lenin/work-repos/super-developer/.worktrees/task-state-proof-foundation/wp-WP1",
+        "captured_at": "2026-05-16T13:21:38Z"
+      },
+      "evidence": {
+        "files": [
+          "plugins/super-developer/assets/tests/test_validate_package_proofs.py",
+          "plugins/super-developer/assets/validate-tasks-json.py"
+        ],
+        "commands": [
+          {
+            "cwd": "/home/lenin/work-repos/super-developer/.worktrees/task-state-proof-foundation/wp-WP1",
+            "command": "python3 -m unittest discover plugins/super-developer/assets/tests",
+            "exit_code": 0,
+            "observed": "Ran 9 tests successfully; sentinel recorded command evidence is inspected during proof validation and leaves no sentinel side-effect file."
+          },
+          {
+            "cwd": "/home/lenin/work-repos/super-developer/.worktrees/task-state-proof-foundation/wp-WP1",
+            "command": "python3 -m py_compile plugins/super-developer/assets/validate-tasks-json.py",
+            "exit_code": 0,
+            "observed": "Validator compiles and contains no command execution path for proof evidence beyond git freshness checks for cited files."
+          }
+        ],
+        "edge_cases": [
+          "recorded command string would create a sentinel if executed",
+          "proof validation checks command evidence shape and exit_code only",
+          "no package verification command is executed from proof data"
+        ],
+        "context_bundles": ["CTX-1", "CTX-2"],
+        "mocks": "none"
+      }
+    }
+  ]
+}
