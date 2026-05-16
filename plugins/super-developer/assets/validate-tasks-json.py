@@ -1413,7 +1413,7 @@ def package_lifecycle_transition_errors(
             return []
         return [
             "package lifecycle transition: accepted -> accepted is only allowed "
-            "as an idempotent rerun for the same proof digest and accepted state"
+            "as an idempotent rerun for the same proof_digest and accepted state"
         ]
 
     allowed_targets = PACKAGE_LIFECYCLE_TRANSITIONS.get(current_state, set())
@@ -1512,6 +1512,7 @@ def validate_package_lifecycle_state_for_replacement(
         proof,
         worktree,
         enforce_freshness=False,
+        enforce_worktree=False,
     )
 
 
@@ -1626,6 +1627,7 @@ def validate_lifecycle_state_binding(
     worktree: Path,
     *,
     enforce_freshness: bool = True,
+    enforce_worktree: bool = True,
 ) -> None:
     if not isinstance(binding, dict):
         errors.append(f"{path}: expected object")
@@ -1643,7 +1645,11 @@ def validate_lifecycle_state_binding(
 
     stored_worktree = binding.get("worktree")
     expected_worktree = str(normalized_existing_or_candidate_path(worktree))
-    if isinstance(stored_worktree, str) and stored_worktree != expected_worktree:
+    if (
+        enforce_worktree
+        and isinstance(stored_worktree, str)
+        and stored_worktree != expected_worktree
+    ):
         errors.append(f"{path}.worktree: expected {expected_worktree!r}, got {stored_worktree!r}")
 
     commit = binding.get("commit")

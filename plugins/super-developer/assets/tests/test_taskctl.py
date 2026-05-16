@@ -544,6 +544,47 @@ class TaskctlCliTests(unittest.TestCase):
         self.assertFalse(second["lifecycle"]["changed"])
         self.assertFalse(self.sentinel.exists())
 
+    def test_accept_package_rebinds_same_proof_to_new_worktree(self) -> None:
+        self.accept_package()
+        merge_worktree = self.tmp_path / "merge-worktree"
+        self.git("worktree", "add", "-b", "feature-merge", str(merge_worktree), "HEAD")
+        proof_path = self.proofs_dir / "WP1.proof.json"
+        before = self.snapshot_read_only_paths()
+
+        result = self.taskctl(
+            "accept-package",
+            "--tasks",
+            str(self.tasks_path),
+            "--worktree",
+            str(merge_worktree),
+            str(proof_path),
+        )
+        after = self.snapshot_read_only_paths()
+
+        self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+        self.assert_only_repo_path_changed(before, after, proof_path)
+        output = json.loads(result.stdout)
+        self.assertEqual("accepted", output["lifecycle"]["previous_state"])
+        self.assertEqual("accepted", output["lifecycle"]["state"])
+        self.assertTrue(output["lifecycle"]["changed"])
+        proof = self.read_proof()
+        self.assertEqual(
+            str(merge_worktree.resolve(strict=False)),
+            proof["lifecycle"]["state_binding"]["worktree"],
+        )
+        self.assertEqual("feature-merge", proof["lifecycle"]["state_binding"]["git_ref"])
+        self.assertEqual(self.commit, proof["lifecycle"]["state_binding"]["commit"])
+        validated = self.taskctl(
+            "validate-proof",
+            "--tasks",
+            str(self.tasks_path),
+            "--worktree",
+            str(merge_worktree),
+            str(proof_path),
+        )
+        self.assertEqual(0, validated.returncode, validated.stdout + validated.stderr)
+        self.assertFalse(self.sentinel.exists())
+
     def test_accept_package_rejects_changed_or_fake_accepted_state_without_write(self) -> None:
         accepted = self.read_proof()
         self.accept_package()
