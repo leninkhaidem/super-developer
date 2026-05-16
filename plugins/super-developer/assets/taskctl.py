@@ -177,8 +177,8 @@ def _criterion_entry_skeleton(row: dict[str, Any], package_id: str) -> dict[str,
         "criterion_id": criterion_id,
         "task_id": task.get("id", ""),
         "package_id": package_id,
-        "status": "manual_required",
-        "method": "manual",
+        "status": _ledger_status("manual_required"),
+        "method": _ledger_method("manual"),
         "source_refs": criterion.get("source_refs", []),
         "state": {
             "git_ref": "<branch-or-ref>",
@@ -367,6 +367,17 @@ def _feature_status(name: str) -> str:
         raise RuntimeError(f"validator does not define feature status {name!r}")
     return name
 
+
+def _ledger_status(name: str) -> str:
+    if name not in validator.LEDGER_STATUSES:
+        raise RuntimeError(f"validator does not define proof status {name!r}")
+    return name
+
+
+def _ledger_method(name: str) -> str:
+    if name not in validator.LEDGER_METHODS:
+        raise RuntimeError(f"validator does not define proof method {name!r}")
+    return name
 
 def _validate_after_mutation(data: dict[str, Any], tasks_path: Path, spec_path: Path | None) -> dict[str, Any]:
     errors, plan_index = validator.validate_tasks_json(data, tasks_path=tasks_path, spec_path=spec_path)
