@@ -40,8 +40,8 @@ Each Fix Implementer receives:
 
 - Confirmed 🔴 and 🟠 findings, including dedupe keys, Skeptic verdicts, evidence, and recommendations
 - Reviewed-state metadata
-- `SPEC.md`, `tasks.json`, `verification.json`, relevant context bundles, prior targeted package
-  review/audit results when available, and exact acceptance criteria or ledger entries affected
+- `SPEC.md`, `tasks.json`, package proofs, relevant context bundles, prior targeted package
+  review/audit results when available, and exact acceptance criteria or proof entries affected
 - Target paths, current diff, and exact scope boundaries
 - User constraints, repository constraints, and mode constraints
 - Decision-card outcomes from `decision-filter.md` when any finding required a prompt
@@ -50,8 +50,8 @@ Each Fix Implementer receives:
 
 The Fix Implementer must reproduce or locate each finding, state the bug-class/equivalence class for
 every 🔴/🟠 finding, add or adjust regression/table-driven coverage where applicable, fix minimally,
-run targeted checks, update `verification.json` with state-bound evidence when a planned-feature
-criterion or ledger entry is affected, and report unresolved scope/design blockers. Do not patch only
+run targeted checks, update the affected package proof with state-bound evidence when a planned-feature
+criterion or proof entry is affected, and report unresolved scope/design blockers. Do not patch only
 the exact reported example when the finding represents a class of inputs or states.
 
 ## Stale-State Gate

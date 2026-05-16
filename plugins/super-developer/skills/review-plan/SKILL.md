@@ -31,6 +31,7 @@ Do not execute semantic review as the main agent. Spawn sub-agents for reviewer 
    - `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/plan-review-rubrics.md` — narrowed reviewer rubrics, escalation guidance, and design-decision challenge rules.
    - `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/plan-review-resolution.md` — finding triage, resolution categories, dismissal/defer rules, and re-review bounds.
    - `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/decision-prompts.md` — decision-card mechanics and blanket-mode threshold.
+   - `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/tool-usage.md` — helper-script command shape and validator boundaries.
 3. If `.tasks/$ARGUMENTS/tasks.json` contains `design_decisions`, load them as accepted planning context. Reviewers receive `SPEC.md` and `tasks.json` cold and may challenge accepted decisions only under the high-bar reopening rule in `plan-review-rubrics.md`: conflict with SPEC, security/privacy/safety issue, codebase evidence contradicts rationale, or accepted decision makes acceptance criteria unverifiable. Simpler alternatives alone are suggestions, not reopeners.
 4. Sub-agents read plan files themselves. Do not pre-summarize or inject conversation history; the review tests whether the files are self-sufficient.
 
@@ -126,7 +127,7 @@ Reviewer contract:
 Reviewer roles:
 - **Plan Reviewer:** Always run. Use the Plan Reviewer rubric: combined challenge first, then artifact QA. If the challenge pass finds a `[BLOCKER]` or `[CRITICAL]` semantic issue likely to change the plan, limit artifact QA to obvious mechanical/schema defects.
 - **Security/Failure-Mode Reviewer:** Run only for security/privacy/safety-sensitive plans or `ESCALATE_SECURITY_REVIEW`. Focus on security, privacy, safety, destructive actions, rollback, concurrency, malicious inputs, and failure modes.
-- **Security/Failure-Mode Reviewer must also check evidence failure modes:** stale verification ledger evidence, manual evidence reduced to a bare approval flag, unsafe verification commands, mocks for the contract under test, and packages that disable targeted review despite triggering risk tags.
+- **Security/Failure-Mode Reviewer must also check evidence failure modes:** stale package proof evidence, manual evidence reduced to a bare approval flag, unsafe verification commands, mocks for the contract under test, and packages that disable targeted review despite triggering risk tags.
 
 ## Step 7: Merge, Triage, and Resolve
 

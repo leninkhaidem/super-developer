@@ -8,7 +8,7 @@ description: >
 
 # Release: Prepare and Publish
 
-Create a release with explicit approval before durable or external side effects. Keep this workflow concise and state-aware.
+Create a release through one explicit Release Contract. Keep this workflow concise and state-aware.
 
 ## Arguments
 
@@ -16,10 +16,14 @@ Create a release with explicit approval before durable or external side effects.
 
 ## Rules
 
-- Do not push, tag, publish a GitHub release, merge branches, or delete branches/worktrees without explicit approval at the matching gate.
+- Use one approval gate per release attempt: **Release Contract Approval**. The approved contract covers every listed release side effect end-to-end: file edits, feature merge, release commit, branch push, tag creation/push, GitHub release publication, and exact cleanup candidates.
+- Interpret an explicit current-turn request such as "create the release", "publish the release", or "ship vX.Y.Z" as approval for the normal full lifecycle only when version, base branch, feature branch, repository, and publish target are unambiguous. Still state the exact Release Contract before the first side effect. Stop if any blocker, ambiguity, or uncontracted action appears.
+- For `prepare-only`, the contract covers only local release preparation and optional branch push. It does not imply tag or GitHub release publication.
+- Do not ask for staged re-approvals after an approved contract. Report checkpoints as status updates, not gates.
+- Stop and ask only when observed state invalidates the contract or requires a new action not listed in it: base branch behind/diverged, unrelated dirty files, version-source disagreement, merge conflict, failing release checks, existing local/remote tag, missing credentials, changed publish target, destructive cleanup not named in the contract, or a new dependency/service/external side effect.
 - Detect the base branch: use the current branch if it is `main` or `master`; otherwise use `origin/HEAD` only if it resolves to `main` or `master`; otherwise use the only local `main`/`master`; if ambiguous, ask.
 - Use `--no-ff` when merging a feature branch into the base branch.
-- Clean up only exact release-related branches/worktrees named by the user or observed during this release. Never delete unrelated branches/worktrees or sweep by namespace.
+- Clean up only exact release-related branches/worktrees named in the approved Release Contract and verified as merged. Never delete unrelated branches/worktrees or sweep by namespace.
 - If the workflow is already partially complete, resume from the observed state instead of repeating completed side effects.
 
 ## Step 1: Preflight
@@ -33,67 +37,42 @@ Inspect and report:
 - Whether `CHANGELOG.md` exists.
 - Whether GitHub CLI release operations are available when publishing is requested.
 
-Block and ask before proceeding if the base branch is behind/diverged, version sources disagree, the working tree has unrelated changes, or the release target is ambiguous.
+Block before the Release Contract if the base branch is behind/diverged, version sources disagree, the working tree has unrelated changes, or the release target is ambiguous.
 
-## Gate 1: Release Plan Approval
+## Step 2: Release Contract Approval
 
-Present the proposed plan:
+Present one compact contract before the first release side effect unless the current user request already unambiguously approves the full lifecycle. The contract must list:
 
+- Mode: `prepare-only` or `publish`.
 - Base branch and feature branch, if any.
 - Proposed version and bump reason.
 - Changelog action.
 - README/docs action.
+- Version files to update.
 - Local release checks to run.
-- Publish actions, if requested.
-- Cleanup candidates, if any.
+- Merge strategy and expected release commit message.
+- Remote actions: branch push, annotated tag creation/push, and GitHub release publication.
+- Exact cleanup candidates, if any.
+- Stop conditions specific to this release.
 
-Ask for approval before editing files or merging.
+If the user has not already approved the full contract in the current request, ask once. After approval, execute the contract without further approval prompts unless a stop condition occurs.
 
-## Step 2: Prepare Local Release
+## Step 3: Execute Release Contract
 
-1. Merge the approved feature branch into the detected base branch with `--no-ff` only if it is not already merged.
-2. If `CHANGELOG.md` exists, update it using Keep a Changelog style with human-friendly entries. If missing, ask whether to create it or skip it; recommend skipping unless the user wants a durable changelog convention.
+1. Merge the contracted feature branch into the detected base branch with `--no-ff` only if it is not already merged.
+2. If `CHANGELOG.md` exists, update it using Keep a Changelog style with human-friendly entries. If missing, follow the contracted changelog action; default to skipping creation unless the contract explicitly creates a durable changelog convention.
 3. Update README/docs only when the release changes user-visible behavior or the docs are stale. If no docs update is needed, leave them unchanged and say so.
 4. Bump all authoritative project version sources. If multiple version files are present, keep them consistent.
 5. Draft GitHub release notes in simple human language.
 6. Run relevant release checks that are documented or discoverable for the project; do not invent expensive checks.
-
-## Gate 2: Release Commit Approval
-
-Show the diff summary, version, checks run, changelog/docs decision, and release-note draft. Ask before committing release-prep changes.
-
-If approved, commit with `release: vX.Y.Z` unless the repo convention clearly differs.
-
-## Gate 3: Publish Approval
-
-Before external side effects, revalidate that:
-
-- Base branch is clean.
-- Base branch includes the release commit.
-- Tag `vX.Y.Z` does not already exist locally or remotely, unless resuming an existing release.
-- Release notes match the final diff.
-
-Ask explicit approval to push the base branch, create/push the annotated tag, and create/publish the GitHub release. Approval to prepare a release is not approval to publish it.
-
-## Step 3: Publish
-
-After Gate 3 approval:
-
-1. Push the base branch to its upstream.
-2. Create annotated tag `vX.Y.Z` if it does not already exist.
-3. Push the tag.
-4. Create the GitHub release for `vX.Y.Z` with the approved notes.
-5. Report the release URL.
+7. Commit release-prep changes with `release: vX.Y.Z` unless the repo convention clearly differs.
+8. Before publishing, revalidate that the base branch is clean, includes the release commit, the tag does not already exist locally or remotely unless resuming, and release notes match the final diff.
+9. For `publish` mode, push the base branch to its upstream.
+10. For `publish` mode, create annotated tag `vX.Y.Z` if it does not already exist, then push the tag.
+11. For `publish` mode, create the GitHub release for `vX.Y.Z` with the contracted notes and report the release URL.
+12. Clean up only exact contracted cleanup candidates after verifying each branch with `git merge-base --is-ancestor`.
 
 If any publish step fails, stop, report the exact completed side effects, and do not clean up automatically.
-
-## Gate 4: Cleanup Approval
-
-After a successful publish, list only exact cleanup candidates tied to this release:
-- Feature branch named by the user or observed during this release, if merged into the base branch.
-- Other release branches/worktrees only when they were explicitly named or observed in this release.
-
-Verify each branch with `git merge-base --is-ancestor` before proposing deletion. Ask before removing exact worktrees or deleting exact branches. If verification fails, skip that cleanup item and report what remains.
 
 ## Step 4: Final Report
 

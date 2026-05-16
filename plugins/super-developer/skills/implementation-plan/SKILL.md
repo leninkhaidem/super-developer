@@ -36,6 +36,7 @@ Validate the feature name before using it in paths or branch names:
 Read these now, before creating artifacts:
 - `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/work-packages.md` — work-package granularity, grouping, dependencies, parallel safety, risk metadata, and targeted review rules.
 - `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/clean-code-rules.md` — Development Quality Contract used as a planning lens.
+- `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/tool-usage.md` — helper-script command shape and validation boundaries.
 
 Use them to shape task boundaries, acceptance criteria, verification commands, work packages, and design decisions. Do not paste generic quality rules into every task; encode only feature-specific risks that materially affect the plan and can be observed or verified.
 
@@ -94,12 +95,12 @@ Create `tasks.json` with schema version 2, top-level `design_decisions`, `contex
 Planning invariants:
 - Keep `SPEC.md` requirements-only; task decomposition and design rationale belong in `tasks.json`.
 - Persist accepted preflight, spike, or planner decisions as concise `design_decisions`; do not persist reviewer debate or the Preflight Brief.
-- Record only feature-specific execution constraints or replan triggers that would invalidate the plan if violated; do not add boilerplate sections, generic stop conditions, or quality-rule copies to `tasks.json`.
+- Record only feature-specific execution constraints, must-prove edges, or replan triggers that would invalidate the plan if violated; do not add boilerplate sections, generic stop conditions, persistent checklist/history fields, known-risk sections, or quality-rule copies to `tasks.json`.
 - Every SPEC `REQ-*` and `AC-*` must be covered by task acceptance criteria.
 - Task acceptance criteria are objects with stable IDs, observable criteria, typed source refs, and verification hints when proof depends on non-obvious context.
 - Every task must have a self-contained, verifiable outcome; merge tasks that are merely mechanical steps toward another task.
 - Work packages are required for every plan and are the implementation delegation unit; tasks remain the tracking and acceptance-criteria unit.
-- Use controlled risk tags and targeted-review semantics from `validate-tasks-json.py` and `work-packages.md`; do not maintain a competing taxonomy in the plan text.
+- Use controlled risk tags and targeted-review semantics from `validate-tasks-json.py` and `work-packages.md`; do not maintain a competing taxonomy in the plan text. Route detailed known-risk, must-prove, semantic-review, and boundary-builder guidance through `tasks-json-authoring.md`.
 
 ## Step 8: Pre-Write Validation
 

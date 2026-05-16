@@ -135,7 +135,7 @@ Criteria describe verifiable outcomes, not internal implementation steps:
 - Bad: "Parser tries lxml first, falls back to html.parser."
 
 Every task acceptance criterion is an object with:
-- a stable `id` that implementers, verification ledgers, reviewers, and audits can cite;
+- a stable `id` that implementers, package proofs, reviewers, and audits can cite;
 - `criterion` as the observable outcome;
 - non-empty typed `source_refs` pointing to SPEC IDs, design decisions, or context bundles;
 - `verification_hint` when proof depends on an edge case, command, performance bound, library/runtime behavior, manual evidence, or no-mocks constraint.

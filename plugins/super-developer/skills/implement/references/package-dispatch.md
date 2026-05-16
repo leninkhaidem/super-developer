@@ -29,6 +29,8 @@ Before selecting a batch, infer likely file impact from:
 
 Classify likely overlap, not just listed path overlap. Packages that touch the same exported surface, schema, generated artifact, build config, or runtime contract overlap even when their initial files differ.
 
+Also scan `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/known-risk-patterns.md` for applicable generic probes. Use it only as a prompt source; do not create new risk tags, durable checklist sections, or feature-specific taxonomy entries from it.
+
 When file impact is ambiguous, serialize. The cost of serialization is latency; the cost of unsafe parallelism is merge conflicts or inconsistent design.
 
 ## Runtime Adjustment Rules
@@ -43,6 +45,20 @@ Allowed adjustments:
 - **Serialize** when likely file impact overlaps or prior package output must be integrated first.
 
 When adjustment changes risk, context-bundle needs, verification commands, or targeted-review decisions, update the Execution Contract before dispatch. Do not silently downgrade targeted review while a triggering risk tag remains.
+
+## Known-Risk and Must-Prove Prompts
+
+For each candidate package, derive the pre-dispatch must-prove prompts from existing acceptance criteria, verification hints, risk tags, context bundles, verification commands, and the known-risk reference. Use `taskctl.py must-prove --package <WP-ID>` as the routine read-only helper when available. Keep the result transient in the dispatch/agent instructions.
+
+Include a pollution-sensitive test-ordering requirement when changed tests mutate import caches, module registries such as `sys.modules`, environment variables, globals, singleton caches, import stubs, monkeypatches, or equivalent shared process state. The package proof should cite checks for the test alone, the test before and after likely consumers, and the combined affected suite, or state a concrete reason the trigger does not apply.
+
+When acceptance criteria involve boundary payloads, requests, configs, command descriptors, generated defaults, optional fields, default precedence, or contract drift, prefer a small exported pure builder plus observable contract tests over ad hoc construction in high-level orchestration, UI, or glue code. Do not require builders for trivial local values or purely presentational state.
+
+## Semantic Package Review Triggers
+
+Before dependent downstream packages proceed, require a focused semantic package review after merge or fix when the package has high-risk cache semantics, lifecycle cleanup, boundary serialization, generated contract defaults, persistence, concurrency, public API, shared configuration, or similar cross-cutting impact.
+
+This review is narrower than final `review-code`: it checks the integrated package delta, risk-class edge cases, package proof adequacy, and downstream contract safety. It does not replace the mandatory final whole-feature review-code pass or final audit.
 
 ## Batch Selection
 
