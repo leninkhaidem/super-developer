@@ -220,12 +220,17 @@ def load_plan(tasks_path: Path) -> tuple[Any, Plan]:
 
 
 def load_validator() -> Any:
-    spec = importlib.util.spec_from_file_location("validate_tasks_json", VALIDATOR_PATH)
-    if spec is None or spec.loader is None:
-        raise TaskctlError([f"validator: unable to load {VALIDATOR_PATH}"], exit_code=2)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
+    previous_dont_write_bytecode = sys.dont_write_bytecode
+    sys.dont_write_bytecode = True
+    try:
+        spec = importlib.util.spec_from_file_location("validate_tasks_json", VALIDATOR_PATH)
+        if spec is None or spec.loader is None:
+            raise TaskctlError([f"validator: unable to load {VALIDATOR_PATH}"], exit_code=2)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
+    finally:
+        sys.dont_write_bytecode = previous_dont_write_bytecode
 
 
 def validate_all_proofs(

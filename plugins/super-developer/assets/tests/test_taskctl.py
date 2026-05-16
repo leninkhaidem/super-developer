@@ -3,6 +3,7 @@ from __future__ import annotations
 import ast
 import copy
 import json
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -302,17 +303,26 @@ class TaskctlCliTests(unittest.TestCase):
             check=False,
         )
 
-    def snapshot_files(self) -> dict[str, bytes]:
-        snapshot: dict[str, bytes] = {}
-        for path in sorted(self.repo.rglob("*")):
-            if path.is_file():
-                snapshot[str(path.relative_to(self.repo))] = path.read_bytes()
+    def snapshot_tree(self, root: Path) -> dict[str, tuple[str, bytes]]:
+        snapshot: dict[str, tuple[str, bytes]] = {}
+        for path in sorted(root.rglob("*")):
+            relative = str(path.relative_to(root))
+            if path.is_dir():
+                snapshot[relative] = ("dir", b"")
+            elif path.is_file():
+                snapshot[relative] = ("file", path.read_bytes())
         return snapshot
 
+    def snapshot_read_only_paths(self) -> dict[str, dict[str, tuple[str, bytes]]]:
+        return {
+            "repo": self.snapshot_tree(self.repo),
+            "assets": self.snapshot_tree(ASSETS_DIR),
+        }
+
     def assert_read_only(self, *args: str, expected_returncode: int = 0) -> subprocess.CompletedProcess[str]:
-        before = self.snapshot_files()
+        before = self.snapshot_read_only_paths()
         result = self.taskctl(*args)
-        after = self.snapshot_files()
+        after = self.snapshot_read_only_paths()
         self.assertEqual(expected_returncode, result.returncode, result.stdout + result.stderr)
         self.assertEqual(before, after)
         self.assertFalse(self.sentinel.exists())
@@ -343,6 +353,27 @@ class TaskctlCliTests(unittest.TestCase):
         for command in commands:
             with self.subTest(command=command[0]):
                 self.assert_read_only(*command)
+
+    def test_validator_backed_command_does_not_create_helper_cache_files(self) -> None:
+        assets_cache = ASSETS_DIR / "__pycache__"
+        shutil.rmtree(assets_cache, ignore_errors=True)
+        before = self.snapshot_read_only_paths()
+        self.assertNotIn("__pycache__", before["assets"])
+        self.assertFalse(any(path.startswith("__pycache__/") for path in before["assets"]))
+
+        result = self.taskctl(
+            "validate-proof",
+            "--tasks",
+            str(self.tasks_path),
+            str(self.proofs_dir / "WP1.proof.json"),
+        )
+
+        after = self.snapshot_read_only_paths()
+        self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+        self.assertEqual(before, after)
+        self.assertFalse(assets_cache.exists())
+        self.assertFalse(any(path == "__pycache__" or path.startswith("__pycache__/") for path in after["assets"]))
+        self.assertFalse(self.sentinel.exists())
 
     def test_proof_template_and_plan_derived_outputs_are_deterministic(self) -> None:
         first = self.assert_read_only(
