@@ -68,6 +68,8 @@ def build_parser() -> argparse.ArgumentParser:
         help="Emit a deterministic package proof template to stdout.",
     )
     proof_template.add_argument("--package", required=True, help="Work package id.")
+    proof_template.add_argument("--output", type=Path, help="Write the template to this path instead of stdout.")
+    proof_template.add_argument("--force", action="store_true", help="Overwrite an existing --output file.")
     proof_template.set_defaults(func=cmd_proof_template)
 
     validate_proof = subparsers.add_parser(
@@ -91,6 +93,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="Emit acceptance criteria and evidence obligations.",
     )
     must_prove.add_argument("--package", help="Limit output to one work package.")
+    must_prove.add_argument(
+        "--known-risk-source",
+        type=Path,
+        help="Optional known-risk prompt source to include in the output.",
+    )
     must_prove.set_defaults(func=cmd_must_prove)
 
     summary = subparsers.add_parser(
@@ -100,6 +107,31 @@ def build_parser() -> argparse.ArgumentParser:
     )
     summary.add_argument("--package", help="Limit output to one work package.")
     summary.set_defaults(func=cmd_summary)
+
+    next_package = subparsers.add_parser(
+        "next-package",
+        parents=[common],
+        help="Emit dependency-ready packages without persisting package status.",
+    )
+    next_package.set_defaults(func=cmd_next_package)
+
+    block_task = subparsers.add_parser(
+        "block-task",
+        parents=[common],
+        help="Mark one task blocked with a required reason.",
+    )
+    block_task.add_argument("task_id", help="Task id to mark blocked.")
+    block_task.add_argument("--reason", required=True, help="Non-empty blocker reason.")
+    block_task.add_argument("--blocked-at", help="ISO-8601 timestamp; defaults to current UTC time.")
+    block_task.set_defaults(func=cmd_block_task)
+
+    reset_task = subparsers.add_parser(
+        "reset-task",
+        parents=[common],
+        help="Reset one task to pending and clear block/completion fields.",
+    )
+    reset_task.add_argument("task_id", help="Task id to reset.")
+    reset_task.set_defaults(func=cmd_reset_task)
 
     accept_package = subparsers.add_parser(
         "accept-package",
@@ -131,6 +163,23 @@ def cmd_proof_template(args: argparse.Namespace) -> int:
             for criterion in package_criteria(validator, plan, package["id"])
         ],
     }
+    if args.output is not None:
+        output_path = Path(args.output)
+        if output_path.exists() and not args.force:
+            raise TaskctlError(
+                [f"proof-template: refusing to overwrite existing file at {output_path}; pass --force"]
+            )
+        atomic_write_json(output_path, template)
+        write_json(
+            sys.stdout,
+            {
+                "ok": True,
+                "written": str(output_path),
+                "package_id": package["id"],
+                "criteria": [entry["criterion_id"] for entry in template["entries"]],
+            },
+        )
+        return 0
     write_json(sys.stdout, template)
     return 0
 
@@ -177,6 +226,7 @@ def cmd_must_prove(args: argparse.Namespace) -> int:
     output = {
         "feature": plan.data["feature"],
         "read_only": True,
+        "known_risk_prompt": known_risk_prompt(args),
         "packages": [
             package_must_prove(validator, plan, package, Path(args.worktree))
             for package in packages
@@ -203,6 +253,102 @@ def cmd_summary(args: argparse.Namespace) -> int:
         "packages": package_summaries,
     }
     write_json(sys.stdout, output)
+    return 0
+
+
+def cmd_next_package(args: argparse.Namespace) -> int:
+    _validator, plan = load_plan(Path(args.tasks))
+    completed = {
+        package["id"]
+        for package in work_packages(plan)
+        if all(plan.tasks[task_id]["status"] == "done" for task_id in package["task_ids"])
+    }
+    candidates = []
+    blocked = []
+    for package in work_packages(plan):
+        task_statuses = package_task_statuses(plan, package)
+        missing_dependencies = [
+            dependency for dependency in package["depends_on"] if dependency not in completed
+        ]
+        blocked_tasks = [
+            task_id
+            for task_id in package["task_ids"]
+            if plan.tasks[task_id]["status"] == "blocked"
+        ]
+        if blocked_tasks:
+            blocked.append(
+                {
+                    "package_id": package["id"],
+                    "task_ids": package["task_ids"],
+                    "blocked_tasks": blocked_tasks,
+                    "missing_dependencies": missing_dependencies,
+                }
+            )
+        if (
+            not missing_dependencies
+            and not blocked_tasks
+            and any(status in task_statuses for status in ("pending", "in-progress"))
+        ):
+            candidates.append(
+                {
+                    "package_id": package["id"],
+                    "title": package["title"],
+                    "task_ids": package["task_ids"],
+                    "task_status_counts": dict(sorted(task_statuses.items())),
+                }
+            )
+    write_json(
+        sys.stdout,
+        {
+            "feature": plan.data["feature"],
+            "read_only": True,
+            "completed_packages": sorted(completed),
+            "candidates": candidates,
+            "blocked": blocked,
+        },
+    )
+    return 0
+
+
+def cmd_block_task(args: argparse.Namespace) -> int:
+    reason = args.reason.strip()
+    if not reason:
+        raise TaskctlError(["block-task: --reason must be non-empty"], exit_code=2)
+    validator, plan = load_plan(Path(args.tasks))
+    task = require_task(plan, args.task_id)
+    task["status"] = "blocked"
+    task["blocked_reason"] = reason
+    task["blocked_at"] = args.blocked_at or now_utc_iso()
+    task.pop("completed_at", None)
+    validate_plan_after_mutation(validator, plan)
+    atomic_write_json(plan.tasks_path, plan.data)
+    write_json(
+        sys.stdout,
+        {
+            "ok": True,
+            "blocked": args.task_id,
+            "reason": reason,
+        },
+    )
+    return 0
+
+
+def cmd_reset_task(args: argparse.Namespace) -> int:
+    validator, plan = load_plan(Path(args.tasks))
+    task = require_task(plan, args.task_id)
+    task["status"] = "pending"
+    for field in ("blocked_reason", "blocked_at", "completed_at"):
+        task.pop(field, None)
+    validate_plan_after_mutation(validator, plan)
+    atomic_write_json(plan.tasks_path, plan.data)
+    write_json(
+        sys.stdout,
+        {
+            "ok": True,
+            "reset": args.task_id,
+            "status": task["status"],
+        },
+    )
     return 0
 
 
@@ -506,6 +652,20 @@ def atomic_write_json(path: Path, value: Any) -> None:
                 pass
 
 
+def now_utc_iso() -> str:
+    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+
+def validate_plan_after_mutation(validator: Any, plan: Plan) -> None:
+    errors, _plan_index = validator.validate_tasks_json(
+        plan.data,
+        tasks_path=plan.tasks_path,
+        spec_path=plan.tasks_path.with_name("SPEC.md"),
+    )
+    if errors:
+        raise TaskctlError(errors)
+
+
 def load_plan(tasks_path: Path) -> tuple[Any, Plan]:
     validator = load_validator()
     try:
@@ -636,6 +796,12 @@ def package_must_prove(
                 "required_context_bundles": sorted(
                     required_context_bundles(plan, package["id"], task_id, criterion_id)
                 ),
+                "must_prove": [
+                    "criterion behavior is implemented in the current worktree state",
+                    "evidence cites changed files or symbols and observed commands where applicable",
+                    "edge cases and failure modes from the verification hint are covered or explicitly bounded",
+                    "mocks or stubs are absent or disclosed with exact scope",
+                ],
             }
         )
     return {
@@ -719,6 +885,23 @@ def required_context_bundles(
     return required
 
 
+def known_risk_prompt(args: argparse.Namespace) -> dict[str, Any] | None:
+    source = args.known_risk_source
+    if source is None:
+        source = Path(__file__).resolve().parents[1] / "references" / "known-risk-patterns.md"
+    if not source.exists():
+        return None
+    try:
+        content = source.read_text(encoding="utf-8")
+    except OSError as exc:
+        raise TaskctlError([f"known-risk-source: unable to read {source}: {exc}"])
+    lines = [line.rstrip() for line in content.splitlines() if line.strip()]
+    return {
+        "path": str(source),
+        "prompt": "\n".join(lines),
+    }
+
+
 def package_task_statuses(plan: Plan, package: dict[str, Any]) -> Counter[str]:
     return Counter(plan.tasks[task_id]["status"] for task_id in package["task_ids"])
 
@@ -734,6 +917,13 @@ def require_package(plan: Plan, package_id: str) -> dict[str, Any]:
         if package["id"] == package_id:
             return package
     raise TaskctlError([f"work package: unknown package id {package_id!r}"])
+
+
+def require_task(plan: Plan, task_id: str) -> dict[str, Any]:
+    try:
+        return plan.tasks[task_id]
+    except KeyError:
+        raise TaskctlError([f"task: unknown task id {task_id!r}"], exit_code=2)
 
 
 def work_packages(plan: Plan) -> list[dict[str, Any]]:

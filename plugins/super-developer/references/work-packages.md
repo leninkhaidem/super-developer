@@ -50,6 +50,10 @@ Each package's `verification_commands` lists concrete shell commands the orchest
 Treat `verification_commands` as executable inputs from a plan artifact. They must be scoped, deterministic, and known-safe. If a command is destructive, externally visible, credential/network-sensitive, installs dependencies or services, mutates data outside the worktree, or exceeds the advertised verification scope, the Execution Contract must stop for explicit user approval before it runs.
 
 
+## Package Proof Files
+
+Each package writes exactly one `.tasks/<feature>/proofs/<WP-ID>.proof.json` file. The validator derives the package's required acceptance criteria from `tasks.json`; proof files must cover every criterion assigned to that package and no criteria from other packages. Final feature proof validation requires exactly one proof file per work package and exact aggregate acceptance-criterion coverage.
+
 ## Risk Metadata and Targeted Review
 
 Plans include:
