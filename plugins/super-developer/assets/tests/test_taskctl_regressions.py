@@ -105,7 +105,16 @@ class TaskctlFixture:
                         {"type": "repo", "path_or_url": "src/implemented.txt", "claims": ["Fixture code exists."]}
                     ],
                     "verification_required": ["Evidence must cite current fixture files."],
-                }
+                },
+                {
+                    "id": "CTX-2",
+                    "title": "Task-only fixture context",
+                    "required_for": ["P1-T001"],
+                    "sources": [
+                        {"type": "repo", "path_or_url": "src/implemented.txt", "claims": ["Task-specific fixture context exists."]}
+                    ],
+                    "verification_required": ["Evidence must cite task-only fixture context when required."],
+                },
             ],
             "work_packages": [
                 {
@@ -158,7 +167,7 @@ class TaskctlFixture:
                                     "verification_hint": "Cover proof success and rejection paths.",
                                 }
                             ],
-                            "required_context_bundles": [],
+                            "required_context_bundles": ["CTX-2"],
                             "context": "Fixture task context.",
                         }
                     ],
@@ -336,7 +345,8 @@ class TaskctlRegressionTests(unittest.TestCase):
         code, checklist, err = self.fixture.run("must-prove", "WP1", "--known-risk-source", str(known_risk))
         self.assertEqual((code, err), (0, ""))
         self.assertEqual(before, self.fixture.tasks_path.read_bytes())
-        self.assertEqual(checklist["required_context_bundles"][0]["id"], "CTX-1")
+        self.assertEqual([bundle["id"] for bundle in checklist["required_context_bundles"]], ["CTX-1", "CTX-2"])
+        self.assertEqual(checklist["acceptance_criteria"][0]["required_context_bundles"], ["CTX-1", "CTX-2"])
         self.assertTrue(checklist["targeted_review_required"])
         self.assertIn("Optional boundary fields", checklist["known_risk_prompt"]["prompt"])
         self.assertIn("mocks/stubs are absent", checklist["acceptance_criteria"][0]["must_prove"][-1])
@@ -362,6 +372,16 @@ class TaskctlRegressionTests(unittest.TestCase):
         self.assertIsNone(data)
         self.assertIn("package verification command not recorded as passing", err)
         self.assertEqual(before, self.fixture.tasks_path.read_text(encoding="utf-8"))
+
+        wrong_review_package = self.fixture.valid_proof("WP1")
+        wrong_review_package["targeted_review"]["package_id"] = "WP2"
+        self.fixture.write_proof("WP1", wrong_review_package)
+        code, data, err = self.fixture.run("accept-package", "WP1", "--completed-at", "2026-05-16T00:06:00+00:00")
+        self.assertEqual(code, 2)
+        self.assertIsNone(data)
+        self.assertIn("targeted package review package_id 'WP2' does not match 'WP1'", err)
+        self.assertEqual(before, self.fixture.tasks_path.read_text(encoding="utf-8"))
+
 
         valid = self.fixture.valid_proof("WP1")
         self.fixture.write_proof("WP1", valid)
@@ -486,6 +506,19 @@ class TaskctlRegressionTests(unittest.TestCase):
         self.assertEqual((code, err), (1, ""))
         self.assertFalse(completed["mutated"])
         self.assertIn("package WP1: targeted package review evidence is missing", completed["missing_gates"])
+        self.assertEqual(self.fixture.read_plan()["status"], "in-progress")
+
+    def test_targeted_review_package_id_mismatch_blocks_final_completion(self) -> None:
+        proof = self.fixture.valid_proof("WP1")
+        proof["targeted_review"]["package_id"] = "WP2"
+        self.fixture.write_proof("WP1", proof)
+        self.fixture.write_proof("WP2", self.fixture.valid_proof("WP2"))
+        self.fixture.mark_all_tasks_done_manually()
+        self.fixture.add_final_gates()
+        code, completed, err = self.fixture.run("finalize-feature")
+        self.assertEqual((code, err), (1, ""))
+        self.assertFalse(completed["mutated"])
+        self.assertIn("package WP1: targeted package review package_id 'WP2' does not match 'WP1'", completed["missing_gates"])
         self.assertEqual(self.fixture.read_plan()["status"], "in-progress")
 
 

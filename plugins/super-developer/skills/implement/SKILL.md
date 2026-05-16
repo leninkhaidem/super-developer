@@ -159,9 +159,9 @@ Only after the integration checkpoint and targeted package review pass:
 
 When all phases/tasks are complete:
 
-1. Validate all package proofs with taskctl from the integrated merge worktree when one exists. Then run final validation with `python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/validate-tasks-json.py" --final ".tasks/<feature>/tasks.json"`. Reject stale, missing, failed, blocked, wrong-package, or unapproved manual-required proof entries.
+1. Validate all package proofs with taskctl from the integrated merge worktree when one exists, then use the package-proof lifecycle final gate (`taskctl finalize-feature`) as the proof-only completion gate. Reject stale, missing, failed, blocked, wrong-package, wrong-targeted-review-package, or unapproved manual-required proof entries.
 2. Run integrated feature tests/checks from `.worktrees/<feature>/merge` when it exists, applying the command-safety approval rule.
-3. Do not update feature `status` to `completed` until final proof validation, final validator pass, final review-code/fix loop, and final audit pass.
+3. Do not update feature `status` to `completed` until final proof validation, package finalization gate, final review-code/fix loop, and final audit pass.
 4. Push the feature branch: `git push -u origin feature/<feature>`.
 5. **Do not merge to the target branch.** Wait for explicit user approval for the named `<target-ref>`. "Push to remote" does not mean "merge to target."
 

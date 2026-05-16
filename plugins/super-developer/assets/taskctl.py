@@ -254,6 +254,23 @@ def _requires_targeted_review(package: dict[str, Any]) -> bool:
     return bool(package.get("targeted_review_required")) or bool(risk_tags & validator.TARGETED_REVIEW_RISK_TAGS)
 
 
+def _required_context_bundle_ids_for_package(plan: dict[str, Any], package: dict[str, Any]) -> list[str]:
+    ids: list[str] = []
+    seen: set[str] = set()
+    for bundle_id in package.get("required_context_bundles", []):
+        if isinstance(bundle_id, str) and bundle_id not in seen:
+            ids.append(bundle_id)
+            seen.add(bundle_id)
+    package_task_ids = set(package.get("task_ids", []))
+    for task in _iter_tasks(plan):
+        if task.get("id") not in package_task_ids:
+            continue
+        for bundle_id in task.get("required_context_bundles", []):
+            if isinstance(bundle_id, str) and bundle_id not in seen:
+                ids.append(bundle_id)
+                seen.add(bundle_id)
+    return ids
+
 def _validate_package_proof(args: argparse.Namespace, plan_index: dict[str, Any], tasks_path: Path, package_id: str) -> Any:
     proof_path = _proof_path(args, tasks_path, package_id)
     return validator.validate_package_proof_file(proof_path, plan_index, package_id=package_id, worktree=_worktree(args))
@@ -297,6 +314,8 @@ def _require_package_gates(args: argparse.Namespace, plan: dict[str, Any], tasks
         else:
             if review.get("status") != "passed":
                 missing.append("targeted package review status is not passed")
+            if review.get("package_id") != package_id:
+                missing.append(f"targeted package review package_id {review.get('package_id')!r} does not match {package_id!r}")
             if not _non_empty(review.get("reviewed_at")):
                 missing.append("targeted package review reviewed_at is missing")
             if not _non_empty(review.get("scope")):
@@ -549,7 +568,10 @@ def cmd_next_package(args: argparse.Namespace) -> int:
 def cmd_must_prove(args: argparse.Namespace) -> int:
     plan, _plan_index, _tasks_path = _load_plan(args)
     package = _package(plan, args.package_id)
-    bundles = _context_bundles(plan, package.get("required_context_bundles", []))
+    bundles = _context_bundles(plan, _required_context_bundle_ids_for_package(plan, package))
+    package_bundle_ids = [
+        bundle_id for bundle_id in package.get("required_context_bundles", []) if isinstance(bundle_id, str)
+    ]
     known_risk = _known_risk(args)
     checklist = {
         "feature": plan.get("feature"),
@@ -571,6 +593,7 @@ def cmd_must_prove(args: argparse.Namespace) -> int:
             "criterion": criterion.get("criterion"),
             "verification_hint": criterion.get("verification_hint"),
             "source_refs": criterion.get("source_refs", []),
+            "required_context_bundles": _required_context_bundle_ids_for_task(package_bundle_ids, task),
             "must_prove": [
                 "criterion behavior is implemented in the current worktree state",
                 "evidence cites changed files/symbols and observed commands where applicable",
@@ -593,6 +616,20 @@ def _context_bundles(plan: dict[str, Any], ids: list[str]) -> list[dict[str, Any
                 "verification_required": bundle.get("verification_required", []),
             })
     return sorted(bundles, key=lambda bundle: bundle.get("id", ""))
+
+
+def _required_context_bundle_ids_for_task(package_bundle_ids: list[str], task: dict[str, Any]) -> list[str]:
+    ids: list[str] = []
+    seen: set[str] = set()
+    for bundle_id in package_bundle_ids:
+        if bundle_id not in seen:
+            ids.append(bundle_id)
+            seen.add(bundle_id)
+    for bundle_id in task.get("required_context_bundles", []):
+        if isinstance(bundle_id, str) and bundle_id not in seen:
+            ids.append(bundle_id)
+            seen.add(bundle_id)
+    return ids
 
 
 def _known_risk(args: argparse.Namespace) -> dict[str, Any] | None:
