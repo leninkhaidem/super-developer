@@ -684,6 +684,24 @@ class TaskctlCliTests(unittest.TestCase):
         self.assertEqual("reopen-package", proof["lifecycle"]["writer"]["command"])
         self.assertFalse(self.sentinel.exists())
 
+    def test_reopen_package_rejects_malformed_accepted_digest_without_write(self) -> None:
+        self.accept_package()
+        proof = self.read_proof()
+        proof["lifecycle"]["proof_digest"] = "not-a-digest"
+        self.write_proof(proof)
+
+        self.assert_rejected_without_write(
+            (
+                "reopen-package",
+                "--tasks",
+                str(self.tasks_path),
+                "--worktree",
+                str(self.repo),
+                str(self.proofs_dir / "WP1.proof.json"),
+            ),
+            "proof_digest: expected sha256 digest string",
+        )
+
     def test_accept_package_replaces_stale_reopened_digest_after_valid_proof_edit(self) -> None:
         self.accept_package()
         self.reopen_package()
@@ -704,6 +722,25 @@ class TaskctlCliTests(unittest.TestCase):
         self.assertEqual("accepted", proof["lifecycle"]["state"])
         self.assertEqual(accepted["lifecycle"]["proof_digest"], proof["lifecycle"]["proof_digest"])
         self.assertFalse(self.sentinel.exists())
+
+    def test_accept_package_rejects_malformed_reopened_digest_without_write(self) -> None:
+        self.accept_package()
+        self.reopen_package()
+        proof = self.read_proof()
+        proof["lifecycle"]["proof_digest"] = "not-a-digest"
+        self.write_proof(proof)
+
+        self.assert_rejected_without_write(
+            (
+                "accept-package",
+                "--tasks",
+                str(self.tasks_path),
+                "--worktree",
+                str(self.repo),
+                str(self.proofs_dir / "WP1.proof.json"),
+            ),
+            "proof_digest: expected sha256 digest string",
+        )
 
     def test_reopen_package_rejects_invalid_transitions_without_write(self) -> None:
         reopen_command = (

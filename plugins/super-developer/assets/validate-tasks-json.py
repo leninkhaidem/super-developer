@@ -52,6 +52,7 @@ PACKAGE_LIFECYCLE_FIELD = "lifecycle"
 PACKAGE_LIFECYCLE_STATES = {"accepted", "reopened"}
 PACKAGE_LIFECYCLE_WRITER_SCHEMA_VERSION = 1
 PACKAGE_LIFECYCLE_WRITER_TOOL = "taskctl.py"
+PACKAGE_PROOF_DIGEST_RE = re.compile(r"^sha256:[0-9a-fA-F]{64}$")
 PACKAGE_LIFECYCLE_TRANSITIONS = {
     "none": {"accepted"},
     "accepted": {"reopened"},
@@ -1516,8 +1517,11 @@ def validate_lifecycle_binding(
         errors.append(
             f"{path}.proof_digest: expected {expected_digest!r} for current proof content, got {stored_digest!r}"
         )
-    elif not enforce_digest and (not isinstance(stored_digest, str) or not stored_digest.strip()):
-        errors.append(f"{path}.proof_digest: expected non-empty string")
+    elif not enforce_digest and (
+        not isinstance(stored_digest, str)
+        or PACKAGE_PROOF_DIGEST_RE.fullmatch(stored_digest) is None
+    ):
+        errors.append(f"{path}.proof_digest: expected sha256 digest string")
 
     stored_path = lifecycle.get("proof_path")
     expected_path = None
