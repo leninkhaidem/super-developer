@@ -248,6 +248,9 @@ def validate_tasks_json(
         "package_ids": set(),
         "package_to_tasks": {},
         "context_bundle_ids": set(),
+        "task_required_context_bundles": {},
+        "package_required_context_bundles": {},
+        "criterion_required_context_bundles": {},
     }
     if not isinstance(data, dict):
         return ["root: expected JSON object"], plan_index
@@ -331,6 +334,7 @@ def validate_tasks_json(
     plan_index["task_ids"] = task_ids
     plan_index["task_ac_ids"] = task_ac_ids
     plan_index["task_ac_sources"] = task_ac_sources
+    build_required_context_bundle_indexes(data, plan_index)
     plan_index["package_to_criteria"] = build_package_acceptance_criteria_index(plan_index)
     return errors, plan_index
 
@@ -1150,6 +1154,54 @@ def validate_cross_package_task_dependencies(
 
 
 
+def _string_set(value: Any) -> set[str]:
+    if not isinstance(value, list):
+        return set()
+    return {item for item in value if isinstance(item, str)}
+
+
+def build_required_context_bundle_indexes(
+    data: dict[str, Any], plan_index: dict[str, Any]
+) -> None:
+    task_required: dict[str, set[str]] = {}
+    package_required: dict[str, set[str]] = {}
+    criterion_required: dict[str, set[str]] = {}
+
+    work_packages = data.get("work_packages")
+    if isinstance(work_packages, list):
+        for package in work_packages:
+            if isinstance(package, dict) and isinstance(package.get("id"), str):
+                package_required[package["id"]] = _string_set(package.get("required_context_bundles"))
+
+    phases = data.get("phases")
+    if not isinstance(phases, list):
+        phases = []
+    for phase in phases:
+        if not isinstance(phase, dict):
+            continue
+        tasks = phase.get("tasks")
+        if not isinstance(tasks, list):
+            continue
+        for task in tasks:
+            if not isinstance(task, dict) or not isinstance(task.get("id"), str):
+                continue
+            task_id = task["id"]
+            task_required[task_id] = _string_set(task.get("required_context_bundles"))
+            package_id = plan_index.get("task_to_package", {}).get(task_id)
+            required = set(task_required[task_id])
+            if isinstance(package_id, str):
+                required.update(package_required.get(package_id, set()))
+            criteria = task.get("acceptance_criteria")
+            if not isinstance(criteria, list):
+                continue
+            for criterion in criteria:
+                if isinstance(criterion, dict) and isinstance(criterion.get("id"), str):
+                    criterion_required[criterion["id"]] = set(required)
+
+    plan_index["task_required_context_bundles"] = task_required
+    plan_index["package_required_context_bundles"] = package_required
+    plan_index["criterion_required_context_bundles"] = criterion_required
+
 def build_package_acceptance_criteria_index(
     plan_index: dict[str, Any],
 ) -> dict[str, set[str]]:
@@ -1410,7 +1462,12 @@ def validate_ledger_entry(
     validate_ledger_source_refs(entry, path, errors, plan_index)
     validate_ledger_state(entry.get("state"), f"{path}.state", errors, worktree, entry)
     validate_ledger_evidence(
-        entry.get("evidence"), f"{path}.evidence", errors, method=method
+        entry.get("evidence"),
+        f"{path}.evidence",
+        errors,
+        method=method,
+        criterion_id=criterion_id,
+        plan_index=plan_index,
     )
 
     if status == "manual_required" or method == "manual":
@@ -1481,7 +1538,13 @@ def validate_ledger_state(
 
 
 def validate_ledger_evidence(
-    evidence: Any, path: str, errors: list[str], *, method: Any
+    evidence: Any,
+    path: str,
+    errors: list[str],
+    *,
+    method: Any,
+    criterion_id: Any,
+    plan_index: dict[str, Any],
 ) -> None:
     if not isinstance(evidence, dict):
         errors.append(f"{path}: expected object")
@@ -1511,7 +1574,17 @@ def validate_ledger_evidence(
             errors.append(f"{command_path}.exit_code: final ledger command must pass, got {exit_code}")
 
     require_string_list(evidence, "edge_cases", f"{path}.edge_cases", errors, required=False)
-    require_string_list(evidence, "context_bundles", f"{path}.context_bundles", errors, required=False)
+    context_bundles = require_string_list(evidence, "context_bundles", f"{path}.context_bundles", errors, required=False)
+    expected_context_bundles = (
+        plan_index.get("criterion_required_context_bundles", {}).get(criterion_id, set())
+        if isinstance(criterion_id, str)
+        else set()
+    )
+    missing_context_bundles = sorted(expected_context_bundles - set(context_bundles))
+    if missing_context_bundles:
+        errors.append(
+            f"{path}.context_bundles: missing required context bundle(s) {missing_context_bundles}"
+        )
     mocks = evidence.get("mocks")
     if mocks is not None and (not isinstance(mocks, str) or not mocks.strip()):
         errors.append(f"{path}.mocks: expected non-empty string when present")

@@ -230,11 +230,12 @@ class TaskctlFixture:
                 "worktree": str(self.root),
                 "captured_at": "2026-05-16T00:01:00+00:00",
             }
+            context_bundles = entry["evidence"]["context_bundles"]
             entry["evidence"] = {
                 "files": ["src/implemented.txt"],
                 "commands": [],
                 "edge_cases": ["fixture edge case covered"],
-                "context_bundles": ["CTX-1"],
+                "context_bundles": context_bundles,
                 "mocks": "No mocks used.",
             }
             entry.pop("manual_evidence", None)
@@ -285,11 +286,13 @@ class TaskctlFixture:
         self.plan = self.read_plan()
         self.plan["final_integration_review"] = {
             "status": "passed",
+            "source": "review-code CLEAN fixture",
             "reviewed_at": "2026-05-16T00:04:00+00:00",
             "state": {"commit": self.commit, "git_ref": "HEAD", "worktree": str(self.root)},
         }
         self.plan["final_audit"] = {
             "status": "passed",
+            "source": "audit PASS fixture",
             "audited_at": "2026-05-16T00:05:00+00:00",
             "state": {"commit": self.commit, "git_ref": "HEAD", "worktree": str(self.root)},
         }
@@ -369,6 +372,37 @@ class TaskctlRegressionTests(unittest.TestCase):
         )
         self.assertIn("package WP1: targeted package review package_id 'WP2' does not match 'WP1'", all_result["errors"])
         self.assertEqual(self.fixture.read_plan()["status"], "in-progress")
+
+    def test_validate_proof_requires_all_applicable_context_bundles(self) -> None:
+        proof = self.fixture.valid_proof("WP1")
+        proof["entries"][0]["evidence"]["context_bundles"] = ["CTX-1"]
+        self.fixture.write_proof("WP1", proof)
+
+        code, result, err = self.fixture.run("validate-proof", "WP1")
+
+        self.assertEqual((code, err), (1, ""))
+        self.assertFalse(result["ok"])
+        self.assertIn(
+            "proof WP1.entries[0].evidence.context_bundles: missing required context bundle(s) ['CTX-2']",
+            result["errors"],
+        )
+
+    def test_targeted_review_commit_may_precede_unrelated_downstream_head(self) -> None:
+        proof = self.fixture.valid_proof("WP1")
+        self.fixture.write_proof("WP1", proof)
+        (self.fixture.root / "src" / "unrelated.txt").write_text("unrelated\n", encoding="utf-8")
+        self.fixture._git("add", "src/unrelated.txt")
+        self.fixture._git("commit", "-m", "unrelated downstream change")
+
+        code, result, err = self.fixture.run("validate-proofs")
+
+        self.assertEqual((code, err), (1, ""))
+        self.assertTrue(
+            any("missing proof file" in error and "WP2.proof.json" in error for error in result["errors"])
+        )
+        self.assertFalse(
+            any("targeted package review commit" in error for error in result["errors"])
+        )
 
     def test_accept_package_requires_valid_proof_recorded_verification_and_targeted_review_then_updates_only_package_tasks(self) -> None:
         missing_review = self.fixture.valid_proof("WP1", include_targeted_review=False)
@@ -480,6 +514,24 @@ class TaskctlRegressionTests(unittest.TestCase):
         self.assertTrue(any("WP2" in gate and "proof" in gate for gate in preflight["missing_gates"]))
         self.assertEqual(before, self.fixture.tasks_path.read_text(encoding="utf-8"))
 
+    def test_finalize_feature_rejects_final_gates_without_sources(self) -> None:
+        self.fixture.write_proof("WP1", self.fixture.valid_proof("WP1"))
+        self.fixture.write_proof("WP2", self.fixture.valid_proof("WP2"))
+        self.fixture.mark_all_tasks_done_manually()
+        self.fixture.add_final_gates()
+        plan = self.fixture.read_plan()
+        plan["final_integration_review"].pop("source")
+        plan["final_audit"]["source"] = " "
+        self.fixture.plan = plan
+        self.fixture.write_plan()
+
+        code, preflight, err = self.fixture.run("finalize-feature")
+
+        self.assertEqual((code, err), (1, ""))
+        self.assertFalse(preflight["mutated"])
+        self.assertIn("final_integration_review.source is missing", preflight["missing_gates"])
+        self.assertIn("final_audit.source is missing", preflight["missing_gates"])
+
     def test_finalize_feature_cannot_be_bypassed_by_status_changes_or_preflight_and_requires_final_gates(self) -> None:
         self.fixture.write_proof("WP1", self.fixture.valid_proof("WP1"))
         self.fixture.write_proof("WP2", self.fixture.valid_proof("WP2"))
@@ -590,6 +642,14 @@ class GuardrailDocumentationRegressionTests(unittest.TestCase):
                     elif isinstance(node, ast.ImportFrom) and node.module:
                         imports.add(node.module.split(".", 1)[0])
                 self.assertLessEqual(imports, allowed)
+
+
+    def test_audit_docs_use_absolute_task_paths_with_resolved_worktree_for_staleness(self) -> None:
+        audit = self.read_doc("skills/audit/SKILL.md")
+
+        self.assertIn("--tasks \"<absolute-repo-path>/.tasks/$ARGUMENTS/tasks.json\" --worktree \"<audit-worktree>\" validate-proofs", audit)
+        self.assertIn("Resolve the task/proof artifact paths separately to absolute paths", audit)
+        self.assertIn("pointing stale-evidence checks at the resolved audit worktree", audit)
 
     def test_cli_scope_has_no_tui_patch_event_history_or_central_ledger_commands(self) -> None:
         source = TASKCTL_PATH.read_text(encoding="utf-8")

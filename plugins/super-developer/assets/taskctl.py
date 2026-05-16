@@ -169,10 +169,12 @@ def _criteria_for_package(plan: dict[str, Any], package_id: str) -> list[dict[st
     return sorted(rows, key=lambda row: row["criterion"].get("id", ""))
 
 
-def _criterion_entry_skeleton(row: dict[str, Any], package_id: str) -> dict[str, Any]:
+def _criterion_entry_skeleton(row: dict[str, Any], package: dict[str, Any]) -> dict[str, Any]:
     task = row["task"]
     criterion = row["criterion"]
     criterion_id = criterion.get("id", "")
+    package_id = package.get("id", "")
+    context_bundles = _required_context_bundle_ids_for_task(package, task)
     return {
         "criterion_id": criterion_id,
         "task_id": task.get("id", ""),
@@ -190,7 +192,7 @@ def _criterion_entry_skeleton(row: dict[str, Any], package_id: str) -> dict[str,
             "files": ["<changed-file-or-symbol>"],
             "commands": [],
             "edge_cases": [criterion.get("verification_hint", "<edge case or invariant>")],
-            "context_bundles": task.get("required_context_bundles", []),
+            "context_bundles": context_bundles,
             "mocks": "No mocks used, or disclose exact mock/stub scope.",
         },
         "manual_evidence": {
@@ -222,7 +224,7 @@ def cmd_proof_template(args: argparse.Namespace) -> int:
         },
         "targeted_review": _targeted_review_template(plan, package),
         "entries": [
-            _criterion_entry_skeleton(row, args.package_id)
+            _criterion_entry_skeleton(row, package)
             for row in _criteria_for_package(plan, args.package_id)
         ],
     }
@@ -253,6 +255,16 @@ def _requires_targeted_review(package: dict[str, Any]) -> bool:
     risk_tags = set(package.get("risk_tags", []))
     return bool(package.get("targeted_review_required")) or bool(risk_tags & validator.TARGETED_REVIEW_RISK_TAGS)
 
+
+def _required_context_bundle_ids_for_task(package: dict[str, Any], task: dict[str, Any]) -> list[str]:
+    ids: list[str] = []
+    seen: set[str] = set()
+    for source in (package.get("required_context_bundles", []), task.get("required_context_bundles", [])):
+        for bundle_id in source:
+            if isinstance(bundle_id, str) and bundle_id not in seen:
+                ids.append(bundle_id)
+                seen.add(bundle_id)
+    return ids
 
 def _required_context_bundle_ids_for_package(plan: dict[str, Any], package: dict[str, Any]) -> list[str]:
     ids: list[str] = []
@@ -335,10 +347,16 @@ def _require_package_gates(args: argparse.Namespace, plan: dict[str, Any], tasks
             if not _non_empty(review.get("scope")):
                 missing.append("targeted package review scope is missing")
             commit = _nested(review, "state", "commit")
-            if current is None:
+            if not _non_empty(commit):
+                missing.append("targeted package review state.commit is missing")
+            elif current is None:
                 missing.append("unable to determine current commit for targeted package review freshness")
-            elif commit != current:
-                missing.append(f"targeted package review commit {commit!r} does not match current commit {current!r}")
+            else:
+                fresh = _is_ancestor_commit(_worktree(args), commit)
+                if fresh is None:
+                    missing.append(f"unable to verify targeted package review commit {commit!r} against current commit {current!r}")
+                elif not fresh:
+                    missing.append(f"targeted package review commit {commit!r} is not an ancestor of current commit {current!r}")
     return missing
 
 
@@ -365,6 +383,25 @@ def _proof_commands(section: Any) -> set[str]:
             commands.add(command)
     return commands
 
+
+
+def _is_ancestor_commit(worktree: Path, ancestor: str) -> bool | None:
+    try:
+        result = subprocess.run(
+            ["git", "merge-base", "--is-ancestor", ancestor, "HEAD"],
+            cwd=worktree,
+            check=False,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+    except OSError:
+        return None
+    if result.returncode == 0:
+        return True
+    if result.returncode == 1:
+        return False
+    return None
 
 def _current_commit(worktree: Path) -> str | None:
     try:
@@ -459,6 +496,8 @@ def _final_gate_errors(plan: dict[str, Any], worktree: Path) -> list[str]:
         stamp_field = "reviewed_at" if field == "final_integration_review" else "audited_at"
         if not _non_empty(gate.get(stamp_field)):
             errors.append(f"{field}.{stamp_field} is missing")
+        if not _non_empty(gate.get("source")):
+            errors.append(f"{field}.source is missing")
         commit = _nested(gate, "state", "commit")
         if current is None:
             errors.append(f"unable to determine current commit for {field} freshness")

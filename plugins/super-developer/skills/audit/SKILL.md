@@ -24,19 +24,19 @@ Strict verification that all planned feature requirements and acceptance criteri
 ## Step 1: Spawn Audit Sub-Agent
 
 1. Verify `.tasks/$ARGUMENTS/` exists and contains `SPEC.md`, `tasks.json`, and `.tasks/$ARGUMENTS/proofs/*.proof.json`. If not, list available features/proof files and ask.
-2. Resolve the audit worktree before validation. Prefer `.worktrees/$ARGUMENTS/merge/` when it exists; otherwise use the current repository root.
-3. Execute package proof validation before spawning the audit sub-agent, pointing stale-evidence checks at the resolved audit worktree:
+2. Resolve the audit worktree before validation. Prefer `.worktrees/$ARGUMENTS/merge/` when it exists; otherwise use the current repository root. Resolve the task/proof artifact paths separately to absolute paths in the repository that owns `.tasks/$ARGUMENTS/` (for example, `$(pwd)/.tasks/$ARGUMENTS/tasks.json` and `$(pwd)/.tasks/$ARGUMENTS/proofs/*.proof.json`) so proof files are not looked up relative to the merge worktree by accident.
+3. Execute package proof validation before spawning the audit sub-agent, passing the absolute `tasks.json` path while pointing stale-evidence checks at the resolved audit worktree:
 
    ```bash
-   python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/taskctl.py" --tasks ".tasks/$ARGUMENTS/tasks.json" --worktree "<audit-worktree>" validate-proofs
+   python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/taskctl.py" --tasks "<absolute-repo-path>/.tasks/$ARGUMENTS/tasks.json" --worktree "<audit-worktree>" validate-proofs
    ```
 
-   If package proof validation exits non-zero, stop and resolve the reported `tasks.json` / `.proof.json` blockers before auditing implementation completeness.
+   If package proof validation exits non-zero, stop and resolve the reported absolute `tasks.json` / `.proof.json` blockers before auditing implementation completeness.
 4. Launch an **Opus-class sub-agent** with:
 
-- `.tasks/$ARGUMENTS/SPEC.md`
-- `.tasks/$ARGUMENTS/tasks.json`
-- `.tasks/$ARGUMENTS/proofs/*.proof.json`
+- Absolute `.tasks/$ARGUMENTS/SPEC.md` path
+- Absolute `.tasks/$ARGUMENTS/tasks.json` path
+- Absolute `.tasks/$ARGUMENTS/proofs/*.proof.json` paths
 - **The merge worktree path** — if the feature was implemented using git worktrees (see the worktree skill for path conventions), direct the sub-agent to work from `.worktrees/<feature>/merge/` where the feature branch is checked out. If no worktree exists (e.g., standalone audit), use the current working directory.
 - Access to the project codebase from that worktree
 
