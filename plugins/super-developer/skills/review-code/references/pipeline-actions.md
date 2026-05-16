@@ -38,10 +38,10 @@ corrections, which are committed to the feature branch in the merge worktree aft
 
 Each Fix Implementer receives:
 
-- Confirmed 🔴 and 🟠 findings, including dedupe keys, Skeptic verdicts, evidence, and recommendations
+- Confirmed 🔴 and 🟠 findings, including dedupe keys, finding class, Skeptic verdicts, evidence, and recommendations
 - Reviewed-state metadata
-- `SPEC.md`, `tasks.json`, `verification.json`, relevant context bundles, prior targeted package
-  review/audit results when available, and exact acceptance criteria or ledger entries affected
+- `SPEC.md`, `tasks.json`, package proof files, relevant context bundles, prior targeted package
+  review/audit results when available, and exact acceptance criteria or proof entries affected
 - Target paths, current diff, and exact scope boundaries
 - User constraints, repository constraints, and mode constraints
 - Decision-card outcomes from `decision-filter.md` when any finding required a prompt
@@ -50,9 +50,11 @@ Each Fix Implementer receives:
 
 The Fix Implementer must reproduce or locate each finding, state the bug-class/equivalence class for
 every 🔴/🟠 finding, add or adjust regression/table-driven coverage where applicable, fix minimally,
-run targeted checks, update `verification.json` with state-bound evidence when a planned-feature
-criterion or ledger entry is affected, and report unresolved scope/design blockers. Do not patch only
+run targeted checks, update the owning package proof with state-bound evidence when a planned-feature
+criterion or proof entry is affected, and report unresolved scope/design blockers. Do not patch only
 the exact reported example when the finding represents a class of inputs or states.
+
+A serious finding is not closed merely because a fix commit exists. After the fix, run a focused reviewer or skeptic against the post-fix state to verify the exact finding class no longer reproduces. Scope this repair review to the confirmed finding class, affected diff, and direct consumers; do not launch broad repeated fanout, and do not replace the normal final integration review or audit.
 
 ## Stale-State Gate
 
@@ -68,3 +70,5 @@ pipeline fix or readiness action, revalidate that all still match the reviewed s
 Reject stale, broadened, or ambiguous state and instruct the user to rerun review. Pipeline fixes use
 the delegated Fix Implementer contract above; the main agent does not apply substantive
 production/test/documentation fixes inline.
+
+The stale-state gate also applies before focused post-fix repair review. If the reviewed finding, fix diff, feature branch head, or package proof state no longer matches the packet, reject the closure and rerun the appropriate review on current state.

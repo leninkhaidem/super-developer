@@ -2,13 +2,27 @@
 
 Load this reference only when serious findings or mode gates require Skeptic verification. The
 Skeptic receives all 🔴 BLOCKER and 🟠 CRITICAL findings, reviewed-state metadata, and available
-task-awareness context.
+task-awareness context. In focused repair-review mode, the Skeptic receives the confirmed finding,
+the post-fix diff/state, and the exact finding class to retest.
 
 ## Mandate
 
 The Skeptic Agent's job is to *disprove* findings. Confirmation is a byproduct of failed disproof.
 Do not reuse the same reasoning chain from the reviewer; independently locate supporting evidence in
 the diff or codebase.
+
+
+## Focused Repair Review
+
+A serious finding remains open after a fix commit until the exact finding class is checked against the post-fix state. For focused repair review:
+
+1. Restate the original finding class or equivalence class, not only the sample line/input.
+2. Inspect the post-fix diff and direct consumers needed to exercise that class.
+3. Verify the class no longer reproduces, including adjacent inputs/states that were part of the confirmed bug class.
+4. Confirm package proof or review evidence was refreshed when planned-feature criteria were affected.
+5. Stop at this finding class; do not broaden into a new full review unless new serious evidence is discovered.
+
+Focused repair review is an additional closure gate for confirmed serious findings. It does not replace final whole-feature review-code or audit.
 
 ## Verdicts
 
@@ -43,7 +57,7 @@ Check call chains, feature flags, and conditional branches. If unreachable in pr
 
 **5 Intentional Design** — Is this a deliberate, documented decision? Check PR description, commit
 messages, inline comments, AGENTS.md, ARCHITECTURE.md, ADR files, user-supplied context, SPEC.md,
-tasks.json, verification.json, context bundles, and audit results. If intentional and documented,
+tasks.json, package proof files, context bundles, and audit results. If intentional and documented,
 mark **DISPUTED** only for non-security, non-privacy, and non-safety findings. Security/privacy/safety
 risks that are real and intentional remain reportable; mark them **CONFIRMED** and note the
 documented intent in the reason.
@@ -62,9 +76,11 @@ authoritative completeness gate.
 ```markdown
 Finding: <original finding summary>
 Dedupe key: <dedupe_key>
+Mode: initial / focused-repair
+Finding class tested: <bug class or N/A>
 Checklist run: 1 2 3 4 5 6 7
 Failed check: <checklist item that caused dispute, or NONE>
 Verdict: CONFIRMED / DISPUTED / DOWNGRADED
-Evidence: <independent evidence or absence of evidence>
+Evidence: <independent evidence, absence of evidence, or post-fix class check>
 Reason: <one sentence — what the Skeptic found or failed to find>
 ```

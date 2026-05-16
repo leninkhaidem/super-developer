@@ -101,17 +101,19 @@ Use `schema-reference.md` for a concise field map. The machine contract is `${SU
 
 ## Lightweight Execution Constraints and Replan Triggers
 
-Do not add new schema fields or heavyweight architecture sections for this. Use the existing `design_decisions`, task acceptance criteria, `verification_hint`, `context_bundles`, work-package rationale, risk tags, and verification commands.
+Do not add new schema fields, persistent checklist sections, workflow history, repair-review state, semantic-review state, or known-risk sections for this. Use the existing `design_decisions`, task acceptance criteria, `verification_hint`, `context_bundles`, work-package rationale, risk tags, targeted-review flags, and verification commands.
 
-Capture a trigger only when implementation must stop or replan if the assumption is false, such as:
+Capture a trigger only when implementation must stop, replan, prove a specific edge, or route review differently if the assumption is false, such as:
 - external/API/runtime contract mismatch;
 - base/target ref ambiguity for stacked features;
 - public API or compatibility drift;
 - migration, rollback, destructive-data, or idempotency uncertainty;
 - security, privacy, safety, or no-mock integration constraint;
-- package boundary or parallelism assumption that proves invalid.
+- package boundary, semantic-review, or parallelism assumption that proves invalid;
+- optional/defaulted boundary fields, generated contract defaults, model/default precedence, or contract drift;
+- pollution-sensitive tests that mutate import caches, environment, globals, singleton caches, module registries, import stubs, monkeypatches, or equivalent shared process state.
 
-Keep this sparse. Zero triggers is valid for straightforward work. Prefer one concise feature-specific sentence over a checklist. Never copy generic "run tests", "follow clean code", or broad quality rules into every task.
+Keep this sparse. Zero triggers is valid for straightforward work. Prefer one concise feature-specific sentence in an acceptance criterion, verification hint, context bundle, work-package risk/targeted-review rationale, or design decision over a checklist. Never copy generic "run tests", "follow clean code", or broad quality rules into every task.
 
 ## Task Authoring Guidance
 
@@ -135,10 +137,12 @@ Criteria describe verifiable outcomes, not internal implementation steps:
 - Bad: "Parser tries lxml first, falls back to html.parser."
 
 Every task acceptance criterion is an object with:
-- a stable `id` that implementers, verification ledgers, reviewers, and audits can cite;
+- a stable `id` that implementers, package proof files, reviewers, and audits can cite;
 - `criterion` as the observable outcome;
 - non-empty typed `source_refs` pointing to SPEC IDs, design decisions, or context bundles;
 - `verification_hint` when proof depends on an edge case, command, performance bound, library/runtime behavior, manual evidence, or no-mocks constraint.
+
+When a criterion has optional/defaulted boundary contract risk, prefer observable behavior in the criterion and put specific edge values in `verification_hint`. Planning may cite `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/known-risk-patterns.md` as a prompt source, but must not persist its generic prompts as a new plan section.
 
 Complete traceability is mandatory: every SPEC `REQ-*` and `AC-*` must be covered by at least one task acceptance criterion, and every task criterion must cite at least one valid source ref. Do not create floating criteria for nice-to-have work.
 
@@ -177,3 +181,4 @@ Use `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/work-packages.md` as the source o
 - Use package boundaries to keep caller contracts, migrations, failure modes, or cross-module invariants visible to one agent when needed.
 - Use risk tags and `targeted_review_required` per `validate-tasks-json.py` and `work-packages.md`; do not copy a long taxonomy into plans or skills.
 - Use `required_context_bundles` when a package depends on a bundle. Each listed bundle must also list the package or one of its tasks in `required_for`.
+- Mark `targeted_review_required: true` when high-risk cache semantics, lifecycle cleanup, boundary serialization, generated contract defaults, persistence, concurrency, public API, shared configuration, or similar cross-cutting impact should receive semantic package review before dependent downstream dispatch. This package review supplements, but never replaces, final whole-feature review and audit.

@@ -118,8 +118,11 @@ specialist still produce one specialist reviewer, not one reviewer per trigger.
 ### Code Reviewer Mandate
 
 The Code Reviewer receives the full diff or current semantic batch diff, change context, codebase
-path for exploration, reviewed-state metadata, available task-awareness context, and
-`${SUPER_DEVELOPER_PLUGIN_ROOT}/references/clean-code-rules.md` for the Development Quality Contract.
+path for exploration, reviewed-state metadata, available task-awareness context,
+`${SUPER_DEVELOPER_PLUGIN_ROOT}/references/clean-code-rules.md` for the Development Quality Contract,
+and `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/known-risk-patterns.md` as generic prompt input when
+task or package risk suggests optional/default, pollution, cache, lifecycle, precedence, or boundary
+contract hazards.
 Use `references/finding-contract.md` for severity taxonomy, canonical finding fields, output format,
 and suggestion actionability rules.
 
@@ -134,11 +137,17 @@ significant **CODE-QUALITY** issues to 🟠 CRITICAL when they materially raise 
 maintenance, or regression risk; otherwise map non-blocking actionable issues to 🟡 SUGGESTION. Use
 **ADVISORY** only as 🟡 SUGGESTION.
 
+When changed tests mutate import caches, module registries such as `sys.modules`, environment
+variables, globals, singleton caches, import stubs, monkeypatches, or equivalent shared process state,
+review must require pollution-sensitive ordering evidence: the changed test alone, before and after
+likely consumers, and in the combined affected suite, or a concrete reason the trigger does not
+apply.
+
 When task-awareness context is available, the Code Reviewer flags apparent planned requirement or
 acceptance-criteria omissions, contradictions, or regressions. These are review-code findings, not
 completion proof: the audit skill remains authoritative for proving all planned tasks and acceptance
-criteria. In pipeline context, review-code may use `verification.json` as an index to planned proof,
-but must not treat ledger entries as authoritative proof or duplicate audit's exhaustive role.
+criteria. In pipeline context, review-code may use package proof files as indexes to planned proof,
+but must not treat proof entries as authoritative proof or duplicate audit's exhaustive role.
 
 ### Specialist Mandate
 
@@ -158,6 +167,12 @@ For each batch: preserve mode context and reviewed-state metadata; run the bound
 for that batch; keep the per-batch cap (normal 2, risky 3); assign stable dedupe keys; and carry
 confirmed, disputed, downgraded, and suggestion findings into a cross-batch dedupe set.
 
+For planned-feature package reviews, also create a semantic batch for high-risk package merges or fixes
+before dependent downstream dispatch when cache semantics, lifecycle cleanup, boundary serialization,
+generated contract defaults, persistence, concurrency, public API, shared configuration, or similar
+cross-cutting impact is present. This package-level pass is narrower than final whole-feature review
+and never replaces the final global integration review below.
+
 After all batches, run one final global integration verification pass over the consolidated finding
 set and whole reviewed state. This pass verifies cross-batch serious findings, detects conflicts or
 duplicates, and confirms that no batch-local recommendation breaks another batch. It does not reopen
@@ -171,9 +186,10 @@ Read `references/finding-contract.md` before delegating reviewers. Every reviewe
 severity taxonomy, canonical fields, output format, and suggestion actionability rules.
 
 Serious findings require Skeptic verification. Spawn a Skeptic Agent using the resolved Step 2 model
-for all 🔴 BLOCKER and 🟠 CRITICAL findings, plus cross-batch serious-finding conflicts or final
-verification gates. Read `references/skeptic-checklist.md` for the adversarial procedure,
-false-positive checklist, verdict meanings, and Skeptic output format.
+for all 🔴 BLOCKER and 🟠 CRITICAL findings, plus cross-batch serious-finding conflicts, focused
+post-fix verification of serious finding classes, or final verification gates. Read
+`references/skeptic-checklist.md` for the adversarial procedure, false-positive checklist, focused
+post-fix procedure, verdict meanings, and Skeptic output format.
 
 The Skeptic's job is to disprove findings. Only Skeptic-confirmed 🔴 BLOCKER and 🟠 CRITICAL findings
 are reported. Disputed serious findings are silently excluded. Downgraded serious findings may appear
@@ -212,14 +228,17 @@ merge worktree metadata still match the reviewed state. Reject stale or broadene
 the user to rerun review.
 
 Pipeline fixes use the delegated Fix Implementer contract in `references/pipeline-actions.md`; the
-main agent does not apply substantive production/test/documentation fixes inline. `commit` is not
-offered in pipeline context because feature branch code is already committed.
+main agent does not apply substantive production/test/documentation fixes inline. A serious finding
+is not closed by a fix commit alone; a focused reviewer or skeptic must verify the exact finding
+class against the post-fix state before the pipeline treats it as repaired. `commit` is not offered
+in pipeline context because feature branch code is already committed.
 
 ### Blanket-Mode Boundary
 
 Blanket mode cannot bypass the Code Reviewer's baseline security/privacy/safety sniff, the Skeptic
-requirement for serious findings, stale-state gates, delegated fix verification where a mode requires
-it, PR merge confirmation, or pipeline final-audit semantics. Blanket mode may only automate actions
-that the active mode explicitly permits after those gates pass.
+requirement for serious findings, focused post-fix verification of serious finding classes,
+pollution-sensitive ordering checks when triggered, stale-state gates, delegated fix verification
+where a mode requires it, PR merge confirmation, or pipeline final-audit semantics. Blanket mode may
+only automate actions that the active mode explicitly permits after those gates pass.
 
 _Designed for multi-agent orchestration. Requires: `git` (always), `gh` CLI (PR mode only)._
