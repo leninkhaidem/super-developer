@@ -82,7 +82,7 @@ SUGGESTION_ACTIONABILITY: <required for 🟡, otherwise n/a>
 FIX_STATUS: unfixed
 ```
 
-If no findings, respond with exactly `NONE`. Do not append `NONE` after findings.
+If no findings in a discovery review, return the required `DISCOVERY_COVERAGE` rows followed by `NONE`; in non-discovery/no-coverage contexts, a no-findings response may be exactly `NONE` where applicable. Do not append `NONE` after findings.
 
 Reviewers must include `SKEPTIC_VERDICT: not-required` on initial output. The Skeptic is the only
 actor that changes this field, setting it to `confirmed`, `disputed`, or `downgraded` for 🔴/🟠

@@ -78,8 +78,8 @@ Pipeline auto-resolve uses this governed sequence instead of a full review after
 2. If the verdict is **ISSUES FOUND**, group confirmed 🔴/🟠 findings into coherent fix batches,
    refresh the snapshot with the planned batch, and run the Stale-State Gate before delegating each
    batch.
-3. After each delegated fix batch, record the approved fix commit(s) in the snapshot and run Pipeline
-   Fix Verification Review for the assigned dedupe keys.
+3. The Fix Implementer commits each delegated fix batch before verification; record the delegated fix
+   commit(s) in the snapshot and run Pipeline Fix Verification Review for the assigned dedupe keys.
 4. If every assigned finding is `closed`, no serious fix-introduced regression is found, and no
    widening trigger fires, refresh closure status with the current post-fix lineage as verified and
    continue with any remaining known confirmed serious findings.
@@ -104,8 +104,8 @@ Load `decision-filter.md` when a pipeline fix may require a product or architect
 | `details <N>` | Expand finding N with full context and recommended fix. Return to gated actions. |
 | `abort` | No changes. Close review. |
 
-`commit` is not offered: feature branch code is already committed. Use `fix` to delegate
-corrections, which are committed to the feature branch in the merge worktree after verification.
+`commit` is not offered as a separate pipeline action. Use `fix` to delegate corrections; the Fix
+Implementer commits each delegated batch in the merge worktree before Fix Verification Review.
 
 ## Fix Implementer Packet
 
@@ -156,16 +156,16 @@ audit evidence, or a substitute for accepted package proof lifecycle.
 
 The Fix Implementer must reproduce or locate each finding, state the bug-class/equivalence class for
 every 🔴/🟠 finding, add or adjust regression/table-driven coverage where applicable, fix minimally,
-run targeted checks, update the affected package proof with state-bound evidence when a planned-feature
-criterion or proof entry is affected, and report unresolved scope/design blockers. Do not patch only
-the exact reported example when the finding represents a class of inputs or states.
+run targeted checks, update affected package proof entries with state-bound evidence when impacted,
+commit the delegated fix batch before Fix Verification Review, and report unresolved blockers. Do not
+patch only the exact reported example when the finding represents a class of inputs or states.
 
 ## Pipeline Fix Verification Review
 
-After each delegated fix batch, load `fix-verification.md` and run a delegated Fix Verification
-Review for the assigned confirmed findings or dedupe keys. Pass the fix delta, Fix Implementer
-report, original finding evidence, reviewed-state metadata, current post-fix state metadata, and any
-raised widening triggers.
+After each delegated fix batch has been committed, load `fix-verification.md` and run a delegated Fix
+Verification Review for the assigned confirmed findings or dedupe keys. Pass the fix delta, Fix
+Implementer report, original finding evidence, reviewed-state metadata, current post-fix state
+metadata, and any raised widening triggers.
 
 The Fix Verification Reviewer must report `closed`, `partially_closed`, `not_closed`, or `reopened`
 for every assigned finding or dedupe key with concrete evidence, then run the shared serious-regression
@@ -230,8 +230,8 @@ condition; use the escalation ladder first.
 ## Stale-State Gate
 
 Pipeline side-effect gates stay tied to the reviewed state captured before discovery review, plus the
-approved post-fix lineage produced by delegated fix batches. Treat this gate as the state-binding
-portion of `review-code-state.json` validation; the snapshot cannot be used for fixes,
+committed post-fix lineage produced by delegated fix batches before verification. Treat this gate as
+the state-binding portion of `review-code-state.json` validation; the snapshot cannot be used for fixes,
 verification, widening, escalation, or audit readiness unless this lineage check also passes. Before
 the first pipeline fix action, revalidate that all still match the discovery reviewed state:
 
@@ -241,14 +241,15 @@ the first pipeline fix action, revalidate that all still match the discovery rev
 - Reviewed file list and status
 - Merge worktree metadata
 
-After a delegated fix batch, the feature branch head may advance only by the approved Fix Implementer
-commit(s) for that batch. For follow-up fixes or audit readiness, revalidate the current lineage as:
+After a delegated fix batch is committed before verification, the feature branch head may advance only
+by the recorded Fix Implementer commit(s) for that batch. For follow-up fixes or audit readiness,
+revalidate the current lineage as:
 
-discovery reviewed state → delegated fix batch(es) → Fix Verification Review verdicts → any triggered
-widened review/escalation results.
+discovery reviewed state → delegated fix commit batch(es) → Fix Verification Review verdicts → any
+triggered widened review/escalation results.
 
 The base/target ref, merge worktree metadata, and reviewed state binding must remain stable except for
-approved fix deltas and documented widened scopes. Reject unexpected commits, broadened file impact,
+recorded delegated fix commits and documented widened scopes. Reject unexpected commits, broadened file impact,
 missing fix-verification verdicts, ambiguous lineage, or changed base state and instruct the user to
 rerun the appropriate review gate. Pipeline fixes use the delegated Fix Implementer contract above;
 the main agent does not apply substantive production/test/documentation fixes inline.
