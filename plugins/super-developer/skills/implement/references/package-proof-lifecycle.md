@@ -122,4 +122,4 @@ After package tasks are marked `done` and feature status is `completed`, validat
 python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/validate-tasks-json.py" --final --worktree ".worktrees/<feature>/merge" ".tasks/<feature>/tasks.json"
 ```
 
-Final feature completion still requires the final review-code/fix loop and final audit pass. A generic status mutation or manual schema edit cannot bypass accepted package proofs, final review, or final audit.
+Final feature completion still requires governed review-code audit readiness and final audit pass. A generic status mutation, manual schema edit, or review-code state snapshot cannot bypass accepted package proofs, final review readiness, or final audit.

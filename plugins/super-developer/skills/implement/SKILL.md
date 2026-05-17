@@ -79,7 +79,7 @@ Stop conditions:
 - no viable automated strategy remains after governed escalation
 
 Choices:
-  approve auto-resolve  — recommended; run until clean or a stop condition
+  approve auto-resolve  — recommended; run until review-code audit readiness and final audit pass, or a stop condition
   step-by-step          — ask before each major gate/fix round
   abort                 — stop before worktree creation
 ```
@@ -175,7 +175,10 @@ If blanket approval or `approve auto-resolve` was given:
 2. Delegate confirmed 🔴/🟠 findings in coherent fix batches unless a stop condition or design-decision card requires the user.
 3. After each fix batch, use the review-code pipeline Fix Verification Review for the assigned dedupe keys. Do not rerun the full discovery review by default.
 4. When Fix Verification Review returns non-closed verdicts, serious fix-introduced regressions, or widening triggers, follow the review-code pipeline widening/escalation rules before asking the user. User prompts are reserved for authority boundaries: product/design changes, scope expansion beyond SPEC/tasks, new dependencies/services, destructive or external actions, risk acceptance, credentials/external facts, unsafe commands, or no viable verification seam after escalation.
-5. Invoke `audit` with `<feature-name>` only after all known confirmed serious findings are fixed and verified `closed`, required widened checks are complete, and no unresolved serious regression remains.
+5. Invoke `audit` with `<feature-name>` only after all known confirmed serious findings are fixed and
+   verified `closed`, required widened checks are complete, no unresolved serious regression remains,
+   and any review-code fix that affected package acceptance criteria or proof evidence has refreshed,
+   validated, and reaccepted those package proofs through the package proof lifecycle.
 
 If step-by-step mode was selected, present review-code as the next recommended gate and audit as the final gate after review-code reaches audit readiness. Do not offer separate `audit`, `review`, and `both` choices as the normal post-implementation UX.
 

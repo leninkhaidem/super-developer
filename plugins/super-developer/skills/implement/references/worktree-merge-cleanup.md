@@ -117,7 +117,7 @@ cd "$PROJECT_ROOT/.worktrees/<feature>/merge"
 git branch -d task/<feature>/<WP-ID>
 ```
 
-Keep `.worktrees/<feature>/merge` until final implementation validation, review-code/fix loop, audit, push, and any explicitly approved merge-to-target safety boundary are complete.
+Keep `.worktrees/<feature>/merge` until final implementation validation, governed review-code audit readiness, audit, push, and any explicitly approved merge-to-target safety boundary are complete.
 
 ## Status Examples
 
