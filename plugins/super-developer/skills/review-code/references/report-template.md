@@ -28,7 +28,7 @@ All review modes use this template. Substitute `<HEADER>` and `<METADATA>` per t
    Evidence: <evidence>
    Recommendation: <fix or alternatives>
 
-### 🟡 Suggestions _(non-blocking)_
+### 🟡 Suggestions _(non-blocking, report-only by default)_
 1. [Finding] — `<filename>`, Line <line>
    Action: <specific, diff-relevant improvement>
 
@@ -48,7 +48,9 @@ audit remains authoritative for planned-task and acceptance-criteria completenes
 - **Downgraded findings:** Reclassified from 🔴/🟠 to 🟡 by the Skeptic only when still actionable,
   diff-relevant, and deduplicated.
 - **Show only Skeptic-confirmed findings** for 🔴 and 🟠.
-- **Suggestions:** Include only actionable, diff-relevant, deduplicated 🟡 findings.
+- **Suggestions:** Include only actionable, diff-relevant, deduplicated 🟡 findings. They do not
+  block readiness or create a separate fix loop. Automatic suggestion fixes are allowed only under
+  the bounded same-scope bundle rule in `finding-contract.md`.
 - **Decision-card compatibility:** A finding has enough data for a design-decision card when it is
   🔴/🟠, Skeptic-confirmed, and its recommendation lists multiple materially different alternatives.
 - **Task-awareness findings:** Present them as consistency signals only. Do not claim review-code has

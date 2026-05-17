@@ -144,7 +144,10 @@ compatibility, caller-contract, error-handling, trust-boundary, dependency, migr
 concurrency, privacy, and dependency findings. Map contract **BLOCKER** issues to 🔴 BLOCKER. Map
 significant **CODE-QUALITY** issues to 🟠 CRITICAL when they materially raise operational,
 maintenance, or regression risk; otherwise map non-blocking actionable issues to 🟡 SUGGESTION. Use
-**ADVISORY** only as 🟡 SUGGESTION.
+**ADVISORY** only as 🟡 SUGGESTION. Suggestions are report-only by default across modes: they do not
+block readiness, change the verdict, or create a separate review/fix loop. Use
+`references/finding-contract.md` for the narrow conditions under which an active mode may bundle a
+suggestion with a serious fix.
 
 When task-awareness context is available, the Code Reviewer flags apparent planned requirement or
 acceptance-criteria omissions, contradictions, or regressions. These are review-code findings, not

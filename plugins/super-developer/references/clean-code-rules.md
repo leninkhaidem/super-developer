@@ -28,7 +28,7 @@ Tiny isolated edits MAY be exempt when they do not affect runtime behavior or sh
 - **CODE-QUALITY**: SHOULD-level maintainability violation without immediate correctness/safety impact, unjustified duplication, unclear boundary, unnecessary coupling, hard-to-review structure, inconsistent good convention, or local complexity that materially raises maintenance risk.
 - **ADVISORY**: Optional improvement, style preference grounded in local conventions, small clarity improvement, or future cleanup that is useful but not required for the current change.
 
-Audit and review agents MUST classify findings using these severities. Exceptions to SHOULD rules MUST include explicit justification in completion evidence or review context.
+Audit and review agents MUST classify findings using these severities. A finding that materially affects correctness, safety, maintainability risk, or verification confidence MUST NOT remain an advisory suggestion; classify it at the serious severity justified by the evidence. Exceptions to SHOULD rules MUST include explicit justification in completion evidence or review context.
 
 ## 2. Phase Gates
 
