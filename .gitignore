@@ -6,3 +6,4 @@ __pycache__/
 *.pyc
 .worktrees/
 .tasks/
+.claude/model-preferences.yml
