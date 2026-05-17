@@ -82,6 +82,27 @@ Use `reopen-package` before a repair that invalidates accepted proof content:
 python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/taskctl.py" reopen-package --tasks ".tasks/<feature>/tasks.json" --worktree ".worktrees/<feature>/merge" ".tasks/<feature>/proofs/WP1.proof.json"
 ```
 
+## Review-Code Fix Proof Refresh
+
+Pipeline review-code fixes can invalidate accepted package evidence. Before delegating such a repair,
+the orchestrator maps each confirmed finding or fix batch to affected package IDs, task IDs,
+acceptance criterion IDs, and proof entries when identifiable. Use the current package proof files,
+`tasks.json` work package ownership, proof-cited paths/commands/manual evidence, package risk tags,
+and target paths from the fix packet. The map is repair-scoping context, not a new evidence ledger.
+
+If the map shows accepted proof content may be stale, reopen each affected package proof before the
+repair starts with `taskctl.py reopen-package`. Repair agents update only the relevant proof entries
+with current evidence. After the repair, rerun `validate-proof` for every reopened package proof
+against the integration worktree, rerun any proof-cited command or inspection needed for freshness,
+and then use `accept-package` to accept the refreshed proof before audit readiness.
+
+When proof impact is uncertain, fail closed: reopen and refresh candidate proofs selected by package
+ownership, touched proof-cited paths, risk tags, or acceptance surface; alternatively record explicit
+no-impact evidence that no acceptance criterion, proof-cited artifact, verification command,
+targeted-review evidence, or audit handoff surface changed. Do not treat uncertainty as no-op merely
+because exact proof entries were not identified, and do not store this decision in
+`review-code-state.json` as acceptance evidence.
+
 ## Blocking and Resetting Tasks
 
 Use taskctl for constrained lifecycle mutations:

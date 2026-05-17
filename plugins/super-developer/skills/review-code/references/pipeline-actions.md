@@ -87,8 +87,8 @@ Pipeline auto-resolve uses this governed sequence instead of a full review after
    widening trigger appears, refresh widening/escalation status and route to the governed widening or
    escalation flow; do not rerun full discovery by default.
 6. Enter audit readiness only after snapshot validation passes, all known confirmed serious findings
-   are fixed and verified closed, required widened checks are complete, and no unresolved serious
-   regression remains.
+   are fixed and verified closed, required widened checks are complete, affected package proofs are
+   refreshed and accepted, and no unresolved serious regression remains.
 
 There is no arbitrary pass-after-N limit: a known confirmed serious finding blocks readiness until it is fixed and verified `closed`; if an authority boundary is reached, stop instead of marking the pipeline ready.
 
@@ -114,12 +114,45 @@ Each Fix Implementer receives:
 - Confirmed 🔴 and 🟠 findings, including dedupe keys, Skeptic verdicts, evidence, and recommendations
 - Reviewed-state metadata
 - `SPEC.md`, `tasks.json`, package proofs, relevant context bundles, prior targeted package
-  review/audit results when available, and exact acceptance criteria or proof entries affected
+  review/audit results when available, and the proof-impact map described below
+- Exact affected package IDs, task IDs, acceptance criteria, or proof entries when identifiable
 - Target paths, current diff, and exact scope boundaries
 - User constraints, repository constraints, and mode constraints
 - Decision-card outcomes from `decision-filter.md` when any finding required a prompt
 - Instruction to avoid unrelated cleanup, opportunistic refactors, broad rewrites, or touching files
   outside target paths unless required to close a confirmed finding
+
+## Package Proof Impact During Pipeline Fixes
+
+Before delegating a pipeline fix batch, map every confirmed finding or dedupe key to package proof
+impact when the fix can invalidate planned-feature acceptance evidence. Use the finding scope,
+recommended fix, target paths, `tasks.json` work packages, accepted package proofs, package risk tags,
+and cited proof file evidence to build a compact proof-impact map:
+
+- affected package IDs, task IDs, acceptance criterion IDs, and proof entries when identifiable;
+- evidence surfaces that may become stale: cited files/symbols, command outputs, manual evidence,
+  targeted-review evidence, or package verification assumptions;
+- impact reason, such as touched proof-cited path, changed acceptance behavior, changed verification
+  command/test evidence, cross-package impact, or `proof_invalidation` widening trigger;
+- lifecycle action: no proof surface changed, reopen affected proof before repair, or reopen candidate
+  proof because impact is uncertain.
+
+When an accepted package proof may be invalidated, the orchestrator must load
+`plugins/super-developer/skills/implement/references/package-proof-lifecycle.md` and run
+`taskctl.py reopen-package` for each affected package proof before repair starts. The Fix Implementer
+or repair agent then updates only the relevant package proof entries with state-bound evidence for
+the repaired state. After repair and Fix Verification Review, the orchestrator validates the
+refreshed proof and runs `taskctl.py accept-package` before audit readiness. Do not hand-edit proof
+lifecycle state.
+
+Uncertain proof impact fails closed. If the exact criteria/proof entries cannot be identified from
+paths and findings, reopen and refresh candidate package proofs by package/path/risk ownership, or
+record explicit no-impact evidence showing that no acceptance criterion, proof-cited artifact,
+verification command, targeted-review evidence, or audit handoff surface changed. Absence of an exact
+mapping is not enough to treat proof handling as a no-op.
+
+Review state may track proof-impact status for governance, but `review-code-state.json` is not proof,
+audit evidence, or a substitute for accepted package proof lifecycle.
 
 The Fix Implementer must reproduce or locate each finding, state the bug-class/equivalence class for
 every 🔴/🟠 finding, add or adjust regression/table-driven coverage where applicable, fix minimally,

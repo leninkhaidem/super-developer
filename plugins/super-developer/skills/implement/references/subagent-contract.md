@@ -90,12 +90,17 @@ When integration checkpoint, targeted package review, review-code, or audit reje
 - rejection report with exact failed criteria and why evidence was insufficient;
 - package diff or relevant changed files;
 - current package proof entries and lifecycle state;
+- review-code proof-impact map when the repair came from pipeline review-code, including affected or
+  candidate package IDs, task/criterion IDs, proof entries, and any explicit no-impact evidence the
+  orchestrator expects the repair to preserve or refresh;
 - failed command output or observed bad behavior;
 - required context bundles and citations expected;
 - risk tags and edge-case checklist;
 - safe verification commands to run after repair;
 - the proof schema contract from `taskctl.py must-prove`;
-- instruction to update only package proof entries and report new evidence;
-- instruction not to force-add or commit ignored `.tasks` proof artifacts.
+- instruction to update only package proof entries relevant to the repair or explicitly identified
+  candidate proof refresh, and report new state-bound evidence;
+- instruction not to edit proof lifecycle state by hand, mark tasks done, treat review state as
+  proof, or force-add/commit ignored `.tasks` proof artifacts.
 
 Repair scope is limited to making the assigned package criteria true and proven in the current integrated state. Design/product behavior changes, new dependencies/services, scope expansion, or unsafe commands still stop for user approval.
