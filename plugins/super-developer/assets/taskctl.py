@@ -115,6 +115,67 @@ def build_parser() -> argparse.ArgumentParser:
     )
     next_package.set_defaults(func=cmd_next_package)
 
+    criteria = subparsers.add_parser(
+        "criteria",
+        parents=[common],
+        help="Emit task acceptance criteria for one work package.",
+    )
+    criteria.add_argument("--package", required=True, help="Work package id.")
+    criteria.set_defaults(func=cmd_criteria)
+
+    start_package = subparsers.add_parser(
+        "start-package",
+        parents=[common],
+        help="Mark pending tasks in one work package as in-progress.",
+    )
+    start_package.add_argument("--package", required=True, help="Work package id.")
+    start_package.add_argument("--started-at", help="ISO-8601 timestamp; defaults to current UTC time.")
+    start_package.set_defaults(func=cmd_start_package)
+
+    complete_package = subparsers.add_parser(
+        "complete-package",
+        parents=[common],
+        help="Mark one work package's tasks done after accepted proof validation.",
+    )
+    complete_package.add_argument("--package", required=True, help="Work package id.")
+    complete_package.add_argument("--completed-at", help="ISO-8601 timestamp; defaults to current UTC time.")
+    complete_package.set_defaults(func=cmd_complete_package)
+
+    record_targeted_review = subparsers.add_parser(
+        "record-targeted-review",
+        parents=[common],
+        help="Record the minimal targeted_review object for one package proof.",
+    )
+    record_targeted_review.add_argument("--package", required=True, help="Work package id.")
+    record_targeted_review.add_argument("--reviewer", required=True, help="Reviewer identity or run id.")
+    record_targeted_review.add_argument("--evidence", required=True, help="Concise targeted review evidence.")
+    record_targeted_review.add_argument("--reviewed-at", help="ISO-8601 timestamp; defaults to current UTC time.")
+    record_targeted_review.set_defaults(func=cmd_record_targeted_review)
+
+    refresh_proof_state = subparsers.add_parser(
+        "refresh-proof-state",
+        parents=[common],
+        help="Refresh proof entry state binding to the current worktree HEAD.",
+    )
+    refresh_proof_state.add_argument("--package", required=True, help="Work package id.")
+    refresh_proof_state.add_argument(
+        "--criterion",
+        action="append",
+        help="Criterion id to refresh; repeatable. Defaults to every entry in the package proof.",
+    )
+    refresh_proof_state.add_argument("--captured-at", help="ISO-8601 timestamp; defaults to current UTC time.")
+    refresh_proof_state.add_argument(
+        "--note",
+        default="Stale-only proof refresh: evidence rechecked against current worktree HEAD.",
+        help="Edge-case note appended to refreshed entries.",
+    )
+    refresh_proof_state.add_argument(
+        "--reaccept",
+        action="store_true",
+        help="Also write accepted lifecycle state after validation.",
+    )
+    refresh_proof_state.set_defaults(func=cmd_refresh_proof_state)
+
     block_task = subparsers.add_parser(
         "block-task",
         parents=[common],
@@ -319,6 +380,271 @@ def cmd_next_package(args: argparse.Namespace) -> int:
             "candidates": candidates,
             "blocked": blocked,
             "interrupted": interrupted,
+        },
+    )
+    return 0
+
+
+def cmd_criteria(args: argparse.Namespace) -> int:
+    validator, plan = load_plan(Path(args.tasks))
+    package = require_package(plan, args.package)
+    criteria = []
+    for criterion in package_criteria(validator, plan, package["id"]):
+        criterion_id = criterion["id"]
+        task_id = criterion_id.rsplit("-AC", 1)[0]
+        criteria.append(
+            {
+                "criterion_id": criterion_id,
+                "task_id": task_id,
+                "criterion": criterion["criterion"],
+                "verification_hint": criterion.get("verification_hint"),
+                "source_refs": criterion["source_refs"],
+                "required_context_bundles": sorted(
+                    required_context_bundles(plan, package["id"], task_id, criterion_id)
+                ),
+            }
+        )
+    write_json(
+        sys.stdout,
+        {
+            "feature": plan.data["feature"],
+            "read_only": True,
+            "package_id": package["id"],
+            "task_ids": package["task_ids"],
+            "criteria": criteria,
+        },
+    )
+    return 0
+
+
+def cmd_start_package(args: argparse.Namespace) -> int:
+    validator, plan = load_plan(Path(args.tasks))
+    package = require_package(plan, args.package)
+    timestamp = args.started_at or now_utc_iso()
+    started: list[str] = []
+    already_in_progress: list[str] = []
+    done: list[str] = []
+    blocked: list[str] = []
+    for task_id in package["task_ids"]:
+        task = plan.tasks[task_id]
+        status = task["status"]
+        if status == "pending":
+            task["status"] = "in-progress"
+            task["started_at"] = timestamp
+            task.pop("completed_at", None)
+            task.pop("blocked_reason", None)
+            task.pop("blocked_at", None)
+            started.append(task_id)
+        elif status == "in-progress":
+            already_in_progress.append(task_id)
+        elif status == "done":
+            done.append(task_id)
+        elif status == "blocked":
+            blocked.append(task_id)
+    if blocked:
+        raise TaskctlError([f"start-package: blocked tasks cannot be started: {', '.join(blocked)}"])
+    if not started and not already_in_progress:
+        raise TaskctlError([f"start-package: package {package['id']} has no pending or in-progress tasks"])
+    validate_plan_after_mutation(validator, plan)
+    atomic_write_json(plan.tasks_path, plan.data)
+    write_json(
+        sys.stdout,
+        {
+            "ok": True,
+            "package_id": package["id"],
+            "started": started,
+            "already_in_progress": already_in_progress,
+            "already_done": done,
+            "started_at": timestamp,
+        },
+    )
+    return 0
+
+
+def cmd_complete_package(args: argparse.Namespace) -> int:
+    validator, plan = load_plan(Path(args.tasks))
+    package = require_package(plan, args.package)
+    proof = proof_health(validator, plan, package, Path(args.worktree))
+    if not proof["final_ready"]:
+        raise TaskctlError(
+            [
+                f"complete-package: package {package['id']} proof is not accepted/final-ready",
+                *proof["errors"],
+            ]
+        )
+    timestamp = args.completed_at or now_utc_iso()
+    completed: list[str] = []
+    for task_id in package["task_ids"]:
+        task = plan.tasks[task_id]
+        if task["status"] == "blocked":
+            raise TaskctlError([f"complete-package: task {task_id} is blocked"])
+        if task["status"] != "done":
+            completed.append(task_id)
+            task["status"] = "done"
+            task["completed_at"] = timestamp
+            task.pop("blocked_reason", None)
+            task.pop("blocked_at", None)
+    validate_plan_after_mutation(validator, plan)
+    atomic_write_json(plan.tasks_path, plan.data)
+    write_json(
+        sys.stdout,
+        {
+            "ok": True,
+            "package_id": package["id"],
+            "completed": completed,
+            "completed_at": timestamp,
+        },
+    )
+    return 0
+
+
+def cmd_record_targeted_review(args: argparse.Namespace) -> int:
+    validator, plan = load_plan(Path(args.tasks))
+    package = require_package(plan, args.package)
+    proof_path = validator.expected_package_proof_path(plan.tasks_path, package["id"])
+    proof = load_package_proof_file(proof_path)
+    if proof.get("package_id") != package["id"]:
+        raise TaskctlError([f"package proof.package_id: expected {package['id']!r}"])
+    required = plan.index["package_targeted_review_required"].get(package["id"], False)
+    proof["targeted_review"] = {
+        "required": required,
+        "performed": True,
+        "reviewer": args.reviewer.strip(),
+        "result": "passed",
+        "evidence": args.evidence.strip(),
+        "reviewed_at": args.reviewed_at or now_utc_iso(),
+    }
+    errors: list[str] = []
+    validator.validate_package_targeted_review(
+        proof.get("targeted_review"),
+        "package proof.targeted_review",
+        errors,
+        required_by_plan=required,
+    )
+    if errors:
+        raise TaskctlError(errors)
+    atomic_write_json(proof_path, proof)
+    write_json(
+        sys.stdout,
+        {
+            "ok": True,
+            "package_id": package["id"],
+            "proof_path": str(proof_path),
+            "targeted_review": proof["targeted_review"],
+        },
+    )
+    return 0
+
+
+def cmd_refresh_proof_state(args: argparse.Namespace) -> int:
+    validator, plan = load_plan(Path(args.tasks))
+    package = require_package(plan, args.package)
+    worktree = Path(args.worktree)
+    proof_path = validator.expected_package_proof_path(plan.tasks_path, package["id"])
+    proof = load_package_proof_file(proof_path)
+    if proof.get("package_id") != package["id"]:
+        raise TaskctlError([f"package proof.package_id: expected {package['id']!r}"])
+    proof_without_lifecycle = {
+        key: value
+        for key, value in proof.items()
+        if key != validator.PACKAGE_LIFECYCLE_FIELD
+    }
+    errors = validator.validate_package_proof_json(
+        proof_without_lifecycle,
+        plan.index,
+        worktree=worktree,
+        proof_path=proof_path,
+        tasks_path=plan.tasks_path,
+        enforce_entry_freshness=False,
+    )
+    if errors:
+        raise TaskctlError(errors)
+    entries = proof.get("entries")
+    if not isinstance(entries, list):
+        raise TaskctlError(["package proof.entries: expected array"])
+    criterion_filter = set(args.criterion or [])
+    proof_criteria = {entry.get("criterion_id") for entry in entries if isinstance(entry, dict)}
+    missing = sorted(criterion_filter - proof_criteria)
+    if missing:
+        raise TaskctlError([f"refresh-proof-state: unknown criterion id(s): {', '.join(missing)}"])
+    refreshed: list[str] = []
+    timestamp = args.captured_at or now_utc_iso()
+    state = {
+        "git_ref": current_git_ref(worktree),
+        "commit": current_git_commit(worktree),
+        "worktree": str(validator.normalized_existing_or_candidate_path(worktree)),
+        "captured_at": timestamp,
+    }
+    for index, entry in enumerate(entries):
+        if not isinstance(entry, dict):
+            raise TaskctlError([f"package proof.entries[{index}]: expected object"])
+        criterion_id = entry.get("criterion_id")
+        if criterion_filter and criterion_id not in criterion_filter:
+            continue
+        if not isinstance(criterion_id, str):
+            continue
+        evidence = entry.get("evidence")
+        if not isinstance(evidence, dict):
+            raise TaskctlError([f"package proof.entries[{index}].evidence: expected object"])
+        edge_cases = evidence.setdefault("edge_cases", [])
+        if not isinstance(edge_cases, list):
+            raise TaskctlError([f"package proof.entries[{index}].evidence.edge_cases: expected array"])
+        entry["state"] = dict(state)
+        if args.note and args.note not in edge_cases:
+            edge_cases.append(args.note)
+        refreshed.append(criterion_id)
+    if not refreshed:
+        raise TaskctlError([f"refresh-proof-state: no proof entries refreshed for package {package['id']}"])
+    if args.reaccept:
+        lifecycle_errors: list[str] = []
+        validator.validate_package_lifecycle_state_for_replacement(
+            proof,
+            "package proof.lifecycle",
+            lifecycle_errors,
+            plan.index,
+            worktree,
+            package_id=package["id"],
+            proof_path=proof_path,
+            tasks_path=plan.tasks_path,
+        )
+        if lifecycle_errors:
+            raise TaskctlError(lifecycle_errors)
+        proof[validator.PACKAGE_LIFECYCLE_FIELD] = build_lifecycle_state(
+            validator,
+            proof,
+            "accepted",
+            proof_path=proof_path,
+            worktree=worktree,
+        )
+        validation_proof = proof
+        enforce_entry_freshness = True
+    else:
+        validation_proof = {
+            key: value
+            for key, value in proof.items()
+            if key != validator.PACKAGE_LIFECYCLE_FIELD
+        }
+        enforce_entry_freshness = False
+    errors = validator.validate_package_proof_json(
+        validation_proof,
+        plan.index,
+        worktree=worktree,
+        proof_path=proof_path,
+        tasks_path=plan.tasks_path,
+        enforce_entry_freshness=enforce_entry_freshness,
+    )
+    if errors:
+        raise TaskctlError(errors)
+    atomic_write_json(proof_path, proof)
+    write_json(
+        sys.stdout,
+        {
+            "ok": True,
+            "package_id": package["id"],
+            "proof_path": str(proof_path),
+            "refreshed": refreshed,
+            "state": state,
+            "reaccepted": bool(args.reaccept),
         },
     )
     return 0

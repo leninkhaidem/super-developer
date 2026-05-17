@@ -37,6 +37,7 @@ Use these instead of ad hoc JSON parsing:
 ```bash
 python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/taskctl.py" summary --tasks ".tasks/<feature>/tasks.json" --worktree ".worktrees/<feature>/merge"
 python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/taskctl.py" next-package --tasks ".tasks/<feature>/tasks.json" --worktree ".worktrees/<feature>/merge"
+python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/taskctl.py" criteria --tasks ".tasks/<feature>/tasks.json" --package WP1
 python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/taskctl.py" must-prove --tasks ".tasks/<feature>/tasks.json" --worktree ".worktrees/<feature>/merge" --package WP1
 python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/taskctl.py" proof-template --tasks ".tasks/<feature>/tasks.json" --package WP1 --output ".tasks/<feature>/proofs/WP1.proof.json"
 python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/taskctl.py" validate-proof --tasks ".tasks/<feature>/tasks.json" --worktree ".worktrees/<feature>/merge" ".tasks/<feature>/proofs/WP1.proof.json"
@@ -45,6 +46,7 @@ python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/taskctl.py" validate-proofs --tas
 
 - `summary` reports task/package/proof health.
 - `next-package` reports proof-ready candidates plus interrupted packages; it does not persist package status.
+- `criteria` emits the assigned acceptance criteria and required context bundles for one package without proof-health noise.
 - `must-prove` emits transient acceptance/evidence obligations. Do not paste this output into `tasks.json`.
 - `proof-template` writes a deterministic proof scaffold when `--output` is used. Use `--force` only when deliberately replacing stale proof after rejection or repair.
 - `validate-proof` and `validate-proofs` validate proof files but do not accept lifecycle state.
@@ -65,17 +67,25 @@ Package proof lifecycle:
 ```bash
 python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/taskctl.py" accept-package --tasks ".tasks/<feature>/tasks.json" --worktree ".worktrees/<feature>/merge" ".tasks/<feature>/proofs/WP1.proof.json"
 python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/taskctl.py" reopen-package --tasks ".tasks/<feature>/tasks.json" --worktree ".worktrees/<feature>/merge" ".tasks/<feature>/proofs/WP1.proof.json"
+python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/taskctl.py" record-targeted-review --tasks ".tasks/<feature>/tasks.json" --package WP1 --reviewer "targeted-review-WP1" --evidence "Focused package review passed"
+python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/taskctl.py" refresh-proof-state --tasks ".tasks/<feature>/tasks.json" --worktree ".worktrees/<feature>/merge" --package WP1 --reaccept
 ```
 
 Task lifecycle helpers:
 
 ```bash
+python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/taskctl.py" start-package --tasks ".tasks/<feature>/tasks.json" --package WP1
+python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/taskctl.py" complete-package --tasks ".tasks/<feature>/tasks.json" --worktree ".worktrees/<feature>/merge" --package WP1
 python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/taskctl.py" block-task --tasks ".tasks/<feature>/tasks.json" P1-T003 --reason "Needs user decision"
 python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/taskctl.py" reset-task --tasks ".tasks/<feature>/tasks.json" P1-T003
 ```
 
 - `accept-package` writes accepted lifecycle state only after proof validation passes.
 - `reopen-package` marks one accepted proof as reopened before repair.
+- `record-targeted-review` writes the minimal root `targeted_review` object for the planned package.
+- `refresh-proof-state` updates proof entry state binding to the current worktree `HEAD`; use `--reaccept` only for stale-only refresh after re-inspection or rerunning cited evidence.
+- `start-package` marks pending package tasks `in-progress` with `started_at`.
+- `complete-package` marks package tasks `done` only when that package proof is accepted and final-ready.
 - `block-task` requires a non-empty reason.
 - `reset-task` returns interrupted or blocked work to `pending` after orchestrator review.
 

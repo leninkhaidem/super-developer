@@ -31,10 +31,11 @@ Use these before dispatch instead of ad hoc JSON snippets:
 ```bash
 python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/taskctl.py" summary --tasks ".tasks/<feature>/tasks.json"
 python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/taskctl.py" next-package --tasks ".tasks/<feature>/tasks.json"
+python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/taskctl.py" criteria --tasks ".tasks/<feature>/tasks.json" --package WP1
 python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/taskctl.py" must-prove --tasks ".tasks/<feature>/tasks.json" --package WP1
 ```
 
-`summary` reports feature, task, package, and proof health. `next-package` reports dependency-ready packages without persisting package status, excludes interrupted `in-progress` packages, and reports them separately for orchestrator resolution. `must-prove` derives a transient checklist from existing plan data and the known-risk reference; do not persist that output into `tasks.json`.
+`summary` reports feature, task, package, and proof health. `next-package` reports dependency-ready packages without persisting package status, excludes interrupted `in-progress` packages, and reports them separately for orchestrator resolution. `criteria` emits assigned acceptance criteria and context-bundle obligations for one package without proof-health noise. `must-prove` derives a transient checklist from existing plan data and the known-risk reference; do not persist that output into `tasks.json`.
 
 ## Proof Template Creation
 
@@ -57,7 +58,7 @@ python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/taskctl.py" validate-proof --task
 
 Validation must pass for every assigned acceptance criterion and no criteria outside the package. Rejected proof is repaired by the package or repair agent, not by central ledger reconciliation.
 
-Exception: when validation fails only because entries are stale against the current integration worktree, the orchestrator performs a mechanical stale-only refresh. Refresh only the stale entries by re-running the cited commands or re-inspecting the cited files against current integration `HEAD`, then update state/evidence fields and rerun validation. Do not delegate proof repair unless the evidence cannot be reproduced or another validation class fails too.
+Exception: when validation fails only because entries are stale against the current integration worktree, the orchestrator performs a mechanical stale-only refresh. Refresh only the stale entries by re-running the cited commands or re-inspecting the cited files against current integration `HEAD`, then update state/evidence fields and rerun validation. Prefer `taskctl.py refresh-proof-state --package WP1 --criterion <AC-ID> --reaccept` after re-inspection when the refresh is purely stale-state binding. Do not delegate proof repair unless the evidence cannot be reproduced or another validation class fails too.
 
 ## Package Proof Acceptance
 
@@ -74,7 +75,7 @@ Accepted package proofs are intentionally lean, but they must carry the gates th
 - each listed package `verification_commands` entry appears as passing command evidence under an existing proof entry;
 - packages with `targeted_review_required: true` include a minimal root `targeted_review` object with `required`, `performed`, `reviewer`, `result`, `evidence`, and `reviewed_at`.
 
-Do not add a parallel command ledger, review history, event stream, or generated checklist to the proof file.
+Use `taskctl.py record-targeted-review --package WP1 --reviewer <id> --evidence <summary>` for the minimal targeted-review object instead of hand-editing proof JSON. Do not add a parallel command ledger, review history, event stream, or generated checklist to the proof file.
 
 Use `reopen-package` before a repair that invalidates accepted proof content:
 
@@ -108,11 +109,13 @@ because exact proof entries were not identified, and do not store this decision 
 Use taskctl for constrained lifecycle mutations:
 
 ```bash
+python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/taskctl.py" start-package --tasks ".tasks/<feature>/tasks.json" --package WP1
+python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/taskctl.py" complete-package --tasks ".tasks/<feature>/tasks.json" --worktree ".worktrees/<feature>/merge" --package WP1
 python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/taskctl.py" block-task --tasks ".tasks/<feature>/tasks.json" P1-T003 --reason "Needs user decision on API contract"
 python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/taskctl.py" reset-task --tasks ".tasks/<feature>/tasks.json" P1-T003
 ```
 
-Block only when work needs user input, approved scope change, external credentials/facts, unsafe command approval, dependency/service approval, or a design/product decision. Reset interrupted work only when the orchestrator has decided it is safe to return the task to `pending`.
+`start-package` marks pending package tasks `in-progress`. `complete-package` marks package tasks `done` only after the package proof is accepted and final-ready in the supplied worktree. Block only when work needs user input, approved scope change, external credentials/facts, unsafe command approval, dependency/service approval, or a design/product decision. Reset interrupted work only when the orchestrator has decided it is safe to return the task to `pending`.
 
 ## Final Proof Validation and Completion
 
