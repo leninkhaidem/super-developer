@@ -52,6 +52,20 @@ Check only the fix delta and surfaces affected by that delta. The required sniff
 
 Report a new issue from this phase only when it is a serious regression introduced by the fix or when it is required to explain a widening trigger. Do not report unrelated cleanup, suggestions, or pre-existing discovery issues as fix-verification findings.
 
+## Widening Trigger Names
+
+Report a widening trigger only with concrete evidence. Use these trigger names when applicable:
+
+- `scope_expansion` — the fix needs files, behavior, tasks, or user-visible scope beyond the approved finding scope.
+- `public_api_or_schema_change` — public API, exported contracts, CLI/user interface, persistence schema, storage, generated contract, or migration behavior changes.
+- `sensitive_risk_surface` — security, privacy, safety, data integrity, concurrency, or performance surfaces are changed or newly implicated.
+- `cross_package_impact` — the fix touches or invalidates multiple planned-feature packages, package boundaries, or integration assumptions.
+- `proof_invalidation` — package proof evidence, acceptance criteria, test evidence, or audit handoff may no longer match the final state.
+- `large_delta` — the fix delta is too large or broad to verify confidently as one isolated patch.
+- `non_closed_verdict` — any assigned finding receives `partially_closed`, `not_closed`, or `reopened`.
+
+Route widening to the affected surface first: targeted delta verification, affected package/surface review, or specialist review. Reserve a full rereview for deltas whose affected surfaces cannot be isolated or whose breadth invalidates the original discovery review.
+
 ## Non-Discovery Boundary
 
 The reviewer must not rediscover the whole feature by default, search unrelated modules for fresh findings, or turn suggestions into a separate loop. If the reviewer notices a serious risk outside the assigned fix delta, it reports the smallest applicable widening trigger and affected scope; the orchestrator decides whether to run targeted widened verification or a full rereview under the mode-specific governance rules.

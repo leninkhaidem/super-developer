@@ -174,7 +174,7 @@ If blanket approval or `approve auto-resolve` was given:
 1. Invoke `review-code` with `<feature-name>` for the initial discovery review.
 2. Delegate confirmed 🔴/🟠 findings in coherent fix batches unless a stop condition or design-decision card requires the user.
 3. After each fix batch, use the review-code pipeline Fix Verification Review for the assigned dedupe keys. Do not rerun the full discovery review by default.
-4. When Fix Verification Review returns non-closed verdicts, serious fix-introduced regressions, or widening triggers, follow the review-code pipeline widening/escalation rules before asking the user.
+4. When Fix Verification Review returns non-closed verdicts, serious fix-introduced regressions, or widening triggers, follow the review-code pipeline widening/escalation rules before asking the user. User prompts are reserved for authority boundaries: product/design changes, scope expansion beyond SPEC/tasks, new dependencies/services, destructive or external actions, risk acceptance, credentials/external facts, unsafe commands, or no viable verification seam after escalation.
 5. Invoke `audit` with `<feature-name>` only after all known confirmed serious findings are fixed and verified `closed`, required widened checks are complete, and no unresolved serious regression remains.
 
 If step-by-step mode was selected, present review-code as the next recommended gate and audit as the final gate after review-code reaches audit readiness. Do not offer separate `audit`, `review`, and `both` choices as the normal post-implementation UX.

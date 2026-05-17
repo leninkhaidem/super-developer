@@ -33,7 +33,7 @@ Strict verification that all planned feature requirements and acceptance criteri
    ```
 
    If the validator exits non-zero, stop and resolve the reported `tasks.json` / package proof blockers before auditing implementation completeness.
-5. In planned-feature pipeline context, confirm review-code reached audit readiness before spawning audit: every known confirmed serious finding has a `closed` Fix Verification Review verdict or an approved verification downgrade, every triggered widened check/escalation is complete, and no serious fix-introduced regression remains unresolved. If not, stop and return to the governed fix/verification flow.
+5. In planned-feature pipeline context, confirm review-code reached audit readiness before spawning audit: every known confirmed serious finding has a `closed` Fix Verification Review verdict, every triggered widened check/escalation is complete, and no serious fix-introduced regression remains unresolved. If not, stop and return to the governed fix/verification flow.
 6. Launch an **Opus-class sub-agent** with:
 
 - `.tasks/$ARGUMENTS/SPEC.md`

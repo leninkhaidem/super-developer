@@ -63,7 +63,7 @@ After fixes are applied, run delegated Fix Verification Review by default. Load 
 
 The Fix Verification Reviewer must return one verdict per original finding or dedupe key using exactly `closed`, `partially_closed`, `not_closed`, or `reopened`, with concrete evidence, plus the required serious-regression sniff for the fix delta and affected surfaces.
 
-Local fix verification widens beyond delegated delta review only for documented triggers: new touched modules outside target paths, public API or schema changes, security/privacy/safety sensitive fixes, migration/persistence changes, data-integrity fixes, concurrency/performance risk, or a Fix Verification Reviewer verdict of `partially_closed`, `not_closed`, or `reopened`.
+Local fix verification widens beyond delegated delta review only for documented triggers from `fix-verification.md`: scope expansion/new touched modules outside target paths, public API or schema changes, security/privacy/safety/data/concurrency/performance surfaces, cross-package impact in planned-feature contexts, proof invalidation, large deltas, or a Fix Verification Reviewer verdict of `partially_closed`, `not_closed`, or `reopened`.
 
 Repeated local fix-verification expansion must stop instead of looping indefinitely. After one widened verification pass, if more scope expansion is still needed, report the unresolved findings, the expansion trigger, and the exact unreviewed scope to the user. Do not keep widening recursively.
 
