@@ -19,16 +19,76 @@ Use `report-template.md` with:
 
 There is no third option. Every review is either clean or has actionable issues.
 
+## Pipeline Review State Snapshot
+
+In planned-feature pipeline context, use exactly one orchestrator-owned lightweight snapshot:
+
+```text
+.tasks/<feature>/reviews/review-code-state.json
+```
+
+This file is review/fix-loop governance state only. It is not proof, audit evidence, task lifecycle,
+package proof content, a review transcript, an event stream, or a second acceptance ledger. Do not
+write per-round review state files or store full finding bodies, transcripts, package proof evidence,
+or task status in the snapshot.
+
+The compact snapshot must include the current versions of these fields:
+
+- `schema_version`, `feature`, `mode: "pipeline"`, `updated_at`.
+- `reviewed_state`: feature ref/head, base ref/SHA, target ref, reviewed diff or diff checksum,
+  reviewed file list/status checksum, and merge worktree metadata.
+- `lenses`: one compact row per required discovery lens with requested depth, completion status, and
+  concrete coverage pointer/summary.
+- `findings`: confirmed serious finding dedupe keys with severity, Skeptic verdict, current status,
+  and assigned fix batch when applicable.
+- `fix_batches`: bounded current/recent batch records with batch id, assigned dedupe keys, delegated
+  fix commit(s), batch state, and Fix Verification Review reference/verdict summary.
+- `closure_status`: open/closed/reopened dedupe keys, serious fix-regression status, and audit
+  readiness flag.
+- `widening_triggers`: trigger name, affected scope, and open/complete state.
+- `escalation_tier`: `none`, stronger-fix-agent, specialist/widened verification,
+  stronger-discovery, semantic-split, or authority-boundary tier.
+
+Overwrite or refresh this snapshot in place after discovery review, fix-batch planning/delegation,
+fix commit handoff, Fix Verification Review, widened verification, escalation, and audit-readiness
+calculation. Keep only bounded current governance status; if more detail is needed, point to the
+current review report, fix report, or verification result instead of appending history.
+
+Sub-agents receive bounded packets derived from the snapshot: reviewed-state metadata, assigned
+dedupe keys, current fix-batch id, relevant closure/widening status, target paths, and proof-impact
+context. They do not own, edit, or freely mutate `review-code-state.json`; they report results to the
+orchestrator, and the orchestrator validates and refreshes the snapshot.
+
+Before any pipeline fix, fix verification, widened review, escalation decision, or audit-readiness
+handoff, validate the snapshot. Fail closed when it is missing, malformed, stale, contradictory, or
+for the wrong feature/mode/state. Validation must at least parse JSON, check required fields/enums,
+reject duplicate or unreferenced dedupe keys, ensure fix batches reference known findings, ensure
+`closure_status.ready_for_audit` is false when any known serious finding/regression/trigger remains
+open, and bind `reviewed_state` to the Stale-State Gate lineage. A failed validation means the
+pipeline is not ready; regenerate the snapshot from current review artifacts or rerun the appropriate
+discovery, fix verification, or widened review gate instead of inferring a clean state.
+
 ## Pipeline Auto-Resolve Sequence
 
 Pipeline auto-resolve uses this governed sequence instead of a full review after every fix batch:
 
-1. Run the initial discovery review through the shared review pipeline and Skeptic verification.
-2. If the verdict is **ISSUES FOUND**, group confirmed 🔴/🟠 findings into coherent fix batches and run the Stale-State Gate before delegating each batch.
-3. After each delegated fix batch, run Pipeline Fix Verification Review for the assigned dedupe keys.
-4. If every assigned finding is `closed`, no serious fix-introduced regression is found, and no widening trigger fires, record the current post-fix lineage as verified and continue with any remaining known confirmed serious findings.
-5. If a verdict is `partially_closed`, `not_closed`, or `reopened`, or a serious fix regression / widening trigger appears, route to the governed widening or escalation flow; do not rerun full discovery by default.
-6. Enter audit readiness only when all known confirmed serious findings are fixed and verified closed, required widened checks are complete, and no unresolved serious regression remains.
+1. Run the initial discovery review through the shared review pipeline and Skeptic verification, then
+   initialize or refresh `review-code-state.json` with the reviewed state, required lenses, confirmed
+   serious dedupe keys, and initial closure status.
+2. If the verdict is **ISSUES FOUND**, group confirmed 🔴/🟠 findings into coherent fix batches,
+   refresh the snapshot with the planned batch, and run the Stale-State Gate before delegating each
+   batch.
+3. After each delegated fix batch, record the approved fix commit(s) in the snapshot and run Pipeline
+   Fix Verification Review for the assigned dedupe keys.
+4. If every assigned finding is `closed`, no serious fix-introduced regression is found, and no
+   widening trigger fires, refresh closure status with the current post-fix lineage as verified and
+   continue with any remaining known confirmed serious findings.
+5. If a verdict is `partially_closed`, `not_closed`, or `reopened`, or a serious fix regression /
+   widening trigger appears, refresh widening/escalation status and route to the governed widening or
+   escalation flow; do not rerun full discovery by default.
+6. Enter audit readiness only after snapshot validation passes, all known confirmed serious findings
+   are fixed and verified closed, required widened checks are complete, and no unresolved serious
+   regression remains.
 
 There is no arbitrary pass-after-N limit: a known confirmed serious finding blocks readiness until it is fixed and verified `closed`; if an authority boundary is reached, stop instead of marking the pipeline ready.
 
@@ -137,8 +197,10 @@ condition; use the escalation ladder first.
 ## Stale-State Gate
 
 Pipeline side-effect gates stay tied to the reviewed state captured before discovery review, plus the
-approved post-fix lineage produced by delegated fix batches. Before the first pipeline fix action,
-revalidate that all still match the discovery reviewed state:
+approved post-fix lineage produced by delegated fix batches. Treat this gate as the state-binding
+portion of `review-code-state.json` validation; the snapshot cannot be used for fixes,
+verification, widening, escalation, or audit readiness unless this lineage check also passes. Before
+the first pipeline fix action, revalidate that all still match the discovery reviewed state:
 
 - Feature branch head
 - Base branch and base SHA/ref
