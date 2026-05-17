@@ -161,6 +161,15 @@ The optional specialist receives the same inputs as the Code Reviewer plus the t
 that specialist. The specialist focuses only on that risk domain and returns findings using
 `references/finding-contract.md`.
 
+### Fix Verification Reviewer Mandate (fix modes only)
+
+When pipeline or local mode applies a delegated fix batch, use a shared Fix Verification Reviewer
+instead of automatically rerunning the full discovery review. Load `references/fix-verification.md`
+only at that point. The Fix Verification Reviewer checks closure for assigned confirmed findings by
+dedupe key, runs a serious-regression sniff over the fix delta and affected surfaces, and reports
+widening triggers without rediscovering unrelated issues by default. PR mode remains report-only for
+code changes and does not create this fix path.
+
 ---
 
 ## Step 2A — Big-Diff Batching
@@ -235,9 +244,11 @@ pipeline fix or readiness action, revalidate that the feature branch head, base 
 merge worktree metadata still match the reviewed state. Reject stale or broadened state and instruct
 the user to rerun review.
 
-Pipeline fixes use the delegated Fix Implementer contract in `references/pipeline-actions.md`; the
-main agent does not apply substantive production/test/documentation fixes inline. `commit` is not
-offered in pipeline context because feature branch code is already committed.
+Pipeline fixes use the delegated Fix Implementer contract in `references/pipeline-actions.md`, then
+the shared Fix Verification Review in `references/fix-verification.md`; the main agent does not
+apply substantive production/test/documentation fixes inline. `commit` is not offered in pipeline
+context because feature branch code is already committed. Do not rerun the full discovery review
+after every fix batch by default; widen only when the pipeline action reference's triggers fire.
 
 ### Blanket-Mode Boundary
 

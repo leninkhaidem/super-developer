@@ -54,6 +54,22 @@ run targeted checks, update the affected package proof with state-bound evidence
 criterion or proof entry is affected, and report unresolved scope/design blockers. Do not patch only
 the exact reported example when the finding represents a class of inputs or states.
 
+## Pipeline Fix Verification Review
+
+After each delegated fix batch, load `fix-verification.md` and run a delegated Fix Verification
+Review for the assigned confirmed findings or dedupe keys. Pass the fix delta, Fix Implementer
+report, original finding evidence, reviewed-state metadata, current post-fix state metadata, and any
+raised widening triggers.
+
+The Fix Verification Reviewer must report `closed`, `partially_closed`, `not_closed`, or `reopened`
+for every assigned finding or dedupe key with concrete evidence, then run the shared serious-regression
+sniff over the fix delta and affected surfaces. Non-closed verdicts, fix-introduced serious
+regressions, or widening triggers block audit readiness until the pipeline governance flow resolves
+them.
+
+Fix Verification Review is not a default full rereview. It must not report unrelated new discovery
+findings unless a documented widening trigger requires the orchestrator to widen the review scope.
+
 ## Stale-State Gate
 
 Pipeline side-effect gates stay tied to the reviewed state captured before the review. Before any

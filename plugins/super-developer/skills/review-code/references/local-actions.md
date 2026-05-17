@@ -37,7 +37,7 @@ Triggered when user responds `fix`.
 Local fixing has two separate delegated roles:
 
 - **Fix Implementer:** applies bounded fixes for confirmed findings.
-- **Fix Reviewer:** verifies the resulting fix delta and decides whether each original finding is closed without introducing security/privacy/safety/failure-mode regressions.
+- **Fix Verification Reviewer:** uses the shared closure contract in `fix-verification.md` to verify the resulting fix delta and affected surfaces.
 
 The main agent does not implement local review-finding fixes that change code behavior, public surface, tests, documentation structure, or substantive content. Delegate those changes to the Fix Implementer. The main agent may apply only super-simple mechanical typo or formatting fixes inline; report every inline exception explicitly, including why it was mechanical and behavior-preserving.
 
@@ -59,27 +59,15 @@ The Fix Implementer must reproduce or locate each finding, state the bug-class/e
 
 ### Local Fix Verification Review
 
-After fixes are applied, run delegated Fix Verification Review by default. The Fix Reviewer receives:
+After fixes are applied, run delegated Fix Verification Review by default. Load `fix-verification.md` and pass the shared inputs: the fix delta plus necessary context, original confirmed findings and dedupe keys, reviewed-state metadata, current post-fix state metadata, approved local scope, and widening triggers raised by the Fix Implementer or detected by the main agent.
 
-- The fix delta only, plus enough surrounding context to evaluate it
-- The original confirmed findings and dedupe keys
-- Reviewed-state metadata and current post-fix state metadata
-- Widening triggers raised by the Fix Implementer or detected by the main agent
-- Required closure output for every original finding: `closed`, `partially-closed`, `not-closed`, or `reopened`
-- Required baseline security/privacy/safety/failure-mode regression sniff for the fix delta
+The Fix Verification Reviewer must return one verdict per original finding or dedupe key using exactly `closed`, `partially_closed`, `not_closed`, or `reopened`, with concrete evidence, plus the required serious-regression sniff for the fix delta and affected surfaces.
 
-The Fix Reviewer checks that:
-
-1. Each fixed finding is actually closed by the delta.
-2. The fix remains inside approved scope or documents a valid widening trigger.
-3. The fix does not introduce new security, privacy, safety, data-integrity, or failure-mode risk.
-4. The fix does not silently change public surface, tests, or documentation structure beyond the approved finding scope.
-
-Local fix verification widens beyond delegated sub-agent delta review only for documented triggers: new touched modules outside target paths, public API or schema changes, security/privacy/safety sensitive fixes, migration/persistence changes, data-integrity fixes, concurrency/performance risk, or a Fix Reviewer verdict of `partially-closed`, `not-closed`, or `reopened`.
+Local fix verification widens beyond delegated delta review only for documented triggers: new touched modules outside target paths, public API or schema changes, security/privacy/safety sensitive fixes, migration/persistence changes, data-integrity fixes, concurrency/performance risk, or a Fix Verification Reviewer verdict of `partially_closed`, `not_closed`, or `reopened`.
 
 Repeated local fix-verification expansion must stop instead of looping indefinitely. After one widened verification pass, if more scope expansion is still needed, report the unresolved findings, the expansion trigger, and the exact unreviewed scope to the user. Do not keep widening recursively.
 
-Post-fix commit or readiness actions may proceed only when delegated Fix Verification Review passes, all fixed findings are `closed`, no new serious regressions are found, and the Local State Gate still passes.
+Post-fix commit or readiness actions may proceed only when delegated Fix Verification Review passes, all assigned findings are `closed`, no new serious regressions are found, and the Local State Gate still passes.
 
 ---
 
