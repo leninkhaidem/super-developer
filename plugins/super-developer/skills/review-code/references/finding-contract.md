@@ -13,6 +13,39 @@ Every finding must be classified — no exceptions:
 | 🟠 | **CRITICAL** | Strongly recommended fix. Significant quality, maintainability, operational, or regression risk. |
 | 🟡 | **SUGGESTION** | Non-blocking improvement that is actionable, diff-relevant, and deduplicated. |
 
+## Discovery Review Lenses and Coverage Output
+
+Initial discovery review uses dynamic risk lenses instead of a fixed exhaustive checklist. The
+orchestrator supplies required lenses from the active review mode, diff surface, task or package
+context, package risk tags, changed files, baseline security/privacy/safety sniff, and known
+risk signals. Reviewers must keep every required lens and may add reviewer-discovered lenses when
+reading the diff reveals a new risk signal.
+
+Each lens has a requested depth:
+
+- `deep` — trace the relevant changed behavior through nearby callers, contracts, and verification
+  evidence needed to support or reject findings in that risk domain.
+- `sniff` — perform a bounded check for obvious risk in that domain, including the mandatory
+  security/privacy/safety baseline sniff.
+- `not_applicable` — use only when the reviewer can name why the lens does not intersect the diff,
+  task context, or changed files.
+
+Reviewer output must include `DISCOVERY_COVERAGE` before findings, with one compact row per
+required lens and optional rows for reviewer-added lenses:
+
+```markdown
+DISCOVERY_COVERAGE:
+| Lens | Required depth | Result | Evidence | Source |
+|---|---|---|---|---|
+| <lens id/name> | deep/sniff/not_applicable | deep/sniff/not_applicable | <concrete files, symbols, paths, contracts, or reason N/A applies> | required/reviewer-added |
+```
+
+Coverage rows are evidence, not findings. They must be concrete enough for the orchestrator to see
+what was inspected: cite files, symbols, call paths, task/package evidence, or the specific reason a
+lens is not applicable. Vague boilerplate such as `looks good`, `no issues found`, `covered`,
+`seems fine`, or bare `N/A` is not valid coverage evidence. A clean discovery review still returns
+the coverage table, followed by `NONE` when there are no reportable findings.
+
 ## Canonical Finding Fields
 
 Each reviewer returns findings that can drive the report, decision cards, blanket-mode behavior, and

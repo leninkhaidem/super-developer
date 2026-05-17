@@ -115,13 +115,24 @@ specialist in this deterministic priority order:
 If several triggers match, choose only the highest-priority specialist. Triggers mapped to the same
 specialist still produce one specialist reviewer, not one reviewer per trigger.
 
+### Discovery Review Lens Contract
+
+For the initial discovery review, provide reviewers required dynamic risk lenses selected from the
+active mode, diff surface, task or package context, package risk tags, changed files, baseline
+security/privacy/safety sniff, and any risk signals found while reading the code. Each required
+lens has a requested depth of `deep`, `sniff`, or `not_applicable`. Required lenses cannot be
+dropped; reviewers may add lenses for newly discovered risks and must identify them as
+reviewer-added. Use `references/finding-contract.md` for the compact coverage rows that keep
+lens coverage separate from reportable findings.
+
 ### Code Reviewer Mandate
 
 The Code Reviewer receives the full diff or current semantic batch diff, change context, codebase
-path for exploration, reviewed-state metadata, available task-awareness context, and
-`${SUPER_DEVELOPER_PLUGIN_ROOT}/references/clean-code-rules.md` for the Development Quality Contract.
-Use `references/finding-contract.md` for severity taxonomy, canonical finding fields, output format,
-and suggestion actionability rules.
+path for exploration, reviewed-state metadata, required discovery-review lenses, available
+task-awareness context, and `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/clean-code-rules.md` for the
+Development Quality Contract. Use `references/finding-contract.md` for severity taxonomy,
+canonical finding fields, discovery coverage output, output format, and suggestion actionability
+rules.
 
 The Code Reviewer must always perform and report a baseline security/privacy/safety sniff. Blanket
 mode cannot skip, silence, or replace this sniff. The sniff is not a substitute for an on-demand

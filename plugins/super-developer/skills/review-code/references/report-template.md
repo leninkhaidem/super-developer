@@ -11,6 +11,11 @@ All review modes use this template. Substitute `<HEADER>` and `<METADATA>` per t
 
 <METADATA>
 
+### Discovery Coverage
+| Lens | Required depth | Result | Evidence | Source |
+|---|---|---|---|---|
+| <lens id/name> | <deep/sniff/not_applicable> | <deep/sniff/not_applicable> | <concrete coverage evidence or reason not applicable> | <required/reviewer-added> |
+
 ### 🔴 Blockers
 1. [Finding] — `<filename>`, Line <line>
    <explanation>
@@ -35,7 +40,10 @@ audit remains authoritative for planned-task and acceptance-criteria completenes
 
 ## Universal Formatting Rules
 
-- **Omit empty sections.** If all sections are empty: `No issues found. ✅`
+- **Discovery coverage:** For initial discovery review, include compact lens coverage before
+  findings. Coverage is separate from findings and is still required when the finding sections are
+  empty.
+- **Omit empty finding sections.** If all finding sections are empty: `No issues found. ✅`
 - **Disputed findings:** Silently excluded. Do not list, count, or mention them.
 - **Downgraded findings:** Reclassified from 🔴/🟠 to 🟡 by the Skeptic only when still actionable,
   diff-relevant, and deduplicated.

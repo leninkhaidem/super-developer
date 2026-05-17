@@ -73,7 +73,7 @@ Non-trivial completion reports MUST include the compact evidence block in §9. P
 
 ### Audit and Review Gate
 
-Audit MUST verify acceptance criteria and MUST-level quality-contract compliance. Review-code MUST use this contract for maintainability, safety, API, and failure-mode findings without replacing audit as the authoritative completeness proof.
+Audit MUST verify acceptance criteria and MUST-level quality-contract compliance. Review-code MUST use this contract for maintainability, safety, API, and failure-mode findings without replacing audit as the authoritative completeness proof. Initial discovery review clean results MUST include concrete dynamic-lens coverage evidence; boilerplate statements such as `looks good` or `no issues found` do not prove that a required lens was covered.
 
 In the unified delivery pipeline, implementer/fix sub-agents own substantive code/test/documentation changes and targeted verification. The orchestrator owns git, dispatch, merge, evidence validation, and integration checks; it MUST NOT apply substantive production/test/documentation fixes inline except for explicit user-approved plan/status/metadata or mechanical merge-conflict artifacts.
 
