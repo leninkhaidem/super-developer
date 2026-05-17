@@ -98,7 +98,8 @@ Reviewer caps count every delegated reviewer, including the Skeptic Agent.
 Run exactly one Code Reviewer for every review or semantic batch. Add at most one specialist reviewer
 for the whole review or current semantic batch. Do not create multiple specialist reviewers when
 multiple triggers map to the same specialist. Spawn the Skeptic only when there are serious findings,
-cross-batch serious-finding conflicts, or mode gates require a final verification pass.
+cross-batch serious-finding conflicts, risky clean coverage that needs targeted challenge, or mode
+gates require a final verification pass.
 
 ### Specialist Escalation Priority
 
@@ -176,21 +177,30 @@ the default reviewer fanout.
 
 ---
 
-## Step 3 — Finding Contract and Adversarial Verification
+## Step 3 — Finding Contract, Coverage Gate, and Adversarial Verification
 
 Read `references/finding-contract.md` before delegating reviewers. Every reviewer must use its
-severity taxonomy, canonical fields, output format, and suggestion actionability rules.
+severity taxonomy, canonical fields, discovery coverage output, output format, and suggestion
+actionability rules.
+
+Before treating a discovery review as clean, reconcile `DISCOVERY_COVERAGE` against the required
+lens list. Missing required rows, vague evidence, unsupported `not_applicable`, or coverage shallower
+than the requested depth make the review incomplete. Ask first for targeted follow-up on only the
+missing or weak lenses; do not rerun the full review by default. Use a stronger reviewer or Skeptic
+coverage challenge only after repeated weak coverage or when the gap is high-risk.
 
 Serious findings require Skeptic verification. Spawn a Skeptic Agent using the resolved Step 2 model
-for all 🔴 BLOCKER and 🟠 CRITICAL findings, plus cross-batch serious-finding conflicts or final
-verification gates. Read `references/skeptic-checklist.md` for the adversarial procedure,
-false-positive checklist, verdict meanings, and Skeptic output format.
+for all 🔴 BLOCKER and 🟠 CRITICAL findings, plus cross-batch serious-finding conflicts, risky clean
+reviews with weak `NO_FINDING`/`NONE` or coverage rows, or final verification gates. Read
+`references/skeptic-checklist.md` for the adversarial procedure, false-positive checklist, coverage
+challenge mode, verdict meanings, and Skeptic output format.
 
 The Skeptic's job is to disprove findings. Only Skeptic-confirmed 🔴 BLOCKER and 🟠 CRITICAL findings
 are reported. Disputed serious findings are silently excluded. Downgraded serious findings may appear
 only as 🟡 SUGGESTION when still actionable, diff-relevant, and deduplicated. Initial reviewers never
 set `skeptic_verdict` beyond `not-required`; only the Skeptic may set `confirmed`, `disputed`, or
-`downgraded`.
+`downgraded`. A clean discovery result is valid only after every required lens has concrete coverage
+and every serious candidate has completed Skeptic confirmation, dispute, or downgrade.
 
 ---
 

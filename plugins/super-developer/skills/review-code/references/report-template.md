@@ -42,7 +42,7 @@ audit remains authoritative for planned-task and acceptance-criteria completenes
 
 - **Discovery coverage:** For initial discovery review, include compact lens coverage before
   findings. Coverage is separate from findings and is still required when the finding sections are
-  empty.
+  empty. Do not render a clean report until required-lens rows are complete and concrete.
 - **Omit empty finding sections.** If all finding sections are empty: `No issues found. ✅`
 - **Disputed findings:** Silently excluded. Do not list, count, or mention them.
 - **Downgraded findings:** Reclassified from 🔴/🟠 to 🟡 by the Skeptic only when still actionable,

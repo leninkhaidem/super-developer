@@ -43,8 +43,9 @@ DISCOVERY_COVERAGE:
 Coverage rows are evidence, not findings. They must be concrete enough for the orchestrator to see
 what was inspected: cite files, symbols, call paths, task/package evidence, or the specific reason a
 lens is not applicable. Vague boilerplate such as `looks good`, `no issues found`, `covered`,
-`seems fine`, or bare `N/A` is not valid coverage evidence. A clean discovery review still returns
-the coverage table, followed by `NONE` when there are no reportable findings.
+`seems fine`, or bare `N/A` is not valid coverage evidence. Missing or vague required-lens rows are
+incomplete coverage, not a clean review. A clean discovery review still returns the coverage table,
+followed by `NONE` when there are no reportable findings.
 
 ## Canonical Finding Fields
 
