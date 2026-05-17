@@ -13,8 +13,10 @@ description: >
 
 A unified code review that uses a bounded reviewer topology: the default Code Reviewer always
 reviews the diff, at most one specialist is added only when risk triggers require it, and every
-serious finding is verified by a Skeptic Agent before reporting. Works in three modes depending on
-context.
+serious finding is verified by a Skeptic Agent before reporting. The shared engine owns discovery
+review vocabulary, dynamic lens coverage, finding format, Skeptic verification, and fix-verification
+semantics where fixes are allowed; mode-specific references own mutation and side-effect authority.
+Works in three modes depending on context.
 
 ## Step 1 — Detect Review Mode
 
@@ -98,7 +100,8 @@ Reviewer caps count every delegated reviewer, including the Skeptic Agent.
 Run exactly one Code Reviewer for every review or semantic batch. Add at most one specialist reviewer
 for the whole review or current semantic batch. Do not create multiple specialist reviewers when
 multiple triggers map to the same specialist. Spawn the Skeptic only when there are serious findings,
-cross-batch serious-finding conflicts, or mode gates require a final verification pass.
+cross-batch serious-finding conflicts, risky clean coverage that needs targeted challenge, or mode
+gates require a final verification pass.
 
 ### Specialist Escalation Priority
 
@@ -115,13 +118,24 @@ specialist in this deterministic priority order:
 If several triggers match, choose only the highest-priority specialist. Triggers mapped to the same
 specialist still produce one specialist reviewer, not one reviewer per trigger.
 
+### Discovery Review Lens Contract
+
+For the initial discovery review, provide reviewers required dynamic risk lenses selected from the
+active mode, diff surface, task or package context, package risk tags, changed files, baseline
+security/privacy/safety sniff, and any risk signals found while reading the code. Each required
+lens has a requested depth of `deep`, `sniff`, or `not_applicable`. Required lenses cannot be
+dropped; reviewers may add lenses for newly discovered risks and must identify them as
+reviewer-added. Use `references/finding-contract.md` for the compact coverage rows that keep
+lens coverage separate from reportable findings.
+
 ### Code Reviewer Mandate
 
 The Code Reviewer receives the full diff or current semantic batch diff, change context, codebase
-path for exploration, reviewed-state metadata, available task-awareness context, and
-`${SUPER_DEVELOPER_PLUGIN_ROOT}/references/clean-code-rules.md` for the Development Quality Contract.
-Use `references/finding-contract.md` for severity taxonomy, canonical finding fields, output format,
-and suggestion actionability rules.
+path for exploration, reviewed-state metadata, required discovery-review lenses, available
+task-awareness context, and `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/clean-code-rules.md` for the
+Development Quality Contract. Use `references/finding-contract.md` for severity taxonomy,
+canonical finding fields, discovery coverage output, output format, and suggestion actionability
+rules.
 
 The Code Reviewer must always perform and report a baseline security/privacy/safety sniff. Blanket
 mode cannot skip, silence, or replace this sniff. The sniff is not a substitute for an on-demand
@@ -132,7 +146,10 @@ compatibility, caller-contract, error-handling, trust-boundary, dependency, migr
 concurrency, privacy, and dependency findings. Map contract **BLOCKER** issues to 🔴 BLOCKER. Map
 significant **CODE-QUALITY** issues to 🟠 CRITICAL when they materially raise operational,
 maintenance, or regression risk; otherwise map non-blocking actionable issues to 🟡 SUGGESTION. Use
-**ADVISORY** only as 🟡 SUGGESTION.
+**ADVISORY** only as 🟡 SUGGESTION. Suggestions are report-only by default across modes: they do not
+block readiness, change the verdict, or create a separate review/fix loop. Use
+`references/finding-contract.md` for the narrow conditions under which an active mode may bundle a
+suggestion with a serious fix.
 
 When task-awareness context is available, the Code Reviewer flags apparent planned requirement or
 acceptance-criteria omissions, contradictions, or regressions. These are review-code findings, not
@@ -145,6 +162,18 @@ but must not duplicate audit's exhaustive role.
 The optional specialist receives the same inputs as the Code Reviewer plus the trigger that selected
 that specialist. The specialist focuses only on that risk domain and returns findings using
 `references/finding-contract.md`.
+
+### Fix Verification Reviewer Mandate (fix modes only)
+
+When an action that the active mode permits has applied a delegated fix batch, use a shared Fix
+Verification Reviewer instead of automatically rerunning the full discovery review. Load
+`references/fix-verification.md` only at that point. Pipeline mode may reach this path through its
+auto-resolve/fix action rules. Local mode may reach it only after the user explicitly chooses `fix`
+or blanket-mode authorization applies under `references/local-actions.md`. The Fix Verification
+Reviewer checks closure for assigned confirmed findings by dedupe key, runs a serious-regression
+sniff over the fix delta and affected surfaces, and reports widening triggers without rediscovering
+unrelated issues by default. PR mode remains report-only for code changes and does not create this
+fix path.
 
 ---
 
@@ -165,21 +194,30 @@ the default reviewer fanout.
 
 ---
 
-## Step 3 — Finding Contract and Adversarial Verification
+## Step 3 — Finding Contract, Coverage Gate, and Adversarial Verification
 
 Read `references/finding-contract.md` before delegating reviewers. Every reviewer must use its
-severity taxonomy, canonical fields, output format, and suggestion actionability rules.
+severity taxonomy, canonical fields, discovery coverage output, output format, and suggestion
+actionability rules.
+
+Before treating a discovery review as clean, reconcile `DISCOVERY_COVERAGE` against the required
+lens list. Missing required rows, vague evidence, unsupported `not_applicable`, or coverage shallower
+than the requested depth make the review incomplete. Ask first for targeted follow-up on only the
+missing or weak lenses; do not rerun the full review by default. Use a stronger reviewer or Skeptic
+coverage challenge only after repeated weak coverage or when the gap is high-risk.
 
 Serious findings require Skeptic verification. Spawn a Skeptic Agent using the resolved Step 2 model
-for all 🔴 BLOCKER and 🟠 CRITICAL findings, plus cross-batch serious-finding conflicts or final
-verification gates. Read `references/skeptic-checklist.md` for the adversarial procedure,
-false-positive checklist, verdict meanings, and Skeptic output format.
+for all 🔴 BLOCKER and 🟠 CRITICAL findings, plus cross-batch serious-finding conflicts, risky clean
+reviews with weak `NO_FINDING`/`NONE` or coverage rows, or final verification gates. Read
+`references/skeptic-checklist.md` for the adversarial procedure, false-positive checklist, coverage
+challenge mode, verdict meanings, and Skeptic output format.
 
 The Skeptic's job is to disprove findings. Only Skeptic-confirmed 🔴 BLOCKER and 🟠 CRITICAL findings
 are reported. Disputed serious findings are silently excluded. Downgraded serious findings may appear
 only as 🟡 SUGGESTION when still actionable, diff-relevant, and deduplicated. Initial reviewers never
 set `skeptic_verdict` beyond `not-required`; only the Skeptic may set `confirmed`, `disputed`, or
-`downgraded`.
+`downgraded`. A clean discovery result is valid only after every required lens has concrete coverage
+and every serious candidate has completed Skeptic confirmation, dispute, or downgrade.
 
 ---
 
@@ -211,9 +249,11 @@ pipeline fix or readiness action, revalidate that the feature branch head, base 
 merge worktree metadata still match the reviewed state. Reject stale or broadened state and instruct
 the user to rerun review.
 
-Pipeline fixes use the delegated Fix Implementer contract in `references/pipeline-actions.md`; the
-main agent does not apply substantive production/test/documentation fixes inline. `commit` is not
-offered in pipeline context because feature branch code is already committed.
+Pipeline fixes use the delegated Fix Implementer contract in `references/pipeline-actions.md`, then
+the shared Fix Verification Review in `references/fix-verification.md`; the main agent does not
+apply substantive production/test/documentation fixes inline. `commit` is not offered in pipeline
+context because feature branch code is already committed. Do not rerun the full discovery review
+after every fix batch by default; widen only when the pipeline action reference's triggers fire.
 
 ### Blanket-Mode Boundary
 

@@ -1,14 +1,15 @@
 # Skeptic Verification Checklist
 
-Load this reference only when serious findings or mode gates require Skeptic verification. The
-Skeptic receives all 🔴 BLOCKER and 🟠 CRITICAL findings, reviewed-state metadata, and available
-task-awareness context.
+Load this reference only when serious findings, risky clean coverage, or mode gates require Skeptic
+verification. The Skeptic receives all 🔴 BLOCKER and 🟠 CRITICAL findings, reviewed-state metadata,
+available task-awareness context, and any targeted coverage rows being challenged.
 
 ## Mandate
 
 The Skeptic Agent's job is to *disprove* findings. Confirmation is a byproduct of failed disproof.
 Do not reuse the same reasoning chain from the reviewer; independently locate supporting evidence in
-the diff or codebase.
+the diff or codebase. In coverage-challenge mode, disprove only the named clean claim or weak
+coverage rows; do not become a second full reviewer by default.
 
 ## Verdicts
 
@@ -19,6 +20,32 @@ the diff or codebase.
 Only Skeptic-confirmed 🔴 and 🟠 findings are reportable as serious findings. Disputed findings are
 silently excluded. Downgraded findings may be reported only as 🟡 suggestions when still actionable,
 diff-relevant, and deduplicated.
+
+## Coverage Challenge Mode
+
+Use this mode only when the orchestrator identifies a risky clean review, weak `NO_FINDING`/`NONE`, missing
+required lens row, vague evidence, unsupported `not_applicable`, or coverage shallower than the
+requested depth. The input must name the specific lens rows or clean claim to challenge.
+
+The Skeptic checks only the targeted lens scope and the smallest surrounding code needed to verify
+or dispute that coverage. It must not reopen unrelated domains, add new specialist breadth, or rerun
+the full discovery review unless the orchestrator separately triggers a widened review.
+
+Coverage challenge output:
+
+```markdown
+Coverage lens: <lens id/name>
+Required depth: <deep/sniff/not_applicable>
+Challenged evidence: <row or NO_FINDING claim>
+Verdict: COVERAGE_ACCEPTED / COVERAGE_INCOMPLETE / SERIOUS_FINDING_CANDIDATE
+Evidence: <independent code/diff evidence or missing evidence>
+Required follow-up: <none, targeted reviewer follow-up, or serious-finding verification>
+Reason: <one sentence>
+```
+
+`COVERAGE_INCOMPLETE` means the review cannot be treated as clean until targeted follow-up supplies
+concrete coverage for that lens. `SERIOUS_FINDING_CANDIDATE` must be converted to a canonical 🔴 or
+🟠 finding and run through the serious-finding Skeptic verification path before final reporting.
 
 ## False Positive Checklist
 

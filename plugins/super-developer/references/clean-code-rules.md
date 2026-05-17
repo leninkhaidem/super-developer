@@ -28,7 +28,7 @@ Tiny isolated edits MAY be exempt when they do not affect runtime behavior or sh
 - **CODE-QUALITY**: SHOULD-level maintainability violation without immediate correctness/safety impact, unjustified duplication, unclear boundary, unnecessary coupling, hard-to-review structure, inconsistent good convention, or local complexity that materially raises maintenance risk.
 - **ADVISORY**: Optional improvement, style preference grounded in local conventions, small clarity improvement, or future cleanup that is useful but not required for the current change.
 
-Audit and review agents MUST classify findings using these severities. Exceptions to SHOULD rules MUST include explicit justification in completion evidence or review context.
+Audit and review agents MUST classify findings using these severities. A finding that materially affects correctness, safety, maintainability risk, or verification confidence MUST NOT remain an advisory suggestion; classify it at the serious severity justified by the evidence. Exceptions to SHOULD rules MUST include explicit justification in completion evidence or review context.
 
 ## 2. Phase Gates
 
@@ -73,7 +73,7 @@ Non-trivial completion reports MUST include the compact evidence block in §9. P
 
 ### Audit and Review Gate
 
-Audit MUST verify acceptance criteria and MUST-level quality-contract compliance. Review-code MUST use this contract for maintainability, safety, API, and failure-mode findings without replacing audit as the authoritative completeness proof.
+Audit MUST verify acceptance criteria and MUST-level quality-contract compliance. Review-code MUST use this contract for maintainability, safety, API, and failure-mode findings without replacing audit as the authoritative completeness proof. Initial discovery review clean results MUST include concrete dynamic-lens coverage evidence; boilerplate statements such as `looks good` or `no issues found` do not prove that a required lens was covered.
 
 In the unified delivery pipeline, implementer/fix sub-agents own substantive code/test/documentation changes and targeted verification. The orchestrator owns git, dispatch, merge, evidence validation, and integration checks; it MUST NOT apply substantive production/test/documentation fixes inline except for explicit user-approved plan/status/metadata or mechanical merge-conflict artifacts.
 

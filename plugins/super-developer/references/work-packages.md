@@ -56,6 +56,13 @@ Accepted package proofs must include passing command evidence for every listed `
 
 Each package writes exactly one `.tasks/<feature>/proofs/<WP-ID>.proof.json` file. The validator derives the package's required acceptance criteria from `tasks.json`; proof files must cover every criterion assigned to that package and no criteria from other packages. Final feature proof validation requires exactly one proof file per work package and exact aggregate acceptance-criterion coverage.
 
+Pipeline review-code state does not add another proof file or acceptance ledger. If a review-code fix
+touches a package's acceptance surface, proof-cited files, verification commands, targeted-review
+evidence, or audit handoff assumptions, the orchestrator reopens and refreshes that package's same
+proof file before final audit readiness. Uncertain impact fails closed by refreshing candidate
+package proofs or by recording explicit no-impact evidence; it is not silently ignored because a
+single exact criterion was hard to identify.
+
 ## Risk Metadata and Targeted Review
 
 Plans include:
