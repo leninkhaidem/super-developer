@@ -1,6 +1,10 @@
 # Local Gated Actions
 
-Load this reference only after local scope detection/setup/review/report is complete and the user has reached the gated action phase. It owns local fix, verification, commit, details, and abort behavior.
+Load this reference only after local scope detection/setup/review/report is complete and the user has
+reached the gated action phase. It owns local fix, verification, commit, details, and abort behavior.
+Shared discovery review output may recommend fixes, but local code mutation starts only after an
+explicit `fix` action or an existing blanket-mode authorization under this reference; pipeline
+auto-resolve authority does not leak into ordinary local mode.
 
 ## Phase 5 — Gated Actions
 

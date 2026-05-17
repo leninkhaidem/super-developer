@@ -13,8 +13,10 @@ description: >
 
 A unified code review that uses a bounded reviewer topology: the default Code Reviewer always
 reviews the diff, at most one specialist is added only when risk triggers require it, and every
-serious finding is verified by a Skeptic Agent before reporting. Works in three modes depending on
-context.
+serious finding is verified by a Skeptic Agent before reporting. The shared engine owns discovery
+review vocabulary, dynamic lens coverage, finding format, Skeptic verification, and fix-verification
+semantics where fixes are allowed; mode-specific references own mutation and side-effect authority.
+Works in three modes depending on context.
 
 ## Step 1 — Detect Review Mode
 
@@ -163,12 +165,15 @@ that specialist. The specialist focuses only on that risk domain and returns fin
 
 ### Fix Verification Reviewer Mandate (fix modes only)
 
-When pipeline or local mode applies a delegated fix batch, use a shared Fix Verification Reviewer
-instead of automatically rerunning the full discovery review. Load `references/fix-verification.md`
-only at that point. The Fix Verification Reviewer checks closure for assigned confirmed findings by
-dedupe key, runs a serious-regression sniff over the fix delta and affected surfaces, and reports
-widening triggers without rediscovering unrelated issues by default. PR mode remains report-only for
-code changes and does not create this fix path.
+When an action that the active mode permits has applied a delegated fix batch, use a shared Fix
+Verification Reviewer instead of automatically rerunning the full discovery review. Load
+`references/fix-verification.md` only at that point. Pipeline mode may reach this path through its
+auto-resolve/fix action rules. Local mode may reach it only after the user explicitly chooses `fix`
+or blanket-mode authorization applies under `references/local-actions.md`. The Fix Verification
+Reviewer checks closure for assigned confirmed findings by dedupe key, runs a serious-regression
+sniff over the fix delta and affected surfaces, and reports widening triggers without rediscovering
+unrelated issues by default. PR mode remains report-only for code changes and does not create this
+fix path.
 
 ---
 

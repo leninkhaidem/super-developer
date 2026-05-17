@@ -1,6 +1,9 @@
 # PR Gated Actions
 
-Load this reference only after PR setup/review/report preview is complete and the user has reached the gated action phase. It owns PR GitHub side effects.
+Load this reference only after PR setup/review/report preview is complete and the user has reached
+the gated action phase. It owns PR GitHub side effects. Shared discovery, Skeptic, and report
+vocabulary may identify issues, but PR mode remains review-only for code changes: these actions never
+create a local code-fix workflow.
 
 ## Phase 5 — Gated Actions
 
