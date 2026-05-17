@@ -5,7 +5,7 @@ description: >
   acceptance criteria", "post-implementation check", "verify the build", "validate completion",
   or wants to confirm that all tasks in a plan were completed as specified. Triggers on phrases
   like "audit", "verify", "check completion", "acceptance criteria", "did we build what we
-  planned". Runs as the final internal acceptance gate in the planned-feature pipeline after review-code/fix loop. Also
+  planned". Runs as the final internal acceptance gate in the planned-feature pipeline after the governed review-code discovery/fix-verification flow. Also
   invocable standalone.
 ---
 
@@ -13,7 +13,7 @@ description: >
 
 Strict verification that all planned feature requirements and acceptance criteria are complete in the current codebase. Checks SPEC.md, tasks.json, accepted package proofs, final code state, and Development Quality Contract MUST-level compliance — this is not a full code review.
 
-**Spawn a sub-agent for the audit. It must work from files only — no conversation history. In the planned-feature pipeline, audit is the final internal acceptance gate after review-code/fix loop has completed.**
+**Spawn a sub-agent for the audit. It must work from files only — no conversation history. In the planned-feature pipeline, audit is the final internal acceptance gate after review-code discovery, delegated fixes, Fix Verification Review, and any triggered widening/escalation have reached audit readiness.**
 
 ## Arguments
 
@@ -33,7 +33,8 @@ Strict verification that all planned feature requirements and acceptance criteri
    ```
 
    If the validator exits non-zero, stop and resolve the reported `tasks.json` / package proof blockers before auditing implementation completeness.
-5. Launch an **Opus-class sub-agent** with:
+5. In planned-feature pipeline context, confirm review-code reached audit readiness before spawning audit: every known confirmed serious finding has a `closed` Fix Verification Review verdict or an approved verification downgrade, every triggered widened check/escalation is complete, and no serious fix-introduced regression remains unresolved. If not, stop and return to the governed fix/verification flow.
+6. Launch an **Opus-class sub-agent** with:
 
 - `.tasks/$ARGUMENTS/SPEC.md`
 - `.tasks/$ARGUMENTS/tasks.json`
@@ -143,9 +144,9 @@ Based on the sub-agent's report:
 
 ## Pipeline Continuation
 
-If audit verdict is FAIL, present issues and STOP. Do not invoke another broad review/audit loop automatically. In auto-resolve mode, return findings to the implement/review-code fix delegation flow with bug-class guidance.
+If audit verdict is FAIL, present issues and STOP. Do not invoke another broad review/audit loop automatically. In auto-resolve mode, return findings to the implement/review-code governed fix delegation and Fix Verification Review flow with bug-class guidance.
 
-If PASS, state: "Final audit passed. Merge worktree at `.worktrees/<feature>/merge/` is ready for merge approval." Do not invoke review-code after PASS; review-code already runs before final audit in the planned-feature pipeline.
+If PASS, state: "Final audit passed. Merge worktree at `.worktrees/<feature>/merge/` is ready for merge approval." Do not invoke review-code after PASS; review-code already reached audit readiness before final audit in the planned-feature pipeline.
 
 ## Constraints
 
