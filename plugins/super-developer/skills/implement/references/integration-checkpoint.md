@@ -33,7 +33,8 @@ Validate the assigned `.tasks/<feature>/proofs/WP<N>.proof.json` for every assig
 - missing required context-bundle citation;
 - stale against the integrated branch;
 - failed, blocked, or manual-required without explicit approval;
-- hiding mocks or using mocks for a contract that had to be proven against real behavior.
+- hiding mocks or using mocks for a contract that had to be proven against real behavior;
+- proving only a literal happy path or example input while omitting applicable behavior-class, edge/failure, default/omission, security/privacy/trust-boundary, data-integrity, concurrency, performance, or lifecycle coverage required by the package risk profile.
 
 The package proof must prove acceptance criteria in the current integrated state, not only in an unmerged package worktree. Package completion requires accepted lifecycle state written after integrated validation.
 
@@ -71,6 +72,7 @@ The review focuses on:
 - context-bundle fidelity;
 - no-mocks-for-contract compliance;
 - Quality Contract compliance;
+- depth-within-scope completeness: whether the package solved the relevant behavior/risk class rather than only the narrow happy path;
 - whether evidence proves assigned criteria.
 
 Confirmed issues are delegated as package-scope repair work before downstream dispatch. The orchestrator does not fix them inline.

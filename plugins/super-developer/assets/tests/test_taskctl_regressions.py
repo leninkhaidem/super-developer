@@ -338,6 +338,15 @@ class GuardrailDocumentationRegressionTests(unittest.TestCase):
             with self.subTest(relative=relative):
                 self.assertIn("references/tool-usage.md", self.read_doc(relative))
 
+    def test_audit_enforces_behavior_risk_quality_evidence(self) -> None:
+        audit_skill = self.read_doc("skills/audit/SKILL.md")
+        clean_code_rules = self.read_doc("references/clean-code-rules.md")
+
+        self.assertIn("Behavior/risk class covered", clean_code_rules)
+        self.assertIn("behavior/risk class covered", audit_skill)
+        self.assertIn("behavior/risk-class coverage in `evidence.edge_cases`", audit_skill)
+        self.assertIn("explicit non-applicability", audit_skill)
+
     def test_release_skill_uses_single_release_contract_gate(self) -> None:
         release_skill = self.read_doc("skills/release/SKILL.md")
         readme = self.read_doc("README.md")

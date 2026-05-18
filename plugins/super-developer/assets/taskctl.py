@@ -1140,6 +1140,7 @@ def package_must_prove(
                     "criterion behavior is implemented in the current worktree state",
                     "evidence cites changed files or symbols and observed commands where applicable",
                     "edge cases and failure modes from the verification hint are covered or explicitly bounded",
+                    "the in-scope behavior/risk class is covered beyond the narrow happy path, including applicable security, privacy, default/omission, data-integrity, concurrency, performance, and lifecycle cases",
                     "mocks or stubs are absent or disclosed with exact scope",
                 ],
             }
@@ -1173,6 +1174,7 @@ def package_must_prove(
             ],
         },
         "package_must_prove": [
+            "package implementation must solve the complete in-scope behavior/risk class implied by acceptance criteria, risk tags, context bundles, and existing contracts",
             "proof entries must use the proof_schema_contract enums and command evidence shape",
             "accepted proof must cite passing evidence for every package verification command",
             "targeted package review must be recorded in targeted_review when required",

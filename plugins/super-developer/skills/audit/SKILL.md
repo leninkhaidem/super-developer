@@ -75,7 +75,7 @@ Read `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/clean-code-rules.md` and verify 
 - Enforce **CODE-QUALITY** findings for unjustified SHOULD-level maintainability violations, unclear boundaries, harmful duplication, unnecessary coupling, complexity, or spreading legacy-bad patterns.
 - Use **ADVISORY** for optional, actionable, non-blocking improvements grounded in the diff and local conventions.
 - Do not rely only on legacy file/function-size heuristics. Use the contract's workflow gates: discovery, design, implementation, testing/verification, completion evidence, and audit/review enforcement.
-- Verify non-trivial changes include the compact Quality Contract Evidence block or equivalent evidence: inspection outcome, boundary/design choice, affected artifacts, verification run, and rule exceptions.
+- Verify non-trivial changes include the compact Quality Contract Evidence block or equivalent evidence: inspection outcome, boundary/design choice, behavior/risk class covered with relevant edge/failure/security/privacy cases or explicit non-applicability, affected artifacts, verification run, and rule exceptions.
 
 Note the file, line, severity, and violated contract clause for each finding.
 
@@ -84,7 +84,7 @@ Note the file, line, severity, and violated contract clause for each finding.
 Apply this section for every audit. Missing or non-accepted package proof evidence is a [PROOF] failure.
 
 - Missing package proof files, invalid package proof files, or non-accepted package proof lifecycle state are [PROOF] failures.
-- For each completed task acceptance criterion, confirm the package proof entry references the correct criterion ID, task ID, package ID, source refs, context bundles, state/commit/worktree, files or symbols, commands/results when applicable, observed result, edge cases when relevant, and mock disclosure.
+- For each completed task acceptance criterion, confirm the package proof entry references the correct criterion ID, task ID, package ID, source refs, context bundles, state/commit/worktree, files or symbols, commands/results when applicable, observed result, behavior/risk-class coverage in `evidence.edge_cases` for relevant edge/failure/default/omission/security/privacy/trust-boundary/data-integrity/concurrency/performance/lifecycle cases or explicit non-applicability, and mock disclosure.
 - Fail stale evidence when cited files, symbols, commands, or package outputs changed after the recorded proof state.
 - `manual_required` passes only when durable manual evidence includes affected criterion IDs, approval provenance or supplied artifact, observed result, scope, limits, approval date, and state reference. A bare approval boolean is never enough.
 

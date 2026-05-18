@@ -51,16 +51,19 @@ Before implementation, non-trivial work MUST identify:
 - The caller contract: success, failure, partial success, and invalid input behavior.
 - Trust boundaries and runtime validation requirements.
 - Module boundaries and dependency direction.
-- A verification plan tied to acceptance criteria and changed behavior.
+- A verification plan tied to acceptance criteria, changed behavior, and relevant edge/failure cases.
+- The behavior/risk class implied by the task or package, including applicable security, privacy, data-integrity, performance, concurrency, default/omission, and lifecycle concerns.
 - Any public API, persistence, migration, configuration, security, privacy, performance, or concurrency implications.
 
 ### Implementation Gate
 
 Implementation MUST:
 
+- Treat acceptance criteria as minimum proof obligations, not permission to implement only the narrow happy path; solve the complete in-scope behavior/risk class implied by the accepted task or package.
 - Preserve contracts and dependency direction unless the task explicitly changes them.
 - Update callsites, tests, docs, generated artifacts, schemas, and contracts affected by the change.
 - Keep changes focused on the assigned scope.
+- Stop for approval instead of silently expanding into product/design changes, speculative features, unrelated cleanup, broad refactors, new dependencies/services, or unsafe operations.
 - Use a clean cutover by default. Incremental migration MAY be used only when required by shared ownership, compatibility, rollout risk, or explicit plan constraint; the consistency boundary MUST be documented.
 
 ### Testing and Verification Gate
@@ -141,12 +144,13 @@ For non-trivial work, completion evidence MUST include:
 Quality Contract Evidence:
 - Inspection outcome: <what existing patterns were classified as contract/good convention/legacy-bad/unknown>
 - Boundary/design choice: <module seam, caller contract, trust-boundary validation, and error strategy>
+- Behavior/risk class covered: <in-scope class, relevant edge/failure/security/privacy cases, or why not applicable>
 - Affected artifacts: <files, public contracts/APIs, callsites, tests, docs, schemas, generated artifacts>
 - Verification run: <commands/tests/scenarios run, with observed result>
 - Rule exceptions: <MUST/SHOULD exception and justification, or "none">
 ```
 
-For planned-feature pipeline work, this evidence block does not replace the assigned package proof. The proof entry for each completed acceptance criterion MUST include state binding, source refs, file/symbol evidence, command results or manual evidence, context-bundle citations when applicable, mock disclosure, and observed behavior.
+For planned-feature pipeline work, this evidence block does not replace the assigned package proof. The proof entry for each completed acceptance criterion MUST include state binding, source refs, file/symbol evidence, command results or manual evidence, relevant edge/failure and behavior/risk-class coverage in `evidence.edge_cases`, context-bundle citations when applicable, mock disclosure, and observed behavior.
 
 ## 10. Language Adapters
 

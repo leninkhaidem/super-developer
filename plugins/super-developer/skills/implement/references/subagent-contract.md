@@ -24,6 +24,8 @@ Do not pass ambient conversation history as hidden context. Agents work from fil
 
 ## Required Package Agent Behavior
 
+The package agent must treat assigned acceptance criteria as minimum proof obligations, not as the maximum useful implementation. "Go the extra mile" means depth and completeness inside the assigned package boundary: solve the behavior/risk class implied by the package, cover relevant security, privacy, reliability, edge-case, and failure-mode concerns, and update affected artifacts. It does not permit speculative features, unrelated cleanup, broad refactors, new dependencies/services, or product/design changes without approval.
+
 The package agent must:
 
 1. Work exclusively inside the assigned package worktree.
@@ -33,11 +35,14 @@ The package agent must:
 5. Read existing files relevant to the assigned package before editing.
 6. Read and cite required context bundles; do not infer, mock, or invent external/library/runtime contract shapes defined by a bundle.
 7. Follow the Development Quality Contract in `clean-code-rules.md`.
-8. Preserve existing contracts unless the accepted plan explicitly changes them.
-9. Update affected callsites, tests, docs, generated artifacts, schemas, and contracts within package scope.
-10. Commit after completing each task ID so task-level progress is traceable within the package branch.
-11. Run package `verification_commands` when safe/provided, plus tests/checks it adds or modifies and the cheapest relevant existing tests/checks for touched paths.
-12. Never create worktrees, branches, or perform merge operations.
+8. Before substantive edits for non-trivial package work, form a compact implementation strategy and reflect it in completion evidence. The strategy must identify the caller contract and failure/partial/invalid-input behavior, trust boundaries and security/privacy/data/performance/concurrency implications, applicable risk tags and known-risk probes, affected artifacts, the natural implementation seam/methodology, and verification mapped to acceptance criteria plus relevant edge/failure cases.
+9. Implement the complete in-scope behavior/risk class implied by the assigned criteria, risk tags, context bundles, and existing contracts; do not patch only the literal happy path or example input when adjacent in-scope states should share the same invariant.
+10. Preserve existing contracts unless the accepted plan explicitly changes them.
+11. Update affected callsites, tests, docs, generated artifacts, schemas, and contracts within package scope.
+12. Stop and report when the correct implementation requires scope expansion, a product/design decision, new dependency/service, unsafe command, credentials/external facts, or changes outside the package boundary.
+13. Commit after completing each task ID so task-level progress is traceable within the package branch.
+14. Run package `verification_commands` when safe/provided, plus tests/checks it adds or modifies and the cheapest relevant existing tests/checks for touched paths.
+15. Never create worktrees, branches, or perform merge operations.
 
 If a required command is unsafe under the command-safety rule, the agent must not run it. It reports the command and required approval instead.
 
@@ -49,7 +54,7 @@ The package agent updates only its assigned `.tasks/<feature>/proofs/WP<N>.proof
 - state binding: branch/commit/worktree or integrated state observed;
 - files/symbols changed or inspected;
 - command results or manual evidence with observed output/behavior;
-- edge cases covered;
+- edge cases covered in `evidence.edge_cases`, including behavior/risk class coverage for relevant negative, failure, default/omission, security/privacy/trust-boundary, data-integrity, concurrency, and performance cases, or a concrete reason they are not applicable;
 - mock disclosure and justification, if any;
 - context-bundle citations when applicable;
 - passing evidence for required package `verification_commands` when run in package or integration state;
@@ -71,6 +76,7 @@ The package agent report must include:
 - acceptance criteria verified;
 - proof entries written/updated;
 - Quality Contract Evidence from `clean-code-rules.md`;
+- depth-within-scope strategy and behavior/risk class coverage, including any applicable security, privacy, failure-mode, edge-case, or methodology decisions;
 - files changed;
 - commands run and observed results;
 - commits created per task ID;
