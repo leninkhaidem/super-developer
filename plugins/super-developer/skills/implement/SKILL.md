@@ -129,7 +129,7 @@ Before spawning, announce package IDs, task IDs, branch/worktree names, primary 
 
 Before spawning package agents, set assigned task statuses to `in-progress` in `tasks.json` and write the file. Ensure `.tasks/$ARGUMENTS/proofs/` exists in the shared task-artifact location and that each dispatched package has an assigned `.tasks/$ARGUMENTS/proofs/WP<N>.proof.json` target or template. Load `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/tool-usage.md` and `plugins/super-developer/skills/implement/references/package-proof-lifecycle.md` before routine `taskctl.py` proof, status, block/reset, next-package, or must-prove operations.
 
-Load `plugins/super-developer/skills/implement/references/subagent-contract.md` and pass its contract to each package agent. Direct orchestrator edits are limited to workflow metadata (`tasks.json`, package proof artifact handoff/validation/acceptance bookkeeping), mechanical merge-conflict/status artifacts, and explicit user-approved plan/status changes.
+Load `plugins/super-developer/skills/implement/references/delegation-dispatch.md` for orchestrator-only package/repair prompt construction. Do not load `package-agent-contract.md`, `repair-agent-contract.md`, or `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/clean-code-rules.md` into the orchestrator context by default; pass the appropriate role-specific contract path to each sub-agent and instruct that sub-agent to read it. Direct orchestrator edits are limited to workflow metadata (`tasks.json`, package proof artifact handoff/validation/acceptance bookkeeping), mechanical merge-conflict/status artifacts, and explicit user-approved plan/status changes.
 
 ## Step 7: Merge and Integration Checkpoint
 
