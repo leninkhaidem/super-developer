@@ -99,7 +99,7 @@ cd "$PROJECT_ROOT/.worktrees/<feature>/merge"
 git push -u origin feature/<feature>
 ```
 
-Push means publish the feature branch. It does not mean merge into `<target-ref>`.
+Push means publish the feature branch. When this exact `origin feature/<feature>` push is listed in the approved implement Execution Contract, run it without a second approval prompt. If the approved contract omitted it or the remote/ref changes, stop for approval. This feature-branch push does not mean merge into `<target-ref>` or push `<target-ref>`.
 
 ### 7. Merge to target only after explicit approval
 

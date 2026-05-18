@@ -52,7 +52,7 @@ cd "$PROJECT_ROOT/.worktrees/<feature>/merge"
 git push -u origin feature/<feature>
 ```
 
-This is not approval to merge into `main` or any other `<target-ref>`. Never infer merge approval from:
+If this exact `origin feature/<feature>` push was listed in the approved implement Execution Contract, it needs no second approval prompt. If it was omitted, the remote/ref changes, or force/delete/tag/release/target-branch push is needed, stop for explicit approval. This feature-branch push is not approval to merge into `main`, push `main`, or update any other `<target-ref>`. Never infer merge approval from:
 
 - "push it"
 - "looks good"
@@ -92,7 +92,7 @@ git merge --no-ff feature/<feature> -m "feat: <feature> -- <summary>"
 git push origin <target-ref>
 ```
 
-The merge and push are one safety boundary. If push fails, keep the integration worktree, any target-merge worktree, and feature ref until the remote state is resolved.
+The target merge and target push are one safety boundary and require explicit approval for the named `<target-ref>`; implement Execution Contract approval for feature-branch push does not cover this. If target push fails, keep the integration worktree, any target-merge worktree, and feature ref until the remote state is resolved.
 
 ## Final Cleanup Rules
 
