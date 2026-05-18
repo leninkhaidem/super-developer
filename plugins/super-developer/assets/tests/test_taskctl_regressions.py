@@ -359,19 +359,57 @@ class GuardrailDocumentationRegressionTests(unittest.TestCase):
         self.assertNotIn("Gate 4", release_skill)
         self.assertIn("one Release Contract", readme)
 
+    def test_implement_execution_contract_covers_feature_push_not_target_merge(self) -> None:
+        implement = self.read_doc("skills/implement/SKILL.md")
+        worktree_skill = self.read_doc("skills/worktree/SKILL.md")
+        feature_workflow = self.read_doc("skills/worktree/references/feature-package-workflow.md")
+        cleanup_safety = self.read_doc("skills/worktree/references/cleanup-safety.md")
+        merge_cleanup = self.read_doc("skills/implement/references/worktree-merge-cleanup.md")
+
+        self.assertIn("feature branch push: git push -u origin feature/<feature>", implement)
+        self.assertIn("do not ask for a second approval", implement)
+        self.assertIn("merging or pushing `<target-ref>`/`main` is never covered", implement)
+        for text in (worktree_skill, feature_workflow, cleanup_safety, merge_cleanup):
+            with self.subTest(document=text[:40]):
+                self.assertIn("approved implement Execution Contract", text)
+                self.assertIn("feature", text)
+                self.assertIn("target", text)
+        self.assertIn("Never merge to or push the target ref without explicit user approval", worktree_skill)
+        self.assertIn("stop for explicit approval", cleanup_safety)
+
+    def test_implement_contracts_keep_orchestrator_and_subagent_contexts_separate(self) -> None:
+        implement = self.read_doc("skills/implement/SKILL.md")
+        dispatch = self.read_doc("skills/implement/references/delegation-dispatch.md")
+        package_contract = self.read_doc("skills/implement/references/package-agent-contract.md")
+        repair_contract = self.read_doc("skills/implement/references/repair-agent-contract.md")
+        legacy_index = self.read_doc("skills/implement/references/subagent-contract.md")
+
+        self.assertIn("delegation-dispatch.md", implement)
+        self.assertNotIn("Load `plugins/super-developer/skills/implement/references/subagent-contract.md`", implement)
+        for forbidden in ("package-agent-contract.md", "repair-agent-contract.md", "clean-code-rules.md"):
+            with self.subTest(forbidden=forbidden):
+                self.assertIn("MUST NOT load", dispatch)
+                self.assertIn(forbidden, dispatch)
+        self.assertIn("Read this reference only inside a package implementation sub-agent session", package_contract)
+        self.assertIn("Read this reference only inside a package repair/verification sub-agent session", repair_contract)
+        self.assertNotIn("Repair Agent Packet", package_contract)
+        self.assertIn("compatibility index", legacy_index)
+
     def test_package_proof_handoff_forbids_invented_schema_and_committed_tasks_artifacts(self) -> None:
-        subagent_contract = self.read_doc("skills/implement/references/subagent-contract.md")
+        package_contract = self.read_doc("skills/implement/references/package-agent-contract.md")
+        repair_contract = self.read_doc("skills/implement/references/repair-agent-contract.md")
         checkpoint = self.read_doc("skills/implement/references/integration-checkpoint.md")
         tool_usage = self.read_doc("references/tool-usage.md")
 
-        for text in (subagent_contract, checkpoint, tool_usage):
+        for text in (package_contract, repair_contract, checkpoint, tool_usage):
             with self.subTest(document=text[:40]):
                 self.assertIn("passed", text)
                 self.assertIn("automated", text)
                 self.assertIn("evidence.commands", text)
                 self.assertIn(".tasks", text)
 
-        self.assertIn("Do not `git add -f .tasks`", subagent_contract)
+        self.assertIn("Do not `git add -f .tasks`", package_contract)
+        self.assertIn("Do not `git add -f .tasks`", repair_contract)
         self.assertIn("did not force-add or commit ignored `.tasks`", checkpoint)
         self.assertIn("must not be force-added or committed", tool_usage)
 

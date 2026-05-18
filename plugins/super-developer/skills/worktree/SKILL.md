@@ -28,8 +28,8 @@ Planned feature work uses an explicit base/target ref. Default base/target is `m
 7. **Base and target refs are explicit.** Use `<base-ref>` for new feature/package branches; use `<target-ref>` for the final merge destination. Default both to `main` unless the plan/user names a stacked-feature base such as `feature/<base>`.
 8. **Bugfixes branch from the relevant context.** Feature bugfixes branch from the feature ref; production hotfixes branch from `main`.
 9. **Cleanup is gated by merge proof.** Before removing package worktrees or branches, verify each package branch is already included with `git merge-base --is-ancestor` from the integration worktree.
-10. **Push and merge-to-target are separate.** Pushing a feature branch for review/testing never authorizes a merge into `main` or any other target branch.
-11. **Never merge to the target ref without explicit user approval.** "Looks good", "push it", or successful tests are not approval. Proceed only when the user clearly asks to merge into the named target branch.
+10. **Push and merge-to-target are separate.** Pushing a feature branch for review/testing may be covered by the approved implement Execution Contract when that exact remote/ref is listed, but it never authorizes a merge into `main` or any other target branch.
+11. **Never merge to or push the target ref without explicit user approval.** "Looks good", "push it", successful tests, or a feature-branch push are not approval. Proceed only when the user clearly asks to merge into the named target branch.
 12. **Never remove safety-net worktrees before merge/push is complete.** Keep the integration/safety-net worktree until the authorized merge and push are complete; keep package worktrees until merge-base checks prove their branches are integrated.
 
 ## Reference Router
@@ -73,7 +73,7 @@ git merge-base --is-ancestor task/<feature>/<WP-ID> HEAD
 
 Only remove branches/worktrees whose merge-base check succeeds. If any check fails, stop cleanup and keep the worktree/branch.
 
-Never merge `feature/<feature>` to `<target-ref>` until the user explicitly approves that exact target. After an approved merge, push completion is part of the same safety boundary: do not remove the final integration/safety-net worktree until merge and push are complete.
+Never merge `feature/<feature>` to `<target-ref>` or push `<target-ref>` until the user explicitly approves that exact target. After an approved merge, target push completion is part of the same safety boundary: do not remove the final integration/safety-net worktree until merge and target push are complete.
 
 ## Merge Style Defaults
 

@@ -83,18 +83,7 @@ When targeted review passes, record only the minimal `targeted_review` proof obj
 
 Reject a package when code, evidence, verification, or review fails. Do not mark any task in the package `done` while assigned criteria remain unproven.
 
-For in-scope failures, delegate a fresh repair/verification agent with the packet described in `subagent-contract.md`:
-
-- SPEC and tasks;
-- package ID and affected task/criterion IDs;
-- rejection report;
-- integrated diff/current files;
-- current package proof entries and lifecycle state;
-- failed command output or observed behavior;
-- required context bundles;
-- risk tags and edge cases;
-- safe verification commands;
-- instructions to update package proof entries and report evidence.
+For in-scope failures, delegate a fresh repair/verification agent using the repair dispatch packet in `delegation-dispatch.md`; instruct the repair agent to read `repair-agent-contract.md`. Do not duplicate the repair contract or package-agent contract in the orchestrator prompt beyond the dispatch packet.
 
 Set `blocked` with `blocked_reason` only when the issue requires user input, approved scope change, external credentials/facts, unsafe command approval, dependency/service approval, or a design/product decision.
 

@@ -29,7 +29,7 @@ Before selecting a batch, infer likely file impact from:
 
 Classify likely overlap, not just listed path overlap. Packages that touch the same exported surface, schema, generated artifact, build config, or runtime contract overlap even when their initial files differ.
 
-Also scan `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/known-risk-patterns.md` for applicable generic probes. Use it only as a prompt source; do not create new risk tags, durable checklist sections, or feature-specific taxonomy entries from it.
+Use `taskctl.py must-prove --package <WP-ID>` with its default known-risk source, or pass `--known-risk-source ${SUPER_DEVELOPER_PLUGIN_ROOT}/references/known-risk-patterns.md` when needed, to derive applicable generic probes without loading the risk reference into orchestrator context by default. Use known-risk output only as a prompt source; do not create new risk tags, durable checklist sections, or feature-specific taxonomy entries from it.
 
 When file impact is ambiguous, serialize. The cost of serialization is latency; the cost of unsafe parallelism is merge conflicts or inconsistent design.
 
@@ -48,7 +48,7 @@ When adjustment changes risk, context-bundle needs, verification commands, or ta
 
 ## Known-Risk and Must-Prove Prompts
 
-For each candidate package, derive the pre-dispatch must-prove prompts from existing acceptance criteria, verification hints, risk tags, context bundles, verification commands, and the known-risk reference. Use `taskctl.py must-prove --package <WP-ID>` as the routine read-only helper when available. Keep the result transient in the dispatch/agent instructions.
+For each candidate package, derive the pre-dispatch must-prove prompts from existing acceptance criteria, verification hints, risk tags, context bundles, verification commands, and `taskctl.py must-prove` output. Use `taskctl.py must-prove --package <WP-ID>` as the routine read-only helper; it supplies known-risk prompt content from its default source without requiring the orchestrator to load that reference directly. Keep the result transient in the dispatch/agent instructions.
 
 Include a pollution-sensitive test-ordering requirement when changed tests mutate import caches, module registries such as `sys.modules`, environment variables, globals, singleton caches, import stubs, monkeypatches, or equivalent shared process state. The package proof should cite checks for the test alone, the test before and after likely consumers, and the combined affected suite, or state a concrete reason the trigger does not apply.
 

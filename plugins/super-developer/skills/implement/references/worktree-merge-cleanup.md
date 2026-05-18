@@ -155,6 +155,6 @@ cd "$PROJECT_ROOT/.worktrees/<feature>/merge"
 git push -u origin feature/<feature>
 ```
 
-This publishes the feature branch only. It is not approval to merge into `<target-ref>`.
+This publishes the feature branch only. When this exact `origin feature/<feature>` push is listed in the approved implement Execution Contract, it needs no second approval prompt. If the approved contract omitted it or the remote/ref changes, stop for approval. Feature-branch push is not approval to merge into `<target-ref>` or push `<target-ref>`.
 
-Never merge into `main` or any other target branch without explicit user approval for that exact target. If approval is later granted, follow the worktree skill's cleanup-safety reference and keep the integration worktree until merge and push complete.
+Never merge into or push `main` or any other target branch without explicit user approval for that exact target. If approval is later granted, follow the worktree skill's cleanup-safety reference and keep the integration worktree until target merge and target push complete.

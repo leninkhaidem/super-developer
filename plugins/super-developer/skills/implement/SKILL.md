@@ -50,6 +50,10 @@ Git refs:
   feature ref: feature/<feature>
   target ref: <target-ref, default main; may be feature/<base> for stacked features>
 
+Remote actions:
+  feature branch push: git push -u origin feature/<feature> for review/testing (covered by this Execution Contract)
+  target/main merge or push: not authorized; requires separate explicit approval for <target-ref>
+
 Packages:
 - <WP-ID>: <title>
   tasks: <task IDs>
@@ -76,6 +80,7 @@ Stop conditions:
 - missing external facts or credentials
 - scope expansion beyond SPEC/tasks
 - stale git or reviewed state
+- feature-branch push target changes, remote branch diverges unexpectedly, or credentials fail
 - no viable automated strategy remains after governed escalation
 
 Choices:
@@ -84,9 +89,9 @@ Choices:
   abort                 — stop before worktree creation
 ```
 
-The user must approve this contract unless blanket approval already applies. Blanket approval selects `approve auto-resolve`.
+The user must approve this contract unless blanket approval already applies. Blanket approval selects `approve auto-resolve`. Approval of the Execution Contract covers the exact listed feature-branch push to `origin` for review/testing; do not ask for a second approval before running that same push. If the feature push is omitted from the contract, the remote/ref changes, the remote branch diverges unexpectedly, credentials fail, or any force/delete/tag/release/target-branch push is needed, stop for explicit approval.
 
-**Command-safety approval rule:** Treat plan verification commands as executable inputs. Stop for explicit user approval before running or delegating any command that is destructive, externally visible, credential/network-sensitive, installs dependencies/services, mutates outside the package or merge worktree, or exceeds the advertised verification scope, even in auto-resolve mode.
+**Command-safety approval rule:** Treat plan verification commands as executable inputs. Stop for explicit user approval before running or delegating any command that is destructive, externally visible, credential/network-sensitive, installs dependencies/services, mutates outside the package or merge worktree, or exceeds the advertised verification scope, even in auto-resolve mode. The exact feature-branch push listed in the approved Execution Contract is the only planned-feature push covered by that gate; merging or pushing `<target-ref>`/`main` is never covered.
 
 ## Step 4: Initialize Worktree Infrastructure
 
@@ -102,7 +107,7 @@ Required inline invariants:
 - Integration worktree: `.worktrees/<feature>/merge`.
 - Merge package branches into the feature ref once per package branch.
 - Prove package branches are merged with `git merge-base --is-ancestor` before removing worktrees/branches.
-- Push `feature/<feature>` for review/testing when final implementation validation passes, but never merge into `<target-ref>` without explicit user approval for that exact target.
+- Push `feature/<feature>` for review/testing when final implementation validation passes if that exact remote action was listed in the approved Execution Contract; never merge or push `<target-ref>`/`main` without explicit user approval for that exact target.
 
 ## Step 5: Analyze Actionable Packages
 
@@ -129,7 +134,7 @@ Before spawning, announce package IDs, task IDs, branch/worktree names, primary 
 
 Before spawning package agents, set assigned task statuses to `in-progress` in `tasks.json` and write the file. Ensure `.tasks/$ARGUMENTS/proofs/` exists in the shared task-artifact location and that each dispatched package has an assigned `.tasks/$ARGUMENTS/proofs/WP<N>.proof.json` target or template. Load `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/tool-usage.md` and `plugins/super-developer/skills/implement/references/package-proof-lifecycle.md` before routine `taskctl.py` proof, status, block/reset, next-package, or must-prove operations.
 
-Load `plugins/super-developer/skills/implement/references/subagent-contract.md` and pass its contract to each package agent. Direct orchestrator edits are limited to workflow metadata (`tasks.json`, package proof artifact handoff/validation/acceptance bookkeeping), mechanical merge-conflict/status artifacts, and explicit user-approved plan/status changes.
+Load `plugins/super-developer/skills/implement/references/delegation-dispatch.md` for orchestrator-only package/repair prompt construction. Do not load `package-agent-contract.md`, `repair-agent-contract.md`, or `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/clean-code-rules.md` into the orchestrator context by default; pass the appropriate role-specific contract path to each sub-agent and instruct that sub-agent to read it. Direct orchestrator edits are limited to workflow metadata (`tasks.json`, package proof artifact handoff/validation/acceptance bookkeeping), mechanical merge-conflict/status artifacts, and explicit user-approved plan/status changes.
 
 ## Step 7: Merge and Integration Checkpoint
 
@@ -163,8 +168,8 @@ When all phases/tasks are complete:
 2. Update feature `status` to `completed`.
 3. Run final package proof validation with `python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/validate-tasks-json.py" --final --worktree ".worktrees/<feature>/merge" ".tasks/<feature>/tasks.json"` when an integrated merge worktree exists. Reject incomplete task lifecycle, missing required command evidence, missing targeted-review evidence, invalid, stale, unaccepted, or reopened package proofs.
 4. Run integrated feature tests/checks from `.worktrees/<feature>/merge` when it exists, applying the command-safety approval rule.
-5. Push the feature branch: `git push -u origin feature/<feature>`.
-6. **Do not merge to the target branch.** Wait for explicit user approval for the named `<target-ref>`. "Push to remote" does not mean "merge to target."
+5. Push the contracted feature branch for review/testing: `git push -u origin feature/<feature>`. Do not ask for a second approval when this exact push was listed in the approved Execution Contract.
+6. **Do not merge or push the target branch.** Wait for explicit user approval for the named `<target-ref>`. "Push feature branch to remote" does not mean "merge or push target."
 
 ## Pipeline Continuation
 
