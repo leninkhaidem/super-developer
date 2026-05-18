@@ -17,6 +17,8 @@ On re-invocation when `{project}/docs/` already exists.
 ## Mode A: Fresh Generation
 
 Straightforward — run full pipeline, write to `{project}/docs/`, set `codedoc_version: 1`.
+For `README.md`, still apply README protection: write it only if missing, tiny/template-like,
+already code-doc-generated, or explicitly approved. Preserve short but meaningful human READMEs.
 
 ---
 
@@ -27,6 +29,13 @@ Straightforward — run full pipeline, write to `{project}/docs/`, set `codedoc_
 1. Create `{project}/.docs-archive/v{N}/` (N = existing `codedoc_version` from frontmatter)
 2. Copy all existing docs into archive directory
 3. Preserve directory structure
+
+### Archive Handoff Policy
+
+`.docs-archive/` is a rollback and merge-audit aid, not a default documentation deliverable.
+Keep it available through review and handoff, but exclude it from the proposed commit unless the
+user explicitly approves committing the archive. If the user declines to keep it, remove it only
+after generated docs have passed review and the user has accepted the regenerated output.
 
 ### Human Content Preservation
 
@@ -60,7 +69,8 @@ header. Store in memory for re-insertion after generation.
 
 ### Preservation Rules
 
-- Never overwrite README.md if it has >50 lines or multiple H2 sections
+- Never blindly overwrite README.md. Generate/rewrite it only if missing, tiny/template-like, already code-doc-generated, or explicitly approved by the user.
+- If README is human-authored, preserve it and propose (do not apply) an optional link section pointing to generated supporting docs.
 - Never overwrite any doc that appears manually curated (prose quality, custom sections, detailed examples)
 - `codebase-context.md` always generated — machine metadata, doesn't overlap with human prose
 
@@ -78,7 +88,7 @@ docs/
     └── architecture-guide.md   # Only if no equivalent exists
 ```
 
-Generated docs include `augmentation_mode: true` in frontmatter. Human docs are never modified.
+Generated docs include `augmentation_mode: true` in frontmatter. Human docs are never modified without explicit user approval.
 
 ---
 
@@ -90,7 +100,7 @@ Every generated doc carries:
 ---
 codedoc_version: {int}
 generated: {ISO-8601}
-project_hash: {git SHA or "uncommitted"}
+project_hash: {short git SHA, or "uncommitted"/"no-git" when unavailable}
 ---
 ```
 
@@ -108,4 +118,4 @@ On fresh run: `codedoc_version: 1`. On re-invocation: increment by 1.
 | Code-doc output without frontmatter | Treat as version 0, Mode B |
 | Human block header changed in new version | Append at end with `<!-- NOTE: original header was "X" -->` |
 | Monorepo with mixed doc states | Handle each sub-project independently |
-| Only `README.md` (no `docs/` folder) | If >50 lines: Mode C. If <50 lines: Mode A, wrap as `<!-- human -->` block |
+| Only `README.md` (no `docs/` folder) | Apply README protection criteria, not line count: preserve if human-authored/meaningful; generate or rewrite only if missing, tiny/template-like, already code-doc-generated, or explicitly approved |
