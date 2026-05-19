@@ -117,7 +117,7 @@ Final cleanup rules:
 - Never delete another active feature namespace while cleaning up the current feature.
 - If cleanup fails because a worktree is dirty, stop and inspect; do not force-remove by default.
 - If cleanup fails because a branch is not merged, keep it and resolve ancestry/integration first.
-- Remote branch deletion is a separate policy decision; do not assume local cleanup means remote deletion.
+- Remote branch deletion is a separate opt-in policy decision; do not assume local cleanup means remote deletion. Release workflows must name the exact remote ref, get an explicit approve/delete vs keep decision, and verify the remote branch is included in the pushed target branch before running `git push origin --delete <branch>`. Prepare-only release contracts must keep remote branches.
 
 ## Bugfix, Hotfix, and Spike Cleanup
 
