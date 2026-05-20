@@ -188,7 +188,7 @@ Constrained task lifecycle helpers:
 - `block-task`: mark one task blocked with a required reason.
 - `reset-task`: reset one interrupted or blocked task to pending after orchestrator review.
 
-These commands do not run recorded package verification commands. Accepted package proofs must cite passing evidence for required package verification commands and required targeted package review. Final implementation and audit gates require completed task lifecycle plus one valid, current, lifecycle-accepted proof file per planned work package. Historical `verification.json` files are not authoritative package or final evidence. See [`references/package-lifecycle.md`](references/package-lifecycle.md) for the targeted lifecycle transition, provenance, freshness, and final-gate contract.
+These commands do not run recorded package verification commands. Accepted package proofs must cite passing evidence for required package verification commands and required targeted package review. Final implementation and audit gates require completed task lifecycle plus one valid, current, lifecycle-accepted proof file per planned work package. Historical `verification.json` files are not authoritative package or final evidence. See [`references/package-lifecycle.md`](references/package-lifecycle.md) for the helper boundary index and [`skills/implement/references/package-proof-lifecycle.md`](skills/implement/references/package-proof-lifecycle.md) for canonical lifecycle transition, provenance, freshness, dirty-proof, and final-gate semantics.
 
 For exact command shapes, read-only vs mutation boundaries, and helper-script safety rules, see [`references/tool-usage.md`](references/tool-usage.md).
 

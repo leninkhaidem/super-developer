@@ -448,18 +448,21 @@ class GuardrailDocumentationRegressionTests(unittest.TestCase):
         self.assertIn("did not force-add or commit ignored `.tasks`", checkpoint)
         self.assertIn("must not be force-added or committed", tool_usage)
 
-    def test_stale_only_proof_refresh_is_mechanical_not_delegated_by_default(self) -> None:
+    def test_stale_only_proof_refresh_is_canonicalized(self) -> None:
         lifecycle = self.read_doc("skills/implement/references/package-proof-lifecycle.md")
         checkpoint = self.read_doc("skills/implement/references/integration-checkpoint.md")
         tool_usage = self.read_doc("references/tool-usage.md")
 
-        for text in (lifecycle, checkpoint, tool_usage):
-            with self.subTest(document=text[:40]):
-                self.assertIn("stale-only", text)
-                self.assertIn("current integration `HEAD`", text)
-                self.assertIn("Do not delegate", text)
+        for phrase in ("stale-only", "current integration `HEAD`", "Do not delegate"):
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase, lifecycle)
 
-        self.assertIn("Re-run the same cited command(s)", checkpoint)
+        for text in (checkpoint, tool_usage):
+            with self.subTest(document=text[:40]):
+                self.assertIn("package-proof-lifecycle.md", text)
+                self.assertIn("stale-only", text)
+
+        self.assertNotIn("Re-run the same cited command(s)", checkpoint)
         self.assertIn("update state/evidence fields and rerun validation", lifecycle)
 
 

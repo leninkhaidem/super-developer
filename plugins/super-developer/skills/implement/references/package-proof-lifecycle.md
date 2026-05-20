@@ -1,4 +1,6 @@
-# Package Proof Lifecycle
+# Canonical Package Proof Lifecycle
+
+This reference owns accepted/reopened package proof state, stale-only refresh, dirty-proof handling during review-code fixes, and final proof validation semantics. Other prompts should keep only local non-bypass gates and point here for lifecycle runbooks.
 
 Load this reference before routine `taskctl.py` proof or task-state operations: package dispatch, proof template creation, proof validation, package proof acceptance/reopen, task blocking/resetting, read-only package selection, and final proof validation.
 

@@ -33,7 +33,7 @@ Strict verification that all planned feature requirements and acceptance criteri
    ```
 
    If the validator exits non-zero, stop and resolve the reported `tasks.json` / package proof blockers before auditing implementation completeness.
-5. In planned-feature pipeline context, confirm review-code reached audit readiness before spawning audit: every known confirmed serious finding has a `closed` Fix Verification Review verdict, every triggered widened check/escalation is complete, no serious fix-introduced regression remains unresolved, and any review-code fix that could affect package evidence has reopened, refreshed, validated, and reaccepted the affected package proofs. A pipeline review-state snapshot may be inspected only as a governance readiness signal; it is not proof or audit evidence. Missing, malformed, stale, contradictory, or uncertain proof-impact state fails closed: stop and return to the governed fix/verification/proof-refresh flow.
+5. In planned-feature pipeline context, confirm review-code reached audit readiness before spawning audit: every known confirmed serious finding has a `closed` Fix Verification Review verdict, every triggered widened check/escalation is complete, no serious fix-introduced regression remains unresolved, and any review-code fix that could affect package evidence has reopened, refreshed, validated, and reaccepted the affected package proofs through `package-proof-lifecycle.md`. A pipeline review-state snapshot may be inspected only as a governance readiness signal; it is not proof or audit evidence. Missing, malformed, stale, contradictory, or uncertain proof-impact state fails closed: stop and return to the governed fix/verification/proof-refresh flow.
 6. Launch an **Opus-class sub-agent** with:
 
 - `.tasks/$ARGUMENTS/SPEC.md`
@@ -46,7 +46,7 @@ The sub-agent must **not** receive any conversation history. It reads the plan c
 
 ## Step 2: Audit Procedure (executed by sub-agent)
 
-First, read SPEC.md, tasks.json, and the package proof files under `.tasks/<feature>/proofs/`. Accepted package proof evidence is required for every planned-feature audit, including standalone invocation against `.tasks/<feature>/`. Pipeline `reviews/review-code-state.json`, when present, is not accepted package proof evidence and cannot substitute for proof lifecycle acceptance.
+First, read SPEC.md, tasks.json, and the package proof files under `.tasks/<feature>/proofs/`. `package-proof-lifecycle.md` is the canonical lifecycle reference; audit keeps this local non-bypass check: accepted package proof evidence is required for every planned-feature audit, including standalone invocation against `.tasks/<feature>/`. Pipeline `reviews/review-code-state.json`, when present, is not accepted package proof evidence and cannot substitute for proof lifecycle acceptance.
 
 Verify every listed requirement and feature-level acceptance criterion against the current codebase and final integrated state:
 

@@ -48,7 +48,7 @@ python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/taskctl.py" validate-proofs --tas
 
 Proof schema reminders from `must-prove`: successful entries use `status: "verified"`, not `passed`; command/test methods are one of the listed method values, not `automated`; command-like evidence requires `evidence.commands[]` with `cwd`, exact `command`, integer `exit_code: 0`, and non-empty `observed`; ignored `.tasks` proof artifacts must not be force-added or committed.
 
-Stale-only failures are refreshed mechanically against the current integration `HEAD`: re-run the same cited evidence, update state/evidence, and revalidate. Do not delegate stale-only refresh unless evidence cannot be reproduced or another validation class also fails.
+Stale-only refresh, dirty-proof handling, accepted/reopened state, and final proof validation semantics are owned by `skills/implement/references/package-proof-lifecycle.md`; this reference only preserves helper command shape and command-safety boundaries. Do not delegate stale-only refresh unless that lifecycle reference says the evidence cannot be reproduced or another validation class also fails.
 
 ## taskctl.py Mutation Commands
 
@@ -70,7 +70,7 @@ python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/taskctl.py" block-task --tasks ".
 python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/taskctl.py" reset-task --tasks ".tasks/<feature>/tasks.json" P1-T003
 ```
 
-Lifecycle helpers do not implement code, run verification commands, perform targeted review, run final audit, merge branches, or merge to a target branch. `accept-package`/`reopen-package` own proof lifecycle state; `record-targeted-review` writes the minimal root `targeted_review`; `refresh-proof-state` updates proof state to current worktree `HEAD` (`--reaccept` only for stale-only refresh); `start-package` marks pending tasks `in-progress`; `complete-package` marks tasks done only when the proof is accepted and final-ready; `block-task` requires a non-empty reason; `reset-task` returns interrupted/blocked work to `pending`.
+Lifecycle helpers do not implement code, run verification commands, perform targeted review, run final audit, merge branches, or merge to a target branch. `accept-package`/`reopen-package` write proof lifecycle state; `record-targeted-review` writes the minimal root `targeted_review`; `refresh-proof-state` is only for lifecycle-approved stale-only refresh; `start-package`, `complete-package`, `block-task`, and `reset-task` mutate task state within their named boundaries. `complete-package` marks tasks done only when the proof is accepted and final-ready.
 
 ## Safety Rules
 

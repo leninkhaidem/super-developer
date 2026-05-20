@@ -1,6 +1,6 @@
 # Implement Integration Checkpoint
 
-Load this reference at implement Step 7 after package agents return and before marking tasks `done` or dispatching downstream packages.
+Load this reference at implement Step 7 after package agents return and before marking tasks `done` or dispatching downstream packages. It owns integration checkpoint order and targeted package review; `package-proof-lifecycle.md` owns proof lifecycle runbooks.
 
 ## Checkpoint Order
 
@@ -15,7 +15,7 @@ For each completed package batch:
 7. Run package verification commands from the integration worktree after command-safety screening, and ensure the package proof cites each required command as passing evidence.
 8. Run targeted package review when required.
 9. For packages requiring targeted review, add the minimal root `targeted_review` proof object with `required`, `performed`, `reviewer`, `result`, `evidence`, and `reviewed_at`.
-10. Run `taskctl.py accept-package --tasks .tasks/<feature>/tasks.json --worktree .worktrees/<feature>/merge .tasks/<feature>/proofs/WP<N>.proof.json` for the package proof after code, verification, and review checks pass.
+10. Load `package-proof-lifecycle.md` and run `taskctl.py accept-package --tasks .tasks/<feature>/tasks.json --worktree .worktrees/<feature>/merge .tasks/<feature>/proofs/WP<N>.proof.json` for the package proof after code, verification, and review checks pass.
 11. Accept evidence and mark tasks done only after all required checks pass.
 
 Do not unlock downstream packages until this checkpoint passes for their dependencies.
@@ -48,14 +48,9 @@ A committed package is not complete if verification fails, evidence is stale, se
 
 ## Stale-Only Proof Refresh
 
-When `validate-proof` fails only because entries are stale against the current integration worktree, keep the fix mechanical:
+Do not duplicate the stale refresh runbook here. If `validate-proof` fails only because evidence is stale, load `package-proof-lifecycle.md` and follow its stale-only refresh procedure against the current integration `HEAD`.
 
-1. Identify only entries with stale evidence errors.
-2. Re-run the same cited command(s) from the current integration worktree when commands are present, or re-inspect the same cited files/symbols when the entry is static-inspection evidence.
-3. Update only those entries' `state.git_ref`, `state.commit`, `state.worktree`, `state.captured_at`, and observed evidence needed to reflect current integration `HEAD`.
-4. Re-run `validate-proof`.
-
-Do not delegate a proof-repair sub-agent, re-run targeted review, reopen task status, or edit unrelated proof entries for stale-only refresh. Delegate or block only when the command fails, the cited behavior is unclear, the evidence cannot be reproduced, a criterion may no longer be true, or validation reports schema/coverage/manual/targeted-review/lifecycle errors in addition to staleness.
+Local safety kernel: do not mark tasks done, rerun targeted review, or unlock dependents until the refreshed proof validates and is accepted. Do not delegate stale-only refresh by default; delegate or block only when evidence cannot be reproduced, a criterion may no longer be true, or any non-stale validation class fails too.
 
 ## Targeted Package Review
 
