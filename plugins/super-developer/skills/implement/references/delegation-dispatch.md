@@ -31,14 +31,14 @@ Each package-agent prompt must include:
 - Required context bundle IDs and bundle content from `tasks.json`.
 - Package `primary_paths` to inspect first.
 - Package `verification_commands` that the orchestrator has classified as safe to run and that remain required before package acceptance; list broad/expensive integration/final checks separately instead of treating them as deferrable package commands. Unsafe commands require explicit user approval before delegation.
-- Package `risk_tags`, risk-bearing status or risk signals, targeted-review decision, and risk-class edge-case expectations.
+- Package `risk_tags`, mandatory package-review depth/lenses, runtime risk signals, and risk-class edge-case expectations. Make clear that review always runs; risk determines depth/lenses, not whether the package is reviewed.
 - Output from `taskctl.py must-prove --package <WP-ID>` when available.
 - Mandatory self-review instruction: before handoff, review the package diff in behavior-first order, fix self-found issues or report exact blockers, and include the compact `SELF_REVIEW` block required by `package-agent-contract.md`.
 - Assigned worktree path, e.g. `.worktrees/<feature>/wp-WP1/`.
 - Project-level instructions such as CLAUDE.md or AGENTS.md when present.
 - Resolved model preference, unless mode is `inherit`.
 
-The prompt must remind the package agent not to create worktrees, branches, or merges, not to force-add or commit ignored `.tasks` proof artifacts, and not to report completion until targeted verification, package proof evidence, and self-review are consistent.
+The prompt must remind the package agent not to create worktrees, branches, or merges, not to force-add or commit ignored `.tasks` proof artifacts, and not to report completion until targeted verification, package proof evidence, mock disclosures, and self-review are consistent. It should also state that package self-review will be consumed by, but cannot replace, the independent mandatory package review.
 
 ## Repair Agent Dispatch Packet
 

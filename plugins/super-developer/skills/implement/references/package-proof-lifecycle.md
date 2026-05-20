@@ -64,7 +64,7 @@ Exception: when validation fails only because entries are stale against the curr
 
 ## Package Proof Acceptance
 
-Only after package proof validation, package verification commands, and required targeted, semantic, or focused repair review pass, accept the proof lifecycle:
+Only after package proof validation, package verification commands, mandatory targeted package review, and any required package repair/delta verification pass, accept the proof lifecycle:
 
 ```bash
 python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/taskctl.py" accept-package --tasks ".tasks/<feature>/tasks.json" --worktree ".worktrees/<feature>/merge" ".tasks/<feature>/proofs/WP1.proof.json"
@@ -75,9 +75,9 @@ python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/taskctl.py" accept-package --task
 Accepted package proofs are intentionally lean, but they must carry the gates that prevent review/fix loops:
 
 - each listed package `verification_commands` entry appears as passing command evidence under an existing proof entry;
-- packages with `targeted_review_required: true` include a minimal root `targeted_review` object with `required`, `performed`, `reviewer`, `result`, `evidence`, and `reviewed_at`.
+- every work package includes one minimal passing root `targeted_review` object with `required`, `performed`, `reviewer`, `result`, `evidence`, and `reviewed_at`. Keep the compatibility field name and helper-written `required` value; do not add a second package-review field or ledger.
 
-Use `taskctl.py record-targeted-review --package WP1 --reviewer <id> --evidence <summary>` for the minimal targeted-review object instead of hand-editing proof JSON. Do not add a parallel command ledger, review history, event stream, or generated checklist to the proof file.
+Use `taskctl.py record-targeted-review --package WP1 --reviewer <id> --evidence <summary>` for the minimal targeted-review object instead of hand-editing proof JSON, and call it only after the mandatory package review has passed and any confirmed finding repairs are delta-verified closed. Keep `evidence` compact but state-bound: reviewed integrated commit/range, review depth/lenses, explicit test-scope declaration, baseline security/privacy/safety sniff result, serious finding count/closure, and repair/delta-verification closure when applicable. Do not add a parallel command ledger, failed-review receipt, review history, transcript archive, event stream, or generated checklist to the proof file.
 
 Use `reopen-package` before a repair that invalidates accepted proof content:
 

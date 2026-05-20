@@ -56,23 +56,20 @@ Local safety kernel: do not mark tasks done, rerun targeted review when proof fr
 
 After a package passes integration verification, run targeted package review before marking its tasks done or dispatching dependent packages. This is mandatory for every work package, including low-risk, docs-only, and test-only packages. `targeted_review_required`, risk tags, runtime risk upgrades, and conservative orchestrator judgment determine whether the review uses only the standard baseline or enhanced lenses for security/privacy/safety/data/runtime/API/concurrency/performance/integration, proof/review/audit/fix-loop, or shared-contract sensitivity; they do not determine whether review runs.
 
-Use one focused reviewer by default. Do not run the full `review-code` topology, Skeptic, or multiple specialists for routine package review; reserve those for final review-code or exceptional high-risk disputes. Provide the reviewer the integrated package delta, package self-review block, relevant proof entries, targeted checks, risk tags, runtime risk signals, context bundles, and assigned acceptance criteria.
+Use one focused reviewer by default. The reviewer must be independent from the package implementation agent; the package `SELF_REVIEW` block is input evidence, not a substitute for this review. Do not run the full `review-code` topology, Skeptic, or multiple specialists for routine clean packages; run Skeptic only for serious package-review finding candidates before they can block repair. Provide the reviewer the integrated package delta, package self-review block, relevant proof entries, targeted checks, risk tags, runtime risk signals, context bundles, and assigned acceptance criteria.
 
-The review focuses on:
+Every package review has the same standard baseline. Enhanced lenses add depth, not a separate review gate. The reviewer must return a compact transient report with explicit rows for:
 
-- integrated package delta;
-- risk-class edge cases;
-- package self-review quality and unresolved concerns;
-- corresponding tests as evidence quality, including mocks, skips, generated snapshots/contracts, and missing negative/failure/security/privacy/data/concurrency cases;
-- context-bundle fidelity;
-- no-mocks-for-contract compliance;
-- Quality Contract compliance;
-- depth-within-scope completeness: whether the package solved the relevant behavior/risk class rather than only the narrow happy path;
-- whether evidence proves assigned criteria.
+- integrated package delta and changed surface;
+- acceptance-criterion and proof coverage: assigned criteria, changed files/symbols, command/manual evidence, context-bundle fidelity, edge/failure/default coverage, and any uncovered surface;
+- test scope declaration: `sampled`, `deep`, or `not applicable`, with rationale and named files/commands inspected. Sampling is the default; deepen when tests are proof-critical, tests changed helpers/mocks/snapshots/skips/generated fixtures, tests cover security/privacy/data/concurrency/contract risk, or tests are themselves the feature/risk surface;
+- baseline security/privacy/safety sniff for every package: secrets/PII/logging exposure, authority/tool/subprocess/network boundaries, destructive/persistence/data-integrity risks, generated artifacts, and fail-closed behavior. Missing, vague, or concerning safety coverage blocks package acceptance until repaired or escalated at an authority boundary;
+- mock/stub/fixture/generated-snapshot disclosure. Reject or escalate proof when mocks/stubs replace the external, library, runtime, API, or generated contract under test; mocks behind already-verified seams may pass only when disclosed and justified;
+- Quality Contract compliance, package self-review quality, unresolved concerns, and depth-within-scope completeness: whether the package solved the relevant behavior/risk class rather than only the narrow happy path.
 
-Confirmed issues are delegated as package-scope repair work before downstream dispatch. The orchestrator does not fix them inline. The package review is local package-risk review, not whole-feature rediscovery.
+Suggestions are non-blocking unless they are bundled into the repair for an already confirmed serious issue under the existing serious-fix rules. A serious candidate from package review must be verified by Skeptic before it rejects the package or triggers repair delegation; unverified candidates remain suggestions or review notes, not blockers. Confirmed serious issues are delegated as package-scope repair work before downstream dispatch. The orchestrator does not fix them inline. The package review is local package-risk review, not whole-feature rediscovery.
 
-When targeted review passes, record only the minimal passing `targeted_review` proof object with `taskctl.py record-targeted-review` after any required repairs and delta verification are closed. If a legacy plan has `tasks.json.targeted_review_required: false`, the recorded object may have `required: false`; the orchestrator still enforces the mandatory review checkpoint before marking tasks done. Do not hand-edit `targeted_review.required`, add failed review receipts, review histories, event streams, transcripts, or a parallel review ledger.
+When targeted review passes, record only the minimal passing `targeted_review` proof object with `taskctl.py record-targeted-review` after the review, any required repairs, and delta verification are closed. The receipt evidence must be compact and specific to the reviewed integrated package state, depth/lenses, test-scope declaration, safety sniff, and serious-finding closure; it must not store transcripts or histories. If a legacy plan has `tasks.json.targeted_review_required: false`, the recorded object may have `required: false`; the orchestrator still enforces the mandatory review checkpoint before marking tasks done. Do not hand-edit `targeted_review.required`, add failed review receipts, review histories, event streams, transcripts, or a parallel review ledger.
 
 ## Rejection and Repair
 
