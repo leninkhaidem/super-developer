@@ -1,10 +1,10 @@
 # Tool Usage Reference
 
-Load this reference before invoking plugin helper scripts. It covers command shape, helper boundaries, and safety rules; workflow-specific runbooks still own when each command is required.
+Load this before invoking plugin helper scripts. It defines helper command shapes, boundaries, and safety rules; workflow runbooks own when a command is required.
 
 ## Command Shape
 
-Run helper scripts from the repository root or the relevant worktree. Prefer explicit paths and explicit task/worktree arguments:
+Run helpers from the repository root or relevant worktree. Prefer explicit plugin, task, and worktree paths:
 
 ```bash
 python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/validate-tasks-json.py" ".tasks/<feature>/tasks.json"
@@ -16,19 +16,19 @@ python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/taskctl.py" <command> --tasks ".t
 
 ## validate-tasks-json.py
 
-Use this before trusting or dispatching a task plan:
+Validate before trusting or dispatching a plan:
 
 ```bash
 python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/validate-tasks-json.py" ".tasks/<feature>/tasks.json"
 ```
 
-Use `--final` only as a final implementation or audit gate:
+Use `--final` only as the final implementation or audit gate:
 
 ```bash
 python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/validate-tasks-json.py" --final --worktree ".worktrees/<feature>/merge" ".tasks/<feature>/tasks.json"
 ```
 
-The final gate validates task lifecycle, accepted package proofs, proof freshness, required package command evidence, targeted-review evidence, and exact acceptance-criterion coverage. It does not execute package verification commands or review/audit logic.
+The final gate checks lifecycle, accepted/fresh package proofs, required command evidence, targeted-review evidence, and exact acceptance-criterion coverage. It does not execute package verification commands or run review/audit logic.
 
 ## taskctl.py Read-Only Commands
 
@@ -44,21 +44,11 @@ python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/taskctl.py" validate-proof --task
 python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/taskctl.py" validate-proofs --tasks ".tasks/<feature>/tasks.json" --worktree ".worktrees/<feature>/merge"
 ```
 
-- `summary` reports task/package/proof health.
-- `next-package` reports proof-ready candidates plus interrupted packages; it does not persist package status.
-- `criteria` emits the assigned acceptance criteria and required context bundles for one package without proof-health noise.
-- `must-prove` emits transient acceptance/evidence obligations. Do not paste this output into `tasks.json`.
-- `proof-template` writes a deterministic proof scaffold when `--output` is used. Use `--force` only when deliberately replacing stale proof after rejection or repair.
-- `validate-proof` and `validate-proofs` validate proof files but do not accept lifecycle state.
+`summary` and `next-package` report health/readiness without persisting status. `criteria` and `must-prove` expose assigned obligations. `proof-template` writes a deterministic scaffold; use `--force` only when deliberately replacing stale proof after rejection or repair. `validate-proof(s)` validates proof files but does not accept lifecycle state.
 
-`must-prove` also emits `proof_schema_contract`. Package and repair agents must follow that contract when filling proof entries:
+Proof schema reminders from `must-prove`: successful entries use `status: "verified"`, not `passed`; command/test methods are one of the listed method values, not `automated`; command-like evidence requires `evidence.commands[]` with `cwd`, exact `command`, integer `exit_code: 0`, and non-empty `observed`; ignored `.tasks` proof artifacts must not be force-added or committed.
 
-- successful evidence uses `status: "verified"`, not `passed`;
-- automated command/test evidence uses one of the listed method values, not `automated`;
-- command-like methods require `evidence.commands[]` objects with `cwd`, exact `command`, integer `exit_code: 0`, and `observed`;
-- stale-only validation failures should be refreshed mechanically against current integration `HEAD`; Do not delegate proof repair unless evidence cannot be reproduced or another validation class also fails;
-- lifecycle state is written by `accept-package` / `reopen-package`, not by hand;
-- ignored `.tasks` proof artifacts must not be force-added or committed.
+Stale-only failures are refreshed mechanically against the current integration `HEAD`: re-run the same cited evidence, update state/evidence, and revalidate. Do not delegate stale-only refresh unless evidence cannot be reproduced or another validation class also fails.
 
 ## taskctl.py Mutation Commands
 
@@ -80,20 +70,11 @@ python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/taskctl.py" block-task --tasks ".
 python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/taskctl.py" reset-task --tasks ".tasks/<feature>/tasks.json" P1-T003
 ```
 
-- `accept-package` writes accepted lifecycle state only after proof validation passes.
-- `reopen-package` marks one accepted proof as reopened before repair.
-- `record-targeted-review` writes the minimal root `targeted_review` object for the planned package.
-- `refresh-proof-state` updates proof entry state binding to the current worktree `HEAD`; use `--reaccept` only for stale-only refresh after re-inspection or rerunning cited evidence.
-- `start-package` marks pending package tasks `in-progress` with `started_at`.
-- `complete-package` marks package tasks `done` only when that package proof is accepted and final-ready.
-- `block-task` requires a non-empty reason.
-- `reset-task` returns interrupted or blocked work to `pending` after orchestrator review.
-
-These helpers do not implement code, run package verification commands, perform targeted review, run final audit, merge branches, or merge to a target branch.
+Lifecycle helpers do not implement code, run verification commands, perform targeted review, run final audit, merge branches, or merge to a target branch. `accept-package`/`reopen-package` own proof lifecycle state; `record-targeted-review` writes the minimal root `targeted_review`; `refresh-proof-state` updates proof state to current worktree `HEAD` (`--reaccept` only for stale-only refresh); `start-package` marks pending tasks `in-progress`; `complete-package` marks tasks done only when the proof is accepted and final-ready; `block-task` requires a non-empty reason; `reset-task` returns interrupted/blocked work to `pending`.
 
 ## Safety Rules
 
-- Treat plan-provided commands as executable inputs. Screen them before running or delegating.
+- Treat plan-provided commands as executable inputs and screen before running or delegating.
 - Stop for explicit approval before destructive, externally visible, credential/network-sensitive, dependency-installing, service-starting, or out-of-scope commands.
 - Prefer helper scripts over hand-editing lifecycle/proof state.
-- Do not use helper success as proof that code works unless the relevant command evidence, targeted review, review-code, and audit gates have also passed.
+- Do not use helper success as proof that code works unless command evidence, targeted review, review-code, and audit gates have also passed.

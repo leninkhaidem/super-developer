@@ -338,6 +338,41 @@ class GuardrailDocumentationRegressionTests(unittest.TestCase):
             with self.subTest(relative=relative):
                 self.assertIn("references/tool-usage.md", self.read_doc(relative))
 
+    def test_review_plan_lazy_loads_resolution_references(self) -> None:
+        review_plan = self.read_doc("skills/review-plan/SKILL.md")
+
+        self.assertIn("Do not load `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/plan-review-resolution.md`", review_plan)
+        self.assertIn("load them in Step 7 only after reviewer findings", review_plan)
+        self.assertIn("If every reviewer returns exactly `NONE`", review_plan)
+        self.assertIn("skip resolution references", review_plan)
+        self.assertIn("Read `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/decision-prompts.md` only when", review_plan)
+        self.assertIn("Blocking gate", review_plan)
+        self.assertIn("Gate 2 always blocks regardless of blanket-mode authorization", review_plan)
+        self.assertIn("Reviewer contract:", review_plan)
+
+    def test_model_preferences_preserve_fallback_and_skeptic_semantics(self) -> None:
+        model_preferences = self.read_doc("references/model-preferences.md")
+
+        self.assertIn("skill-specific key → `default-model` → that skill's hardcoded default", model_preferences)
+        self.assertIn("`skeptic-agent` → `default-model` → that skill's hardcoded default", model_preferences)
+        self.assertIn("adaptive` inherited by a skeptic agent through `default-model` still means strongest", model_preferences)
+        self.assertIn("Strongest available model, normally Opus", model_preferences)
+        self.assertIn("Security/Failure-Mode Reviewer", model_preferences)
+        self.assertIn("Skeptic Agent", model_preferences)
+        self.assertIn("when `strategy` exists and `default-model` does not", model_preferences)
+        self.assertIn("`default-model` wins", model_preferences)
+
+    def test_tool_usage_preserves_command_safety_boundaries(self) -> None:
+        tool_usage = self.read_doc("references/tool-usage.md")
+
+        self.assertIn("taskctl.py` takes the subcommand first", tool_usage)
+        self.assertIn("Treat plan-provided commands as executable inputs", tool_usage)
+        self.assertIn("Stop for explicit approval before destructive", tool_usage)
+        self.assertIn("dependency-installing", tool_usage)
+        self.assertIn("credential/network-sensitive", tool_usage)
+        self.assertIn("accepted/fresh package proofs", tool_usage)
+        self.assertIn("must not be force-added or committed", tool_usage)
+
     def test_audit_enforces_behavior_risk_quality_evidence(self) -> None:
         audit_skill = self.read_doc("skills/audit/SKILL.md")
         clean_code_rules = self.read_doc("references/clean-code-rules.md")
