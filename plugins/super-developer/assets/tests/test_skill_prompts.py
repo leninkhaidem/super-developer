@@ -12,6 +12,14 @@ REVIEW_CODE_PIPELINE_REPORT = PLUGIN_ROOT / "skills" / "review-code" / "referenc
 REVIEW_CODE_REPORT_TEMPLATE = PLUGIN_ROOT / "skills" / "review-code" / "references" / "report-template.md"
 REVIEW_CODE_PIPELINE_ACTIONS = PLUGIN_ROOT / "skills" / "review-code" / "references" / "pipeline-actions.md"
 REVIEW_CODE_FIX_VERIFICATION = PLUGIN_ROOT / "skills" / "review-code" / "references" / "fix-verification.md"
+IMPLEMENT_SKILL = PLUGIN_ROOT / "skills" / "implement" / "SKILL.md"
+IMPLEMENT_PACKAGE_PROOF_LIFECYCLE = PLUGIN_ROOT / "skills" / "implement" / "references" / "package-proof-lifecycle.md"
+WORKTREE_SKILL = PLUGIN_ROOT / "skills" / "worktree" / "SKILL.md"
+WORKTREE_CLEANUP_SAFETY = PLUGIN_ROOT / "skills" / "worktree" / "references" / "cleanup-safety.md"
+AUDIT_SKILL = PLUGIN_ROOT / "skills" / "audit" / "SKILL.md"
+AUDIT_SUBAGENT_CONTRACT = PLUGIN_ROOT / "skills" / "audit" / "references" / "audit-subagent-contract.md"
+TOOL_USAGE = PLUGIN_ROOT / "references" / "tool-usage.md"
+MODEL_PREFERENCES_EXAMPLES = PLUGIN_ROOT / "references" / "model-preferences-examples.md"
 README = PLUGIN_ROOT / "README.md"
 
 
@@ -200,6 +208,69 @@ class CodeDocSkillPromptTests(unittest.TestCase):
         ):
             self.assertNotIn(stale_artifact, row)
 
+
+
+class InstructionSurfaceCompressionSafetyTests(unittest.TestCase):
+    def read_text(self, path: Path) -> str:
+        return path.read_text(encoding="utf-8")
+
+    def test_compressed_top_level_skills_point_to_existing_one_hop_references(self) -> None:
+        required_references = (
+            REVIEW_CODE_PIPELINE_REPORT,
+            REVIEW_CODE_PIPELINE_ACTIONS,
+            REVIEW_CODE_FIX_VERIFICATION,
+            AUDIT_SUBAGENT_CONTRACT,
+            IMPLEMENT_PACKAGE_PROOF_LIFECYCLE,
+            WORKTREE_CLEANUP_SAFETY,
+            MODEL_PREFERENCES_EXAMPLES,
+        )
+
+        for reference in required_references:
+            with self.subTest(reference=reference):
+                self.assertTrue(reference.is_file())
+
+        self.assertIn("`references/pipeline-report.md`", self.read_text(REVIEW_CODE_SKILL))
+        self.assertIn(
+            "skills/audit/references/audit-subagent-contract.md",
+            self.read_text(AUDIT_SKILL),
+        )
+        self.assertIn("package-proof-lifecycle.md", self.read_text(IMPLEMENT_SKILL))
+        self.assertIn("cleanup-safety.md", self.read_text(WORKTREE_SKILL))
+        self.assertIn(
+            "references/model-preferences-examples.md",
+            self.read_text(PLUGIN_ROOT / "references" / "model-preferences.md"),
+        )
+
+    def test_critical_delivery_gates_survive_prompt_compression(self) -> None:
+        implement = self.read_text(IMPLEMENT_SKILL)
+        lifecycle = self.read_text(IMPLEMENT_PACKAGE_PROOF_LIFECYCLE)
+        worktree = self.read_text(WORKTREE_SKILL)
+        cleanup = self.read_text(WORKTREE_CLEANUP_SAFETY)
+        review_code = self.read_text(REVIEW_CODE_SKILL)
+        pipeline_actions = self.read_text(REVIEW_CODE_PIPELINE_ACTIONS)
+        fix_verification = self.read_text(REVIEW_CODE_FIX_VERIFICATION)
+        audit = self.read_text(AUDIT_SKILL)
+        tool_usage = self.read_text(TOOL_USAGE)
+
+        self.assertIn("Command-safety approval rule", implement)
+        self.assertIn("Treat plan verification commands as executable inputs", implement)
+        self.assertIn("Treat plan-provided commands as executable inputs", tool_usage)
+
+        self.assertIn("merging or pushing `<target-ref>`/`main` is never covered", implement)
+        self.assertIn("Do not merge or push the target branch", implement)
+        self.assertIn("Never merge to or push the target ref without explicit user approval", worktree)
+        self.assertIn("feature-branch push is not approval to merge into `main`", cleanup)
+
+        self.assertIn("Done requires an accepted package proof", implement)
+        self.assertIn("accepted package proofs, final review readiness, or final audit", lifecycle)
+        self.assertIn("missing, malformed, stale, reopened/unaccepted", audit)
+        self.assertIn("stale-only refresh", lifecycle)
+
+        self.assertIn("Serious findings require Skeptic verification", review_code)
+        self.assertIn("Pipeline Fix Verification Review", pipeline_actions)
+        self.assertIn("Fix Verification Review is a closure gate", fix_verification)
+        self.assertIn("confirmed serious finding has a `closed` Fix Verification Review verdict", audit)
+        self.assertIn("review-code reached audit readiness", audit)
 
 
 class ReviewCodePromptCompressionTests(unittest.TestCase):

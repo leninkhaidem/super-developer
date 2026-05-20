@@ -355,12 +355,16 @@ class GuardrailDocumentationRegressionTests(unittest.TestCase):
 
         self.assertIn("skill-specific key → `default-model` → that skill's hardcoded default", model_preferences)
         self.assertIn("`skeptic-agent` → `default-model` → that skill's hardcoded default", model_preferences)
-        self.assertIn("adaptive` inherited by a skeptic agent through `default-model` still means strongest", model_preferences)
+        self.assertIn(
+            "adaptive` inherited by a skeptic agent through `default-model` still means strongest",
+            " ".join(model_preferences.split()),
+        )
         self.assertIn("Strongest available model, normally Opus", model_preferences)
         self.assertIn("Security/Failure-Mode Reviewer", model_preferences)
         self.assertIn("Skeptic Agent", model_preferences)
-        self.assertIn("when `strategy` exists and `default-model` does not", model_preferences)
-        self.assertIn("`default-model` wins", model_preferences)
+        compact_model_preferences = " ".join(model_preferences.split())
+        self.assertIn("`strategy` is treated as `default-model` only when `default-model` is absent", compact_model_preferences)
+        self.assertIn("`default-model` wins", compact_model_preferences)
 
     def test_tool_usage_preserves_command_safety_boundaries(self) -> None:
         tool_usage = self.read_doc("references/tool-usage.md")
@@ -375,12 +379,14 @@ class GuardrailDocumentationRegressionTests(unittest.TestCase):
 
     def test_audit_enforces_behavior_risk_quality_evidence(self) -> None:
         audit_skill = self.read_doc("skills/audit/SKILL.md")
+        audit_contract = self.read_doc("skills/audit/references/audit-subagent-contract.md")
         clean_code_rules = self.read_doc("references/clean-code-rules.md")
 
         self.assertIn("Behavior/risk class covered", clean_code_rules)
-        self.assertIn("behavior/risk class covered", audit_skill)
-        self.assertIn("behavior/risk-class coverage in `evidence.edge_cases`", audit_skill)
-        self.assertIn("explicit non-applicability", audit_skill)
+        self.assertIn("audit-subagent-contract.md", audit_skill)
+        self.assertIn("behavior/risk class", audit_contract)
+        self.assertIn("behavior/risk-class coverage in `evidence.edge_cases`", clean_code_rules)
+        self.assertIn("explicit non-applicability", audit_contract)
 
     def test_release_skill_uses_single_release_contract_gate(self) -> None:
         release_skill = self.read_doc("skills/release/SKILL.md")
