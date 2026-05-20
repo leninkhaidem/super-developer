@@ -7,6 +7,10 @@ import unittest
 PLUGIN_ROOT = Path(__file__).resolve().parents[2]
 CODE_DOC_SKILL = PLUGIN_ROOT / "skills" / "code-doc" / "SKILL.md"
 CODE_DOC_UPDATE_MERGE = PLUGIN_ROOT / "skills" / "code-doc" / "references" / "update-merge.md"
+REVIEW_CODE_SKILL = PLUGIN_ROOT / "skills" / "review-code" / "SKILL.md"
+REVIEW_CODE_PIPELINE_REPORT = PLUGIN_ROOT / "skills" / "review-code" / "references" / "pipeline-report.md"
+REVIEW_CODE_PIPELINE_ACTIONS = PLUGIN_ROOT / "skills" / "review-code" / "references" / "pipeline-actions.md"
+REVIEW_CODE_FIX_VERIFICATION = PLUGIN_ROOT / "skills" / "review-code" / "references" / "fix-verification.md"
 README = PLUGIN_ROOT / "README.md"
 
 
@@ -194,6 +198,35 @@ class CodeDocSkillPromptTests(unittest.TestCase):
             "infrastructure",
         ):
             self.assertNotIn(stale_artifact, row)
+
+
+
+class ReviewCodePromptCompressionTests(unittest.TestCase):
+    def read_text(self, path: Path) -> str:
+        return path.read_text(encoding="utf-8")
+
+    def test_pipeline_clean_path_defers_fix_path_reference(self) -> None:
+        skill = self.read_text(REVIEW_CODE_SKILL)
+        report = self.read_text(REVIEW_CODE_PIPELINE_REPORT)
+        actions = self.read_text(REVIEW_CODE_PIPELINE_ACTIONS)
+
+        self.assertIn("`references/pipeline-report.md`", skill)
+        self.assertIn("Load `references/pipeline-actions.md`\n  only after **ISSUES FOUND**", skill)
+        self.assertIn("Do not load\nfix implementer packets, dirty-proof handling, widening rules", report)
+        self.assertIn("Clean reviews stop at `pipeline-report.md`", actions)
+        self.assertIn("clean-path stale-state/audit-readiness gate", actions)
+
+    def test_pipeline_clean_path_keeps_non_bypass_gates_visible(self) -> None:
+        skill = self.read_text(REVIEW_CODE_SKILL)
+        report = self.read_text(REVIEW_CODE_PIPELINE_REPORT)
+
+        self.assertIn("baseline security/privacy/safety sniff", skill)
+        self.assertIn("Blanket\nmode cannot skip, silence, or replace this sniff", skill)
+        self.assertIn("Serious findings require Skeptic verification", skill)
+        self.assertIn("Blanket mode cannot bypass", skill)
+        self.assertIn("baseline\n  security/privacy/safety sniff", report)
+        self.assertIn("Stale-State Gate for Clean Readiness", report)
+        self.assertIn("Clean\nreview-code output is not package proof", report)
 
 
 if __name__ == "__main__":

@@ -265,8 +265,11 @@ Return to the mode-specific workflow:
   abort semantics.
 - **Local Mode** → `references/local-workflow.md` Phase 4 for the report. After the user reaches the
   gated action phase, load `references/local-actions.md` for fix / commit / details / abort semantics.
-- **Pipeline context** → `references/pipeline-actions.md` for pipeline report slots, verdicts,
-  fix implementer packet, and stale-state gate; load `references/decision-filter.md` only when a pipeline fix may require a design-decision card.
+- **Pipeline context** → `references/pipeline-report.md` for pipeline report slots, verdicts, clean-path
+  snapshot validation, and stale-state/audit-readiness gates. Load `references/pipeline-actions.md`
+  only after **ISSUES FOUND** or an allowed pipeline `fix` action requires fix batching,
+  proof-impact/dirty-proof handling, widening, escalation, or Fix Verification Review handoff. Load
+  `references/decision-filter.md` only when a pipeline fix may require a design-decision card.
 
 ### Pipeline Context Invariants
 
@@ -281,11 +284,14 @@ pipeline fix or readiness action, revalidate that the feature branch head, base 
 merge worktree metadata still match the reviewed state. Reject stale or broadened state and instruct
 the user to rerun review.
 
-Pipeline fixes use the delegated Fix Implementer contract in `references/pipeline-actions.md`, then
-the shared Fix Verification Review in `references/fix-verification.md`; the main agent does not
-apply substantive production/test/documentation fixes inline. `commit` is not offered in pipeline
-context because feature branch code is already committed. Do not rerun the full discovery review
-after every fix batch by default; widen only when the pipeline action reference's triggers fire.
+Pipeline fixes load `references/pipeline-actions.md` for the delegated Fix Implementer contract and
+mode-specific proof-impact gates, then use the shared Fix Verification Review in
+`references/fix-verification.md`; the main agent does not apply substantive
+production/test/documentation fixes inline. `commit` is not offered in pipeline context because
+feature branch code is already committed. Clean pipeline reviews must not load detailed fix
+implementer packets, dirty-proof handling, widening, or escalation text. Do not rerun the full
+discovery review after every fix batch by default; widen only when the shared fix-verification
+reference reports a concrete trigger and the pipeline action reference routes it.
 
 ### Blanket-Mode Boundary
 

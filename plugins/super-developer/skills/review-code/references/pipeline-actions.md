@@ -1,34 +1,15 @@
-# Pipeline Review Report and Actions
+# Pipeline Fix Actions
 
-Load this reference only in planned-feature pipeline context after the shared review pipeline. It owns
-pipeline report slots, verdicts, fix implementer packet, and stale-state gates. Load
-`decision-filter.md` only when a pipeline fix may require a design-decision card.
+Load this reference only after `pipeline-report.md` has produced **ISSUES FOUND** or an allowed
+pipeline `fix` action needs fix batching, proof-impact/dirty-proof handling, widened verification,
+escalation, or Fix Verification Review handoff. Clean reviews stop at `pipeline-report.md` and final
+audit readiness; they do not load this fix-path reference.
 
-## Pipeline Report Slots
+`pipeline-report.md` owns pipeline report slots, verdict selection, package coverage input, and the
+clean-path stale-state/audit-readiness gate. Load `decision-filter.md` only when a pipeline fix may
+require a design-decision card.
 
-Use `report-template.md` with:
-
-- **HEADER:** ``Feature Branch Review — `feature/<name>` vs `<target-ref>` ``
-- **METADATA:** ``**Worktree:** `.worktrees/<feature>/merge/` | **Files:** <count> changed``
-
-## Verdict
-
-- **CLEAN** — No 🔴 or 🟠 findings. Pipeline review is ready for final audit; merge approval is only
-  appropriate after audit passes.
-- **ISSUES FOUND** — One or more 🔴 or 🟠 findings confirmed.
-
-There is no third option. Every review is either clean or has actionable issues.
-
-## Package Coverage Input
-
-When planned-feature package coverage exists, final review-code consumes it as compact context, not as
-a second proof ledger: package IDs, risk tags, package self-review summaries, targeted package review
-summaries, verification/proof status, deferred concerns, and changed-file manifest. Accepted targeted
-package reviews count as local package-risk coverage. Final review remains responsible for baseline
-security/privacy/safety sniff, cross-package integration, uncovered surfaces, contradictions, deferred
-concerns, and whole-feature coherence.
-
-## Pipeline Review State Snapshot
+## Pipeline Fix State Snapshot
 
 In planned-feature pipeline context, use exactly one orchestrator-owned lightweight snapshot:
 
