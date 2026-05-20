@@ -118,6 +118,20 @@ specialist in this deterministic priority order:
 If several triggers match, choose only the highest-priority specialist. Triggers mapped to the same
 specialist still produce one specialist reviewer, not one reviewer per trigger.
 
+### Diff Triage and Package Coverage
+
+Before deep review, create a compact diff triage manifest. Classify changed files as runtime/core
+code, public contracts/schemas/generated clients, tests that directly prove changed behavior, test
+helpers/fixtures/mocks, snapshots/generated outputs, docs, build/config/tooling, or proof/task/review
+artifacts. For changed tests, declare detailed, sampled, or not-reviewed scope with a short rationale.
+
+In planned-feature pipeline context, also consume compact package coverage when available: package
+IDs, risk tags, mandatory self-review summaries, targeted package review summaries, verification and
+proof status, deferred concerns, and changed-file manifest. Accepted targeted package reviews count as
+local package-risk coverage; final review still performs baseline safety sniff and integration review,
+but specialists should focus on uncovered, weakly covered, contradictory, or integration-level risks
+rather than duplicating already-covered package-local review.
+
 ### Discovery Review Lens Contract
 
 For the initial discovery review, provide reviewers required dynamic risk lenses selected from the
@@ -130,12 +144,12 @@ lens coverage separate from reportable findings.
 
 ### Code Reviewer Mandate
 
-The Code Reviewer receives the full diff or current semantic batch diff, change context, codebase
-path for exploration, reviewed-state metadata, required discovery-review lenses, available
-task-awareness context, and `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/clean-code-rules.md` for the
-Development Quality Contract. Use `references/finding-contract.md` for severity taxonomy,
-canonical finding fields, discovery coverage output, output format, and suggestion actionability
-rules.
+The Code Reviewer receives the full diff or current semantic batch diff, diff triage manifest,
+change context, codebase path for exploration, reviewed-state metadata, required discovery-review
+lenses, available task-awareness and package-coverage context, and
+`${SUPER_DEVELOPER_PLUGIN_ROOT}/references/clean-code-rules.md` for the Development Quality Contract.
+Use `references/finding-contract.md` for severity taxonomy, canonical finding fields, discovery
+coverage output, output format, and suggestion actionability rules.
 
 The Code Reviewer must always perform and report a baseline security/privacy/safety sniff. Blanket
 mode cannot skip, silence, or replace this sniff. The sniff is not a substitute for an on-demand
@@ -154,14 +168,26 @@ suggestion with a serious fix.
 When task-awareness context is available, the Code Reviewer flags apparent planned requirement or
 acceptance-criteria omissions, contradictions, or regressions. These are review-code findings, not
 completion proof: the audit skill remains authoritative for proving all planned tasks and acceptance
-criteria. In pipeline context, review-code may use accepted package proofs as task-awareness context,
-but must not duplicate audit's exhaustive role.
+criteria. In pipeline context, review-code may use accepted package proofs, package self-review, and
+targeted package review summaries as task-awareness context, but must not duplicate audit's exhaustive
+role or redo package-local review without a coverage gap or integration-level risk.
+
+Detailed review follows behavior-first order: understand intended behavior from SPEC/tasks/proofs and
+package reports, review core/runtime functionality first, derive expected test obligations, inspect
+corresponding tests as evidence quality, then inspect remaining test-only/generated/config changes as
+needed. Tests are in scope as proof quality, but not exhaustively line-reviewed by default. Review
+tests in detail when they are proof-cited, the only evidence for behavior, risk-bearing
+security/privacy/data/concurrency/failure coverage, changing mocks/fixtures/helpers/snapshots/generated
+contracts, using skips/xfails/global/env/import-cache mutation, or themselves the feature/risk surface.
 
 ### Specialist Mandate
 
-The optional specialist receives the same inputs as the Code Reviewer plus the trigger that selected
-that specialist. The specialist focuses only on that risk domain and returns findings using
-`references/finding-contract.md`.
+The optional specialist receives reviewed-state metadata, the trigger that selected that specialist,
+required lens rows for that risk domain, relevant package-coverage context, and the relevant
+diff/surfaces needed to evaluate the trigger. For small coherent diffs this may be the same diff as
+the Code Reviewer; for large, batched, generated, docs, or low-risk surrounding changes, pass a scoped
+packet plus repo/worktree access instead of duplicating the full review context. The specialist
+focuses only on that risk domain and returns findings using `references/finding-contract.md`.
 
 ### Fix Verification Reviewer Mandate (fix modes only)
 
@@ -179,9 +205,10 @@ fix path.
 
 ## Step 2A — Big-Diff Batching
 
-If the diff exceeds 2,000 lines or is too broad for one coherent review, split it into semantic
-batches by related files, module boundaries, ownership boundaries, or feature areas. Do not add extra
-reviewer types by default just because a diff is large.
+If the diff exceeds 2,000 lines or is too broad for one coherent review, use the diff triage
+manifest to split only where semantic boundaries improve review confidence. Group low-risk generated,
+docs, snapshot, and repetitive test changes with their owning source surface when possible. Do not add
+extra reviewer types by default just because a diff is large.
 
 For each batch: preserve mode context and reviewed-state metadata; run the bounded reviewer topology
 for that batch; keep the per-batch cap (normal 2, risky 3); assign stable dedupe keys; and carry
@@ -202,9 +229,14 @@ actionability rules.
 
 Before treating a discovery review as clean, reconcile `DISCOVERY_COVERAGE` against the required
 lens list. Missing required rows, vague evidence, unsupported `not_applicable`, or coverage shallower
-than the requested depth make the review incomplete. Ask first for targeted follow-up on only the
+than the requested depth make the review incomplete. Ask first for one targeted follow-up on only the
 missing or weak lenses; do not rerun the full review by default. Use a stronger reviewer or Skeptic
-coverage challenge only after repeated weak coverage or when the gap is high-risk.
+coverage challenge only when that focused follow-up still leaves a high-risk lens unproven, when the
+gap itself is security/privacy/safety/data-integrity critical, or when a mode-specific gate requires
+adversarial coverage. If a non-high-risk required lens remains incomplete after the targeted
+follow-up, report the exact coverage gap as blocking/incomplete and route to the narrowest missing
+evidence or focused reviewer; do not mark the review clean or expand to whole-feature rereview by
+default.
 
 Serious findings require Skeptic verification. Spawn a Skeptic Agent using the resolved Step 2 model
 for all 🔴 BLOCKER and 🟠 CRITICAL findings, plus cross-batch serious-finding conflicts, risky clean

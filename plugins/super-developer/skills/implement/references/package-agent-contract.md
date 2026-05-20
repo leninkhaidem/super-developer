@@ -23,10 +23,36 @@ The package agent must:
 11. Update affected callsites, tests, docs, generated artifacts, schemas, and contracts within package scope.
 12. Stop and report when the correct implementation requires scope expansion, a product/design decision, new dependency/service, unsafe command, credentials/external facts, or changes outside the package boundary.
 13. Commit after completing each task ID so task-level progress is traceable within the package branch.
-14. Run package `verification_commands` when safe/provided, plus tests/checks it adds or modifies and the cheapest relevant existing tests/checks for touched paths.
-15. Never create worktrees, branches, or perform merge operations.
+14. Run package `verification_commands` when safe/provided, plus tests/checks it adds or modifies and the cheapest relevant existing tests/checks for touched paths. Prefer targeted checks that prove assigned criteria and touched behavior; do not run broad expensive suites by default unless they are assigned, cheap by project convention, or the only credible proof for the package's risk surface.
+15. Before handoff, perform the mandatory package self-review below and fix self-found issues or report an exact blocker.
+16. Never create worktrees, branches, or perform merge operations.
 
 If a required command is unsafe under the command-safety rule, do not run it. Report the command and required approval instead.
+
+## Package Self-Review
+
+Before returning, review your own package diff in behavior-first order:
+
+1. Re-read the assigned acceptance criteria, risk tags, context bundles, and proof obligations.
+2. Review the core/runtime behavior you changed before reviewing tests.
+3. Derive which tests, commands, static inspections, or manual observations should prove the behavior and risk cases.
+4. Review corresponding tests/proofs as evidence quality: assertions, negative/failure/security/privacy/data/concurrency cases, mocks, skips, generated snapshots/contracts, and pollution-sensitive setup.
+5. Review remaining test-only/generated/config/docs changes only as needed for package scope and risk.
+
+If self-review finds an issue, fix it before handoff and rerun the relevant targeted checks, or report the exact blocker when the fix requires scope expansion, unsafe commands, external facts, credentials, or a product/design decision. Self-review is a compact report block, not a new proof artifact or schema field.
+
+Include this exact block in the completion report:
+
+```text
+SELF_REVIEW
+diff_reviewed: yes
+criteria_checked: <AC IDs>
+risk_lenses_checked: <risk tags/lenses or none-applicable>
+tests_reviewed_as_evidence: <test files/commands or none>
+issues_found_and_fixed: <short list or none>
+tests_and_proofs_consistent: yes/no + reason
+unresolved_concerns: none or exact blocker
+```
 
 ## Package Proof Expectations
 
@@ -60,10 +86,11 @@ The package agent report must include:
 - Quality Contract Evidence from `clean-code-rules.md`;
 - depth-within-scope strategy and behavior/risk class coverage, including any applicable security, privacy, failure-mode, edge-case, or methodology decisions;
 - files changed;
-- commands run and observed results;
+- commands run and concise observed results or relevant excerpts; also list safe targeted commands that were not run and why;
 - commits created per task ID;
 - context bundles cited;
 - mock disclosures;
+- the required `SELF_REVIEW` block;
 - unresolved risks, blocked criteria, or scope-expansion requests.
 
 Do not report success for a task whose acceptance criteria are not proven.

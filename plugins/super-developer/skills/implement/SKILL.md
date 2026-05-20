@@ -62,10 +62,10 @@ Packages:
   risk tags: <risk_tags>
   targeted package review: yes/no and why
   required context bundles: <bundle IDs or none>
-  verification commands: <safe/scoped commands or commands requiring approval>
+  verification commands: <safe/scoped package commands required before acceptance; broad/expensive final checks listed separately when deferred>
 
 Pipeline:
-1. package implementation + sub-agent self-verification
+1. package implementation + sub-agent self-verification and mandatory self-review
 2. orchestrator evidence/integration checkpoint
 3. risk-triggered targeted package review and delegated fixes
 4. review-code discovery, delegated fix batches, Fix Verification Review, and trigger-based widening/escalation
@@ -130,7 +130,7 @@ Edge cases:
 
 Every selected planned-feature package is delegated to a sub-agent in its own package worktree. The orchestrator does not perform substantive production/test/documentation implementation or fixes inline. If a package is too small, merge it with a related package or serialize it; do not turn the orchestrator into the implementer.
 
-Before spawning, announce package IDs, task IDs, branch/worktree names, primary paths, context bundles, risk tags, targeted-review decisions, screened verification commands, model choice, and parallel/serial rationale.
+Before spawning, announce package IDs, task IDs, branch/worktree names, primary paths, context bundles, risk tags, targeted-review decisions including any runtime risk-bearing upgrade, screened verification commands, mandatory package self-review expectation, model choice, and parallel/serial rationale.
 
 Before spawning package agents, set assigned task statuses to `in-progress` in `tasks.json` and write the file. Ensure `.tasks/$ARGUMENTS/proofs/` exists in the shared task-artifact location and that each dispatched package has an assigned `.tasks/$ARGUMENTS/proofs/WP<N>.proof.json` target or template. Load `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/tool-usage.md` and `plugins/super-developer/skills/implement/references/package-proof-lifecycle.md` before routine `taskctl.py` proof, status, block/reset, next-package, or must-prove operations.
 
@@ -144,7 +144,7 @@ After all package agents in the current batch return:
 2. Merge each completed package branch once into `.worktrees/<feature>/merge`.
 3. Hand off the assigned package proof file into the integration feature state before final package proof validation. `.tasks/` is ignored by git, so do not rely on package branch merges to carry proof files.
 4. Run the lightweight integration checkpoint before marking tasks done or dispatching downstream packages.
-5. Run targeted package review when `targeted_review_required` is true or risk tags trigger it.
+5. Run one focused targeted package review for risk-bearing packages when `targeted_review_required` is true, risk tags trigger it, or runtime discovery upgrades the package.
 6. Delegate fresh repair/verification agents for rejected packages or confirmed review findings; do not fix inline.
 
 Load `plugins/super-developer/skills/implement/references/integration-checkpoint.md` for package proof validation, package verification, targeted package review, rejection rules, and repair packets.
@@ -167,7 +167,7 @@ When all phases/tasks are complete:
 1. Confirm every task is `done` with accepted package proof evidence; unresolved `pending`, `in-progress`, `blocked`, or `skipped` tasks are not final.
 2. Update feature `status` to `completed`.
 3. Run final package proof validation with `python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/validate-tasks-json.py" --final --worktree ".worktrees/<feature>/merge" ".tasks/<feature>/tasks.json"` when an integrated merge worktree exists. Reject incomplete task lifecycle, missing required command evidence, missing targeted-review evidence, invalid, stale, unaccepted, or reopened package proofs.
-4. Run integrated feature tests/checks from `.worktrees/<feature>/merge` when it exists, applying the command-safety approval rule.
+4. Run integrated feature tests/checks from `.worktrees/<feature>/merge` when it exists, applying the command-safety approval rule. Batch broad/expensive suites at this integration/final gate unless they are cheap or were already required package `verification_commands` because they are the only credible package proof.
 5. Push the contracted feature branch for review/testing: `git push -u origin feature/<feature>`. Do not ask for a second approval when this exact push was listed in the approved Execution Contract.
 6. **Do not merge or push the target branch.** Wait for explicit user approval for the named `<target-ref>`. "Push feature branch to remote" does not mean "merge or push target."
 
@@ -178,7 +178,7 @@ If implementation failed or requires user intervention, stop. Do not invoke the 
 If blanket approval or `approve auto-resolve` was given:
 1. Invoke `review-code` with `<feature-name>` for the initial discovery review.
 2. Delegate confirmed 🔴/🟠 findings in coherent fix batches unless a stop condition or design-decision card requires the user.
-3. After each fix batch, use the review-code pipeline Fix Verification Review for the assigned dedupe keys. Do not rerun the full discovery review by default.
+3. After each fix batch, use the review-code pipeline Fix Verification Review for the assigned dedupe keys. Do not rerun the full discovery review by default. Track affected package proofs as a dirty set and refresh/reaccept them after the fix batch is verified closed, not after every failed or partial attempt.
 4. When Fix Verification Review returns non-closed verdicts, serious fix-introduced regressions, or widening triggers, follow the review-code pipeline widening/escalation rules before asking the user. User prompts are reserved for authority boundaries: product/design changes, scope expansion beyond SPEC/tasks, new dependencies/services, destructive or external actions, risk acceptance, credentials/external facts, unsafe commands, or no viable verification seam after escalation.
 5. Invoke `audit` with `<feature-name>` only after all known confirmed serious findings are fixed and
    verified `closed`, required widened checks are complete, no unresolved serious regression remains,

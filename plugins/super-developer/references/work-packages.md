@@ -51,6 +51,12 @@ Treat `verification_commands` as executable inputs from a plan artifact. They mu
 
 Accepted package proofs must include passing command evidence for every listed `verification_commands` entry. Do not create a second command ledger; cite the command under the relevant proof entry's existing `evidence.commands`.
 
+Prefer targeted, deterministic package commands. If a command is listed in package
+`verification_commands`, it is required package proof and must run before package acceptance. Broad or
+expensive full-suite, generated-contract, typecheck, or lint commands should usually be kept out of
+package `verification_commands` and batched as integration/final checks unless they are cheap by
+project convention or the only credible proof for an assigned acceptance criterion.
+
 
 ## Package Proof Files
 
@@ -87,6 +93,12 @@ Targeted-review-triggering tags include:
 - `review`, `audit`, `fix-loop`, `quality-contract`
 
 Documentation-only tags such as `documentation`, `docs`, `consistency`, and `validation-samples` do not require targeted review by themselves. A package with any targeted-review-triggering tag must set `targeted_review_required: true`; a package may also set it true conservatively even without a triggering tag.
+
+### Risk-Bearing Package Rubric
+
+A risk-bearing package needs independent targeted package review before its tasks are marked done when it touches sensitive, cross-cutting, irreversible, or shared-contract surfaces. Examples include security/privacy/safety; auth, permissions, tenancy, admin/user authority; secrets, tokens, credentials, PII, logs, telemetry, or data exposure; persistence, data integrity, migrations, destructive data changes, ownership conversion, lifecycle cleanup, audit/fail-closed behavior; public APIs, schemas, generated contracts, exported types; concurrency, caches, resource bounds, performance; cross-package/shared configuration or integration invariants; and orchestration, tool authority, sub-agent contracts, proof lifecycle, review/audit, or fix-loop behavior.
+
+Targeted package review is local package-risk review, not a replacement for final `review-code`. It should consume package self-review, proof evidence, targeted checks, risk tags, and the integrated package delta. Do not expand the risk-tag taxonomy or add schema fields for this rubric; the orchestrator derives risk-bearing status from existing plan metadata and runtime discovery. Runtime-upgraded reviews on packages whose plan flag is false are recorded as optional targeted-review evidence (`required: false`) and enforced by the orchestrator checkpoint rather than by the schema.
 
 ## Rationale
 

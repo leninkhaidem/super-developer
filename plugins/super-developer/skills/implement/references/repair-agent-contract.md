@@ -17,9 +17,27 @@ The repair agent must:
 7. Keep repair scope limited to making the assigned package criteria true and proven in the current state.
 8. Update only package proof entries relevant to the repair or explicitly identified candidate proof refresh.
 9. Run safe verification commands from the assignment, plus targeted tests/checks needed to prove the repair.
-10. Never create worktrees, branches, perform merge operations, mark tasks done, edit proof lifecycle state by hand, treat review state as proof, or force-add/commit ignored `.tasks` proof artifacts.
+10. When the repair changes implementation behavior, tests, proofs, or risk evidence, perform the compact repair self-review below before handoff. Pure mechanical stale-state refresh may report the rechecked evidence instead.
+11. Never create worktrees, branches, perform merge operations, mark tasks done, edit proof lifecycle state by hand, treat review state as proof, or force-add/commit ignored `.tasks` proof artifacts.
 
 Stop and report instead of changing code when the correct repair requires product/design changes, new dependencies/services, scope expansion, unsafe commands, credentials/external facts, risk acceptance, or changes outside the assigned package/repair boundary.
+
+## Repair Self-Review
+
+Before returning a substantive repair, review the repair diff in behavior-first order: assigned finding or rejection, repaired core behavior, corresponding tests/proofs as evidence quality, and any remaining generated/config/test-only changes. Fix self-found issues before handoff or report an exact blocker.
+
+Include this compact block when the repair changed behavior, tests, proofs, or risk evidence:
+
+```text
+REPAIR_SELF_REVIEW
+repair_diff_reviewed: yes
+criteria_or_findings_checked: <criterion IDs or dedupe keys>
+risk_lenses_checked: <risk tags/lenses or none-applicable>
+tests_reviewed_as_evidence: <test files/commands or none>
+issues_found_and_fixed: <short list or none>
+tests_and_proofs_consistent: yes/no + reason
+unresolved_concerns: none or exact blocker
+```
 
 ## Proof Repair Expectations
 
@@ -48,9 +66,10 @@ The repair agent report must include:
 - proof entries updated/refreshed;
 - Quality Contract Evidence from `clean-code-rules.md` when code or behavior changed;
 - files changed;
-- commands run and observed results;
+- commands run and concise observed results or relevant excerpts;
 - context bundles cited;
 - mock disclosures;
+- `REPAIR_SELF_REVIEW` block when required;
 - unresolved risks, blocked criteria, or scope-expansion requests.
 
 Do not report the repair complete until the assigned criteria are true and proven, or until a blocker is explicitly reported.

@@ -44,7 +44,7 @@ Use only these closure verdicts per assigned finding or dedupe key:
 - `not_closed` — the delta does not close the assigned finding or lacks enough evidence to prove closure.
 - `reopened` — a finding that had been treated as closed is failing again, was reverted, or is reintroduced by the current fix lineage.
 
-`partially_closed`, `not_closed`, and `reopened` are non-closed verdicts. They block readiness and must route to the mode-specific fix, widening, escalation, or authority-boundary flow.
+`partially_closed`, `not_closed`, and `reopened` are non-closed verdicts. They block readiness and must route to the mode-specific fix, widening, escalation, or authority-boundary flow. The reviewer should identify the failure mode precisely enough for the orchestrator to change strategy rather than repeat the same fix prompt.
 
 ## Regression Sniff
 
@@ -58,7 +58,7 @@ Report a widening trigger only with concrete evidence. Use these trigger names w
 
 - `scope_expansion` — the fix needs files, behavior, tasks, or user-visible scope beyond the approved finding scope.
 - `public_api_or_schema_change` — public API, exported contracts, CLI/user interface, persistence schema, storage, generated contract, or migration behavior changes.
-- `sensitive_risk_surface` — security, privacy, safety, data integrity, concurrency, or performance surfaces are changed or newly implicated.
+- `sensitive_risk_surface` — concrete evidence shows security, privacy, safety, data integrity, concurrency, or performance behavior changed or became newly implicated beyond the assigned closure/regression sniff.
 - `cross_package_impact` — the fix touches or invalidates multiple planned-feature packages, package boundaries, or integration assumptions.
 - `proof_invalidation` — package proof evidence, acceptance criteria, test evidence, or audit handoff may no longer match the final state.
 - `large_delta` — the fix delta is too large or broad to verify confidently as one isolated patch.
@@ -68,4 +68,4 @@ Route widening to the affected surface first: targeted delta verification, affec
 
 ## Non-Discovery Boundary
 
-The reviewer must not rediscover the whole feature by default, search unrelated modules for fresh findings, or turn suggestions into a separate loop. If the reviewer notices a serious risk outside the assigned fix delta, it reports the smallest applicable widening trigger and affected scope; the orchestrator decides whether to run targeted widened verification or a full rereview under the mode-specific governance rules.
+The reviewer must not rediscover the whole feature by default, search unrelated modules for fresh findings, or turn suggestions into a separate loop. If the reviewer notices a serious risk outside the assigned fix delta, it reports the smallest applicable widening trigger and affected scope with concrete evidence; the orchestrator decides whether to run targeted widened verification or a full rereview under the mode-specific governance rules. A vague sensitive-surface concern is not enough to reopen whole-feature discovery.

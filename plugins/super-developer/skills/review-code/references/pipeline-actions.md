@@ -19,6 +19,15 @@ Use `report-template.md` with:
 
 There is no third option. Every review is either clean or has actionable issues.
 
+## Package Coverage Input
+
+When planned-feature package coverage exists, final review-code consumes it as compact context, not as
+a second proof ledger: package IDs, risk tags, package self-review summaries, targeted package review
+summaries, verification/proof status, deferred concerns, and changed-file manifest. Accepted targeted
+package reviews count as local package-risk coverage. Final review remains responsible for baseline
+security/privacy/safety sniff, cross-package integration, uncovered surfaces, contradictions, deferred
+concerns, and whole-feature coherence.
+
 ## Pipeline Review State Snapshot
 
 In planned-feature pipeline context, use exactly one orchestrator-owned lightweight snapshot:
@@ -42,7 +51,8 @@ The compact snapshot must include the current versions of these fields:
 - `findings`: confirmed serious finding dedupe keys with severity, Skeptic verdict, current status,
   and assigned fix batch when applicable.
 - `fix_batches`: bounded current/recent batch records with batch id, assigned dedupe keys, delegated
-  fix commit(s), batch state, and Fix Verification Review reference/verdict summary.
+  fix commit(s), batch state, dirty-proof/proof-impact status, and Fix Verification Review
+  reference/verdict summary.
 - `closure_status`: open/closed/reopened dedupe keys, serious fix-regression status, and audit
   readiness flag.
 - `widening_triggers`: trigger name, affected scope, and open/complete state.
@@ -56,13 +66,14 @@ current review report, fix report, or verification result instead of appending h
 
 Sub-agents receive bounded packets derived from the snapshot: reviewed-state metadata, assigned
 dedupe keys, current fix-batch id, relevant closure/widening status, target paths, and proof-impact
-context. They do not own, edit, or freely mutate `review-code-state.json`; they report results to the
-orchestrator, and the orchestrator validates and refreshes the snapshot.
+or dirty-proof context. They do not own, edit, or freely mutate `review-code-state.json`; they report
+results to the orchestrator, and the orchestrator validates and refreshes the snapshot.
 
 Before any pipeline fix, fix verification, widened review, escalation decision, or audit-readiness
 handoff, validate the snapshot. Fail closed when it is missing, malformed, stale, contradictory, or
 for the wrong feature/mode/state. Validation must at least parse JSON, check required fields/enums,
 reject duplicate or unreferenced dedupe keys, ensure fix batches reference known findings, ensure
+open dirty-proof entries prevent `closure_status.ready_for_audit`, ensure
 `closure_status.ready_for_audit` is false when any known serious finding/regression/trigger remains
 open, and bind `reviewed_state` to the Stale-State Gate lineage. A failed validation means the
 pipeline is not ready; regenerate the snapshot from current review artifacts or rerun the appropriate
@@ -80,17 +91,21 @@ Pipeline auto-resolve uses this governed sequence instead of a full review after
    batch.
 3. The Fix Implementer commits each delegated fix batch before verification; record the delegated fix
    commit(s) in the snapshot and run Pipeline Fix Verification Review for the assigned dedupe keys.
+   Track affected package proofs as a dirty set for the batch, but do not refresh/reaccept proofs for
+   failed or partial intermediate states.
 4. If every assigned finding is `closed`, no serious fix-introduced regression is found, and no
-   widening trigger fires, refresh closure status with the current post-fix lineage as verified and
-   continue with any remaining known confirmed serious findings.
+   widening trigger fires, refresh closure status with the current post-fix lineage as verified,
+   refresh/revalidate/reaccept dirty affected package proofs once, and continue with any remaining
+   known confirmed serious findings.
 5. If a verdict is `partially_closed`, `not_closed`, or `reopened`, or a serious fix regression /
    widening trigger appears, refresh widening/escalation status and route to the governed widening or
-   escalation flow; do not rerun full discovery by default.
+   escalation flow; do not rerun full discovery by default and do not reaccept dirty proofs until the
+   relevant fix batch is verified closed.
 6. Enter audit readiness only after snapshot validation passes, all known confirmed serious findings
-   are fixed and verified closed, required widened checks are complete, affected package proofs are
-   refreshed and accepted, and no unresolved serious regression remains.
+   are fixed and verified closed, required widened checks are complete, affected dirty package proofs
+   are refreshed and accepted, and no unresolved serious regression remains.
 
-There is no arbitrary pass-after-N limit: a known confirmed serious finding blocks readiness until it is fixed and verified `closed`; if an authority boundary is reached, stop instead of marking the pipeline ready.
+There is no arbitrary pass-after-N limit: a known confirmed serious finding blocks readiness until it is fixed and verified `closed`; if an authority boundary is reached, stop instead of marking the pipeline ready. Auto-resolve remains frictionless, but repeated attempts for the same dedupe key must change strategy, evidence, scope split, reviewer/fixer strength, or verification seam instead of repeating the same prompt with more tokens.
 
 ## Design-Decision Filter
 
@@ -113,8 +128,9 @@ Each Fix Implementer receives:
 
 - Confirmed 🔴 and 🟠 findings, including dedupe keys, Skeptic verdicts, evidence, and recommendations
 - Reviewed-state metadata
-- `SPEC.md`, `tasks.json`, package proofs, relevant context bundles, prior targeted package
-  review/audit results when available, and the proof-impact map described below
+- `SPEC.md`, `tasks.json`, relevant context bundles, package self-review and targeted package review
+  summaries when available, prior audit results when available, affected package proof entries or
+  snippets when identifiable, and the proof-impact/dirty-proof map described below
 - Exact affected package IDs, task IDs, acceptance criteria, or proof entries when identifiable
 - Target paths, current diff, and exact scope boundaries
 - User constraints, repository constraints, and mode constraints
@@ -127,7 +143,8 @@ Each Fix Implementer receives:
 Before delegating a pipeline fix batch, map every confirmed finding or dedupe key to package proof
 impact when the fix can invalidate planned-feature acceptance evidence. Use the finding scope,
 recommended fix, target paths, `tasks.json` work packages, accepted package proofs, package risk tags,
-and cited proof file evidence to build a compact proof-impact map:
+package self-review/targeted-review summaries, and cited proof file evidence to build a compact
+proof-impact map:
 
 - affected package IDs, task IDs, acceptance criterion IDs, and proof entries when identifiable;
 - evidence surfaces that may become stale: cited files/symbols, command outputs, manual evidence,
@@ -139,11 +156,12 @@ and cited proof file evidence to build a compact proof-impact map:
 
 When an accepted package proof may be invalidated, the orchestrator must load
 `plugins/super-developer/skills/implement/references/package-proof-lifecycle.md` and run
-`taskctl.py reopen-package` for each affected package proof before repair starts. The Fix Implementer
-or repair agent then updates only the relevant package proof entries with state-bound evidence for
-the repaired state. After repair and Fix Verification Review, the orchestrator validates the
-refreshed proof and runs `taskctl.py accept-package` before audit readiness. Do not hand-edit proof
-lifecycle state.
+`taskctl.py reopen-package` for each affected package proof before repair starts. Track affected
+packages/proof entries as the fix batch's dirty-proof set. The Fix Implementer or repair agent then
+updates only the relevant package proof entries with state-bound evidence for the repaired state.
+After the fix batch is verified `closed` by Fix Verification Review, the orchestrator validates the
+refreshed proof and runs `taskctl.py accept-package` before audit readiness. Do not refresh/reaccept
+proofs for failed or partial intermediate fix attempts, and do not hand-edit proof lifecycle state.
 
 Uncertain proof impact fails closed. If the exact criteria/proof entries cannot be identified from
 paths and findings, reopen and refresh candidate package proofs by package/path/risk ownership, or
@@ -158,7 +176,9 @@ The Fix Implementer must reproduce or locate each finding, state the bug-class/e
 every 🔴/🟠 finding, add or adjust regression/table-driven coverage where applicable, fix minimally,
 run targeted checks, update affected package proof entries with state-bound evidence when impacted,
 commit the delegated fix batch before Fix Verification Review, and report unresolved blockers. Do not
-patch only the exact reported example when the finding represents a class of inputs or states.
+patch only the exact reported example when the finding represents a class of inputs or states. If the
+batch remains non-closed, preserve the dirty-proof set for the next changed-strategy attempt rather
+than reaccepting proofs for the failed intermediate state.
 
 ## Pipeline Fix Verification Review
 
@@ -183,7 +203,7 @@ when evidence shows one of these triggers:
 
 - `scope_expansion` — the fix needs files, behavior, tasks, or user-visible scope beyond the approved finding scope.
 - `public_api_or_schema_change` — public API, exported contracts, CLI/user interface, persistence schema, generated contracts, or migrations changed.
-- `sensitive_risk_surface` — security, privacy, safety, data integrity, concurrency, or performance surfaces changed or became newly implicated.
+- `sensitive_risk_surface` — concrete evidence shows security, privacy, safety, data integrity, concurrency, or performance behavior changed or became newly implicated beyond the assigned closure/regression sniff.
 - `cross_package_impact` — multiple planned-feature packages, package boundaries, or integration assumptions are affected.
 - `proof_invalidation` — package proof evidence, acceptance criteria, tests, or audit handoff may no longer match the final state.
 - `large_delta` — the fix delta is too large or broad to verify confidently as one isolated patch.
@@ -210,7 +230,9 @@ Auto-resolve changes strategy by failure mode before asking the user:
 | Delta is too broad to isolate | Batch by semantic surface; use full rereview only if semantic batching cannot preserve review confidence. |
 
 Do not merely repeat the same fix or review prompt with more tokens. Escalation should change the
-agent strength, scope split, evidence requirement, specialist lens, or verification seam.
+agent strength, scope split, evidence requirement, specialist lens, or verification seam. If the next
+automated step cannot name what changed about the strategy and what bounded evidence would prove
+closure, route to the no-viable-verification-seam authority boundary instead of looping.
 
 ## User Authority Boundaries
 
