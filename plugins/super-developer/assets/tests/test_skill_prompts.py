@@ -230,10 +230,9 @@ class InstructionSurfaceCompressionSafetyTests(unittest.TestCase):
                 self.assertTrue(reference.is_file())
 
         self.assertIn("`references/pipeline-report.md`", self.read_text(REVIEW_CODE_SKILL))
-        self.assertIn(
-            "skills/audit/references/audit-subagent-contract.md",
-            self.read_text(AUDIT_SKILL),
-        )
+        audit_skill = self.read_text(AUDIT_SKILL)
+        self.assertIn("`references/audit-subagent-contract.md`", audit_skill)
+        self.assertNotIn("skills/audit/references/audit-subagent-contract.md", audit_skill)
         self.assertIn("package-proof-lifecycle.md", self.read_text(IMPLEMENT_SKILL))
         self.assertIn("cleanup-safety.md", self.read_text(WORKTREE_SKILL))
         self.assertIn(

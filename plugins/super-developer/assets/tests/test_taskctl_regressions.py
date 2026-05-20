@@ -383,7 +383,8 @@ class GuardrailDocumentationRegressionTests(unittest.TestCase):
         clean_code_rules = self.read_doc("references/clean-code-rules.md")
 
         self.assertIn("Behavior/risk class covered", clean_code_rules)
-        self.assertIn("audit-subagent-contract.md", audit_skill)
+        self.assertIn("`references/audit-subagent-contract.md`", audit_skill)
+        self.assertNotIn("skills/audit/references/audit-subagent-contract.md", audit_skill)
         self.assertIn("behavior/risk class", audit_contract)
         self.assertIn("behavior/risk-class coverage in `evidence.edge_cases`", clean_code_rules)
         self.assertIn("explicit non-applicability", audit_contract)

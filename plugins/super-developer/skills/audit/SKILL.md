@@ -55,9 +55,9 @@ Fix Verification Review, and any triggered widening/escalation have reached audi
 
 ## Step 2: Spawn Audit Sub-Agent
 
-Before dispatch, load `skills/audit/references/audit-subagent-contract.md`. That one-hop reference
-owns the audit sub-agent packet, verification procedure, report contract, and result handling; do not
-activate unrelated review-code or implement runbooks for those details.
+Before dispatch, load `references/audit-subagent-contract.md` from this audit skill directory. That
+one-hop reference owns the audit sub-agent packet, verification procedure, report contract, and result
+handling; do not activate unrelated review-code or implement runbooks for those details.
 
 Launch an Opus-class sub-agent with:
 
@@ -71,7 +71,7 @@ The sub-agent must read the plan cold and verify against the actual codebase in 
 
 ## Step 3: Result Boundary
 
-Use the report contract in `skills/audit/references/audit-subagent-contract.md`.
+Use the report contract in `references/audit-subagent-contract.md`.
 
 - **PASS:** Confirm the feature implementation is complete and verified. State: `Final audit passed.
   Merge worktree at .worktrees/<feature>/merge/ is ready for merge approval.` Do not invoke
