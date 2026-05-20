@@ -23,10 +23,19 @@ There is no third option. Suggestions alone do not change a clean verdict.
 
 When planned-feature package coverage exists, final review-code consumes it as compact context, not as
 a second proof ledger: package IDs, risk tags, self-review summaries, targeted package review
-summaries, verification/proof status, deferred concerns, and changed-file manifest. Accepted targeted
-package reviews count as local package-risk coverage. Final review still performs baseline
-security/privacy/safety sniff, cross-package integration review, uncovered-surface checks,
-contradiction checks, deferred-concern checks, and whole-feature coherence review.
+summaries/receipts, verification/proof status, deferred concerns, and changed-file manifest. Accepted
+package review receipts stored in the existing `targeted_review` proof object count as package-local
+coverage absent concrete contradiction, observed gap, or serious issue. Final review still performs a
+baseline security/privacy/safety sniff plus cross-package/cross-domain integration review, uncovered
+surface checks, contradiction checks, deferred-concern checks, and whole-feature coherence review.
+
+Receipt trust is conditional. Treat package-local coverage as valid only when the receipt is present,
+specific about reviewed integrated state, fresh for the current package state, complete for the
+package's risk-tag lenses, explicit about test scope, and consistent with proof status and risk tags.
+Missing, vague, stale, risk-incomplete, test-scope-omitting, or contradictory receipts are coverage
+gaps. Route those gaps to the narrowest package coverage follow-up, bounded widening, or proof refresh;
+do not mark the final review clean from weak receipt evidence and do not deeply rereview every work
+package by default.
 
 ## Clean-Path State Snapshot
 

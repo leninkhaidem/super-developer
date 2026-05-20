@@ -126,21 +126,33 @@ helpers/fixtures/mocks, snapshots/generated outputs, docs, build/config/tooling,
 artifacts. For changed tests, declare detailed, sampled, or not-reviewed scope with a short rationale.
 
 In planned-feature pipeline context, also consume compact package coverage when available: package
-IDs, risk tags, mandatory self-review summaries, targeted package review summaries, verification and
-proof status, deferred concerns, and changed-file manifest. Accepted targeted package reviews count as
-local package-risk coverage; final review still performs baseline safety sniff and integration review,
-but specialists should focus on uncovered, weakly covered, contradictory, or integration-level risks
-rather than duplicating already-covered package-local review.
+IDs, risk tags, mandatory self-review summaries, targeted package review summaries/receipts,
+verification and proof status, deferred concerns, and changed-file manifest. The final review remains
+mandatory and integration-first. Its required lenses must cover cross-package and cross-domain seams,
+shared contracts, end-to-end behavior, contradictions between packages/proofs/receipts, uncovered
+surfaces, deferred concerns, and whole-feature coherence.
+
+Accepted package review receipts stored in the compatibility `targeted_review` proof object count as
+package-local coverage only when the receipt evidence is present, specific, fresh for the reviewed
+integrated package state, complete for package risk-tag lenses, explicit about test scope, and
+consistent with the package risk tags and proof status. Absent concrete contradiction, observed gap,
+or serious issue, do not reopen or deeply rereview every work package by default; focus reviewers and
+specialists on integration seams, coverage gaps, stale/weak receipts, contradictions, deferred risks,
+or uncovered cross-package behavior. Missing, vague, stale, risk-incomplete, test-scope-omitting, or
+risk-tag-inconsistent receipts are coverage gaps and must be routed to the narrowest package coverage
+follow-up, bounded widening, or proof refresh instead of being trusted blindly.
 
 ### Discovery Review Lens Contract
 
 For the initial discovery review, provide reviewers required dynamic risk lenses selected from the
 active mode, diff surface, task or package context, package risk tags, changed files, baseline
-security/privacy/safety sniff, and any risk signals found while reading the code. Each required
-lens has a requested depth of `deep`, `sniff`, or `not_applicable`. Required lenses cannot be
-dropped; reviewers may add lenses for newly discovered risks and must identify them as
-reviewer-added. Use `references/finding-contract.md` for the compact coverage rows that keep
-lens coverage separate from reportable findings.
+security/privacy/safety sniff, and any risk signals found while reading the code. In planned-feature
+pipeline context, include explicit integration lenses for cross-package seams, shared contracts,
+package-proof/receipt contradictions, uncovered surfaces, deferred concerns, and end-to-end feature
+coherence. Each required lens has a requested depth of `deep`, `sniff`, or `not_applicable`.
+Required lenses cannot be dropped; reviewers may add lenses for newly discovered risks and must
+identify them as reviewer-added. Use `references/finding-contract.md` for the compact coverage rows
+that keep lens coverage separate from reportable findings.
 
 ### Code Reviewer Mandate
 
