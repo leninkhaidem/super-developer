@@ -10,7 +10,7 @@ description: >
 
 # Git Worktree Strategy
 
-Branch-isolated, agent-managed git workflow using worktrees. This skill is the invariant contract and router; load the referenced playbook for the active mode only.
+Branch-isolated, agent-managed git workflow using worktrees. This skill is the canonical invariant contract and router; load the referenced playbook for the active mode only and do not copy its runbooks into implement prompts.
 
 ## Golden Rule
 
@@ -34,7 +34,7 @@ Planned feature work uses an explicit base/target ref. Default base/target is `m
 
 ## Reference Router
 
-Load exactly the reference needed for the active workflow:
+Load exactly the reference needed for the active workflow. These references are the canonical owners for their command runbooks; mode-specific prompts should retain only local action gates and deltas.
 
 - **Planned feature / implementation package:** load `plugins/super-developer/skills/worktree/references/feature-package-workflow.md` for directory layout, branch naming, feature/package commands, multi-phase dependencies, and concurrent feature examples.
 - **Bugfix, hotfix, or diagnostic spike:** load `plugins/super-developer/skills/worktree/references/bugfix-hotfix-workflow.md` for temporary spike, feature bugfix, production hotfix, and hotfix propagation playbooks.

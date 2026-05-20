@@ -7,6 +7,19 @@ import unittest
 PLUGIN_ROOT = Path(__file__).resolve().parents[2]
 CODE_DOC_SKILL = PLUGIN_ROOT / "skills" / "code-doc" / "SKILL.md"
 CODE_DOC_UPDATE_MERGE = PLUGIN_ROOT / "skills" / "code-doc" / "references" / "update-merge.md"
+REVIEW_CODE_SKILL = PLUGIN_ROOT / "skills" / "review-code" / "SKILL.md"
+REVIEW_CODE_PIPELINE_REPORT = PLUGIN_ROOT / "skills" / "review-code" / "references" / "pipeline-report.md"
+REVIEW_CODE_REPORT_TEMPLATE = PLUGIN_ROOT / "skills" / "review-code" / "references" / "report-template.md"
+REVIEW_CODE_PIPELINE_ACTIONS = PLUGIN_ROOT / "skills" / "review-code" / "references" / "pipeline-actions.md"
+REVIEW_CODE_FIX_VERIFICATION = PLUGIN_ROOT / "skills" / "review-code" / "references" / "fix-verification.md"
+IMPLEMENT_SKILL = PLUGIN_ROOT / "skills" / "implement" / "SKILL.md"
+IMPLEMENT_PACKAGE_PROOF_LIFECYCLE = PLUGIN_ROOT / "skills" / "implement" / "references" / "package-proof-lifecycle.md"
+WORKTREE_SKILL = PLUGIN_ROOT / "skills" / "worktree" / "SKILL.md"
+WORKTREE_CLEANUP_SAFETY = PLUGIN_ROOT / "skills" / "worktree" / "references" / "cleanup-safety.md"
+AUDIT_SKILL = PLUGIN_ROOT / "skills" / "audit" / "SKILL.md"
+AUDIT_SUBAGENT_CONTRACT = PLUGIN_ROOT / "skills" / "audit" / "references" / "audit-subagent-contract.md"
+TOOL_USAGE = PLUGIN_ROOT / "references" / "tool-usage.md"
+MODEL_PREFERENCES_EXAMPLES = PLUGIN_ROOT / "references" / "model-preferences-examples.md"
 README = PLUGIN_ROOT / "README.md"
 
 
@@ -194,6 +207,112 @@ class CodeDocSkillPromptTests(unittest.TestCase):
             "infrastructure",
         ):
             self.assertNotIn(stale_artifact, row)
+
+
+
+class InstructionSurfaceCompressionSafetyTests(unittest.TestCase):
+    def read_text(self, path: Path) -> str:
+        return path.read_text(encoding="utf-8")
+
+    def test_compressed_top_level_skills_point_to_existing_one_hop_references(self) -> None:
+        required_references = (
+            REVIEW_CODE_PIPELINE_REPORT,
+            REVIEW_CODE_PIPELINE_ACTIONS,
+            REVIEW_CODE_FIX_VERIFICATION,
+            AUDIT_SUBAGENT_CONTRACT,
+            IMPLEMENT_PACKAGE_PROOF_LIFECYCLE,
+            WORKTREE_CLEANUP_SAFETY,
+            MODEL_PREFERENCES_EXAMPLES,
+        )
+
+        for reference in required_references:
+            with self.subTest(reference=reference):
+                self.assertTrue(reference.is_file())
+
+        self.assertIn("`references/pipeline-report.md`", self.read_text(REVIEW_CODE_SKILL))
+        audit_skill = self.read_text(AUDIT_SKILL)
+        self.assertIn("`references/audit-subagent-contract.md`", audit_skill)
+        self.assertNotIn("skills/audit/references/audit-subagent-contract.md", audit_skill)
+        self.assertIn("package-proof-lifecycle.md", self.read_text(IMPLEMENT_SKILL))
+        self.assertIn("cleanup-safety.md", self.read_text(WORKTREE_SKILL))
+        self.assertIn(
+            "references/model-preferences-examples.md",
+            self.read_text(PLUGIN_ROOT / "references" / "model-preferences.md"),
+        )
+
+    def test_critical_delivery_gates_survive_prompt_compression(self) -> None:
+        implement = self.read_text(IMPLEMENT_SKILL)
+        lifecycle = self.read_text(IMPLEMENT_PACKAGE_PROOF_LIFECYCLE)
+        worktree = self.read_text(WORKTREE_SKILL)
+        cleanup = self.read_text(WORKTREE_CLEANUP_SAFETY)
+        review_code = self.read_text(REVIEW_CODE_SKILL)
+        pipeline_actions = self.read_text(REVIEW_CODE_PIPELINE_ACTIONS)
+        fix_verification = self.read_text(REVIEW_CODE_FIX_VERIFICATION)
+        audit = self.read_text(AUDIT_SKILL)
+        tool_usage = self.read_text(TOOL_USAGE)
+
+        self.assertIn("Command-safety approval rule", implement)
+        self.assertIn("Treat plan verification commands as executable inputs", implement)
+        self.assertIn("Treat plan-provided commands as executable inputs", tool_usage)
+
+        self.assertIn("merging or pushing `<target-ref>`/`main` is never covered", implement)
+        self.assertIn("Do not merge or push the target branch", implement)
+        self.assertIn("Never merge to or push the target ref without explicit user approval", worktree)
+        self.assertIn("feature-branch push is not approval to merge into `main`", cleanup)
+
+        self.assertIn("Done requires an accepted package proof", implement)
+        self.assertIn("accepted package proofs, final review readiness, or final audit", lifecycle)
+        self.assertIn("missing, malformed, stale, reopened/unaccepted", audit)
+        self.assertIn("stale-only refresh", lifecycle)
+
+        self.assertIn("Serious findings require Skeptic verification", review_code)
+        self.assertIn("Pipeline Fix Verification Review", pipeline_actions)
+        self.assertIn("Fix Verification Review is a closure gate", fix_verification)
+        self.assertIn("confirmed serious finding has a `closed` Fix Verification Review verdict", audit)
+        self.assertIn("review-code reached audit readiness", audit)
+
+
+class ReviewCodePromptCompressionTests(unittest.TestCase):
+    def read_text(self, path: Path) -> str:
+        return path.read_text(encoding="utf-8")
+
+    def test_pipeline_clean_path_defers_fix_path_reference(self) -> None:
+        skill = self.read_text(REVIEW_CODE_SKILL)
+        template = self.read_text(REVIEW_CODE_REPORT_TEMPLATE)
+        report = self.read_text(REVIEW_CODE_PIPELINE_REPORT)
+        actions = self.read_text(REVIEW_CODE_PIPELINE_ACTIONS)
+
+        self.assertIn("`references/pipeline-report.md`", skill)
+        self.assertIn("Load `references/pipeline-actions.md`\n  only after **ISSUES FOUND**", skill)
+        self.assertIn("Pipeline context: values come from `pipeline-report.md`.", template)
+        self.assertNotIn("Pipeline context: values come from `pipeline-actions.md`.", template)
+        self.assertIn("Do not load\nfix implementer packets, dirty-proof handling, widening rules", report)
+        self.assertIn("Clean reviews stop at `pipeline-report.md`", actions)
+        self.assertIn("clean-path stale-state/audit-readiness gate", actions)
+
+    def test_pipeline_clean_path_keeps_non_bypass_gates_visible(self) -> None:
+        skill = self.read_text(REVIEW_CODE_SKILL)
+        report = self.read_text(REVIEW_CODE_PIPELINE_REPORT)
+
+        self.assertIn("baseline security/privacy/safety sniff", skill)
+        self.assertIn("Blanket\nmode cannot skip, silence, or replace this sniff", skill)
+        self.assertIn("Serious findings require Skeptic verification", skill)
+        self.assertIn("Blanket mode cannot bypass", skill)
+        self.assertIn("baseline\n  security/privacy/safety sniff", report)
+        self.assertIn("Stale-State Gate for Clean Readiness", report)
+        self.assertIn("Clean\nreview-code output is not package proof", report)
+
+    def test_fix_verification_owns_widening_and_non_closed_routing(self) -> None:
+        actions = self.read_text(REVIEW_CODE_PIPELINE_ACTIONS)
+        verification = self.read_text(REVIEW_CODE_FIX_VERIFICATION)
+
+        self.assertIn("canonical owner for fix-verification closure verdicts", verification)
+        self.assertIn("## Non-Closed Routing and Strategy Changes", verification)
+        self.assertIn("## Widening Trigger Names", verification)
+        self.assertIn("Do not repeat the same fix or review prompt with more tokens", verification)
+        self.assertIn("Pipeline keeps only this safety kernel", actions)
+        self.assertNotIn("| Same dedupe key remains", actions)
+        self.assertNotIn("- `scope_expansion` —", actions)
 
 
 if __name__ == "__main__":

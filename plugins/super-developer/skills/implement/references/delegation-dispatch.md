@@ -30,14 +30,15 @@ Each package-agent prompt must include:
 - Structured acceptance criteria for those tasks, including stable criterion IDs and source refs.
 - Required context bundle IDs and bundle content from `tasks.json`.
 - Package `primary_paths` to inspect first.
-- Package `verification_commands` that the orchestrator has classified as safe to run; unsafe commands require explicit user approval before delegation.
-- Package `risk_tags`, targeted-review decision, and risk-class edge-case expectations.
+- Package `verification_commands` that the orchestrator has classified as safe to run and that remain required before package acceptance; list broad/expensive integration/final checks separately instead of treating them as deferrable package commands. Unsafe commands require explicit user approval before delegation.
+- Package `risk_tags`, risk-bearing status or risk signals, targeted-review decision, and risk-class edge-case expectations.
 - Output from `taskctl.py must-prove --package <WP-ID>` when available.
+- Mandatory self-review instruction: before handoff, review the package diff in behavior-first order, fix self-found issues or report exact blockers, and include the compact `SELF_REVIEW` block required by `package-agent-contract.md`.
 - Assigned worktree path, e.g. `.worktrees/<feature>/wp-WP1/`.
 - Project-level instructions such as CLAUDE.md or AGENTS.md when present.
 - Resolved model preference, unless mode is `inherit`.
 
-The prompt must remind the package agent not to create worktrees, branches, or merges, and not to force-add or commit ignored `.tasks` proof artifacts.
+The prompt must remind the package agent not to create worktrees, branches, or merges, not to force-add or commit ignored `.tasks` proof artifacts, and not to report completion until targeted verification, package proof evidence, and self-review are consistent.
 
 ## Repair Agent Dispatch Packet
 
@@ -56,9 +57,10 @@ Each repair-agent prompt must include:
 - Failed command output or observed bad behavior.
 - Required context bundles and citations expected.
 - Risk tags and edge-case checklist.
-- Safe verification commands to run after repair.
+- Safe verification commands to run after repair, distinguishing required package proof commands from separate broad/expensive integration or final checks.
 - The proof schema contract from `taskctl.py must-prove`.
 - Instruction to update only package proof entries relevant to the repair or explicitly identified candidate proof refresh, and report new state-bound evidence.
+- Instruction to perform compact self-review before handoff when the repair changes implementation behavior, tests, proofs, or risk evidence; proof-only mechanical refresh may report the rechecked evidence instead.
 - Instruction not to edit proof lifecycle state by hand, mark tasks done, treat review state as proof, or force-add/commit ignored `.tasks` proof artifacts.
 
 Repair scope is limited to making the assigned package criteria true and proven in the current integrated state. Product/design changes, new dependencies/services, scope expansion, unsafe commands, credentials/external facts, or risk acceptance still stop for user approval.

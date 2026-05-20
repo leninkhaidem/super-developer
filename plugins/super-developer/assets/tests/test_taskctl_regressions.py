@@ -338,14 +338,56 @@ class GuardrailDocumentationRegressionTests(unittest.TestCase):
             with self.subTest(relative=relative):
                 self.assertIn("references/tool-usage.md", self.read_doc(relative))
 
+    def test_review_plan_lazy_loads_resolution_references(self) -> None:
+        review_plan = self.read_doc("skills/review-plan/SKILL.md")
+
+        self.assertIn("Do not load `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/plan-review-resolution.md`", review_plan)
+        self.assertIn("load them in Step 7 only after reviewer findings", review_plan)
+        self.assertIn("If every reviewer returns exactly `NONE`", review_plan)
+        self.assertIn("skip resolution references", review_plan)
+        self.assertIn("Read `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/decision-prompts.md` only when", review_plan)
+        self.assertIn("Blocking gate", review_plan)
+        self.assertIn("Gate 2 always blocks regardless of blanket-mode authorization", review_plan)
+        self.assertIn("Reviewer contract:", review_plan)
+
+    def test_model_preferences_preserve_fallback_and_skeptic_semantics(self) -> None:
+        model_preferences = self.read_doc("references/model-preferences.md")
+
+        self.assertIn("skill-specific key → `default-model` → that skill's hardcoded default", model_preferences)
+        self.assertIn("`skeptic-agent` → `default-model` → that skill's hardcoded default", model_preferences)
+        self.assertIn(
+            "adaptive` inherited by a skeptic agent through `default-model` still means strongest",
+            " ".join(model_preferences.split()),
+        )
+        self.assertIn("Strongest available model, normally Opus", model_preferences)
+        self.assertIn("Security/Failure-Mode Reviewer", model_preferences)
+        self.assertIn("Skeptic Agent", model_preferences)
+        compact_model_preferences = " ".join(model_preferences.split())
+        self.assertIn("`strategy` is treated as `default-model` only when `default-model` is absent", compact_model_preferences)
+        self.assertIn("`default-model` wins", compact_model_preferences)
+
+    def test_tool_usage_preserves_command_safety_boundaries(self) -> None:
+        tool_usage = self.read_doc("references/tool-usage.md")
+
+        self.assertIn("taskctl.py` takes the subcommand first", tool_usage)
+        self.assertIn("Treat plan-provided commands as executable inputs", tool_usage)
+        self.assertIn("Stop for explicit approval before destructive", tool_usage)
+        self.assertIn("dependency-installing", tool_usage)
+        self.assertIn("credential/network-sensitive", tool_usage)
+        self.assertIn("accepted/fresh package proofs", tool_usage)
+        self.assertIn("must not be force-added or committed", tool_usage)
+
     def test_audit_enforces_behavior_risk_quality_evidence(self) -> None:
         audit_skill = self.read_doc("skills/audit/SKILL.md")
+        audit_contract = self.read_doc("skills/audit/references/audit-subagent-contract.md")
         clean_code_rules = self.read_doc("references/clean-code-rules.md")
 
         self.assertIn("Behavior/risk class covered", clean_code_rules)
-        self.assertIn("behavior/risk class covered", audit_skill)
-        self.assertIn("behavior/risk-class coverage in `evidence.edge_cases`", audit_skill)
-        self.assertIn("explicit non-applicability", audit_skill)
+        self.assertIn("`references/audit-subagent-contract.md`", audit_skill)
+        self.assertNotIn("skills/audit/references/audit-subagent-contract.md", audit_skill)
+        self.assertIn("behavior/risk class", audit_contract)
+        self.assertIn("behavior/risk-class coverage in `evidence.edge_cases`", clean_code_rules)
+        self.assertIn("explicit non-applicability", audit_contract)
 
     def test_release_skill_uses_single_release_contract_gate(self) -> None:
         release_skill = self.read_doc("skills/release/SKILL.md")
@@ -413,18 +455,21 @@ class GuardrailDocumentationRegressionTests(unittest.TestCase):
         self.assertIn("did not force-add or commit ignored `.tasks`", checkpoint)
         self.assertIn("must not be force-added or committed", tool_usage)
 
-    def test_stale_only_proof_refresh_is_mechanical_not_delegated_by_default(self) -> None:
+    def test_stale_only_proof_refresh_is_canonicalized(self) -> None:
         lifecycle = self.read_doc("skills/implement/references/package-proof-lifecycle.md")
         checkpoint = self.read_doc("skills/implement/references/integration-checkpoint.md")
         tool_usage = self.read_doc("references/tool-usage.md")
 
-        for text in (lifecycle, checkpoint, tool_usage):
-            with self.subTest(document=text[:40]):
-                self.assertIn("stale-only", text)
-                self.assertIn("current integration `HEAD`", text)
-                self.assertIn("Do not delegate", text)
+        for phrase in ("stale-only", "current integration `HEAD`", "Do not delegate"):
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase, lifecycle)
 
-        self.assertIn("Re-run the same cited command(s)", checkpoint)
+        for text in (checkpoint, tool_usage):
+            with self.subTest(document=text[:40]):
+                self.assertIn("package-proof-lifecycle.md", text)
+                self.assertIn("stale-only", text)
+
+        self.assertNotIn("Re-run the same cited command(s)", checkpoint)
         self.assertIn("update state/evidence fields and rerun validation", lifecycle)
 
 

@@ -46,6 +46,14 @@ Allowed adjustments:
 
 When adjustment changes risk, context-bundle needs, verification commands, or targeted-review decisions, update the Execution Contract before dispatch. Do not silently downgrade targeted review while a triggering risk tag remains.
 
+## Runtime Risk Upgrade
+
+Every package requires package-agent self-review before handoff. Independent targeted package review is reserved for risk-bearing packages, not every package.
+
+The orchestrator may upgrade a package to risk-bearing at runtime when package exploration, implementation reports, self-review, proof evidence, file impact, or merged behavior reveals risk not captured in the original plan. Risk-bearing surfaces include security/privacy/safety; auth, authorization, permissions, tenancy, admin/user authority; secrets/tokens/credentials/PII/logging/data exposure; persistence/data integrity/migrations/destructive data/ownership conversion; audit/fail-closed behavior; public API/schema/generated contracts/exported types; concurrency/cache/lifecycle/resource/performance risk; cross-package/shared-contract invariants; and orchestration/tool authority/sub-agent contracts/proof-review-audit/fix-loop behavior.
+
+Runtime risk upgrade does not require user approval unless it changes product behavior, scope, dependencies, unsafe/external actions, or authority boundaries. State the upgrade reason in the execution status and targeted-review decision. If the original plan has `targeted_review_required: false`, keep the schema intact: record the completed runtime review as optional targeted-review evidence (`required: false`) and let the orchestrator enforce it before marking tasks done. Do not silently downgrade a package while a triggering risk remains.
+
 ## Known-Risk and Must-Prove Prompts
 
 For each candidate package, derive the pre-dispatch must-prove prompts from existing acceptance criteria, verification hints, risk tags, context bundles, verification commands, and `taskctl.py must-prove` output. Use `taskctl.py must-prove --package <WP-ID>` as the routine read-only helper; it supplies known-risk prompt content from its default source without requiring the orchestrator to load that reference directly. Keep the result transient in the dispatch/agent instructions.
@@ -54,11 +62,11 @@ Include a pollution-sensitive test-ordering requirement when changed tests mutat
 
 When acceptance criteria involve boundary payloads, requests, configs, command descriptors, generated defaults, optional fields, default precedence, or contract drift, prefer a small exported pure builder plus observable contract tests over ad hoc construction in high-level orchestration, UI, or glue code. Do not require builders for trivial local values or purely presentational state.
 
-## Semantic Package Review Triggers
+## Risk-Bearing Targeted Package Review Triggers
 
-Before dependent downstream packages proceed, require a focused semantic package review after merge or fix when the package has high-risk cache semantics, lifecycle cleanup, boundary serialization, generated contract defaults, persistence, concurrency, public API, shared configuration, or similar cross-cutting impact.
+Before dependent downstream packages proceed, require the targeted package review path after merge or fix when the package is risk-bearing: high-risk cache semantics, lifecycle cleanup, boundary serialization, generated contract defaults, persistence, concurrency, public API, shared configuration, proof/review/audit/fix-loop behavior, or similar cross-cutting impact.
 
-This review is narrower than final `review-code`: it checks the integrated package delta, risk-class edge cases, package proof adequacy, and downstream contract safety. It does not replace the mandatory final whole-feature review-code pass or final audit.
+Do not run both a separate semantic package review and a targeted package review for the same risk surface. Fold semantic concerns into the targeted package review lenses: integrated package delta, risk-class edge cases, package proof adequacy, self-review quality, test/proof evidence quality, and downstream contract safety. This review is narrower than final `review-code` and does not replace the mandatory final whole-feature review-code pass or final audit.
 
 ## Batch Selection
 
@@ -89,7 +97,8 @@ Before spawning agents, announce:
 - primary paths and likely file impact;
 - required context bundles;
 - risk tags and targeted-review decision;
-- screened verification commands and any commands needing approval;
+- screened package verification commands and any commands needing approval, plus separate broad/expensive integration or final checks that are not package `verification_commands`;
+- mandatory package self-review expectation;
 - model selection;
 - parallel or serial rationale;
 - any runtime package adjustments.

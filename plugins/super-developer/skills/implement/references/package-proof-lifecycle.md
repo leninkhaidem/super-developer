@@ -1,4 +1,6 @@
-# Package Proof Lifecycle
+# Canonical Package Proof Lifecycle
+
+This reference owns accepted/reopened package proof state, stale-only refresh, dirty-proof handling during review-code fixes, and final proof validation semantics. Other prompts should keep only local non-bypass gates and point here for lifecycle runbooks.
 
 Load this reference before routine `taskctl.py` proof or task-state operations: package dispatch, proof template creation, proof validation, package proof acceptance/reopen, task blocking/resetting, read-only package selection, and final proof validation.
 
@@ -92,16 +94,19 @@ acceptance criterion IDs, and proof entries when identifiable. Use the current p
 and target paths from the fix packet. The map is repair-scoping context, not a new evidence ledger.
 
 If the map shows accepted proof content may be stale, reopen each affected package proof before the
-repair starts with `taskctl.py reopen-package`. Repair agents update only the relevant proof entries
-with current evidence. After the repair, rerun `validate-proof` for every reopened package proof
-against the integration worktree, rerun any proof-cited command or inspection needed for freshness,
-and then use `accept-package` to accept the refreshed proof before audit readiness.
+repair starts with `taskctl.py reopen-package` and track those packages/proof entries as the fix
+batch's dirty-proof set. Repair agents update only the relevant proof entries with current evidence.
+Do not refresh/reaccept proofs for failed or partial intermediate fix attempts. After Fix
+Verification Review verifies the assigned fix batch `closed`, rerun `validate-proof` for every dirty
+reopened package proof against the integration worktree, rerun any proof-cited command or inspection
+needed for freshness, and then use `accept-package` to accept the refreshed proof before audit
+readiness.
 
-When proof impact is uncertain, fail closed: reopen and refresh candidate proofs selected by package
-ownership, touched proof-cited paths, risk tags, or acceptance surface; alternatively record explicit
-no-impact evidence that no acceptance criterion, proof-cited artifact, verification command,
-targeted-review evidence, or audit handoff surface changed. Do not treat uncertainty as no-op merely
-because exact proof entries were not identified, and do not store this decision in
+When proof impact is uncertain, fail closed by adding candidate proofs to the dirty-proof set based
+on package ownership, touched proof-cited paths, risk tags, or acceptance surface; alternatively
+record explicit no-impact evidence that no acceptance criterion, proof-cited artifact, verification
+command, targeted-review evidence, or audit handoff surface changed. Do not treat uncertainty as
+no-op merely because exact proof entries were not identified, and do not store this decision in
 `review-code-state.json` as acceptance evidence.
 
 ## Blocking and Resetting Tasks
