@@ -118,6 +118,29 @@ TARGETED_REVIEW_STALE_MARKERS = (
     "open repair",
     "open finding",
 )
+TARGETED_REVIEW_UNCLOSED_REPAIR_DELTA_RE = re.compile(
+    r"\b(?:"
+    r"(?:repairs?|delta(?:[- ]verification)?)\b[^.;,]*\b"
+    r"(?:pending|not closed|not verified|unverified|unresolved|not resolved|open)\b"
+    r"|(?:pending|not closed|not verified|unverified|unresolved|not resolved|open)\b"
+    r"[^.;,]*\b(?:repairs?|delta(?:[- ]verification)?)\b"
+    r")"
+)
+TARGETED_REVIEW_REPAIR_CLOSURE_PHRASES = (
+    "repairs none",
+    "repair none",
+    "no repairs",
+    "repairs closed",
+    "repair closed",
+)
+TARGETED_REVIEW_DELTA_CLOSURE_PHRASES = (
+    "delta verification verified",
+    "delta-verification verified",
+    "delta verification not applicable",
+    "delta-verification not applicable",
+    "delta verification n/a",
+    "delta-verification n/a",
+)
 
 RISK_TAGS = {
     "security",
@@ -1588,12 +1611,11 @@ def validate_targeted_review_evidence_quality(
         and text_has_any(normalized, ("0", "zero", "none", "closed", "closure", "verified"))
     ):
         missing.append("serious finding count/closure")
-    if not (
-        text_has_any(normalized, ("repair", "repairs", "delta"))
-        and text_has_any(
-            normalized,
-            ("closed", "closure", "verified", "none", "not applicable", "n/a"),
-        )
+    if TARGETED_REVIEW_UNCLOSED_REPAIR_DELTA_RE.search(normalized):
+        missing.append("repair/delta-verification closure")
+    elif not (
+        text_has_any(normalized, TARGETED_REVIEW_REPAIR_CLOSURE_PHRASES)
+        and text_has_any(normalized, TARGETED_REVIEW_DELTA_CLOSURE_PHRASES)
     ):
         missing.append("repair/delta-verification closure")
     if missing:

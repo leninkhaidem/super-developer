@@ -567,6 +567,30 @@ class TaskctlCliTests(unittest.TestCase):
         )
         self.assertFalse(json.loads(rejected.stderr)["ok"])
 
+        pending_repair_evidence = (
+            f"Integrated commit {self.commit} reviewed; depth/lenses standard baseline validation; "
+            "test scope sampled proof commands; safety sniff security/privacy/safety clean; "
+            "serious findings 0 closed; repairs pending; delta verification verified."
+        )
+        self.assert_rejected_without_write(
+            (
+                "record-targeted-review",
+                "--tasks",
+                str(self.tasks_path),
+                "--worktree",
+                str(self.repo),
+                "--package",
+                "WP1",
+                "--reviewer",
+                "package-reviewer",
+                "--evidence",
+                pending_repair_evidence,
+                "--reviewed-at",
+                "2026-05-16T00:02:00Z",
+            ),
+            "missing repair/delta-verification closure",
+        )
+
         proof_path = self.proofs_dir / "WP1.proof.json"
         before = self.snapshot_read_only_paths()
         evidence = (

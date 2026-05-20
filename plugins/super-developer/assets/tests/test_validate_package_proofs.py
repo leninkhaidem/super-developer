@@ -638,6 +638,37 @@ class PackageProofValidationTests(unittest.TestCase):
             "\n".join(self.validate_proof_file(non_specific)),
         )
 
+        evidence_prefix = (
+            f"Integrated commit {self.commit} reviewed; depth/lenses standard baseline validation; "
+            "test scope sampled proof commands; safety sniff security/privacy/safety clean; "
+            "serious findings 0 closed; "
+        )
+        for bad_closure in (
+            "repairs pending; delta verification verified.",
+            "repairs not closed; delta verification verified.",
+            "repairs closed; delta verification pending.",
+            "repairs none; delta verification verified; repair verification pending.",
+        ):
+            with self.subTest(bad_closure=bad_closure):
+                open_repair_or_delta = self.proof_with_lifecycle("accepted")
+                open_repair_or_delta["targeted_review"]["evidence"] = evidence_prefix + bad_closure
+                open_repair_or_delta["lifecycle"]["proof_digest"] = validator.package_proof_digest(
+                    open_repair_or_delta
+                )
+                self.assertIn(
+                    "missing repair/delta-verification closure",
+                    "\n".join(self.validate_proof_file(open_repair_or_delta)),
+                )
+
+        closed_repair_and_delta = self.proof_with_lifecycle("accepted")
+        closed_repair_and_delta["targeted_review"]["evidence"] = (
+            evidence_prefix + "repairs closed; delta verification verified."
+        )
+        closed_repair_and_delta["lifecycle"]["proof_digest"] = validator.package_proof_digest(
+            closed_repair_and_delta
+        )
+        self.assertEqual([], self.validate_proof_file(closed_repair_and_delta))
+
     def test_accepted_package_requires_required_verification_command_evidence(self) -> None:
         required_command = "python3 -m unittest discover plugins/super-developer/assets/tests"
         self.set_package_verification_commands("WP1", [required_command])
