@@ -96,5 +96,5 @@ If the verdict is **ISSUES FOUND**, load `pipeline-actions.md` before planning o
 pipeline fix, proof-impact handling, widening, escalation, or fix-verification handoff. Integration-
 triggered package coverage invalidation, proof-impact concerns, or observed package-local serious
 issues must be handed off as bounded affected-seam/package work, not default full-feature or
-full-package rereview. Do not load fix implementer packets, dirty-proof handling, widening rules, or
-escalation rules on the clean path.
+full-package rereview. Do not load
+fix implementer packets, dirty-proof handling, widening rules, or escalation rules on the clean path.
