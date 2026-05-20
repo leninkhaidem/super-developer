@@ -162,7 +162,7 @@ Small tasks can pass when independently verifiable and meaningful, such as addin
 
 ## Work-Package Authoring Guidance
 
-Use `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/work-packages.md` as the source of truth for package semantics, risk metadata, targeted review, and runtime adjustment.
+Use `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/work-packages.md` as the source of truth for package semantics, risk metadata, mandatory package review, and runtime adjustment.
 
 - Create `work_packages` for every generated plan. Tasks remain the tracking unit; work packages are the delegation unit.
 - Every task ID must appear in exactly one work package.
@@ -175,5 +175,6 @@ Use `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/work-packages.md` as the source o
 - Treat `verification_commands` as executable inputs: they must be scoped, deterministic, and known-safe. Unsafe, externally visible, credential/network-sensitive, dependency-installing, or overly broad commands require explicit Execution Contract approval before implementation runs them.
 - Use `parallel_safe_with` conservatively. Default to `[]` unless likely file/module impact is verified. If two packages touch the same subsystem or files, combine or serialize them.
 - Use package boundaries to keep caller contracts, migrations, failure modes, or cross-module invariants visible to one agent when needed.
-- Use risk tags and `targeted_review_required` per `validate-tasks-json.py` and `work-packages.md`; do not copy a long taxonomy into plans or skills.
+- Set `targeted_review_required: true` for every new work package. Keep the field because the existing `targeted_review` receipt shape uses it as compatibility metadata; do not treat it as the switch for whether package review runs.
+- Use risk tags per `validate-tasks-json.py` and `work-packages.md` to select package-review depth/lenses and evidence obligations; do not copy a long taxonomy into plans or skills.
 - Use `required_context_bundles` when a package depends on a bundle. Each listed bundle must also list the package or one of its tasks in `required_for`.
