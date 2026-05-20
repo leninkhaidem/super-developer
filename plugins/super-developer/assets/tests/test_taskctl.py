@@ -591,6 +591,30 @@ class TaskctlCliTests(unittest.TestCase):
             "missing repair/delta-verification closure",
         )
 
+        unresolved_serious_evidence = (
+            f"Integrated commit {self.commit} reviewed; depth/lenses standard baseline validation; "
+            "test scope sampled proof commands; safety sniff security/privacy/safety clean; "
+            "serious findings 1 unresolved; repairs none; delta verification not applicable."
+        )
+        self.assert_rejected_without_write(
+            (
+                "record-targeted-review",
+                "--tasks",
+                str(self.tasks_path),
+                "--worktree",
+                str(self.repo),
+                "--package",
+                "WP1",
+                "--reviewer",
+                "package-reviewer",
+                "--evidence",
+                unresolved_serious_evidence,
+                "--reviewed-at",
+                "2026-05-16T00:02:00Z",
+            ),
+            "missing serious finding count/closure",
+        )
+
         proof_path = self.proofs_dir / "WP1.proof.json"
         before = self.snapshot_read_only_paths()
         evidence = (
@@ -621,6 +645,46 @@ class TaskctlCliTests(unittest.TestCase):
         self.assertIn("compact state-bound receipt", output["receipt_contract"])
         self.assertEqual(evidence, output["targeted_review"]["evidence"])
         self.assertEqual("package-reviewer", self.read_proof()["targeted_review"]["reviewer"])
+        self.assertFalse(self.sentinel.exists())
+
+    def test_record_targeted_review_tool_usage_sample_is_validator_accepted(self) -> None:
+        tool_usage = (ASSETS_DIR.parent / "references" / "tool-usage.md").read_text(
+            encoding="utf-8"
+        )
+        sample_line = next(
+            line
+            for line in tool_usage.splitlines()
+            if "record-targeted-review" in line and "--evidence" in line
+        )
+        sample_evidence = sample_line.split('--evidence "', 1)[1].rsplit('"', 1)[0]
+
+        proof_path = self.proofs_dir / "WP1.proof.json"
+        before = self.snapshot_read_only_paths()
+        recorded = self.taskctl(
+            "record-targeted-review",
+            "--tasks",
+            str(self.tasks_path),
+            "--worktree",
+            str(self.repo),
+            "--package",
+            "WP1",
+            "--reviewer",
+            "targeted-review-WP1",
+            "--evidence",
+            sample_evidence,
+            "--reviewed-at",
+            "2026-05-16T00:02:00Z",
+        )
+        after = self.snapshot_read_only_paths()
+
+        self.assertEqual(0, recorded.returncode, recorded.stdout + recorded.stderr)
+        self.assert_only_repo_path_changed(before, after, proof_path)
+        self.assertEqual(
+            sample_evidence,
+            json.loads(recorded.stdout)["targeted_review"]["evidence"],
+        )
+        self.assertIn("serious findings", sample_evidence)
+        self.assertIn("delta verification", sample_evidence)
         self.assertFalse(self.sentinel.exists())
 
     def test_accept_package_writes_selected_proof_lifecycle_state(self) -> None:

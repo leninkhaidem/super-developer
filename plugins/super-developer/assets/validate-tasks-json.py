@@ -118,6 +118,19 @@ TARGETED_REVIEW_STALE_MARKERS = (
     "open repair",
     "open finding",
 )
+TARGETED_REVIEW_EVIDENCE_CLAUSE_RE = re.compile(r"[.;,]+")
+TARGETED_REVIEW_SERIOUS_FINDING_TRAILING_SECTION_RE = re.compile(
+    r"\b(?:repairs?|delta(?:[- ]verification)?)\b"
+)
+TARGETED_REVIEW_SERIOUS_FINDING_UNCLOSED_RE = re.compile(
+    r"\b(?:"
+    r"pending|open|unresolved|unclosed|unverified|"
+    r"not[- ]closed|not[- ]verified|not[- ]resolved"
+    r")\b"
+)
+TARGETED_REVIEW_SERIOUS_FINDING_ABSENCE_RE = re.compile(r"\b(?:0|zero|none|no)\b")
+TARGETED_REVIEW_SERIOUS_FINDING_COUNT_RE = re.compile(r"\b\d+\b")
+TARGETED_REVIEW_SERIOUS_FINDING_CLOSURE_RE = re.compile(r"\b(?:closed|closure|verified)\b")
 TARGETED_REVIEW_UNCLOSED_REPAIR_DELTA_RE = re.compile(
     r"\b(?:"
     r"(?:repairs?|delta(?:[- ]verification)?)\b[^.;,]*\b"
@@ -1605,11 +1618,7 @@ def validate_targeted_review_evidence_quality(
         missing.append("explicit test scope")
     if not text_has_any(normalized, ("security", "privacy", "safety", "sniff")):
         missing.append("baseline security/privacy/safety sniff")
-    if not (
-        "serious" in normalized
-        and "finding" in normalized
-        and text_has_any(normalized, ("0", "zero", "none", "closed", "closure", "verified"))
-    ):
+    if not has_closed_serious_finding_evidence(normalized):
         missing.append("serious finding count/closure")
     if TARGETED_REVIEW_UNCLOSED_REPAIR_DELTA_RE.search(normalized):
         missing.append("repair/delta-verification closure")
@@ -1622,6 +1631,39 @@ def validate_targeted_review_evidence_quality(
         errors.append(
             f"{path}: expected {TARGETED_REVIEW_EVIDENCE_SUMMARY}; missing {', '.join(missing)}"
         )
+
+
+def has_closed_serious_finding_evidence(normalized: str) -> bool:
+    serious_clauses: list[str] = []
+    has_unclosed_serious_phrase = False
+    for raw_clause in TARGETED_REVIEW_EVIDENCE_CLAUSE_RE.split(normalized):
+        if not ("serious" in raw_clause and "finding" in raw_clause):
+            continue
+        if TARGETED_REVIEW_SERIOUS_FINDING_UNCLOSED_RE.search(raw_clause):
+            has_unclosed_serious_phrase = True
+        serious_index = raw_clause.find("serious")
+        scoped_clause = raw_clause[serious_index:]
+        trailing_section = TARGETED_REVIEW_SERIOUS_FINDING_TRAILING_SECTION_RE.search(
+            scoped_clause, 1
+        )
+        if trailing_section:
+            scoped_clause = scoped_clause[: trailing_section.start()]
+        if re.search(r"\bno\s*$", raw_clause[:serious_index]):
+            scoped_clause = f"no {scoped_clause}"
+        serious_clauses.append(scoped_clause.strip())
+
+    if not serious_clauses:
+        return False
+    if has_unclosed_serious_phrase:
+        return False
+    return any(
+        TARGETED_REVIEW_SERIOUS_FINDING_ABSENCE_RE.search(clause)
+        or (
+            TARGETED_REVIEW_SERIOUS_FINDING_COUNT_RE.search(clause)
+            and TARGETED_REVIEW_SERIOUS_FINDING_CLOSURE_RE.search(clause)
+        )
+        for clause in serious_clauses
+    )
 
 
 def text_has_any(value: str, markers: tuple[str, ...]) -> bool:

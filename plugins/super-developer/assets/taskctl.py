@@ -153,7 +153,7 @@ def build_parser() -> argparse.ArgumentParser:
         required=True,
         help=(
             "Compact state-bound receipt evidence: integrated commit/range, depth/lenses, "
-            "test scope, safety sniff, serious findings, and repair/delta closure."
+            "test scope, safety sniff, serious finding count/closure, and repair/delta closure."
         ),
     )
     record_targeted_review.add_argument("--reviewed-at", help="ISO-8601 timestamp; defaults to current UTC time.")

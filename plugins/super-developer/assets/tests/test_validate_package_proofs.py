@@ -638,11 +638,33 @@ class PackageProofValidationTests(unittest.TestCase):
             "\n".join(self.validate_proof_file(non_specific)),
         )
 
-        evidence_prefix = (
+        serious_evidence_prefix = (
             f"Integrated commit {self.commit} reviewed; depth/lenses standard baseline validation; "
             "test scope sampled proof commands; safety sniff security/privacy/safety clean; "
-            "serious findings 0 closed; "
         )
+        for serious_clause in (
+            "serious findings 1 pending; repairs none; delta verification not applicable.",
+            "serious findings 1 open; repairs none; delta verification not applicable.",
+            "serious findings 1 unresolved; repairs none; delta verification not applicable.",
+            "serious findings 1 not-closed; repairs none; delta verification not applicable.",
+            "unresolved serious findings 1 closed; repairs none; delta verification not applicable.",
+            "not-closed serious findings 1 verified; repairs none; delta verification not applicable.",
+            "serious findings 1; repairs none; delta verification not applicable.",
+        ):
+            with self.subTest(serious_clause=serious_clause):
+                unresolved_serious = self.proof_with_lifecycle("accepted")
+                unresolved_serious["targeted_review"]["evidence"] = (
+                    serious_evidence_prefix + serious_clause
+                )
+                unresolved_serious["lifecycle"]["proof_digest"] = validator.package_proof_digest(
+                    unresolved_serious
+                )
+                self.assertIn(
+                    "missing serious finding count/closure",
+                    "\n".join(self.validate_proof_file(unresolved_serious)),
+                )
+
+        evidence_prefix = serious_evidence_prefix + "serious findings 0 closed; "
         for bad_closure in (
             "repairs pending; delta verification verified.",
             "repairs not closed; delta verification verified.",
