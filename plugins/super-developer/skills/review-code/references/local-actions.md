@@ -65,13 +65,20 @@ The Fix Implementer must reproduce or locate each finding, state the bug-class/e
 
 After fixes are applied, run delegated Fix Verification Review by default. Load `fix-verification.md` and pass the shared inputs: the fix delta plus necessary context, original confirmed findings and dedupe keys, reviewed-state metadata, current post-fix state metadata, approved local scope, and widening triggers raised by the Fix Implementer or detected by the main agent.
 
-The Fix Verification Reviewer must return one verdict per original finding or dedupe key using exactly `closed`, `partially_closed`, `not_closed`, or `reopened`, with concrete evidence, plus the required serious-regression sniff for the fix delta and affected surfaces.
+The Fix Verification Reviewer must use `fix-verification.md` for canonical closure verdicts,
+serious-regression sniff, widening trigger names, non-discovery boundary, and non-closed routing.
+Local mode keeps only these gates: non-closed verdicts and serious fix regressions block post-fix
+commit/readiness, and widening beyond delegated delta review requires a concrete trigger named by
+`fix-verification.md`.
 
-Local fix verification widens beyond delegated delta review only for documented triggers from `fix-verification.md`: scope expansion/new touched modules outside target paths, public API or schema changes, security/privacy/safety/data/concurrency/performance surfaces, cross-package impact in planned-feature contexts, proof invalidation, large deltas, or a Fix Verification Reviewer verdict of `partially_closed`, `not_closed`, or `reopened`.
+Repeated local fix-verification expansion must stop instead of looping indefinitely. After one widened
+verification pass, if more scope expansion is still needed or no bounded verification seam remains,
+report the unresolved findings, the expansion trigger, and the exact unreviewed scope to the user. Do
+not keep widening recursively.
 
-Repeated local fix-verification expansion must stop instead of looping indefinitely. After one widened verification pass, if more scope expansion is still needed, report the unresolved findings, the expansion trigger, and the exact unreviewed scope to the user. Do not keep widening recursively.
-
-Post-fix commit or readiness actions may proceed only when delegated Fix Verification Review passes, all assigned findings are `closed`, no new serious regressions are found, and the Local State Gate still passes.
+Post-fix commit or readiness actions may proceed only when delegated Fix Verification Review passes,
+all assigned findings are `closed`, no new serious regressions are found, no unresolved widening
+trigger remains, and the Local State Gate still passes.
 
 ---
 

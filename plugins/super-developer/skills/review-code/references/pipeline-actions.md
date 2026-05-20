@@ -147,50 +147,21 @@ Verification Review for the assigned confirmed findings or dedupe keys. Pass the
 Implementer report, original finding evidence, reviewed-state metadata, current post-fix state
 metadata, and any raised widening triggers.
 
-The Fix Verification Reviewer must report `closed`, `partially_closed`, `not_closed`, or `reopened`
-for every assigned finding or dedupe key with concrete evidence, then run the shared serious-regression
-sniff over the fix delta and affected surfaces. Non-closed verdicts, fix-introduced serious
-regressions, or widening triggers block audit readiness until the pipeline governance flow resolves
-them.
+The Fix Verification Reviewer must use `fix-verification.md` for the canonical closure verdicts,
+serious-regression sniff, widening trigger names, non-discovery boundary, and non-closed routing.
+Pipeline keeps only this safety kernel: non-closed verdicts, fix-introduced serious regressions, or
+widening triggers block audit readiness until the governed pipeline flow resolves them.
 
-Fix Verification Review is not a default full rereview. It must not report unrelated new discovery
-findings unless a documented widening trigger requires the orchestrator to widen the review scope.
+## Widening, Rereview, and Strategy Escalation
 
-## Widening and Full-Rereview Triggers
+Use `fix-verification.md` trigger names and route guidance. Pipeline widening actions prefer targeted
+affected-surface verification, specialist review for the triggered risk domain, or semantic-batch
+review. Full discovery rereview is reserved for broad deltas whose affected surfaces cannot be
+isolated or whose scope invalidates the original discovery review. Even after widening, known
+confirmed serious findings still block readiness until fixed and verified `closed`.
 
-Use `fix-verification.md` trigger names and route to the narrowest affected surface first. Widen only
-when evidence shows one of these triggers:
-
-- `scope_expansion` — the fix needs files, behavior, tasks, or user-visible scope beyond the approved finding scope.
-- `public_api_or_schema_change` — public API, exported contracts, CLI/user interface, persistence schema, generated contracts, or migrations changed.
-- `sensitive_risk_surface` — concrete evidence shows security, privacy, safety, data integrity, concurrency, or performance behavior changed or became newly implicated beyond the assigned closure/regression sniff.
-- `cross_package_impact` — multiple planned-feature packages, package boundaries, or integration assumptions are affected.
-- `proof_invalidation` — package proof evidence, acceptance criteria, tests, or audit handoff may no longer match the final state.
-- `large_delta` — the fix delta is too large or broad to verify confidently as one isolated patch.
-- `non_closed_verdict` — any assigned finding is `partially_closed`, `not_closed`, or `reopened`.
-
-Widening actions prefer targeted affected-surface verification, specialist review for the triggered
-risk domain, or semantic-batch review. Full discovery rereview is reserved for broad deltas whose
-affected surfaces cannot be isolated or whose scope invalidates the original discovery review. Even
-after widening, known confirmed serious findings still block readiness until fixed and verified
-`closed`.
-
-## Automated Strategy Escalation
-
-Auto-resolve changes strategy by failure mode before asking the user:
-
-| Failure mode | Escalation |
-|---|---|
-| Same dedupe key remains `not_closed` or `partially_closed` after a same-scope fix | Delegate to a stronger Fix Implementer with the bug-class/equivalence-class evidence, reproduction notes, and required regression coverage. |
-| Fix patched the example but missed the class of states | Expand the fix packet to the whole equivalence class and require table-driven or scenario coverage before another Fix Verification Review. |
-| Fix introduced a serious regression on a risk surface | Use the matching specialist or stronger Fix Implementer for that surface, then rerun delta verification for the affected findings and regression. |
-| Finding was `reopened` after prior closure | Compare the post-fix lineage, identify the reverting or conflicting delta, and delegate a fresh fix with regression evidence. |
-| Widened verification finds same-surface serious issues missed by discovery | Run a stronger Discovery Reviewer or specialist on that affected surface, not a whole-feature rereview by default. |
-| Scope keeps expanding, crosses packages, or invalidates proofs | Split the work into smaller fix batches by package/surface and refresh affected proof handling before audit readiness. |
-| Delta is too broad to isolate | Batch by semantic surface; use full rereview only if semantic batching cannot preserve review confidence. |
-
-Do not merely repeat the same fix or review prompt with more tokens. Escalation should change the
-agent strength, scope split, evidence requirement, specialist lens, or verification seam. If the next
+Auto-resolve must change strategy by failure mode before asking the user; use the strategy-change
+ladder in `fix-verification.md` instead of repeating the same prompt with more tokens. If the next
 automated step cannot name what changed about the strategy and what bounded evidence would prove
 closure, route to the no-viable-verification-seam authority boundary instead of looping.
 

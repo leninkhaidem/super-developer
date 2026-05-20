@@ -228,6 +228,18 @@ class ReviewCodePromptCompressionTests(unittest.TestCase):
         self.assertIn("Stale-State Gate for Clean Readiness", report)
         self.assertIn("Clean\nreview-code output is not package proof", report)
 
+    def test_fix_verification_owns_widening_and_non_closed_routing(self) -> None:
+        actions = self.read_text(REVIEW_CODE_PIPELINE_ACTIONS)
+        verification = self.read_text(REVIEW_CODE_FIX_VERIFICATION)
+
+        self.assertIn("canonical owner for fix-verification closure verdicts", verification)
+        self.assertIn("## Non-Closed Routing and Strategy Changes", verification)
+        self.assertIn("## Widening Trigger Names", verification)
+        self.assertIn("Do not repeat the same fix or review prompt with more tokens", verification)
+        self.assertIn("Pipeline keeps only this safety kernel", actions)
+        self.assertNotIn("| Same dedupe key remains", actions)
+        self.assertNotIn("- `scope_expansion` —", actions)
+
 
 if __name__ == "__main__":
     unittest.main()
