@@ -149,14 +149,14 @@ After all package agents in the current batch return:
 
 Load `plugins/super-developer/skills/implement/references/integration-checkpoint.md` for package proof validation, package verification, targeted package review, rejection rules, and repair packets.
 
-Evidence/proof gate: do not mark a task `done` merely because code was committed. Done requires an accepted package proof covering every assigned acceptance criterion, successful package verification, and a passing mandatory targeted package review/fix pass for the package.
+Evidence/proof gate: do not mark a task `done` merely because code was committed. Done requires an accepted package proof covering every assigned acceptance criterion, successful package verification, and a passing mandatory targeted package review/fix pass for the package. A work package cannot complete while review findings, repair verification, or proof refresh obligations remain open.
 
 ## Step 8: Update Status and Continue Batches
 
 Only after the integration checkpoint and mandatory targeted package review pass:
 
 1. Set completed package tasks to `done` and add `completed_at`.
-2. If evidence is rejected or package work is incomplete, set `blocked` with `blocked_reason` or delegate the repair packet from the integration checkpoint reference.
+2. If evidence is rejected, review findings are confirmed, repair verification is non-closing, or package work is incomplete, keep the package unaccepted and set `blocked` with `blocked_reason` only for authority-boundary stops; otherwise delegate the repair packet from the integration checkpoint reference.
 3. Report delegated evidence locations, package proof status, orchestrator-rerun commands, targeted package review outcome, files changed, and unresolved risks.
 4. Re-evaluate actionable packages and loop to Step 5 until no dispatchable work remains.
 

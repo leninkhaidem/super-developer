@@ -73,11 +73,13 @@ When targeted review passes, record only the minimal passing `targeted_review` p
 
 ## Rejection and Repair
 
-Reject a package when code, evidence, verification, or review fails. Do not mark any task in the package `done` while assigned criteria remain unproven.
+Reject a package when code, evidence, verification, or package review fails. Do not mark any task in the package `done` while assigned criteria remain unproven, confirmed review findings are open, repair verification has not closed, or proof refresh obligations remain.
 
-For in-scope failures, delegate a fresh repair/verification agent using the repair dispatch packet in `delegation-dispatch.md`; instruct the repair agent to read `repair-agent-contract.md`. Repair agents must update relevant proof evidence and report targeted verification; if they change implementation behavior, require the same compact self-review discipline before handoff. Do not duplicate the repair contract or package-agent contract in the orchestrator prompt beyond the dispatch packet.
+A serious package-review candidate becomes blocking only after Skeptic verification confirms it. For confirmed in-scope findings, delegate a fresh repair/verification agent using the repair dispatch packet in `delegation-dispatch.md`; instruct the repair agent to read `repair-agent-contract.md`. Route package-review repairs in the integration worktree and bound them to the rejected work package, its confirmed findings, affected proof entries, and approved verification commands. Batch coherent findings for the same work package when feasible to avoid repeated repair loops. The orchestrator does not fix package findings inline and does not leave confirmed issues as report-only.
 
-Set `blocked` with `blocked_reason` only when the issue requires user input, approved scope change, external credentials/facts, unsafe command approval, dependency/service approval, or a design/product decision.
+After a repair returns, default to delta closure review: verify the assigned findings, changed files, affected proof entries, and cited commands/test scope against the repaired integrated state. Run a full package rereview only when the repair widens scope, changes package contracts beyond the findings, touches previously unreviewed risk surfaces, invalidates the original coverage/test-scope/safety/mock disclosure, or produces repeated non-closing/contradictory evidence. Do not record the passing `targeted_review` receipt, accept the proof, mark tasks done, or unlock dependents until delta verification or required rereview closes.
+
+Terminal handling is fail-closed. If repair is unsafe, out of scope, requires credentials/external facts/new dependency/product or design change/risk acceptance, fails verification, or repeatedly does not close the findings after a bounded retry and strategy change, keep the package unaccepted. Revert or isolate partial integration-worktree edits from the failed attempt before continuing, leave affected proofs reopened or refresh-required as applicable, and set `blocked` with `blocked_reason` only at the documented authority boundary. Do not silently retain unsafe edits, downgrade confirmed findings to suggestions, or unlock downstream packages on partial repair.
 
 ## Status Output
 
