@@ -1101,7 +1101,7 @@ def validate_package_v2_fields(
     triggering_tags = sorted(set(risk_tags) & TARGETED_REVIEW_RISK_TAGS)
     if triggering_tags and not targeted:
         errors.append(
-            f"{package_path}.targeted_review_required: must be true because risk_tags include targeted-review trigger(s) {triggering_tags}"
+            f"{package_path}.targeted_review_required: must be true for compatibility metadata because risk_tags include enhanced package-review trigger(s) {triggering_tags}"
         )
 
 
