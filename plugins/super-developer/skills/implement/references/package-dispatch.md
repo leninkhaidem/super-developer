@@ -13,7 +13,7 @@ Validate each candidate package before dispatch:
 - It is coherent by subsystem, module, directory, user flow, data model, API surface, or test surface.
 - It is substantial enough to justify a sub-agent. A one-task package is acceptable only when the task is substantial, risky, or naturally isolated.
 - `primary_paths` are useful starting points. They are not hard boundaries; agents broaden only when imports, tests, or acceptance criteria require it.
-- `risk_tags`, `required_context_bundles`, `targeted_review_required`, and `verification_commands` are carried into the Execution Contract.
+- `risk_tags`, `required_context_bundles`, `targeted_review_required`, and `verification_commands` are carried into the Execution Contract. `targeted_review_required` remains compatibility metadata for the existing `targeted_review` receipt shape; it is not a switch for skipping mandatory package review.
 
 Do not dispatch a package whose dependency state is externally blocked. Internal dependencies between tasks in the same package are sequenced by the package agent.
 
@@ -44,15 +44,15 @@ Allowed adjustments:
 - **Defer** when dependencies, blocked tasks, missing facts, or unsafe command approval prevent dispatch.
 - **Serialize** when likely file impact overlaps or prior package output must be integrated first.
 
-When adjustment changes risk, context-bundle needs, verification commands, or targeted-review decisions, update the Execution Contract before dispatch. Do not silently downgrade targeted review while a triggering risk tag remains.
+When adjustment changes risk, context-bundle needs, verification commands, or package-review depth/lenses, update the Execution Contract before dispatch. Do not silently downgrade enhanced review lenses while a triggering risk tag remains.
 
-## Runtime Risk Upgrade
+## Review Depth and Runtime Risk Signals
 
-Every package requires package-agent self-review before handoff. Independent targeted package review is reserved for risk-bearing packages, not every package.
+Every package requires package-agent self-review before handoff, and every package also requires an independent targeted package review after merge before downstream unlock. The implementer self-review is input evidence for that review, not a substitute for it. Low-risk, docs-only, and test-only packages receive the standard package review baseline; risk tags and runtime risk signals determine enhanced depth and required lenses.
 
-The orchestrator may upgrade a package to risk-bearing at runtime when package exploration, implementation reports, self-review, proof evidence, file impact, or merged behavior reveals risk not captured in the original plan. Risk-bearing surfaces include security/privacy/safety; auth, authorization, permissions, tenancy, admin/user authority; secrets/tokens/credentials/PII/logging/data exposure; persistence/data integrity/migrations/destructive data/ownership conversion; audit/fail-closed behavior; public API/schema/generated contracts/exported types; concurrency/cache/lifecycle/resource/performance risk; cross-package/shared-contract invariants; and orchestration/tool authority/sub-agent contracts/proof-review-audit/fix-loop behavior.
+The orchestrator may upgrade package review depth at runtime when package exploration, implementation reports, self-review, proof evidence, file impact, or merged behavior reveals risk not captured in the original plan. Enhanced review surfaces include security/privacy/safety; auth, authorization, permissions, tenancy, admin/user authority; secrets/tokens/credentials/PII/logging/data exposure; persistence/data integrity/migrations/destructive data/ownership conversion; audit/fail-closed behavior; public API/schema/generated contracts/exported types; concurrency/cache/lifecycle/resource/performance risk; cross-package/shared-contract invariants; and orchestration/tool authority/sub-agent contracts/proof-review-audit/fix-loop behavior.
 
-Runtime risk upgrade does not require user approval unless it changes product behavior, scope, dependencies, unsafe/external actions, or authority boundaries. State the upgrade reason in the execution status and targeted-review decision. If the original plan has `targeted_review_required: false`, keep the schema intact: record the completed runtime review as optional targeted-review evidence (`required: false`) and let the orchestrator enforce it before marking tasks done. Do not silently downgrade a package while a triggering risk remains.
+Runtime review-depth upgrade does not require user approval unless it changes product behavior, scope, dependencies, unsafe/external actions, or authority boundaries. State the upgrade reason in the execution status and package-review depth/lens announcement. If a legacy plan has `targeted_review_required: false`, keep the schema intact and still run package review; the existing receipt helper may record `required: false`, but the orchestrator enforces the review checkpoint before marking tasks done. Do not silently downgrade enhanced lenses while a triggering risk remains.
 
 ## Known-Risk and Must-Prove Prompts
 
@@ -62,9 +62,9 @@ Include a pollution-sensitive test-ordering requirement when changed tests mutat
 
 When acceptance criteria involve boundary payloads, requests, configs, command descriptors, generated defaults, optional fields, default precedence, or contract drift, prefer a small exported pure builder plus observable contract tests over ad hoc construction in high-level orchestration, UI, or glue code. Do not require builders for trivial local values or purely presentational state.
 
-## Risk-Bearing Targeted Package Review Triggers
+## Package Review Depth Signals
 
-Before dependent downstream packages proceed, require the targeted package review path after merge or fix when the package is risk-bearing: high-risk cache semantics, lifecycle cleanup, boundary serialization, generated contract defaults, persistence, concurrency, public API, shared configuration, proof/review/audit/fix-loop behavior, or similar cross-cutting impact.
+Before dependent downstream packages proceed, require the targeted package review path after merge or fix for every package. Risk-bearing surfaces require enhanced package-review lenses: high-risk cache semantics, lifecycle cleanup, boundary serialization, generated contract defaults, persistence, concurrency, public API, shared configuration, proof/review/audit/fix-loop behavior, or similar cross-cutting impact.
 
 Do not run both a separate semantic package review and a targeted package review for the same risk surface. Fold semantic concerns into the targeted package review lenses: integrated package delta, risk-class edge cases, package proof adequacy, self-review quality, test/proof evidence quality, and downstream contract safety. This review is narrower than final `review-code` and does not replace the mandatory final whole-feature review-code pass or final audit.
 
@@ -96,7 +96,7 @@ Before spawning agents, announce:
 - package branch/worktree names;
 - primary paths and likely file impact;
 - required context bundles;
-- risk tags and targeted-review decision;
+- risk tags and mandatory package-review depth/lenses;
 - screened package verification commands and any commands needing approval, plus separate broad/expensive integration or final checks that are not package `verification_commands`;
 - mandatory package self-review expectation;
 - model selection;

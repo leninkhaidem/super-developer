@@ -13,8 +13,8 @@ For each completed package batch:
 5. Confirm package branches did not force-add or commit ignored `.tasks` proof artifacts. If they did, save the proof to the shared task store, reset or repair the package branch to code/doc changes only, and reject the package until the branch is clean.
 6. Confirm the integration worktree is clean or contains only intentional merge-resolution commits.
 7. Run package verification commands from the integration worktree after command-safety screening, and ensure the package proof cites each required command as passing evidence.
-8. Run targeted package review when required.
-9. For packages requiring targeted review, add the minimal root `targeted_review` proof object with `required`, `performed`, `reviewer`, `result`, `evidence`, and `reviewed_at`.
+8. Run mandatory targeted package review for every work package. Risk tags and runtime signals determine depth and lenses, not whether review runs.
+9. After the package review and any required repair/delta verification close, add the minimal passing root `targeted_review` proof object with `required`, `performed`, `reviewer`, `result`, `evidence`, and `reviewed_at`.
 10. Load `package-proof-lifecycle.md` and run `taskctl.py accept-package --tasks .tasks/<feature>/tasks.json --worktree .worktrees/<feature>/merge .tasks/<feature>/proofs/WP<N>.proof.json` for the package proof after code, verification, and review checks pass.
 11. Accept evidence and mark tasks done only after all required checks pass.
 
@@ -50,18 +50,13 @@ A committed package is not complete if verification fails, evidence is stale, se
 
 Do not duplicate the stale refresh runbook here. If `validate-proof` fails only because evidence is stale, load `package-proof-lifecycle.md` and follow its stale-only refresh procedure against the current integration `HEAD`.
 
-Local safety kernel: do not mark tasks done, rerun targeted review, or unlock dependents until the refreshed proof validates and is accepted. Do not delegate stale-only refresh by default; delegate or block only when evidence cannot be reproduced, a criterion may no longer be true, or any non-stale validation class fails too.
+Local safety kernel: do not mark tasks done, rerun targeted review when proof freshness invalidates review evidence, or unlock dependents until the refreshed proof validates and is accepted. Do not delegate stale-only refresh by default; delegate or block only when evidence cannot be reproduced, a criterion may no longer be true, or any non-stale validation class fails too.
 
 ## Targeted Package Review
 
-After a package passes integration verification, run targeted package review before marking its tasks done or dispatching dependent packages when:
+After a package passes integration verification, run targeted package review before marking its tasks done or dispatching dependent packages. This is mandatory for every work package, including low-risk, docs-only, and test-only packages. `targeted_review_required`, risk tags, runtime risk upgrades, and conservative orchestrator judgment determine whether the review uses only the standard baseline or enhanced lenses for security/privacy/safety/data/runtime/API/concurrency/performance/integration, proof/review/audit/fix-loop, or shared-contract sensitivity; they do not determine whether review runs.
 
-- `targeted_review_required` is true;
-- a risk tag triggers review under `work-packages.md`;
-- runtime risk upgrade classified the package as risk-bearing;
-- the orchestrator conservatively decides review is needed because package impact is security/privacy/safety/data/runtime/API/concurrency/performance/integration, proof/review/audit/fix-loop, or shared-contract sensitive.
-
-Use one focused reviewer by default. Do not run the full `review-code` topology, Skeptic, or multiple specialists for routine package review; reserve those for final review-code or exceptional high-risk disputes. Provide the reviewer the integrated package delta, package self-review block, relevant proof entries, targeted checks, risk tags, context bundles, and assigned acceptance criteria.
+Use one focused reviewer by default. Do not run the full `review-code` topology, Skeptic, or multiple specialists for routine package review; reserve those for final review-code or exceptional high-risk disputes. Provide the reviewer the integrated package delta, package self-review block, relevant proof entries, targeted checks, risk tags, runtime risk signals, context bundles, and assigned acceptance criteria.
 
 The review focuses on:
 
@@ -77,7 +72,7 @@ The review focuses on:
 
 Confirmed issues are delegated as package-scope repair work before downstream dispatch. The orchestrator does not fix them inline. The package review is local package-risk review, not whole-feature rediscovery.
 
-When targeted review passes, record only the minimal `targeted_review` proof object with `taskctl.py record-targeted-review`. If the package was runtime-upgraded but `tasks.json.targeted_review_required` is false, the recorded object will have `required: false`; that is valid optional review evidence, and the orchestrator still enforces it as a runtime checkpoint before marking tasks done. Do not hand-edit `targeted_review.required`, add review histories, event streams, or a parallel review ledger.
+When targeted review passes, record only the minimal passing `targeted_review` proof object with `taskctl.py record-targeted-review` after any required repairs and delta verification are closed. If a legacy plan has `tasks.json.targeted_review_required: false`, the recorded object may have `required: false`; the orchestrator still enforces the mandatory review checkpoint before marking tasks done. Do not hand-edit `targeted_review.required`, add failed review receipts, review histories, event streams, transcripts, or a parallel review ledger.
 
 ## Rejection and Repair
 
@@ -99,7 +94,7 @@ Batch complete:
 
 Progress: <done>/<total>
 Evidence: <accepted>/<required> criteria accepted
-Targeted review: <passed/not required/repaired/blocked>
+Targeted review: <passed/repaired/blocked>
 ```
 
 Include evidence locations, orchestrator-rerun commands, targeted-review outcome, files changed, and unresolved risks. Do not present a task as complete unless accepted package proof evidence exists for its criteria.
