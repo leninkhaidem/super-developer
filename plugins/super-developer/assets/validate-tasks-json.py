@@ -103,6 +103,21 @@ STATE_REFERENCE_MARKERS = (
     "test",
     "verification",
 )
+TARGETED_REVIEW_EVIDENCE_SUMMARY = (
+    "compact state-bound receipt: reviewed integrated commit/range, review depth/lenses, "
+    "explicit test scope, baseline security/privacy/safety sniff, serious finding "
+    "count/closure, and repair/delta-verification closure when applicable"
+)
+TARGETED_REVIEW_EVIDENCE_MAX_CHARS = 800
+TARGETED_REVIEW_STALE_MARKERS = (
+    "stale",
+    "pre-repair",
+    "pre repair",
+    "before repair",
+    "unverified repair",
+    "open repair",
+    "open finding",
+)
 
 RISK_TAGS = {
     "security",
@@ -1452,6 +1467,7 @@ def validate_package_acceptance_gates(
         f"{path}.targeted_review",
         errors,
         required_by_plan=bool(required_reviews.get(package_id)),
+        require_presence=True,
     )
 
 
@@ -1497,8 +1513,8 @@ def validate_package_targeted_review(
     require_presence: bool = True,
 ) -> None:
     if review is None:
-        if required_by_plan and require_presence:
-            errors.append(f"{path}: required for targeted_review_required package")
+        if require_presence:
+            errors.append(f"{path}: required for mandatory package review receipt")
         return
     if not isinstance(review, dict):
         errors.append(f"{path}: expected object")
@@ -1519,9 +1535,75 @@ def validate_package_targeted_review(
         errors.append(f"{path}.result: expected 'passed', got {review.get('result')!r}")
     for field in ("reviewer", "evidence", "reviewed_at"):
         require_non_empty_string(review, field, f"{path}.{field}", errors)
+    validate_targeted_review_evidence_quality(review.get("evidence"), f"{path}.evidence", errors)
     reviewed_at = review.get("reviewed_at")
     if isinstance(reviewed_at, str) and reviewed_at.strip():
         validate_iso_datetime(reviewed_at, f"{path}.reviewed_at", errors)
+
+
+def validate_targeted_review_evidence_quality(
+    value: Any, path: str, errors: list[str]
+) -> None:
+    if not isinstance(value, str) or not value.strip():
+        return
+    stripped = value.strip()
+    normalized = " ".join(stripped.lower().split())
+    if normalized in VAGUE_MANUAL_VALUES or len(normalized.split()) < 12:
+        errors.append(
+            f"{path}: expected {TARGETED_REVIEW_EVIDENCE_SUMMARY}, not approval-only or flag-only text"
+        )
+        return
+    if len(stripped) > TARGETED_REVIEW_EVIDENCE_MAX_CHARS or "\n" in stripped:
+        errors.append(
+            f"{path}: expected compact single-receipt evidence, not a transcript or long report"
+        )
+    for marker in TARGETED_REVIEW_STALE_MARKERS:
+        if marker in normalized:
+            errors.append(
+                f"{path}: expected current post-repair integrated review evidence, not stale/open-review text"
+            )
+            break
+
+    missing: list[str] = []
+    if not (
+        text_has_any(normalized, ("integrated", "integration", "merge worktree"))
+        and text_has_any(normalized, ("commit", "range", "head"))
+    ):
+        missing.append("reviewed integrated commit/range")
+    if not text_has_any(
+        normalized,
+        ("depth", "lens", "lenses", "standard", "enhanced", "baseline"),
+    ):
+        missing.append("review depth/lenses")
+    if not text_has_any(
+        normalized,
+        ("test scope", "test-scope", "sampled", "deep", "not applicable"),
+    ):
+        missing.append("explicit test scope")
+    if not text_has_any(normalized, ("security", "privacy", "safety", "sniff")):
+        missing.append("baseline security/privacy/safety sniff")
+    if not (
+        "serious" in normalized
+        and "finding" in normalized
+        and text_has_any(normalized, ("0", "zero", "none", "closed", "closure", "verified"))
+    ):
+        missing.append("serious finding count/closure")
+    if not (
+        text_has_any(normalized, ("repair", "repairs", "delta"))
+        and text_has_any(
+            normalized,
+            ("closed", "closure", "verified", "none", "not applicable", "n/a"),
+        )
+    ):
+        missing.append("repair/delta-verification closure")
+    if missing:
+        errors.append(
+            f"{path}: expected {TARGETED_REVIEW_EVIDENCE_SUMMARY}; missing {', '.join(missing)}"
+        )
+
+
+def text_has_any(value: str, markers: tuple[str, ...]) -> bool:
+    return any(marker in value for marker in markers)
 
 
 def package_proof_digest(proof: dict[str, Any]) -> str:

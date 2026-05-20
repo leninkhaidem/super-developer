@@ -287,7 +287,11 @@ class TaskctlCliTests(unittest.TestCase):
             "performed": True,
             "reviewer": "targeted package reviewer",
             "result": "passed",
-            "evidence": "Targeted package review report: package delta and proof evidence passed.",
+            "evidence": (
+                f"Integrated commit {self.commit} reviewed; depth/lenses standard baseline validation; "
+                "test scope sampled proof commands; safety sniff security/privacy/safety clean; "
+                "serious findings 0 closed; repairs none, delta verification not applicable."
+            ),
             "reviewed_at": "2026-05-16T00:00:00Z",
         }
         return proof
@@ -515,9 +519,17 @@ class TaskctlCliTests(unittest.TestCase):
             "If validation reports only stale evidence, refresh only stale entries against current integration HEAD; do not delegate a proof repair unless behavior is unclear or evidence cannot be reproduced.",
             proof_contract["notes"],
         )
+        self.assertIn(
+            "Record mandatory package review in the existing targeted_review receipt only after review, repairs, and delta verification close.",
+            proof_contract["notes"],
+        )
         self.assertIn("Do not force-add or commit ignored .tasks proof artifacts.", proof_contract["notes"])
         self.assertIn(
             "proof entries must use the proof_schema_contract enums and command evidence shape",
+            package["package_must_prove"],
+        )
+        self.assertIn(
+            "mandatory package review must be recorded in the existing targeted_review receipt for every accepted package",
             package["package_must_prove"],
         )
         self.assertEqual(
@@ -529,9 +541,63 @@ class TaskctlCliTests(unittest.TestCase):
             self.assert_read_only("summary", "--tasks", str(self.tasks_path)).stdout
         )
         self.assertEqual(
-            "accepted package proofs are authoritative in this release.", summary["final_gate"]
+            "accepted package proofs plus mandatory targeted_review receipts are authoritative in this release.",
+            summary["final_gate"],
         )
         self.assertEqual({"unaccepted": 2}, summary["proof_health"])
+
+    def test_record_targeted_review_requires_compact_state_bound_evidence(self) -> None:
+        rejected = self.assert_rejected_without_write(
+            (
+                "record-targeted-review",
+                "--tasks",
+                str(self.tasks_path),
+                "--worktree",
+                str(self.repo),
+                "--package",
+                "WP1",
+                "--reviewer",
+                "package-reviewer",
+                "--evidence",
+                "passed",
+                "--reviewed-at",
+                "2026-05-16T00:02:00Z",
+            ),
+            "targeted_review.evidence: expected compact state-bound receipt",
+        )
+        self.assertFalse(json.loads(rejected.stderr)["ok"])
+
+        proof_path = self.proofs_dir / "WP1.proof.json"
+        before = self.snapshot_read_only_paths()
+        evidence = (
+            f"Integrated commit {self.commit} reviewed; depth/lenses standard baseline validation; "
+            "test scope sampled proof commands; safety sniff security/privacy/safety clean; "
+            "serious findings 0 closed; repairs none, delta verification not applicable."
+        )
+        recorded = self.taskctl(
+            "record-targeted-review",
+            "--tasks",
+            str(self.tasks_path),
+            "--worktree",
+            str(self.repo),
+            "--package",
+            "WP1",
+            "--reviewer",
+            "package-reviewer",
+            "--evidence",
+            evidence,
+            "--reviewed-at",
+            "2026-05-16T00:02:00Z",
+        )
+        after = self.snapshot_read_only_paths()
+
+        self.assertEqual(0, recorded.returncode, recorded.stdout + recorded.stderr)
+        self.assert_only_repo_path_changed(before, after, proof_path)
+        output = json.loads(recorded.stdout)
+        self.assertIn("compact state-bound receipt", output["receipt_contract"])
+        self.assertEqual(evidence, output["targeted_review"]["evidence"])
+        self.assertEqual("package-reviewer", self.read_proof()["targeted_review"]["reviewer"])
+        self.assertFalse(self.sentinel.exists())
 
     def test_accept_package_writes_selected_proof_lifecycle_state(self) -> None:
         proof_path = self.proofs_dir / "WP1.proof.json"
