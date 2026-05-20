@@ -182,7 +182,11 @@ acceptance-criteria omissions, contradictions, or regressions. These are review-
 completion proof: the audit skill remains authoritative for proving all planned tasks and acceptance
 criteria. In pipeline context, review-code may use accepted package proofs, package self-review, and
 targeted package review summaries as task-awareness context, but must not duplicate audit's exhaustive
-role or redo package-local review without a coverage gap or integration-level risk.
+role or redo package-local review without a coverage gap or integration-level risk. If final review
+encounters a concrete package-local 🔴/🟠 issue while following an integration seam, contradiction,
+uncovered surface, or weak/stale receipt, it may report that serious issue with evidence. It must not
+actively hunt package internals, reopen package-local discovery, or ask for full-package rereview
+without such an integration trigger, coverage gap, or observed serious issue.
 
 Detailed review follows behavior-first order: understand intended behavior from SPEC/tasks/proofs and
 package reports, review core/runtime functionality first, derive expected test obligations, inspect

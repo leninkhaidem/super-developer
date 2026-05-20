@@ -35,7 +35,9 @@ package's risk-tag lenses, explicit about test scope, and consistent with proof 
 Missing, vague, stale, risk-incomplete, test-scope-omitting, or contradictory receipts are coverage
 gaps. Route those gaps to the narrowest package coverage follow-up, bounded widening, or proof refresh;
 do not mark the final review clean from weak receipt evidence and do not deeply rereview every work
-package by default.
+package by default. A final reviewer may report a concrete observed package-local serious issue found
+while checking an integration seam, contradiction, uncovered surface, or receipt gap, but must not
+actively hunt package internals without that trigger.
 
 ## Clean-Path State Snapshot
 
@@ -82,5 +84,8 @@ review-code output is not package proof and does not bypass accepted-proof or fi
 ## Issues Handoff
 
 If the verdict is **ISSUES FOUND**, load `pipeline-actions.md` before planning or performing any
-pipeline fix, proof-impact handling, widening, escalation, or fix-verification handoff. Do not load
-fix implementer packets, dirty-proof handling, widening rules, or escalation rules on the clean path.
+pipeline fix, proof-impact handling, widening, escalation, or fix-verification handoff. Integration-
+triggered package coverage invalidation, proof-impact concerns, or observed package-local serious
+issues must be handed off as bounded affected-seam/package work, not default full-feature or
+full-package rereview. Do not load fix implementer packets, dirty-proof handling, widening rules, or
+escalation rules on the clean path.
