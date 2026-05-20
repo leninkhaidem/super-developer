@@ -18,13 +18,13 @@ Super Developer packages portable skill instructions into an opinionated develop
                      |                  |              |
               structured ACs       plan gate      Execution Contract
               + traceability                    package self-verify
-                                                  targeted review
-                                                  review-code discovery
+                                                  mandatory package review
+                                                  integration-focused review-code
                                                   fix verification
                                                   final audit
 ```
 
-The pipeline flows automatically with confirmation gates. Say **"proceed through all stages"** or approve `implement`'s Execution Contract auto-resolve mode and it runs implementation, package self-verification, targeted review, review-code discovery, delegated fixes, delta Fix Verification Review, triggered widening/escalation when required, and final internal audit once review-code reaches audit readiness. Or invoke any skill independently — they work standalone too.
+The pipeline flows automatically with confirmation gates. Say **"proceed through all stages"** or approve `implement`'s Execution Contract auto-resolve mode and it runs implementation, package self-verification, mandatory package review for every work package, integration-focused review-code discovery, delegated fixes, delta Fix Verification Review, triggered widening/escalation when required, and final internal audit once review-code reaches audit readiness. Or invoke any skill independently — they work standalone too.
 
 ---
 
@@ -38,7 +38,7 @@ The pipeline flows automatically with confirmation gates. Say **"proceed through
 | **review-plan** | Plan review gate. Performs deterministic schema/traceability validation, then spawns one **Plan Reviewer** that challenges the approach first and checks artifact quality second. Adds a dedicated **Security/Failure-Mode Reviewer** only for security/privacy/safety-sensitive plans or explicit escalation. Validates `SPEC.md`, `tasks.json`, context bundles, risk metadata, work packages, and accepted `design_decisions` cold from files only. | Pipeline + Standalone |
 | **tasks** | Implementation status dashboard. Shows progress across all features or drills into a specific one with phase-by-phase breakdown and package-proof evidence-health warnings. Can modify task status on request, but status overrides do not create verification evidence. | Standalone |
 | **spike-and-fix** | Bug-report troubleshooting that runs evidence-first diagnosis, validates candidate fixes in an isolated spike, then extracts a clean regression-tested bugfix/hotfix. Escalates to implementation planning when the blast radius is large. | Standalone |
-| **implement** | Unified delivery orchestrator. Presents an Execution Contract, creates git worktrees per package, dispatches packages to self-verifying sub-agents, validates package proof evidence before merge/unlock, runs risk-triggered targeted package review, coordinates delegated fixes, invokes review-code discovery/fix verification, and finishes with final internal audit. | Pipeline + Standalone |
+| **implement** | Unified delivery orchestrator. Presents an Execution Contract, creates git worktrees per package, dispatches packages to self-verifying sub-agents, validates package proof evidence before merge/unlock, runs mandatory targeted package review for every work package (risk determines depth, not whether review runs), coordinates delegated fixes, invokes review-code discovery/fix verification, and finishes with final internal audit. | Pipeline + Standalone |
 | **audit** | Acceptance-completeness verification. Spawns a read-only sub-agent that checks every SPEC/task acceptance criterion and accepted package proof against the final codebase state. It is the final internal pipeline gate after review-code audit readiness and remains invocable standalone. | Internal pipeline gate + Standalone |
 | **review-code** | Bounded multi-agent code review. Always runs one **Code Reviewer**, adds at most one optional **Specialist Reviewer** for the highest-priority risk trigger, and uses a **Skeptic Agent** to verify serious findings before reporting. Initial discovery uses dynamic risk lenses and compact coverage evidence; local and pipeline `fix` paths delegate non-trivial fixes and verify closure with Fix Verification Review. PR mode is review-only and has no code-fix path. | Pipeline + Standalone + PR review |
 | **code-doc** | Generate comprehensive documentation for any codebase via hybrid analysis (native extractors + LLM agents). Adaptive 8-step pipeline: Scout → Existing Doc Assessment → Doc Plan → Analyze (delegate to sub-agents) → Synthesize → User Checkpoint → Generate (fan-out doc writers) → Review & Handoff. Never auto-commits; it may propose a commit, but only runs it after explicit approval. Outputs core docs (protected/conditional README plus architecture-guide, developer-guide, codebase-context) plus recommended artifacts such as navigation, patterns, config, errors, flows, boundaries, inventory, and security. | Standalone |
@@ -48,7 +48,7 @@ The pipeline flows automatically with confirmation gates. Say **"proceed through
 
 | Mode | When | What it reviews | Fix boundary |
 |---|---|---|---|
-| **Pipeline** | During unified delivery after `implement` package work completes | Feature branch diff against `main` from the merge worktree, with available plan/package-proof/context artifacts as task-awareness context | Delegates confirmed serious fixes in coherent batches; final internal audit runs after review-code reaches audit readiness |
+| **Pipeline** | During unified delivery after `implement` package work completes | Feature branch diff against `main` from the merge worktree, with available plan/package-proof/context artifacts and package review receipts as integration-first context | Delegates confirmed serious fixes in coherent batches; final internal audit runs after review-code reaches audit readiness |
 | **PR** | You provide a PR identifier (`owner/repo#42`, URL, or `#42`) | Full PR diff from GitHub via `gh` CLI | Review-only: can approve, request changes, edit the report, or abort; no code-fix path and no local Fix Verification Review |
 | **Local** | No pipeline context, no PR identifier | Staged changes, unstaged changes, or branch diff (auto-detected) | `fix` delegates non-trivial fixes to a Fix Implementer, then requires a delegated Fix Verification Reviewer before post-fix commit/readiness |
 
@@ -62,9 +62,10 @@ The pipeline flows automatically with confirmation gates. Say **"proceed through
 - **Specialist priority:** security/privacy/safety, then data integrity/persistence, then performance, then architecture/integration. If several triggers match, only the highest-priority specialist runs.
 - **Big diffs:** broad diffs are split into semantic batches; each batch keeps the same reviewer caps, and a final global integration pass deduplicates and checks cross-batch conflicts without reopening full fanout.
 - **Task-awareness:** available `SPEC.md`, `tasks.json`, package proofs, context bundles, and audit results help review-code flag apparent omissions, contradictions, stale evidence, or regressions. These are consistency signals only; audit remains authoritative for acceptance-criteria and planned-task completeness.
+- **Package review gate:** planned-feature implementation requires every work package — including low-risk, docs-only, and test-only packages — to pass mandatory package review before task completion or dependency unlock. Review depth/lenses come from risk tags and runtime signals; the compatibility receipt remains the existing `targeted_review` proof object, not a new state file or ledger.
 - **Local fixes:** non-trivial local `fix` work is delegated to a Fix Implementer and then verified by a Fix Verification Reviewer against the fix delta. The main agent only handles super-simple mechanical typo/formatting fixes inline.
 - **PR boundary:** PR mode is review-only for code changes; it does not apply fixes and does not run local Fix Verification Review.
-- **Pipeline boundary:** pipeline review runs before final internal audit. Confirmed serious findings are delegated to Fix Implementers in coherent root-cause/package/risk batches; the orchestrator does not apply substantive production/test/documentation fixes inline.
+- **Pipeline boundary:** pipeline review runs before final internal audit and stays integration-focused: it consumes valid package review receipts as local coverage, then checks cross-package seams, shared contracts, contradictions, uncovered surfaces, end-to-end behavior, and audit readiness instead of redoing package-local reviews by default. Confirmed serious findings are delegated to Fix Implementers in coherent root-cause/package/risk batches; the orchestrator does not apply substantive production/test/documentation fixes inline.
 
 ### Review-Code Loop Governance
 
@@ -188,7 +189,7 @@ Constrained task lifecycle helpers:
 - `block-task`: mark one task blocked with a required reason.
 - `reset-task`: reset one interrupted or blocked task to pending after orchestrator review.
 
-These commands do not run recorded package verification commands. Accepted package proofs must cite passing evidence for required package verification commands and required targeted package review. Final implementation and audit gates require completed task lifecycle plus one valid, current, lifecycle-accepted proof file per planned work package. Historical `verification.json` files are not authoritative package or final evidence. See [`references/package-lifecycle.md`](references/package-lifecycle.md) for the helper boundary index and [`skills/implement/references/package-proof-lifecycle.md`](skills/implement/references/package-proof-lifecycle.md) for canonical lifecycle transition, provenance, freshness, dirty-proof, and final-gate semantics.
+These commands do not run recorded package verification commands. Accepted package proofs must cite passing evidence for required package verification commands and the mandatory package review receipt stored in the existing `targeted_review` proof object; no separate package-review ledger, transcript, or renamed `package_review` field is authoritative. Final implementation and audit gates require completed task lifecycle plus one valid, current, lifecycle-accepted proof file per planned work package. Historical `verification.json` files are not authoritative package or final evidence. See [`references/package-lifecycle.md`](references/package-lifecycle.md) for the helper boundary index and [`skills/implement/references/package-proof-lifecycle.md`](skills/implement/references/package-proof-lifecycle.md) for canonical lifecycle transition, provenance, freshness, dirty-proof, and final-gate semantics.
 
 For exact command shapes, read-only vs mutation boundaries, and helper-script safety rules, see [`references/tool-usage.md`](references/tool-usage.md).
 
@@ -197,8 +198,8 @@ For exact command shapes, read-only vs mutation boundaries, and helper-script sa
 | What you say | What happens |
 |---|---|
 | "Plan this feature" | Creates `SPEC.md` and `tasks.json`, asks to continue |
-| "Proceed through all stages" | Runs implementation-plan -> review-plan -> implement -> review-code discovery/fix verification -> final audit, stopping only at required decision/unsafe-state gates |
-| Approve auto-resolve at Execution Contract | Runs package implementation, sub-agent self-verification, targeted package review, review-code discovery, delegated fixes, Fix Verification Review, triggered widening/escalation, and final audit when audit-ready |
+| "Proceed through all stages" | Runs implementation-plan -> review-plan -> implement -> mandatory package review -> integration-focused review-code discovery/fix verification -> final audit, stopping only at required decision/unsafe-state gates |
+| Approve auto-resolve at Execution Contract | Runs package implementation, sub-agent self-verification, mandatory package review, integration-focused review-code discovery, delegated fixes, Fix Verification Review, triggered widening/escalation, and final audit when audit-ready |
 | Confirm at each gate | Step-by-step control over plan review, Execution Contract, review/fix, and final audit |
 
 ---
@@ -272,7 +273,7 @@ super-developer/
 | Main agent orchestrates, sub-agents implement and self-verify | Separation of concerns — orchestrator manages git state, dispatch, evidence validation, and integration checks; sub-agents write code, run targeted checks, and update criterion-level evidence |
 | Adaptive adversarial review | One Plan Reviewer runs by default; a Security/Failure-Mode Reviewer is added only for security/privacy/safety-sensitive plans or escalation. Code review uses dynamic discovery lenses, a bounded topology, at most one Specialist Reviewer selected by risk priority, and a conditional Skeptic Agent to verify serious findings and risky clean coverage before reporting. |
 | Git worktree isolation | Parallel sub-agents work in separate worktrees — no branch switching, no merge conflicts during implementation |
-| Package proofs as evidence gate | Planned-feature pipelines require one accepted `.tasks/<feature>/proofs/WP<N>.proof.json` per work package. Proof entries must be criterion-scoped, state-bound, and current in the resolved worktree; review-code governance state never replaces package proof acceptance. |
+| Package proofs as evidence gate | Planned-feature pipelines require one accepted `.tasks/<feature>/proofs/WP<N>.proof.json` per work package. Every work package also passes mandatory package review before task completion/dependency unlock, with the passing receipt stored in the existing `targeted_review` proof object; review-code governance state never replaces package proof acceptance. |
 | Evidence-first bug fixing | Bug work starts from reproduced evidence, uses isolated spike validation for candidate fixes when needed, then extracts durable tests and a clean fix branch instead of shipping exploratory changes. Review/audit fixes generalize the bug class and update affected package proof evidence. |
 | Evidence-first planning for uncertain features | Planning uses triggered Design Preflight and, only when repo/docs inspection cannot resolve material assumptions, `spike-to-plan` to gather empirical evidence before durable `.tasks/` artifacts. Accepted outcomes are recorded as `design_decisions`; exploratory spike code is not persisted as the plan. |
 | Pipeline with Execution Contract gates | Flows automatically but stays under user control — auto-resolve for speed, step-by-step for precision, and hard stops for design/product changes, unsafe commands, missing facts, stale state, or no viable verification seam after governed escalation |
