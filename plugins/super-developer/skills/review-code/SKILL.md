@@ -191,10 +191,17 @@ without such an integration trigger, coverage gap, or observed serious issue.
 Detailed review follows behavior-first order: understand intended behavior from SPEC/tasks/proofs and
 package reports, review core/runtime functionality first, derive expected test obligations, inspect
 corresponding tests as evidence quality, then inspect remaining test-only/generated/config changes as
-needed. Tests are in scope as proof quality, but not exhaustively line-reviewed by default. Review
-tests in detail when they are proof-cited, the only evidence for behavior, risk-bearing
-security/privacy/data/concurrency/failure coverage, changing mocks/fixtures/helpers/snapshots/generated
-contracts, using skips/xfails/global/env/import-cache mutation, or themselves the feature/risk surface.
+needed. Tests are in scope as proof quality, with sampled review by default rather than exhaustive
+line review. In pipeline context, consume package review test-scope receipts as package-local test
+coverage context and deepen final test review only when integration evidence, coverage gaps, stale or
+inconsistent receipts, or cross-package behavior require it.
+
+Review tests in detail when they are proof-critical, proof-cited, or the only evidence for behavior;
+when they touch helpers, fixtures, mocks/stubs, generated snapshots/contracts, skips/xfails, global/env
+or import-cache mutation; when they cover or affect security, privacy, safety, data integrity,
+concurrency, failure-mode, public contract/API, or compatibility risks; or when the tests themselves
+are the feature/risk surface. Otherwise use the diff triage manifest to sample representative tests and
+state the sampled/not-reviewed rationale.
 
 ### Specialist Mandate
 

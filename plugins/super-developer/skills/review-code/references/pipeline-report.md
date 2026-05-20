@@ -32,12 +32,21 @@ surface checks, contradiction checks, deferred-concern checks, and whole-feature
 Receipt trust is conditional. Treat package-local coverage as valid only when the receipt is present,
 specific about reviewed integrated state, fresh for the current package state, complete for the
 package's risk-tag lenses, explicit about test scope, and consistent with proof status and risk tags.
-Missing, vague, stale, risk-incomplete, test-scope-omitting, or contradictory receipts are coverage
-gaps. Route those gaps to the narrowest package coverage follow-up, bounded widening, or proof refresh;
-do not mark the final review clean from weak receipt evidence and do not deeply rereview every work
-package by default. A final reviewer may report a concrete observed package-local serious issue found
-while checking an integration seam, contradiction, uncovered surface, or receipt gap, but must not
-actively hunt package internals without that trigger.
+The test-scope portion should state whether package tests were deeply reviewed, sampled, or not
+reviewed and why, including proof-critical, helper/mock/snapshot/skip, security/privacy/data/
+concurrency/contract, or test-surface triggers. Missing, vague, stale, risk-incomplete,
+test-scope-omitting, or contradictory receipts are coverage gaps. Route those gaps to the narrowest
+package coverage follow-up, bounded widening, or proof refresh; do not mark the final review clean from
+weak receipt evidence and do not deeply rereview every work package by default. A final reviewer may
+report a concrete observed package-local serious issue found while checking an integration seam,
+contradiction, uncovered surface, or receipt gap, but must not actively hunt package internals without
+that trigger.
+
+Final review test handling is sampled by default. Deepen test review only when package test-scope
+receipts, integration seams, proof coverage, or changed test surfaces show a concrete trigger: tests
+are proof-critical/only evidence, alter helpers/mocks/fixtures/snapshots/skips, cover security,
+privacy, safety, data integrity, concurrency, public contract/API, or compatibility risks, or are
+themselves the feature/risk surface.
 
 ## Clean-Path State Snapshot
 
