@@ -95,7 +95,7 @@ The user must approve this contract unless blanket approval already applies. Bla
 
 ## Step 4: Initialize Worktree Infrastructure
 
-Invoke the `worktree` skill for git invariants, then load `plugins/super-developer/skills/implement/references/worktree-merge-cleanup.md` for implement-specific creation, merge, conflict, and cleanup commands.
+Invoke the `worktree` skill for canonical git invariants. For planned-feature command runbooks, load `plugins/super-developer/skills/worktree/references/feature-package-workflow.md`; before cleanup, feature push, target merge, or final teardown, load `plugins/super-developer/skills/worktree/references/cleanup-safety.md`. Load `plugins/super-developer/skills/implement/references/worktree-merge-cleanup.md` for implement-specific delivery deltas: package proof gates, merge timing, conflict handling, and status reporting.
 
 Required inline invariants:
 - Root worktree is user-owned; never switch it and never assume it is on `main`.
