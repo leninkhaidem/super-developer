@@ -4,7 +4,7 @@ All review modes use this template. Substitute `<HEADER>` and `<METADATA>` per t
 
 - PR mode: values come from `pr-workflow.md`.
 - Local mode: values come from `local-workflow.md`.
-- Pipeline context: values come from `pipeline-actions.md`.
+- Pipeline context: values come from `pipeline-report.md`.
 
 ````markdown
 ## <HEADER>

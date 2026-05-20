@@ -9,6 +9,7 @@ CODE_DOC_SKILL = PLUGIN_ROOT / "skills" / "code-doc" / "SKILL.md"
 CODE_DOC_UPDATE_MERGE = PLUGIN_ROOT / "skills" / "code-doc" / "references" / "update-merge.md"
 REVIEW_CODE_SKILL = PLUGIN_ROOT / "skills" / "review-code" / "SKILL.md"
 REVIEW_CODE_PIPELINE_REPORT = PLUGIN_ROOT / "skills" / "review-code" / "references" / "pipeline-report.md"
+REVIEW_CODE_REPORT_TEMPLATE = PLUGIN_ROOT / "skills" / "review-code" / "references" / "report-template.md"
 REVIEW_CODE_PIPELINE_ACTIONS = PLUGIN_ROOT / "skills" / "review-code" / "references" / "pipeline-actions.md"
 REVIEW_CODE_FIX_VERIFICATION = PLUGIN_ROOT / "skills" / "review-code" / "references" / "fix-verification.md"
 README = PLUGIN_ROOT / "README.md"
@@ -207,11 +208,14 @@ class ReviewCodePromptCompressionTests(unittest.TestCase):
 
     def test_pipeline_clean_path_defers_fix_path_reference(self) -> None:
         skill = self.read_text(REVIEW_CODE_SKILL)
+        template = self.read_text(REVIEW_CODE_REPORT_TEMPLATE)
         report = self.read_text(REVIEW_CODE_PIPELINE_REPORT)
         actions = self.read_text(REVIEW_CODE_PIPELINE_ACTIONS)
 
         self.assertIn("`references/pipeline-report.md`", skill)
         self.assertIn("Load `references/pipeline-actions.md`\n  only after **ISSUES FOUND**", skill)
+        self.assertIn("Pipeline context: values come from `pipeline-report.md`.", template)
+        self.assertNotIn("Pipeline context: values come from `pipeline-actions.md`.", template)
         self.assertIn("Do not load\nfix implementer packets, dirty-proof handling, widening rules", report)
         self.assertIn("Clean reviews stop at `pipeline-report.md`", actions)
         self.assertIn("clean-path stale-state/audit-readiness gate", actions)
