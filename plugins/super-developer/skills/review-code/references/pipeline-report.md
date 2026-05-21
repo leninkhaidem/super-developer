@@ -23,10 +23,30 @@ There is no third option. Suggestions alone do not change a clean verdict.
 
 When planned-feature package coverage exists, final review-code consumes it as compact context, not as
 a second proof ledger: package IDs, risk tags, self-review summaries, targeted package review
-summaries, verification/proof status, deferred concerns, and changed-file manifest. Accepted targeted
-package reviews count as local package-risk coverage. Final review still performs baseline
-security/privacy/safety sniff, cross-package integration review, uncovered-surface checks,
-contradiction checks, deferred-concern checks, and whole-feature coherence review.
+summaries/receipts, verification/proof status, deferred concerns, and changed-file manifest. Accepted
+package review receipts stored in the existing `targeted_review` proof object count as package-local
+coverage absent concrete contradiction, observed gap, or serious issue. Final review still performs a
+baseline security/privacy/safety sniff plus cross-package/cross-domain integration review, uncovered
+surface checks, contradiction checks, deferred-concern checks, and whole-feature coherence review.
+
+Receipt trust is conditional. Treat package-local coverage as valid only when the receipt is present,
+specific about reviewed integrated state, fresh for the current package state, complete for the
+package's risk-tag lenses, explicit about test scope, and consistent with proof status and risk tags.
+The test-scope portion should state whether package tests were deeply reviewed, sampled, or not
+reviewed and why, including proof-critical, helper/mock/snapshot/skip, security/privacy/data/
+concurrency/contract, or test-surface triggers. Missing, vague, stale, risk-incomplete,
+test-scope-omitting, or contradictory receipts are coverage gaps. Route those gaps to the narrowest
+package coverage follow-up, bounded widening, or proof refresh; do not mark the final review clean from
+weak receipt evidence and do not deeply rereview every work package by default. A final reviewer may
+report a concrete observed package-local serious issue found while checking an integration seam,
+contradiction, uncovered surface, or receipt gap, but must not actively hunt package internals without
+that trigger.
+
+Final review test handling is sampled by default. Deepen test review only when package test-scope
+receipts, integration seams, proof coverage, or changed test surfaces show a concrete trigger: tests
+are proof-critical/only evidence, alter helpers/mocks/fixtures/snapshots/skips, cover security,
+privacy, safety, data integrity, concurrency, public contract/API, or compatibility risks, or are
+themselves the feature/risk surface.
 
 ## Clean-Path State Snapshot
 
@@ -73,5 +93,8 @@ review-code output is not package proof and does not bypass accepted-proof or fi
 ## Issues Handoff
 
 If the verdict is **ISSUES FOUND**, load `pipeline-actions.md` before planning or performing any
-pipeline fix, proof-impact handling, widening, escalation, or fix-verification handoff. Do not load
+pipeline fix, proof-impact handling, widening, escalation, or fix-verification handoff. Integration-
+triggered package coverage invalidation, proof-impact concerns, or observed package-local serious
+issues must be handed off as bounded affected-seam/package work, not default full-feature or
+full-package rereview. Do not load
 fix implementer packets, dirty-proof handling, widening rules, or escalation rules on the clean path.

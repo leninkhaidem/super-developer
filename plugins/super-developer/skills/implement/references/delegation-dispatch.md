@@ -31,14 +31,14 @@ Each package-agent prompt must include:
 - Required context bundle IDs and bundle content from `tasks.json`.
 - Package `primary_paths` to inspect first.
 - Package `verification_commands` that the orchestrator has classified as safe to run and that remain required before package acceptance; list broad/expensive integration/final checks separately instead of treating them as deferrable package commands. Unsafe commands require explicit user approval before delegation.
-- Package `risk_tags`, risk-bearing status or risk signals, targeted-review decision, and risk-class edge-case expectations.
+- Package `risk_tags`, mandatory package-review depth/lenses, runtime risk signals, and risk-class edge-case expectations. Make clear that review always runs; risk determines depth/lenses, not whether the package is reviewed.
 - Output from `taskctl.py must-prove --package <WP-ID>` when available.
 - Mandatory self-review instruction: before handoff, review the package diff in behavior-first order, fix self-found issues or report exact blockers, and include the compact `SELF_REVIEW` block required by `package-agent-contract.md`.
 - Assigned worktree path, e.g. `.worktrees/<feature>/wp-WP1/`.
 - Project-level instructions such as CLAUDE.md or AGENTS.md when present.
 - Resolved model preference, unless mode is `inherit`.
 
-The prompt must remind the package agent not to create worktrees, branches, or merges, not to force-add or commit ignored `.tasks` proof artifacts, and not to report completion until targeted verification, package proof evidence, and self-review are consistent.
+The prompt must remind the package agent not to create worktrees, branches, or merges, not to force-add or commit ignored `.tasks` proof artifacts, and not to report completion until targeted verification, package proof evidence, mock disclosures, and self-review are consistent. It should also state that package self-review will be consumed by, but cannot replace, the independent mandatory package review.
 
 ## Repair Agent Dispatch Packet
 
@@ -49,21 +49,23 @@ Each repair-agent prompt must include:
 - Required quality reference for the repair agent to read when touching implementation or proof evidence: `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/clean-code-rules.md`.
 - Original SPEC and tasks files.
 - Package ID and affected task/criterion IDs.
-- Current integrated worktree path or package worktree path as appropriate.
-- Rejection report with exact failed criteria and why evidence was insufficient.
-- Package diff or relevant changed files.
-- Current package proof entries and lifecycle state.
+- Current integrated worktree path for package-review repairs, or package worktree path only when the orchestrator intentionally routes pre-merge proof repair.
+- Rejection report with exact failed criteria, confirmed package-review findings, Skeptic verification outcome for serious findings, and why evidence was insufficient.
+- Bounded package scope: rejected package ID, task/criterion IDs, package delta, affected proof entries, relevant changed files, and any suggestions bundled only because they are part of an existing serious-fix batch.
+- Current package proof entries and lifecycle state, including entries that are reopened or require refresh.
 - Review-code proof-impact map when the repair came from pipeline review-code, including affected or candidate package IDs, task/criterion IDs, proof entries, and any explicit no-impact evidence the orchestrator expects the repair to preserve or refresh.
-- Failed command output or observed bad behavior.
+- Failed command output, targeted package review observations, or observed bad behavior.
 - Required context bundles and citations expected.
-- Risk tags and edge-case checklist.
+- Risk tags and edge-case checklist, including safety/privacy/security and mock/stub contract concerns raised by review.
 - Safe verification commands to run after repair, distinguishing required package proof commands from separate broad/expensive integration or final checks.
+- Delta closure expectations: verify assigned findings, touched files, affected proof entries, and any proof/test-scope refresh; state any concrete trigger that would require full package rereview instead of delta verification.
+- Terminal handling instructions for unsafe, out-of-scope, failed, or repeatedly non-closing repairs: stop at authority boundaries, keep the package unaccepted, revert or isolate own partial edits when safe, and report proofs that must remain reopened or refreshed.
 - The proof schema contract from `taskctl.py must-prove`.
 - Instruction to update only package proof entries relevant to the repair or explicitly identified candidate proof refresh, and report new state-bound evidence.
 - Instruction to perform compact self-review before handoff when the repair changes implementation behavior, tests, proofs, or risk evidence; proof-only mechanical refresh may report the rechecked evidence instead.
 - Instruction not to edit proof lifecycle state by hand, mark tasks done, treat review state as proof, or force-add/commit ignored `.tasks` proof artifacts.
 
-Repair scope is limited to making the assigned package criteria true and proven in the current integrated state. Product/design changes, new dependencies/services, scope expansion, unsafe commands, credentials/external facts, or risk acceptance still stop for user approval.
+Repair scope is limited to making the assigned package criteria true and proven in the current integrated state and closing the confirmed findings named in the packet. Product/design changes, new dependencies/services, scope expansion, unsafe commands, credentials/external facts, or risk acceptance still stop for user approval.
 
 ## Orchestrator Edit Boundary
 

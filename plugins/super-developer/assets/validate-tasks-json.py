@@ -103,6 +103,57 @@ STATE_REFERENCE_MARKERS = (
     "test",
     "verification",
 )
+TARGETED_REVIEW_EVIDENCE_SUMMARY = (
+    "compact state-bound receipt: reviewed integrated commit/range, review depth/lenses, "
+    "explicit test scope, baseline security/privacy/safety sniff, serious finding "
+    "count/closure, and repair/delta-verification closure when applicable"
+)
+TARGETED_REVIEW_EVIDENCE_MAX_CHARS = 800
+TARGETED_REVIEW_STALE_MARKERS = (
+    "stale",
+    "pre-repair",
+    "pre repair",
+    "before repair",
+    "unverified repair",
+    "open repair",
+    "open finding",
+)
+TARGETED_REVIEW_EVIDENCE_CLAUSE_RE = re.compile(r"[.;,]+")
+TARGETED_REVIEW_SERIOUS_FINDING_TRAILING_SECTION_RE = re.compile(
+    r"\b(?:repairs?|delta(?:[- ]verification)?)\b"
+)
+TARGETED_REVIEW_SERIOUS_FINDING_UNCLOSED_RE = re.compile(
+    r"\b(?:"
+    r"pending|open|unresolved|unclosed|unverified|"
+    r"not[- ]closed|not[- ]verified|not[- ]resolved"
+    r")\b"
+)
+TARGETED_REVIEW_SERIOUS_FINDING_ABSENCE_RE = re.compile(r"\b(?:0|zero|none|no)\b")
+TARGETED_REVIEW_SERIOUS_FINDING_COUNT_RE = re.compile(r"\b\d+\b")
+TARGETED_REVIEW_SERIOUS_FINDING_CLOSURE_RE = re.compile(r"\b(?:closed|closure|verified)\b")
+TARGETED_REVIEW_UNCLOSED_REPAIR_DELTA_RE = re.compile(
+    r"\b(?:"
+    r"(?:repairs?|delta(?:[- ]verification)?)\b[^.;,]*\b"
+    r"(?:pending|not closed|not verified|unverified|unresolved|not resolved|open)\b"
+    r"|(?:pending|not closed|not verified|unverified|unresolved|not resolved|open)\b"
+    r"[^.;,]*\b(?:repairs?|delta(?:[- ]verification)?)\b"
+    r")"
+)
+TARGETED_REVIEW_REPAIR_CLOSURE_PHRASES = (
+    "repairs none",
+    "repair none",
+    "no repairs",
+    "repairs closed",
+    "repair closed",
+)
+TARGETED_REVIEW_DELTA_CLOSURE_PHRASES = (
+    "delta verification verified",
+    "delta-verification verified",
+    "delta verification not applicable",
+    "delta-verification not applicable",
+    "delta verification n/a",
+    "delta-verification n/a",
+)
 
 RISK_TAGS = {
     "security",
@@ -1086,7 +1137,7 @@ def validate_package_v2_fields(
     triggering_tags = sorted(set(risk_tags) & TARGETED_REVIEW_RISK_TAGS)
     if triggering_tags and not targeted:
         errors.append(
-            f"{package_path}.targeted_review_required: must be true because risk_tags include targeted-review trigger(s) {triggering_tags}"
+            f"{package_path}.targeted_review_required: must be true for compatibility metadata because risk_tags include enhanced package-review trigger(s) {triggering_tags}"
         )
 
 
@@ -1452,6 +1503,7 @@ def validate_package_acceptance_gates(
         f"{path}.targeted_review",
         errors,
         required_by_plan=bool(required_reviews.get(package_id)),
+        require_presence=True,
     )
 
 
@@ -1497,8 +1549,8 @@ def validate_package_targeted_review(
     require_presence: bool = True,
 ) -> None:
     if review is None:
-        if required_by_plan and require_presence:
-            errors.append(f"{path}: required for targeted_review_required package")
+        if require_presence:
+            errors.append(f"{path}: required for mandatory package review receipt")
         return
     if not isinstance(review, dict):
         errors.append(f"{path}: expected object")
@@ -1519,9 +1571,103 @@ def validate_package_targeted_review(
         errors.append(f"{path}.result: expected 'passed', got {review.get('result')!r}")
     for field in ("reviewer", "evidence", "reviewed_at"):
         require_non_empty_string(review, field, f"{path}.{field}", errors)
+    validate_targeted_review_evidence_quality(review.get("evidence"), f"{path}.evidence", errors)
     reviewed_at = review.get("reviewed_at")
     if isinstance(reviewed_at, str) and reviewed_at.strip():
         validate_iso_datetime(reviewed_at, f"{path}.reviewed_at", errors)
+
+
+def validate_targeted_review_evidence_quality(
+    value: Any, path: str, errors: list[str]
+) -> None:
+    if not isinstance(value, str) or not value.strip():
+        return
+    stripped = value.strip()
+    normalized = " ".join(stripped.lower().split())
+    if normalized in VAGUE_MANUAL_VALUES or len(normalized.split()) < 12:
+        errors.append(
+            f"{path}: expected {TARGETED_REVIEW_EVIDENCE_SUMMARY}, not approval-only or flag-only text"
+        )
+        return
+    if len(stripped) > TARGETED_REVIEW_EVIDENCE_MAX_CHARS or "\n" in stripped:
+        errors.append(
+            f"{path}: expected compact single-receipt evidence, not a transcript or long report"
+        )
+    for marker in TARGETED_REVIEW_STALE_MARKERS:
+        if marker in normalized:
+            errors.append(
+                f"{path}: expected current post-repair integrated review evidence, not stale/open-review text"
+            )
+            break
+
+    missing: list[str] = []
+    if not (
+        text_has_any(normalized, ("integrated", "integration", "merge worktree"))
+        and text_has_any(normalized, ("commit", "range", "head"))
+    ):
+        missing.append("reviewed integrated commit/range")
+    if not text_has_any(
+        normalized,
+        ("depth", "lens", "lenses", "standard", "enhanced", "baseline"),
+    ):
+        missing.append("review depth/lenses")
+    if not text_has_any(
+        normalized,
+        ("test scope", "test-scope", "sampled", "deep", "not applicable"),
+    ):
+        missing.append("explicit test scope")
+    if not text_has_any(normalized, ("security", "privacy", "safety", "sniff")):
+        missing.append("baseline security/privacy/safety sniff")
+    if not has_closed_serious_finding_evidence(normalized):
+        missing.append("serious finding count/closure")
+    if TARGETED_REVIEW_UNCLOSED_REPAIR_DELTA_RE.search(normalized):
+        missing.append("repair/delta-verification closure")
+    elif not (
+        text_has_any(normalized, TARGETED_REVIEW_REPAIR_CLOSURE_PHRASES)
+        and text_has_any(normalized, TARGETED_REVIEW_DELTA_CLOSURE_PHRASES)
+    ):
+        missing.append("repair/delta-verification closure")
+    if missing:
+        errors.append(
+            f"{path}: expected {TARGETED_REVIEW_EVIDENCE_SUMMARY}; missing {', '.join(missing)}"
+        )
+
+
+def has_closed_serious_finding_evidence(normalized: str) -> bool:
+    serious_clauses: list[str] = []
+    has_unclosed_serious_phrase = False
+    for raw_clause in TARGETED_REVIEW_EVIDENCE_CLAUSE_RE.split(normalized):
+        if not ("serious" in raw_clause and "finding" in raw_clause):
+            continue
+        if TARGETED_REVIEW_SERIOUS_FINDING_UNCLOSED_RE.search(raw_clause):
+            has_unclosed_serious_phrase = True
+        serious_index = raw_clause.find("serious")
+        scoped_clause = raw_clause[serious_index:]
+        trailing_section = TARGETED_REVIEW_SERIOUS_FINDING_TRAILING_SECTION_RE.search(
+            scoped_clause, 1
+        )
+        if trailing_section:
+            scoped_clause = scoped_clause[: trailing_section.start()]
+        if re.search(r"\bno\s*$", raw_clause[:serious_index]):
+            scoped_clause = f"no {scoped_clause}"
+        serious_clauses.append(scoped_clause.strip())
+
+    if not serious_clauses:
+        return False
+    if has_unclosed_serious_phrase:
+        return False
+    return any(
+        TARGETED_REVIEW_SERIOUS_FINDING_ABSENCE_RE.search(clause)
+        or (
+            TARGETED_REVIEW_SERIOUS_FINDING_COUNT_RE.search(clause)
+            and TARGETED_REVIEW_SERIOUS_FINDING_CLOSURE_RE.search(clause)
+        )
+        for clause in serious_clauses
+    )
+
+
+def text_has_any(value: str, markers: tuple[str, ...]) -> bool:
+    return any(marker in value for marker in markers)
 
 
 def package_proof_digest(proof: dict[str, Any]) -> str:

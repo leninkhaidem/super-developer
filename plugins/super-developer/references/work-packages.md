@@ -69,17 +69,17 @@ proof file before final audit readiness. Uncertain impact fails closed by refres
 package proofs or by recording explicit no-impact evidence; it is not silently ignored because a
 single exact criterion was hard to identify.
 
-## Risk Metadata and Targeted Review
+## Risk Metadata and Mandatory Package Review
 
 Plans include:
 
-- `risk_tags`: controlled tags used for targeted package review and edge-case checklist obligations.
+- `risk_tags`: controlled tags used for package-review depth/lenses and edge-case checklist obligations.
 - `required_context_bundles`: context bundle IDs package agents must read and cite.
-- `targeted_review_required`: `true` when tags or planner judgment require package-level review.
+- `targeted_review_required`: compatibility boolean for the existing `targeted_review.required` receipt field. Author every new work package with `targeted_review_required: true`; this field no longer decides whether package review runs.
 
-When `targeted_review_required` is true, the accepted package proof must include a minimal root `targeted_review` object: `required`, `performed`, `reviewer`, `result`, `evidence`, and `reviewed_at`. Keep `evidence` to a concise pointer or summary of the targeted review report; do not add review histories or event logs.
+Every work package must pass mandatory package review before task completion. The accepted package proof must include the existing minimal root `targeted_review` object: `required`, `performed`, `reviewer`, `result`, `evidence`, and `reviewed_at`. Keep `evidence` to a compact, state-bound receipt summary of the reviewed integrated package state, review depth/lenses, test scope, safety sniff, serious finding count/closure, and repair/delta-verification closure when applicable. Do not add a `package_review` field, review histories, event logs, transcripts, or parallel ledgers.
 
-Targeted-review-triggering tags include:
+Risk tags that trigger enhanced review lenses include:
 
 - `security`, `privacy`, `safety`
 - `persistence`, `data-integrity`, `migration`
@@ -92,13 +92,13 @@ Targeted-review-triggering tags include:
 - `orchestration`, `git-state`, `integration`, `subagent-contract`
 - `review`, `audit`, `fix-loop`, `quality-contract`
 
-Documentation-only tags such as `documentation`, `docs`, `consistency`, and `validation-samples` do not require targeted review by themselves. A package with any targeted-review-triggering tag must set `targeted_review_required: true`; a package may also set it true conservatively even without a triggering tag.
+Documentation-only tags such as `documentation`, `docs`, `consistency`, and `validation-samples` do not trigger enhanced lenses by themselves, but those packages still receive the mandatory baseline review and new plans still set `targeted_review_required: true`.
 
-### Risk-Bearing Package Rubric
+### Review Depth Rubric
 
-A risk-bearing package needs independent targeted package review before its tasks are marked done when it touches sensitive, cross-cutting, irreversible, or shared-contract surfaces. Examples include security/privacy/safety; auth, permissions, tenancy, admin/user authority; secrets, tokens, credentials, PII, logs, telemetry, or data exposure; persistence, data integrity, migrations, destructive data changes, ownership conversion, lifecycle cleanup, audit/fail-closed behavior; public APIs, schemas, generated contracts, exported types; concurrency, caches, resource bounds, performance; cross-package/shared configuration or integration invariants; and orchestration, tool authority, sub-agent contracts, proof lifecycle, review/audit, or fix-loop behavior.
+Every package receives independent package review before its tasks are marked done. Risk-bearing packages receive enhanced lenses when they touch sensitive, cross-cutting, irreversible, or shared-contract surfaces. Examples include security/privacy/safety; auth, permissions, tenancy, admin/user authority; secrets, tokens, credentials, PII, logs, telemetry, or data exposure; persistence, data integrity, migrations, destructive data changes, ownership conversion, lifecycle cleanup, audit/fail-closed behavior; public APIs, schemas, generated contracts, exported types; concurrency, caches, resource bounds, performance; cross-package/shared configuration or integration invariants; and orchestration, tool authority, sub-agent contracts, proof lifecycle, review/audit, or fix-loop behavior.
 
-Targeted package review is local package-risk review, not a replacement for final `review-code`. It should consume package self-review, proof evidence, targeted checks, risk tags, and the integrated package delta. Do not expand the risk-tag taxonomy or add schema fields for this rubric; the orchestrator derives risk-bearing status from existing plan metadata and runtime discovery. Runtime-upgraded reviews on packages whose plan flag is false are recorded as optional targeted-review evidence (`required: false`) and enforced by the orchestrator checkpoint rather than by the schema.
+Package review is local package-risk review, not a replacement for final `review-code`. It should consume package self-review, proof evidence, targeted checks, risk tags, and the integrated package delta. Do not expand the risk-tag taxonomy or add schema fields for this rubric; the orchestrator derives depth and lenses from existing plan metadata and runtime discovery. Legacy plans whose compatibility flag is false still cannot bypass the mandatory review checkpoint; the receipt remains the existing `targeted_review` object.
 
 ## Rationale
 
@@ -108,7 +108,7 @@ Every package carries a `rationale` field explaining why its tasks should share 
 
 The implementation orchestrator may merge, split, defer, or reorder planned packages when current task status, file impact, or previous merged work makes the plan unsafe or inefficient. It must briefly state the reason before dispatching.
 
-When runtime adjustment changes package risk, context-bundle needs, verification commands, or targeted-review decisions, the orchestrator must state the reason and update the Execution Contract before dispatch. It must not silently downgrade a package from targeted review when a triggering risk tag remains.
+When runtime adjustment changes package risk, context-bundle needs, verification commands, or package-review depth/lenses, the orchestrator must state the reason and update the Execution Contract before dispatch. It must not silently downgrade enhanced review depth when a triggering risk tag remains.
 
 ## Anti-Patterns
 

@@ -144,7 +144,7 @@ class PackageProofValidationTests(unittest.TestCase):
                     "parallel_safe_with": [],
                     "primary_paths": ["plugins/super-developer/assets/validate-tasks-json.py"],
                     "verification_commands": [],
-                    "risk_tags": ["validation"],
+                    "risk_tags": ["documentation"],
                     "required_context_bundles": [],
                     "targeted_review_required": True,
                     "rationale": "Final proof-gate checks are isolated coverage.",
@@ -284,7 +284,11 @@ class PackageProofValidationTests(unittest.TestCase):
             "performed": True,
             "reviewer": "targeted package reviewer",
             "result": "passed",
-            "evidence": "Targeted package review report: package delta and proof evidence passed.",
+            "evidence": (
+                f"Integrated commit {self.commit} reviewed; depth/lenses standard baseline validation; "
+                "test scope sampled proof commands; safety sniff security/privacy/safety clean; "
+                "serious findings 0 closed; repairs none, delta verification not applicable."
+            ),
             "reviewed_at": "2026-05-16T00:00:00Z",
         }
 
@@ -352,6 +356,18 @@ class PackageProofValidationTests(unittest.TestCase):
                 break
         else:
             raise AssertionError(f"unknown package {package_id}")
+        self.rewrite_valid_plan()
+
+    def set_package_targeted_review_required(self, package_id: str, required: bool) -> None:
+        for package in self.tasks["work_packages"]:
+            if package["id"] == package_id:
+                package["targeted_review_required"] = required
+                break
+        else:
+            raise AssertionError(f"unknown package {package_id}")
+        self.rewrite_valid_plan()
+
+    def rewrite_valid_plan(self) -> None:
         self.tasks_path.write_text(json.dumps(self.tasks, indent=2), encoding="utf-8")
         errors, plan_index = validator.validate_tasks_json(
             self.tasks,
@@ -555,9 +571,32 @@ class PackageProofValidationTests(unittest.TestCase):
         missing_review = self.proof()
         missing_review["lifecycle"] = self.lifecycle_state(missing_review, "accepted")
         self.assertIn(
-            "targeted_review: required for targeted_review_required package",
+            "targeted_review: required for mandatory package review receipt",
             "\n".join(self.validate_proof_file(missing_review)),
         )
+
+        low_risk_missing_review = self.proof("WP2")
+        low_risk_missing_review["lifecycle"] = self.lifecycle_state(low_risk_missing_review, "accepted")
+        self.assertIn(
+            "targeted_review: required for mandatory package review receipt",
+            "\n".join(self.validate_proof_file(low_risk_missing_review, "WP2")),
+        )
+
+        self.set_package_targeted_review_required("WP2", False)
+        legacy_flag_missing_review = self.proof("WP2")
+        legacy_flag_missing_review["lifecycle"] = self.lifecycle_state(
+            legacy_flag_missing_review, "accepted"
+        )
+        self.assertIn(
+            "targeted_review: required for mandatory package review receipt",
+            "\n".join(self.validate_proof_file(legacy_flag_missing_review, "WP2")),
+        )
+        legacy_flag_with_review = self.proof("WP2")
+        legacy_flag_with_review["targeted_review"] = self.targeted_review(required=False)
+        legacy_flag_with_review["lifecycle"] = self.lifecycle_state(
+            legacy_flag_with_review, "accepted"
+        )
+        self.assertEqual([], self.validate_proof_file(legacy_flag_with_review, "WP2"))
 
         malformed_review = self.proof_with_lifecycle("accepted")
         malformed_review["targeted_review"]["result"] = "failed"
@@ -566,6 +605,91 @@ class PackageProofValidationTests(unittest.TestCase):
             "targeted_review.result: expected 'passed'",
             "\n".join(self.validate_proof_file(malformed_review)),
         )
+
+    def test_targeted_review_receipt_evidence_must_be_state_bound_and_specific(self) -> None:
+        flag_only = self.proof_with_lifecycle("accepted")
+        flag_only["targeted_review"]["evidence"] = "passed"
+        flag_only["lifecycle"]["proof_digest"] = validator.package_proof_digest(flag_only)
+        self.assertIn(
+            "targeted_review.evidence: expected compact state-bound receipt",
+            "\n".join(self.validate_proof_file(flag_only)),
+        )
+
+        stale = self.proof_with_lifecycle("accepted")
+        stale["targeted_review"]["evidence"] = (
+            f"Stale integrated commit {self.commit} reviewed; depth/lenses standard baseline; "
+            "test scope sampled; safety sniff security/privacy/safety clean; "
+            "serious findings 0 closed; repairs none, delta verification not applicable."
+        )
+        stale["lifecycle"]["proof_digest"] = validator.package_proof_digest(stale)
+        self.assertIn(
+            "targeted_review.evidence: expected current post-repair integrated review evidence",
+            "\n".join(self.validate_proof_file(stale)),
+        )
+
+        non_specific = self.proof_with_lifecycle("accepted")
+        non_specific["targeted_review"]["evidence"] = (
+            "Integrated package reviewed with notes and proof evidence; everything looked complete "
+            "after the reviewer checked the package report and no issues remained."
+        )
+        non_specific["lifecycle"]["proof_digest"] = validator.package_proof_digest(non_specific)
+        self.assertIn(
+            "missing reviewed integrated commit/range",
+            "\n".join(self.validate_proof_file(non_specific)),
+        )
+
+        serious_evidence_prefix = (
+            f"Integrated commit {self.commit} reviewed; depth/lenses standard baseline validation; "
+            "test scope sampled proof commands; safety sniff security/privacy/safety clean; "
+        )
+        for serious_clause in (
+            "serious findings 1 pending; repairs none; delta verification not applicable.",
+            "serious findings 1 open; repairs none; delta verification not applicable.",
+            "serious findings 1 unresolved; repairs none; delta verification not applicable.",
+            "serious findings 1 not-closed; repairs none; delta verification not applicable.",
+            "unresolved serious findings 1 closed; repairs none; delta verification not applicable.",
+            "not-closed serious findings 1 verified; repairs none; delta verification not applicable.",
+            "serious findings 1; repairs none; delta verification not applicable.",
+        ):
+            with self.subTest(serious_clause=serious_clause):
+                unresolved_serious = self.proof_with_lifecycle("accepted")
+                unresolved_serious["targeted_review"]["evidence"] = (
+                    serious_evidence_prefix + serious_clause
+                )
+                unresolved_serious["lifecycle"]["proof_digest"] = validator.package_proof_digest(
+                    unresolved_serious
+                )
+                self.assertIn(
+                    "missing serious finding count/closure",
+                    "\n".join(self.validate_proof_file(unresolved_serious)),
+                )
+
+        evidence_prefix = serious_evidence_prefix + "serious findings 0 closed; "
+        for bad_closure in (
+            "repairs pending; delta verification verified.",
+            "repairs not closed; delta verification verified.",
+            "repairs closed; delta verification pending.",
+            "repairs none; delta verification verified; repair verification pending.",
+        ):
+            with self.subTest(bad_closure=bad_closure):
+                open_repair_or_delta = self.proof_with_lifecycle("accepted")
+                open_repair_or_delta["targeted_review"]["evidence"] = evidence_prefix + bad_closure
+                open_repair_or_delta["lifecycle"]["proof_digest"] = validator.package_proof_digest(
+                    open_repair_or_delta
+                )
+                self.assertIn(
+                    "missing repair/delta-verification closure",
+                    "\n".join(self.validate_proof_file(open_repair_or_delta)),
+                )
+
+        closed_repair_and_delta = self.proof_with_lifecycle("accepted")
+        closed_repair_and_delta["targeted_review"]["evidence"] = (
+            evidence_prefix + "repairs closed; delta verification verified."
+        )
+        closed_repair_and_delta["lifecycle"]["proof_digest"] = validator.package_proof_digest(
+            closed_repair_and_delta
+        )
+        self.assertEqual([], self.validate_proof_file(closed_repair_and_delta))
 
     def test_accepted_package_requires_required_verification_command_evidence(self) -> None:
         required_command = "python3 -m unittest discover plugins/super-developer/assets/tests"

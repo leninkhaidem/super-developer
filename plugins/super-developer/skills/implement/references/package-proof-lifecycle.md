@@ -64,7 +64,7 @@ Exception: when validation fails only because entries are stale against the curr
 
 ## Package Proof Acceptance
 
-Only after package proof validation, package verification commands, and required targeted, semantic, or focused repair review pass, accept the proof lifecycle:
+Only after package proof validation, package verification commands, mandatory targeted package review, and any required package repair/delta verification pass, accept the proof lifecycle:
 
 ```bash
 python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/taskctl.py" accept-package --tasks ".tasks/<feature>/tasks.json" --worktree ".worktrees/<feature>/merge" ".tasks/<feature>/proofs/WP1.proof.json"
@@ -75,11 +75,11 @@ python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/taskctl.py" accept-package --task
 Accepted package proofs are intentionally lean, but they must carry the gates that prevent review/fix loops:
 
 - each listed package `verification_commands` entry appears as passing command evidence under an existing proof entry;
-- packages with `targeted_review_required: true` include a minimal root `targeted_review` object with `required`, `performed`, `reviewer`, `result`, `evidence`, and `reviewed_at`.
+- every work package includes one minimal passing root `targeted_review` object with `required`, `performed`, `reviewer`, `result`, `evidence`, and `reviewed_at`. Keep the compatibility field name and helper-written `required` value; do not add a second package-review field or ledger.
 
-Use `taskctl.py record-targeted-review --package WP1 --reviewer <id> --evidence <summary>` for the minimal targeted-review object instead of hand-editing proof JSON. Do not add a parallel command ledger, review history, event stream, or generated checklist to the proof file.
+Use `taskctl.py record-targeted-review --package WP1 --reviewer <id> --evidence <summary>` for the minimal targeted-review object instead of hand-editing proof JSON, and call it only after the mandatory package review has passed and any confirmed finding repairs are delta-verified closed. Keep `evidence` compact but state-bound: reviewed integrated commit/range, review depth/lenses, explicit test-scope declaration, baseline security/privacy/safety sniff result, serious finding count/closure, and repair/delta-verification closure when applicable. The helper/validator rejects empty, approval-only, flag-only, stale/open, transcript-like, or non-specific receipt text; a bare `passed`/`required=true` flag is not evidence. Do not add a parallel command ledger, failed-review receipt, review history, transcript archive, event stream, or generated checklist to the proof file.
 
-Use `reopen-package` before a repair that invalidates accepted proof content:
+Use `reopen-package` before a repair that invalidates accepted proof content. If package review or downstream fix work opens a repair/refresh obligation, the proof must remain unaccepted or reopened until delta verification closes and refreshed evidence validates:
 
 ```bash
 python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/taskctl.py" reopen-package --tasks ".tasks/<feature>/tasks.json" --worktree ".worktrees/<feature>/merge" ".tasks/<feature>/proofs/WP1.proof.json"
@@ -120,7 +120,7 @@ python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/taskctl.py" block-task --tasks ".
 python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/taskctl.py" reset-task --tasks ".tasks/<feature>/tasks.json" P1-T003
 ```
 
-`start-package` marks pending package tasks `in-progress`. `complete-package` marks package tasks `done` only after the package proof is accepted and final-ready in the supplied worktree. Block only when work needs user input, approved scope change, external credentials/facts, unsafe command approval, dependency/service approval, or a design/product decision. Reset interrupted work only when the orchestrator has decided it is safe to return the task to `pending`.
+`start-package` marks pending package tasks `in-progress`. `complete-package` marks package tasks `done` only after the package proof is accepted and final-ready in the supplied worktree, including the present/performed/passed mandatory `targeted_review` receipt for every work package and no open package-review finding, repair-verification, or proof-refresh obligation. Block only when work needs user input, approved scope change, external credentials/facts, unsafe command approval, dependency/service approval, or a design/product decision. Reset interrupted work only when the orchestrator has decided it is safe to return the task to `pending`.
 
 ## Final Proof Validation and Completion
 

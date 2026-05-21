@@ -57,7 +57,7 @@ Package proof lifecycle:
 ```bash
 python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/taskctl.py" accept-package --tasks ".tasks/<feature>/tasks.json" --worktree ".worktrees/<feature>/merge" ".tasks/<feature>/proofs/WP1.proof.json"
 python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/taskctl.py" reopen-package --tasks ".tasks/<feature>/tasks.json" --worktree ".worktrees/<feature>/merge" ".tasks/<feature>/proofs/WP1.proof.json"
-python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/taskctl.py" record-targeted-review --tasks ".tasks/<feature>/tasks.json" --package WP1 --reviewer "targeted-review-WP1" --evidence "Focused package review passed"
+python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/taskctl.py" record-targeted-review --tasks ".tasks/<feature>/tasks.json" --package WP1 --reviewer "targeted-review-WP1" --evidence "integrated <commit/range>; mandatory package review passed; depth=standard; tests=sampled; safety=clean; serious findings 0 closed; repairs none; delta verification n/a"
 python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/taskctl.py" refresh-proof-state --tasks ".tasks/<feature>/tasks.json" --worktree ".worktrees/<feature>/merge" --package WP1 --reaccept
 ```
 
@@ -70,7 +70,7 @@ python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/taskctl.py" block-task --tasks ".
 python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/taskctl.py" reset-task --tasks ".tasks/<feature>/tasks.json" P1-T003
 ```
 
-Lifecycle helpers do not implement code, run verification commands, perform targeted review, run final audit, merge branches, or merge to a target branch. `accept-package`/`reopen-package` write proof lifecycle state; `record-targeted-review` writes the minimal root `targeted_review`; `refresh-proof-state` is only for lifecycle-approved stale-only refresh; `start-package`, `complete-package`, `block-task`, and `reset-task` mutate task state within their named boundaries. `complete-package` marks tasks done only when the proof is accepted and final-ready.
+Lifecycle helpers do not implement code, run verification commands, perform targeted review, run final audit, merge branches, or merge to a target branch. `accept-package`/`reopen-package` write proof lifecycle state; `record-targeted-review` writes the minimal root `targeted_review`; `refresh-proof-state` is only for lifecycle-approved stale-only refresh; `start-package`, `complete-package`, `block-task`, and `reset-task` mutate task state within their named boundaries. `complete-package` marks tasks done only when the proof is accepted and final-ready, including the present/performed/passed mandatory package-review receipt in the existing `targeted_review` object.
 
 ## Safety Rules
 

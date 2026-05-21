@@ -144,11 +144,18 @@ def build_parser() -> argparse.ArgumentParser:
     record_targeted_review = subparsers.add_parser(
         "record-targeted-review",
         parents=[common],
-        help="Record the minimal targeted_review object for one package proof.",
+        help="Record the existing targeted_review receipt after mandatory package review passes.",
     )
     record_targeted_review.add_argument("--package", required=True, help="Work package id.")
     record_targeted_review.add_argument("--reviewer", required=True, help="Reviewer identity or run id.")
-    record_targeted_review.add_argument("--evidence", required=True, help="Concise targeted review evidence.")
+    record_targeted_review.add_argument(
+        "--evidence",
+        required=True,
+        help=(
+            "Compact state-bound receipt evidence: integrated commit/range, depth/lenses, "
+            "test scope, safety sniff, serious finding count/closure, and repair/delta closure."
+        ),
+    )
     record_targeted_review.add_argument("--reviewed-at", help="ISO-8601 timestamp; defaults to current UTC time.")
     record_targeted_review.set_defaults(func=cmd_record_targeted_review)
 
@@ -309,7 +316,10 @@ def cmd_summary(args: argparse.Namespace) -> int:
         "feature": plan.data["feature"],
         "status": plan.data["status"],
         "read_only": True,
-        "final_gate": "accepted package proofs are authoritative in this release.",
+        "final_gate": (
+            "accepted package proofs plus mandatory targeted_review receipts are "
+            "authoritative in this release."
+        ),
         "proof_health": dict(sorted(proof_counts.items())),
         "packages": package_summaries,
     }
@@ -530,6 +540,11 @@ def cmd_record_targeted_review(args: argparse.Namespace) -> int:
             "ok": True,
             "package_id": package["id"],
             "proof_path": str(proof_path),
+            "receipt_contract": getattr(
+                validator,
+                "TARGETED_REVIEW_EVIDENCE_SUMMARY",
+                "compact state-bound review receipt",
+            ),
             "targeted_review": proof["targeted_review"],
         },
     )
@@ -1170,6 +1185,8 @@ def package_must_prove(
                 "For command, test, or mixed methods, evidence.commands must contain at least one passing command object.",
                 "If validation reports only stale evidence, refresh only stale entries against current integration HEAD; do not delegate a proof repair unless behavior is unclear or evidence cannot be reproduced.",
                 "Do not edit lifecycle manually; accept-package/reopen-package owns lifecycle state.",
+                "Record mandatory package review in the existing targeted_review receipt only after review, repairs, and delta verification close.",
+                "Keep targeted_review.evidence compact and state-bound: integrated commit/range, depth/lenses, test scope, safety sniff, serious finding count/closure, and repair/delta closure; no transcripts or histories.",
                 "Do not force-add or commit ignored .tasks proof artifacts.",
             ],
         },
@@ -1177,7 +1194,8 @@ def package_must_prove(
             "package implementation must solve the complete in-scope behavior/risk class implied by acceptance criteria, risk tags, context bundles, and existing contracts",
             "proof entries must use the proof_schema_contract enums and command evidence shape",
             "accepted proof must cite passing evidence for every package verification command",
-            "targeted package review must be recorded in targeted_review when required",
+            "mandatory package review must be recorded in the existing targeted_review receipt for every accepted package",
+            "receipt evidence must stay compact enough for final review-code consumption while binding to reviewed integrated state, depth, test scope, serious finding closure, and repair/delta closure",
         ],
         "criteria": criteria,
     }

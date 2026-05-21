@@ -1,6 +1,6 @@
 # tasks.json Schema Reference
 
-Load this when you need a human-readable map of `tasks.json`. The machine source of truth is `${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/validate-tasks-json.py`; if this reference and the validator disagree, the validator wins. Work-package semantics, risk metadata, and targeted-review rules are owned by `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/work-packages.md` plus the validator.
+Load this when you need a human-readable map of `tasks.json`. The machine source of truth is `${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/validate-tasks-json.py`; if this reference and the validator disagree, the validator wins. Work-package semantics, risk metadata, mandatory package review, and review-depth rules are owned by `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/work-packages.md` plus the validator.
 
 ## Top-Level Object
 
@@ -51,11 +51,11 @@ Fields:
 - `parallel_safe_with`: symmetric list of package IDs safe to run in the same implementation batch.
 - `primary_paths`: likely files/directories to inspect first; starting points, not hard boundaries.
 - `verification_commands`: scoped, known-safe commands, or `[]` when unknown.
-- `risk_tags`: controlled tags owned by the validator.
+- `risk_tags`: controlled tags owned by the validator; they select package-review depth/lenses, not whether review runs.
 - `required_context_bundles`: context bundle IDs package agents must read and cite.
-- `targeted_review_required`: boolean governed by risk tags and planner judgment.
+- `targeted_review_required`: compatibility boolean for the existing `targeted_review.required` receipt field. Author new packages with `true` for every work package; the mandatory package review gate applies regardless of risk tags.
 
-Do not duplicate the long risk-tag or targeted-review taxonomy here. Use the validator and `work-packages.md`.
+Do not duplicate the long risk-tag or review-depth taxonomy here. Use the validator and `work-packages.md`.
 
 ## Phases and Tasks
 
@@ -89,7 +89,7 @@ Do not maintain competing copies of these details in skills or plans:
 - accepted feature/task statuses;
 - exact ID regexes and sequential/no-gap checks;
 - accepted source-ref and context-bundle source types;
-- risk-tag taxonomy and targeted-review-trigger set;
+- risk-tag taxonomy and enhanced review-trigger set;
 - final package proof schema and stale-evidence checks.
 
 For those details, inspect `${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/validate-tasks-json.py`; for package meaning and review expectations, inspect `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/work-packages.md`.

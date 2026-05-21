@@ -72,7 +72,7 @@ Use the generated `taskctl.py proof-template` shape. Proof entry `status` must b
 
 For `unit_test`, `integration_test`, `e2e_test`, `table_driven_test`, `command`, or `mixed`, `evidence.commands` must contain at least one object with non-empty `cwd`, exact `command`, integer `exit_code` of `0`, and non-empty `observed`. File-only static inspection may use `method: "static_inspection"` with concrete `evidence.files`.
 
-The proof file is the package evidence source. Vague, stale, untied, or missing evidence is rejection-worthy. Do not manually edit the proof `lifecycle` object; the orchestrator accepts or reopens package proofs with `taskctl.py` after integrated validation. The orchestrator records minimal root `targeted_review` evidence when targeted package review is required and passes.
+The proof file is the package evidence source. Vague, stale, untied, or missing evidence is rejection-worthy. Do not manually edit the proof `lifecycle` object; the orchestrator accepts or reopens package proofs with `taskctl.py` after integrated validation. The orchestrator records minimal root `targeted_review` evidence only after the mandatory targeted package review passes and any required repairs or delta verification close.
 
 `.tasks/` proof files are task-store artifacts, not package-branch source files. Do not `git add -f .tasks`, do not commit proof files, and do not rely on package branch merges to carry proofs. The orchestrator copies validated proof artifacts into the shared task store.
 

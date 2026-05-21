@@ -42,7 +42,11 @@ DISCOVERY_COVERAGE:
 
 Coverage rows are evidence, not findings. They must be concrete enough for the orchestrator to see
 what was inspected: cite files, symbols, call paths, task/package evidence, or the specific reason a
-lens is not applicable. Vague boilerplate such as `looks good`, `no issues found`, `covered`,
+lens is not applicable. For test-related lenses, name whether review was deep, sampled, or not
+reviewed and cite the test files, test-scope receipt, or trigger that supports that depth. In planned-
+feature pipeline context, package review test-scope receipts may support package-local test coverage
+only when the receipt trust gate in `pipeline-report.md` is satisfied; otherwise record a coverage gap
+instead of claiming a clean lens. Vague boilerplate such as `looks good`, `no issues found`, `covered`,
 `seems fine`, or bare `N/A` is not valid coverage evidence. Missing or vague required-lens rows are
 incomplete coverage, not a clean review. A clean discovery review still returns the coverage table,
 followed by `NONE` when there are no reportable findings.

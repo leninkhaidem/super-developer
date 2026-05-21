@@ -126,21 +126,33 @@ helpers/fixtures/mocks, snapshots/generated outputs, docs, build/config/tooling,
 artifacts. For changed tests, declare detailed, sampled, or not-reviewed scope with a short rationale.
 
 In planned-feature pipeline context, also consume compact package coverage when available: package
-IDs, risk tags, mandatory self-review summaries, targeted package review summaries, verification and
-proof status, deferred concerns, and changed-file manifest. Accepted targeted package reviews count as
-local package-risk coverage; final review still performs baseline safety sniff and integration review,
-but specialists should focus on uncovered, weakly covered, contradictory, or integration-level risks
-rather than duplicating already-covered package-local review.
+IDs, risk tags, mandatory self-review summaries, targeted package review summaries/receipts,
+verification and proof status, deferred concerns, and changed-file manifest. The final review remains
+mandatory and integration-first. Its required lenses must cover cross-package and cross-domain seams,
+shared contracts, end-to-end behavior, contradictions between packages/proofs/receipts, uncovered
+surfaces, deferred concerns, and whole-feature coherence.
+
+Accepted package review receipts stored in the compatibility `targeted_review` proof object count as
+package-local coverage only when the receipt evidence is present, specific, fresh for the reviewed
+integrated package state, complete for package risk-tag lenses, explicit about test scope, and
+consistent with the package risk tags and proof status. Absent concrete contradiction, observed gap,
+or serious issue, do not reopen or deeply rereview every work package by default; focus reviewers and
+specialists on integration seams, coverage gaps, stale/weak receipts, contradictions, deferred risks,
+or uncovered cross-package behavior. Missing, vague, stale, risk-incomplete, test-scope-omitting, or
+risk-tag-inconsistent receipts are coverage gaps and must be routed to the narrowest package coverage
+follow-up, bounded widening, or proof refresh instead of being trusted blindly.
 
 ### Discovery Review Lens Contract
 
 For the initial discovery review, provide reviewers required dynamic risk lenses selected from the
 active mode, diff surface, task or package context, package risk tags, changed files, baseline
-security/privacy/safety sniff, and any risk signals found while reading the code. Each required
-lens has a requested depth of `deep`, `sniff`, or `not_applicable`. Required lenses cannot be
-dropped; reviewers may add lenses for newly discovered risks and must identify them as
-reviewer-added. Use `references/finding-contract.md` for the compact coverage rows that keep
-lens coverage separate from reportable findings.
+security/privacy/safety sniff, and any risk signals found while reading the code. In planned-feature
+pipeline context, include explicit integration lenses for cross-package seams, shared contracts,
+package-proof/receipt contradictions, uncovered surfaces, deferred concerns, and end-to-end feature
+coherence. Each required lens has a requested depth of `deep`, `sniff`, or `not_applicable`.
+Required lenses cannot be dropped; reviewers may add lenses for newly discovered risks and must
+identify them as reviewer-added. Use `references/finding-contract.md` for the compact coverage rows
+that keep lens coverage separate from reportable findings.
 
 ### Code Reviewer Mandate
 
@@ -170,15 +182,26 @@ acceptance-criteria omissions, contradictions, or regressions. These are review-
 completion proof: the audit skill remains authoritative for proving all planned tasks and acceptance
 criteria. In pipeline context, review-code may use accepted package proofs, package self-review, and
 targeted package review summaries as task-awareness context, but must not duplicate audit's exhaustive
-role or redo package-local review without a coverage gap or integration-level risk.
+role or redo package-local review without a coverage gap or integration-level risk. If final review
+encounters a concrete package-local 🔴/🟠 issue while following an integration seam, contradiction,
+uncovered surface, or weak/stale receipt, it may report that serious issue with evidence. It must not
+actively hunt package internals, reopen package-local discovery, or ask for full-package rereview
+without such an integration trigger, coverage gap, or observed serious issue.
 
 Detailed review follows behavior-first order: understand intended behavior from SPEC/tasks/proofs and
 package reports, review core/runtime functionality first, derive expected test obligations, inspect
 corresponding tests as evidence quality, then inspect remaining test-only/generated/config changes as
-needed. Tests are in scope as proof quality, but not exhaustively line-reviewed by default. Review
-tests in detail when they are proof-cited, the only evidence for behavior, risk-bearing
-security/privacy/data/concurrency/failure coverage, changing mocks/fixtures/helpers/snapshots/generated
-contracts, using skips/xfails/global/env/import-cache mutation, or themselves the feature/risk surface.
+needed. Tests are in scope as proof quality, with sampled review by default rather than exhaustive
+line review. In pipeline context, consume package review test-scope receipts as package-local test
+coverage context and deepen final test review only when integration evidence, coverage gaps, stale or
+inconsistent receipts, or cross-package behavior require it.
+
+Review tests in detail when they are proof-critical, proof-cited, or the only evidence for behavior;
+when they touch helpers, fixtures, mocks/stubs, generated snapshots/contracts, skips/xfails, global/env
+or import-cache mutation; when they cover or affect security, privacy, safety, data integrity,
+concurrency, failure-mode, public contract/API, or compatibility risks; or when the tests themselves
+are the feature/risk surface. Otherwise use the diff triage manifest to sample representative tests and
+state the sampled/not-reviewed rationale.
 
 ### Specialist Mandate
 

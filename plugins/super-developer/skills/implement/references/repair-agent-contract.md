@@ -12,15 +12,16 @@ The repair agent must:
 2. Read the rejection report, affected package/task/criterion IDs, current proof entries, and relevant changed files before editing.
 3. Read `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/clean-code-rules.md` before substantive implementation or proof repair and follow its Development Quality Contract.
 4. Read and cite required context bundles; do not infer, mock, or invent external/library/runtime contract shapes defined by a bundle.
-5. Reproduce or locate the failed behavior, missing evidence, stale proof, or review/audit rejection before changing code when practical.
+5. Reproduce or locate the failed behavior, missing evidence, stale proof, targeted package-review finding, or review/audit rejection before changing code when practical.
 6. Fix the assigned in-scope behavior/risk class, not only the exact reported example, when the rejection represents a class of inputs, states, or failure modes.
-7. Keep repair scope limited to making the assigned package criteria true and proven in the current state.
-8. Update only package proof entries relevant to the repair or explicitly identified candidate proof refresh.
-9. Run safe verification commands from the assignment, plus targeted tests/checks needed to prove the repair.
-10. When the repair changes implementation behavior, tests, proofs, or risk evidence, perform the compact repair self-review below before handoff. Pure mechanical stale-state refresh may report the rechecked evidence instead.
-11. Never create worktrees, branches, perform merge operations, mark tasks done, edit proof lifecycle state by hand, treat review state as proof, or force-add/commit ignored `.tasks` proof artifacts.
+7. Keep repair scope limited to making the assigned package criteria true and proven in the current state and closing the confirmed findings named in the packet. Suggestions are non-blocking unless the packet explicitly bundles them under an existing serious-fix batch.
+8. For package-review repairs, work in the integration worktree when assigned there and do not broaden into other work packages except for the minimum shared-contract edits explicitly authorized in the packet.
+9. Update only package proof entries relevant to the repair or explicitly identified candidate proof refresh.
+10. Run safe verification commands from the assignment, plus targeted tests/checks needed to prove the repair and support delta closure.
+11. When the repair changes implementation behavior, tests, proofs, or risk evidence, perform the compact repair self-review below before handoff. Pure mechanical stale-state refresh may report the rechecked evidence instead.
+12. Never create worktrees, branches, perform merge operations, mark tasks done, edit proof lifecycle state by hand, treat review state as proof, or force-add/commit ignored `.tasks` proof artifacts.
 
-Stop and report instead of changing code when the correct repair requires product/design changes, new dependencies/services, scope expansion, unsafe commands, credentials/external facts, risk acceptance, or changes outside the assigned package/repair boundary.
+Stop and report instead of changing code when the correct repair requires product/design changes, new dependencies/services, scope expansion, unsafe commands, credentials/external facts, risk acceptance, or changes outside the assigned package/repair boundary. If a repair attempt is unsafe, out of scope, or non-closing after the assigned bounded strategy, leave the package unaccepted, revert or isolate your own partial edits when safe, identify proof entries that must remain reopened or refreshed, and return the exact blocker instead of claiming closure.
 
 ## Repair Self-Review
 
@@ -63,6 +64,7 @@ The repair agent report must include:
 - affected package/task/criterion IDs;
 - rejection or finding reproduced/located;
 - behavior/risk class repaired or explicit reason the issue was evidence-only;
+- delta closure evidence for assigned findings, or exact non-closing/authority-boundary blocker;
 - proof entries updated/refreshed;
 - Quality Contract Evidence from `clean-code-rules.md` when code or behavior changed;
 - files changed;

@@ -103,6 +103,26 @@ Load `decision-filter.md` when a pipeline fix may require a product or architect
 `commit` is not offered as a separate pipeline action. Use `fix` to delegate corrections; the Fix
 Implementer commits each delegated batch in the merge worktree before Fix Verification Review.
 
+## Package Coverage Invalidation Routing
+
+When final review reports an integration-triggered package coverage gap, contradiction, or concrete
+observed package-local serious issue, keep the follow-up bounded to the affected seam, package,
+proof-impact surface, or receipt refresh. Build the smallest proof-impact map that explains whether
+accepted package proof evidence, targeted-review receipt evidence, or verification assumptions became
+stale. Prefer one of these routes, in order:
+
+1. Refresh or request a compact package-coverage/proof receipt when evidence is missing, vague, stale,
+   risk-lens incomplete, test-scope missing, or inconsistent with risk tags but no code defect is
+   observed.
+2. Delegate a fix batch only for the concrete confirmed serious issue or seam contradiction, with
+   exact affected package IDs, paths, acceptance criteria, and proof surfaces.
+3. Run targeted affected-surface verification, specialist review for the triggered risk domain, or
+   semantic-batch review when a named widening trigger fires.
+
+Do not default to reopening all work packages, running full-package rediscovery, or full-feature
+rereview. Escalate to full discovery rereview only when the affected surfaces cannot be isolated or
+the original discovery review is invalidated by a broad delta under `fix-verification.md`.
+
 ## Fix Implementer Packet
 
 Each Fix Implementer receives:
