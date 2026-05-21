@@ -27,6 +27,25 @@ Create a release through one explicit Release Contract. Keep this workflow conci
 - Remote feature branch deletion is a separate opt-in cleanup decision. Offer the visible approve/delete vs keep call to action only in `publish` mode when a remote feature branch candidate exists. Default to keeping the remote branch unless the user explicitly approves deleting the exact remote ref. In `prepare-only`, state that remote feature branch deletion is not available in that contract.
 - If the workflow is already partially complete, resume from the observed state instead of repeating completed side effects.
 
+## Changelog Requirements
+
+When a release updates or creates `CHANGELOG.md`:
+
+- Follow a format based on [Keep a Changelog](https://keepachangelog.com/) without pinning the instruction to a specific Keep a Changelog version.
+- Preserve the repository's existing changelog convention when it is compatible: version heading style, date delimiter, `Unreleased` handling, compare/reference links, and any topic/domain subsections. Do not rewrite historical entries just to normalize style.
+- Identify notable release changes from the actual release diff, merge contents, commits since the previous release tag, and any existing `Unreleased` notes. Do not rely only on the implementation summary or assume everything is a new feature.
+- Classify entries by change kind. Actively look for additions, behavior changes, deprecations, removals, fixes, and security changes. Use the standard kinds `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, and `Security` when the changelog uses kind-based headings.
+- If the existing changelog uses topic/domain subsections instead of kind-based headings, preserve those subsections but make each bullet's kind clear with leading verbs such as `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, or `Security`.
+- Include every user-visible or operator-relevant notable change, fix, migration, compatibility change, and documentation/help update. Avoid catch-all feature-only summaries that omit fixes or behavior changes.
+- Write changelog content for humans, not Git history readers. Entries must read like product/operator release notes, not copied commit subjects, PR titles, task names, or branch names.
+- Translate implementation details into user-visible or operator-relevant outcomes: what changed, why it matters, who is affected, and what behavior is different. Avoid commit-style prefixes such as `feat:`, `fix:`, `chore:`, ticket IDs, hashes, file paths, internal function names, and raw package/module names unless they are meaningful to the reader.
+- Combine noisy low-level commits into coherent release-note bullets. Split bullets only when the reader would experience or operate the changes separately.
+- Use clear past-tense verbs and plain language. Prefer `Fixed Query Chat copy fallback so browsers without clipboard access no longer crash the chat UI.` over `fix: clipboard fallback`; prefer `Changed workspace creation so non-platform-admin users request new team workspaces instead of creating them directly.` over `refactor workspace permissions`.
+- Mention tests only when coverage or validation is itself notable to users/operators.
+- Before committing, do a changelog readability and coverage pass against the release diff and previous tag: revise if entries read like commit messages, are missing, misclassified, too implementation-heavy, or all collapsed under `Added` despite fixes, removals, migrations, compatibility changes, or behavior changes.
+- If an `Unreleased` section exists, move applicable entries into the new version section and recreate/leave an empty `Unreleased` section according to the repository convention.
+- If creating a new durable changelog convention, include the Keep a Changelog URL in the header text and mention Semantic Versioning only when the project uses SemVer.
+
 ## Step 1: Preflight
 
 Inspect and report:
@@ -35,7 +54,7 @@ Inspect and report:
 - Current working tree cleanliness.
 - Current version source(s) and latest `vX.Y.Z` tag.
 - Whether a feature branch is already merged into the base branch.
-- Whether `CHANGELOG.md` exists.
+- Whether `CHANGELOG.md` exists, and if so, its existing format: version heading style, date style, `Unreleased` convention, grouping style, and compare/reference links.
 - Whether GitHub CLI release operations are available when publishing is requested.
 
 Block before the Release Contract if the base branch is behind/diverged, version sources disagree, the working tree has unrelated changes, or the release target is ambiguous.
@@ -47,7 +66,7 @@ Present one compact contract before the first release side effect unless the cur
 - Mode: `prepare-only` or `publish`.
 - Base branch and feature branch, if any.
 - Proposed version and bump reason.
-- Changelog action.
+- Changelog action, including source range to inspect, how entries will be classified by kind, and how commit/PR-level details will be translated into human-readable release-note prose.
 - README/docs action.
 - Version files to update.
 - Local release checks to run.
@@ -77,7 +96,7 @@ Proposed version:
 - Reason: <patch/minor/major reason>
 
 Planned file changes:
-- Changelog: <update/create/skip and why>
+- Changelog: <update/create/skip and why; source range; grouping/classification style; human-readable release-note approach>
 - README/docs: <update/skip and why>
 - Version files: <exact files to update>
 
@@ -135,7 +154,7 @@ If the user has not already approved the full contract in the current request, a
 ## Step 3: Execute Release Contract
 
 1. Merge the contracted feature branch into the detected base branch with `--no-ff` only if it is not already merged.
-2. If `CHANGELOG.md` exists, update it using Keep a Changelog style with human-friendly entries. If missing, follow the contracted changelog action; default to skipping creation unless the contract explicitly creates a durable changelog convention.
+2. If `CHANGELOG.md` exists, update it according to **Changelog Requirements** above. Inspect the actual release diff and previous release tag before writing entries, preserve the repository's compatible existing style, and classify entries by kind so additions, changes, fixes, removals, deprecations, and security items are not collapsed into generic feature bullets. If missing, follow the contracted changelog action; default to skipping creation unless the contract explicitly creates a durable changelog convention.
 3. Update README/docs only when the release changes user-visible behavior or the docs are stale. If no docs update is needed, leave them unchanged and say so.
 4. Bump all authoritative project version sources. If multiple version files are present, keep them consistent.
 5. Draft GitHub release notes in simple human language.
