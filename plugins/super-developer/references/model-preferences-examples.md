@@ -2,7 +2,13 @@
 
 Optional examples for `model-preferences.md`; do not load this file for routine role resolution.
 
-Default role-aware behavior:
+Default inherit behavior:
+
+```yaml
+default-model: inherit
+```
+
+Explicit role-aware behavior:
 
 ```yaml
 default-model: adaptive

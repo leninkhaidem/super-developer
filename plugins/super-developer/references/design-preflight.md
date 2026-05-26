@@ -25,6 +25,22 @@ Skip Design Preflight for mechanical, narrow, low-risk changes where the existin
 
 Sub-agent output is advisory evidence. The main agent may accept, reject, combine, or reframe it, but must not silently convert unresolved semantic choices into durable decisions when user approval is required.
 
+## Model Preference Resolution
+
+Before spawning any Preflight challenger, resolve model preferences using the existing
+`references/model-preferences.md` procedure:
+
+- Standard planning/design challengers use the existing `review-plan` key.
+- Adversarial, security, privacy, safety, or failure-mode challengers use the existing
+  `skeptic-agent` key.
+- Do not add or document a Design Preflight, `implementation-plan`, or other new model-preference key.
+- If the resolved value is `inherit`, omit the model parameter so the challenger inherits the
+  orchestrator model.
+- If the resolved value is `adaptive`, use the same role interpretation as plan review: standard
+  planning challengers use the Plan Reviewer adaptive behavior; adversarial/failure-mode challengers
+  use the skeptic adaptive behavior.
+- If the resolved value is a model name, pass that exact model name to the challenger.
+
 ## Timing and Persistence
 
 - Run before writing `.tasks/<feature-name>/SPEC.md`, `.tasks/<feature-name>/tasks.json`, or any equivalent durable task artifact.
@@ -67,6 +83,7 @@ You are a read-only design challenger for Design Preflight.
 # Inputs
 - Preflight Brief: <brief text or path>
 - Relevant files/context: <bounded list>
+- Model preference: <resolved `review-plan` or `skeptic-agent` value; omit the dispatch model parameter when this is `inherit`>
 
 # Task
 Evaluate the design surface before durable plan artifacts are written. Identify the smallest set of decisions that must be made now to produce a coherent plan.

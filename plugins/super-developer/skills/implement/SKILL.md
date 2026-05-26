@@ -34,9 +34,9 @@ Tasks remain the tracking unit. Work packages are the delegation unit. Planned-f
 
 ## Step 2: Load Execution Settings
 
-Read `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/model-preferences.md` and resolve the `implement` key. Hardcoded default: `adaptive`.
+Read `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/model-preferences.md` and resolve the `implement` key. Hardcoded default: `inherit`.
 
-Adaptive means delegated packages usually use Opus; use Sonnet only for simple, patterned, unambiguous packages. `inherit` omits a model parameter. Specific model names are passed directly.
+`inherit` omits a model parameter so delegated packages inherit the orchestrator model. `adaptive` must come from the local preference file and means delegated packages usually use Opus; use Sonnet only for simple, patterned, unambiguous packages. Specific model names are passed directly.
 
 ## Step 3: Execution Contract Gate
 
