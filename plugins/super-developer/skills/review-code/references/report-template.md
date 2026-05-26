@@ -6,8 +6,18 @@ All review modes use this template. Substitute `<HEADER>` and `<METADATA>` per t
 - Local mode: values come from `local-workflow.md`.
 - Pipeline context: values come from `pipeline-report.md`.
 
+## Posting Strategy
+
+Reviews are posted as a **single structured Markdown body** — no inline diff comments. This
+optimizes for AI-agent consumption (single fetch, deterministic parsing) while remaining
+human-scannable as rendered Markdown. All finding locations are explicit via `Path:` fields.
+
 ````markdown
 ## <HEADER>
+
+**Verdict:** <APPROVE | REQUEST_CHANGES>
+**Findings:** <N> 🔴 | <N> 🟠 | <N> 🟡
+**Files reviewed:** <count> | **Lines:** +<insertions> / -<deletions>
 
 <METADATA>
 
@@ -17,20 +27,28 @@ All review modes use this template. Substitute `<HEADER>` and `<METADATA>` per t
 | <lens id/name> | <deep/sniff/not_applicable> | <deep/sniff/not_applicable> | <concrete coverage evidence or reason not applicable> | <required/reviewer-added> |
 
 ### 🔴 Blockers
-1. [Finding] — `<filename>`, Line <line>
-   <explanation>
-   Evidence: <evidence>
-   Recommendation: <fix or alternatives>
+
+#### 1. <title>
+- **Path:** `<filename>:<start_line>-<end_line>`
+- **Tags:** <comma-separated domain tags>
+- **Evidence:** <diff/code evidence sufficient for independent verification>
+- **Recommendation:** <concrete fix or alternatives with tradeoffs>
+- **Dedupe:** `<stable normalized dedupe key>`
 
 ### 🟠 Critical Issues
-1. [Finding] — `<filename>`, Line <line>
-   <explanation>
-   Evidence: <evidence>
-   Recommendation: <fix or alternatives>
 
-### 🟡 Suggestions _(non-blocking, report-only by default)_
-1. [Finding] — `<filename>`, Line <line>
-   Action: <specific, diff-relevant improvement>
+#### 1. <title>
+- **Path:** `<filename>:<start_line>-<end_line>`
+- **Tags:** <comma-separated domain tags>
+- **Evidence:** <diff/code evidence sufficient for independent verification>
+- **Recommendation:** <concrete fix or alternatives with tradeoffs>
+- **Dedupe:** `<stable normalized dedupe key>`
+
+### 🟡 Suggestions _(non-blocking)_
+
+#### 1. <title>
+- **Path:** `<filename>:<line>`
+- **Action:** <specific, diff-relevant improvement>
 
 ---
 _Review generated via bounded multi-agent analysis. All reported blockers and critical issues were

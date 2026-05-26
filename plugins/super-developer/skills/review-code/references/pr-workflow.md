@@ -66,8 +66,12 @@ Use `report-template.md` with:
 
 - **HEADER:** ``PR Review — #<number> `<head branch>` → `<base branch>` ``
 - **METADATA:** _(none for PR mode)_
+- **Verdict line:** `APPROVE` or `REQUEST_CHANGES` based on findings
+- **Findings count line:** aggregate 🔴 | 🟠 | 🟡 counts
 
-The report should read exactly as it would appear when posted as a PR comment.
+The report should read exactly as it would appear when posted as a single PR review body (no inline
+diff comments). All finding locations are expressed via explicit `Path:` fields for AI-agent
+parseability.
 
 **Verdict** (shown after the preview, not inside it):
 

@@ -48,17 +48,24 @@ Triggered only when the user explicitly responds `request-changes`. Confirmed �
 
 Run the PR Reviewed-State Revalidation Gate immediately before posting. If it fails, halt without posting and report the stale state.
 
+Post as a **body-only review** (no inline diff comments). The structured body contains explicit
+`Path:` fields for every finding, enabling AI-agent consumers to parse locations without fetching
+separate review comment resources.
+
+> **Variable substitution:** `{owner}` and `{repo}` are auto-resolved by `gh api`. The
+> `$PR_NUMBER` shell variable must be set from the PR metadata captured during Phase 1.
+
 ```bash
 gh api \
   --method POST \
-  /repos/{owner}/{repo}/pulls/{pull_number}/reviews \
+  "/repos/{owner}/{repo}/pulls/$PR_NUMBER/reviews" \
   --field event="REQUEST_CHANGES" \
   --field body="<review body>"
 ```
 
 **Review body:** Use `report-template.md` with:
 
-- **HEADER:** `PR Review — Changes Requested`
+- **HEADER:** ``PR Review — #<number> `<head branch>` → `<base branch>` — Changes Requested``
 - **METADATA:** _(none)_
 
 > **Approval Block Rule:** If 🔴 BLOCKERS or 🟠 CRITICALS are present and the user responds `approve`, refuse approval and do not post to GitHub. Inform the user:
@@ -75,19 +82,19 @@ Run the PR Reviewed-State Revalidation Gate immediately before approval. If it f
 Approval is a standalone side effect. It posts the approval review only; it must not merge the PR, delete the branch, or run any merge command.
 
 ```bash
-gh pr review <PR_IDENTIFIER> \
-  --approve \
-  --body "## PR Approved ✅
-
-Multi-agent review completed. No blockers or critical issues found.
-
-### 🟡 Suggestions _(non-blocking)_
-<list actionable deduplicated suggestions if any, or state 'None'>
-
----
-_Review generated via bounded multi-agent analysis. All serious findings were independently
-verified by the Skeptic Agent before reporting._"
+gh api \
+  --method POST \
+  "/repos/{owner}/{repo}/pulls/$PR_NUMBER/reviews" \
+  --field event="APPROVE" \
+  --field body="<review body>"
 ```
+
+**Review body:** Use `report-template.md` with:
+
+- **HEADER:** ``PR Review — #<number> `<head branch>` → `<base branch>` — Approved ✅``
+- **METADATA:** _(none)_
+- **Verdict line:** `APPROVE`
+- **Finding sections:** Omit 🔴 and 🟠 sections (none exist). Include 🟡 Suggestions if any; otherwise render `No issues found. ✅`.
 
 Report: Approval posted. Merge was not performed; respond with `merge` to run the separate merge workflow.
 
@@ -106,7 +113,7 @@ Then verify the PR's actual approval state for the same reviewed head state. Use
 gh pr view <PR_IDENTIFIER> --json number,reviewDecision,latestReviews,headRefOid
 
 # 2. If needed, inspect full review records including commit IDs and dismissed/stale state
-gh api /repos/{owner}/{repo}/pulls/{pull_number}/reviews
+gh api "/repos/{owner}/{repo}/pulls/$PR_NUMBER/reviews"
 ```
 
 The approval-state gate passes only when:
