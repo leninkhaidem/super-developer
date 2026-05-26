@@ -350,6 +350,131 @@ class GuardrailDocumentationRegressionTests(unittest.TestCase):
         self.assertIn("Gate 2 always blocks regardless of blanket-mode authorization", review_plan)
         self.assertIn("Reviewer contract:", review_plan)
 
+    def test_model_preferences_default_to_inherit_and_keep_adaptive_opt_in(self) -> None:
+        model_preferences = self.read_doc("references/model-preferences.md")
+        examples = self.read_doc("references/model-preferences-examples.md")
+        implement = self.read_doc("skills/implement/SKILL.md")
+        review_plan = self.read_doc("skills/review-plan/SKILL.md")
+        review_code = self.read_doc("skills/review-code/SKILL.md")
+        compact_preferences = " ".join(model_preferences.split())
+
+        self.assertIn("default-model: inherit", model_preferences)
+        self.assertIn("create it with `default-model: inherit`", compact_preferences)
+        self.assertIn("matches having no preferences file", compact_preferences)
+        self.assertIn("Use `adaptive` only when the local preference file explicitly opts", compact_preferences)
+        self.assertIn("| `implement` | `inherit` |", model_preferences)
+        self.assertIn("| `review-plan` | `inherit` |", model_preferences)
+        self.assertIn("| `review-code` | `inherit` |", model_preferences)
+
+        self.assertIn("Default inherit behavior", examples)
+        self.assertIn("default-model: inherit", examples)
+        self.assertIn("Explicit role-aware behavior", examples)
+        self.assertIn("default-model: adaptive", examples)
+
+        for skill_text in (implement, review_plan, review_code):
+            with self.subTest(skill_text=skill_text[:40]):
+                self.assertIn("Hardcoded default: `inherit`", skill_text)
+        self.assertIn("`adaptive` must come from the local preference file", implement)
+        self.assertIn("`adaptive` must come from the local preference file", review_plan)
+
+    def test_design_preflight_resolves_existing_model_preferences(self) -> None:
+        implementation_plan = self.read_doc("skills/implementation-plan/SKILL.md")
+        design_preflight = self.read_doc("references/design-preflight.md")
+
+        for text in (implementation_plan, design_preflight):
+            with self.subTest(document=text[:40]):
+                self.assertIn("resolve model preferences", text)
+                self.assertIn("`review-plan` key", text)
+                self.assertIn("`skeptic-agent` key", text)
+                self.assertIn("resolved value is `inherit`", text)
+                self.assertIn("omit the model parameter", text)
+                self.assertIn("`adaptive`", text)
+                self.assertIn("model name", text)
+
+        self.assertIn("If a resolved value is `inherit`, omit the model parameter", implementation_plan)
+        self.assertIn("If the resolved value is `inherit`, omit the model parameter", design_preflight)
+        self.assertIn("if it is `adaptive`, apply the role's existing adaptive behavior", implementation_plan)
+        self.assertIn("If the resolved value is `adaptive`, use the same role interpretation", design_preflight)
+        self.assertIn("if it is a model name, pass that model name directly", implementation_plan)
+        self.assertIn("If the resolved value is a model name, pass that exact model name", design_preflight)
+        self.assertIn("Do not introduce an implementation-plan or preflight-specific model key", implementation_plan)
+        self.assertIn("Do not add or document a Design Preflight, `implementation-plan`, or other new model-preference key", design_preflight)
+        self.assertIn("Model preference: <resolved `review-plan` or `skeptic-agent` value", design_preflight)
+
+    def test_parallel_work_package_guidance_prefers_safe_useful_waves(self) -> None:
+        work_packages = self.read_doc("references/work-packages.md")
+        authoring = self.read_doc("skills/implementation-plan/references/tasks-json-authoring.md")
+        validation = self.read_doc("skills/implementation-plan/references/validation-checklist.md")
+        dispatch = self.read_doc("skills/implement/references/package-dispatch.md")
+
+        self.assertIn("largest safe useful wave", work_packages)
+        self.assertIn("prefer a safe useful parallel wave", work_packages)
+        self.assertIn("does not mean maximizing sub-agent count", work_packages)
+        self.assertIn("When overlap is ambiguous", work_packages)
+        self.assertIn("combine or serialize packages", work_packages)
+
+        self.assertIn("Perform an explicit parallelism pass", authoring)
+        self.assertIn("Prefer the largest safe useful parallel wave", authoring)
+        self.assertIn("Do not split coherent work merely", authoring)
+        self.assertIn("Artificial parallelism is absent", validation)
+        self.assertIn("preferred safe useful parallel waves", validation)
+
+        self.assertIn("Collect all externally actionable packages, then choose the largest safe useful batch", dispatch)
+        self.assertIn("Do not maximize sub-agent count", dispatch)
+        self.assertIn("Avoid unnecessary serialization", dispatch)
+        self.assertIn("share a contract, API, schema, config surface, files, ambiguous impact", dispatch)
+
+    def test_parallel_package_review_guidance_is_state_bound_and_invalidated(self) -> None:
+        work_packages = self.read_doc("references/work-packages.md")
+        checkpoint = self.read_doc("skills/implement/references/integration-checkpoint.md")
+
+        for text in (work_packages, checkpoint):
+            with self.subTest(document=text[:40]):
+                self.assertIn("same concrete stable integration state", text)
+                self.assertIn("review scopes are independent", text)
+                self.assertIn("repair mutation", text)
+                self.assertIn("invalidate or refresh", text)
+                self.assertIn("targeted-review receipts", text)
+
+        self.assertIn("same integration `HEAD`", checkpoint)
+        self.assertIn("live repair/mutation stream", checkpoint)
+        self.assertIn("uncertain impact fails closed", checkpoint)
+
+    def test_parallelism_change_preserves_command_safety_and_schema_boundaries(self) -> None:
+        work_packages = self.read_doc("references/work-packages.md")
+        authoring = self.read_doc("skills/implementation-plan/references/tasks-json-authoring.md")
+        validation = self.read_doc("skills/implementation-plan/references/validation-checklist.md")
+        implement = self.read_doc("skills/implement/SKILL.md")
+        implementation_plan = self.read_doc("skills/implementation-plan/SKILL.md")
+        design_preflight = self.read_doc("references/design-preflight.md")
+        validator = self.read_doc("assets/validate-tasks-json.py")
+
+        for text in (work_packages, authoring):
+            with self.subTest(command_safety_document=text[:40]):
+                self.assertIn("Treat `verification_commands` as executable inputs", text)
+                self.assertIn("explicit", text)
+                self.assertIn("approval", text)
+        self.assertIn("Command-safety approval rule", implement)
+        self.assertIn("Treat plan verification commands as executable inputs", implement)
+
+        self.assertIn("Do not add new schema fields", authoring)
+        self.assertIn("encoded in existing schema fields", validation)
+        self.assertIn("Do not introduce an implementation-plan or preflight-specific model key", implementation_plan)
+        self.assertIn("Do not add or document a Design Preflight, `implementation-plan`, or other new model-preference key", design_preflight)
+        for forbidden in (
+            '"wave"',
+            "'wave'",
+            '"batch"',
+            "'batch'",
+            '"serial_rationale"',
+            "'serial_rationale'",
+            "model-preferences",
+            "default-model",
+            "skeptic-agent",
+        ):
+            with self.subTest(forbidden=forbidden):
+                self.assertNotIn(forbidden, validator)
+
     def test_model_preferences_preserve_fallback_and_skeptic_semantics(self) -> None:
         model_preferences = self.read_doc("references/model-preferences.md")
 
