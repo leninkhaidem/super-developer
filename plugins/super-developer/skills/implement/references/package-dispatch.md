@@ -31,7 +31,7 @@ Classify likely overlap, not just listed path overlap. Packages that touch the s
 
 Use `taskctl.py must-prove --package <WP-ID>` with its default known-risk source, or pass `--known-risk-source ${SUPER_DEVELOPER_PLUGIN_ROOT}/references/known-risk-patterns.md` when needed, to derive applicable generic probes without loading the risk reference into orchestrator context by default. Use known-risk output only as a prompt source; do not create new risk tags, durable checklist sections, or feature-specific taxonomy entries from it.
 
-When file impact is ambiguous, serialize. The cost of serialization is latency; the cost of unsafe parallelism is merge conflicts or inconsistent design.
+When file impact is ambiguous, shared files or contracts are likely, or subsystem impact is unsafe, serialize or merge packages. The cost of serialization is latency; the cost of unsafe parallelism is merge conflicts or inconsistent design.
 
 ## Runtime Adjustment Rules
 
@@ -40,9 +40,9 @@ The orchestrator may merge, split, defer, or serialize planned packages when cur
 Allowed adjustments:
 
 - **Merge** small or tightly coupled packages that would otherwise force duplicate exploration or conflict.
-- **Split** only when a planned package is too broad to reason about safely and the split preserves acceptance-criterion traceability.
+- **Split** only when a planned package is too broad to reason about safely and the split preserves acceptance-criterion traceability; do not split coherent work just to increase parallelism.
 - **Defer** when dependencies, blocked tasks, missing facts, or unsafe command approval prevent dispatch.
-- **Serialize** when likely file impact overlaps or prior package output must be integrated first.
+- **Serialize** when likely file impact overlaps, packages share files/contracts/API/schema/configuration surfaces, impact is ambiguous, subsystem impact is unsafe, or prior package output must be integrated first.
 
 When adjustment changes risk, context-bundle needs, verification commands, or package-review depth/lenses, update the Execution Contract before dispatch. Do not silently downgrade enhanced review lenses while a triggering risk tag remains.
 
@@ -70,13 +70,14 @@ Do not run both a separate semantic package review and a targeted package review
 
 ## Batch Selection
 
-Collect all externally actionable packages, then choose the safest useful batch:
+Collect all externally actionable packages, then choose the largest safe useful batch:
 
-1. Prefer packages whose dependencies are satisfied and whose likely file impact does not overlap.
-2. Parallelize only substantial packages with safe dependency and file boundaries.
-3. Do not maximize sub-agent count for its own sake.
-4. If a downstream package needs earlier feature work, run it only after prerequisite packages merge into `feature/<feature>`; branch it from the feature ref.
-5. If two packages are both actionable but share a contract, API, schema, or config surface, serialize them or merge them.
+1. Prefer packages whose dependencies are satisfied and whose likely file impact, subsystem boundaries, and caller contracts do not overlap.
+2. Parallelize substantial coherent packages as a wave when they have safe dependency, file, subsystem, and contract boundaries.
+3. Do not maximize sub-agent count for its own sake, and do not split coherent packages merely to manufacture parallelism.
+4. Avoid unnecessary serialization: if multiple substantial packages are independently actionable and non-overlapping, dispatch them together unless there is a concrete dependency, file-impact, shared-contract, or subsystem-safety reason not to.
+5. If a downstream package needs earlier feature work, run it only after prerequisite packages merge into `feature/<feature>`; branch it from the feature ref.
+6. If two packages are both actionable but share a contract, API, schema, config surface, files, ambiguous impact, or unsafe subsystem boundary, serialize them or merge them.
 
 ## Delegation Mode
 
@@ -100,5 +101,5 @@ Before spawning agents, announce:
 - screened package verification commands and any commands needing approval, plus separate broad/expensive integration or final checks that are not package `verification_commands`;
 - mandatory package self-review expectation;
 - model selection;
-- parallel or serial rationale;
+- parallel or serial rationale, including the safe useful wave chosen or the concrete reason independent-looking packages were serialized;
 - any runtime package adjustments.

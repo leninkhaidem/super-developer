@@ -4,7 +4,7 @@ Work packages are the delegation unit for Super Developer implementation. Tasks 
 
 ## Core Principle
 
-Delegate substantial coherent work packages, not individual small tasks. Use parallel sub-agents for multiple substantial packages that can proceed safely at the same time.
+Delegate substantial coherent work packages, not individual small tasks. Actively look for the largest safe useful wave of substantial packages that can proceed at the same time, then dispatch that wave in parallel. Preferred parallelism means reducing latency with coherent, non-overlapping work; it does not mean maximizing sub-agent count or splitting work purely to create more agents.
 
 ## Task vs Work Package
 
@@ -35,7 +35,7 @@ A work package may contain tasks that depend on each other. The sub-agent handle
 
 ## Parallel Safety
 
-Mark packages as parallel-safe only when likely file ownership and subsystem boundaries do not overlap. When unsure, combine or serialize packages. The cost of serialization is latency; the cost of unsafe parallelism is merge conflicts and inconsistent design.
+Mark packages as parallel-safe only when likely file ownership, subsystem boundaries, and caller contracts do not overlap. When several packages are independently substantial and non-overlapping, prefer a safe useful parallel wave rather than leaving them serialized by default. When overlap is ambiguous, files are shared, subsystem impact is unsafe, or the packages touch the same contract/API/schema/configuration surface, combine or serialize packages. The cost of serialization is latency; the cost of unsafe parallelism is merge conflicts and inconsistent design.
 
 `parallel_safe_with` is a symmetric relation: if `WPx` lists `WPy`, then `WPy` must list `WPx`. A package never lists itself.
 
@@ -77,6 +77,8 @@ Plans include:
 - `required_context_bundles`: context bundle IDs package agents must read and cite.
 - `targeted_review_required`: compatibility boolean for the existing `targeted_review.required` receipt field. Author every new work package with `targeted_review_required: true`; this field no longer decides whether package review runs.
 
+Targeted package reviews for packages from the same completed implementation batch may run as a parallel review wave only when every reviewer inspects the same concrete stable integration state and their review scopes are independent. No repair mutation or other state-changing work may run concurrently with that review wave. Any later repair, merge-resolution change, proof refresh, or other state-changing mutation that can affect a package's accepted surface must invalidate or refresh the affected package proofs and targeted-review receipts before acceptance.
+
 Every work package must pass mandatory package review before task completion. The accepted package proof must include the existing minimal root `targeted_review` object: `required`, `performed`, `reviewer`, `result`, `evidence`, and `reviewed_at`. Keep `evidence` to a compact, state-bound receipt summary of the reviewed integrated package state, review depth/lenses, test scope, safety sniff, serious finding count/closure, and repair/delta-verification closure when applicable. Do not add a `package_review` field, review histories, event logs, transcripts, or parallel ledgers.
 
 Risk tags that trigger enhanced review lenses include:
@@ -114,6 +116,7 @@ When runtime adjustment changes package risk, context-bundle needs, verification
 
 - One work package per small task.
 - Maximizing sub-agent count just because tasks are independent.
+- Leaving substantial, independent, non-overlapping packages serialized without a concrete dependency, file-impact, or contract-safety reason.
 - Splitting tasks that touch the same files or subsystem.
 - Bundling unrelated subsystems into a vague mega-package.
 - Marking packages parallel-safe without checking likely file overlap.
