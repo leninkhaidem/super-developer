@@ -173,7 +173,10 @@ Use `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/work-packages.md` as the source o
 - Fill `primary_paths` with likely files/directories to inspect first when known.
 - Fill `verification_commands` only with commands known to exist or strongly implied by the project. Use `[]` rather than inventing commands.
 - Treat `verification_commands` as executable inputs: they must be scoped, deterministic, and known-safe. Unsafe, externally visible, credential/network-sensitive, dependency-installing, or overly broad commands require explicit Execution Contract approval before implementation runs them.
-- Use `parallel_safe_with` conservatively. Default to `[]` unless likely file/module impact is verified. If two packages touch the same subsystem or files, combine or serialize them.
+- Perform an explicit parallelism pass after drafting package boundaries: identify safe useful pairs or waves of substantial packages whose dependencies, likely files, subsystem boundaries, and caller contracts do not overlap.
+- Prefer the largest safe useful parallel wave when independent packages can proceed together. Do not leave substantial non-overlapping packages serialized without a concrete dependency, file-impact, shared-contract, or subsystem-safety reason in the package rationale or design decisions.
+- Use `parallel_safe_with` conservatively. Default to `[]` unless likely file/module/contract impact is verified. If two packages touch the same subsystem, files, shared contract/API/schema/configuration surface, or have ambiguous impact, combine or serialize them.
+- Do not split coherent work merely to increase `parallel_safe_with` entries or maximize sub-agent count; artificial parallelism is an anti-pattern.
 - Use package boundaries to keep caller contracts, migrations, failure modes, or cross-module invariants visible to one agent when needed.
 - Set `targeted_review_required: true` for every new work package. Keep the field because the existing `targeted_review` receipt shape uses it as compatibility metadata; do not treat it as the switch for whether package review runs.
 - Use risk tags per `validate-tasks-json.py` and `work-packages.md` to select package-review depth/lenses and evidence obligations; do not copy a long taxonomy into plans or skills.

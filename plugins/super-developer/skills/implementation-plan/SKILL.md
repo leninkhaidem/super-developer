@@ -46,6 +46,8 @@ During planning, surface foreseeable risks where relevant: caller contracts and 
 
 Read `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/design-preflight.md`. Before creating `.tasks/<feature-name>/` or writing files, decide whether Design Preflight is triggered by nontrivial or risky planning. Skip only for straightforward, low-risk plans.
 
+When Design Preflight will spawn challengers, read `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/model-preferences.md` and resolve model preferences before dispatch. Use the existing `review-plan` key for standard planning challengers and the existing `skeptic-agent` key for adversarial, security, privacy, safety, or failure-mode challengers. Do not introduce an implementation-plan or preflight-specific model key. If a resolved value is `inherit`, omit the model parameter so the challenger inherits the orchestrator model; if it is `adaptive`, apply the role's existing adaptive behavior; if it is a model name, pass that model name directly.
+
 When preflight runs:
 - Create an ephemeral, neutral Preflight Brief from user-stated requirements, verified code references, any proposed approach under consideration, and open assumptions.
 - Do not persist the brief under `.tasks/`, include it in `SPEC.md`, or write it as a durable project file.

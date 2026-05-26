@@ -52,7 +52,10 @@ Use `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/work-packages.md` for source-of-t
 - Package IDs are coherent and sequential.
 - Every package task reference points to a valid task.
 - `depends_on` and `parallel_safe_with` point to valid package IDs.
-- `parallel_safe_with` is symmetric and conservative based on likely file/module impact.
+- `parallel_safe_with` is symmetric and conservative based on likely file/module/contract impact.
+- The plan includes an explicit safe-parallelism pass: substantial packages that can proceed together without dependency, file, subsystem, or shared-contract overlap are marked as a safe useful wave rather than serialized by habit.
+- Any substantial, independent, non-overlapping packages left serialized have a concrete dependency, file-impact, shared-contract, or subsystem-safety reason.
+- Artificial parallelism is absent: packages are not split merely to maximize sub-agent count, and ambiguous overlap/shared files/shared contracts/unsafe subsystem impact are combined or serialized.
 - A package does not list itself as dependent or parallel-safe.
 - Package dependencies do not contradict task dependencies.
 - One-task work packages have a rationale explaining why the task is substantial, risky, or naturally isolated.
@@ -79,6 +82,6 @@ After the validator passes:
 - Confirm `SPEC.md` still satisfies the source and purity rules.
 - Confirm `tasks.json` still matches the intended plan after any validator-driven corrections.
 - Confirm all SPEC `REQ-*` and `AC-*` IDs are traced by task acceptance criteria.
-- Confirm work-package grouping still reflects the plan after any edits: coherent packages, conservative parallelism, safe commands, and correct targeted-review metadata.
+- Confirm work-package grouping still reflects the plan after any edits: coherent packages, preferred safe useful parallel waves, conservative serialization for ambiguity or shared contracts, safe commands, and correct targeted-review metadata.
 - Confirm no machine-owned long taxonomy was copied into the plan or references when a pointer to `validate-tasks-json.py` or `work-packages.md` is the correct source.
 - Confirm the summary to the user lists feature path, phase-by-phase tasks, dependencies, and assumptions without adding new requirements.

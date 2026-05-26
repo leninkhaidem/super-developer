@@ -59,7 +59,7 @@ When the accepted approach is coherent enough to review, check artifact quality:
 - Are caller contracts and public API compatibility preserved or explicitly planned as accepted changes?
 - Are trust boundaries, invalid/malicious input handling, and distinguishable failure states visible where relevant?
 - Are migration, rollback, idempotency, partial-failure, and data-integrity concerns addressed when persistence or destructive actions are involved?
-- Are module/dependency boundaries coherent, with work packages grouped to avoid unnecessary coupling, oversized edits, or artificial parallelism?
+- Are module/dependency boundaries coherent, with work packages grouped to avoid unnecessary coupling, oversized edits, artificial parallelism, or unnecessary serialization of substantial non-overlapping packages that could form a safe useful parallel wave?
 - Are performance/concurrency implications called out with measurable bounds or verification when the plan can affect resource usage, fanout, latency, races, cancellation, or cleanup?
 - Are `design_decisions` IDs sequential (`DD-1`, `DD-2`, ...) with no gaps and valid `source` values?
 - Are plan artifacts internally consistent and schema-compatible?
@@ -94,4 +94,4 @@ Primary failure mode: implementation ships a dangerous edge case because the pla
 
 ## Reviewer Selection
 
-Default to one Plan Reviewer. Add the Security/Failure-Mode Reviewer only for security/privacy/safety-sensitive plans or when the Plan Reviewer requests escalation. More reviewers are not inherently better; split review only when a distinct risk surface needs dedicated attention.
+Default to one Plan Reviewer. Add the Security/Failure-Mode Reviewer only for security/privacy/safety-sensitive plans or when the Plan Reviewer requests escalation. More reviewers are not inherently better; split review only when a distinct risk surface needs dedicated attention, not to maximize reviewer or sub-agent count.

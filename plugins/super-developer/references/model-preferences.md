@@ -11,8 +11,11 @@ Path: `$PROJECT_ROOT/.claude/model-preferences.yml`.
 On first run, create the local, gitignored preference file when missing:
 
 ```yaml
-default-model: adaptive
+default-model: inherit
 ```
+
+This default preserves the orchestrator's currently selected model for delegated sub-agents. Use
+`adaptive` only when the local preference file explicitly opts into role-aware model selection.
 
 Ensure `.claude/model-preferences.yml` is ignored; this is local developer preference, not
 repository state.
@@ -20,11 +23,11 @@ repository state.
 ## Schema and Role Keys
 
 ```yaml
-default-model: adaptive      # global default for all agents
-skeptic-agent: adaptive      # adversarial reviewers across skills
-implement: adaptive          # implementation sub-agents
-review-plan: adaptive        # Plan Reviewer
-review-code: inherit         # Code/Specialist reviewers
+default-model: inherit       # global default for all agents; omit model parameter
+skeptic-agent: adaptive      # optional: adversarial reviewers across skills
+implement: adaptive          # optional: implementation sub-agents
+review-plan: adaptive        # optional: Plan Reviewer
+review-code: inherit         # optional: Code/Specialist reviewers
 ```
 
 | Key | Controls | Fallback |
@@ -48,8 +51,8 @@ agents across skills so users can pair cheaper standard agents with a stronger v
 
 | Value | Meaning |
 |---|---|
-| `adaptive` | Use the invoking skill's built-in role logic. |
-| `inherit` | Omit the model parameter so the sub-agent inherits the orchestrator model. At `default-model`, this matches having no preferences file. |
+| `inherit` | Omit the model parameter so the sub-agent inherits the orchestrator model. At `default-model`, this is the default and matches having no preferences file. |
+| `adaptive` | Explicitly opt into the invoking skill's built-in role logic. |
 | `<model-name>` | Pass the exact model name, such as `claude-opus-4` or `claude-sonnet-4`. |
 
 Adaptive meanings:
@@ -63,7 +66,7 @@ Adaptive meanings:
 
 ## Resolution Procedure
 
-1. Read `.claude/model-preferences.yml`; if missing, create it with `default-model: adaptive` and
+1. Read `.claude/model-preferences.yml`; if missing, create it with `default-model: inherit` and
    ensure it is gitignored.
 2. Normalize legacy files: `strategy` is treated as `default-model` only when `default-model` is
    absent; if both exist, `default-model` wins and `strategy` is ignored.
@@ -81,8 +84,8 @@ Hardcoded defaults are the final safety net only when the file exists but both t
 
 | Skill | Hardcoded default |
 |---|---|
-| `implement` | `adaptive` |
-| `review-plan` | `adaptive` |
+| `implement` | `inherit` |
+| `review-plan` | `inherit` |
 | `review-code` | `inherit` |
 
 Load `references/model-preferences-examples.md` only when a user asks for sample configurations or
