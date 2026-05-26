@@ -49,10 +49,10 @@ If the validator exits non-zero, report its failures as blockers and resolve the
 Read `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/model-preferences.md` for the canonical schema and resolution procedure.
 
 Resolve model preferences for two reviewer roles:
-- **Plan Reviewer:** Uses the `review-plan` key. Hardcoded default: `adaptive`.
-- **Security/Failure-Mode Reviewer:** Uses the `skeptic-agent` key. Hardcoded default: `adaptive`. Spawn only when Step 5 selects dedicated security review.
+- **Plan Reviewer:** Uses the `review-plan` key. Hardcoded default: `inherit`.
+- **Security/Failure-Mode Reviewer:** Uses the `skeptic-agent` key. Hardcoded default: `inherit`. Spawn only when Step 5 selects dedicated security review.
 
-**Adaptive interpretation for review-plan:** The Plan Reviewer uses Sonnet. The Security/Failure-Mode Reviewer is governed by the `skeptic-agent` key; when `skeptic-agent` resolves to `adaptive`, use the strongest available model (Opus).
+`inherit` omits the model parameter so reviewers inherit the orchestrator model. **Adaptive interpretation for review-plan:** `adaptive` must come from the local preference file; the Plan Reviewer uses Sonnet. The Security/Failure-Mode Reviewer is governed by the `skeptic-agent` key; when `skeptic-agent` resolves to `adaptive`, use the strongest available model (Opus).
 
 This is a role-shape change only. The `review-plan` and `skeptic-agent` keys, fallback chain, and adaptive resolution semantics defined in `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/model-preferences.md` are unchanged.
 
