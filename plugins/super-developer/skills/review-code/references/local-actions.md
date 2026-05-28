@@ -14,7 +14,7 @@ Only proceed when the user responds with one of these keywords:
 |---|---|
 | `fix` | Delegate fixes for confirmed 🔴 and 🟠 findings to a Fix Implementer, then require delegated Fix Verification Review before any post-fix commit or readiness action (Workflow A below). |
 | `commit` | Stage and commit the reviewed state as-is — only if no 🔴 BLOCKERS and state revalidation passes (Workflow B below). |
-| `details <N>` | Expand finding N with full context, code snippet, and recommended fix. Return to Phase 5. |
+| `details <N>` | Expand finding N with developer-facing context, code snippet, evidence, and recommended fix. Do not expose internal coverage rows, raw tags, dedupe/tracking keys, lifecycle fields, or state/fix metadata unless the user explicitly asks for diagnostics. Return to Phase 5. |
 | `abort` | No action. Close session cleanly. |
 
 > Any response other than these keywords → clarification prompt.
@@ -107,7 +107,7 @@ git commit -m "<concise summary of changes>"
 
 ## Workflow C — `details <N>`
 
-Expand finding N with full context, code snippet, evidence, Skeptic verdict for serious findings, and recommended fix. Do not mutate files or state. Return to Phase 5 after presenting details.
+Expand finding N with developer-facing context, code snippet, evidence, Skeptic confirmation summary for serious findings, and recommended fix. Do not expose internal coverage rows, raw tags, dedupe/tracking keys, lifecycle fields, or state/fix metadata unless the user explicitly asks for diagnostics. Do not mutate files or state. Return to Phase 5 after presenting details.
 
 ---
 

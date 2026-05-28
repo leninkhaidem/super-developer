@@ -40,16 +40,19 @@ DISCOVERY_COVERAGE:
 | <lens id/name> | deep/sniff/not_applicable | deep/sniff/not_applicable | <concrete files, symbols, paths, contracts, or reason N/A applies> | required/reviewer-added |
 ```
 
-Coverage rows are evidence, not findings. They must be concrete enough for the orchestrator to see
-what was inspected: cite files, symbols, call paths, task/package evidence, or the specific reason a
-lens is not applicable. For test-related lenses, name whether review was deep, sampled, or not
-reviewed and cite the test files, test-scope receipt, or trigger that supports that depth. In planned-
-feature pipeline context, package review test-scope receipts may support package-local test coverage
-only when the receipt trust gate in `pipeline-report.md` is satisfied; otherwise record a coverage gap
-instead of claiming a clean lens. Vague boilerplate such as `looks good`, `no issues found`, `covered`,
-`seems fine`, or bare `N/A` is not valid coverage evidence. Missing or vague required-lens rows are
-incomplete coverage, not a clean review. A clean discovery review still returns the coverage table,
-followed by `NONE` when there are no reportable findings.
+Coverage rows are internal evidence, not findings. They must be concrete enough for the orchestrator
+to see what was inspected: cite files, symbols, call paths, task/package evidence, or the specific
+reason a lens is not applicable. For test-related lenses, name whether review was deep, sampled, or
+not reviewed and cite the test files, test-scope receipt, or trigger that supports that depth. In
+planned-feature pipeline context, package review test-scope receipts may support package-local test
+coverage only when the receipt trust gate in `pipeline-report.md` is satisfied; otherwise record a
+coverage gap instead of claiming a clean lens. Vague boilerplate such as `looks good`, `no issues
+found`, `covered`, `seems fine`, or bare `N/A` is not valid coverage evidence. Missing or vague
+required-lens rows are incomplete coverage, not a clean review. A clean discovery review still returns
+the coverage table internally, followed by `NONE` when there are no reportable findings.
+
+Do not copy raw `DISCOVERY_COVERAGE` into user-facing reports. `report-template.md` owns rendered
+review output and intentionally omits the coverage table.
 
 ## Canonical Finding Fields
 
@@ -59,19 +62,23 @@ fix workflows without hidden fields later.
 | Field | Requirement |
 |---|---|
 | `severity` | 🔴 BLOCKER, 🟠 CRITICAL, or 🟡 SUGGESTION. |
-| `tags` | Domain tags such as `security`, `privacy`, `safety`, `data-integrity`, `migration`, `persistence`, `performance`, `public-api`, `architecture`, `cross-module`, `tests`, `docs`, or `task-awareness`. |
+| `tags` | Internal domain tags such as `security`, `privacy`, `safety`, `data-integrity`, `migration`, `persistence`, `performance`, `public-api`, `architecture`, `cross-module`, `tests`, `docs`, or `task-awareness`, used for routing, filtering, and prioritization. Do not render raw tags in user-facing reports. |
 | `location` | File and line range when available; otherwise the smallest diff hunk, symbol, or module that supports the finding. |
 | `title` | Short, specific summary. |
 | `evidence` | Diff/code evidence sufficient for a reviewer to reproduce the concern. Serious findings require enough evidence for independent Skeptic verification. |
 | `introduced_by_change` | `yes`, `no`, or `unclear`, with the reason. Findings not introduced by the reviewed change are disputed for 🔴/🟠 unless the mode explicitly asks for broader audit. |
 | `task_awareness_signal` | `none`, `omission`, `contradiction`, or `regression`; include the referenced planned requirement or acceptance criterion when available. Audit remains authoritative for completeness. |
 | `recommendation` | Concrete fix recommendation, or alternatives when materially different approaches exist. Alternatives must identify runtime behavior, blast radius, and public-surface tradeoffs. |
-| `dedupe_key` | Stable key based on normalized root cause plus location/symbol, used across reviewers and big-diff batches. |
+| `dedupe_key` | Internal stable key based on normalized root cause plus location/symbol, used across reviewers, big-diff batches, state snapshots, and fix verification. Do not render raw dedupe keys in user-facing reports. |
 | `skeptic_verdict` | `not-required`, `confirmed`, `disputed`, or `downgraded`. Reviewers initialize this as `not-required`; the Skeptic updates 🔴/🟠 findings before reporting. |
 | `suggestion_actionability` | For 🟡 only: explain why the suggestion is actionable, diff-relevant, non-duplicative, and report-only by default; note bounded bundle eligibility only when every condition below is met. |
 | `fix_status` | `unfixed`, `fix-proposed`, `fix-applied`, `verified`, `reopened`, or `not-applicable`. |
 
-## Reviewer Output Format
+## Internal Reviewer Output Format
+
+The fields below are for reviewer-to-orchestrator communication. The rendered report must be produced
+through `report-template.md`, which omits raw `TAGS`, `DEDUPE_KEY`, coverage rows, lifecycle fields,
+and other orchestration metadata from user-facing review feedback.
 
 ```markdown
 [SEV] FILE:LINE — TITLE

@@ -97,7 +97,7 @@ Load `decision-filter.md` when a pipeline fix may require a product or architect
 | Keyword | Action |
 |---|---|
 | `fix` | Pipeline-context only: follow the Pipeline Auto-Resolve Sequence: delegate confirmed 🔴 and 🟠 findings in coherent batches by root cause, work package, risk class, or shared invariant, then run Fix Verification Review for the assigned dedupe keys. Under blanket/auto-resolve mode, design-decision findings require a decision card first; all other eligible fixes are delegated silently after state revalidation passes. |
-| `details <N>` | Expand finding N with full context and recommended fix. Return to gated actions. |
+| `details <N>` | Expand finding N with developer-facing context and recommended fix. Do not expose internal coverage rows, raw tags, dedupe/tracking keys, lifecycle fields, or state/fix metadata unless the user explicitly asks for diagnostics. Return to gated actions. |
 | `abort` | No changes. Close review. |
 
 `commit` is not offered as a separate pipeline action. Use `fix` to delegate corrections; the Fix

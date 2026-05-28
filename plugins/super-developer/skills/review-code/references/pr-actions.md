@@ -67,6 +67,8 @@ gh api \
 
 - **HEADER:** ``PR Review — #<number> `<head branch>` → `<base branch>` — Changes Requested``
 - **METADATA:** _(none)_
+- **OPTIONAL_VERDICT_LINE:** ``**Verdict:** REQUEST_CHANGES``
+- **Internal metadata:** omit `DISCOVERY_COVERAGE`, raw tags, and dedupe/tracking keys.
 
 > **Approval Block Rule:** If 🔴 BLOCKERS or 🟠 CRITICALS are present and the user responds `approve`, refuse approval and do not post to GitHub. Inform the user:
 > *"Blockers or critical issues were detected, so approval is blocked. Respond with `request-changes` to post the review, or `abort` to take no GitHub action."*
@@ -93,8 +95,9 @@ gh api \
 
 - **HEADER:** ``PR Review — #<number> `<head branch>` → `<base branch>` — Approved ✅``
 - **METADATA:** _(none)_
-- **Verdict line:** `APPROVE`
+- **OPTIONAL_VERDICT_LINE:** ``**Verdict:** APPROVE``
 - **Finding sections:** Omit 🔴 and 🟠 sections (none exist). Include 🟡 Suggestions if any; otherwise render `No issues found. ✅`.
+- **Internal metadata:** omit `DISCOVERY_COVERAGE`, raw tags, and dedupe/tracking keys.
 
 Report: Approval posted. Merge was not performed; respond with `merge` to run the separate merge workflow.
 

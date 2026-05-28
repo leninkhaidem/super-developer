@@ -6,6 +6,11 @@ All review modes use this template. Substitute `<HEADER>` and `<METADATA>` per t
 - Local mode: values come from `local-workflow.md`.
 - Pipeline context: values come from `pipeline-report.md`.
 
+Rendered review reports are developer-facing. Internal reviewer metadata such as
+`DISCOVERY_COVERAGE`, `tags`, and `dedupe_key` remains available to the orchestrator for coverage
+validation, routing, deduplication, state snapshots, and fix verification, but is not shown in the
+user-facing report.
+
 ## Posting Strategy
 
 Reviews are posted as a **single structured Markdown body** — no inline diff comments. This
@@ -15,34 +20,25 @@ human-scannable as rendered Markdown. All finding locations are explicit via `Pa
 ````markdown
 ## <HEADER>
 
-**Verdict:** <APPROVE | REQUEST_CHANGES>
+<OPTIONAL_VERDICT_LINE>
 **Findings:** <N> 🔴 | <N> 🟠 | <N> 🟡
 **Files reviewed:** <count> | **Lines:** +<insertions> / -<deletions>
 
 <METADATA>
 
-### Discovery Coverage
-| Lens | Required depth | Result | Evidence | Source |
-|---|---|---|---|---|
-| <lens id/name> | <deep/sniff/not_applicable> | <deep/sniff/not_applicable> | <concrete coverage evidence or reason not applicable> | <required/reviewer-added> |
-
 ### 🔴 Blockers
 
 #### 1. <title>
 - **Path:** `<filename>:<start_line>-<end_line>`
-- **Tags:** <comma-separated domain tags>
 - **Evidence:** <diff/code evidence sufficient for independent verification>
 - **Recommendation:** <concrete fix or alternatives with tradeoffs>
-- **Dedupe:** `<stable normalized dedupe key>`
 
 ### 🟠 Critical Issues
 
 #### 1. <title>
 - **Path:** `<filename>:<start_line>-<end_line>`
-- **Tags:** <comma-separated domain tags>
 - **Evidence:** <diff/code evidence sufficient for independent verification>
 - **Recommendation:** <concrete fix or alternatives with tradeoffs>
-- **Dedupe:** `<stable normalized dedupe key>`
 
 ### 🟡 Suggestions _(non-blocking)_
 
@@ -58,15 +54,22 @@ audit remains authoritative for planned-task and acceptance-criteria completenes
 
 ## Universal Formatting Rules
 
-- **Discovery coverage:** For initial discovery review, include compact lens coverage before
-  findings. Coverage is separate from findings and is still required when the finding sections are
-  empty. Do not render a clean report until required-lens rows are complete and concrete.
+- **Verdict placement:** Mode-specific workflow references own verdict placement. Render a
+  `**Verdict:** ...` line only when the active mode explicitly supplies `<OPTIONAL_VERDICT_LINE>`;
+  otherwise omit it from the report body and present the verdict where the mode workflow requires.
+- **Internal coverage:** Initial discovery reviews must still produce `DISCOVERY_COVERAGE`, and the
+  orchestrator must validate required-lens rows before declaring a clean review. Do not render the
+  coverage table in user-facing reports.
+- **Internal tags and tracking:** Keep `tags` and `dedupe_key` in internal finding records and
+  state/fix workflows. Do not render `Tags`, `Dedupe`, `dedupe_key`, or tracking-ID fields in
+  user-facing reports. If a domain classification matters to a developer, express it naturally in the
+  title, evidence, or recommendation instead of exposing raw tags.
 - **Omit empty finding sections.** If all finding sections are empty: `No issues found. ✅`
 - **Disputed findings:** Silently excluded. Do not list, count, or mention them.
 - **Downgraded findings:** Reclassified from 🔴/🟠 to 🟡 by the Skeptic only when still actionable,
-  diff-relevant, and deduplicated.
+  diff-relevant, and non-duplicative.
 - **Show only Skeptic-confirmed findings** for 🔴 and 🟠.
-- **Suggestions:** Include only actionable, diff-relevant, deduplicated 🟡 findings. They do not
+- **Suggestions:** Include only actionable, diff-relevant, non-duplicative 🟡 findings. They do not
   block readiness or create a separate fix loop. Automatic suggestion fixes are allowed only under
   the bounded same-scope bundle rule in `finding-contract.md`.
 - **Decision-card compatibility:** A finding has enough data for a design-decision card when it is
