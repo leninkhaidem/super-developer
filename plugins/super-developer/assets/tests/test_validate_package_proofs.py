@@ -83,6 +83,7 @@ class PackageProofValidationTests(unittest.TestCase):
             "description": "Exercise package proof validation.",
             "created_at": "2026-05-16T00:00:00Z",
             "status": "reviewed",
+            "conceptualize": {"index": ".planning/fixture/index.md"},
             "design_decisions": [
                 {
                     "id": "DD-1",
@@ -134,6 +135,7 @@ class PackageProofValidationTests(unittest.TestCase):
                     "required_context_bundles": ["CTX-1"],
                     "targeted_review_required": True,
                     "rationale": "Both tasks exercise the validator proof contract.",
+                    "conceptualize_slices": [{"path": ".planning/fixture/slices/proof.md", "focus": "Proof validation background."}],
                 },
                 {
                     "id": "WP2",
@@ -148,6 +150,7 @@ class PackageProofValidationTests(unittest.TestCase):
                     "required_context_bundles": [],
                     "targeted_review_required": True,
                     "rationale": "Final proof-gate checks are isolated coverage.",
+                    "conceptualize_slices": [],
                 },
             ],
             "phases": [

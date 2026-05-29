@@ -2,18 +2,21 @@
 
 Load this when drafting `.tasks/<feature-name>/tasks.json`.
 
-`tasks.json` is the implementation plan: task decomposition, traceable acceptance criteria, accepted planning decisions, context bundles, work packages, and verification hints. Keep `SPEC.md` requirements-only.
+`tasks.json` is the implementation plan: Conceptualize metadata, task decomposition, traceable acceptance criteria, accepted planning decisions, context bundles, work packages, and verification hints. Keep `SPEC.md` requirements-only.
 
 ## Example Shape
 
 ```json
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "feature": "<feature-name>",
   "title": "Human-readable feature title",
   "description": "One-line summary of what this feature delivers",
   "created_at": "<ISO 8601>",
   "status": "planned",
+  "conceptualize": {
+    "index": ".planning/<concept-slug>/index.md"
+  },
   "design_decisions": [
     {
       "id": "DD-1",
@@ -51,7 +54,13 @@ Load this when drafting `.tasks/<feature-name>/tasks.json`.
       "risk_tags": ["library-contract"],
       "required_context_bundles": ["CTX-1"],
       "targeted_review_required": true,
-      "rationale": "Why these tasks should share one implementation context."
+      "rationale": "Why these tasks should share one implementation context.",
+      "conceptualize_slices": [
+        {
+          "path": ".planning/<concept-slug>/slices/<slice-name>.md",
+          "focus": "Optional package-specific slice focus."
+        }
+      ]
     }
   ],
   "phases": [
@@ -87,7 +96,16 @@ Load this when drafting `.tasks/<feature-name>/tasks.json`.
 }
 ```
 
-Use `schema-reference.md` for a concise field map. The machine contract is `${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/validate-tasks-json.py`.
+Use `schema-reference.md` for a concise field map. The machine contract is `${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/validate-tasks-json.py`. New Conceptualize-aware plans use schema version 3; legacy schema version 2 plans remain valid for existing work but must not be used for new authoring. Load `conceptualize-inputs.md` for Conceptualize Workspace selection, path-boundary rules, and metadata examples.
+
+## Conceptualize Metadata Guidance
+
+Every new schema version 3 plan must record the selected Conceptualize Workspace in two places:
+
+- top-level `conceptualize.index`: the selected `.planning/<concept-slug>/index.md` path;
+- each `work_packages[]` entry's `conceptualize_slices`: an array of Slice assignment objects, each with mandatory `path` and optional `focus`.
+
+Use `[]` for `conceptualize_slices` when the package has no relevant Slice. Slices are required background context, not hidden requirements. Promote any required outcome into `SPEC.md`, task acceptance criteria, design decisions, or context bundles before implementation. The validator owns deterministic shape checks only; semantic path existence, workspace confinement, relevance, and hidden-requirement review are handled by planning/review guidance in `conceptualize-inputs.md` and `review-plan`.
 
 ## Design Decision Guidance
 
@@ -180,4 +198,5 @@ Use `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/work-packages.md` as the source o
 - Use package boundaries to keep caller contracts, migrations, failure modes, or cross-module invariants visible to one agent when needed.
 - Set `targeted_review_required: true` for every new work package. Keep the field because the existing `targeted_review` receipt shape uses it as compatibility metadata; do not treat it as the switch for whether package review runs.
 - Use risk tags per `validate-tasks-json.py` and `work-packages.md` to select package-review depth/lenses and evidence obligations; do not copy a long taxonomy into plans or skills.
+- Add `conceptualize_slices` for every package; use `[]` when no Slice is relevant.
 - Use `required_context_bundles` when a package depends on a bundle. Each listed bundle must also list the package or one of its tasks in `required_for`.

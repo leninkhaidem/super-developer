@@ -15,6 +15,8 @@ Do not create `.tasks/<feature-name>/` or write files until all items pass.
 - Design Preflight trigger decision has been made using `design-preflight.md`.
 - If Design Preflight ran, every unresolved `MUST_DECIDE` and `BLOCKERS` finding is resolved.
 - If resolution changes user-visible semantics, acceptance criteria, or scope, the user approved it before writing.
+- Conceptualize Workspace selection is resolved: latest plausible workspace chosen, real ambiguity asked once, or a minimal `.planning/<concept-slug>/index.md` plus `slices/` auto-created.
+- Selected Conceptualize paths are repo-relative and confined to the selected `.planning/<concept-slug>/` workspace; unsafe paths are rejected before reading or recording.
 - Conditional empirical spike decision has been made.
 - If a spike was required, accepted evidence is ready to record as `tasks.json.design_decisions` and no spike code will be persisted.
 - If the needed empirical assumption cannot be safely validated with available access and bounded side effects, stop and ask the user instead of writing around it.
@@ -25,16 +27,19 @@ Do not create `.tasks/<feature-name>/` or write files until all items pass.
 - Omits invented product behavior, architecture, non-functional requirements, or success criteria.
 - Contains no raw secrets, credentials, tokens, PII, or proprietary sensitive values.
 - Contains no implementation details, code snippets, pseudo-code, line numbers, task breakdowns, or implementation sequencing.
+- Conceptualize Inputs contains only the selected Conceptualize Index path and non-normative background wording.
 - Code References are verified path-only references or `None identified`.
 - Architecture rationale and design decisions are absent unless the user explicitly made them product requirements.
 - Stable `REQ-*` and `AC-*` IDs are present where needed for traceability.
 
 ### tasks.json Content
 
-- Top-level `design_decisions`, `context_bundles`, `work_packages`, and `phases` are present.
+- New plans use schema version 3 with top-level `conceptualize`, `design_decisions`, `context_bundles`, `work_packages`, and `phases` present. Legacy schema version 2 remains compatibility-only for existing plans.
 - Accepted preflight, spike, and planner decisions that affect implementation or verification are persisted as concise `design_decisions`.
 - Any execution constraints or replan triggers are feature-specific, encoded in existing schema fields, and absent when not materially needed.
 - No Preflight Brief, reviewer debate, discarded comments, or raw spike notes are persisted.
+- For schema version 3, top-level `conceptualize.index` points to the selected Conceptualize Index, and every work package has `conceptualize_slices` as an array of Slice objects with `path` and optional `focus`.
+- Conceptualize Slices are assigned only as background context; hidden requirements are promoted into SPEC requirements, task acceptance criteria, design decisions, or context bundles.
 - No unnecessary verbatim duplication of SPEC sections; tasks trace to SPEC IDs and add task-level verification detail.
 - Every task has at least one acceptance criterion object with stable ID, observable criterion, non-empty typed `source_refs`, and a useful verification hint when proof is non-obvious.
 - Every SPEC `REQ-*` and `AC-*` is covered by at least one task acceptance criterion.
@@ -63,6 +68,7 @@ Use `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/work-packages.md` for source-of-t
 - `verification_commands` are scoped, known-safe commands or `[]`; do not invent commands.
 - Feature-specific Development Quality Contract risks are encoded as observable task criteria, verification commands, package boundaries, context bundles, or design decisions. Generic quality rules are not copied into every task.
 - `risk_tags` and `targeted_review_required` follow `validate-tasks-json.py` and `work-packages.md`; do not rely on a copied taxonomy.
+- `conceptualize_slices` is present on every package and uses `[]` when no Slice is relevant.
 
 ## Write and Machine Validate
 
@@ -79,9 +85,10 @@ If the validator exits non-zero, fix `tasks.json` and rerun the same command unt
 After the validator passes:
 
 - Re-open the written files, not drafts in memory.
-- Confirm `SPEC.md` still satisfies the source and purity rules.
+- Confirm `SPEC.md` still satisfies the source and purity rules, including path-only non-normative Conceptualize Inputs.
 - Confirm `tasks.json` still matches the intended plan after any validator-driven corrections.
 - Confirm all SPEC `REQ-*` and `AC-*` IDs are traced by task acceptance criteria.
 - Confirm work-package grouping still reflects the plan after any edits: coherent packages, preferred safe useful parallel waves, conservative serialization for ambiguity or shared contracts, safe commands, and correct targeted-review metadata.
 - Confirm no machine-owned long taxonomy was copied into the plan or references when a pointer to `validate-tasks-json.py` or `work-packages.md` is the correct source.
+- Confirm Conceptualize semantic checks were not delegated to the validator beyond deterministic shape.
 - Confirm the summary to the user lists feature path, phase-by-phase tasks, dependencies, and assumptions without adding new requirements.

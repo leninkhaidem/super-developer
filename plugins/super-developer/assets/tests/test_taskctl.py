@@ -90,6 +90,7 @@ class TaskctlCliTests(unittest.TestCase):
             "description": "Exercise taskctl read-only commands.",
             "created_at": "2026-05-16T00:00:00Z",
             "status": "reviewed",
+            "conceptualize": {"index": ".planning/fixture/index.md"},
             "design_decisions": [
                 {
                     "id": "DD-1",
@@ -141,6 +142,7 @@ class TaskctlCliTests(unittest.TestCase):
                     "required_context_bundles": ["CTX-1"],
                     "targeted_review_required": True,
                     "rationale": "The CLI command surface is isolated.",
+                    "conceptualize_slices": [{"path": ".planning/fixture/slices/cli.md"}],
                 },
                 {
                     "id": "WP2",
@@ -155,6 +157,7 @@ class TaskctlCliTests(unittest.TestCase):
                     "required_context_bundles": ["CTX-2"],
                     "targeted_review_required": True,
                     "rationale": "Final-gate compatibility is isolated.",
+                    "conceptualize_slices": [],
                 },
             ],
             "phases": [
