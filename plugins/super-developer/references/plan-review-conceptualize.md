@@ -11,8 +11,9 @@ Before reading a Conceptualize Index or Slice path, reviewers must verify it fai
 1. Treat paths as repo-relative POSIX paths only. Reject absolute paths, drive-qualified paths, `~`, shell-variable expansion, empty segments, and `..` traversal.
 2. Normalize the top-level index from `tasks.json.conceptualize.index`; it must be shaped as `.planning/<concept-slug>/index.md`, with `<concept-slug>` filesystem-safe kebab-case (`^[a-z0-9][a-z0-9-]*$`). This path selects the only allowed Conceptualize Workspace for the plan.
 3. Normalize every assigned `work_packages[].conceptualize_slices[].path`; each must remain under the same selected `.planning/<concept-slug>/` workspace and be shaped as `.planning/<concept-slug>/slices/<slice-name>.md`.
-4. Resolve the workspace root and candidate file with realpath/symlink resolution before reading; reject any symlink escape or resolved target outside the selected workspace.
-5. Require the selected index and each assigned slice path to exist and be readable before review can pass. Missing, unsafe, or unreadable paths are `BLOCKER` findings because implementation would otherwise receive unverified background context.
+4. Resolve the repository root first, then resolve the expected repo-local workspace root `.planning/<concept-slug>/`; reject symlinked `.planning` directories, symlinked workspace roots, workspace roots outside the repo, or roots that do not resolve under the real repo `.planning/<concept-slug>/` path.
+5. Resolve each candidate file with realpath/symlink resolution before reading; reject any symlink escape or resolved target outside the already-validated repo-local workspace root.
+6. Require the selected index and each assigned slice path to exist and be readable before review can pass. Missing, unsafe, or unreadable paths are `BLOCKER` findings because implementation would otherwise receive unverified background context.
 
 Do not read unsafe candidates to gather more evidence. Report the path and the failed safety check instead.
 

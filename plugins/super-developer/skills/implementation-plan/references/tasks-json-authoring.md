@@ -8,7 +8,7 @@ Load this when drafting `.tasks/<feature-name>/tasks.json`.
 
 ```json
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "feature": "<feature-name>",
   "title": "Human-readable feature title",
   "description": "One-line summary of what this feature delivers",
@@ -96,11 +96,11 @@ Load this when drafting `.tasks/<feature-name>/tasks.json`.
 }
 ```
 
-Use `schema-reference.md` for a concise field map. The machine contract is `${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/validate-tasks-json.py`. Load `conceptualize-inputs.md` for Conceptualize Workspace selection, path-boundary rules, and metadata examples.
+Use `schema-reference.md` for a concise field map. The machine contract is `${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/validate-tasks-json.py`. New Conceptualize-aware plans use schema version 3; legacy schema version 2 plans remain valid for existing work but must not be used for new authoring. Load `conceptualize-inputs.md` for Conceptualize Workspace selection, path-boundary rules, and metadata examples.
 
 ## Conceptualize Metadata Guidance
 
-Every new plan must record the selected Conceptualize Workspace in two places:
+Every new schema version 3 plan must record the selected Conceptualize Workspace in two places:
 
 - top-level `conceptualize.index`: the selected `.planning/<concept-slug>/index.md` path;
 - each `work_packages[]` entry's `conceptualize_slices`: an array of Slice assignment objects, each with mandatory `path` and optional `focus`.

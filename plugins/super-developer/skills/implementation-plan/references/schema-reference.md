@@ -4,13 +4,13 @@ Load this when you need a human-readable map of `tasks.json`. The machine source
 
 ## Top-Level Object
 
-- `schema_version`: number. Current accepted version is owned by the validator.
+- `schema_version`: number. New plans use `3`; legacy `2` plans are accepted for compatibility. Current accepted versions are owned by the validator.
 - `feature`: kebab-case feature name matching the `.tasks/<feature>/` directory.
 - `title`: human-readable feature title.
 - `description`: one-line feature summary.
 - `created_at`: ISO 8601 timestamp.
 - `status`: feature lifecycle status. Use the validator for accepted values.
-- `conceptualize`: object with mandatory `index` path to the selected Conceptualize Index.
+- `conceptualize`: mandatory in schema version 3; object with mandatory `index` path to the selected Conceptualize Index. Optional in legacy schema version 2, but shape-validated when present.
 - `design_decisions`: array; include `[]` when none.
 - `context_bundles`: array; include `[]` when none.
 - `work_packages`: array; required for every generated plan.
@@ -18,7 +18,7 @@ Load this when you need a human-readable map of `tasks.json`. The machine source
 
 ## Conceptualize
 
-Mandatory top-level object for every new plan.
+Mandatory top-level object for every new schema version 3 plan. Legacy schema version 2 plans may omit it; if present, the validator still checks its deterministic shape.
 
 Fields:
 - `index`: non-empty repo-relative path to the selected `.planning/<concept-slug>/index.md` Conceptualize Index.
@@ -64,7 +64,7 @@ Fields:
 - `risk_tags`: controlled tags owned by the validator; they select package-review depth/lenses, not whether review runs.
 - `required_context_bundles`: context bundle IDs package agents must read and cite.
 - `targeted_review_required`: compatibility boolean for the existing `targeted_review.required` receipt field. Author new packages with `true` for every work package; the mandatory package review gate applies regardless of risk tags.
-- `conceptualize_slices`: mandatory array of Slice assignment objects. Use `[]` when no Slice is relevant. Each object has mandatory non-empty `path` and optional `focus` string.
+- `conceptualize_slices`: mandatory in schema version 3; array of Slice assignment objects. Use `[]` when no Slice is relevant. Each object has mandatory non-empty `path` and optional `focus` string. Optional in legacy schema version 2, but shape-validated when present.
 
 Conceptualize Slices are required background context, not hidden requirements. Promote required outcomes into `SPEC.md`, task acceptance criteria, design decisions, or context bundles.
 

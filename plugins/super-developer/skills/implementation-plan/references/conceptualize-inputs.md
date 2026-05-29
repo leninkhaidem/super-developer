@@ -25,7 +25,8 @@ Before reading, writing, or recording a Conceptualize path:
 
 - require a repo-relative path shaped as `.planning/<concept-slug>/index.md` for the Conceptualize Index or `.planning/<concept-slug>/slices/<slice>.md` for Slices;
 - require `<concept-slug>` to be filesystem-safe kebab-case (`^[a-z0-9][a-z0-9-]*$`);
-- reject absolute paths, `..` traversal, shell-expanded paths, paths outside the selected workspace, and symlink escapes after resolving the candidate path;
+- resolve the repository root first, then require the selected workspace root to resolve under the real repo-local `.planning/<concept-slug>/` path;
+- reject symlinked `.planning` directories, symlinked workspace roots, absolute paths, `..` traversal, shell-expanded paths, paths outside the selected workspace, and symlink escapes after resolving the candidate path;
 - if a path fails confinement, stop and ask for a safe workspace path rather than reading or recording it.
 
 The validator only enforces deterministic JSON shape; semantic path existence, relevance, and safety checks are planning/review responsibilities.
@@ -42,7 +43,7 @@ Rules:
 
 ## tasks.json Conceptualize Metadata
 
-Every new `tasks.json` must include top-level Conceptualize metadata:
+Every new schema version 3 `tasks.json` must include top-level Conceptualize metadata:
 
 ```json
 "conceptualize": {

@@ -47,6 +47,10 @@ COMMAND_EVIDENCE_METHODS = {
     "command",
     "mixed",
 }
+TASK_PLAN_SCHEMA_VERSION_LEGACY = 2
+TASK_PLAN_SCHEMA_VERSION_CURRENT = 3
+TASK_PLAN_SCHEMA_VERSIONS = {TASK_PLAN_SCHEMA_VERSION_LEGACY, TASK_PLAN_SCHEMA_VERSION_CURRENT}
+TASK_PLAN_CONCEPTUALIZE_SCHEMA_VERSION = 3
 PACKAGE_PROOF_SCHEMA_VERSION = 1
 PACKAGE_LIFECYCLE_FIELD = "lifecycle"
 PACKAGE_LIFECYCLE_STATES = {"accepted", "reopened"}
@@ -282,7 +286,7 @@ def validate_tasks_json(
     errors: list[str] = []
     plan_index: dict[str, Any] = {
         "feature": None,
-        "schema_version": 2,
+        "schema_version": TASK_PLAN_SCHEMA_VERSION_CURRENT,
         "feature_status": None,
         "task_ids": set(),
         "task_ac_ids": set(),
@@ -305,7 +309,7 @@ def validate_tasks_json(
     plan_index["feature"] = data.get("feature")
     plan_index["feature_status"] = data.get("status")
 
-    validate_top_level(data, errors)
+    validate_top_level(data, errors, schema_version=schema_version)
     if "context_bundles" not in data:
         errors.append("context_bundles: expected array")
     context_bundle_ids = validate_context_bundles(
@@ -350,6 +354,7 @@ def validate_tasks_json(
             task_ids,
             task_dependencies,
             context_bundle_ids=context_bundle_ids,
+            schema_version=schema_version,
         )
         plan_index["task_to_package"] = task_to_package
         index_work_packages(work_packages, plan_index)
@@ -388,15 +393,18 @@ def validate_tasks_json(
 def validate_schema_version(data: dict[str, Any], errors: list[str]) -> int:
     value = data.get("schema_version")
     if isinstance(value, bool) or not isinstance(value, int):
-        errors.append("schema_version: expected integer 2")
-        return 2
-    if value != 2:
-        errors.append(f"schema_version: expected 2, got {value!r}")
-        return 2
+        errors.append("schema_version: expected integer 2 or 3")
+        return TASK_PLAN_SCHEMA_VERSION_CURRENT
+    if value not in TASK_PLAN_SCHEMA_VERSIONS:
+        expected = sorted(TASK_PLAN_SCHEMA_VERSIONS)
+        errors.append(f"schema_version: expected one of {expected}, got {value!r}")
+        return TASK_PLAN_SCHEMA_VERSION_CURRENT
     return value
 
 
-def validate_top_level(data: dict[str, Any], errors: list[str]) -> None:
+def validate_top_level(
+    data: dict[str, Any], errors: list[str], *, schema_version: int
+) -> None:
     for field in ("feature", "title", "description", "created_at", "status"):
         require_non_empty_string(data, field, field, errors)
 
@@ -410,7 +418,8 @@ def validate_top_level(data: dict[str, Any], errors: list[str]) -> None:
     if isinstance(created_at, str) and created_at.strip():
         validate_iso_datetime(created_at, "created_at", errors)
 
-    validate_conceptualize(data.get("conceptualize"), "conceptualize", errors)
+    if schema_version >= TASK_PLAN_CONCEPTUALIZE_SCHEMA_VERSION or "conceptualize" in data:
+        validate_conceptualize(data.get("conceptualize"), "conceptualize", errors)
 
     if "design_decisions" not in data:
         errors.append("design_decisions: expected array")
@@ -828,7 +837,7 @@ def validate_structured_acceptance_criteria(
     for index, criterion in enumerate(criteria):
         path = f"{task_path}.acceptance_criteria[{index}]"
         if not isinstance(criterion, dict):
-            errors.append(f"{path}: expected object for schema_version 2")
+            errors.append(f"{path}: expected object")
             continue
         for field in ("id", "criterion", "source_refs"):
             if field == "source_refs":
@@ -993,6 +1002,8 @@ def validate_work_packages(
     task_ids: set[str],
     task_dependencies: dict[str, list[str]],
     context_bundle_ids: set[str],
+    *,
+    schema_version: int,
 ) -> dict[str, str]:
     package_ids: list[str] = []
     package_task_refs: dict[str, list[str]] = {}
@@ -1044,11 +1055,15 @@ def validate_work_packages(
             errors,
             context_bundle_ids=context_bundle_ids,
         )
-        validate_conceptualize_slices(
-            package.get("conceptualize_slices"),
-            f"{package_path}.conceptualize_slices",
-            errors,
-        )
+        if (
+            schema_version >= TASK_PLAN_CONCEPTUALIZE_SCHEMA_VERSION
+            or "conceptualize_slices" in package
+        ):
+            validate_conceptualize_slices(
+                package.get("conceptualize_slices"),
+                f"{package_path}.conceptualize_slices",
+                errors,
+            )
 
         if isinstance(package_id, str) and package_id.strip():
             package_task_refs[package_id] = task_refs

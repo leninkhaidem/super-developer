@@ -52,7 +52,7 @@ Exercise Conceptualize schema validation.
 
     def valid_plan(self) -> dict:
         return {
-            "schema_version": 2,
+            "schema_version": 3,
             "feature": "conceptualize-fixture",
             "title": "Conceptualize Fixture",
             "description": "Exercise Conceptualize metadata shape.",
@@ -136,7 +136,7 @@ Exercise Conceptualize schema validation.
 
         self.assertEqual([], self.errors_for(plan))
 
-    def test_top_level_conceptualize_is_required_with_index(self) -> None:
+    def test_schema_v3_top_level_conceptualize_is_required_with_index(self) -> None:
         missing = self.valid_plan()
         missing.pop("conceptualize")
         self.assertInvalid(missing, "conceptualize: expected object")
@@ -149,7 +149,7 @@ Exercise Conceptualize schema validation.
         missing_index["conceptualize"] = {}
         self.assertInvalid(missing_index, "conceptualize.index: expected non-empty string")
 
-    def test_work_package_conceptualize_slices_are_required_object_arrays(self) -> None:
+    def test_schema_v3_work_package_conceptualize_slices_are_required_object_arrays(self) -> None:
         cases = [
             (lambda plan: plan["work_packages"][0].pop("conceptualize_slices"), "work_packages[0].conceptualize_slices: expected array"),
             (lambda plan: plan["work_packages"][0].__setitem__("conceptualize_slices", {}), "work_packages[0].conceptualize_slices: expected array"),
@@ -169,6 +169,31 @@ Exercise Conceptualize schema validation.
         plan["work_packages"][0]["conceptualize_slices"] = []
 
         self.assertEqual([], self.errors_for(plan))
+
+    def test_schema_v2_plans_without_conceptualize_metadata_remain_valid(self) -> None:
+        plan = self.valid_plan()
+        plan["schema_version"] = 2
+        plan.pop("conceptualize")
+        plan["work_packages"][0].pop("conceptualize_slices")
+
+        self.assertEqual([], self.errors_for(plan))
+
+    def test_schema_v2_validates_conceptualize_shape_when_fields_are_present(self) -> None:
+        malformed_top_level = self.valid_plan()
+        malformed_top_level["schema_version"] = 2
+        malformed_top_level["conceptualize"] = {}
+        self.assertInvalid(
+            malformed_top_level,
+            "conceptualize.index: expected non-empty string",
+        )
+
+        malformed_package = self.valid_plan()
+        malformed_package["schema_version"] = 2
+        malformed_package["work_packages"][0]["conceptualize_slices"] = ["slice.md"]
+        self.assertInvalid(
+            malformed_package,
+            "work_packages[0].conceptualize_slices[0]: expected object",
+        )
 
 
 if __name__ == "__main__":

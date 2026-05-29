@@ -34,11 +34,11 @@ Do not create `.tasks/<feature-name>/` or write files until all items pass.
 
 ### tasks.json Content
 
-- Top-level `conceptualize`, `design_decisions`, `context_bundles`, `work_packages`, and `phases` are present.
+- New plans use schema version 3 with top-level `conceptualize`, `design_decisions`, `context_bundles`, `work_packages`, and `phases` present. Legacy schema version 2 remains compatibility-only for existing plans.
 - Accepted preflight, spike, and planner decisions that affect implementation or verification are persisted as concise `design_decisions`.
 - Any execution constraints or replan triggers are feature-specific, encoded in existing schema fields, and absent when not materially needed.
 - No Preflight Brief, reviewer debate, discarded comments, or raw spike notes are persisted.
-- Top-level `conceptualize.index` points to the selected Conceptualize Index, and every work package has `conceptualize_slices` as an array of Slice objects with `path` and optional `focus`.
+- For schema version 3, top-level `conceptualize.index` points to the selected Conceptualize Index, and every work package has `conceptualize_slices` as an array of Slice objects with `path` and optional `focus`.
 - Conceptualize Slices are assigned only as background context; hidden requirements are promoted into SPEC requirements, task acceptance criteria, design decisions, or context bundles.
 - No unnecessary verbatim duplication of SPEC sections; tasks trace to SPEC IDs and add task-level verification detail.
 - Every task has at least one acceptance criterion object with stable ID, observable criterion, non-empty typed `source_refs`, and a useful verification hint when proof is non-obvious.

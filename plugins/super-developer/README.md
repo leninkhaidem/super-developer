@@ -11,7 +11,7 @@ One plugin. Twelve skills. Zero manual git juggling.
 Super Developer packages portable skill instructions into an opinionated development workflow engine. In Claude Code, it replaces scattered slash commands and ad-hoc prompts with a structured pipeline where each stage feeds the next — with right-sized sub-agent work packages, git worktree isolation, and adversarial review gates catching issues before they ship.
 
 ```
-[conceptualize]             Optional — ignored Conceptualize Workspace + Slices
+[conceptualize]             Optional session — ignored Conceptualize Workspace + Slices
        |
        v
   implementation-plan  --->  review-plan  --->  implement
@@ -155,7 +155,7 @@ Start a conversation, discuss what you want to build, then:
 > Plan this feature
 ```
 
-Optionally start with `conceptualize` to capture an ignored `.planning/<concept-slug>/` workspace and compact handoff before planning. The planning agent then infers the feature name, creates `SPEC.md` and schema-versioned `tasks.json`, and asks to continue through plan review and the `implement` Execution Contract. Say **"proceed through all stages"** to run the full pipeline end-to-end, or confirm each gate individually.
+Optionally start with a `conceptualize` session to capture an ignored `.planning/<concept-slug>/` workspace and compact handoff before planning. If you skip that session, planning may create a minimal placeholder workspace so new schema-versioned plans can still record Conceptualize metadata. The planning agent then infers the feature name, creates `SPEC.md` and `tasks.json`, and asks to continue through plan review and the `implement` Execution Contract. Say **"proceed through all stages"** to run the full pipeline end-to-end, or confirm each gate individually.
 
 ### Individual Skills
 

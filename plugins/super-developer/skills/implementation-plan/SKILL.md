@@ -101,7 +101,7 @@ Use `spec-template.md` for the exact template and detailed purity rules, includi
 
 ## Step 8: Draft tasks.json
 
-Create `tasks.json` with schema version 2, top-level `conceptualize`, `design_decisions`, `context_bundles`, `work_packages`, and `phases`. Use `tasks-json-authoring.md` for the example shape and authoring rules. Use `schema-reference.md` for a human schema map, and defer machine-owned details to `${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/validate-tasks-json.py`.
+Create `tasks.json` with schema version 3, top-level `conceptualize`, `design_decisions`, `context_bundles`, `work_packages`, and `phases`. Use `tasks-json-authoring.md` for the example shape and authoring rules. Use `schema-reference.md` for a human schema map, and defer machine-owned details to `${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/validate-tasks-json.py`.
 
 Planning invariants:
 - Include mandatory top-level `conceptualize.index` and each work package's mandatory `conceptualize_slices` array as described in `conceptualize-inputs.md`.

@@ -24,8 +24,9 @@ Before package or repair prompt construction, screen any Conceptualize paths fro
 2. Require the stored path string to be repo-relative and shaped as `.planning/<concept-slug>/index.md`; reject absolute paths, drive-qualified paths, `~`, shell expansion, empty segments, and `..` traversal.
 3. Use the normalized index path to select the only allowed workspace root, `.planning/<concept-slug>/`. Require `<concept-slug>` to be safe kebab-case (`^[a-z0-9][a-z0-9-]*$`).
 4. For each selected package's `conceptualize_slices[]`, require each object path to normalize under the same workspace root and be shaped as `.planning/<concept-slug>/slices/<slice-name>.md`; preserve optional `focus` text with its slice.
-5. Resolve the workspace root, index, and slice candidates in the workspace that owns the planning artifacts before passing them to agents. Fail closed for missing files, unreadable files, or any realpath/symlink escape outside the selected workspace.
-6. Pass only validated read-only Conceptualize entries. Include the normalized repo-relative path plus the safe resolved read path when the package/repair worktree would not otherwise contain ignored `.planning/` files.
+5. Resolve the repository root first, then resolve the expected repo-local workspace root `.planning/<concept-slug>/`; reject symlinked `.planning` directories, symlinked workspace roots, workspace roots outside the repo, or roots that do not resolve under the real repo `.planning/<concept-slug>/` path.
+6. Resolve the index and slice candidates in the workspace that owns the planning artifacts before passing them to agents. Fail closed for missing files, unreadable files, or any realpath/symlink escape outside the already-validated repo-local workspace root.
+7. Pass only validated read-only Conceptualize entries. Include the normalized repo-relative path plus the safe resolved read path when the package/repair worktree would not otherwise contain ignored `.planning/` files.
 
 If screening fails, do not dispatch that package or repair agent. Report the failed path and reason as an implementation blocker requiring a plan/workspace correction. Do not create generated per-package Conceptualize packet files.
 

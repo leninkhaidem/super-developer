@@ -18,8 +18,8 @@ Guide a rigorous Conceptualize Session: interview relentlessly until shared unde
 
 ## Activation Invariants
 
-- Create or maintain exactly one Conceptualize Workspace for the session: `.planning/<concept-slug>/index.md` plus an always-present `slices/` directory.
-- Validate the Concept Slug before writing: lowercase kebab-case, no spaces, no shell metacharacters, no absolute paths, no traversal, and all paths must remain inside `.planning/<concept-slug>/`.
+- Create or maintain exactly one Conceptualize Workspace path for the session: `.planning/<concept-slug>/`; create `slices/` immediately and create or refresh `index.md` at the first meaningful checkpoint.
+- Validate the Concept Slug before writing: lowercase kebab-case, no spaces, no shell metacharacters, no absolute paths, no traversal, no symlinked workspace roots, and all paths must remain inside the real repo-local `.planning/<concept-slug>/`.
 - Interview the user relentlessly until shared understanding is reached, resolving dependencies between decisions one branch at a time.
 - Ask one focused question at a time. For each question, provide your recommended answer and tradeoff-shaped options when useful; do not interrogate with multi-question blocks.
 - If a question can be answered by exploring the codebase, explore the codebase instead and ask only for the remaining user intent or tradeoff.
@@ -41,7 +41,7 @@ These references are one-hop and self-contained. Do not bulk-load templates befo
 
 ## Workflow
 
-1. Select a Concept Slug and create `.planning/<concept-slug>/slices/` if missing.
+1. Select a Concept Slug and create `.planning/<concept-slug>/slices/` if missing after path-safety checks pass.
 2. Load `references/workspace-index.md`, then create or refresh `index.md` at the first meaningful checkpoint.
 3. Run the Conceptualize loop: choose the next highest-leverage branch, inspect the repo first when it can answer the uncertainty, then ask one question with your recommended answer.
 4. Perform repo or external research only when it can materially clarify direction, constraints, risks, or open questions. Record distilled claims with sources.
