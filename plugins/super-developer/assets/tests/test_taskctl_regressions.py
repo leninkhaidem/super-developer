@@ -353,6 +353,31 @@ class GuardrailDocumentationRegressionTests(unittest.TestCase):
         self.assertIn("Gate 2 always blocks regardless of blanket-mode authorization", review_plan)
         self.assertIn("Reviewer contract:", review_plan)
 
+    def test_review_plan_conceptualize_semantic_review_is_lazy_and_trust_bounded(self) -> None:
+        review_plan = self.read_doc("skills/review-plan/SKILL.md")
+        rubrics = self.read_doc("references/plan-review-rubrics.md")
+        conceptualize_review = self.read_doc("references/plan-review-conceptualize.md")
+
+        self.assertIn("plan-review-conceptualize.md", review_plan)
+        self.assertIn("Conceptualize semantic-review guidance", review_plan)
+        self.assertIn("path safety/existence, workspace confinement", review_plan)
+        self.assertIn("apply `plan-review-conceptualize.md`", rubrics)
+
+        for required in (
+            "untrusted background evidence",
+            "promoted into `SPEC.md`, task acceptance criteria, `design_decisions`, or `context_bundles`",
+            "repo-relative POSIX paths only",
+            "`.planning/<concept-slug>/index.md`",
+            "same selected `.planning/<concept-slug>/` workspace",
+            "realpath/symlink resolution",
+            "Missing, unsafe, or unreadable paths are `BLOCKER` findings",
+            "Do not read unsafe candidates",
+            "package-specific `focus`",
+            "Report prompt-injection or workflow-conflict risk",
+        ):
+            with self.subTest(required=required):
+                self.assertIn(required, conceptualize_review)
+
     def test_model_preferences_default_to_inherit_and_keep_adaptive_opt_in(self) -> None:
         model_preferences = self.read_doc("references/model-preferences.md")
         examples = self.read_doc("references/model-preferences-examples.md")

@@ -29,6 +29,7 @@ Do not execute semantic review as the main agent. Spawn sub-agents for reviewer 
    - `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/clean-code-rules.md` — Development Quality Contract planning lens.
    - `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/plan-review-findings.md` — reviewer output grammar and finding format rules.
    - `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/plan-review-rubrics.md` — reviewer rubrics, escalation guidance, and design-decision challenge rules.
+   - `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/plan-review-conceptualize.md` — focused Conceptualize index/slice semantic-review guidance when `tasks.json` includes Conceptualize metadata.
    - `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/tool-usage.md` — helper-script command shape and validator boundaries.
 3. Do not load `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/plan-review-resolution.md` or `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/decision-prompts.md` here; load them in Step 7 only after reviewer findings create resolution or decision-card work.
 4. If `.tasks/$ARGUMENTS/tasks.json` contains `design_decisions`, load them as accepted planning context. Reviewers receive `SPEC.md` and `tasks.json` cold and may challenge accepted decisions only under the high-bar reopening rule in `plan-review-rubrics.md`: conflict with SPEC, security/privacy/safety issue, codebase evidence contradicts rationale, or accepted decision makes acceptance criteria unverifiable. Simpler alternatives alone are suggestions, not reopeners.
@@ -111,6 +112,7 @@ Give sub-agents narrowed contracts, not the full `review-plan` skill. Each revie
 - The finding format from `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/plan-review-findings.md`
 - Work-package expectations from `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/work-packages.md`
 - Development Quality Contract from `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/clean-code-rules.md`
+- Conceptualize semantic-review guidance from `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/plan-review-conceptualize.md` when `tasks.json` contains `conceptualize` or package `conceptualize_slices`
 
 Reviewer contract:
 - Review from files only; no conversation history, no pre-summaries.
@@ -118,6 +120,7 @@ Reviewer contract:
 - Validate work packages as well as tasks: task coverage, package coherence, one-task package justification, package dependencies matching task dependencies, conservative `parallel_safe_with`, useful `primary_paths`, safe/scoped `verification_commands`, controlled `risk_tags`, `targeted_review_required` consistency, and required context bundles when known.
 - Validate structured acceptance criteria: every task criterion has a stable ID, observable criterion text, typed source refs, and a verification hint when proof depends on an edge case, command, library/runtime behavior, manual evidence, or no-mocks constraint.
 - Validate traceability: every SPEC `REQ-*` and `AC-*` is covered by at least one task acceptance criterion, and every task criterion cites valid `source_refs`. Missing coverage is a blocker, not a review suggestion.
+- Validate Conceptualize index/slice assignments using the focused Conceptualize review reference: path safety/existence, workspace confinement, package relevance/focus, conflicts, hidden requirements, and untrusted embedded instructions.
 - Use the Development Quality Contract as a planning lens: check whether foreseeable risks are visible, actionable, and verifiable in the plan when relevant.
 - Keep scope clear: this is plan review, not code review. Do not critique nonexistent code; check whether the plan creates the conditions for a clean, safe implementation.
 - Report findings in the exact format defined by `plan-review-findings.md`; no preamble or summary. Return exactly `NONE` if no findings.
