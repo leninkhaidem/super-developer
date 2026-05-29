@@ -1,8 +1,8 @@
 # Super Developer
 
-A portable coding-assistant workflow, currently packaged as a Claude Code plugin, that orchestrates the full development lifecycle — from divergent ideation through requirements-spec-driven planning, parallel implementation with git worktree isolation, multi-agent adversarial code review, and gated release publishing.
+A portable coding-assistant workflow, currently packaged as a Claude Code plugin, that orchestrates the full development lifecycle — from conceptual exploration through requirements-spec-driven planning, parallel implementation with git worktree isolation, multi-agent adversarial code review, and gated release publishing.
 
-One plugin. Eleven skills. Zero manual git juggling.
+One plugin. Twelve skills. Zero manual git juggling.
 
 ---
 
@@ -11,7 +11,7 @@ One plugin. Eleven skills. Zero manual git juggling.
 Super Developer packages portable skill instructions into an opinionated development workflow engine. In Claude Code, it replaces scattered slash commands and ad-hoc prompts with a structured pipeline where each stage feeds the next — with right-sized sub-agent work packages, git worktree isolation, and adversarial review gates catching issues before they ship.
 
 ```
-[perspectives]              Optional — divergent problem-solving for complex decisions
+[conceptualize]             Optional — ignored Conceptualize Workspace + Slices
        |
        v
   implementation-plan  --->  review-plan  --->  implement
@@ -22,6 +22,8 @@ Super Developer packages portable skill instructions into an opinionated develop
                                                   integration-focused review-code
                                                   fix verification
                                                   final audit
+
+[perspectives] remains available standalone for divergent problem-solving.
 ```
 
 The pipeline flows automatically with confirmation gates. Say **"proceed through all stages"** or approve `implement`'s Execution Contract auto-resolve mode and it runs implementation, package self-verification, mandatory package review for every work package, integration-focused review-code discovery, delegated fixes, delta Fix Verification Review, triggered widening/escalation when required, and final internal audit once review-code reaches audit readiness. Or invoke any skill independently — they work standalone too.
@@ -32,8 +34,9 @@ The pipeline flows automatically with confirmation gates. Say **"proceed through
 
 | Skill | What It Does | Usage |
 |---|---|---|
+| **conceptualize** | Captures exploratory discussion and research into an ignored `.planning/<concept-slug>/` Conceptualize Workspace with `index.md` and focused Slices. Stops at a compact planning handoff; later planning promotes required outcomes into authoritative plan artifacts. | Standalone + Pre-planning |
 | **perspectives** | Divergent problem-solving. Spawns 3-5 Opus-class sub-agents, each approaching the problem from a distinct angle (Infrastructure, Architecture, Data, Root Cause, etc.). A final Skeptic agent stress-tests and synthesizes proposals into a ranked recommendation. | Standalone |
-| **implementation-plan** | Converts a completed brainstorming or requirements discussion into a structured task plan under `.tasks/<feature>/` with `SPEC.md`, structured task-level acceptance criteria, traceability source refs, `context_bundles`, `design_decisions`, and work packages. Runs triggered Design Preflight and conditional `spike-to-plan` evidence collection before durable plan artifacts for nontrivial/risky features. | Pipeline + Standalone |
+| **implementation-plan** | Converts a completed requirements discussion or Conceptualize handoff into a structured task plan under `.tasks/<feature>/` with `SPEC.md`, structured task-level acceptance criteria, traceability source refs, `context_bundles`, `design_decisions`, and work packages. Runs triggered Design Preflight and conditional `spike-to-plan` evidence collection before durable plan artifacts for nontrivial/risky features. | Pipeline + Standalone |
 | **spike-to-plan** | Empirical feature spikes that validate uncertain assumptions before implementation planning. Produces planning evidence only; accepted outcomes become `design_decisions`, not persisted spike code. | Standalone + Planning hook |
 | **review-plan** | Plan review gate. Performs deterministic schema/traceability validation, then spawns one **Plan Reviewer** that challenges the approach first and checks artifact quality second. Adds a dedicated **Security/Failure-Mode Reviewer** only for security/privacy/safety-sensitive plans or explicit escalation. Validates `SPEC.md`, `tasks.json`, context bundles, risk metadata, work packages, and accepted `design_decisions` cold from files only. | Pipeline + Standalone |
 | **tasks** | Implementation status dashboard. Shows progress across all features or drills into a specific one with phase-by-phase breakdown and package-proof evidence-health warnings. Can modify task status on request, but status overrides do not create verification evidence. | Standalone |
@@ -138,7 +141,7 @@ claude --plugin-dir /path/to/super-developer/plugins/super-developer
 | Project | `--scope project` | Shared with team via `.claude/settings.json` |
 | Local | `--scope local` | This project only, gitignored |
 
-Claude Code loads all 11 skills automatically via plugin auto-discovery. Other hosts need equivalent skill/plugin discovery and a `SUPER_DEVELOPER_PLUGIN_ROOT` variable pointing at the plugin root.
+Claude Code loads all 12 skills automatically via plugin auto-discovery. Other hosts need equivalent skill/plugin discovery and a `SUPER_DEVELOPER_PLUGIN_ROOT` variable pointing at the plugin root.
 
 ---
 
@@ -152,11 +155,12 @@ Start a conversation, discuss what you want to build, then:
 > Plan this feature
 ```
 
-The agent infers the feature name, creates `SPEC.md` and schema-versioned `tasks.json`, then asks to continue through plan review and the `implement` Execution Contract. Say **"proceed through all stages"** to run the full pipeline end-to-end, or confirm each gate individually.
+Optionally start with `conceptualize` to capture an ignored `.planning/<concept-slug>/` workspace and compact handoff before planning. The planning agent then infers the feature name, creates `SPEC.md` and schema-versioned `tasks.json`, and asks to continue through plan review and the `implement` Execution Contract. Say **"proceed through all stages"** to run the full pipeline end-to-end, or confirm each gate individually.
 
 ### Individual Skills
 
 ```
+> Conceptualize this product idea before we plan implementation
 > Get me some perspectives on this architecture decision
 > Show me the task status
 > Review this PR: owner/repo#42
@@ -224,6 +228,11 @@ super-developer/
 |   +-- package-lifecycle.md             # Targeted package proof lifecycle semantics
 |   +-- tool-usage.md                    # Helper script command shapes and safety rules
 +-- skills/
+|   +-- conceptualize/
+|   |   +-- SKILL.md                    # Conceptualize Workspace capture
+|   |   +-- references/
+|   |       +-- workspace-index.md      # Index template and handoff contract
+|   |       +-- slice-template.md       # Slice template and source rules
 |   +-- worktree/
 |   |   +-- SKILL.md                       # Git worktree strategy
 |   +-- spike-and-fix/
@@ -270,6 +279,7 @@ super-developer/
 
 | Decision | Rationale |
 |---|---|
+| Conceptualize before planning | Exploratory session knowledge lives in ignored `.planning/` workspaces as untrusted background until implementation planning promotes required outcomes into `SPEC.md`, tasks, design decisions, or context bundles. |
 | Main agent orchestrates, sub-agents implement and self-verify | Separation of concerns — orchestrator manages git state, dispatch, evidence validation, and integration checks; sub-agents write code, run targeted checks, and update criterion-level evidence |
 | Adaptive adversarial review | One Plan Reviewer runs by default; a Security/Failure-Mode Reviewer is added only for security/privacy/safety-sensitive plans or escalation. Code review uses dynamic discovery lenses, a bounded topology, at most one Specialist Reviewer selected by risk priority, and a conditional Skeptic Agent to verify serious findings and risky clean coverage before reporting. |
 | Git worktree isolation | Parallel sub-agents work in separate worktrees — no branch switching, no merge conflicts during implementation |
