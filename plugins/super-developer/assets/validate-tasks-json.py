@@ -410,6 +410,8 @@ def validate_top_level(data: dict[str, Any], errors: list[str]) -> None:
     if isinstance(created_at, str) and created_at.strip():
         validate_iso_datetime(created_at, "created_at", errors)
 
+    validate_conceptualize(data.get("conceptualize"), "conceptualize", errors)
+
     if "design_decisions" not in data:
         errors.append("design_decisions: expected array")
         return
@@ -419,6 +421,13 @@ def validate_top_level(data: dict[str, Any], errors: list[str]) -> None:
         errors.append("design_decisions: expected array")
         return
     validate_design_decisions(design_decisions, errors)
+
+
+def validate_conceptualize(value: Any, path: str, errors: list[str]) -> None:
+    if not isinstance(value, dict):
+        errors.append(f"{path}: expected object")
+        return
+    require_non_empty_string(value, "index", f"{path}.index", errors)
 
 
 def collect_design_decision_ids(value: Any) -> set[str]:
@@ -1035,6 +1044,11 @@ def validate_work_packages(
             errors,
             context_bundle_ids=context_bundle_ids,
         )
+        validate_conceptualize_slices(
+            package.get("conceptualize_slices"),
+            f"{package_path}.conceptualize_slices",
+            errors,
+        )
 
         if isinstance(package_id, str) and package_id.strip():
             package_task_refs[package_id] = task_refs
@@ -1139,6 +1153,22 @@ def validate_package_v2_fields(
         errors.append(
             f"{package_path}.targeted_review_required: must be true for compatibility metadata because risk_tags include enhanced package-review trigger(s) {triggering_tags}"
         )
+
+
+def validate_conceptualize_slices(value: Any, path: str, errors: list[str]) -> None:
+    if not isinstance(value, list):
+        errors.append(f"{path}: expected array")
+        return
+
+    for index, item in enumerate(value):
+        item_path = f"{path}[{index}]"
+        if not isinstance(item, dict):
+            errors.append(f"{item_path}: expected object")
+            continue
+        require_non_empty_string(item, "path", f"{item_path}.path", errors)
+        focus = item.get("focus")
+        if focus is not None and not isinstance(focus, str):
+            errors.append(f"{item_path}.focus: expected string when present")
 
 
 def validate_package_task_coverage(

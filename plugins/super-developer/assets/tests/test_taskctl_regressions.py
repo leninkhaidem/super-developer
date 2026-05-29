@@ -88,6 +88,7 @@ class TaskctlRegressionFixture:
             "description": "Fixture for taskctl regressions.",
             "created_at": "2026-05-16T00:00:00Z",
             "status": "in-progress",
+            "conceptualize": {"index": ".planning/fixture/index.md"},
             "design_decisions": [
                 {
                     "id": "DD-1",
@@ -126,6 +127,7 @@ class TaskctlRegressionFixture:
                     "required_context_bundles": ["CTX-1"],
                     "targeted_review_required": True,
                     "rationale": "Single-task validation package.",
+                    "conceptualize_slices": [{"path": ".planning/fixture/slices/validation.md", "focus": "First package only."}],
                 },
                 {
                     "id": "WP2",
@@ -140,6 +142,7 @@ class TaskctlRegressionFixture:
                     "required_context_bundles": ["CTX-1"],
                     "targeted_review_required": False,
                     "rationale": "Dependent package for next-package checks.",
+                    "conceptualize_slices": [],
                 },
             ],
             "phases": [
