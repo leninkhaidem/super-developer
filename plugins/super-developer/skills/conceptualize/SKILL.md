@@ -1,15 +1,16 @@
 ---
 name: conceptualize
 description: >
-  Capture exploratory product, architecture, or research discussion into an ignored Conceptualize
-  Workspace before implementation planning. Use when the user asks to conceptualize, shape an idea,
-  explore a potential deliverable before planning, collect research/context for later planning, or
-  prepare a workspace of planning notes and slices.
+  Run a Grill Me-style exploration of a product, architecture, or research idea, checkpointing durable
+  conclusions into an ignored Conceptualize Workspace before implementation planning. Use when the
+  user asks to conceptualize, shape an idea, explore a potential deliverable before planning,
+  stress-test direction, collect research/context for later planning, or prepare planning notes and
+  slices.
 ---
 
-# Conceptualize: Distill a Conceptualize Workspace
+# Conceptualize: Grill Toward a Checkpointed Workspace
 
-Guide a Conceptualize Session and maintain concise ignored planning files under `.planning/<concept-slug>/`. The output is background context for a later Implementation Plan, not a task plan.
+Guide a Grill Me-style Conceptualize Session: interview relentlessly until shared understanding, walk the design tree one branch at a time, provide recommended answers, and explore the codebase instead of asking whenever repo evidence can answer the question. Maintain concise ignored planning files under `.planning/<concept-slug>/` at checkpoints. The output is background context for a later Implementation Plan, not a task plan.
 
 ## Arguments
 
@@ -19,7 +20,9 @@ Guide a Conceptualize Session and maintain concise ignored planning files under 
 
 - Create or maintain exactly one Conceptualize Workspace for the session: `.planning/<concept-slug>/index.md` plus an always-present `slices/` directory.
 - Validate the Concept Slug before writing: lowercase kebab-case, no spaces, no shell metacharacters, no absolute paths, no traversal, and all paths must remain inside `.planning/<concept-slug>/`.
-- Ask one focused question at a time. Include recommended answers or tradeoff-shaped options when useful; do not interrogate with multi-question blocks.
+- Interview the user relentlessly until shared understanding is reached, resolving dependencies between decisions one branch at a time.
+- Ask one focused question at a time. For each question, provide your recommended answer and tradeoff-shaped options when useful; do not interrogate with multi-question blocks.
+- If a question can be answered by exploring the codebase, explore the codebase instead and ask only for the remaining user intent or tradeoff.
 - Update files only at Conceptualize Checkpoints: settled decisions, research findings, meaningful topic shifts, slice creation/merge, or final handoff preparation.
 - Auto-manage Slices when one concern becomes detailed enough to stand alone. Keep Slices concise and agent-oriented.
 - Research when needed using repo inspection or external sources. Distill findings with source provenance; redact secrets, credentials, PII, and proprietary sensitive values.
@@ -40,9 +43,9 @@ These references are one-hop and self-contained. Do not bulk-load templates befo
 
 1. Select a Concept Slug and create `.planning/<concept-slug>/slices/` if missing.
 2. Load `references/workspace-index.md`, then create or refresh `index.md` at the first meaningful checkpoint.
-3. Interview one question at a time, using recommended answers when they help the user decide.
+3. Run the Grill Me loop: choose the next highest-leverage branch, inspect the repo first when it can answer the uncertainty, then ask one question with your recommended answer.
 4. Perform repo or external research only when it can materially clarify direction, constraints, risks, or open questions. Record distilled claims with sources.
-5. At each Conceptualize Checkpoint, update `index.md` and any relevant Slices. Keep raw transcripts out of the workspace.
+5. At each Conceptualize Checkpoint, update `index.md` and any relevant Slices with durable conclusions. Keep raw transcripts out of the workspace.
 6. When the user is ready for planning, stop at a compact handoff: workspace path, key Slices, Planning Handoff bullets, open questions, and a reminder that required outcomes must be promoted into authoritative plan artifacts during implementation planning.
 
 ## Handoff Boundary
