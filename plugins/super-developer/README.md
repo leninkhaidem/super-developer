@@ -11,7 +11,7 @@ One plugin. Twelve skills. Zero manual git juggling.
 Super Developer packages portable skill instructions into an opinionated development workflow engine. In Claude Code, it replaces scattered slash commands and ad-hoc prompts with a structured pipeline where each stage feeds the next — with right-sized sub-agent work packages, git worktree isolation, and adversarial review gates catching issues before they ship.
 
 ```
-[conceptualize]             Optional session — ignored Conceptualize Workspace + Slices
+[conceptualize]             Optional session — minimal Conceptualize Index + optional Slices
        |
        v
   implementation-plan  --->  review-plan  --->  implement
@@ -34,7 +34,7 @@ The pipeline flows automatically with confirmation gates. Say **"proceed through
 
 | Skill | What It Does | Usage |
 |---|---|---|
-| **conceptualize** | Captures exploratory discussion and research into an ignored `.planning/<concept-slug>/` Conceptualize Workspace with `index.md` and focused Slices. Stops at a compact planning handoff; later planning promotes required outcomes into authoritative plan artifacts. | Standalone + Pre-planning |
+| **conceptualize** | Maintains an ignored `.planning/<concept-slug>/` entry-point `index.md` and checkpoints only durable handoff context, research, and optional focused Slices. Stops at a compact planning handoff; later planning promotes required outcomes into authoritative plan artifacts. | Standalone + Pre-planning |
 | **perspectives** | Divergent problem-solving. Spawns 3-5 Opus-class sub-agents, each approaching the problem from a distinct angle (Infrastructure, Architecture, Data, Root Cause, etc.). A final Skeptic agent stress-tests and synthesizes proposals into a ranked recommendation. | Standalone |
 | **implementation-plan** | Converts a completed requirements discussion or Conceptualize handoff into a structured task plan under `.tasks/<feature>/` with `SPEC.md`, structured task-level acceptance criteria, traceability source refs, `context_bundles`, `design_decisions`, and work packages. Runs triggered Design Preflight and conditional `spike-to-plan` evidence collection before durable plan artifacts for nontrivial/risky features. | Pipeline + Standalone |
 | **spike-to-plan** | Empirical feature spikes that validate uncertain assumptions before implementation planning. Produces planning evidence only; accepted outcomes become `design_decisions`, not persisted spike code. | Standalone + Planning hook |
@@ -155,7 +155,7 @@ Start a conversation, discuss what you want to build, then:
 > Plan this feature
 ```
 
-Optionally start with a `conceptualize` session to capture an ignored `.planning/<concept-slug>/` workspace and compact handoff before planning. If you skip that session, planning may create a minimal placeholder workspace so new schema-versioned plans can still record Conceptualize metadata. The planning agent then infers the feature name, creates `SPEC.md` and `tasks.json`, and asks to continue through plan review and the `implement` Execution Contract. Say **"proceed through all stages"** to run the full pipeline end-to-end, or confirm each gate individually.
+Optionally start with a `conceptualize` session to create a minimal ignored `.planning/<concept-slug>/index.md` entry point and preserve only durable handoff context before planning. Slices are optional and used only for concerns independently useful to later planning or sub-agents. If you skip that session, planning may create a minimal placeholder workspace so new schema-versioned plans can still record Conceptualize metadata. The planning agent then infers the feature name, creates `SPEC.md` and `tasks.json`, and asks to continue through plan review and the `implement` Execution Contract. Say **"proceed through all stages"** to run the full pipeline end-to-end, or confirm each gate individually.
 
 ### Individual Skills
 
@@ -229,7 +229,7 @@ super-developer/
 |   +-- tool-usage.md                    # Helper script command shapes and safety rules
 +-- skills/
 |   +-- conceptualize/
-|   |   +-- SKILL.md                    # Conceptualize Workspace capture
+|   |   +-- SKILL.md                    # Minimal Conceptualize Index + optional Slices
 |   |   +-- references/
 |   |       +-- workspace-index.md      # Index template and handoff contract
 |   |       +-- slice-template.md       # Slice template and source rules
@@ -279,7 +279,7 @@ super-developer/
 
 | Decision | Rationale |
 |---|---|
-| Conceptualize before planning | Exploratory session knowledge lives in ignored `.planning/` workspaces as untrusted background until implementation planning promotes required outcomes into `SPEC.md`, tasks, design decisions, or context bundles. |
+| Conceptualize before planning | Durable handoff knowledge lives in ignored `.planning/` workspaces as untrusted background until implementation planning promotes required outcomes into `SPEC.md`, tasks, design decisions, or context bundles. Simple conversation and intermediate reasoning stay out of the workspace. |
 | Main agent orchestrates, sub-agents implement and self-verify | Separation of concerns — orchestrator manages git state, dispatch, evidence validation, and integration checks; sub-agents write code, run targeted checks, and update criterion-level evidence |
 | Adaptive adversarial review | One Plan Reviewer runs by default; a Security/Failure-Mode Reviewer is added only for security/privacy/safety-sensitive plans or escalation. Code review uses dynamic discovery lenses, a bounded topology, at most one Specialist Reviewer selected by risk priority, and a conditional Skeptic Agent to verify serious findings and risky clean coverage before reporting. |
 | Git worktree isolation | Parallel sub-agents work in separate worktrees — no branch switching, no merge conflicts during implementation |

@@ -353,6 +353,42 @@ class GuardrailDocumentationRegressionTests(unittest.TestCase):
         self.assertIn("Gate 2 always blocks regardless of blanket-mode authorization", review_plan)
         self.assertIn("Reviewer contract:", review_plan)
 
+    def test_conceptualize_docs_keep_index_minimal_and_slices_optional(self) -> None:
+        skill = self.read_doc("skills/conceptualize/SKILL.md")
+        index = self.read_doc("skills/conceptualize/references/workspace-index.md")
+        slice_template = self.read_doc("skills/conceptualize/references/slice-template.md")
+        readme = self.read_doc("README.md")
+
+        for required in (
+            "minimal `index.md` entry point",
+            "Treat `index.md` as an entry point, not a transcript",
+            "Context-Boundary Checkpoints",
+            "Prefer no workspace content change over low-value documentation",
+            "Create or update Slices only when one concern becomes independently useful",
+        ):
+            with self.subTest(required=required):
+                self.assertIn(required, skill)
+
+        for required in (
+            "entry point, not a conversation transcript",
+            "Do not use the Index for simple conversation capture",
+            "Do not update the Index merely because a question was asked",
+            "Prefer no content change over low-value documentation",
+        ):
+            with self.subTest(required=required):
+                self.assertIn(required, index)
+
+        for required in (
+            "Slices are optional handoff artifacts, not normal conversation notes",
+            "If a concise Index bullet is sufficient, do not create a Slice",
+            "Do not create or update Slices for simple conversations",
+        ):
+            with self.subTest(required=required):
+                self.assertIn(required, slice_template)
+
+        self.assertIn("minimal Conceptualize Index + optional Slices", readme)
+        self.assertIn("Simple conversation and intermediate reasoning stay out of the workspace", readme)
+
     def test_review_plan_conceptualize_semantic_review_is_lazy_and_trust_bounded(self) -> None:
         review_plan = self.read_doc("skills/review-plan/SKILL.md")
         rubrics = self.read_doc("references/plan-review-rubrics.md")
