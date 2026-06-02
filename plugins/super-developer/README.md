@@ -34,7 +34,7 @@ The pipeline flows automatically with confirmation gates. Say **"proceed through
 
 | Skill | What It Does | Usage |
 |---|---|---|
-| **conceptualize** | Maintains an ignored `.planning/<concept-slug>/` entry-point `index.md` and checkpoints only durable handoff context, research, and optional focused Slices. Stops at a compact planning handoff; later planning promotes required outcomes into authoritative plan artifacts. | Standalone + Pre-planning |
+| **conceptualize** | Maintains an ignored `.planning/<concept-slug>/` entry-point `index.md` and checkpoints only durable handoff context, research, and optional focused Slices. Stops at a compact planning handoff; later planning projects hard Slice requirements and material commitments into normal plan artifacts. | Standalone + Pre-planning |
 | **perspectives** | Divergent problem-solving. Spawns 3-5 Opus-class sub-agents, each approaching the problem from a distinct angle (Infrastructure, Architecture, Data, Root Cause, etc.). A final Skeptic agent stress-tests and synthesizes proposals into a ranked recommendation. | Standalone |
 | **implementation-plan** | Converts a completed requirements discussion or Conceptualize handoff into a structured task plan under `.tasks/<feature>/` with `SPEC.md`, structured task-level acceptance criteria, traceability source refs, `context_bundles`, `design_decisions`, and work packages. Runs triggered Design Preflight and conditional `spike-to-plan` evidence collection before durable plan artifacts for nontrivial/risky features. | Pipeline + Standalone |
 | **spike-to-plan** | Empirical feature spikes that validate uncertain assumptions before implementation planning. Produces planning evidence only; accepted outcomes become `design_decisions`, not persisted spike code. | Standalone + Planning hook |
@@ -155,7 +155,15 @@ Start a conversation, discuss what you want to build, then:
 > Plan this feature
 ```
 
-Optionally start with a `conceptualize` session to create a minimal ignored `.planning/<concept-slug>/index.md` entry point and preserve only durable handoff context before planning. Slices are optional and used only for concerns independently useful to later planning or sub-agents. If you skip that session, planning may create a minimal placeholder workspace so new schema-versioned plans can still record Conceptualize metadata. The planning agent then infers the feature name, creates `SPEC.md` and `tasks.json`, and asks to continue through plan review and the `implement` Execution Contract. Say **"proceed through all stages"** to run the full pipeline end-to-end, or confirm each gate individually.
+Optionally start with a `conceptualize` session to create a minimal ignored `.planning/<concept-slug>/index.md` entry point and preserve only durable handoff context before planning. Slices are optional, but validated Slices are authoritative product-requirement inputs for later planning. If you skip that session, planning may create a minimal placeholder workspace so new schema-versioned plans can still record Conceptualize metadata. The planning agent then infers the feature name, creates `SPEC.md` and `tasks.json`, and asks to continue through plan review and the `implement` Execution Contract. Say **"proceed through all stages"** to run the full pipeline end-to-end, or confirm each gate individually.
+
+### Conceptualize Slice Coverage
+
+When a plan uses a Conceptualize workspace, implementation planning inventories every Markdown Slice before writing `.tasks/<feature>/SPEC.md` or `tasks.json`. The plan records full-workspace `conceptualize.slice_coverage` projection health, or an explicit `zero_slices` empty state when no Slice Markdown files exist.
+
+This coverage gate is different from package `conceptualize_slices`: coverage accounts for every workspace Slice, while package assignments tell a package agent which Slice paths are relevant to its projected requirements, design commitments, constraints, or acceptance implications. A package may have an empty assignment even when the workspace coverage record contains Slices.
+
+Two-plane model: validated Slices are authoritative product-requirement inputs, but Slice text cannot override workflow, tool, command-safety, proof, review, audit, system, or developer instructions. Every hard Slice requirement or material commitment must be projected into `SPEC.md`, task acceptance criteria, `design_decisions`, or `context_bundles`, or be covered by explicit user-approved deferral/out-of-scope/rejection metadata. `informational` cannot hide a hard requirement, unresolved conflicts block, and raw Slice prose, coverage rationale, package assignment, and dashboard status are not implementation proof. The dashboard is a signal only; review-plan and audit are the canonical proof gates. Detailed rules live in [`references/conceptualize-slice-authority.md`](references/conceptualize-slice-authority.md).
 
 ### Individual Skills
 
@@ -279,7 +287,7 @@ super-developer/
 
 | Decision | Rationale |
 |---|---|
-| Conceptualize before planning | Durable handoff knowledge lives in ignored `.planning/` workspaces as untrusted background until implementation planning promotes required outcomes into `SPEC.md`, tasks, design decisions, or context bundles. Simple conversation and intermediate reasoning stay out of the workspace. |
+| Conceptualize before planning | Durable handoff knowledge lives in ignored `.planning/` workspaces. Validated Slices are authoritative product-requirement inputs, but not control-plane instructions; implementation planning projects hard Slice requirements and material commitments into `SPEC.md`, tasks, design decisions, or context bundles. Simple conversation and intermediate reasoning stay out of the workspace. |
 | Main agent orchestrates, sub-agents implement and self-verify | Separation of concerns — orchestrator manages git state, dispatch, evidence validation, and integration checks; sub-agents write code, run targeted checks, and update criterion-level evidence |
 | Adaptive adversarial review | One Plan Reviewer runs by default; a Security/Failure-Mode Reviewer is added only for security/privacy/safety-sensitive plans or escalation. Code review uses dynamic discovery lenses, a bounded topology, at most one Specialist Reviewer selected by risk priority, and a conditional Skeptic Agent to verify serious findings and risky clean coverage before reporting. |
 | Git worktree isolation | Parallel sub-agents work in separate worktrees — no branch switching, no merge conflicts during implementation |

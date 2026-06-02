@@ -4,91 +4,64 @@ Load this when drafting `.tasks/<feature-name>/tasks.json`.
 
 `tasks.json` is the implementation plan: Conceptualize metadata, task decomposition, traceable acceptance criteria, accepted planning decisions, context bundles, work packages, and verification hints. Keep `SPEC.md` requirements-only.
 
-## Example Shape
+## Compact Skeleton
+
+Use this skeleton to remember object placement; use `schema-reference.md` for the field map and `${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/validate-tasks-json.py` for machine-owned details. Do not paste long Slice examples into plans.
 
 ```json
 {
   "schema_version": 3,
   "feature": "<feature-name>",
   "title": "Human-readable feature title",
-  "description": "One-line summary of what this feature delivers",
+  "description": "One-line summary",
   "created_at": "<ISO 8601>",
   "status": "planned",
   "conceptualize": {
-    "index": ".planning/<concept-slug>/index.md"
+    "index": ".planning/<concept-slug>/index.md",
+    "slice_coverage": { "state": "covered|zero_slices", "entries": [], "rationale": "<when required>" }
   },
-  "design_decisions": [
-    {
-      "id": "DD-1",
-      "decision": "Concise accepted design decision",
-      "rationale": "Why this decision best satisfies the requirements and constraints",
-      "alternatives_considered": ["Alternative considered and why it was not chosen"],
-      "source": "design-preflight"
-    }
-  ],
-  "context_bundles": [
-    {
-      "id": "CTX-1",
-      "title": "External/runtime contract title",
-      "required_for": ["WP1"],
-      "sources": [
-        {
-          "type": "docs",
-          "path_or_url": "https://docs.example.invalid/contract",
-          "claims": ["Specific behavior implementers must not infer or mock."]
-        }
-      ],
-      "verification_required": ["Tests must use the documented/captured contract shape for this boundary."]
-    }
-  ],
+  "design_decisions": [],
+  "context_bundles": [],
   "work_packages": [
     {
       "id": "WP1",
       "title": "Short package title",
-      "description": "Coherent implementation bundle delivered by one sub-agent.",
+      "description": "Coherent implementation bundle.",
       "task_ids": ["P1-T001"],
       "depends_on": [],
       "parallel_safe_with": [],
-      "primary_paths": ["path/to/module/"],
+      "primary_paths": ["path/to/inspect/"],
       "verification_commands": [],
-      "risk_tags": ["library-contract"],
-      "required_context_bundles": ["CTX-1"],
+      "risk_tags": ["documentation"],
+      "required_context_bundles": [],
       "targeted_review_required": true,
-      "rationale": "Why these tasks should share one implementation context.",
-      "conceptualize_slices": [
-        {
-          "path": ".planning/<concept-slug>/slices/<slice-name>.md",
-          "focus": "Optional package-specific slice focus."
-        }
-      ]
+      "rationale": "Why these tasks share one implementation context.",
+      "conceptualize_slices": []
     }
   ],
   "phases": [
     {
       "id": "P1",
       "name": "Phase name",
-      "description": "What this phase accomplishes as a unit",
+      "description": "What this phase accomplishes.",
       "order": 1,
       "tasks": [
         {
           "id": "P1-T001",
-          "title": "Short descriptive title",
-          "description": "WHAT to build and key constraints. References affected files/modules. Does not prescribe exact code or implementation steps.",
+          "title": "Short task title",
+          "description": "WHAT to build plus non-discoverable constraints.",
           "status": "pending",
           "dependencies": [],
           "acceptance_criteria": [
             {
               "id": "P1-T001-AC1",
               "criterion": "Specific, verifiable outcome.",
-              "source_refs": [
-                { "type": "spec_req", "id": "REQ-1" },
-                { "type": "spec_ac", "id": "AC-1" }
-              ],
-              "verification_hint": "Optional proof hint, command, edge case, or contract constraint."
+              "source_refs": [{ "type": "spec_req", "id": "REQ-1" }],
+              "verification_hint": "Optional proof hint."
             }
           ],
-          "required_context_bundles": ["CTX-1"],
-          "context": "Why this task exists — the SPEC.md requirement or acceptance criterion that motivated it."
+          "required_context_bundles": [],
+          "context": "Why this task exists."
         }
       ]
     }
@@ -96,22 +69,37 @@ Load this when drafting `.tasks/<feature-name>/tasks.json`.
 }
 ```
 
-Use `schema-reference.md` for a concise field map. The machine contract is `${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/validate-tasks-json.py`. New Conceptualize-aware plans use schema version 3; legacy schema version 2 plans remain valid for existing work but must not be used for new authoring. Load `conceptualize-inputs.md` for Conceptualize Workspace selection, path-boundary rules, and metadata examples.
+New Conceptualize-aware plans use schema version 3; legacy schema version 2 plans remain valid for existing work but must not be used for new authoring. Load `conceptualize-inputs.md` for workspace selection and planning deltas, `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/conceptualize-slice-authority.md` for the detailed Slice authority/projection contract, and the validator/tests for exact enum/ref behavior.
 
 ## Conceptualize Metadata Guidance
 
-Every new schema version 3 plan must record the selected Conceptualize Workspace in two places:
+Every new schema version 3 plan records the selected Conceptualize Workspace in three compact surfaces:
 
-- top-level `conceptualize.index`: the selected `.planning/<concept-slug>/index.md` path;
-- each `work_packages[]` entry's `conceptualize_slices`: an array of Slice assignment objects, each with mandatory `path` and optional `focus`.
+| Surface | Purpose | Authoring rule |
+|---|---|---|
+| `conceptualize.index` | selected `.planning/<concept-slug>/index.md` | path-only handoff pointer; not a hidden requirement blob. |
+| `conceptualize.slice_coverage` | full-workspace Slice inventory/disposition accounting | `covered` with one entry per Slice, or `zero_slices` with `entries: []` and rationale when no Slice Markdown files exist. |
+| `work_packages[].conceptualize_slices` | package-specific read list | always present; use `[]` when no Slice is relevant; add `path` plus optional `focus` for relevant projected requirements/commitments. |
 
-Use `[]` for `conceptualize_slices` when the package has no relevant Slice. Slices are required background context, not hidden requirements. Promote any required outcome into `SPEC.md`, task acceptance criteria, design decisions, or context bundles before implementation. The validator owns deterministic shape checks only; semantic path existence, workspace confinement, relevance, and hidden-requirement review are handled by planning/review guidance in `conceptualize-inputs.md` and `review-plan`.
+Coverage entries use projection vocabulary because safe Slices are authoritative product-requirement inputs, not lower-authority material that needs a second authority step. Project every hard Slice requirement or material commitment into `SPEC.md`, task acceptance criteria, design decisions, or context bundles before implementation. Durable user approval is required for deferred, out-of-scope, rejected, narrowed, contradicted, or otherwise unimplemented hard Slice requirements; unresolved conflicts block plan writing. Do not copy Slice prose into the matrix as a shadow spec.
+
+Validator-owned deterministic coverage rules, kept concise here:
+
+| Rule class | Validator responsibility | Not validator-owned |
+|---|---|---|
+| Version/shape | schema version 3 with `conceptualize.index` requires `slice_coverage`; schema version 2 may omit it for pre-existing compatibility, but any provided coverage is still shape-validated. | workspace relevance or plan completeness. |
+| State/entries | `covered` requires non-empty entries; `zero_slices` requires `entries: []` plus rationale. | whether the workspace truly has zero Slice files. |
+| Projection refs | `projected` entries require non-empty `projected_refs` to existing `spec_req`, `spec_ac`, `task_ac`, `design_decision`, or `context_bundle` refs. | whether refs fully represent the Slice semantics. |
+| Approval | `deferred`, `out_of_scope`, and `rejected` entries require durable `approval` metadata with `source`, `approved_at`, `provenance`, and `scope`; optional `approval.refs` are validated refs. | whether approval scope is semantically sufficient. |
+| Boundaries | duplicate coverage paths and malformed refs are invalid. | Markdown path existence, workspace confinement, hidden hard requirements, locked material commitments, and `informational`/`conflict` semantics. |
+
+Planning, review, and audit guidance decide semantic projection completeness, hidden hard requirements, approval sufficiency, conflict resolution, and locked-baseline drift.
 
 ## Design Decision Guidance
 
 - Always include top-level `design_decisions`; use `[]` when none are worth preserving.
-- Persist concise accepted decisions only, not full reviewer debate, discarded comments, transient Preflight Brief content, or raw spike notes.
-- Record decisions that materially affect implementation boundaries, verification, security/privacy/safety posture, compatibility, sequencing, or task decomposition.
+- Persist concise accepted decisions only, not full reviewer debate, discarded comments, transient Preflight Brief content, full transcripts, every exploratory sentence, or raw spike notes.
+- Record decisions that materially affect implementation boundaries, verification, security/privacy/safety posture, compatibility, sequencing, task decomposition, Slice-derived material design commitments, approved shared understanding, constraints, accepted tradeoffs, or non-goals.
 - If the user or repo context requires building on top of another feature branch, record the planned implementation base/target refs as a design decision so `implement` and `review-code` do not default silently to `main`.
 - Use `source: "design-preflight"` for decisions accepted from preflight resolution. Use `source: "planner"` for planner decisions and accepted empirical spike outcomes adopted by the main agent.
 - Do not record obvious restatements of SPEC requirements.

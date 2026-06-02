@@ -13,7 +13,7 @@ Load this when drafting `.tasks/<feature-name>/SPEC.md`.
 1-2 sentences describing the user goal and intended outcome.
 
 ## Conceptualize Inputs
-Non-normative background path only. Include the selected Conceptualize Index path and no slice text, design rationale, or requirements.
+Non-normative path-only planning handoff link. Include the selected Conceptualize Index path and no raw Slice text, design rationale, task decomposition, or hidden requirement blob.
 - Index: `.planning/<concept-slug>/index.md`
 
 ## Requirements
@@ -47,7 +47,7 @@ User-stated exclusions and boundaries.
 
 ## Code References Rules
 
-- Conceptualize Inputs and Code References are non-normative; they help implementers start exploration but do not define product behavior.
+- Conceptualize Inputs and Code References are non-normative path/reference sections. Product behavior belongs in the normal Requirements, Acceptance Criteria, Constraints, and Out of Scope sections.
 - Include only paths verified by lightweight codebase inspection.
 - Reference paths only. Do not include code snippets, pseudo-code, line numbers, diffs, or change instructions.
 - If no relevant paths are known or safe to cite, write `None identified`.
@@ -55,7 +55,8 @@ User-stated exclusions and boundaries.
 ## Purity Rules
 
 - Keep SPEC.md requirements-only.
-- The `Conceptualize Inputs` section is path-only background; do not copy Conceptualize Slice content or promote unapproved outcomes there.
+- The `Conceptualize Inputs` section is path-only; do not copy raw Conceptualize Slice content, design rationale, task decomposition, or coverage records there.
+- Slice-derived product requirements may appear in normal requirement/acceptance sections; Slice-derived material design commitments belong in `tasks.json` artifacts unless the user explicitly made them requirements.
 - Do not include task breakdowns, implementation sequencing, architecture rationale, or design decisions.
 - SPEC.md may mention a file path, API, or existing module only as user-approved context or as a non-normative Code Reference.
 - If the user explicitly made an architectural choice a product requirement, record the product requirement in SPEC.md and put implementation rationale in `tasks.json.design_decisions`.

@@ -28,17 +28,17 @@ Display current status of task plans. Quick overview of progress across all feat
    ```
 
    If validation fails for a feature, display it as invalid with the validator failure summary and skip derived progress calculations for that file.
-4. For each valid feature, read `tasks.json` and compute: feature name, title, status, total tasks, count by status, progress percentage.
-5. Display sorted by status (`in-progress` first, then `planned`/`reviewed`, then `completed`, then `on-hold`):
+4. For each valid feature, read `tasks.json` and compute: feature name, title, status, total tasks, count by status, progress percentage, and a compact Conceptualize Slice projection-health indicator (`ok`, `zero-slices`, `absent/legacy`, or `⚠ incomplete`) from `conceptualize.slice_coverage`. This is a signal only; detailed Slice authority rules live in `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/conceptualize-slice-authority.md`.
+5. Display sorted by status (`in-progress` first, then `planned`/`reviewed`, then `completed`, then `on-hold`). Surface `⚠ incomplete` or absent coverage in the Notes column, but do not claim implementation proof from dashboard status:
 
 ```
 Task Status Dashboard
 ═════════════════════════════════════════════════════════════════
-Feature              Status       Progress        Breakdown
-─────────────────────────────────────────────────────────────────
-auth-system          in-progress  ████░░░░ 12/24  ✅12 🔄1 ⬜9 🚫2
-search-indexing      reviewed     ░░░░░░░░  0/18  ⬜18
-payment-flow         completed    ████████  8/8   ✅8
+Feature              Status       Progress        Breakdown             Notes
+───────────────────────────────────────────────────────────────────────────────
+auth-system          in-progress  ████░░░░ 12/24  ✅12 🔄1 ⬜9 🚫2      slices: ok
+search-indexing      reviewed     ░░░░░░░░  0/18  ⬜18                 ⚠ slices incomplete
+payment-flow         completed    ████████  8/8   ✅8                  slices: zero
 ```
 
 ## Single Feature View (argument provided)
@@ -54,7 +54,8 @@ payment-flow         completed    ████████  8/8   ✅8
 
    If package proofs are missing, invalid, stale, reopened, or unaccepted, continue showing task status but include an **Evidence: missing/invalid/unaccepted** warning. Status alone is not proof that completed acceptance criteria are verified.
 3. Read `.tasks/$ARGUMENTS/tasks.json`.
-4. If `work_packages` exists, display a package summary before the phase breakdown:
+4. Compute **Slice coverage health** from visible top-level `conceptualize.slice_coverage` fields only: `zero_slices`, `covered`, incomplete/stale-looking, or absent/legacy/unknown. Show entry/disposition counts and obvious schema-level warnings such as missing projected refs, missing rationale, visible approval gaps, suspicious `informational`, or package-assignment inconsistency. This is a dashboard signal only, never proof that Slice-derived requirements were implemented. Review-plan and audit remain the authoritative coverage/proof gates; load `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/conceptualize-slice-authority.md` for canonical rules.
+5. If `work_packages` exists, display a package summary before the phase breakdown:
 
    ```
    Work Packages
@@ -69,7 +70,7 @@ payment-flow         completed    ████████  8/8   ✅8
    - 🔄 any contained task `in-progress`
    - ⬜ otherwise
 
-5. Display phase-by-phase breakdown:
+6. Display phase-by-phase breakdown:
 
 ```
 Feature: <title> (<status>)
@@ -88,8 +89,9 @@ Phase 2: <phase name>
   ⬜ P2-T003  Write auth middleware                  deps: P2-T002
 ```
 
-6. At the bottom, show:
+7. At the bottom, show:
    - **Evidence health** — for planned-feature pipelines, whether `.tasks/$ARGUMENTS/proofs/WP<N>.proof.json` files exist, validate, and are accepted for completed package criteria. Do not treat missing, invalid, stale, reopened/unaccepted, `failed`, `blocked`, or unapproved `manual_required` proof entries as verified work.
+   - **Slice coverage health** — absent, zero-slices, covered, or incomplete/stale-looking coverage summary. Warn on absent, empty-without-zero-state, incomplete, package-inconsistent coverage, suspicious `informational` dispositions, or missing projected refs/approval metadata, and state that status is not proof of Slice-derived implementation outcomes.
    - **Next actionable task** — first `pending` task with all dependencies `done`.
    - **Next actionable work package** — first package with pending work whose package dependencies have accepted proof evidence and whose external task dependencies are done. Show interrupted `in-progress` packages separately rather than redispatching them. Show this only when `work_packages` exists.
    - **Blocked tasks** — with `blocked_reason` if present.
