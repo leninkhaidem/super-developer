@@ -63,7 +63,7 @@ When the accepted approach is coherent enough to review, check artifact quality:
 - Are performance/concurrency implications called out with measurable bounds or verification when the plan can affect resource usage, fanout, latency, races, cancellation, or cleanup?
 - Are `design_decisions` IDs sequential (`DD-1`, `DD-2`, ...) with no gaps and valid `source` values?
 - Are plan artifacts internally consistent and schema-compatible?
-- When Conceptualize metadata is present, apply `plan-review-conceptualize.md` before returning `NONE`: validate safe path confinement and existence, package Slice relevance/focus, hidden-requirement promotion, conflicts, and untrusted embedded instruction handling.
+- When Conceptualize metadata is present, apply `plan-review-conceptualize.md` before returning `NONE`: validate the two-plane Slice model, safe path confinement/existence, full-workspace coverage, every safe Slice hard requirement/material commitment projection, package Slice relevance/focus and assignment conflicts, `informational` misuse, approval metadata for scope reductions, unresolved conflicts, locked baseline commitments, and prompt-injection/control-plane directives.
 
 ### Security Escalation Sniff Test
 
