@@ -17,9 +17,11 @@ Do not create `.tasks/<feature-name>/` or write files until all items pass.
 - If resolution changes user-visible semantics, acceptance criteria, or scope, the user approved it before writing.
 - Conceptualize Workspace selection is resolved: latest plausible workspace chosen, real ambiguity asked once, or a minimal `.planning/<concept-slug>/index.md` plus `slices/` auto-created.
 - Selected Conceptualize paths are repo-relative and confined to the selected `.planning/<concept-slug>/` workspace; unsafe paths are rejected before reading or recording.
-- Every Markdown Slice in the selected workspace has been inventoried by scanning the workspace, not only by reading the Index, package assignments, user mentions, or `## Promotion Candidates` sections.
+- Every Markdown Slice in the selected workspace has been inventoried by scanning the workspace, not only by reading the Index, package assignments, user mentions, or `## Projection Candidates` sections.
 - Slice coverage is complete before writing: every inventoried Slice has a disposition entry, or the workspace has an explicit zero-Slice empty state with rationale.
-- Promoted Slice outcomes cite authoritative plan artifacts; non-promoted dispositions include rationale, and scope-reducing deferred/out-of-scope/rejected/background-only decisions include durable user-approval metadata.
+- Every hard safe-Slice requirement or material commitment is projected into `SPEC.md` requirements/acceptance criteria, task acceptance criteria, `design_decisions`, or `context_bundles`; coverage rows, Slice paths, package assignments, and status output are not substitutes.
+- `informational` dispositions were used only after full safe-Slice review found no hard requirement or material commitment; deferred/out-of-scope/rejected/narrowed/otherwise-unimplemented hard Slice requirements carry durable user-approval metadata; unresolved `conflict` dispositions block writing.
+- Material approved shared understanding is captured as concise durable commitments in the right artifact, not as a transcript, every exploratory sentence, or raw reasoning history.
 - Conditional empirical spike decision has been made.
 - If a spike was required, accepted evidence is ready to record as `tasks.json.design_decisions` and no spike code will be persisted.
 - If the needed empirical assumption cannot be safely validated with available access and bounded side effects, stop and ask the user instead of writing around it.
@@ -30,7 +32,7 @@ Do not create `.tasks/<feature-name>/` or write files until all items pass.
 - Omits invented product behavior, architecture, non-functional requirements, or success criteria.
 - Contains no raw secrets, credentials, tokens, PII, or proprietary sensitive values.
 - Contains no implementation details, code snippets, pseudo-code, line numbers, task breakdowns, or implementation sequencing.
-- Conceptualize Inputs contains only the selected Conceptualize Index path and non-normative background wording.
+- Conceptualize Inputs contains only the selected Conceptualize Index path and path-only non-normative wording.
 - Code References are verified path-only references or `None identified`.
 - Architecture rationale and design decisions are absent unless the user explicitly made them product requirements.
 - Stable `REQ-*` and `AC-*` IDs are present where needed for traceability.
@@ -42,7 +44,7 @@ Do not create `.tasks/<feature-name>/` or write files until all items pass.
 - Any execution constraints or replan triggers are feature-specific, encoded in existing schema fields, and absent when not materially needed.
 - No Preflight Brief, reviewer debate, discarded comments, or raw spike notes are persisted.
 - For schema version 3, top-level `conceptualize.index` points to the selected Conceptualize Index, top-level `conceptualize.slice_coverage` records full-workspace coverage or `zero_slices`, and every work package has `conceptualize_slices` as an array of Slice objects with `path` and optional `focus`.
-- Conceptualize Slices are assigned only as background context; hidden requirements are promoted into SPEC requirements, task acceptance criteria, design decisions, or context bundles and cited from promoted coverage entries.
+- Conceptualize Slices assigned to packages are read lists only; all hard Slice requirements and material commitments are projected into SPEC requirements, task acceptance criteria, design decisions, or context bundles and cited from `projected` coverage entries.
 - The full-workspace coverage matrix remains separate from package-specific `conceptualize_slices`; empty package assignments do not prove zero-Slice workspace coverage.
 - No unnecessary verbatim duplication of SPEC sections; tasks trace to SPEC IDs and add task-level verification detail.
 - Every task has at least one acceptance criterion object with stable ID, observable criterion, non-empty typed `source_refs`, and a useful verification hint when proof is non-obvious.
@@ -95,5 +97,5 @@ After the validator passes:
 - Confirm work-package grouping still reflects the plan after any edits: coherent packages, preferred safe useful parallel waves, conservative serialization for ambiguity or shared contracts, safe commands, and correct targeted-review metadata.
 - Confirm no machine-owned long taxonomy was copied into the plan or references when a pointer to `validate-tasks-json.py` or `work-packages.md` is the correct source.
 - Confirm Conceptualize semantic checks were not delegated to the validator beyond deterministic shape.
-- Confirm Slice coverage still includes every selected-workspace Slice or the explicit zero-Slice state, and that promoted/non-promoted dispositions have the required refs, rationale, and approval metadata.
+- Confirm Slice coverage still includes every selected-workspace Slice or the explicit zero-Slice state, and that dispositions have required projected refs, rationale, durable approval metadata, conflict resolution, and no `informational` entry hiding a hard requirement.
 - Confirm the summary to the user lists feature path, phase-by-phase tasks, dependencies, and assumptions without adding new requirements.

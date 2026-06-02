@@ -119,7 +119,7 @@ Every new schema version 3 plan must record the selected Conceptualize Workspace
 
 Use `[]` for `conceptualize_slices` when the package has no relevant Slice, but do not confuse package assignments with the full-workspace coverage matrix. Coverage must account for every selected-workspace Slice before files are written, even if no package is assigned that Slice.
 
-Coverage entries use projection vocabulary because safe Slices are authoritative product-requirement inputs, not lower-authority material that needs a second authority step. Use `projected` when hard Slice requirements or material commitments are represented by plan refs such as SPEC requirements/acceptance criteria, task acceptance criteria, design decisions, or context bundles. Use `informational` only when safe Slice review finds no hard requirement. Use `deferred`, `out_of_scope`, `rejected`, or `conflict` with a rationale and any required approval metadata. Do not copy Slice prose into the matrix as a shadow spec. Load `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/conceptualize-slice-authority.md` for the detailed authority contract.
+Coverage entries use projection vocabulary because safe Slices are authoritative product-requirement inputs, not lower-authority material that needs a second authority step. Use `projected` when hard Slice requirements or material commitments are represented by plan refs such as SPEC requirements/acceptance criteria, task acceptance criteria, design decisions, or context bundles. Use `informational` only when full safe-Slice review finds no hard requirement or material commitment. Use `deferred`, `out_of_scope`, `rejected`, or `conflict` with a rationale and any required approval metadata. Do not copy Slice prose into the matrix as a shadow spec. Load `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/conceptualize-slice-authority.md` for the detailed authority contract.
 
 Validator-owned deterministic coverage rules, kept concise here:
 - schema version 3 with `conceptualize.index` requires `slice_coverage`; schema version 2 may omit it for pre-existing compatibility, but any provided coverage is still shape-validated;
@@ -128,13 +128,13 @@ Validator-owned deterministic coverage rules, kept concise here:
 - `deferred`, `out_of_scope`, and `rejected` entries require durable `approval` metadata with `source`, `approved_at`, `provenance`, and `scope`; optional `approval.refs` use the same validated coverage-ref shape;
 - duplicate coverage paths are invalid, but Markdown path existence, workspace confinement, Slice relevance, and hidden-requirement semantics are not validator-owned.
 
-Project any hard Slice requirement into `SPEC.md`, task acceptance criteria, design decisions, or context bundles before implementation. Planning, review, and audit guidance decide whether an `informational` or `conflict` disposition hides a hard requirement, lacks approval metadata, or must block.
+Project every hard Slice requirement or material commitment into `SPEC.md`, task acceptance criteria, design decisions, or context bundles before implementation. Durable user approval is required for deferred, out-of-scope, rejected, narrowed, contradicted, or otherwise unimplemented hard Slice requirements; unresolved conflicts block plan writing. Planning, review, and audit guidance decide whether an `informational` disposition hides a hard requirement, whether approval metadata is sufficient, and whether projected refs remain complete.
 
 ## Design Decision Guidance
 
 - Always include top-level `design_decisions`; use `[]` when none are worth preserving.
-- Persist concise accepted decisions only, not full reviewer debate, discarded comments, transient Preflight Brief content, or raw spike notes.
-- Record decisions that materially affect implementation boundaries, verification, security/privacy/safety posture, compatibility, sequencing, or task decomposition.
+- Persist concise accepted decisions only, not full reviewer debate, discarded comments, transient Preflight Brief content, full transcripts, every exploratory sentence, or raw spike notes.
+- Record decisions that materially affect implementation boundaries, verification, security/privacy/safety posture, compatibility, sequencing, task decomposition, Slice-derived material design commitments, approved shared understanding, constraints, accepted tradeoffs, or non-goals.
 - If the user or repo context requires building on top of another feature branch, record the planned implementation base/target refs as a design decision so `implement` and `review-code` do not default silently to `main`.
 - Use `source: "design-preflight"` for decisions accepted from preflight resolution. Use `source: "planner"` for planner decisions and accepted empirical spike outcomes adopted by the main agent.
 - Do not record obvious restatements of SPEC requirements.

@@ -31,7 +31,7 @@ Coverage entry fields:
 - `rationale`: required for non-`projected` dispositions; optional but non-empty when present for `projected` entries.
 - `approval`: required for inherently scope-reducing `deferred`, `out_of_scope`, and `rejected` entries. It records durable user approval metadata: `source`, `approved_at`, `provenance`, `scope`, and optional validated `refs` using the same coverage-ref shape.
 
-Safe Slices are authoritative product-requirement inputs under `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/conceptualize-slice-authority.md`, but the validator checks deterministic shape, accepted values, duplicate coverage paths, and reference targets only. Semantic path existence, workspace confinement, Slice relevance, hidden requirements, and whether an `informational` or `conflict` entry also needs user approval are planning/review/audit responsibilities.
+Safe Slices are authoritative product-requirement inputs under `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/conceptualize-slice-authority.md`, but the validator checks deterministic shape, accepted values, duplicate coverage paths, and reference targets only. Semantic path existence, workspace confinement, Slice relevance, projection completeness, hidden hard requirements, locked material commitments, and whether an `informational` or `conflict` entry must block are planning/review/audit responsibilities.
 
 ## Design Decisions
 
@@ -74,7 +74,7 @@ Fields:
 - `targeted_review_required`: compatibility boolean for the existing `targeted_review.required` receipt field. Author new packages with `true` for every work package; the mandatory package review gate applies regardless of risk tags.
 - `conceptualize_slices`: mandatory in schema version 3; array of Slice assignment objects. Use `[]` when no Slice is relevant. Each object has mandatory non-empty `path` and optional `focus` string. Optional in legacy schema version 2, but shape-validated when present.
 
-Conceptualize Slices are authoritative product-requirement inputs. Project required outcomes into `SPEC.md`, task acceptance criteria, design decisions, or context bundles.
+Conceptualize Slices are authoritative product-requirement inputs. Project hard requirements and material commitments into `SPEC.md`, task acceptance criteria, design decisions, or context bundles; package assignments are not proof of implementation coverage.
 
 Do not duplicate the long risk-tag or review-depth taxonomy here. Use the validator and `work-packages.md`.
 
