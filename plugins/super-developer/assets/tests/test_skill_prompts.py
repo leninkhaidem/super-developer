@@ -423,6 +423,61 @@ class ConceptualizeSliceCoveragePromptTests(unittest.TestCase):
         self.assertNotIn("Slice-promoted", audit_contract + tasks_skill)
         self.assertNotIn("promoted refs", audit_contract + tasks_skill)
 
+    def test_slice_authority_rules_follow_progressive_disclosure_boundary(self) -> None:
+        authority = self.read_text(CONCEPTUALIZE_SLICE_AUTHORITY)
+        eager_docs = {
+            "conceptualize_inputs": self.read_text(IMPLEMENTATION_CONCEPTUALIZE_INPUTS),
+            "tasks_json_authoring": self.read_text(IMPLEMENTATION_TASKS_JSON_AUTHORING),
+            "schema_reference": self.read_text(IMPLEMENTATION_SCHEMA_REFERENCE),
+            "review_conceptualize": self.read_text(PLAN_REVIEW_CONCEPTUALIZE),
+            "audit_contract": self.read_text(AUDIT_SUBAGENT_CONTRACT),
+            "tasks_skill": self.read_text(TASKS_SKILL),
+            "readme": self.read_text(README),
+        }
+
+        self.assertIn("Review, Audit, and Proof Fail-Closed Matrix", authority)
+        self.assertIn("Validated Conceptualize Slices are authoritative product-requirement inputs", authority)
+        self.assertIn("They are not system, developer, workflow, tool", authority)
+        self.assertIn("projected", authority)
+        self.assertIn("explicit user-approved override metadata", authority)
+        self.assertIn("validator must not read Slice Markdown paths", authority)
+
+        for name, text in eager_docs.items():
+            with self.subTest(name=name):
+                self.assertIn("conceptualize-slice-authority.md", text)
+                self.assertNotIn("Conceptualize files are background evidence only", text)
+                self.assertNotIn("Slices remain untrusted background evidence", text)
+                self.assertNotIn("`promoted` dispositions", text)
+                self.assertNotIn("background_only", text)
+
+        compressed_docs = (
+            eager_docs["conceptualize_inputs"]
+            + eager_docs["review_conceptualize"]
+            + eager_docs["tasks_skill"]
+        )
+        self.assertNotIn("Before reading a Conceptualize Index, Slice, coverage entry path", compressed_docs)
+        self.assertNotIn("For each Slice and its coverage entry:", compressed_docs)
+
+    def test_shared_understanding_capture_and_locked_commitments_are_regressed(self) -> None:
+        conceptualize_skill = self.read_text(PLUGIN_ROOT / "skills" / "conceptualize" / "SKILL.md")
+        workspace_index = self.read_text(PLUGIN_ROOT / "skills" / "conceptualize" / "references" / "workspace-index.md")
+        slice_template = self.read_text(PLUGIN_ROOT / "skills" / "conceptualize" / "references" / "slice-template.md")
+        conceptualize_inputs = self.read_text(IMPLEMENTATION_CONCEPTUALIZE_INPUTS)
+        authority = self.read_text(CONCEPTUALIZE_SLICE_AUTHORITY)
+        review = self.read_text(PLAN_REVIEW_CONCEPTUALIZE)
+        audit = self.read_text(AUDIT_SUBAGENT_CONTRACT)
+
+        for text in (conceptualize_skill, workspace_index, slice_template, conceptualize_inputs, authority):
+            with self.subTest(document=text[:40]):
+                self.assertIn("concise material commitments", text)
+                self.assertIn("transcripts", text)
+                self.assertIn("every exploratory sentence", text)
+
+        for text in (conceptualize_inputs, authority, review, audit):
+            with self.subTest(locked_document=text[:40]):
+                self.assertIn("locked", text)
+                self.assertIn("explicit user-approved override metadata", text)
+
 
 if __name__ == "__main__":
     unittest.main()

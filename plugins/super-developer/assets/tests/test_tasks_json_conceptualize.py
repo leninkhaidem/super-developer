@@ -207,6 +207,19 @@ Exercise Conceptualize schema validation.
 
         self.assertEqual([], self.errors_for(plan))
 
+    def test_validator_does_not_perform_path_semantic_validation(self) -> None:
+        plan = self.covered_plan()
+        plan["conceptualize"]["index"] = "/absolute/index.md"
+        plan["conceptualize"]["slice_coverage"]["entries"][0]["path"] = "../outside.md"
+        plan["work_packages"][0]["conceptualize_slices"] = [
+            {
+                "path": "~/shell-expanded.md",
+                "focus": "Path safety is planning/review/audit-owned.",
+            }
+        ]
+
+        self.assertEqual([], self.errors_for(plan))
+
     def test_schema_v3_top_level_conceptualize_is_required_with_index_and_coverage(self) -> None:
         missing = self.valid_plan()
         missing.pop("conceptualize")
