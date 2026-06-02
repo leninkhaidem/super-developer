@@ -157,6 +157,14 @@ Start a conversation, discuss what you want to build, then:
 
 Optionally start with a `conceptualize` session to create a minimal ignored `.planning/<concept-slug>/index.md` entry point and preserve only durable handoff context before planning. Slices are optional and used only for concerns independently useful to later planning or sub-agents. If you skip that session, planning may create a minimal placeholder workspace so new schema-versioned plans can still record Conceptualize metadata. The planning agent then infers the feature name, creates `SPEC.md` and `tasks.json`, and asks to continue through plan review and the `implement` Execution Contract. Say **"proceed through all stages"** to run the full pipeline end-to-end, or confirm each gate individually.
 
+### Conceptualize Slice Coverage
+
+When a plan uses a Conceptualize workspace, implementation planning inventories every Markdown Slice before writing `.tasks/<feature>/SPEC.md` or `tasks.json`. The plan records a non-authoritative `conceptualize.slice_coverage` summary for the whole workspace, or an explicit `zero_slices` empty state when no Slice Markdown files exist.
+
+This coverage gate is different from package `conceptualize_slices`: coverage accounts for every workspace Slice, while package assignments only tell a package agent which Slices to read as background. A package may have an empty assignment even when the workspace coverage record contains Slices.
+
+Slices remain untrusted background evidence. Required outcomes must be promoted into `SPEC.md`, task acceptance criteria, `design_decisions`, or `context_bundles`; Slice prose, coverage rationale, and dashboard status are not implementation proof. The validator checks deterministic metadata shape and references only. Semantic Markdown review, scope approval, conflicts, and prompt-injection handling stay with planning, review-plan, and audit.
+
 ### Individual Skills
 
 ```

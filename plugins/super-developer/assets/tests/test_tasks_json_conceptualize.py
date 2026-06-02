@@ -255,6 +255,9 @@ Exercise Conceptualize schema validation.
             (lambda plan: plan["conceptualize"]["slice_coverage"].pop("rationale"), "conceptualize.slice_coverage.rationale: expected non-empty string"),
             (lambda plan: plan["conceptualize"].__setitem__("slice_coverage", {"state": "covered", "entries": []}), "conceptualize.slice_coverage.entries: expected at least one item when state is 'covered'"),
             (lambda plan: plan["conceptualize"]["slice_coverage"].__setitem__("entries", [{"path": ".planning/missing/slices/a.md", "disposition": "promoted", "promoted_refs": [{"type": "spec_req", "id": "REQ-1"}]}]), "conceptualize.slice_coverage.entries: expected empty array when state is 'zero_slices'"),
+            (lambda plan: plan["conceptualize"].__setitem__("slice_coverage", {"state": "covered", "entries": ["not-object"]}), "conceptualize.slice_coverage.entries[0]: expected object"),
+            (lambda plan: plan["conceptualize"].__setitem__("slice_coverage", {"state": "covered", "entries": [{"disposition": "background_only", "rationale": "Covered by context only."}]}), "conceptualize.slice_coverage.entries[0].path: expected non-empty string"),
+            (lambda plan: plan["conceptualize"].__setitem__("slice_coverage", {"state": "covered", "entries": [{"path": ".planning/missing/slices/a.md", "disposition": "background_only", "rationale": "Background."}, {"path": ".planning/missing/slices/a.md", "disposition": "background_only", "rationale": "Duplicate."}]}), "conceptualize.slice_coverage.entries: duplicate Slice coverage path"),
             (lambda plan: plan["conceptualize"].__setitem__("slice_coverage", {"state": "covered", "entries": [{"path": ".planning/missing/slices/a.md", "disposition": "unsupported", "rationale": "No."}]}), "conceptualize.slice_coverage.entries[0].disposition: expected one of"),
             (lambda plan: plan["conceptualize"].__setitem__("slice_coverage", {"state": "covered", "entries": [{"path": ".planning/missing/slices/a.md", "disposition": "background_only"}]}), "conceptualize.slice_coverage.entries[0].rationale: expected non-empty string"),
             (lambda plan: plan["conceptualize"].__setitem__("slice_coverage", {"state": "covered", "entries": [{"path": ".planning/missing/slices/a.md", "disposition": "promoted"}]}), "conceptualize.slice_coverage.entries[0].promoted_refs: expected array"),
@@ -288,6 +291,10 @@ Exercise Conceptualize schema validation.
             (lambda entry: entry.__setitem__("approval", []), "conceptualize.slice_coverage.entries[3].approval: expected object"),
             (lambda entry: entry["approval"].pop("source"), "conceptualize.slice_coverage.entries[3].approval.source: expected non-empty string"),
             (lambda entry: entry["approval"].__setitem__("approved_at", "not-a-date"), "conceptualize.slice_coverage.entries[3].approval.approved_at: expected ISO 8601 datetime string"),
+            (lambda entry: entry["approval"].pop("provenance"), "conceptualize.slice_coverage.entries[3].approval.provenance: expected non-empty string"),
+            (lambda entry: entry["approval"].__setitem__("scope", ""), "conceptualize.slice_coverage.entries[3].approval.scope: expected non-empty string"),
+            (lambda entry: entry["approval"].__setitem__("refs", []), "conceptualize.slice_coverage.entries[3].approval.refs: expected at least one item"),
+            (lambda entry: entry["approval"].__setitem__("refs", ["P1-T001-AC1"]), "conceptualize.slice_coverage.entries[3].approval.refs[0]: expected object"),
             (lambda entry: entry["approval"].__setitem__("refs", [{"type": "task_ac", "id": "P1-T001-AC404"}]), "conceptualize.slice_coverage.entries[3].approval.refs[0]: unknown task acceptance criterion 'P1-T001-AC404'"),
         ]
         for mutate, expected in cases:
@@ -324,6 +331,16 @@ Exercise Conceptualize schema validation.
         self.assertInvalid(
             malformed_coverage,
             "conceptualize.slice_coverage: expected object",
+        )
+
+        invalid_legacy_coverage_ref = self.covered_plan()
+        invalid_legacy_coverage_ref["schema_version"] = 2
+        invalid_legacy_coverage_ref["conceptualize"]["slice_coverage"]["entries"][0][
+            "promoted_refs"
+        ] = [{"type": "spec_req", "id": "REQ-404"}]
+        self.assertInvalid(
+            invalid_legacy_coverage_ref,
+            "conceptualize.slice_coverage.entries[0].promoted_refs[0]: unknown SPEC requirement 'REQ-404'",
         )
 
         malformed_package = self.valid_plan()
