@@ -41,12 +41,19 @@ Fix Verification Review, and any triggered widening/escalation have reached audi
 
    If it exits non-zero, stop and resolve the reported `tasks.json` / package-proof blockers before
    auditing implementation completeness.
-5. Enforce the local non-bypass proof gate: planned-feature audit requires accepted, fresh package
+5. If `tasks.json` contains Conceptualize metadata or package `conceptualize_slices`, screen those
+   paths before audit dispatch using `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/conceptualize-slice-authority.md`.
+   Resolve from the repository/task-artifact root, not implicitly from the audit worktree. Reject
+   unsafe, missing, unreadable, duplicated, symlink-escaped, or out-of-workspace paths. Build only a
+   transient Conceptualize safe-read packet containing normalized repo-relative paths, safe resolved
+   read paths, Slice inventory, package assignments/focus notes, and coverage state. Pass that packet
+   to the audit sub-agent; do not persist it or create Conceptualize packet files.
+6. Enforce the local non-bypass proof gate: planned-feature audit requires accepted, fresh package
    proof evidence for every package. `package-proof-lifecycle.md` owns lifecycle mechanics, but audit
    must fail closed on missing, malformed, stale, reopened/unaccepted, contradictory, or uncertain
    proof evidence. Pipeline `reviews/review-code-state.json` is only a governance readiness signal;
    it is not proof or audit evidence.
-6. In planned-feature pipeline context, confirm review-code reached audit readiness: every known
+7. In planned-feature pipeline context, confirm review-code reached audit readiness: every known
    confirmed serious finding has a `closed` Fix Verification Review verdict, triggered widened
    checks/escalations are complete, no serious fix-introduced regression remains unresolved, and any
    review-code fix that could affect package evidence has reopened, refreshed, validated, and
@@ -65,6 +72,7 @@ Launch an Opus-class sub-agent with:
 - `.tasks/$ARGUMENTS/tasks.json`
 - `.tasks/$ARGUMENTS/proofs/WP<N>.proof.json` files
 - the resolved audit worktree path, preferably `.worktrees/<feature>/merge/` for worktree features
+- the transient Conceptualize safe-read packet when Conceptualize metadata is present, or `none`
 - access to the project codebase from that worktree
 
 The sub-agent must read the plan cold and verify against the actual codebase in the correct worktree.

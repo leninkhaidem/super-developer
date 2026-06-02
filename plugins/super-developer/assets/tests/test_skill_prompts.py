@@ -400,9 +400,14 @@ class ConceptualizeSliceCoveragePromptTests(unittest.TestCase):
         self.assertNotIn("background_only", conceptualize_review)
 
     def test_audit_and_tasks_prompts_surface_projection_health_without_proof_claims(self) -> None:
+        audit_skill = self.read_text(AUDIT_SKILL)
         audit_contract = self.read_text(AUDIT_SUBAGENT_CONTRACT)
         tasks_skill = self.read_text(TASKS_SKILL)
 
+        self.assertIn("screen those\n   paths before audit dispatch", audit_skill)
+        self.assertIn("Conceptualize safe-read packet", audit_skill)
+        self.assertIn("safe resolved\n   read paths", audit_skill)
+        self.assertIn("do not persist it or create Conceptualize packet files", audit_skill)
         self.assertIn("### Conceptualize Slice Coverage Gate", audit_contract)
         self.assertIn("Confirm the plan's compatibility state", audit_contract)
         required_first_reads = audit_contract.split("## Required First Reads", 1)[1].split(
@@ -412,20 +417,15 @@ class ConceptualizeSliceCoveragePromptTests(unittest.TestCase):
             "first read `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/conceptualize-slice-authority.md`",
             required_first_reads,
         )
-        self.assertIn(
-            "validate `conceptualize.index` with the canonical path boundary before reading it",
-            required_first_reads,
-        )
-        self.assertIn("Read the Index only after its path passes", required_first_reads)
-        self.assertLess(
-            required_first_reads.index("validate `conceptualize.index`"),
-            required_first_reads.index("Read the Index only after"),
-        )
+        self.assertIn("orchestrator-supplied Conceptualize safe-read packet", required_first_reads)
+        self.assertIn("safe resolved read paths", required_first_reads)
+        self.assertIn("fail `[SLICE-COVERAGE]` without reading Index/Slice candidates", required_first_reads)
+        self.assertIn("do not resolve `.planning/...` from the audit worktree", required_first_reads)
         self.assertNotIn(
             "conceptualize-slice-authority.md`, the selected Conceptualize Index",
             required_first_reads,
         )
-        self.assertIn("Safely enumerate and re-read the current selected workspace", audit_contract)
+        self.assertIn("orchestrator safe-read packet plus canonical path boundary", audit_contract)
         self.assertIn("For `zero_slices`", audit_contract)
         self.assertIn("Check every `work_packages[].conceptualize_slices[]` assignment", audit_contract)
         self.assertIn("present in `slice_coverage.entries`", audit_contract)
