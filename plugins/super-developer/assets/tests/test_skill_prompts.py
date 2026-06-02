@@ -405,6 +405,26 @@ class ConceptualizeSliceCoveragePromptTests(unittest.TestCase):
 
         self.assertIn("### Conceptualize Slice Coverage Gate", audit_contract)
         self.assertIn("Confirm the plan's compatibility state", audit_contract)
+        required_first_reads = audit_contract.split("## Required First Reads", 1)[1].split(
+            "Package proof lifecycle", 1
+        )[0]
+        self.assertIn(
+            "first read `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/conceptualize-slice-authority.md`",
+            required_first_reads,
+        )
+        self.assertIn(
+            "validate `conceptualize.index` with the canonical path boundary before reading it",
+            required_first_reads,
+        )
+        self.assertIn("Read the Index only after its path passes", required_first_reads)
+        self.assertLess(
+            required_first_reads.index("validate `conceptualize.index`"),
+            required_first_reads.index("Read the Index only after"),
+        )
+        self.assertNotIn(
+            "conceptualize-slice-authority.md`, the selected Conceptualize Index",
+            required_first_reads,
+        )
         self.assertIn("Safely enumerate and re-read the current selected workspace", audit_contract)
         self.assertIn("For `zero_slices`", audit_contract)
         self.assertIn("Check every `work_packages[].conceptualize_slices[]` assignment", audit_contract)
