@@ -24,6 +24,7 @@ Create a release through one explicit Release Contract. Keep this workflow conci
 - Detect the base branch: use the current branch if it is `main` or `master`; otherwise use `origin/HEAD` only if it resolves to `main` or `master`; otherwise use the only local `main`/`master`; if ambiguous, ask.
 - Use `--no-ff` when merging a feature branch into the base branch.
 - Clean up only exact release-related branches, remote refs, and worktrees named in the approved Release Contract and verified as merged. Never delete unrelated branches/worktrees or sweep by namespace.
+- For local cleanup, load `skills/worktree/references/cleanup-safety.md`. Remove exact contracted clean worktrees before deleting branches checked out by those worktrees; stop on dirty worktrees or failed ancestry.
 - Remote feature branch deletion is a separate opt-in cleanup decision. Offer the visible approve/delete vs keep call to action only in `publish` mode when a remote feature branch candidate exists. Default to keeping the remote branch unless the user explicitly approves deleting the exact remote ref. In `prepare-only`, state that remote feature branch deletion is not available in that contract.
 - If the workflow is already partially complete, resume from the observed state instead of repeating completed side effects.
 
@@ -115,8 +116,8 @@ Remote actions:
 - Create GitHub release for vX.Y.Z, if publishing
 
 Cleanup candidates:
-- Delete local feature branch: <feature-branch>, after merge verification
-- Remove release/merge worktree: <path>, if created
+- Delete local feature branch: <feature-branch>, after merge verification and after removing any worktree that checks it out
+- Remove local worktree(s): <exact .worktrees/... paths, such as merge/target-merge worktrees if created>
 
 Remote feature branch cleanup:
 - <Use exactly one block: publish-mode CTA, prepare-only keep notice, or no-candidate notice.>
@@ -164,7 +165,7 @@ If the user has not already approved the full contract in the current request, a
 9. For `publish` mode, push the base branch to its upstream.
 10. For `publish` mode, create annotated tag `vX.Y.Z` if it does not already exist, then push the tag.
 11. For `publish` mode, create the GitHub release for `vX.Y.Z` with the contracted notes and report the release URL.
-12. Clean up only exact contracted cleanup candidates after verifying each branch with `git merge-base --is-ancestor`. Delete an exact remote feature branch only in `publish` mode when the approved contract chose `approve + delete remote branch`, after the base branch push has succeeded and `git merge-base --is-ancestor origin/<feature-branch> origin/<base-branch>` proves the remote feature branch is included in the pushed base branch. Use the exact remote ref named in the contract. Never delete a remote feature branch in `prepare-only`.
+12. Clean up only exact contracted cleanup candidates after their merge/push safety boundary is complete. For local cleanup, load `skills/worktree/references/cleanup-safety.md`, verify each local branch with `git merge-base --is-ancestor`, remove exact contracted clean worktrees with `git worktree remove`, then delete exact local branches with `git branch -d` from a remaining target/integration worktree. Stop on dirty worktrees, checked-out branches without removable worktrees, or failed ancestry. Delete an exact remote feature branch only in `publish` mode when the approved contract chose `approve + delete remote branch`, after the base branch push has succeeded and `git merge-base --is-ancestor origin/<feature-branch> origin/<base-branch>` proves the remote feature branch is included in the pushed base branch. Use the exact remote ref named in the contract. Never delete a remote feature branch in `prepare-only`.
 
 If any publish step fails, stop, report the exact completed side effects, and do not clean up automatically.
 
