@@ -22,16 +22,16 @@ Mandatory top-level object for every new schema version 3 plan. Legacy schema ve
 
 Fields:
 - `index`: non-empty repo-relative path to the selected `.planning/<concept-slug>/index.md` Conceptualize Index.
-- `slice_coverage`: mandatory in schema version 3; full-workspace, non-authoritative Slice accounting. Use `state: "covered"` with non-empty `entries`, or `state: "zero_slices"` with `entries: []` and a rationale.
+- `slice_coverage`: mandatory in schema version 3; full-workspace Slice coverage accounting. Use `state: "covered"` with non-empty `entries`, or `state: "zero_slices"` with `entries: []` and a rationale.
 
 Coverage entry fields:
 - `path`: non-empty Slice path string.
-- `disposition`: compact validator-owned value: `promoted`, `background_only`, `deferred`, `out_of_scope`, `rejected`, or `conflict`.
-- `promoted_refs`: required non-empty array when `disposition` is `promoted`; refs point to existing authoritative artifacts using `type`/`id` (`spec_req`, `spec_ac`, `task_ac`, `design_decision`, or `context_bundle`).
-- `rationale`: required for non-promoted dispositions; optional but non-empty when present for promoted entries.
+- `disposition`: compact validator-owned value: `projected`, `informational`, `deferred`, `out_of_scope`, `rejected`, or `conflict`.
+- `projected_refs`: required non-empty array when `disposition` is `projected`; refs point to existing plan artifacts using `type`/`id` (`spec_req`, `spec_ac`, `task_ac`, `design_decision`, or `context_bundle`).
+- `rationale`: required for non-`projected` dispositions; optional but non-empty when present for `projected` entries.
 - `approval`: required for inherently scope-reducing `deferred`, `out_of_scope`, and `rejected` entries. It records durable user approval metadata: `source`, `approved_at`, `provenance`, `scope`, and optional validated `refs` using the same coverage-ref shape.
 
-The index path, Slice paths, and coverage entries are background accounting, not requirements sources. The validator checks deterministic shape, accepted values, duplicate coverage paths, and reference targets only. Semantic path existence, workspace confinement, Slice relevance, hidden requirements, and whether a `background_only` or `conflict` entry also needs user approval are planning/review/audit responsibilities.
+Safe Slices are authoritative product-requirement inputs under `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/conceptualize-slice-authority.md`, but the validator checks deterministic shape, accepted values, duplicate coverage paths, and reference targets only. Semantic path existence, workspace confinement, Slice relevance, hidden requirements, and whether an `informational` or `conflict` entry also needs user approval are planning/review/audit responsibilities.
 
 ## Design Decisions
 
@@ -74,7 +74,7 @@ Fields:
 - `targeted_review_required`: compatibility boolean for the existing `targeted_review.required` receipt field. Author new packages with `true` for every work package; the mandatory package review gate applies regardless of risk tags.
 - `conceptualize_slices`: mandatory in schema version 3; array of Slice assignment objects. Use `[]` when no Slice is relevant. Each object has mandatory non-empty `path` and optional `focus` string. Optional in legacy schema version 2, but shape-validated when present.
 
-Conceptualize Slices are required background context, not hidden requirements. Promote required outcomes into `SPEC.md`, task acceptance criteria, design decisions, or context bundles.
+Conceptualize Slices are authoritative product-requirement inputs. Project required outcomes into `SPEC.md`, task acceptance criteria, design decisions, or context bundles.
 
 Do not duplicate the long risk-tag or review-depth taxonomy here. Use the validator and `work-packages.md`.
 

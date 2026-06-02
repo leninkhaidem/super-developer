@@ -21,9 +21,9 @@ Load this when drafting `.tasks/<feature-name>/tasks.json`.
       "entries": [
         {
           "path": ".planning/<concept-slug>/slices/<slice-name>.md",
-          "disposition": "promoted",
-          "promoted_refs": [{ "type": "spec_req", "id": "REQ-1" }],
-          "rationale": "Required outcome was promoted into authoritative plan artifacts."
+          "disposition": "projected",
+          "projected_refs": [{ "type": "spec_req", "id": "REQ-1" }],
+          "rationale": "Required Slice requirement was projected into plan artifacts."
         }
       ]
     }
@@ -119,16 +119,16 @@ Every new schema version 3 plan must record the selected Conceptualize Workspace
 
 Use `[]` for `conceptualize_slices` when the package has no relevant Slice, but do not confuse package assignments with the full-workspace coverage matrix. Coverage must account for every selected-workspace Slice before files are written, even if no package is assigned that Slice.
 
-Coverage entries are non-authoritative. Use `promoted` only when the Slice outcome is represented by authoritative refs such as SPEC requirements/acceptance criteria, task acceptance criteria, design decisions, or context bundles. Use non-promoted dispositions (`background_only`, `deferred`, `out_of_scope`, `rejected`, or `conflict`) with a rationale. Do not copy Slice prose into the matrix as a shadow spec.
+Coverage entries use projection vocabulary because safe Slices are authoritative product-requirement inputs, not lower-authority material that needs a second authority step. Use `projected` when hard Slice requirements or material commitments are represented by plan refs such as SPEC requirements/acceptance criteria, task acceptance criteria, design decisions, or context bundles. Use `informational` only when safe Slice review finds no hard requirement. Use `deferred`, `out_of_scope`, `rejected`, or `conflict` with a rationale and any required approval metadata. Do not copy Slice prose into the matrix as a shadow spec. Load `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/conceptualize-slice-authority.md` for the detailed authority contract.
 
 Validator-owned deterministic coverage rules, kept concise here:
 - schema version 3 with `conceptualize.index` requires `slice_coverage`; schema version 2 may omit it for pre-existing compatibility, but any provided coverage is still shape-validated;
 - `state: "covered"` requires a non-empty `entries` array; `state: "zero_slices"` requires `entries: []` plus a rationale;
-- promoted entries require non-empty `promoted_refs`; coverage refs use `{ "type": "spec_req" | "spec_ac" | "task_ac" | "design_decision" | "context_bundle", "id": "..." }` and must point to existing plan artifacts;
+- projected entries require non-empty `projected_refs`; coverage refs use `{ "type": "spec_req" | "spec_ac" | "task_ac" | "design_decision" | "context_bundle", "id": "..." }` and must point to existing plan artifacts;
 - `deferred`, `out_of_scope`, and `rejected` entries require durable `approval` metadata with `source`, `approved_at`, `provenance`, and `scope`; optional `approval.refs` use the same validated coverage-ref shape;
 - duplicate coverage paths are invalid, but Markdown path existence, workspace confinement, Slice relevance, and hidden-requirement semantics are not validator-owned.
 
-Slices are required background context, not hidden requirements. Promote any required outcome into `SPEC.md`, task acceptance criteria, design decisions, or context bundles before implementation. Planning, review, and audit guidance decide whether a `background_only` or `conflict` disposition also needs user approval because it reduces requested behavior.
+Project any hard Slice requirement into `SPEC.md`, task acceptance criteria, design decisions, or context bundles before implementation. Planning, review, and audit guidance decide whether an `informational` or `conflict` disposition hides a hard requirement, lacks approval metadata, or must block.
 
 ## Design Decision Guidance
 

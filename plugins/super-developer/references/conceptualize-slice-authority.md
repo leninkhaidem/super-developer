@@ -49,7 +49,7 @@ Package `conceptualize_slices` assignments are package-specific read lists. Empt
 
 ## Projection Vocabulary
 
-Use projection vocabulary because Slices are already authoritative product-requirement inputs; they are not lower-authority material waiting for promotion.
+Use projection vocabulary because Slices are already authoritative product-requirement inputs; they are not lower-authority material that needs a second authority step.
 
 Coverage dispositions:
 

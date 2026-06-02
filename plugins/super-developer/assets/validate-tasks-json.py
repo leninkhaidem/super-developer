@@ -29,8 +29,8 @@ SPEC_AC_RE = re.compile(r"^\s*-\s*(AC-[1-9]\d*)\s*:")
 SOURCE_REF_TYPES = {"spec_req", "spec_ac", "design_decision", "context_bundle"}
 SLICE_COVERAGE_STATES = {"covered", "zero_slices"}
 SLICE_COVERAGE_DISPOSITIONS = {
-    "promoted",
-    "background_only",
+    "projected",
+    "informational",
     "deferred",
     "out_of_scope",
     "rejected",
@@ -532,21 +532,26 @@ def validate_slice_coverage_entry(entry: Any, path: str, errors: list[str]) -> s
         disposition = None
 
     rationale = entry.get("rationale")
-    if disposition == "promoted":
+    if "promoted_refs" in entry:
+        errors.append(
+            f"{path}.promoted_refs: legacy PR-only field is not accepted; use projected_refs"
+        )
+
+    if disposition == "projected":
         if rationale is not None and (not isinstance(rationale, str) or not rationale.strip()):
             errors.append(f"{path}.rationale: expected non-empty string when present")
         validate_slice_coverage_ref_array(
-            entry.get("promoted_refs"),
-            f"{path}.promoted_refs",
+            entry.get("projected_refs"),
+            f"{path}.projected_refs",
             errors,
             required=True,
         )
     else:
         require_non_empty_string(entry, "rationale", f"{path}.rationale", errors)
-        if "promoted_refs" in entry:
+        if "projected_refs" in entry:
             validate_slice_coverage_ref_array(
-                entry.get("promoted_refs"),
-                f"{path}.promoted_refs",
+                entry.get("projected_refs"),
+                f"{path}.projected_refs",
                 errors,
                 required=False,
             )
@@ -1146,14 +1151,14 @@ def validate_slice_coverage_ref_targets(
         if not isinstance(entry, dict):
             continue
         entry_path = f"conceptualize.slice_coverage.entries[{entry_index}]"
-        promoted_refs = entry.get("promoted_refs")
-        if isinstance(promoted_refs, list):
-            for ref_index, ref in enumerate(promoted_refs):
+        projected_refs = entry.get("projected_refs")
+        if isinstance(projected_refs, list):
+            for ref_index, ref in enumerate(projected_refs):
                 parsed = normalized_slice_coverage_ref(ref)
                 if parsed is not None:
                     validate_slice_coverage_ref_target(
                         parsed,
-                        f"{entry_path}.promoted_refs[{ref_index}]",
+                        f"{entry_path}.projected_refs[{ref_index}]",
                         errors,
                         spec_ids=spec_ids,
                         task_ac_ids=task_ac_ids,
