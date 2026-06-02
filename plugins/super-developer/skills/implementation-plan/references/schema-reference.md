@@ -18,12 +18,20 @@ Load this when you need a human-readable map of `tasks.json`. The machine source
 
 ## Conceptualize
 
-Mandatory top-level object for every new schema version 3 plan. Legacy schema version 2 plans may omit it; if present, the validator still checks its deterministic shape.
+Mandatory top-level object for every new schema version 3 plan. Legacy schema version 2 plans may omit it; if present, the validator still checks its deterministic shape. Legacy schema version 2 plans that already record `conceptualize.index` may omit `slice_coverage` for compatibility; new/current schema version 3 plans must not.
 
 Fields:
 - `index`: non-empty repo-relative path to the selected `.planning/<concept-slug>/index.md` Conceptualize Index.
+- `slice_coverage`: mandatory in schema version 3; full-workspace, non-authoritative Slice accounting. Use `state: "covered"` with non-empty `entries`, or `state: "zero_slices"` with `entries: []` and a rationale.
 
-The path is background context, not a requirements source. Semantic path existence, workspace confinement, relevance, and hidden-requirement checks are owned by planning/review guidance; the validator owns deterministic shape.
+Coverage entry fields:
+- `path`: non-empty Slice path string.
+- `disposition`: compact validator-owned value: `promoted`, `background_only`, `deferred`, `out_of_scope`, `rejected`, or `conflict`.
+- `promoted_refs`: required non-empty array when `disposition` is `promoted`; refs point to existing authoritative artifacts using `type`/`id` (`spec_req`, `spec_ac`, `task_ac`, `design_decision`, or `context_bundle`).
+- `rationale`: required for non-promoted dispositions; optional but non-empty when present for promoted entries.
+- `approval`: required for inherently scope-reducing `deferred`, `out_of_scope`, and `rejected` entries. It records durable user approval metadata: `source`, `approved_at`, `provenance`, `scope`, and optional validated `refs` using the same coverage-ref shape.
+
+The index path, Slice paths, and coverage entries are background accounting, not requirements sources. The validator checks deterministic shape, accepted values, duplicate coverage paths, and reference targets only. Semantic path existence, workspace confinement, Slice relevance, hidden requirements, and whether a `background_only` or `conflict` entry also needs user approval are planning/review/audit responsibilities.
 
 ## Design Decisions
 

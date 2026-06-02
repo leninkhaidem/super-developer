@@ -27,6 +27,17 @@ SPEC_REQ_RE = re.compile(r"^\s*-\s*(REQ-[1-9]\d*)\s*:")
 SPEC_AC_RE = re.compile(r"^\s*-\s*(AC-[1-9]\d*)\s*:")
 
 SOURCE_REF_TYPES = {"spec_req", "spec_ac", "design_decision", "context_bundle"}
+SLICE_COVERAGE_STATES = {"covered", "zero_slices"}
+SLICE_COVERAGE_DISPOSITIONS = {
+    "promoted",
+    "background_only",
+    "deferred",
+    "out_of_scope",
+    "rejected",
+    "conflict",
+}
+SLICE_COVERAGE_REF_TYPES = SOURCE_REF_TYPES | {"task_ac"}
+SLICE_COVERAGE_SCOPE_REDUCING_DISPOSITIONS = {"deferred", "out_of_scope", "rejected"}
 BUNDLE_SOURCE_TYPES = {"docs", "code", "spec", "external", "repo"}
 LEDGER_STATUSES = {"verified", "failed", "blocked", "manual_required"}
 LEDGER_METHODS = {
@@ -371,6 +382,14 @@ def validate_tasks_json(
         design_decision_ids=design_decision_ids,
         context_bundle_ids=context_bundle_ids,
     )
+    validate_slice_coverage_ref_targets(
+        data.get("conceptualize"),
+        errors,
+        spec_ids=spec_ids,
+        task_ac_ids=task_ac_ids,
+        design_decision_ids=design_decision_ids,
+        context_bundle_ids=context_bundle_ids,
+    )
     validate_spec_coverage(task_ac_sources, spec_ids, errors)
     if isinstance(work_packages, list):
         validate_context_bundle_consumers(
@@ -419,7 +438,12 @@ def validate_top_level(
         validate_iso_datetime(created_at, "created_at", errors)
 
     if schema_version >= TASK_PLAN_CONCEPTUALIZE_SCHEMA_VERSION or "conceptualize" in data:
-        validate_conceptualize(data.get("conceptualize"), "conceptualize", errors)
+        validate_conceptualize(
+            data.get("conceptualize"),
+            "conceptualize",
+            errors,
+            schema_version=schema_version,
+        )
 
     if "design_decisions" not in data:
         errors.append("design_decisions: expected array")
@@ -432,11 +456,162 @@ def validate_top_level(
     validate_design_decisions(design_decisions, errors)
 
 
-def validate_conceptualize(value: Any, path: str, errors: list[str]) -> None:
+def validate_conceptualize(
+    value: Any, path: str, errors: list[str], *, schema_version: int
+) -> None:
     if not isinstance(value, dict):
         errors.append(f"{path}: expected object")
         return
     require_non_empty_string(value, "index", f"{path}.index", errors)
+    if schema_version >= TASK_PLAN_CONCEPTUALIZE_SCHEMA_VERSION:
+        validate_slice_coverage(
+            value.get("slice_coverage"), f"{path}.slice_coverage", errors, required=True
+        )
+    elif "slice_coverage" in value:
+        validate_slice_coverage(
+            value.get("slice_coverage"), f"{path}.slice_coverage", errors, required=False
+        )
+
+
+def validate_slice_coverage(
+    value: Any, path: str, errors: list[str], *, required: bool
+) -> None:
+    if value is None and not required:
+        return
+    if not isinstance(value, dict):
+        errors.append(f"{path}: expected object")
+        return
+
+    state = value.get("state")
+    if not isinstance(state, str) or state not in SLICE_COVERAGE_STATES:
+        errors.append(
+            f"{path}.state: expected one of {sorted(SLICE_COVERAGE_STATES)}, got {state!r}"
+        )
+
+    entries = value.get("entries")
+    if not isinstance(entries, list):
+        errors.append(f"{path}.entries: expected array")
+        entries = []
+
+    rationale = value.get("rationale")
+    if state == "zero_slices":
+        if entries:
+            errors.append(f"{path}.entries: expected empty array when state is 'zero_slices'")
+        require_non_empty_string(value, "rationale", f"{path}.rationale", errors)
+    elif state == "covered":
+        if not entries:
+            errors.append(f"{path}.entries: expected at least one item when state is 'covered'")
+        if rationale is not None and (not isinstance(rationale, str) or not rationale.strip()):
+            errors.append(f"{path}.rationale: expected non-empty string when present")
+    elif rationale is not None and (not isinstance(rationale, str) or not rationale.strip()):
+        errors.append(f"{path}.rationale: expected non-empty string when present")
+
+    entry_paths: list[str] = []
+    for index, entry in enumerate(entries):
+        entry_path = f"{path}.entries[{index}]"
+        slice_path = validate_slice_coverage_entry(entry, entry_path, errors)
+        if slice_path is not None:
+            entry_paths.append(slice_path)
+    add_duplicate_errors(entry_paths, "Slice coverage path", f"{path}.entries", errors)
+
+
+def validate_slice_coverage_entry(entry: Any, path: str, errors: list[str]) -> str | None:
+    if not isinstance(entry, dict):
+        errors.append(f"{path}: expected object")
+        return None
+
+    slice_path: str | None = None
+    if require_non_empty_string(entry, "path", f"{path}.path", errors):
+        slice_path = entry["path"]
+
+    disposition = entry.get("disposition")
+    if not isinstance(disposition, str) or disposition not in SLICE_COVERAGE_DISPOSITIONS:
+        errors.append(
+            f"{path}.disposition: expected one of {sorted(SLICE_COVERAGE_DISPOSITIONS)}, got {disposition!r}"
+        )
+        disposition = None
+
+    rationale = entry.get("rationale")
+    if disposition == "promoted":
+        if rationale is not None and (not isinstance(rationale, str) or not rationale.strip()):
+            errors.append(f"{path}.rationale: expected non-empty string when present")
+        validate_slice_coverage_ref_array(
+            entry.get("promoted_refs"),
+            f"{path}.promoted_refs",
+            errors,
+            required=True,
+        )
+    else:
+        require_non_empty_string(entry, "rationale", f"{path}.rationale", errors)
+        if "promoted_refs" in entry:
+            validate_slice_coverage_ref_array(
+                entry.get("promoted_refs"),
+                f"{path}.promoted_refs",
+                errors,
+                required=False,
+            )
+
+    approval_required = disposition in SLICE_COVERAGE_SCOPE_REDUCING_DISPOSITIONS
+    if approval_required or "approval" in entry:
+        validate_slice_coverage_approval(
+            entry.get("approval"),
+            f"{path}.approval",
+            errors,
+            required=approval_required,
+        )
+
+    return slice_path
+
+
+def validate_slice_coverage_approval(
+    value: Any, path: str, errors: list[str], *, required: bool
+) -> None:
+    if value is None and not required:
+        return
+    if not isinstance(value, dict):
+        errors.append(f"{path}: expected object")
+        return
+    for field in ("source", "approved_at", "provenance", "scope"):
+        require_non_empty_string(value, field, f"{path}.{field}", errors)
+    approved_at = value.get("approved_at")
+    if isinstance(approved_at, str) and approved_at.strip():
+        validate_iso_datetime(approved_at, f"{path}.approved_at", errors)
+    if "refs" in value:
+        validate_slice_coverage_ref_array(
+            value.get("refs"), f"{path}.refs", errors, required=False
+        )
+
+
+def validate_slice_coverage_ref_array(
+    refs: Any, path: str, errors: list[str], *, required: bool
+) -> None:
+    if refs is None and not required:
+        return
+    if not isinstance(refs, list):
+        errors.append(f"{path}: expected array")
+        return
+    if not refs:
+        errors.append(f"{path}: expected at least one item")
+        return
+    for index, ref in enumerate(refs):
+        validate_slice_coverage_ref(ref, f"{path}[{index}]", errors)
+
+
+def validate_slice_coverage_ref(ref: Any, path: str, errors: list[str]) -> dict[str, str] | None:
+    if not isinstance(ref, dict):
+        errors.append(f"{path}: expected object")
+        return None
+    ref_type = ref.get("type")
+    ref_id = ref.get("id")
+    if not isinstance(ref_type, str) or ref_type not in SLICE_COVERAGE_REF_TYPES:
+        errors.append(
+            f"{path}.type: expected one of {sorted(SLICE_COVERAGE_REF_TYPES)}, got {ref_type!r}"
+        )
+        return None
+    if not isinstance(ref_id, str) or not ref_id.strip():
+        errors.append(f"{path}.id: expected non-empty string")
+        return None
+    return {"type": ref_type, "id": ref_id}
 
 
 def collect_design_decision_ids(value: Any) -> set[str]:
@@ -947,6 +1122,101 @@ def validate_source_ref_targets(
                 errors.append(f"acceptance criterion {ac_id}: unknown design decision {ref_id!r}")
             elif ref_type == "context_bundle" and ref_id not in context_bundle_ids:
                 errors.append(f"acceptance criterion {ac_id}: unknown context bundle {ref_id!r}")
+
+
+def validate_slice_coverage_ref_targets(
+    conceptualize: Any,
+    errors: list[str],
+    *,
+    spec_ids: dict[str, set[str]],
+    task_ac_ids: set[str],
+    design_decision_ids: set[str],
+    context_bundle_ids: set[str],
+) -> None:
+    if not isinstance(conceptualize, dict):
+        return
+    coverage = conceptualize.get("slice_coverage")
+    if not isinstance(coverage, dict):
+        return
+    entries = coverage.get("entries")
+    if not isinstance(entries, list):
+        return
+
+    for entry_index, entry in enumerate(entries):
+        if not isinstance(entry, dict):
+            continue
+        entry_path = f"conceptualize.slice_coverage.entries[{entry_index}]"
+        promoted_refs = entry.get("promoted_refs")
+        if isinstance(promoted_refs, list):
+            for ref_index, ref in enumerate(promoted_refs):
+                parsed = normalized_slice_coverage_ref(ref)
+                if parsed is not None:
+                    validate_slice_coverage_ref_target(
+                        parsed,
+                        f"{entry_path}.promoted_refs[{ref_index}]",
+                        errors,
+                        spec_ids=spec_ids,
+                        task_ac_ids=task_ac_ids,
+                        design_decision_ids=design_decision_ids,
+                        context_bundle_ids=context_bundle_ids,
+                    )
+        approval = entry.get("approval")
+        if not isinstance(approval, dict):
+            continue
+        approval_refs = approval.get("refs")
+        if not isinstance(approval_refs, list):
+            continue
+        for ref_index, ref in enumerate(approval_refs):
+            parsed = normalized_slice_coverage_ref(ref)
+            if parsed is not None:
+                validate_slice_coverage_ref_target(
+                    parsed,
+                    f"{entry_path}.approval.refs[{ref_index}]",
+                    errors,
+                    spec_ids=spec_ids,
+                    task_ac_ids=task_ac_ids,
+                    design_decision_ids=design_decision_ids,
+                    context_bundle_ids=context_bundle_ids,
+                )
+
+
+def normalized_slice_coverage_ref(ref: Any) -> dict[str, str] | None:
+    if not isinstance(ref, dict):
+        return None
+    ref_type = ref.get("type")
+    ref_id = ref.get("id")
+    if (
+        isinstance(ref_type, str)
+        and ref_type in SLICE_COVERAGE_REF_TYPES
+        and isinstance(ref_id, str)
+        and ref_id.strip()
+    ):
+        return {"type": ref_type, "id": ref_id}
+    return None
+
+
+def validate_slice_coverage_ref_target(
+    ref: dict[str, str],
+    path: str,
+    errors: list[str],
+    *,
+    spec_ids: dict[str, set[str]],
+    task_ac_ids: set[str],
+    design_decision_ids: set[str],
+    context_bundle_ids: set[str],
+) -> None:
+    ref_type = ref["type"]
+    ref_id = ref["id"]
+    if ref_type == "spec_req" and ref_id not in spec_ids["spec_req"]:
+        errors.append(f"{path}: unknown SPEC requirement {ref_id!r}")
+    elif ref_type == "spec_ac" and ref_id not in spec_ids["spec_ac"]:
+        errors.append(f"{path}: unknown SPEC acceptance criterion {ref_id!r}")
+    elif ref_type == "task_ac" and ref_id not in task_ac_ids:
+        errors.append(f"{path}: unknown task acceptance criterion {ref_id!r}")
+    elif ref_type == "design_decision" and ref_id not in design_decision_ids:
+        errors.append(f"{path}: unknown design decision {ref_id!r}")
+    elif ref_type == "context_bundle" and ref_id not in context_bundle_ids:
+        errors.append(f"{path}: unknown context bundle {ref_id!r}")
 
 
 def validate_spec_coverage(
