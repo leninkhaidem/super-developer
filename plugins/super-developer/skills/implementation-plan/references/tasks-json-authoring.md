@@ -15,7 +15,18 @@ Load this when drafting `.tasks/<feature-name>/tasks.json`.
   "created_at": "<ISO 8601>",
   "status": "planned",
   "conceptualize": {
-    "index": ".planning/<concept-slug>/index.md"
+    "index": ".planning/<concept-slug>/index.md",
+    "slice_coverage": {
+      "state": "covered",
+      "entries": [
+        {
+          "path": ".planning/<concept-slug>/slices/<slice-name>.md",
+          "disposition": "promoted",
+          "promoted_refs": [{ "type": "spec_req", "id": "REQ-1" }],
+          "rationale": "Required outcome was promoted into authoritative plan artifacts."
+        }
+      ]
+    }
   },
   "design_decisions": [
     {
@@ -100,12 +111,17 @@ Use `schema-reference.md` for a concise field map. The machine contract is `${SU
 
 ## Conceptualize Metadata Guidance
 
-Every new schema version 3 plan must record the selected Conceptualize Workspace in two places:
+Every new schema version 3 plan must record the selected Conceptualize Workspace in three places:
 
 - top-level `conceptualize.index`: the selected `.planning/<concept-slug>/index.md` path;
+- top-level `conceptualize.slice_coverage`: full-workspace Slice inventory and disposition accounting, or an explicit `zero_slices` empty state when no Slice Markdown files exist;
 - each `work_packages[]` entry's `conceptualize_slices`: an array of Slice assignment objects, each with mandatory `path` and optional `focus`.
 
-Use `[]` for `conceptualize_slices` when the package has no relevant Slice. Slices are required background context, not hidden requirements. Promote any required outcome into `SPEC.md`, task acceptance criteria, design decisions, or context bundles before implementation. The validator owns deterministic shape checks only; semantic path existence, workspace confinement, relevance, and hidden-requirement review are handled by planning/review guidance in `conceptualize-inputs.md` and `review-plan`.
+Use `[]` for `conceptualize_slices` when the package has no relevant Slice, but do not confuse package assignments with the full-workspace coverage matrix. Coverage must account for every selected-workspace Slice before files are written, even if no package is assigned that Slice.
+
+Coverage entries are non-authoritative. Use `promoted` only when the Slice outcome is represented by authoritative refs such as SPEC requirements/acceptance criteria, task acceptance criteria, design decisions, or context bundles. Use non-promoted dispositions (`background_only`, `deferred`, `out_of_scope`, `rejected`, or `conflict`) with a rationale; add durable user-approval metadata whenever the disposition reduces requested or expected scope. Do not copy Slice prose into the matrix as a shadow spec.
+
+Slices are required background context, not hidden requirements. Promote any required outcome into `SPEC.md`, task acceptance criteria, design decisions, or context bundles before implementation. The validator owns deterministic shape and reference checks only; semantic path existence, workspace confinement, relevance, and hidden-requirement review are handled by planning/review guidance in `conceptualize-inputs.md` and `review-plan`.
 
 ## Design Decision Guidance
 
