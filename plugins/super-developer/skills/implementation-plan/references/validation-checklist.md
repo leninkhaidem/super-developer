@@ -16,12 +16,7 @@ Do not create `.tasks/<feature-name>/` or write files until all items pass.
 - If Design Preflight ran, every unresolved `MUST_DECIDE` and `BLOCKERS` finding is resolved.
 - If resolution changes user-visible semantics, acceptance criteria, or scope, the user approved it before writing.
 - Conceptualize Workspace selection is resolved: latest plausible workspace chosen, real ambiguity asked once, or a minimal `.planning/<concept-slug>/index.md` plus `slices/` auto-created.
-- Selected Conceptualize paths are repo-relative and confined to the selected `.planning/<concept-slug>/` workspace; unsafe paths are rejected before reading or recording.
-- Every Markdown Slice in the selected workspace has been inventoried by scanning the workspace, not only by reading the Index, package assignments, user mentions, or `## Projection Candidates` sections.
-- Slice coverage is complete before writing: every inventoried Slice has a disposition entry, or the workspace has an explicit zero-Slice empty state with rationale.
-- Every hard safe-Slice requirement or material commitment is projected into `SPEC.md` requirements/acceptance criteria, task acceptance criteria, `design_decisions`, or `context_bundles`; coverage rows, Slice paths, package assignments, and status output are not substitutes.
-- `informational` dispositions were used only after full safe-Slice review found no hard requirement or material commitment; deferred/out-of-scope/rejected/narrowed/otherwise-unimplemented hard Slice requirements carry durable user-approval metadata; unresolved `conflict` dispositions block writing.
-- Material approved shared understanding is captured as concise durable commitments in the right artifact, not as a transcript, every exploratory sentence, or raw reasoning history.
+- The Conceptualize Slice gate from `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/conceptualize-slice-authority.md` has passed: safe selected workspace, full Markdown Slice inventory, complete coverage or explicit zero-Slice state, projection of every hard requirement/material commitment, durable approval for scope reductions, no unresolved conflicts, and no transcript/every-sentence capture.
 - Conditional empirical spike decision has been made.
 - If a spike was required, accepted evidence is ready to record as `tasks.json.design_decisions` and no spike code will be persisted.
 - If the needed empirical assumption cannot be safely validated with available access and bounded side effects, stop and ask the user instead of writing around it.
@@ -97,5 +92,5 @@ After the validator passes:
 - Confirm work-package grouping still reflects the plan after any edits: coherent packages, preferred safe useful parallel waves, conservative serialization for ambiguity or shared contracts, safe commands, and correct targeted-review metadata.
 - Confirm no machine-owned long taxonomy was copied into the plan or references when a pointer to `validate-tasks-json.py` or `work-packages.md` is the correct source.
 - Confirm Conceptualize semantic checks were not delegated to the validator beyond deterministic shape.
-- Confirm Slice coverage still includes every selected-workspace Slice or the explicit zero-Slice state, and that dispositions have required projected refs, rationale, durable approval metadata, conflict resolution, and no `informational` entry hiding a hard requirement.
+- Confirm Conceptualize semantic checks still match `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/conceptualize-slice-authority.md`: full Slice coverage or explicit zero-Slice state, valid projected refs/approval metadata where required, no unresolved conflicts, and no `informational` entry hiding a hard requirement.
 - Confirm the summary to the user lists feature path, phase-by-phase tasks, dependencies, and assumptions without adding new requirements.

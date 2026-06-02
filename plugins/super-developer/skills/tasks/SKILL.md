@@ -54,11 +54,7 @@ payment-flow         completed    ████████  8/8   ✅8          
 
    If package proofs are missing, invalid, stale, reopened, or unaccepted, continue showing task status but include an **Evidence: missing/invalid/unaccepted** warning. Status alone is not proof that completed acceptance criteria are verified.
 3. Read `.tasks/$ARGUMENTS/tasks.json`.
-4. Compute **Slice coverage health** from top-level `conceptualize.slice_coverage` when present:
-   - `zero_slices`: show the explicit empty-state rationale and warn that audit still verifies no Slice-derived proof is implied by status alone.
-   - `covered`: show entry count and disposition counts; warn when entries are absent, duplicated by visible path, lack `projected_refs` for `projected`, lack rationale for non-`projected` dispositions, use `informational` suspiciously, lack visible approval metadata for scope-reducing dispositions, or appear inconsistent with package `conceptualize_slices`.
-   - missing `conceptualize` or missing `slice_coverage`: show **Slice coverage: absent/legacy/unknown** and warn that status cannot prove Conceptualize scope.
-   This is a dashboard signal only, never proof that Slice-derived requirements were implemented. Review-plan and audit remain the authoritative coverage/proof gates; load `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/conceptualize-slice-authority.md` for canonical rules.
+4. Compute **Slice coverage health** from visible top-level `conceptualize.slice_coverage` fields only: `zero_slices`, `covered`, incomplete/stale-looking, or absent/legacy/unknown. Show entry/disposition counts and obvious schema-level warnings such as missing projected refs, missing rationale, visible approval gaps, suspicious `informational`, or package-assignment inconsistency. This is a dashboard signal only, never proof that Slice-derived requirements were implemented. Review-plan and audit remain the authoritative coverage/proof gates; load `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/conceptualize-slice-authority.md` for canonical rules.
 5. If `work_packages` exists, display a package summary before the phase breakdown:
 
    ```
