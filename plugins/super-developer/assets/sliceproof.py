@@ -47,6 +47,13 @@ REQUIRED_PROOF_SECTIONS = {
 }
 PROOF_STATUS_VALUES = {"PASS", "GAP", "DEFERRED", "N/A", "OPEN"}
 BLOCKING_MARKER_RE = re.compile(r"\b(?:TODO|OPEN|GAP)\b", re.IGNORECASE)
+NEGATED_APPROVAL_RE = re.compile(
+    r"\b(?:unapproved|not\s+(?:explicitly\s+)?(?:user[-\s]?)?approved|no\s+(?:user[-\s]?)?approval|"
+    r"without\s+(?:user[-\s]?)?approval|approval\s+(?:is\s+|was\s+)?(?:missing|absent|denied|rejected|not\s+granted)|"
+    r"approval\s+not\s+(?:granted|given|provided))\b",
+    re.IGNORECASE,
+)
+POSITIVE_APPROVAL_RE = re.compile(r"\b(?:approved|approval|user[-\s]?approved)\b", re.IGNORECASE)
 PLACEHOLDER_VALUES = {"", "todo", "open", "gap", "tbd", "n/a", "na"}
 
 
@@ -120,6 +127,9 @@ def main(argv: list[str] | None = None) -> int:
         result = args.func(args)
     except SliceproofError as exc:
         write_json(sys.stderr, {"ok": False, "command": args.command, "errors": exc.errors})
+        return 1
+    except (OSError, UnicodeError) as exc:
+        write_json(sys.stderr, {"ok": False, "command": args.command, "errors": [f"{args.command}: I/O error: {exc}"]})
         return 1
     write_json(sys.stdout, {"ok": True, "command": args.command, **result})
     return 0
@@ -207,22 +217,22 @@ def cmd_create_proof(args: argparse.Namespace) -> dict[str, Any]:
 
     existed_before = proof_path.exists()
     if existed_before:
-        existing = proof_path.read_text(encoding="utf-8")
+        existing = read_text_file(proof_path, f"create-proof: existing proof {package.proof_path}")
         if not args.force:
             raise SliceproofError([f"create-proof: {package.proof_path} already exists; use --force only after overwrite screening"])
-        if is_empty_placeholder(existing, package_md):
+        if is_generated_placeholder(existing, proof_text):
             pass
         elif args.approved_replacement:
             backup_path = preserve_existing_proof(proof_path, existing)
         else:
             raise SliceproofError(
                 [
-                    f"create-proof: {package.proof_path} contains filled proof evidence; refusing --force without "
-                    "explicit approved replacement and preservation safeguards"
+                    f"create-proof: {package.proof_path} contains filled proof evidence or proof status/content drift; refusing "
+                    "--force without explicit approved replacement and preservation safeguards"
                 ]
             )
 
-    proof_path.parent.mkdir(parents=True, exist_ok=True)
+    ensure_directory(proof_path.parent, f"create-proof: proof directory for {package.proof_path}")
     atomic_write_text(proof_path, proof_text)
     result: dict[str, Any] = {
         "package": package.package_id,
@@ -292,9 +302,7 @@ def load_and_validate_plan(tasks_path: Path) -> tuple[Registry, dict[str, Packag
 def load_registry(tasks_path: Path) -> Registry:
     root = Path.cwd().resolve(strict=False)
     try:
-        data = json.loads(tasks_path.read_text(encoding="utf-8"))
-    except FileNotFoundError:
-        raise SliceproofError([f"tasks.json: file not found: {tasks_path}"])
+        data = json.loads(read_text_file(tasks_path, "tasks.json"))
     except json.JSONDecodeError as exc:
         raise SliceproofError([f"tasks.json: invalid JSON at line {exc.lineno} column {exc.colno}: {exc.msg}"])
     if not isinstance(data, dict):
@@ -458,7 +466,7 @@ def validate_dependency_cycles(packages_data: list[Any]) -> list[str]:
 
 
 def parse_package_markdown(path: Path, package_id: str) -> PackageMarkdown:
-    text = path.read_text(encoding="utf-8")
+    text = read_text_file(path, f"package Markdown {path}")
     errors: list[str] = []
     title = package_id
     h1_match = re.search(r"^#\s+Work Package:\s+([A-Z0-9]+)\s*(?:—|-)?\s*(.*?)\s*$", text, flags=re.MULTILINE)
@@ -656,7 +664,7 @@ def extract_slice_h3_titles(path: Path) -> dict[str, str]:
     titles: dict[str, str] = {}
     in_fence = False
     in_shared_understanding = False
-    for raw_line in path.read_text(encoding="utf-8").splitlines():
+    for raw_line in read_text_file(path, f"Slice {path}").splitlines():
         line = raw_line.strip()
         if is_fence(line):
             in_fence = not in_fence
@@ -739,7 +747,7 @@ def render_proof_template(registry: Registry, package_md: PackageMarkdown) -> st
 def validate_proof_markdown(proof_path: Path, package_md: PackageMarkdown) -> list[str]:
     if not proof_path.is_file():
         return [f"proof: file not found: {proof_path}"]
-    text = proof_path.read_text(encoding="utf-8")
+    text = read_text_file(proof_path, f"proof {proof_path}")
     errors: list[str] = []
     sections = split_h2_sections(text)
     for section in sorted(REQUIRED_PROOF_SECTIONS):
@@ -778,37 +786,18 @@ def validate_slice_rows(
         errors.append(f"{proof_path}: ## Slice Closure Table missing columns {sorted(required_columns - set(rows[0].cells))}")
         return errors
     rows_by_id: dict[str, ProofRow] = {}
-    for row in rows:
+    for index, row in enumerate(rows, start=1):
         slice_id = clean_cell_id(row.cells.get("Slice ID", ""))
+        row_label = slice_id or f"Slice Closure Table row {index}"
         if slice_id:
-            rows_by_id[slice_id] = row
+            if slice_id in rows_by_id:
+                errors.append(f"{proof_path}: duplicate Slice Closure Table row for {slice_id}")
+            else:
+                rows_by_id[slice_id] = row
+        errors.extend(validate_slice_row_status(proof_path, row, row_label, sections))
     for slice_id in package_md.must_satisfy_ids:
-        row = rows_by_id.get(slice_id)
-        if row is None:
+        if slice_id not in rows_by_id:
             errors.append(f"{proof_path}: Slice Closure Table missing required row for {slice_id}")
-            continue
-        implementation = row.cells.get("Implementation evidence", "")
-        verification = row.cells.get("Verification evidence", "")
-        status = normalize_status(row.cells.get("Status", ""))
-        row_text = " ".join(row.cells.values()) + " " + sections["Gaps, Deviations, or Deferred Items"]
-        if status not in PROOF_STATUS_VALUES:
-            errors.append(f"{proof_path}: {slice_id} status {status!r} is not supported")
-            continue
-        if status == "PASS":
-            if is_placeholder_text(implementation):
-                errors.append(f"{proof_path}: {slice_id} implementation evidence is missing or placeholder")
-            if is_placeholder_text(verification):
-                errors.append(f"{proof_path}: {slice_id} verification evidence is missing or placeholder")
-        elif status in {"OPEN", "GAP"}:
-            errors.append(f"{proof_path}: {slice_id} status {status} blocks proof validation")
-        elif status == "DEFERRED":
-            if not contains_approval_scope(row_text):
-                errors.append(f"{proof_path}: {slice_id} DEFERRED requires explicit approved deferral/scope metadata")
-        elif status == "N/A":
-            if not contains_na_approval_scope(row_text):
-                errors.append(f"{proof_path}: {slice_id} N/A requires explicit rationale and approval/scope metadata")
-        if BLOCKING_MARKER_RE.search(row.raw):
-            errors.append(f"{proof_path}: {slice_id} row contains unresolved TODO/OPEN/GAP marker")
     return errors
 
 
@@ -825,92 +814,186 @@ def validate_expectation_rows(
             f"{proof_path}: ## Acceptance / Verification Closure missing columns {sorted(required_columns - set(rows[0].cells))}"
         )
         return errors
-    rows_by_expectation = {normalize_text(row.cells.get("Expectation", "")): row for row in rows}
+    rows_by_expectation: dict[str, ProofRow] = {}
+    display_by_expectation: dict[str, str] = {}
+    for index, row in enumerate(rows, start=1):
+        expectation = row.cells.get("Expectation", "")
+        normalized = normalize_text(expectation)
+        row_label = f"expectation {expectation!r}" if normalized else f"Acceptance / Verification Closure row {index}"
+        if normalized:
+            if normalized in rows_by_expectation:
+                errors.append(f"{proof_path}: duplicate Acceptance / Verification Closure row for {display_by_expectation[normalized]!r}")
+            else:
+                rows_by_expectation[normalized] = row
+                display_by_expectation[normalized] = expectation
+        errors.extend(validate_expectation_row_status(proof_path, row, row_label, sections))
     for expectation in package_md.verification_expectations:
         row = rows_by_expectation.get(normalize_text(expectation))
         if row is None:
             errors.append(f"{proof_path}: Acceptance / Verification Closure missing expectation {expectation!r}")
-            continue
-        evidence = row.cells.get("Evidence", "")
-        status = normalize_status(row.cells.get("Status", ""))
-        row_text = " ".join(row.cells.values()) + " " + sections["Gaps, Deviations, or Deferred Items"]
-        if status not in PROOF_STATUS_VALUES:
-            errors.append(f"{proof_path}: expectation {expectation!r} status {status!r} is not supported")
-            continue
-        if status == "PASS":
-            if is_placeholder_text(evidence):
-                errors.append(f"{proof_path}: expectation {expectation!r} evidence is missing or placeholder")
-        elif status in {"OPEN", "GAP"}:
-            errors.append(f"{proof_path}: expectation {expectation!r} status {status} blocks proof validation")
-        elif status == "DEFERRED" and not contains_approval_scope(row_text):
-            errors.append(f"{proof_path}: expectation {expectation!r} DEFERRED requires explicit approved deferral/scope metadata")
-        elif status == "N/A" and not contains_na_approval_scope(row_text):
-            errors.append(f"{proof_path}: expectation {expectation!r} N/A requires explicit rationale and approval/scope metadata")
-        if BLOCKING_MARKER_RE.search(row.raw):
-            errors.append(f"{proof_path}: expectation {expectation!r} row contains unresolved TODO/OPEN/GAP marker")
+    return errors
+
+
+def validate_slice_row_status(
+    proof_path: Path,
+    row: ProofRow,
+    row_label: str,
+    sections: dict[str, str],
+) -> list[str]:
+    if not any(normalize_text(value) for value in row.cells.values()):
+        return []
+    errors: list[str] = []
+    implementation = row.cells.get("Implementation evidence", "")
+    verification = row.cells.get("Verification evidence", "")
+    status = normalize_status(row.cells.get("Status", ""))
+    row_text = " ".join(row.cells.values()) + " " + sections["Gaps, Deviations, or Deferred Items"]
+    if status not in PROOF_STATUS_VALUES:
+        errors.append(f"{proof_path}: {row_label} status {status!r} is not supported")
+    elif status == "PASS":
+        if is_placeholder_text(implementation):
+            errors.append(f"{proof_path}: {row_label} implementation evidence is missing or placeholder")
+        if is_placeholder_text(verification):
+            errors.append(f"{proof_path}: {row_label} verification evidence is missing or placeholder")
+    elif status in {"OPEN", "GAP"}:
+        errors.append(f"{proof_path}: {row_label} status {status} blocks proof validation")
+    elif status == "DEFERRED":
+        if not contains_approval_scope(row_text):
+            errors.append(f"{proof_path}: {row_label} DEFERRED requires explicit approved deferral/scope metadata")
+    elif status == "N/A":
+        if not contains_na_approval_scope(row_text):
+            errors.append(f"{proof_path}: {row_label} N/A requires explicit rationale and approval/scope metadata")
+    if BLOCKING_MARKER_RE.search(row.raw):
+        errors.append(f"{proof_path}: {row_label} row contains unresolved TODO/OPEN/GAP marker")
+    return errors
+
+
+def validate_expectation_row_status(
+    proof_path: Path,
+    row: ProofRow,
+    row_label: str,
+    sections: dict[str, str],
+) -> list[str]:
+    if not any(normalize_text(value) for value in row.cells.values()):
+        return []
+    errors: list[str] = []
+    evidence = row.cells.get("Evidence", "")
+    status = normalize_status(row.cells.get("Status", ""))
+    row_text = " ".join(row.cells.values()) + " " + sections["Gaps, Deviations, or Deferred Items"]
+    if status not in PROOF_STATUS_VALUES:
+        errors.append(f"{proof_path}: {row_label} status {status!r} is not supported")
+    elif status == "PASS":
+        if is_placeholder_text(evidence):
+            errors.append(f"{proof_path}: {row_label} evidence is missing or placeholder")
+    elif status in {"OPEN", "GAP"}:
+        errors.append(f"{proof_path}: {row_label} status {status} blocks proof validation")
+    elif status == "DEFERRED" and not contains_approval_scope(row_text):
+        errors.append(f"{proof_path}: {row_label} DEFERRED requires explicit approved deferral/scope metadata")
+    elif status == "N/A" and not contains_na_approval_scope(row_text):
+        errors.append(f"{proof_path}: {row_label} N/A requires explicit rationale and approval/scope metadata")
+    if BLOCKING_MARKER_RE.search(row.raw):
+        errors.append(f"{proof_path}: {row_label} row contains unresolved TODO/OPEN/GAP marker")
     return errors
 
 
 def parse_table(body: str) -> list[ProofRow]:
-    rows: list[list[str]] = []
+    rows: list[tuple[list[str], str]] = []
     for raw_line in body.splitlines():
         line = raw_line.strip()
-        if not line.startswith("|") or not line.endswith("|"):
+        cells = split_markdown_table_row(line)
+        if cells is None:
             continue
-        cells = [cell.strip() for cell in line.strip("|").split("|")]
         if cells and all(re.fullmatch(r":?-{3,}:?", cell.replace(" ", "")) for cell in cells):
             continue
-        rows.append(cells)
+        rows.append((cells, raw_line))
     if len(rows) < 2:
         return []
-    headers = rows[0]
+    headers = rows[0][0]
     proof_rows: list[ProofRow] = []
-    for cells in rows[1:]:
+    for cells, raw_line in rows[1:]:
         mapped = {header: cells[index] if index < len(cells) else "" for index, header in enumerate(headers)}
-        proof_rows.append(ProofRow(mapped, " | ".join(cells)))
+        proof_rows.append(ProofRow(mapped, raw_line))
     return proof_rows
 
 
-def is_empty_placeholder(text: str, package_md: PackageMarkdown) -> bool:
-    sections = split_h2_sections(text)
-    if not REQUIRED_PROOF_SECTIONS.issubset(sections):
-        return False
-    rows = parse_table(sections["Slice Closure Table"])
-    expectation_rows = parse_table(sections["Acceptance / Verification Closure"])
-    rows_by_id = {clean_cell_id(row.cells.get("Slice ID", "")): row for row in rows}
-    expectation_by_text = {normalize_text(row.cells.get("Expectation", "")): row for row in expectation_rows}
-    for slice_id in package_md.must_satisfy_ids:
-        row = rows_by_id.get(slice_id)
-        if row is None:
-            return False
-        if normalize_status(row.cells.get("Status", "")) == "PASS":
-            return False
-        for column in ("Implementation evidence", "Verification evidence"):
-            if not is_placeholder_text(row.cells.get(column, "")):
-                return False
-    for expectation in package_md.verification_expectations:
-        row = expectation_by_text.get(normalize_text(expectation))
-        if row is None:
-            return False
-        if normalize_status(row.cells.get("Status", "")) == "PASS":
-            return False
-        if not is_placeholder_text(row.cells.get("Evidence", "")):
-            return False
-    for section in ("Commands Run", "Files Changed / Inspected", "Package Agent Completion Statement"):
-        if not is_placeholder_text(sections.get(section, "")):
-            return False
-    if not is_empty_gaps_deviations_section(sections.get("Gaps, Deviations, or Deferred Items", "")):
-        return False
-    return True
+def split_markdown_table_row(line: str) -> list[str] | None:
+    if not line.startswith("|") or not line.endswith("|"):
+        return None
+    cells: list[str] = []
+    current: list[str] = []
+    escaped = False
+    for char in line[1:-1]:
+        if escaped:
+            if char == "|":
+                current.append("|")
+            else:
+                current.append("\\")
+                current.append(char)
+            escaped = False
+        elif char == "\\":
+            escaped = True
+        elif char == "|":
+            cells.append("".join(current).strip())
+            current = []
+        else:
+            current.append(char)
+    if escaped:
+        current.append("\\")
+    cells.append("".join(current).strip())
+    return cells
+
+
+def is_generated_placeholder(existing: str, generated: str) -> bool:
+    return normalize_generated_placeholder(existing) == normalize_generated_placeholder(generated)
+
+
+def normalize_generated_placeholder(value: str) -> str:
+    return value.replace("\r\n", "\n").rstrip("\n")
 
 
 def preserve_existing_proof(proof_path: Path, existing: str) -> Path:
     digest = hashlib.sha256(existing.encode("utf-8")).hexdigest()[:12]
     backup_path = proof_path.with_name(f"{proof_path.name}.preserved.{digest}.bak")
-    if backup_path.exists():
-        raise SliceproofError([f"create-proof: preservation backup already exists: {backup_path}"])
-    backup_path.write_text(existing, encoding="utf-8")
+    if backup_path.is_symlink():
+        raise SliceproofError([f"create-proof: preservation backup path is a symlink: {backup_path}"])
+    write_text_exclusive_no_follow(backup_path, existing, "create-proof: preservation backup")
     return backup_path
+
+
+def read_text_file(path: Path, label: str) -> str:
+    try:
+        return path.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        raise SliceproofError([f"{label}: file not found: {path}"])
+    except UnicodeError as exc:
+        raise SliceproofError([f"{label}: unable to decode UTF-8 text from {path}: {exc}"])
+    except OSError as exc:
+        raise SliceproofError([f"{label}: unable to read {path}: {exc}"])
+
+
+def ensure_directory(path: Path, label: str) -> None:
+    try:
+        path.mkdir(parents=True, exist_ok=True)
+    except OSError as exc:
+        raise SliceproofError([f"{label}: unable to create directory {path}: {exc}"])
+
+
+def write_text_exclusive_no_follow(path: Path, content: str, label: str) -> None:
+    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
+    if hasattr(os, "O_NOFOLLOW"):
+        flags |= os.O_NOFOLLOW
+    fd: int | None = None
+    try:
+        fd = os.open(path, flags, 0o600)
+        with os.fdopen(fd, "w", encoding="utf-8") as handle:
+            fd = None
+            handle.write(content)
+    except FileExistsError:
+        raise SliceproofError([f"{label} already exists: {path}"])
+    except OSError as exc:
+        raise SliceproofError([f"{label}: unable to create {path}: {exc}"])
+    finally:
+        if fd is not None:
+            os.close(fd)
 
 
 def atomic_write_text(path: Path, content: str) -> None:
@@ -1022,12 +1105,16 @@ def is_empty_gaps_deviations_section(value: str) -> bool:
 
 def contains_approval_scope(value: str) -> bool:
     lowered = value.lower()
-    return "approved" in lowered and ("scope" in lowered or "deferral" in lowered or "approval" in lowered)
+    return has_positive_approval(value) and ("scope" in lowered or "deferral" in lowered or "approval" in lowered)
 
 
 def contains_na_approval_scope(value: str) -> bool:
     lowered = value.lower()
-    return "approved" in lowered and "scope" in lowered and ("rationale" in lowered or "no longer applies" in lowered)
+    return has_positive_approval(value) and "scope" in lowered and ("rationale" in lowered or "no longer applies" in lowered)
+
+
+def has_positive_approval(value: str) -> bool:
+    return not NEGATED_APPROVAL_RE.search(value) and bool(POSITIVE_APPROVAL_RE.search(value))
 
 
 def format_title(title: str) -> str:

@@ -64,8 +64,10 @@ Record a concise spike brief for handoff, not as a durable project file:
 ### 6. Hand off to implementation-plan
 
 - Invoke or hand off to `implementation-plan` after evidence is sufficient.
-- Persist accepted decisions in `design_decisions`; do not persist the spike brief or exploratory code as plan artifacts.
-- Include rejected approaches and remaining risks so the plan can create targeted tasks and verification.
+- Do not persist the spike brief or exploratory code as plan artifacts.
+- For schema-version-4 Slice-first plans, persist accepted spike outcomes only in the v4 artifact that owns them: `SPEC.md` requirements/constraints/out-of-scope or approved override metadata for product-level outcomes, and work-package Markdown scope/notes/verification expectations plus proof expectations for package-level outcomes.
+- For legacy schema-version-2/3 plans only, accepted decisions may be persisted in `tasks.json.design_decisions` when that schema owns the decision ledger.
+- Include rejected approaches and remaining risks so the plan can create targeted packages, verification expectations, and proof obligations.
 
 ## Stop conditions
 

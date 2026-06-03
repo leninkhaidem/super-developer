@@ -46,8 +46,9 @@ Before spawning any Preflight challenger, resolve model preferences using the ex
 - Run before writing `.tasks/<feature-name>/SPEC.md`, `.tasks/<feature-name>/tasks.json`, or any equivalent durable task artifact.
 - The Preflight Brief is ephemeral and neutral.
 - The Preflight Brief must not be persisted under `.tasks/`.
-- Durable design outcomes are persisted only as `design_decisions` in `tasks.json`.
-- `SPEC.md` remains requirements-only. Do not put architecture rationale in `SPEC.md` unless the user explicitly made that rationale a product requirement.
+- For schema-version-4 Slice-first plans, durable preflight outcomes are persisted in the normal v4 artifact that owns the obligation: product-level requirements/constraints/out-of-scope or approved override metadata in `SPEC.md`; package-level boundaries, notes, assigned Slice IDs, and verification expectations in work-package Markdown; and closure expectations that flow into proof Markdown.
+- For legacy schema-version-2/3 plans only, durable design outcomes may be persisted as `design_decisions` in `tasks.json`.
+- `SPEC.md` remains requirements/manifest-only. Do not put architecture rationale in `SPEC.md` unless the user explicitly made that rationale a product requirement, constraint, or approved scope decision.
 
 ## Neutral Preflight Brief Format
 
@@ -130,19 +131,26 @@ NOT_WORTH_FIXING
 
 For each `MUST_DECIDE` item, the main agent must do one of the following before writing durable artifacts:
 
-- Resolve it from observed repo evidence or explicit user constraints and persist the result as a `design_decisions` entry when it affects architecture, task shape, acceptance criteria, risk, or implementation boundaries.
+- Resolve it from observed repo evidence or explicit user constraints and persist the result in the artifact that owns the obligation. In v4, use `SPEC.md` for product-level requirements/constraints/out-of-scope or approved override metadata, and work-package Markdown/proof expectations for package-level design, boundaries, verification, sequencing, risk, or implementation constraints. In legacy v2/v3, use `tasks.json.design_decisions` when that schema owns the decision ledger.
 - Ask the user when the decision changes product semantics, external behavior, risk acceptance, or scope.
-- Defer it only when it is genuinely implementation-time detail; if deferred, tasks must preserve the decision boundary and include acceptance criteria that keep the choice verifiable.
+- Defer it only when it is genuinely implementation-time detail; if deferred, v4 artifacts must preserve the decision boundary through approved scope metadata, package notes, assigned Slice scope, and verification/proof expectations. Legacy v2/v3 tasks must preserve the boundary in task acceptance criteria.
 
-Do not hide unresolved `MUST_DECIDE` items inside vague tasks. Do not let sub-agent recommendations override user intent.
+Do not hide unresolved `MUST_DECIDE` items inside vague tasks or packages. Do not let sub-agent recommendations override user intent.
 
-## `design_decisions` Persistence Rules
+## Persistence Rules by Plan Schema
 
-Persist accepted design decisions in `tasks.json` under `design_decisions`:
+For schema-version-4 Slice-first plans:
+
+- Do not add `design_decisions`, task acceptance matrices, context bundles, or rich handoff records to `tasks.json`.
+- Persist product-level outcomes in `SPEC.md` only when they are requirements, constraints, acceptance implications, out-of-scope items, or explicit approved scope/override metadata.
+- Persist package-level outcomes in work-package Markdown `## Scope`, `## Assigned Slices`, `## Verification Expectations`, `## Dependencies`, or optional `## Notes`.
+- Ensure proof-relevant outcomes appear as package verification expectations or assigned `must_satisfy` IDs so generated proof Markdown has closure rows.
+- Do not persist the Preflight Brief itself.
+
+For legacy schema-version-2/3 plans only, accepted design decisions may be persisted in `tasks.json` under `design_decisions`:
 
 - IDs use `DD-1`, `DD-2`, ... sequentially with no gaps.
 - `source` is exactly `design-preflight` or `planner`.
 - Each entry records the decision, concise rationale, and any material constraints or rejected alternatives needed for future review.
 - Persist only decisions that affect design, task shape, acceptance criteria, sequencing, risk, or verification.
 - Do not persist the Preflight Brief itself.
-- Do not persist design rationale in `SPEC.md` unless explicitly required by the user as a product requirement.

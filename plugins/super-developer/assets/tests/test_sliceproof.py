@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import hashlib
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -89,6 +91,9 @@ class SliceproofFixture:
 
             ### HELPER-CONTEXT-003
             Context-only IDs must be readable but do not create required proof rows.
+
+            ### HELPER-PIPE-004 — Proof rows preserve A | B table content
+            Escaped pipe characters in generated proof table cells must round-trip through validation.
             """
         ).lstrip()
 
@@ -317,6 +322,167 @@ class SliceproofTests(unittest.TestCase):
                 invalid = self.fixture.run("validate-proof", str(self.fixture.tasks_path), "--package", "WP1")
                 self.assertNotEqual(0, invalid.returncode, invalid.stdout + invalid.stderr)
                 self.assertIn(expected_error, "\n".join(json.loads(invalid.stderr)["errors"]))
+
+    def test_validate_proof_rejects_duplicate_rows_and_scans_full_tables(self) -> None:
+        proof = self.fixture.completed_proof()
+        duplicate_slice = (
+            "| `HELPER-PLAN-001` | unresolved duplicate | TODO | TODO | OPEN |\n"
+            "| `HELPER-PLAN-001` | Registry and package references validate mechanically |"
+        )
+        proof = proof.replace(
+            "| `HELPER-PLAN-001` | Registry and package references validate mechanically |",
+            duplicate_slice,
+            1,
+        )
+        duplicate_expectation = (
+            "| `sliceproof.py validate-plan` succeeds for the valid fixture. | TODO | OPEN |\n"
+            "| `sliceproof.py validate-plan` succeeds for the valid fixture. |"
+        )
+        proof = proof.replace(
+            "| `sliceproof.py validate-plan` succeeds for the valid fixture. |",
+            duplicate_expectation,
+            1,
+        )
+        self.fixture.proof_path.write_text(proof, encoding="utf-8")
+
+        result = self.fixture.run("validate-proof", str(self.fixture.tasks_path), "--package", "WP1")
+        self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+        errors = "\n".join(json.loads(result.stderr)["errors"])
+        self.assertIn("duplicate Slice Closure Table row for HELPER-PLAN-001", errors)
+        self.assertIn("HELPER-PLAN-001 status OPEN blocks", errors)
+        self.assertIn("duplicate Acceptance / Verification Closure row", errors)
+        self.assertIn("status OPEN blocks", errors)
+
+    def test_escaped_pipe_table_cells_round_trip_from_generated_proof(self) -> None:
+        package_text = self.fixture.package_text(must_id="HELPER-PIPE-004").replace(
+            "- `sliceproof.py validate-plan` succeeds for the valid fixture.",
+            "- `printf 'a|b' | wc -c` preserves escaped pipe output.",
+        )
+        self.fixture.package_path.write_text(package_text, encoding="utf-8")
+        created = self.fixture.run("create-proof", str(self.fixture.tasks_path), "--package", "WP1")
+        self.assertEqual(0, created.returncode, created.stdout + created.stderr)
+        placeholder = self.fixture.proof_path.read_text(encoding="utf-8")
+        self.assertIn("A \\| B", placeholder)
+        self.assertIn("'a\\|b' \\| wc", placeholder)
+        completed = placeholder.replace("TODO", "observed evidence").replace("OPEN", "PASS")
+        self.fixture.proof_path.write_text(completed, encoding="utf-8")
+
+        result = self.fixture.run("validate-proof", str(self.fixture.tasks_path), "--package", "WP1")
+        self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+
+    def test_validate_proof_rejects_negated_approval_for_deferrals(self) -> None:
+        cases = [
+            (
+                "slice row",
+                lambda proof: proof.replace(
+                    "| `HELPER-PLAN-001` | Registry and package references validate mechanically | sliceproof.py validates registry/package/Slice references. | unittest fixture observed the helper command exit 0. | PASS |",
+                    "| `HELPER-PLAN-001` | Registry and package references validate mechanically | deferred implementation with not approved deferral scope | verification evidence captured | DEFERRED |",
+                ),
+                "HELPER-PLAN-001 DEFERRED requires explicit approved",
+            ),
+            (
+                "expectation row",
+                lambda proof: proof.replace(
+                    "| `sliceproof.py validate-plan` succeeds for the valid fixture. | unittest fixture observed validate-plan exit 0. | PASS |",
+                    "| `sliceproof.py validate-plan` succeeds for the valid fixture. | no approval for deferral scope despite evidence | DEFERRED |",
+                ),
+                "DEFERRED requires explicit approved",
+            ),
+            (
+                "gaps section",
+                lambda proof: proof.replace(
+                    "## Gaps, Deviations, or Deferred Items\n- None.\n",
+                    "## Gaps, Deviations, or Deferred Items\n- DEFERRED by unapproved scope note.\n",
+                ),
+                "deferred gap/deviation requires explicit approved",
+            ),
+        ]
+        for name, mutate, expected_error in cases:
+            with self.subTest(name=name):
+                self.fixture.proof_path.write_text(mutate(self.fixture.completed_proof()), encoding="utf-8")
+                result = self.fixture.run("validate-proof", str(self.fixture.tasks_path), "--package", "WP1")
+                self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+                self.assertIn(expected_error, "\n".join(json.loads(result.stderr)["errors"]))
+
+                plan = self.fixture.plan()
+                plan["work_packages"][0]["status"] = "done"
+                self.fixture.write_plan(plan)
+                final = self.fixture.run("validate-final", str(self.fixture.tasks_path))
+                self.assertNotEqual(0, final.returncode, final.stdout + final.stderr)
+                self.assertIn(expected_error, "\n".join(json.loads(final.stderr)["errors"]))
+
+    def test_create_proof_force_refuses_status_only_blocker_drift_without_backup(self) -> None:
+        first = self.fixture.run("create-proof", str(self.fixture.tasks_path), "--package", "WP1")
+        self.assertEqual(0, first.returncode, first.stdout + first.stderr)
+        placeholder = self.fixture.proof_path.read_text(encoding="utf-8")
+        drifted = placeholder.replace("| TODO | TODO | OPEN |", "| TODO | TODO | GAP |", 1)
+        self.fixture.proof_path.write_text(drifted, encoding="utf-8")
+
+        rejected = self.fixture.run("create-proof", str(self.fixture.tasks_path), "--package", "WP1", "--force")
+        self.assertNotEqual(0, rejected.returncode)
+        self.assertEqual(drifted, self.fixture.proof_path.read_text(encoding="utf-8"))
+        self.assertIn("proof status/content drift", "\n".join(json.loads(rejected.stderr)["errors"]))
+
+        approved = self.fixture.run(
+            "create-proof",
+            str(self.fixture.tasks_path),
+            "--package",
+            "WP1",
+            "--force",
+            "--approved-replacement",
+            "User approved replacing stale status drift; existing proof must be preserved.",
+        )
+        self.assertEqual(0, approved.returncode, approved.stdout + approved.stderr)
+        data = json.loads(approved.stdout)
+        backup = self.fixture.repo / data["preserved_existing_proof"]
+        self.assertEqual(drifted, backup.read_text(encoding="utf-8"))
+
+    def test_create_proof_preserve_backup_rejects_dangling_symlink(self) -> None:
+        if not hasattr(os, "symlink"):
+            self.skipTest("symlink not available on this platform")
+        filled = self.fixture.completed_proof()
+        self.fixture.proof_path.write_text(filled, encoding="utf-8")
+        digest = hashlib.sha256(filled.encode("utf-8")).hexdigest()[:12]
+        backup = self.fixture.proof_path.with_name(f"{self.fixture.proof_path.name}.preserved.{digest}.bak")
+        outside = self.fixture.repo.parent / "outside-created-by-symlink.txt"
+        if outside.exists():
+            outside.unlink()
+        os.symlink(outside, backup)
+
+        result = self.fixture.run(
+            "create-proof",
+            str(self.fixture.tasks_path),
+            "--package",
+            "WP1",
+            "--force",
+            "--approved-replacement",
+            "User approved replacing stale evidence; existing proof must be preserved.",
+        )
+        self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+        self.assertFalse(outside.exists())
+        self.assertEqual(filled, self.fixture.proof_path.read_text(encoding="utf-8"))
+        self.assertIn("preservation backup path is a symlink", "\n".join(json.loads(result.stderr)["errors"]))
+
+    def test_cli_reports_structured_json_for_common_io_failures(self) -> None:
+        directory_input = self.fixture.run("validate-plan", str(self.fixture.feature_dir))
+        self.assertNotEqual(0, directory_input.returncode)
+        self.assertNotIn("Traceback", directory_input.stderr)
+        directory_errors = json.loads(directory_input.stderr)["errors"]
+        self.assertIn("unable to read", "\n".join(directory_errors))
+
+        self.fixture.slice_path.write_bytes(b"\xff")
+        decode_error = self.fixture.run("validate-plan", str(self.fixture.tasks_path))
+        self.assertNotEqual(0, decode_error.returncode)
+        self.assertNotIn("Traceback", decode_error.stderr)
+        self.assertIn("unable to decode UTF-8", "\n".join(json.loads(decode_error.stderr)["errors"]))
+
+        self.fixture.slice_path.write_text(self.fixture.slice_text(), encoding="utf-8")
+        self.fixture.proofs_dir.rmdir()
+        self.fixture.proofs_dir.write_text("not a directory", encoding="utf-8")
+        write_error = self.fixture.run("create-proof", str(self.fixture.tasks_path), "--package", "WP1")
+        self.assertNotEqual(0, write_error.returncode)
+        self.assertNotIn("Traceback", write_error.stderr)
+        self.assertIn("unable to create directory", "\n".join(json.loads(write_error.stderr)["errors"]))
 
     def test_create_proof_force_refuses_edited_gaps_section_and_preserves_file(self) -> None:
         first = self.fixture.run("create-proof", str(self.fixture.tasks_path), "--package", "WP1")
