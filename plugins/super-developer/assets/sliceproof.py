@@ -589,14 +589,14 @@ def parse_assigned_slices(body: str, package_path: Path) -> list[SliceRef]:
         if re.fullmatch(r"Context only\s*:", line, flags=re.IGNORECASE):
             mode = "context"
             continue
-        if line.startswith(("- ", "* ")) and mode and current_path:
-            item = line[2:].strip()
-            slice_id = extract_id(item)
-            if slice_id:
-                if mode == "must":
-                    current_must.append(slice_id)
-                else:
-                    current_context.append(slice_id)
+        bullet_match = re.match(r"^[-*](?:\s+(.*))?$", line)
+        if bullet_match and mode and current_path:
+            item = (bullet_match.group(1) or "").strip()
+            slice_id = extract_assigned_slice_id_token(item)
+            if mode == "must":
+                current_must.append(slice_id)
+            else:
+                current_context.append(slice_id)
     flush()
     return refs
 
@@ -899,6 +899,8 @@ def is_empty_placeholder(text: str, package_md: PackageMarkdown) -> bool:
     for section in ("Commands Run", "Files Changed / Inspected", "Package Agent Completion Statement"):
         if not is_placeholder_text(sections.get(section, "")):
             return False
+    if not is_empty_gaps_deviations_section(sections.get("Gaps, Deviations, or Deferred Items", "")):
+        return False
     return True
 
 
@@ -974,6 +976,13 @@ def extract_backticked_or_text(value: str) -> str:
     return re.split(r"\s+(?:—|-)\s+", value, maxsplit=1)[0].strip()
 
 
+def extract_assigned_slice_id_token(value: str) -> str:
+    backticked = re.search(r"`([^`]*)`", value)
+    if backticked:
+        return backticked.group(1).strip()
+    return extract_backticked_or_text(value)
+
+
 def extract_id(value: str) -> str | None:
     backticked = re.search(r"`([A-Z][A-Z0-9-]*-[0-9]{3})`", value)
     if backticked:
@@ -999,6 +1008,16 @@ def is_placeholder_text(value: str) -> bool:
     if stripped in PLACEHOLDER_VALUES:
         return True
     return bool(BLOCKING_MARKER_RE.fullmatch(stripped))
+
+
+def is_empty_gaps_deviations_section(value: str) -> bool:
+    for line in value.splitlines():
+        stripped = line.strip()
+        if not stripped:
+            continue
+        if not re.fullmatch(r"(?:[-*]\s+|\d+\.\s+)?None\.?", stripped, flags=re.IGNORECASE):
+            return False
+    return True
 
 
 def contains_approval_scope(value: str) -> bool:

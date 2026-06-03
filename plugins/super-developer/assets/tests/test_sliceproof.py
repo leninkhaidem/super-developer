@@ -92,18 +92,34 @@ class SliceproofFixture:
             """
         ).lstrip()
 
-    def package_text(self, *, missing_section: str | None = None, must_id: str = "HELPER-PLAN-001") -> str:
+    def package_text(
+        self,
+        *,
+        missing_section: str | None = None,
+        must_id: str | None = "HELPER-PLAN-001",
+        context_id: str | None = "HELPER-CONTEXT-003",
+    ) -> str:
+        must_line = (
+            "- Registry and package references validate mechanically"
+            if must_id is None
+            else f"- `{must_id}` — Registry and package references validate mechanically"
+        )
+        context_line = (
+            "- Context-only IDs stay required reading"
+            if context_id is None
+            else f"- `{context_id}` — Context-only IDs stay required reading"
+        )
         sections = {
             "Scope": "Validate the v4 Slice-first helper behavior with deterministic fixtures.",
             "Assigned Slices": textwrap.dedent(
                 f"""
                 ### `.planning/fixture/slices/helper.md`
                 Must satisfy:
-                - `{must_id}` — Registry and package references validate mechanically
+                {must_line}
                 - `HELPER-PROOF-002` — Proof placeholders and proof closure are mechanical
 
                 Context only:
-                - `HELPER-CONTEXT-003` — Context-only IDs stay required reading
+                {context_line}
                 """
             ).strip(),
             "Primary Paths": "- `plugins/super-developer/assets/sliceproof.py`",
@@ -216,6 +232,56 @@ class SliceproofTests(unittest.TestCase):
                 finally:
                     fixture.cleanup()
 
+    def test_validate_plan_rejects_malformed_assignment_ids_in_must_and_context_lists(self) -> None:
+        cases = [
+            (
+                "must lowercase",
+                lambda fixture: fixture.package_path.write_text(
+                    fixture.package_text(must_id="helper-plan-001"), encoding="utf-8"
+                ),
+                "must_satisfy ID 'helper-plan-001' has unsupported shape",
+            ),
+            (
+                "must bad shape",
+                lambda fixture: fixture.package_path.write_text(fixture.package_text(must_id="HELPER-PLAN"), encoding="utf-8"),
+                "must_satisfy ID 'HELPER-PLAN' has unsupported shape",
+            ),
+            (
+                "must missing",
+                lambda fixture: fixture.package_path.write_text(fixture.package_text(must_id=None), encoding="utf-8"),
+                "must_satisfy ID 'Registry and package references validate mechanically' has unsupported shape",
+            ),
+            (
+                "context lowercase",
+                lambda fixture: fixture.package_path.write_text(
+                    fixture.package_text(context_id="helper-context-003"), encoding="utf-8"
+                ),
+                "context_only ID 'helper-context-003' has unsupported shape",
+            ),
+            (
+                "context bad shape",
+                lambda fixture: fixture.package_path.write_text(
+                    fixture.package_text(context_id="HELPER-CONTEXT"), encoding="utf-8"
+                ),
+                "context_only ID 'HELPER-CONTEXT' has unsupported shape",
+            ),
+            (
+                "context missing",
+                lambda fixture: fixture.package_path.write_text(fixture.package_text(context_id=None), encoding="utf-8"),
+                "context_only ID 'Context-only IDs stay required reading' has unsupported shape",
+            ),
+        ]
+        for name, mutate, expected_error in cases:
+            with self.subTest(name=name):
+                fixture = SliceproofFixture()
+                try:
+                    mutate(fixture)
+                    result = fixture.run("validate-plan", str(fixture.tasks_path))
+                    self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+                    self.assertIn(expected_error, "\n".join(json.loads(result.stderr)["errors"]))
+                finally:
+                    fixture.cleanup()
+
     def test_create_proof_generates_placeholder_from_package_markdown(self) -> None:
         result = self.fixture.run("create-proof", str(self.fixture.tasks_path), "--package", "WP1")
         self.assertEqual(0, result.returncode, result.stdout + result.stderr)
@@ -251,6 +317,21 @@ class SliceproofTests(unittest.TestCase):
                 invalid = self.fixture.run("validate-proof", str(self.fixture.tasks_path), "--package", "WP1")
                 self.assertNotEqual(0, invalid.returncode, invalid.stdout + invalid.stderr)
                 self.assertIn(expected_error, "\n".join(json.loads(invalid.stderr)["errors"]))
+
+    def test_create_proof_force_refuses_edited_gaps_section_and_preserves_file(self) -> None:
+        first = self.fixture.run("create-proof", str(self.fixture.tasks_path), "--package", "WP1")
+        self.assertEqual(0, first.returncode, first.stdout + first.stderr)
+        placeholder = self.fixture.proof_path.read_text(encoding="utf-8")
+        edited = placeholder.replace(
+            "## Gaps, Deviations, or Deferred Items\n- None.\n",
+            "## Gaps, Deviations, or Deferred Items\n- Investigate fixture evidence before dispatch.\n",
+        )
+        self.fixture.proof_path.write_text(edited, encoding="utf-8")
+
+        rejected = self.fixture.run("create-proof", str(self.fixture.tasks_path), "--package", "WP1", "--force")
+        self.assertNotEqual(0, rejected.returncode)
+        self.assertEqual(edited, self.fixture.proof_path.read_text(encoding="utf-8"))
+        self.assertIn("contains filled proof evidence", "\n".join(json.loads(rejected.stderr)["errors"]))
 
     def test_create_proof_force_refuses_filled_evidence_without_preserving_approved_replacement(self) -> None:
         first = self.fixture.run("create-proof", str(self.fixture.tasks_path), "--package", "WP1")
