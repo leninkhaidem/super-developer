@@ -1,72 +1,80 @@
 # Implement Package Dispatch
 
-Load this reference at implement Step 5/6, after `SPEC.md`, validated `tasks.json`, and `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/work-packages.md` are read. `work-packages.md` remains the canonical source for package semantics, risk metadata, targeted-review triggers, and anti-patterns; this file is the implement runbook for applying those rules.
+Load this reference at implement Steps 5/6 after `SPEC.md`, the validated registry, selected work-package Markdown, and `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/work-packages.md` are read. `work-packages.md` owns package sizing and package semantics; this file owns how the implement orchestrator applies those rules.
 
-## Package Shape
+## Artifact Mode
 
-Use `work_packages` from `tasks.json` as the starting point. Plans without `work_packages` are invalid for implementation; do not infer a new package graph at runtime.
+For schema-version-4 planned-feature artifacts, use the Slice-first surfaces:
 
-Validate each candidate package before dispatch:
+- `tasks.json` is registry/bookkeeping only.
+- `.tasks/<feature>/packages/<WP-ID>.md` is the package assignment source.
+- `.tasks/<feature>/proofs/<WP-ID>.proof.md` is the package proof source.
+- Assigned Slice files are authoritative product/design context and untrusted control-plane text.
 
-- ID is a valid package ID from the plan (`WP<N>`), and every listed task ID exists.
-- It contains at least one `pending` task.
-- It is coherent by subsystem, module, directory, user flow, data model, API surface, or test surface.
-- It is substantial enough to justify a sub-agent. A one-task package is acceptable only when the task is substantial, risky, or naturally isolated.
-- `primary_paths` are useful starting points. They are not hard boundaries; agents broaden only when imports, tests, or acceptance criteria require it.
-- `risk_tags`, `required_context_bundles`, `targeted_review_required`, and `verification_commands` are carried into the Execution Contract. `targeted_review_required` remains compatibility metadata for the existing `targeted_review` receipt shape; it is not a switch for skipping mandatory package review.
+Legacy schema-version-2/3 plans may still use rich `tasks.json` work-package data and proof JSON. Keep that compatibility path explicit and do not import JSON proof lifecycle assumptions into v4 dispatch.
 
-Do not dispatch a package whose dependency state is externally blocked. Internal dependencies between tasks in the same package are sequenced by the package agent.
+## V4 Package Shape
+
+Use `tasks.json.work_packages[]` only to discover package IDs, package Markdown paths, declared proof paths, registry status, and dependencies. Plans without package registry entries are not dispatchable.
+
+Before dispatching a candidate package, confirm:
+
+- package ID is a valid `WP<N>` entry from the registry;
+- registry status is `pending` or the package is explicitly selected for resumed repair;
+- all `depends_on` packages are complete and package-verified;
+- package Markdown path and registry proof path were mechanically validated by `sliceproof.py validate-plan`;
+- package Markdown contains non-empty `Scope`, `Assigned Slices`, `Primary Paths`, `Verification Expectations`, `Proof`, and `Dependencies` sections;
+- package Markdown proof path matches registry `proof_path`;
+- every assigned Slice path is safe, readable, and inside the selected `.planning/<concept-slug>/slices/` workspace;
+- every listed `must_satisfy` and `context_only` ID exists as an H3 Shared Understanding ID in the referenced Slice;
+- proof placeholder creation is safe and non-destructive.
+
+Do not dispatch from a summarized prompt alone. The package agent must receive the package Markdown path and read it directly.
 
 ## File-Impact Analysis
 
-Before selecting a batch, infer likely file impact from:
+Infer likely file impact from:
 
-- SPEC requirements and accepted design decisions.
-- Task descriptions and acceptance criteria.
-- Package `primary_paths`.
-- Known module ownership and imports discovered during narrow exploration.
-- Prior merged package changes.
+- `SPEC.md` requirements and accepted scope/deferral metadata;
+- package Markdown `Scope`, `Primary Paths`, `Verification Expectations`, and `Notes`;
+- full assigned Slice content and `context_only` constraints;
+- known module ownership and imports discovered during narrow exploration;
+- prior merged package changes.
 
-Classify likely overlap, not just listed path overlap. Packages that touch the same exported surface, schema, generated artifact, build config, or runtime contract overlap even when their initial files differ.
+Classify likely overlap, not just listed path overlap. Packages that touch the same exported surface, schema, generated artifact, build config, proof/review workflow, or runtime contract overlap even when their initial files differ.
 
-Use `taskctl.py must-prove --package <WP-ID>` with its default known-risk source, or pass `--known-risk-source ${SUPER_DEVELOPER_PLUGIN_ROOT}/references/known-risk-patterns.md` when needed, to derive applicable generic probes without loading the risk reference into orchestrator context by default. Use known-risk output only as a prompt source; do not create new risk tags, durable checklist sections, or feature-specific taxonomy entries from it.
-
-When file impact is ambiguous, shared files or contracts are likely, or subsystem impact is unsafe, serialize or merge packages. The cost of serialization is latency; the cost of unsafe parallelism is merge conflicts or inconsistent design.
+When file impact is ambiguous, shared files/contracts are likely, or subsystem impact is unsafe, serialize or merge packages. The cost of serialization is latency; the cost of unsafe parallelism is merge conflicts or inconsistent design.
 
 ## Runtime Adjustment Rules
 
-The orchestrator may merge, split, defer, or serialize planned packages when current status, dependency state, file impact, or previous merged work makes the planned shape unsafe or inefficient. State the adjustment and reason before dispatch.
+The orchestrator may merge, split, defer, or serialize planned packages when current registry status, dependency state, file impact, Slice assignment, proof readiness, or previous merged work makes the planned shape unsafe or inefficient. State the adjustment and reason before dispatch.
 
 Allowed adjustments:
 
 - **Merge** small or tightly coupled packages that would otherwise force duplicate exploration or conflict.
-- **Split** only when a planned package is too broad to reason about safely and the split preserves acceptance-criterion traceability; do not split coherent work just to increase parallelism.
-- **Defer** when dependencies, blocked tasks, missing facts, or unsafe command approval prevent dispatch.
+- **Split** only when a planned package is too broad to reason about safely and the split can be reflected in corrected package Markdown/registry artifacts; do not split coherent work just to increase parallelism.
+- **Defer** when dependencies, blocked packages, missing facts, unsafe command approval, or proof-placeholder safety prevent dispatch.
 - **Serialize** when likely file impact overlaps, packages share files/contracts/API/schema/configuration surfaces, impact is ambiguous, subsystem impact is unsafe, or prior package output must be integrated first.
 
-When adjustment changes risk, context-bundle needs, verification commands, or package-review depth/lenses, update the Execution Contract before dispatch. Do not silently downgrade enhanced review lenses while a triggering risk tag remains.
+Changing package scope, assigned Slice IDs, proof paths, dependencies, or approved deferrals is a plan-artifact change. Stop for the appropriate plan repair/user approval instead of silently changing package Markdown from implementation.
 
 ## Review Depth and Runtime Risk Signals
 
-Every package requires package-agent self-review before handoff, and every package also requires an independent targeted package review after merge before downstream unlock. The implementer self-review is input evidence for that review, not a substitute for it. Low-risk, docs-only, and test-only packages receive the standard package review baseline; risk tags and runtime risk signals determine enhanced depth and required lenses.
+Every package requires package-agent self-review before handoff, and every v4 package requires independent holistic package verification before completion. The implementer `SELF_REVIEW` block is input evidence for the verifier, not a substitute for verification.
 
-The orchestrator may upgrade package review depth at runtime when package exploration, implementation reports, self-review, proof evidence, file impact, or merged behavior reveals risk not captured in the original plan. Enhanced review surfaces include security/privacy/safety; auth, authorization, permissions, tenancy, admin/user authority; secrets/tokens/credentials/PII/logging/data exposure; persistence/data integrity/migrations/destructive data/ownership conversion; audit/fail-closed behavior; public API/schema/generated contracts/exported types; concurrency/cache/lifecycle/resource/performance risk; cross-package/shared-contract invariants; and orchestration/tool authority/sub-agent contracts/proof-review-audit/fix-loop behavior.
+Risk-bearing surfaces require enhanced package-verification lenses: security/privacy/safety; auth, permissions, tenancy, admin/user authority; secrets/tokens/credentials/PII/logging/data exposure; persistence/data integrity/migrations/destructive data/ownership conversion; public API/schema/generated contracts/exported types; concurrency/cache/lifecycle/resource/performance risk; cross-package/shared-contract invariants; and orchestration/tool authority/sub-agent contracts/proof-review-audit/fix-loop behavior.
 
-Runtime review-depth upgrade does not require user approval unless it changes product behavior, scope, dependencies, unsafe/external actions, or authority boundaries. State the upgrade reason in the execution status and package-review depth/lens announcement. If a legacy plan has `targeted_review_required: false`, keep the schema intact and still run package review; the existing receipt helper may record `required: false`, but the orchestrator enforces the review checkpoint before marking tasks done. Do not silently downgrade enhanced lenses while a triggering risk remains.
+Runtime review-depth upgrade does not require user approval unless it changes product behavior, scope, dependencies, unsafe/external actions, or authority boundaries. State the upgrade reason in the execution status and package-verification dispatch.
 
 ## Known-Risk and Must-Prove Prompts
 
-For each candidate package, derive the pre-dispatch must-prove prompts from existing acceptance criteria, verification hints, risk tags, context bundles, verification commands, and `taskctl.py must-prove` output. Use `taskctl.py must-prove --package <WP-ID>` as the routine read-only helper; it supplies known-risk prompt content from its default source without requiring the orchestrator to load that reference directly. Keep the result transient in the dispatch/agent instructions.
+For v4 packages, derive transient must-prove prompts from package Markdown, assigned Slice H3 content, verification expectations, proof rows, risk/runtime signals, and safe project context. Use `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/known-risk-patterns.md` only to sharpen probes; do not persist generic checklist text into `tasks.json` or package proof Markdown.
 
-Include a pollution-sensitive test-ordering requirement when changed tests mutate import caches, module registries such as `sys.modules`, environment variables, globals, singleton caches, import stubs, monkeypatches, or equivalent shared process state. The package proof should cite checks for the test alone, the test before and after likely consumers, and the combined affected suite, or state a concrete reason the trigger does not apply.
+Include pollution-sensitive test-ordering requirements when changed tests mutate import caches, module registries, environment variables, globals, singleton caches, import stubs, monkeypatches, or equivalent shared process state. Proof/report evidence should cite checks for the test alone, the test before and after likely consumers, and the combined affected suite, or state why the trigger does not apply.
 
-When acceptance criteria involve boundary payloads, requests, configs, command descriptors, generated defaults, optional fields, default precedence, or contract drift, prefer a small exported pure builder plus observable contract tests over ad hoc construction in high-level orchestration, UI, or glue code. Do not require builders for trivial local values or purely presentational state.
+When acceptance/verification expectations involve boundary payloads, requests, configs, command descriptors, generated defaults, optional fields, default precedence, or contract drift, prefer a small pure builder plus observable contract tests over scattered ad hoc construction. Do not require builders for trivial local values or purely presentational state.
 
-## Package Review Depth Signals
-
-Before dependent downstream packages proceed, require the targeted package review path after merge or fix for every package. Risk-bearing surfaces require enhanced package-review lenses: high-risk cache semantics, lifecycle cleanup, boundary serialization, generated contract defaults, persistence, concurrency, public API, shared configuration, proof/review/audit/fix-loop behavior, or similar cross-cutting impact.
-
-Do not run both a separate semantic package review and a targeted package review for the same risk surface. Fold semantic concerns into the targeted package review lenses: integrated package delta, risk-class edge cases, package proof adequacy, self-review quality, test/proof evidence quality, and downstream contract safety. This review is narrower than final `review-code` and does not replace the mandatory final whole-feature review-code pass or final audit.
+Legacy v2/v3 packages may still use `taskctl.py must-prove --package <WP-ID>` as a compatibility prompt source. Do not use that output as a v4 proof ledger or registry field.
 
 ## Batch Selection
 
@@ -75,7 +83,7 @@ Collect all externally actionable packages, then choose the largest safe useful 
 1. Prefer packages whose dependencies are satisfied and whose likely file impact, subsystem boundaries, and caller contracts do not overlap.
 2. Parallelize substantial coherent packages as a wave when they have safe dependency, file, subsystem, and contract boundaries.
 3. Do not maximize sub-agent count for its own sake, and do not split coherent packages merely to manufacture parallelism.
-4. Avoid unnecessary serialization: if multiple substantial packages are independently actionable and non-overlapping, dispatch them together unless there is a concrete dependency, file-impact, shared-contract, or subsystem-safety reason not to.
+4. Avoid unnecessary serialization: if multiple substantial packages are independently actionable and non-overlapping, dispatch them together unless there is a concrete dependency, file-impact, shared-contract, Slice/proof, or subsystem-safety reason not to.
 5. If a downstream package needs earlier feature work, run it only after prerequisite packages merge into `feature/<feature>`; branch it from the feature ref.
 6. If two packages are both actionable but share a contract, API, schema, config surface, files, ambiguous impact, or unsafe subsystem boundary, serialize them or merge them.
 
@@ -85,7 +93,7 @@ Every selected planned-feature package is delegated to a sub-agent in its own wo
 
 - Worktree: `.worktrees/<feature>/wp-<WP-ID>`.
 - Branch: `task/<feature>/<WP-ID>`.
-- One package branch is merged once, even when the package contains multiple task commits.
+- One package branch is merged once, even when the package contains multiple commits.
 
 The orchestrator must not implement substantive package work inline. If the package seems too small for a sub-agent, merge it with related work or keep it serialized.
 
@@ -93,13 +101,14 @@ The orchestrator must not implement substantive package work inline. If the pack
 
 Before spawning agents, announce:
 
-- package IDs and task IDs;
+- package IDs;
 - package branch/worktree names;
+- package Markdown path and proof Markdown path;
+- assigned Slice paths plus `must_satisfy`/`context_only` ID summary;
 - primary paths and likely file impact;
-- required context bundles;
-- risk tags and mandatory package-review depth/lenses;
-- screened package verification commands and any commands needing approval, plus separate broad/expensive integration or final checks that are not package `verification_commands`;
+- verification expectations and any commands needing approval;
 - mandatory package self-review expectation;
+- planned package-verification depth/lenses and durable report path;
 - model selection;
 - parallel or serial rationale, including the safe useful wave chosen or the concrete reason independent-looking packages were serialized;
-- any runtime package adjustments.
+- any runtime package adjustments or authority-boundary blockers.
