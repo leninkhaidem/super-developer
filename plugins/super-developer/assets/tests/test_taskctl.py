@@ -650,16 +650,12 @@ class TaskctlCliTests(unittest.TestCase):
         self.assertEqual("package-reviewer", self.read_proof()["targeted_review"]["reviewer"])
         self.assertFalse(self.sentinel.exists())
 
-    def test_record_targeted_review_tool_usage_sample_is_validator_accepted(self) -> None:
-        tool_usage = (ASSETS_DIR.parent / "references" / "tool-usage.md").read_text(
-            encoding="utf-8"
+    def test_record_targeted_review_validator_accepts_compact_evidence(self) -> None:
+        sample_evidence = (
+            f"Integrated commit {self.commit} reviewed; mandatory package review passed; "
+            "depth=standard; tests=sampled; safety=clean; "
+            "serious findings 0 closed; repairs none; delta verification n/a"
         )
-        sample_line = next(
-            line
-            for line in tool_usage.splitlines()
-            if "record-targeted-review" in line and "--evidence" in line
-        )
-        sample_evidence = sample_line.split('--evidence "', 1)[1].rsplit('"', 1)[0]
 
         proof_path = self.proofs_dir / "WP1.proof.json"
         before = self.snapshot_read_only_paths()

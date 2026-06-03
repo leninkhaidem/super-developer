@@ -49,7 +49,8 @@ human-scannable as rendered Markdown. All finding locations are explicit via `Pa
 ---
 _Review generated via bounded multi-agent analysis. All reported blockers and critical issues were
 independently verified by the Skeptic Agent. Task-awareness findings are consistency signals only;
-audit remains authoritative for planned-task and acceptance-criteria completeness._
+audit remains authoritative for planned-feature completeness, including Slice/work-package/proof
+closure in v4 and task/acceptance-criteria closure on legacy plans._
 ````
 
 ## Universal Formatting Rules
@@ -75,4 +76,5 @@ audit remains authoritative for planned-task and acceptance-criteria completenes
 - **Decision-card compatibility:** A finding has enough data for a design-decision card when it is
   🔴/🟠, Skeptic-confirmed, and its recommendation lists multiple materially different alternatives.
 - **Task-awareness findings:** Present them as consistency signals only. Do not claim review-code has
-  proven planned-task or acceptance-criteria completeness; audit owns that proof.
+  proven planned-feature completeness; audit owns Slice/work-package/proof closure in v4 and
+  task/acceptance-criteria closure on legacy plans.

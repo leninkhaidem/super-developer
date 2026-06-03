@@ -84,11 +84,11 @@ Report a widening trigger only with concrete evidence. Use these trigger names w
 - `public_api_or_schema_change` — public API, exported contracts, CLI/user interface, persistence schema, storage, generated contract, or migration behavior changes.
 - `sensitive_risk_surface` — concrete evidence shows security, privacy, safety, data integrity, concurrency, or performance behavior changed or became newly implicated beyond the assigned closure/regression sniff.
 - `cross_package_impact` — the fix touches or invalidates multiple planned-feature packages, package boundaries, integration assumptions, or final-review package coverage boundaries.
-- `proof_invalidation` — package proof evidence, targeted-review receipt evidence, acceptance criteria, test evidence, or audit handoff may no longer match the final state.
+- `proof_invalidation` — package proof evidence, package verification report evidence, legacy targeted-review receipt evidence, acceptance criteria, test evidence, or audit handoff may no longer match the final state.
 - `large_delta` — the fix delta is too large or broad to verify confidently as one isolated patch.
 - `non_closed_verdict` — any assigned finding receives `partially_closed`, `not_closed`, or `reopened`.
 
-Route widening to the affected surface first: targeted delta verification, affected package/seam/surface review, proof-impact refresh, or specialist review. Integration-triggered package coverage invalidation should remain bounded to the affected seams, package proof surfaces, receipt freshness, and fix-verification delta unless those surfaces cannot be isolated. Reserve a full rereview for deltas whose affected surfaces cannot be isolated or whose breadth invalidates the original discovery review.
+Route widening to the affected surface first: targeted delta verification, affected package/seam/surface review, proof-impact refresh, or specialist review. Integration-triggered package coverage invalidation should remain bounded to the affected seams, package proof surfaces, package-report freshness, legacy receipt freshness, and fix-verification delta unless those surfaces cannot be isolated. Reserve a full rereview for deltas whose affected surfaces cannot be isolated or whose breadth invalidates the original discovery review.
 
 ## Non-Discovery Boundary
 

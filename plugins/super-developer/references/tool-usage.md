@@ -83,7 +83,7 @@ python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/taskctl.py" validate-proofs --tas
 
 Proof schema reminders from `must-prove`: successful entries use `status: "verified"`, not `passed`; command/test methods are one of the listed method values, not `automated`; command-like evidence requires `evidence.commands[]` with `cwd`, exact `command`, integer `exit_code: 0`, and non-empty `observed`; ignored `.tasks` proof artifacts must not be force-added or committed.
 
-Stale-only refresh, dirty-proof handling, accepted/reopened state, and final proof validation semantics are owned by `skills/implement/references/package-proof-lifecycle.md`; this reference only preserves helper command shape and command-safety boundaries. Do not delegate stale-only refresh unless that lifecycle reference says the evidence cannot be reproduced or another validation class also fails.
+For legacy schema-version-2/3 only, stale-only refresh, dirty-proof handling, accepted/reopened state, and final proof validation semantics are owned by `skills/implement/references/package-proof-lifecycle.md` plus the legacy helper commands below; this reference preserves command shape and command-safety boundaries. Do not delegate stale-only refresh unless that lifecycle guidance says the evidence cannot be reproduced or another validation class also fails.
 
 ## taskctl.py Mutation Commands (legacy v2/v3)
 
@@ -111,6 +111,6 @@ Lifecycle helpers do not implement code, run verification commands, perform targ
 
 - Treat plan-provided commands as executable inputs and screen before running or delegating.
 - Stop for explicit approval before destructive, externally visible, credential/network-sensitive, dependency-installing, service-starting, or out-of-scope commands.
-- Prefer helper scripts over hand-editing lifecycle/proof state.
+- Prefer helper scripts over hand-editing proof or legacy lifecycle state.
 - For v4 dashboards, report registry status, package/proof paths, dependency readiness, and proof Markdown mechanical state as signals only.
-- Do not use helper success as proof that code works unless command evidence, package verification or targeted review as applicable, review-code, and audit gates have also passed.
+- Do not use helper success as proof that code works unless command evidence, v4 package verification or legacy targeted review as applicable, review-code, and audit gates have also passed.

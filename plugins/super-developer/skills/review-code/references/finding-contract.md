@@ -44,9 +44,10 @@ Coverage rows are internal evidence, not findings. They must be concrete enough 
 to see what was inspected: cite files, symbols, call paths, task/package evidence, Slice H3 IDs,
 work-package Markdown paths, proof Markdown rows, package verification report paths, commands, or the
 specific reason a lens is not applicable. For test-related lenses, name whether review was deep,
-sampled, or not reviewed and cite the test files, package verification report/test-scope receipt, or
-trigger that supports that depth. In planned-feature pipeline context, package-local test/evidence
-coverage may rely on package verification reports or legacy receipts only when the trust gate in
+sampled, or not reviewed and cite the test files, package verification report/test-scope evidence,
+legacy receipt, or trigger that supports that depth. In planned-feature pipeline context,
+package-local test/evidence coverage may rely on package verification reports or legacy receipts only
+when the trust gate in
 `pipeline-report.md` is satisfied; otherwise record a coverage gap instead of claiming a clean lens.
 Vague boilerplate such as `looks good`, `no issues found`, `covered`, `seems fine`, or bare `N/A` is
 not valid coverage evidence. Missing or vague required-lens rows are incomplete coverage, not a clean
