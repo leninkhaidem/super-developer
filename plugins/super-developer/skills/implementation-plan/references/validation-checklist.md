@@ -1,96 +1,104 @@
-# Implementation Plan Validation Checklist
+# V4 Implementation Plan Validation Checklist
 
-Load this immediately before writing `.tasks/<feature-name>/SPEC.md` and `.tasks/<feature-name>/tasks.json`, then again after the shared validator passes.
+Load this immediately before writing `.tasks/<feature-name>/SPEC.md`, `.tasks/<feature-name>/tasks.json`, and package Markdown, then again after `sliceproof.py validate-plan` passes.
 
-Validator-owned schema, ID, status, risk-tag, targeted-review, and ledger details belong to `${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/validate-tasks-json.py`. Work-package semantics belong to `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/work-packages.md`. Use this checklist to catch planner-quality issues those sources cannot fully judge.
+Mechanical schema/path/package/H3 checks belong to `${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py`. Use this checklist to catch planner-quality issues the helper intentionally cannot judge.
 
 ## Pre-Write Checklist
 
-Do not create `.tasks/<feature-name>/` or write files until all items pass.
+Do not create or overwrite `.tasks/<feature-name>/` artifacts until all items pass.
 
 ### Gates
 
 - Feature name is inferred or provided, validated as safe kebab-case, and not an unresolved existing-directory conflict.
-- Required planning references have been read: `work-packages.md` and `clean-code-rules.md`.
+- Required planning references have been read: `clean-code-rules.md`, `tool-usage.md`, `conceptualize-inputs.md`, and `conceptualize-slice-authority.md`.
 - Design Preflight trigger decision has been made using `design-preflight.md`.
 - If Design Preflight ran, every unresolved `MUST_DECIDE` and `BLOCKERS` finding is resolved.
-- If resolution changes user-visible semantics, acceptance criteria, or scope, the user approved it before writing.
-- Conceptualize Workspace selection is resolved: latest plausible workspace chosen, real ambiguity asked once, or a minimal `.planning/<concept-slug>/index.md` plus `slices/` auto-created.
-- The Conceptualize Slice gate from `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/conceptualize-slice-authority.md` has passed: safe selected workspace, full Markdown Slice inventory, complete coverage or explicit zero-Slice state, projection of every hard requirement/material commitment, durable approval for scope reductions, no unresolved conflicts, and no transcript/every-sentence capture.
-- Conditional empirical spike decision has been made.
-- If a spike was required, accepted evidence is ready to record as `tasks.json.design_decisions` and no spike code will be persisted.
-- If the needed empirical assumption cannot be safely validated with available access and bounded side effects, stop and ask the user instead of writing around it.
+- If resolution changes user-visible semantics, acceptance criteria, Slice commitments, or scope, the user approved it before writing.
+- Conceptualize workspace selection is resolved to exactly one safe `.planning/<concept-slug>/` workspace.
+- The selected workspace has planning-ready Slice Markdown; if not, planning stopped for Conceptualize/Slice approval instead of writing an empty v4 plan.
+- The full Slice inventory was taken from the selected workspace's `slices/` directory after path/symlink checks, not only from the Index or user-mentioned paths.
+- Every Slice in the inventory was read in full.
+- Every planning-relevant Slice question is resolved or explicitly approved as deferred/out-of-scope.
+- Every hard Slice requirement/material H3 commitment is projected into `SPEC.md` or package Markdown, assigned as `must_satisfy`/`context_only`, or explicitly approved as deferred/out-of-scope/rejected.
+- Unresolved Slice conflicts, stale assumptions, unassigned material obligations, hidden `context_only` scope, or raw Slice control-plane directives are blockers.
+- Conditional empirical spike decision has been made; if required, evidence is accepted and no spike code will be persisted.
+- If a needed empirical assumption cannot be safely validated with available access and bounded side effects, planning stopped for user decision instead of writing around it.
 
-### SPEC.md
+### `SPEC.md`
 
-- Contains all user-stated requirements, acceptance criteria, constraints, and out-of-scope items.
+- Contains all feature-level user-stated and safely projected requirements, acceptance criteria, constraints, and out-of-scope items.
 - Omits invented product behavior, architecture, non-functional requirements, or success criteria.
 - Contains no raw secrets, credentials, tokens, PII, or proprietary sensitive values.
-- Contains no implementation details, code snippets, pseudo-code, line numbers, task breakdowns, or implementation sequencing.
-- Conceptualize Inputs contains only the selected Conceptualize Index path and path-only non-normative wording.
+- Contains no implementation code, pseudo-code, line numbers, proof rows, review findings, or transcript/debate content.
+- `Conceptualize Inputs` contains only the selected Index path and path-only non-normative wording.
+- `Authoritative Slices` lists the same full safe Slice inventory as `tasks.json.authoritative_slices`.
+- `Work Packages` is a manifest of package Markdown paths and short titles only.
 - Code References are verified path-only references or `None identified`.
-- Architecture rationale and design decisions are absent unless the user explicitly made them product requirements.
-- Stable `REQ-*` and `AC-*` IDs are present where needed for traceability.
+- Approved deferrals/out-of-scope decisions for otherwise material Slice obligations include durable approval provenance and scope.
 
-### tasks.json Content
+### Work-Package Markdown
 
-- New plans use schema version 3 with top-level `conceptualize`, `design_decisions`, `context_bundles`, `work_packages`, and `phases` present. Legacy schema version 2 remains compatibility-only for existing plans.
-- Accepted preflight, spike, and planner decisions that affect implementation or verification are persisted as concise `design_decisions`.
-- Any execution constraints or replan triggers are feature-specific, encoded in existing schema fields, and absent when not materially needed.
-- No Preflight Brief, reviewer debate, discarded comments, or raw spike notes are persisted.
-- For schema version 3, top-level `conceptualize.index` points to the selected Conceptualize Index, top-level `conceptualize.slice_coverage` records full-workspace coverage or `zero_slices`, and every work package has `conceptualize_slices` as an array of Slice objects with `path` and optional `focus`.
-- Conceptualize Slices assigned to packages are read lists only; all hard Slice requirements and material commitments are projected into SPEC requirements, task acceptance criteria, design decisions, or context bundles and cited from `projected` coverage entries.
-- The full-workspace coverage matrix remains separate from package-specific `conceptualize_slices`; empty package assignments do not prove zero-Slice workspace coverage.
-- No unnecessary verbatim duplication of SPEC sections; tasks trace to SPEC IDs and add task-level verification detail.
-- Every task has at least one acceptance criterion object with stable ID, observable criterion, non-empty typed `source_refs`, and a useful verification hint when proof is non-obvious.
-- Every SPEC `REQ-*` and `AC-*` is covered by at least one task acceptance criterion.
-- Every task passes the independence test: a reviewer can verify its acceptance criteria without seeing another task.
-- Every task description states intent plus constraints, not a code tutorial.
-- Dependencies are acyclic and point only to valid task IDs.
-- Phase order and task IDs are coherent.
-- Context bundle references point to valid bundles, and bundle `required_for` fields mention the packages or tasks that need them.
+- Every package has `.tasks/<feature-name>/packages/<WP-ID>.md` before implementation dispatch.
+- H1 matches `# Work Package: <WP-ID> — <title>`.
+- Required sections exist and are non-empty: `Scope`, `Assigned Slices`, `Primary Paths`, `Verification Expectations`, `Proof`, and `Dependencies`.
+- `Assigned Slices` uses safe Slice paths from the authoritative inventory.
+- `Must satisfy` IDs are stable H3 Shared Understanding IDs that the package must close with proof evidence.
+- `Context only` IDs are required reading/context and are not used to hide package obligations that need closure evidence.
+- Every assigned ID exists as a H3 under `## Shared Understanding` in the referenced Slice.
+- `Primary Paths` are safe repo-relative starting points, not unrelated or absolute paths.
+- `Verification Expectations` are package-specific and cover relevant edge/failure/default/security/privacy/data/concurrency/performance/lifecycle cases or state why not applicable.
+- `Proof` declares exactly one `.tasks/<feature-name>/proofs/<WP-ID>.proof.md` path.
+- `Dependencies` matches the registry package `depends_on` entry.
+- Approved deferrals, non-goals, or risk/replan triggers are in `Notes` or `SPEC.md`, not hidden in registry status.
 
-### Work Packages
+### `tasks.json` Registry
 
-Use `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/work-packages.md` for source-of-truth semantics.
+- Uses `schema_version: 4`.
+- Includes `feature`, `spec_path`, non-empty `authoritative_slices`, and non-empty `work_packages`.
+- `authoritative_slices` is the full safe Slice inventory.
+- Each package entry contains only `id`, `path`, `proof_path`, `status`, and `depends_on`.
+- Package IDs and dependencies are acyclic and coherent.
+- Registry `proof_path` and dependencies match package Markdown.
+- No package scope, Slice H3 assignments, primary paths, verification expectations, proof evidence, review receipts, lifecycle ledgers, rich task acceptance matrices, or copied Slice prose are duplicated in the registry.
 
-- Every task appears in exactly one work package.
-- Package IDs are coherent and sequential.
-- Every package task reference points to a valid task.
-- `depends_on` and `parallel_safe_with` point to valid package IDs.
-- `parallel_safe_with` is symmetric and conservative based on likely file/module/contract impact.
-- The plan includes an explicit safe-parallelism pass: substantial packages that can proceed together without dependency, file, subsystem, or shared-contract overlap are marked as a safe useful wave rather than serialized by habit.
-- Any substantial, independent, non-overlapping packages left serialized have a concrete dependency, file-impact, shared-contract, or subsystem-safety reason.
-- Artificial parallelism is absent: packages are not split merely to maximize sub-agent count, and ambiguous overlap/shared files/shared contracts/unsafe subsystem impact are combined or serialized.
-- A package does not list itself as dependent or parallel-safe.
-- Package dependencies do not contradict task dependencies.
-- One-task work packages have a rationale explaining why the task is substantial, risky, or naturally isolated.
-- `primary_paths` are filled when relevant paths are known.
-- `verification_commands` are scoped, known-safe commands or `[]`; do not invent commands.
-- Feature-specific Development Quality Contract risks are encoded as observable task criteria, verification commands, package boundaries, context bundles, or design decisions. Generic quality rules are not copied into every task.
-- `risk_tags` and `targeted_review_required` follow `validate-tasks-json.py` and `work-packages.md`; do not rely on a copied taxonomy.
-- `conceptualize_slices` is present on every package and uses `[]` when no Slice is relevant.
+### Package Boundaries
 
-## Write and Machine Validate
+- Every material Slice obligation has an owning package, approved deferral/out-of-scope entry, or explicit context-only rationale.
+- Packages are coherent by subsystem, directory, API surface, data model, user flow, or shared verification surface.
+- Overlapping files/shared contracts/schema/configuration surfaces are combined or serialized.
+- Independent substantial packages are not serialized by habit; ambiguous overlap is conservatively serialized with a reason.
+- Artificial parallelism is absent.
+- Package-specific Development Quality Contract risks are encoded as observable scope/verification expectations, not generic boilerplate.
+
+## Write and Mechanical Validation
 
 After pre-write validation passes:
 
 ```bash
-python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/validate-tasks-json.py" ".tasks/<feature-name>/tasks.json"
+python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-plan ".tasks/<feature-name>/tasks.json"
 ```
 
-If the validator exits non-zero, fix `tasks.json` and rerun the same command until it passes. Do not present a plan summary with invalid JSON or validator failures.
+If the helper exits non-zero, fix `SPEC.md`, package Markdown, or `tasks.json` and rerun until it passes. Do not present a plan summary with invalid artifacts.
+
+If the user approved immediate implementation dispatch, create proof placeholders for each package before dispatch:
+
+```bash
+python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" create-proof ".tasks/<feature-name>/tasks.json" --package <WP-ID>
+```
+
+Screen overwrite behavior: do not use `--force` unless the existing proof is an empty pre-dispatch placeholder or an explicit approved replacement with preservation safeguards is required.
 
 ## Post-Write Checklist
 
-After the validator passes:
+After `validate-plan` passes:
 
 - Re-open the written files, not drafts in memory.
-- Confirm `SPEC.md` still satisfies the source and purity rules, including path-only non-normative Conceptualize Inputs.
-- Confirm `tasks.json` still matches the intended plan after any validator-driven corrections.
-- Confirm all SPEC `REQ-*` and `AC-*` IDs are traced by task acceptance criteria.
-- Confirm work-package grouping still reflects the plan after any edits: coherent packages, preferred safe useful parallel waves, conservative serialization for ambiguity or shared contracts, safe commands, and correct targeted-review metadata.
-- Confirm no machine-owned long taxonomy was copied into the plan or references when a pointer to `validate-tasks-json.py` or `work-packages.md` is the correct source.
-- Confirm Conceptualize semantic checks were not delegated to the validator beyond deterministic shape.
-- Confirm Conceptualize semantic checks still match `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/conceptualize-slice-authority.md`: full Slice coverage or explicit zero-Slice state, valid projected refs/approval metadata where required, no unresolved conflicts, and no `informational` entry hiding a hard requirement.
-- Confirm the summary to the user lists feature path, phase-by-phase tasks, dependencies, and assumptions without adding new requirements.
+- Confirm `SPEC.md` still satisfies source and purity rules.
+- Confirm `tasks.json` is a lightweight v4 registry and contains no rich package/proof/assignment evidence.
+- Confirm every package Markdown file still owns package scope, Slice assignments, primary paths, verification expectations, dependencies, and proof path.
+- Confirm full Slice inventory in `SPEC.md` and `tasks.json` still matches the selected workspace.
+- Confirm every package-assigned H3 ID exists and every material H3 obligation is covered, context-only with reason, or explicitly approved as deferred/out-of-scope/rejected.
+- Confirm Conceptualize semantic checks were not delegated to `sliceproof.py` beyond deterministic path/H3 validation.
+- Confirm no legacy JSON proof lifecycle command or rich-registry instruction was used for v4 artifacts.
+- Confirm the summary to the user lists feature path, package paths, proof paths, dependencies, authoritative Slices, assumptions, and any approved deferrals without adding new requirements.
