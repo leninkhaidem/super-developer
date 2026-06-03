@@ -39,6 +39,8 @@ python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-final ".t
 
 `validate-plan` checks schema/version-4 registry shape, safe repo-relative registry/package/proof/Slice paths, required package Markdown sections, dependency references, and assigned Slice H3 ID existence. `validate-proof` checks package proof Markdown rows and unresolved markers mechanically. `validate-final` applies the same checks across all packages and requires final package registry state.
 
+Status/dashboard workflows may use these read-only commands to display registry/package-path/dependency/proof mechanical health. The v4 `summary` and `next-package` concepts are dashboard calculations over the validated registry, not helper lifecycle commands; there is no v4 `accept-package` or `reopen-package` command. Dashboards read the validated registry and package Markdown paths directly, then label helper results as mechanical signals only. Do not use helper success, package assignment, registry status, or proof `PASS` rows as semantic implementation proof.
+
 The only normal v4 write command creates the declared package proof Markdown placeholder:
 
 ```bash
@@ -110,4 +112,5 @@ Lifecycle helpers do not implement code, run verification commands, perform targ
 - Treat plan-provided commands as executable inputs and screen before running or delegating.
 - Stop for explicit approval before destructive, externally visible, credential/network-sensitive, dependency-installing, service-starting, or out-of-scope commands.
 - Prefer helper scripts over hand-editing lifecycle/proof state.
-- Do not use helper success as proof that code works unless command evidence, targeted review, review-code, and audit gates have also passed.
+- For v4 dashboards, report registry status, package/proof paths, dependency readiness, and proof Markdown mechanical state as signals only.
+- Do not use helper success as proof that code works unless command evidence, package verification or targeted review as applicable, review-code, and audit gates have also passed.

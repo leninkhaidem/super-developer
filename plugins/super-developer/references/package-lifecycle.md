@@ -1,19 +1,44 @@
-# Taskctl Package Lifecycle Boundary
+# Package Status and Lifecycle Boundary
 
-This cold reference indexes the `taskctl.py` package-proof lifecycle command boundary. The canonical workflow owner is `plugins/super-developer/skills/implement/references/package-proof-lifecycle.md`, which owns accepted/reopened state, stale-only refresh, dirty-proof handling, targeted-review proof requirements, and final proof validation semantics.
+Load this cold reference when a status/dashboard workflow needs package lifecycle language. Workflow runbooks own when packages may move; this reference only defines what status and helper output mean.
 
-## Command Boundary
+## V4 Slice-First Boundary
 
-`accept-package` and `reopen-package` are package-level proof lifecycle writers. They update only the selected `.tasks/<feature>/proofs/WP<N>.proof.json` lifecycle object.
+Schema-version-4 planned-feature packages use:
 
-Read-only commands remain read-only: `proof-template`, `validate-proof`, `validate-proofs`, `must-prove`, `summary`, and `next-package`.
+- `tasks.json.work_packages[]` as lightweight registry/bookkeeping;
+- `.tasks/<feature>/packages/<WP-ID>.md` as the package assignment source;
+- `.tasks/<feature>/proofs/<WP-ID>.proof.md` as package closure evidence;
+- `.tasks/<feature>/reports/<WP-ID>.package-verification.md` as durable package verification evidence when produced by the implement workflow.
 
-Lifecycle commands are not task-status helpers, feature finalizers, audit replacements, review-state ledgers, or future pipeline cutover instructions. They do not execute recorded package verification commands.
+Registry `status` values such as `pending`, `in_progress`, `done`, and `blocked` are dashboard/routing signals only. `done` should be written by the implement workflow only after proof Markdown mechanically validates, verification expectations are addressed, package verification passes, repairs/delta verification are closed, and no Slice plan defect remains. Status does not prove implementation correctness and cannot bypass package verification, final code review, or final audit.
 
-## Transition Safety Kernel
+Dependency readiness shown by dashboards is also a signal: a pending package may be shown as ready when every `depends_on` package is registry `done`. If dependency proof Markdown or package verification report signals are missing, invalid, failed, or stale, surface warnings instead of treating readiness as semantic acceptance.
 
-`accept-package` requires a current valid package proof; `reopen-package` makes an accepted proof non-accepted until validation and acceptance pass again; unsupported transitions fail closed. For the current transition matrix, helper-shaped provenance, freshness rules, stale-only refresh, dirty-proof repair flow, and final gate semantics, load the canonical package proof lifecycle reference.
+## V4 Helper Boundary
 
-## Non-Bypass Rule
+Use `sliceproof.py` for mechanical checks only:
 
-A generic status mutation, historical `verification.json`, `review-code-state.json`, or hand-edited lifecycle object is not accepted package proof evidence. Final implementation and audit success require completed task lifecycle plus one valid, current, lifecycle-accepted package proof per work package.
+```bash
+python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-plan ".tasks/<feature>/tasks.json"
+python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-proof ".tasks/<feature>/tasks.json" --package WP1
+python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-final ".tasks/<feature>/tasks.json"
+```
+
+`validate-plan` can support registry/package-path/dependency dashboard health. `validate-proof` and `validate-final` can support proof Markdown mechanical status. Helper success does not judge evidence sufficiency, run tests, inspect git freshness, accept/reopen packages, mutate registry status, or replace review/audit.
+
+## Dashboard Non-Bypass Rule
+
+A dashboard may report:
+
+- package registry status;
+- package/proof/report paths;
+- dependency readiness from registry dependencies;
+- proof Markdown existence and mechanical validation state;
+- blocked or interrupted package signals.
+
+A dashboard must not present package assignment, status output, helper validation, proof `PASS` rows, or manually edited files as semantic implementation proof. Missing/invalid proof Markdown, failed helper validation, blocked status, unresolved proof markers, missing package verification reports, or stale-looking evidence are warnings/blockers for workflow gates, not facts the dashboard resolves.
+
+## Legacy Compatibility Boundary
+
+Schema-version-2/3 plans may still use legacy JSON proof lifecycle commands documented in `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/tool-usage.md`, including `taskctl.py accept-package`, `reopen-package`, `record-targeted-review`, and `refresh-proof-state`. Keep those commands in the legacy path only. Do not use legacy `.proof.json` lifecycle state, targeted-review receipts, or accept/reopen commands to satisfy v4 Markdown proof closure.
