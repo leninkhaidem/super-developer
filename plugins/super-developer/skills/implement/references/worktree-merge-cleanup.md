@@ -23,7 +23,7 @@ Use the worktree naming contract:
 
 - Root worktree is user-owned: never switch it or assume `main`/`<target-ref>`.
 - Package agents stay in assigned package worktrees; the orchestrator owns worktree/branch creation and merges.
-- Merge each package branch at most once, after report, `SELF_REVIEW`, proof Markdown, and Slice plan-defect prechecks pass.
+- Merge each package branch at most once, after `SELF_REVIEW`, proof Markdown validation, package verification PASS/report creation, and Slice plan-defect prechecks pass.
 - Before package worktree/branch removal, load `cleanup-safety.md` and pass its `git merge-base --is-ancestor` gate.
 - Feature push is allowed only when the exact `origin feature/<feature>` action was listed in the approved implement Execution Contract; otherwise stop for approval.
 - Never merge into or push `<target-ref>`/`main` without explicit approval for that exact target.
@@ -46,9 +46,10 @@ Before merging a package branch into `.worktrees/<feature>/merge`:
 
 1. Validate package agent report, required `SELF_REVIEW`, proof Markdown rows, verification commands/inspections, and Slice authority assessment via `integration-checkpoint.md`.
 2. Run `sliceproof.py validate-proof` for the package when using v4 proof Markdown; for legacy proof JSON, use the compatibility validation path from `tool-usage.md`.
-3. Confirm ignored `.tasks` proof/report artifacts were not force-added or committed; hand proofs and reports through the task store, not package branch merges.
-4. Merge one package branch using `feature-package-workflow.md`.
-5. Return to `integration-checkpoint.md` for stable integration checks, holistic package verification, durable report creation, repair routing, and package-completion gates.
+3. Run or confirm holistic package verification PASS and durable report creation before accepting the package for integration.
+4. Confirm ignored `.tasks` proof/report artifacts were not force-added or committed; hand proofs and reports through the task store, not package branch merges.
+5. Merge one package branch using `feature-package-workflow.md`.
+6. Return to `integration-checkpoint.md` for post-merge freshness checks, repair routing, and package-completion gates. If merge resolution changes package evidence, rerun affected proof validation/package verification before marking the package done.
 
 Do not mark a package done merely because the package branch merged.
 

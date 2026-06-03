@@ -83,8 +83,8 @@ Pipeline:
 1. package implementation + sub-agent self-verification and mandatory SELF_REVIEW
 2. filled proof Markdown for every assigned `must_satisfy` Slice H3 ID
 3. `sliceproof.py validate-proof` mechanical proof check
-4. package branch merge into the feature integration worktree
-5. holistic package verification with durable PASS/FAIL report before package completion
+4. holistic package verification with durable PASS/FAIL report before package completion/integration acceptance
+5. package branch merge into the feature integration worktree after package verification passes, with report freshness checked after merge
 6. delegated repairs with proof refresh and focused package re-verification when required
 7. final review-code and final audit after all packages are verified and integrated
 
@@ -170,11 +170,11 @@ After all package agents in the current batch return:
 1. Validate reports for required `SELF_REVIEW`, targeted verification evidence, proof Markdown updates, and Slice authority/plan-defect assessment.
 2. Run `sliceproof.py validate-proof .tasks/<feature>/tasks.json --package <WP-ID>` for every returned package before treating proof closure as mechanically complete.
 3. Reject package handoff if proof Markdown is missing required rows, has unresolved `TODO`/`OPEN`/`GAP`, lacks implementation or verification evidence for any `must_satisfy` row, has unapproved `DEFERRED`/`N/A`, or reports an unresolved Slice plan defect.
-4. Merge each completed package branch once into `.worktrees/<feature>/merge` only after pre-merge evidence has no unresolved blocker.
-5. Confirm ignored `.tasks` proof/report artifacts were not force-added or committed; hand them through the shared task store, not package branch merges.
-6. Run integration/package verification expectations from the stable integration worktree when safe.
-7. Run the holistic package verifier and write a durable `.tasks/<feature>/reports/<WP-ID>.package-verification.md` PASS/FAIL report before marking the package complete or unlocking dependents.
-8. Delegate fresh repair/verification agents for failed proof validation, failed package verification, or confirmed findings; do not fix inline.
+4. Run integration/package verification expectations from the package or stable integration worktree when safe.
+5. Run the holistic package verifier and write a durable `.tasks/<feature>/reports/<WP-ID>.package-verification.md` PASS/FAIL report before package completion or integration acceptance.
+6. Merge each verified package branch once into `.worktrees/<feature>/merge`; if merge resolution or integration state changes package evidence, rerun affected proof validation and package verification before completion.
+7. Confirm ignored `.tasks` proof/report artifacts were not force-added or committed; hand them through the shared task store, not package branch merges.
+8. Delegate fresh repair/verification agents for failed proof validation, failed package verification, stale post-merge reports, or confirmed findings; do not fix inline.
 
 Load `plugins/super-developer/skills/implement/references/integration-checkpoint.md` for checkpoint order, package verifier routing, rejection rules, and repair packets. Load `plugins/super-developer/skills/implement/references/package-proof-lifecycle.md` for proof Markdown creation/validation/refresh runbooks.
 
