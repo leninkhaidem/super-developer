@@ -655,12 +655,18 @@ def split_h2_sections(text: str) -> dict[str, str]:
 def extract_slice_h3_titles(path: Path) -> dict[str, str]:
     titles: dict[str, str] = {}
     in_fence = False
+    in_shared_understanding = False
     for raw_line in path.read_text(encoding="utf-8").splitlines():
         line = raw_line.strip()
         if is_fence(line):
             in_fence = not in_fence
             continue
         if in_fence:
+            continue
+        if raw_line.startswith("## ") and not raw_line.startswith("### "):
+            in_shared_understanding = raw_line[3:].strip().lower() == "shared understanding"
+            continue
+        if not in_shared_understanding:
             continue
         match = H3_ID_RE.match(raw_line)
         if match:

@@ -74,6 +74,8 @@ class SliceproofFixture:
             """
             # Slice: Helper Behavior
 
+            ### HELPER-OUTSIDE-998 — non-shared-understanding headings are ignored
+
             ## Shared Understanding
             ```md
             ### HELPER-CODE-999 — fenced code headings are examples only
@@ -185,33 +187,34 @@ class SliceproofTests(unittest.TestCase):
 
         unsafe_plan = self.fixture.plan()
         unsafe_plan["work_packages"][0]["path"] = "../escape.md"
-        cases.append(("unsafe path", lambda: self.fixture.write_plan(unsafe_plan), "path must not contain"))
+        cases.append(("unsafe path", lambda fixture: fixture.write_plan(unsafe_plan), "path must not contain"))
 
         missing_section_text = self.fixture.package_text(missing_section="Proof")
-        cases.append(("missing package section", lambda: self.fixture.package_path.write_text(missing_section_text, encoding="utf-8"), "missing required section ## Proof"))
+        cases.append(("missing package section", lambda fixture: fixture.package_path.write_text(missing_section_text, encoding="utf-8"), "missing required section ## Proof"))
 
         unknown_dependency = self.fixture.plan()
         unknown_dependency["work_packages"][0]["depends_on"] = ["WP9"]
-        cases.append(("unknown dependency", lambda: self.fixture.write_plan(unknown_dependency), "unknown package id WP9"))
+        cases.append(("unknown dependency", lambda fixture: fixture.write_plan(unknown_dependency), "unknown package id WP9"))
 
         missing_h3 = self.fixture.package_text(must_id="HELPER-MISSING-404")
-        cases.append(("missing H3", lambda: self.fixture.package_path.write_text(missing_h3, encoding="utf-8"), "not found as H3"))
+        cases.append(("missing H3", lambda fixture: fixture.package_path.write_text(missing_h3, encoding="utf-8"), "not found as H3"))
 
         fenced_h3 = self.fixture.package_text(must_id="HELPER-CODE-999")
-        cases.append(("fenced H3 ignored", lambda: self.fixture.package_path.write_text(fenced_h3, encoding="utf-8"), "not found as H3"))
+        cases.append(("fenced H3 ignored", lambda fixture: fixture.package_path.write_text(fenced_h3, encoding="utf-8"), "not found as H3"))
+
+        outside_shared_h3 = self.fixture.package_text(must_id="HELPER-OUTSIDE-998")
+        cases.append(("outside Shared Understanding H3 ignored", lambda fixture: fixture.package_path.write_text(outside_shared_h3, encoding="utf-8"), "not found as H3"))
 
         for name, mutate, expected_error in cases:
             with self.subTest(name=name):
-                fresh = SliceproofFixture()
+                fixture = SliceproofFixture()
                 try:
-                    self.fixture.cleanup()
-                    self.fixture = fresh
-                    mutate()
-                    result = self.fixture.run("validate-plan", str(self.fixture.tasks_path))
+                    mutate(fixture)
+                    result = fixture.run("validate-plan", str(fixture.tasks_path))
                     self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
                     self.assertIn(expected_error, "\n".join(json.loads(result.stderr)["errors"]))
                 finally:
-                    pass
+                    fixture.cleanup()
 
     def test_create_proof_generates_placeholder_from_package_markdown(self) -> None:
         result = self.fixture.run("create-proof", str(self.fixture.tasks_path), "--package", "WP1")
