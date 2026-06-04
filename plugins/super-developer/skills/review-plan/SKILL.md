@@ -33,7 +33,7 @@ Do not execute semantic review as the main agent. Spawn sub-agents for reviewer 
    - Always read `${SUPER_DEVELOPER_PLUGIN_ROOT}/skills/review-plan/references/plan-review-findings.md` — reviewer output grammar and finding format rules.
    - Always read `${SUPER_DEVELOPER_PLUGIN_ROOT}/skills/review-plan/references/plan-review-rubrics.md` — reviewer rubrics, escalation guidance, and design-decision challenge rules.
    - Always read `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/tool-usage.md` — helper-script command shape, validator boundaries, and command-safety rules.
-   - In Slice-first mode, read `${SUPER_DEVELOPER_PLUGIN_ROOT}/skills/implementation-plan/references/schema-reference.md` for the compact v4 artifact map and `${SUPER_DEVELOPER_PLUGIN_ROOT}/skills/review-plan/references/plan-review-rubrics.md`; that reference routes detailed authority/path/projection/control-plane rules to `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/conceptualize-slice-authority.md`.
+   - In Slice-first mode, read `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/slice-first-artifacts.md` for the artifact map and `${SUPER_DEVELOPER_PLUGIN_ROOT}/skills/review-plan/references/plan-review-rubrics.md`; that reference routes detailed authority/path/projection/control-plane rules to `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/conceptualize-slice-authority.md`.
    - In legacy mode, read `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/work-packages.md` and read `${SUPER_DEVELOPER_PLUGIN_ROOT}/skills/review-plan/references/plan-review-rubrics.md` only when `tasks.json` contains top-level `conceptualize` metadata or package `conceptualize_slices`.
 4. Do not load `${SUPER_DEVELOPER_PLUGIN_ROOT}/skills/review-plan/references/plan-review-resolution.md` or `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/decision-prompts.md` here; load them in Step 7 only after reviewer findings create resolution or decision-card work.
 5. If `.tasks/$ARGUMENTS/tasks.json` contains `design_decisions`, load them as accepted planning context. Reviewers may challenge accepted decisions only under the high-bar reopening rule in `plan-review-rubrics.md`: conflict with SPEC, security/privacy/safety issue, codebase evidence contradicts rationale, or accepted decision makes acceptance criteria or Slice obligations unverifiable. Simpler alternatives alone are suggestions, not reopeners.
@@ -137,7 +137,7 @@ Common reviewer inputs:
 Slice-first v4 reviewer inputs also include:
 - Every work-package Markdown path referenced by `tasks.json.work_packages`.
 - Every authoritative Slice path listed in `tasks.json.authoritative_slices`, plus any additional Slice path safely referenced by `SPEC.md` or package Markdown.
-- `${SUPER_DEVELOPER_PLUGIN_ROOT}/skills/implementation-plan/references/schema-reference.md` for v4 artifact shape.
+- `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/slice-first-artifacts.md` for artifact shape.
 - `${SUPER_DEVELOPER_PLUGIN_ROOT}/skills/review-plan/references/plan-review-rubrics.md` and, when needed, `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/conceptualize-slice-authority.md` for two-plane Slice authority, path confinement, H3 projection, approval, conflict, and control-plane boundaries.
 
 Legacy reviewer inputs also include:
