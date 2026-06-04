@@ -52,9 +52,7 @@ Capture reviewed-state metadata before returning to the shared review pipeline:
 - PR state is `MERGED` or `CLOSED` → halt. Report to user.
 - Branch has merge conflicts → halt. Report conflict details.
 
-After setup, return to SKILL.md for the shared review pipeline (Steps 2-3).
-
-_(Phases 2-3 are shared pipeline steps defined in SKILL.md — return there now.)_
+After setup, return to `../SKILL.md` to load the shared review engine and finding contract.
 
 ---
 

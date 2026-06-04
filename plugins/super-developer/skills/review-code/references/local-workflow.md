@@ -82,9 +82,7 @@ git log --oneline -10
 - Not inside a Git repository → halt. Report to user.
 - Diff is empty → halt. Report "nothing to review."
 
-After setup, return to SKILL.md for the shared review pipeline (Steps 2-3).
-
-_(Phases 2-3 are shared pipeline steps defined in SKILL.md — return there now.)_
+After setup, return to `../SKILL.md` to load the shared review engine and finding contract.
 
 ---
 

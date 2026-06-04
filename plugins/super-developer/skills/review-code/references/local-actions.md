@@ -1,124 +1,83 @@
 # Local Gated Actions
 
-Load this reference only after local scope detection/setup/review/report is complete and the user has
-reached the gated action phase. It owns local fix, verification, commit, details, and abort behavior.
-Shared discovery review output may recommend fixes, but local code mutation starts only after an
-explicit `fix` action or an existing blanket-mode authorization under this reference; pipeline
-auto-resolve authority does not leak into ordinary local mode.
+Load only after local setup/review/report is complete and the user reaches the gated action phase. This reference owns local fix, verification, commit, details, and abort behavior.
 
-## Phase 5 — Gated Actions
+Local mode is ordinary code review. It does not impose planned-feature Slice/proof/report/audit obligations and does not refresh planned-feature package evidence. If the user wants governed planned-feature fix/proof/report handling, switch to pipeline mode.
 
-Only proceed when the user responds with one of these keywords:
+## Actions
+
+Only proceed when the user responds with one keyword:
 
 | Keyword | Action |
 |---|---|
-| `fix` | Delegate fixes for confirmed 🔴 and 🟠 findings to a Fix Implementer, then require delegated Fix Verification Review before any post-fix commit or readiness action (Workflow A below). |
-| `commit` | Stage and commit the reviewed state as-is — only if no 🔴 BLOCKERS and state revalidation passes (Workflow B below). |
-| `details <N>` | Expand finding N with developer-facing context, code snippet, evidence, and recommended fix. Do not expose internal coverage rows, raw tags, dedupe/tracking keys, lifecycle fields, or state/fix metadata unless the user explicitly asks for diagnostics. Return to Phase 5. |
-| `abort` | No action. Close session cleanly. |
+| `fix` | Delegate confirmed 🔴/🟠 fixes, then run Fix Verification Review. |
+| `commit` | Stage/commit reviewed state as-is only when no 🔴/🟠 issues remain and state revalidation passes. |
+| `details <N>` | Expand finding N without mutating state. |
+| `abort` | No action. |
 
-> Any response other than these keywords → clarification prompt.
-> **Never interpret ambiguity, silence, or partial confirmation as approval.**
+Any other response requires clarification. Never treat ambiguity, silence, or partial confirmation as approval.
 
 ## Local State Gate
 
-Before mutating files, applying fixes, staging, creating commits, or reporting post-fix readiness, revalidate the immutable reviewed state captured in `local-workflow.md` Phase 0:
+Before mutating files, staging, committing, or reporting post-fix readiness, revalidate metadata captured in `local-workflow.md`:
 
-- The current branch and `HEAD` SHA still match, unless the only new commits are the approved local fix commits from this flow.
-- The reviewed file list and reviewed diff checksum still match for unchanged findings.
-- Staged content still matches when `SCOPE="staged"`.
-- No new unreviewed files or broadened diff scope appeared.
-- The base ref and base SHA still match for branch-diff reviews.
+- current branch and `HEAD` SHA still match, except approved local fix commits from this flow;
+- reviewed file list and diff checksum still match unchanged findings;
+- staged content still matches when `SCOPE="staged"`;
+- no new unreviewed files or broadened diff appeared;
+- base ref/SHA still match for branch-diff reviews.
 
-If state is stale or broadened, reject the action and instruct the user to rerun review. Do not partially apply fixes or create a commit against a state that was not reviewed.
-
----
+Reject stale or broadened state and instruct the user to rerun review.
 
 ## Workflow A — `fix`
 
-Triggered when user responds `fix`.
+Use two delegated roles:
 
-Local fixing has two separate delegated roles:
+- Fix Implementer: applies bounded fixes for confirmed findings.
+- Fix Verification Reviewer: uses `fix-verification.md` to verify closure and serious-regression sniff.
 
-- **Fix Implementer:** applies bounded fixes for confirmed findings.
-- **Fix Verification Reviewer:** uses the shared closure contract in `fix-verification.md` to verify the resulting fix delta and affected surfaces.
-
-The main agent does not implement local review-finding fixes that change code behavior, public surface, tests, documentation structure, or substantive content. Delegate those changes to the Fix Implementer. The main agent may apply only super-simple mechanical typo or formatting fixes inline; report every inline exception explicitly, including why it was mechanical and behavior-preserving.
-
-### Fix Implementer Input
+The main agent does not implement substantive code, test, or documentation fixes inline. It may apply only trivial mechanical typo/formatting fixes and must report why they were behavior-preserving.
 
 Pass the Fix Implementer:
 
-- Confirmed 🔴 and 🟠 findings, including dedupe keys, Skeptic verdicts, evidence, and recommendations
-- Reviewed-state metadata from `local-workflow.md` Phase 0
-- Target paths and exact scope boundaries
-- User constraints, repository constraints, and mode constraints
-- Instruction to avoid unrelated cleanup, opportunistic refactors, broad rewrites, or touching files outside the target paths unless required to close a confirmed finding
-- Any decision-card outcomes from the Design-Decision Filter
-- For planned-feature contexts, available `SPEC.md`, `tasks.json`, package proofs, and relevant context bundles
+- confirmed 🔴/🟠 findings with dedupe keys, Skeptic verdicts, evidence, and recommendations;
+- reviewed-state metadata;
+- target paths and exact local scope;
+- user/repository/mode constraints;
+- any approved user-decision card outcomes;
+- instruction to avoid unrelated cleanup, broad rewrites, or touching files outside target paths unless required to close the finding.
 
-The Fix Implementer returns the fix delta, files changed, findings attempted, findings intentionally left unresolved, and any scope-expansion request. A scope-expansion request must identify the exact trigger and why the original scope cannot close the finding.
+The Fix Implementer must reproduce or locate each finding, state the bug class/equivalence class, add or adjust targeted regression evidence where applicable, run targeted checks, and report unresolved blockers.
 
-The Fix Implementer must reproduce or locate each finding, state the bug-class/equivalence class for every 🔴/🟠 finding, add or adjust regression/table-driven coverage where applicable, run targeted checks, and update the affected package proof when a planned-feature criterion or proof entry is affected. Do not patch only the exact reported example when the finding represents a class of inputs or states.
+After fixes, load `fix-verification.md`. Post-fix commit/readiness requires all assigned findings `closed`, regression sniff `pass`, no unresolved widening trigger, and a passing Local State Gate.
 
-### Local Fix Verification Review
-
-After fixes are applied, run delegated Fix Verification Review by default. Load `fix-verification.md` and pass the shared inputs: the fix delta plus necessary context, original confirmed findings and dedupe keys, reviewed-state metadata, current post-fix state metadata, approved local scope, and widening triggers raised by the Fix Implementer or detected by the main agent.
-
-The Fix Verification Reviewer must use `fix-verification.md` for canonical closure verdicts,
-serious-regression sniff, widening trigger names, non-discovery boundary, and non-closed routing.
-Local mode keeps only these gates: non-closed verdicts and serious fix regressions block post-fix
-commit/readiness, and widening beyond delegated delta review requires a concrete trigger named by
-`fix-verification.md`.
-
-Repeated local fix-verification expansion must stop instead of looping indefinitely. After one widened
-verification pass, if more scope expansion is still needed or no bounded verification seam remains,
-report the unresolved findings, the expansion trigger, and the exact unreviewed scope to the user. Do
-not keep widening recursively.
-
-Post-fix commit or readiness actions may proceed only when delegated Fix Verification Review passes,
-all assigned findings are `closed`, no new serious regressions are found, no unresolved widening
-trigger remains, and the Local State Gate still passes.
-
----
+After one widened verification pass, stop instead of widening recursively if more scope is still needed or no bounded seam remains. Report unresolved findings and exact unreviewed scope.
 
 ## Workflow B — `commit`
 
-Triggered when user responds `commit` **AND** no 🔴 BLOCKERS exist.
-
-Before staging or committing, run the Local State Gate. Reject stale or broadened state.
+Allowed only when no 🔴/🟠 issues remain. Run the Local State Gate immediately before staging or committing.
 
 ```bash
-# Only stage changes if scope was uncommitted or branch diff.
-# If SCOPE="staged", the staged area is already set — do NOT modify it.
+# Only stage files from the reviewed diff. Do not use git add -A.
 if [ "$SCOPE" != "staged" ]; then
-  # Stage ONLY the files that were included in the reviewed diff — never git add -A.
   $DIFF_CMD --name-only | xargs git add --
 fi
 
-# Commit with a summary
 git commit -m "<concise summary of changes>"
 ```
 
-> If 🔴 BLOCKERS exist and the user responds `commit`, **refuse** and report:
-> *"Blockers detected. Resolve before committing. Run the review again after fixing, or respond `fix` to attempt delegated fixes."*
-
----
+If serious issues exist, refuse and report: `Blockers detected. Resolve before committing. Run review again after fixing, or respond fix to attempt delegated fixes.`
 
 ## Workflow C — `details <N>`
 
-Expand finding N with developer-facing context, code snippet, evidence, Skeptic confirmation summary for serious findings, and recommended fix. Do not expose internal coverage rows, raw tags, dedupe/tracking keys, lifecycle fields, or state/fix metadata unless the user explicitly asks for diagnostics. Do not mutate files or state. Return to Phase 5 after presenting details.
-
----
+Expand finding N with developer-facing context, code snippet, evidence, Skeptic confirmation summary for serious findings, and recommendation. Do not expose internal coverage rows, raw tags, dedupe keys, or state/fix metadata unless the user explicitly asks for diagnostics. Do not mutate files or state.
 
 ## Workflow D — `abort`
 
-No action. Close session cleanly. Do not mutate files, staging area, commits, or review metadata.
+Close cleanly without mutating files, staging area, commits, proof/report files, or review metadata.
 
----
+## Blanket Mode
 
-## Blanket-mode override
+When the user has authorized blanket mode, unambiguous serious fixes may be delegated silently after the Local State Gate passes. Product/architecture choices still require a user-decision card through `decision-filter.md` and `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/decision-prompts.md`.
 
-When the user has authorized blanket mode (`proceed through all stages` or equivalent), per-finding fix confirmation is replaced by the Design-Decision Filter in `decision-filter.md`; decision cards are displayed using `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/decision-prompts.md`. All other eligible local fixes are delegated to the Fix Implementer silently.
-
-Blanket mode does not bypass the Code Reviewer's baseline security/privacy/safety sniff, Skeptic verification for serious findings, the Local State Gate, delegated Fix Verification Review, blocker commit refusal, or the requirement to stop and report repeated fix-verification scope expansion.
+Blanket mode does not bypass the baseline security/privacy/safety sniff, Skeptic verification, Local State Gate, delegated Fix Verification Review, blocker commit refusal, or repeated-widening stop.
