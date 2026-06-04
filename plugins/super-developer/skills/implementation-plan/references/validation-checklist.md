@@ -2,7 +2,7 @@
 
 Load immediately before writing `.tasks/<feature-name>/SPEC.md`, `tasks.json`, and package Markdown, then again after `sliceproof.py validate-plan` passes.
 
-Mechanical path, registry, package, proof, report, and H3 checks belong to `../../assets/sliceproof.py`. This checklist catches planner-quality issues the helper cannot judge.
+Mechanical path, registry, package, proof, report, and H3 checks belong to `${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py`. This checklist catches planner-quality issues the helper cannot judge.
 
 ## Pre-Write Gates
 

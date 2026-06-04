@@ -5,7 +5,7 @@ Load when a Conceptualize workspace, Index, or Slice set may inform a planned fe
 ## Contract
 
 - Use at most one selected `.planning/<concept-slug>/` workspace for a plan.
-- Load `../../references/conceptualize-slice-authority.md` for canonical path safety, full-inventory, H3 accounting, approval, conflict, and control-plane rules.
+- Load `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/conceptualize-slice-authority.md` for canonical path safety, full-inventory, H3 accounting, approval, conflict, and control-plane rules.
 - Index-only planning is valid when no Slice is independently useful. The plan must say no authoritative Slice inventory exists for the feature.
 - If any Slice exists in the selected workspace, planning must inventory every safe Markdown Slice in `slices/` and read each file in full before writing artifacts.
 - Do not create lifecycle/readiness state in the Conceptualize workspace.

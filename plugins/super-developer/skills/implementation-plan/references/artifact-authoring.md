@@ -4,7 +4,7 @@ Load when drafting `.tasks/<feature>/tasks.json` or `.tasks/<feature>/packages/<
 
 ## Contract
 
-- Load `../../references/slice-first-artifacts.md` for the canonical artifact model.
+- Load `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/slice-first-artifacts.md` for the canonical artifact model.
 - `tasks.json` is a lightweight registry: feature metadata, Slice inventory, package paths, proof paths, report paths, status signals, and dependencies only.
 - Package Markdown is the package assignment source of truth.
 - Proof Markdown is generated from package assignment before dispatch and filled by package agents.
