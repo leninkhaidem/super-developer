@@ -2,20 +2,25 @@
 
 Load when creating, validating, or consuming planned-feature artifacts.
 
+## Boundary
+
+This reference owns artifact roles and file shapes. Slice authority lives in `conceptualize-slice-authority.md`; package sizing lives in `work-packages.md`; completion and freshness live in `package-lifecycle.md`; command shapes live in `tool-usage.md`.
+
 ## Artifact Set
 
 Planned-feature state is file-based and Slice-first:
 
-- `SPEC.md` records the accepted requirements, constraints, non-goals, and package-level verification expectations.
-- `tasks.json` is a lightweight registry under `.tasks/<feature>/tasks.json`.
-- Package Markdown files under `.tasks/<feature>/packages/` own package assignment.
-- Proof Markdown files under `.tasks/<feature>/proofs/` own package closure evidence.
-- Package verification reports under `.tasks/<feature>/reports/` are independent verification receipts.
-- `review-code-state.json` is review-code governance readiness for audit handoff.
+- `.planning/<concept>/slices/*.md` — authoritative product/design Slices when present.
+- `.tasks/<feature>/SPEC.md` — accepted requirements, constraints, non-goals, Slice inventory, and package-level verification summary.
+- `.tasks/<feature>/tasks.json` — lightweight registry only.
+- `.tasks/<feature>/packages/<WP-ID>.md` — package assignment.
+- `.tasks/<feature>/proofs/<WP-ID>.proof.md` — package closure evidence.
+- `.tasks/<feature>/reports/<WP-ID>.package-verification.md` — independent package verification receipt.
+- `.tasks/<feature>/review-code-state.json` — review-code governance readiness for audit handoff.
 
 ## Lightweight Registry
 
-`tasks.json` is bookkeeping only. It contains no task bodies, proof evidence, review findings, lifecycle events, or package assignment prose.
+`tasks.json` is bookkeeping only. It contains no package scope prose, Slice assignment details, proof evidence, review findings, lifecycle history, command output, or rich task bodies.
 
 Required shape:
 
@@ -25,7 +30,7 @@ Required shape:
   "title": "Human title",
   "status": "planned",
   "spec_path": ".tasks/<feature>/SPEC.md",
-  "authoritative_slices": [".planning/<feature>/slices/example.md"],
+  "authoritative_slices": [".planning/<concept>/slices/example.md"],
   "work_packages": [
     {
       "id": "WP1",
@@ -41,16 +46,18 @@ Required shape:
 
 Rules:
 
-- `feature` is a lowercase slug.
-- `status` is a routing signal: `planned`, `reviewed`, `in_progress`, `completed`, `blocked`, or `on_hold`.
-- Package `status` is a routing signal: `pending`, `in_progress`, `done`, or `blocked`.
+- `feature` is a filesystem-safe slug.
+- feature `status` is one of `planned`, `reviewed`, `in_progress`, `completed`, `blocked`, or `on_hold`.
+- package `status` is one of `pending`, `in_progress`, `done`, or `blocked`.
 - `authoritative_slices` may be empty only for Index-only plans with no independent Slice obligations.
-- All paths are repo-relative POSIX paths and must stay inside the repository.
-- Package IDs are `WP<N>` and dependency IDs must reference declared packages.
+- all paths are repo-relative POSIX paths and must stay inside the repository;
+- package IDs are contiguous `WP<N>` values and dependencies reference declared packages.
 
 ## Package Markdown Assignment
 
-A package file is the assignment source. It must use:
+Package Markdown owns assignment and must be self-sufficient for a package agent reading files cold.
+
+Required sections:
 
 ```md
 # Work Package: WP1 — <title>
@@ -59,12 +66,12 @@ A package file is the assignment source. It must use:
 <owned behavior and boundaries>
 
 ## Assigned Slices
-### `.planning/<feature>/slices/example.md`
+### `.planning/<concept>/slices/example.md`
 Must satisfy:
 - `SLICE-001` — <summary>
 
 Context only:
-- `SLICE-002` — <summary>
+- `SLICE-002` — <summary and reason>
 
 ## Primary Paths
 - `plugins/...`
@@ -82,7 +89,7 @@ Context only:
 - None.
 ```
 
-`Must satisfy` Slice IDs require proof rows. `Context only` IDs must be read for package understanding but do not create proof rows.
+`Must satisfy` Slice IDs require proof rows. `Context only` IDs must be read and respected but do not create closure rows unless another package owns them.
 
 ## Proof Markdown Closure
 
@@ -99,17 +106,20 @@ A package proof file must contain:
 
 Closure tables use `PASS`, `DEFERRED`, or `N/A`. `OPEN` and `GAP` block closure. `DEFERRED`, `N/A`, or any non-empty gap/deviation text requires explicit approval, provenance, and scope. Missing rows, duplicate rows, placeholder evidence, unresolved markers, and unapproved gap text fail closed.
 
-## Package Verification Report Receipt
+## Package Verification Report
 
-A report file confirms independent package verification occurred after proof evidence was available. It must include:
+A report confirms independent package verification occurred after proof evidence was available and binds that verification to the current proof content.
+
+Required sections:
 
 ```md
 # Package Verification Report: WP1 — <title>
 
 ## State Binding
 - Package: `WP1`
+- Package Markdown: `.tasks/<feature>/packages/WP1.md`
 - Proof: `.tasks/<feature>/proofs/WP1.proof.md`
-- Proof Digest: `sha256:<proof markdown digest>`
+- Proof Digest: `sha256:<digest>`
 - Worktree: `<verified worktree path>`
 - Git Ref: `<branch or detached ref>`
 - Commit: `<commit>`
@@ -127,11 +137,11 @@ A report file confirms independent package verification occurred after proof evi
 - None.
 ```
 
-The proof digest binds the report to the proof content. If proof content changes after the report, package freshness is lost until a new report is produced.
+If proof content or reviewed implementation state changes after the report, freshness is lost until a new report is produced.
 
 ## Review-Code Governance State
 
-`review-code-state.json` is written by review-code after the planned-feature review/fix loop is audit-ready. It is governance state, not proof evidence.
+`review-code-state.json` is governance readiness, not proof evidence.
 
 Minimum durable fields:
 
@@ -148,4 +158,4 @@ Minimum durable fields:
 }
 ```
 
-Audit must fail closed when this state is missing, not `ready_for_audit`, not bound to the reviewed state, or reports unresolved serious findings.
+Audit fails closed when this state is missing, not `ready_for_audit`, not bound to the reviewed state, or reports unresolved serious findings.

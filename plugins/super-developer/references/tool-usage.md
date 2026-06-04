@@ -1,6 +1,6 @@
 # Tool Usage Reference
 
-Load before invoking planned-feature helper scripts. This reference defines command shapes and safety boundaries only; workflow runbooks decide when commands are required.
+Load before invoking planned-feature helper scripts or running package-provided verification commands.
 
 ## Command Safety
 
@@ -11,7 +11,7 @@ Load before invoking planned-feature helper scripts. This reference defines comm
 
 ## `sliceproof.py`
 
-`sliceproof.py` is the only planned-feature mechanical helper. Run it from the repository root or package worktree with explicit artifact paths.
+`sliceproof.py` is the planned-feature mechanical helper. Run it from the repository root or package worktree with explicit artifact paths.
 
 Read-only checks:
 
@@ -36,11 +36,11 @@ python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" create-proof ".tas
 - package dependency references and cycles;
 - package Markdown required sections;
 - package Markdown proof/report/dependency references;
-- assigned Slice H3 IDs in the Slice `Shared Understanding` section.
+- assigned Slice H3 IDs under `## Shared Understanding`.
 
-`create-proof` writes only the declared proof Markdown placeholder for one package. If the current proof is already the exact generated placeholder, the command is idempotent and leaves it unchanged. Existing filled, edited, or drifted proof content is never overwritten silently.
+`create-proof` writes only the declared proof Markdown placeholder for one package. Existing filled, edited, or drifted proof content is never overwritten silently.
 
-`validate-proof` checks one package proof Markdown mechanically:
+`validate-proof` checks one package proof mechanically:
 
 - required sections and closure tables;
 - required Slice rows and verification expectation rows;
@@ -48,7 +48,7 @@ python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" create-proof ".tas
 - explicit approval, provenance, and scope for deferrals, non-applicable rows, gaps, or deviations;
 - non-placeholder command/file/completion evidence.
 
-`validate-final` runs plan and proof checks for every package, requires every package to be `done`, and requires each package verification report to exist and bind to the current proof digest.
+`validate-final` runs plan and proof checks for every package, requires every package to be `done`, and requires each report to exist and bind to the current proof digest.
 
 The helper does not run tests, inspect implementation semantics, judge proof sufficiency, mutate registry status, write review-code readiness, perform package verification, or replace review/audit.
 

@@ -4,56 +4,142 @@ Load when implementing, repairing, reviewing, displaying, or auditing planned-fe
 
 ## Boundary
 
-This reference owns package completion semantics and freshness. Artifact shapes live in `slice-first-artifacts.md`; command shapes live in `tool-usage.md`; workflow runbooks decide when to act.
+This reference owns package completion, proof creation/refresh, verification reports, freshness, and non-bypass semantics. Artifact shapes live in `slice-first-artifacts.md`; package sizing lives in `work-packages.md`; command shapes live in `tool-usage.md`.
 
-## Package Status Signals
+## Status Signals
 
-Registry package status is a routing signal only:
+Registry package status is routing only:
 
 - `pending`: package has not started.
 - `in_progress`: package work or repair is underway.
-- `blocked`: package needs an authority-boundary decision before continuing.
-- `done`: package passed the completion gate below.
+- `blocked`: an authority-boundary decision is needed.
+- `done`: the package passed the completion gate below.
 
-Status does not prove implementation correctness. A dashboard may show status, dependency readiness, proof/report paths, and helper results, but must label them as mechanical signals.
+Status does not prove implementation correctness. Dashboards may show status, dependency readiness, proof/report paths, and helper results only as mechanical signals.
+
+## Proof Ownership
+
+Each package has one proof Markdown file declared in the registry and package Markdown:
+
+```text
+.tasks/<feature>/proofs/<WP-ID>.proof.md
+```
+
+Package agents fill or refresh only their assigned proof file and package commits. They do not mark packages done, finalize features, edit unrelated proof files, or reconcile a central evidence ledger.
+
+Proof Markdown owns package evidence for assigned `Must satisfy` H3 IDs and package verification expectations. `PASS` in a proof row is a package-agent claim, not package acceptance.
+
+## Pre-Dispatch Proof Creation
+
+Before dispatching a package, create the declared proof placeholder:
+
+```bash
+python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" create-proof ".tasks/<feature>/tasks.json" --package WP1
+```
+
+`create-proof` generates closure rows for assigned `Must satisfy` H3 IDs and records `Context only` IDs as scope context without closure rows.
+
+Overwrite safety:
+
+- existing exact placeholder: idempotent success;
+- missing proof: create placeholder;
+- edited or filled proof: fail closed unless `--force --approved-replacement` includes approval, provenance, and scope and preserves the prior content as described in `tool-usage.md`.
+
+Filled evidence must never be silently erased.
+
+## Package Agent Closure
+
+A package agent cannot claim completion until proof Markdown shows:
+
+- every assigned `Must satisfy` H3 ID in `## Slice Closure Table`;
+- concrete implementation evidence for every required row;
+- concrete verification evidence for every required row;
+- `PASS` for every required row, or explicitly approved `DEFERRED`/`N/A` where allowed;
+- every package verification expectation covered in `## Acceptance / Verification Closure`;
+- exact command/static/manual evidence in `## Commands Run` and `## Files Changed / Inspected`;
+- no unresolved `TODO`, `OPEN`, or `GAP` markers;
+- no unresolved Slice plan defect, context-only misuse, or contradiction with assigned Slices.
+
+## Mechanical Validation
+
+When a package agent returns, run:
+
+```bash
+python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-proof ".tasks/<feature>/tasks.json" --package WP1
+```
+
+Reject proof handoff when validation reports missing sections, missing rows, duplicate rows, missing implementation/verification evidence, unresolved markers, unsupported statuses, missing verification expectation closure, unsafe paths, or missing proof files.
+
+Mechanical validation is necessary, never sufficient. Package verification decides evidence sufficiency.
 
 ## Completion Gate
 
-A package may become `done` only after all of these are true:
+A package may become `done` only after all are true:
 
-1. Package Markdown assignment validates mechanically.
-2. Proof Markdown validates mechanically and closes every required Slice row and verification expectation.
-3. Required commands or inspections from the package assignment are recorded in the proof.
-4. The package implementer completion statement and `SELF_REVIEW` evidence are present in the handoff/reporting channel required by the workflow.
-5. Independent package verification has produced a package verification report bound to the proof digest and verified worktree state.
-6. Required repairs and delta verification are closed.
-7. No unresolved Slice plan defect, unapproved gap/deviation, or authority-boundary blocker remains.
+1. package Markdown assignment validates mechanically;
+2. proof Markdown validates mechanically and closes every required Slice row and verification expectation;
+3. required commands or inspections are recorded in proof evidence;
+4. the package implementer supplied the required completion statement and `SELF_REVIEW` evidence;
+5. no unresolved Slice plan defect, unapproved gap/deviation, or authority-boundary blocker remains;
+6. independent package verification returned `PASS` and wrote the report bound to proof digest and verified worktree state;
+7. repairs and delta verification are closed;
+8. post-merge or integration changes did not stale the proof/report, or freshness was restored.
 
-Do not mark a package complete from registry status, helper success, proof table `PASS` rows, or package assignment text alone.
+Do not mark a package complete from registry status, helper success, proof rows, self-review, or package assignment text alone.
 
 ## Freshness Rules
 
-Freshness is lost when any package-owned implementation, test, documentation, assignment, proof, or verification artifact changes after proof/report capture.
+Freshness is lost when any package-owned implementation, test, documentation, assignment, Slice approval metadata, proof, verification output, merge-resolution edit, or report binding changes after proof/report capture.
 
 When freshness is lost:
 
-- proof evidence affected by the change must be refreshed or rewritten;
-- package verification must rerun for the affected scope;
-- the package verification report must be replaced with a new proof digest and state binding;
-- review-code readiness must be refreshed when the change occurs after review-code reached readiness;
-- audit must treat the package as not final-ready until proof, report, and review-code readiness are fresh again.
+- refresh affected proof rows and command/file evidence;
+- rerun `sliceproof.py validate-proof` for every dirty package;
+- rerun focused or full package verification as required by the changed surface;
+- replace the report with a new proof digest and state binding;
+- refresh review-code readiness when the change occurs after review-code reached readiness;
+- treat the package as not final-ready until proof, report, and review-code readiness are fresh again.
 
-Mechanical helper success is necessary but not sufficient: it checks structure, closure rows, and report binding, not semantic sufficiency.
+Uncertain impact fails closed by marking candidate package proofs/reports dirty or recording explicit no-impact evidence.
 
-## Non-Bypass Semantics
+## Repair Handling
 
-Package completion, review-code readiness, and audit are separate gates:
+Before delegating repair, map each confirmed finding or fix batch to affected packages, Slice H3 IDs, proof rows, verification expectations, and proof-cited files/commands when identifiable.
 
-- Package completion requires valid proof Markdown plus a fresh package verification report.
-- Review-code readiness requires the review/fix loop to close serious findings and confirm package proof/report freshness after repairs.
-- Audit requires final artifact validation, fresh package reports, review-code readiness, and material Slice obligation closure.
+After repair:
 
-A later gate may reject an earlier gate's output. Do not downgrade, hide, or override missing proof rows, failed reports, stale bindings, unresolved findings, or unapproved deferrals through dashboard edits or registry status changes.
+1. run relevant commands or inspections;
+2. refresh affected proof rows and evidence sections;
+3. rerun mechanical proof validation;
+4. rerun package verification focused on failed findings and changed surfaces;
+5. require full package re-verification when repair widens scope, changes package contracts, invalidates coverage/mock/Slice disclosures, touches new risk surfaces, or repeatedly fails to close.
+
+Do not refresh proof evidence for failed or partial intermediate attempts as accepted evidence.
+
+## Report Freshness
+
+A package verification report must bind to package ID, package Markdown path, proof path, proof digest, assigned Slice paths, worktree, git ref/commit, reviewed verification output, verifier, timestamp, verdict, and open findings.
+
+Reports block completion when missing, failed, stale, contradicted by code/proof/Slice content, bound to pre-repair evidence, or missing state binding.
+
+## Final Readiness
+
+Before final review-code or audit, every package must have:
+
+- valid package Markdown;
+- mechanically valid proof Markdown;
+- no unresolved `GAP`, `OPEN`, `TODO`, unapproved `DEFERRED`, or unsupported `N/A`;
+- a fresh `PASS` package verification report;
+- closed repair/delta verification;
+- no unresolved Slice plan defect.
+
+Run:
+
+```bash
+python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-final ".tasks/<feature>/tasks.json"
+```
+
+Final readiness still requires review-code readiness and final audit. Helper success, registry mutation, manual proof edits, or dashboard output cannot bypass those gates.
 
 ## Dashboard Rule
 
@@ -61,8 +147,8 @@ Dashboards are read-only. They may surface:
 
 - registry status and dependency readiness;
 - package/proof/report file paths;
-- proof Markdown mechanical validation state;
-- package verification report presence and binding state;
+- proof mechanical validation state;
+- report presence and binding state;
 - review-code readiness state when present.
 
 Dashboards must not mutate lifecycle state or present mechanical signals as semantic proof.
