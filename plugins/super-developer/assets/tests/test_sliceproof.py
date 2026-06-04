@@ -19,10 +19,18 @@ PLACEHOLDER_APPROVAL_VARIANTS = [
     "User-approved pending; provenance: user note; scope: WP1 proof",
     "User-approved - pending; provenance: user note; scope: WP1 proof",
     "Approved by TBD user; provenance: user note; scope: WP1 proof",
+    "Approved by to-be-determined user; provenance: user note; scope: WP1 proof",
+    "Approved by to_be_determined user; provenance: user note; scope: WP1 proof",
+    "Approved by not-provided; provenance: user note; scope: WP1 proof",
+    "Approved by not_supplied; provenance: user note; scope: WP1 proof",
     "Approved by user; provenance: none provided; scope: WP1 proof",
     "Approved by user; provenance: not provided; scope: WP1 proof",
+    "Approved by user; provenance: not-provided; scope: WP1 proof",
+    "Approved by user; provenance: not_supplied; scope: WP1 proof",
     "Approved by user; provenance: user note; scope: TBD after review",
     "Approved by user; provenance: user note; scope: not supplied",
+    "Approved by user; provenance: user note; scope: not-supplied",
+    "Approved by user; provenance: user note; scope: not_provided",
 ]
 
 

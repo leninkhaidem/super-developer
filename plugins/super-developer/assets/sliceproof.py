@@ -1372,8 +1372,13 @@ def has_non_placeholder_metadata(value: str, field: str) -> bool:
 
 
 def is_approval_placeholder_value(value: str) -> bool:
-    normalized = normalize_text(value).strip(" -*`'\".:?!").lower()
+    normalized = normalize_approval_placeholder_value(value)
     return not normalized or APPROVAL_PLACEHOLDER_TOKEN_RE.search(normalized) is not None
+
+
+def normalize_approval_placeholder_value(value: str) -> str:
+    normalized = normalize_text(value).strip(" -*`'\".:?!").lower()
+    return re.sub(r"[\s_-]+", " ", normalized)
 
 
 def digest_text(value: str) -> str:
