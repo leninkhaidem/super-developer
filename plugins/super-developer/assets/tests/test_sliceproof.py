@@ -255,7 +255,7 @@ class SliceproofTests(unittest.TestCase):
 
         versioned_plan = self.fixture.plan()
         versioned_plan["schema_version"] = 4
-        cases.append(("version field", lambda fixture: fixture.write_plan(versioned_plan), "not part of the lightweight registry"))
+        cases.append(("version field", lambda fixture: fixture.write_plan(versioned_plan), "unsupported registry field"))
 
         unsafe_plan = self.fixture.plan()
         unsafe_plan["work_packages"][0]["path"] = "../escape.md"

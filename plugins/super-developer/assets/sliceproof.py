@@ -62,7 +62,6 @@ NEGATED_APPROVAL_RE = re.compile(
 POSITIVE_APPROVAL_RE = re.compile(r"\b(?:approved|approval|user[-\s]?approved)\b", re.IGNORECASE)
 PLACEHOLDER_VALUES = {"", "todo", "open", "gap", "tbd", "n/a", "na"}
 FORBIDDEN_REGISTRY_KEYS = {
-    "schema_version",
     "phases",
     "tasks",
     "acceptance_criteria",
@@ -70,7 +69,6 @@ FORBIDDEN_REGISTRY_KEYS = {
     "context_bundles",
     "proofs",
     "proof_entries",
-    "targeted_review",
     "verification_commands",
     "lifecycle",
 }
