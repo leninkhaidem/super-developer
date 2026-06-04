@@ -55,14 +55,7 @@ Use an empty `authoritative_slices` array only for Index-only or no-Slice plans 
 <Package-specific outcome, boundaries, caller contracts, and explicitly excluded nearby work.>
 
 ## Assigned Slices
-Use `- None.` as the entire section body when the plan has no Slices. Otherwise list Slice subsections:
-
-### `.planning/<concept-slug>/slices/<slice-name>.md`
-Must satisfy:
-- `<H3-ID>` — <H3 title or short obligation>
-
-Context only:
-- `<H3-ID>` — <why this package must read it even though closure belongs elsewhere>
+- None.
 
 ## Primary Paths
 - `path/to/inspect/first`
@@ -84,6 +77,17 @@ Context only:
 ```
 
 `sliceproof.py` mechanically requires `Scope`, `Assigned Slices`, `Primary Paths`, `Verification Expectations`, `Proof`, `Package Verification Report`, and `Dependencies`. `Notes` is optional.
+
+When Slices exist, replace the `- None.` body with Slice subsections:
+
+```md
+### `.planning/<concept-slug>/slices/<slice-name>.md`
+Must satisfy:
+- `<H3-ID>` — <H3 title or short obligation>
+
+Context only:
+- `<H3-ID>` — <why this package must read it even though closure belongs elsewhere>
+```
 
 ## Package Rules
 
