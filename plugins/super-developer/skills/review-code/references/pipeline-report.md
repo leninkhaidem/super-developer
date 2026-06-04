@@ -69,6 +69,10 @@ Minimum clean-handoff fields:
 
 Do not include schema identifiers, package proof bodies, report bodies, full transcripts, or rich lifecycle ledgers in this state.
 
+For a CLEAN verdict, after the package evidence gate and stale-state gate pass and before saying audit-ready or handing off to audit, write or refresh `.tasks/<feature>/reviews/review-code-state.json` at the canonical path. Populate the minimum clean-handoff fields above from the current reviewed state, artifact context, lens coverage, findings, and closure status; set `state: "ready_for_audit"` and `closure_status.ready_for_audit: true`.
+
+Then validate the written file using this section and the stale-state gate. If writing, refreshing, or validation fails, return **ISSUES FOUND** with the evidence blocker instead of audit-ready.
+
 Validate this state before audit handoff: parseable JSON, same feature/mode, required fields/enums, no duplicate or unreferenced dedupe keys, completed required lenses, current artifact/report status, no open serious findings/regressions/triggers/evidence blockers, and binding to the stale-state gate.
 
 ## Stale-State Gate
