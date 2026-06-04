@@ -13,6 +13,7 @@ from pathlib import Path
 
 ASSETS_DIR = Path(__file__).resolve().parents[1]
 SLICEPROOF_PATH = ASSETS_DIR / "sliceproof.py"
+REPORT_COMMIT = "0123456789abcdef0123456789abcdef01234567"
 
 
 class SliceproofFixture:
@@ -22,14 +23,17 @@ class SliceproofFixture:
         self.feature_dir = self.repo / ".tasks" / "fixture"
         self.package_dir = self.feature_dir / "packages"
         self.proofs_dir = self.feature_dir / "proofs"
+        self.reports_dir = self.feature_dir / "reports"
         self.slice_dir = self.repo / ".planning" / "fixture" / "slices"
         self.package_path = self.package_dir / "WP1.md"
         self.proof_path = self.proofs_dir / "WP1.proof.md"
+        self.report_path = self.reports_dir / "WP1.package-verification.md"
         self.tasks_path = self.feature_dir / "tasks.json"
         self.slice_path = self.slice_dir / "helper.md"
         self.feature_dir.mkdir(parents=True)
         self.package_dir.mkdir()
         self.proofs_dir.mkdir()
+        self.reports_dir.mkdir()
         self.slice_dir.mkdir(parents=True)
         (self.feature_dir / "SPEC.md").write_text("# Fixture Spec\n", encoding="utf-8")
         self.slice_path.write_text(self.slice_text(), encoding="utf-8")
@@ -51,7 +55,6 @@ class SliceproofFixture:
 
     def plan(self) -> dict:
         return {
-            "schema_version": 4,
             "feature": "fixture",
             "title": "Fixture",
             "status": "planned",
@@ -62,6 +65,7 @@ class SliceproofFixture:
                     "id": "WP1",
                     "path": ".tasks/fixture/packages/WP1.md",
                     "proof_path": ".tasks/fixture/proofs/WP1.proof.md",
+                    "report_path": ".tasks/fixture/reports/WP1.package-verification.md",
                     "status": "pending",
                     "depends_on": [],
                 }
@@ -115,7 +119,7 @@ class SliceproofFixture:
             else f"- `{context_id}` — Context-only IDs stay required reading"
         )
         sections = {
-            "Scope": "Validate the v4 Slice-first helper behavior with deterministic fixtures.",
+            "Scope": "Validate the Slice-first helper behavior with deterministic fixtures.",
             "Assigned Slices": textwrap.dedent(
                 f"""
                 ### `.planning/fixture/slices/helper.md`
@@ -135,6 +139,7 @@ class SliceproofFixture:
                 """
             ).strip(),
             "Proof": "- `.tasks/fixture/proofs/WP1.proof.md`",
+            "Package Verification Report": "- `.tasks/fixture/reports/WP1.package-verification.md`",
             "Dependencies": "- None.",
         }
         if missing_section:
@@ -144,13 +149,20 @@ class SliceproofFixture:
             body.extend([f"## {name}", value, ""])
         return "\n".join(body)
 
-    def completed_proof(self, *, status: str = "PASS", implementation: str = "sliceproof.py validates registry/package/Slice references.", verification: str = "unittest fixture observed the helper command exit 0.") -> str:
+    def completed_proof(
+        self,
+        *,
+        status: str = "PASS",
+        implementation: str = "sliceproof.py validates registry/package/Slice references.",
+        verification: str = "unittest fixture observed the helper command exit 0.",
+        gaps: str = "- None.",
+    ) -> str:
         return textwrap.dedent(
             f"""
             # Package Proof: WP1 — Helper behavior
 
             ## Package Scope
-            Validate the v4 Slice-first helper behavior with deterministic fixtures.
+            Validate the Slice-first helper behavior with deterministic fixtures.
 
             ## Assigned Slice Scope
             - `.planning/fixture/slices/helper.md`
@@ -180,12 +192,47 @@ class SliceproofFixture:
             - plugins/super-developer/assets/tests/test_sliceproof.py
 
             ## Gaps, Deviations, or Deferred Items
-            - None.
+            {gaps}
 
             ## Package Agent Completion Statement
             - Mechanical helper evidence recorded for all required rows.
             """
         ).lstrip()
+
+    def report_text(self, proof_text: str | None = None, *, result: str = "passed") -> str:
+        if proof_text is None:
+            proof_text = self.proof_path.read_text(encoding="utf-8")
+        digest = "sha256:" + hashlib.sha256(proof_text.encode("utf-8")).hexdigest()
+        return textwrap.dedent(
+            f"""
+            # Package Verification Report: WP1 — Helper behavior
+
+            ## State Binding
+            - Package: `WP1`
+            - Proof: `.tasks/fixture/proofs/WP1.proof.md`
+            - Proof Digest: `{digest}`
+            - Worktree: `{self.repo}`
+            - Git Ref: `wp/fixture/WP1`
+            - Commit: `{REPORT_COMMIT}`
+            - Verified At: `2026-06-04T00:00:00Z`
+
+            ## Verification Result
+            - Result: `{result}`
+            - Reviewer: `package-verifier`
+            - Scope: `WP1 helper behavior fixture`
+
+            ## Checks
+            - Verified proof closure and package helper behavior against fixture commands.
+
+            ## Open Findings
+            - None.
+            """
+        ).lstrip()
+
+    def write_completed_proof_and_report(self) -> None:
+        proof = self.completed_proof()
+        self.proof_path.write_text(proof, encoding="utf-8")
+        self.report_path.write_text(self.report_text(proof), encoding="utf-8")
 
 
 class SliceproofTests(unittest.TestCase):
@@ -203,15 +250,23 @@ class SliceproofTests(unittest.TestCase):
         self.assertEqual(["WP1"], data["packages"])
         self.assertEqual(["WP1"], data["validated_package_markdown"])
 
-    def test_validate_plan_rejects_path_dependency_section_and_h3_failures(self) -> None:
+    def test_validate_plan_rejects_registry_path_package_report_and_h3_failures(self) -> None:
         cases = []
+
+        versioned_plan = self.fixture.plan()
+        versioned_plan["schema_version"] = 4
+        cases.append(("version field", lambda fixture: fixture.write_plan(versioned_plan), "not part of the lightweight registry"))
 
         unsafe_plan = self.fixture.plan()
         unsafe_plan["work_packages"][0]["path"] = "../escape.md"
         cases.append(("unsafe path", lambda fixture: fixture.write_plan(unsafe_plan), "path must not contain"))
 
-        missing_section_text = self.fixture.package_text(missing_section="Proof")
-        cases.append(("missing package section", lambda fixture: fixture.package_path.write_text(missing_section_text, encoding="utf-8"), "missing required section ## Proof"))
+        unsafe_report = self.fixture.plan()
+        unsafe_report["work_packages"][0]["report_path"] = "/tmp/WP1.package-verification.md"
+        cases.append(("unsafe report path", lambda fixture: fixture.write_plan(unsafe_report), "not absolute/home/drive-qualified"))
+
+        missing_section_text = self.fixture.package_text(missing_section="Package Verification Report")
+        cases.append(("missing report section", lambda fixture: fixture.package_path.write_text(missing_section_text, encoding="utf-8"), "missing required section ## Package Verification Report"))
 
         unknown_dependency = self.fixture.plan()
         unknown_dependency["work_packages"][0]["depends_on"] = ["WP9"]
@@ -239,42 +294,12 @@ class SliceproofTests(unittest.TestCase):
 
     def test_validate_plan_rejects_malformed_assignment_ids_in_must_and_context_lists(self) -> None:
         cases = [
-            (
-                "must lowercase",
-                lambda fixture: fixture.package_path.write_text(
-                    fixture.package_text(must_id="helper-plan-001"), encoding="utf-8"
-                ),
-                "must_satisfy ID 'helper-plan-001' has unsupported shape",
-            ),
-            (
-                "must bad shape",
-                lambda fixture: fixture.package_path.write_text(fixture.package_text(must_id="HELPER-PLAN"), encoding="utf-8"),
-                "must_satisfy ID 'HELPER-PLAN' has unsupported shape",
-            ),
-            (
-                "must missing",
-                lambda fixture: fixture.package_path.write_text(fixture.package_text(must_id=None), encoding="utf-8"),
-                "must_satisfy ID 'Registry and package references validate mechanically' has unsupported shape",
-            ),
-            (
-                "context lowercase",
-                lambda fixture: fixture.package_path.write_text(
-                    fixture.package_text(context_id="helper-context-003"), encoding="utf-8"
-                ),
-                "context_only ID 'helper-context-003' has unsupported shape",
-            ),
-            (
-                "context bad shape",
-                lambda fixture: fixture.package_path.write_text(
-                    fixture.package_text(context_id="HELPER-CONTEXT"), encoding="utf-8"
-                ),
-                "context_only ID 'HELPER-CONTEXT' has unsupported shape",
-            ),
-            (
-                "context missing",
-                lambda fixture: fixture.package_path.write_text(fixture.package_text(context_id=None), encoding="utf-8"),
-                "context_only ID 'Context-only IDs stay required reading' has unsupported shape",
-            ),
+            ("must lowercase", lambda fixture: fixture.package_path.write_text(fixture.package_text(must_id="helper-plan-001"), encoding="utf-8"), "must_satisfy ID 'helper-plan-001' has unsupported shape"),
+            ("must bad shape", lambda fixture: fixture.package_path.write_text(fixture.package_text(must_id="HELPER-PLAN"), encoding="utf-8"), "must_satisfy ID 'HELPER-PLAN' has unsupported shape"),
+            ("must missing", lambda fixture: fixture.package_path.write_text(fixture.package_text(must_id=None), encoding="utf-8"), "must_satisfy ID 'Registry and package references validate mechanically' has unsupported shape"),
+            ("context lowercase", lambda fixture: fixture.package_path.write_text(fixture.package_text(context_id="helper-context-003"), encoding="utf-8"), "context_only ID 'helper-context-003' has unsupported shape"),
+            ("context bad shape", lambda fixture: fixture.package_path.write_text(fixture.package_text(context_id="HELPER-CONTEXT"), encoding="utf-8"), "context_only ID 'HELPER-CONTEXT' has unsupported shape"),
+            ("context missing", lambda fixture: fixture.package_path.write_text(fixture.package_text(context_id=None), encoding="utf-8"), "context_only ID 'Context-only IDs stay required reading' has unsupported shape"),
         ]
         for name, mutate, expected_error in cases:
             with self.subTest(name=name):
@@ -287,43 +312,61 @@ class SliceproofTests(unittest.TestCase):
                 finally:
                     fixture.cleanup()
 
-    def test_create_proof_generates_placeholder_from_package_markdown(self) -> None:
+    def test_create_proof_generates_idempotent_placeholder_from_package_markdown(self) -> None:
         result = self.fixture.run("create-proof", str(self.fixture.tasks_path), "--package", "WP1")
         self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+        data = json.loads(result.stdout)
+        self.assertTrue(data["created"])
         proof = self.fixture.proof_path.read_text(encoding="utf-8")
         self.assertIn("| `HELPER-PLAN-001` |", proof)
         self.assertIn("| `HELPER-PROOF-002` |", proof)
         self.assertIn("Context only: `HELPER-CONTEXT-003`", proof)
         self.assertNotIn("| `HELPER-CONTEXT-003` |", proof)
 
+        second = self.fixture.run("create-proof", str(self.fixture.tasks_path), "--package", "WP1")
+        self.assertEqual(0, second.returncode, second.stdout + second.stderr)
+        second_data = json.loads(second.stdout)
+        self.assertFalse(second_data["created"])
+        self.assertTrue(second_data["already_existed"])
+        self.assertEqual(proof, self.fixture.proof_path.read_text(encoding="utf-8"))
+
         placeholder_validation = self.fixture.run("validate-proof", str(self.fixture.tasks_path), "--package", "WP1")
         self.assertNotEqual(0, placeholder_validation.returncode)
         self.assertIn("unresolved TODO/OPEN/GAP", "\n".join(json.loads(placeholder_validation.stderr)["errors"]))
 
-    def test_validate_proof_accepts_completed_pass_rows_and_rejects_blocking_statuses(self) -> None:
+    def test_validate_proof_accepts_completed_rows_and_rejects_blocking_or_unapproved_rows(self) -> None:
         self.fixture.proof_path.write_text(self.fixture.completed_proof(), encoding="utf-8")
         result = self.fixture.run("validate-proof", str(self.fixture.tasks_path), "--package", "WP1")
         self.assertEqual(0, result.returncode, result.stdout + result.stderr)
 
         cases = [
-            ("TODO", "PASS", "TODO", "observed command output", "implementation evidence is missing"),
-            ("OPEN", "OPEN", "some implementation evidence", "observed command output", "status OPEN blocks"),
-            ("GAP", "GAP", "some implementation evidence", "observed command output", "status GAP blocks"),
-            ("DEFERRED", "DEFERRED", "some implementation evidence", "observed command output", "DEFERRED requires explicit approved"),
-            ("N/A", "N/A", "some implementation evidence", "observed command output", "N/A requires explicit rationale"),
-            ("missing verification", "PASS", "some implementation evidence", "", "verification evidence is missing"),
+            ("TODO", "PASS", "TODO", "observed command output", "- None.", "implementation evidence is missing"),
+            ("OPEN", "OPEN", "some implementation evidence", "observed command output", "- None.", "status OPEN blocks"),
+            ("GAP", "GAP", "some implementation evidence", "observed command output", "- None.", "status GAP blocks"),
+            ("DEFERRED", "DEFERRED", "some implementation evidence", "observed command output", "- None.", "DEFERRED requires approval"),
+            ("N/A", "N/A", "some implementation evidence", "observed command output", "- None.", "N/A requires rationale"),
+            ("missing verification", "PASS", "some implementation evidence", "", "- None.", "verification evidence is missing"),
+            ("arbitrary gap", "PASS", "some implementation evidence", "observed command output", "- Investigate fixture evidence before dispatch.", "gap/deviation text without approval"),
+            ("negated approval", "PASS", "some implementation evidence", "observed command output", "- Unapproved gap; provenance: none; scope: all evidence.", "gap/deviation text without approval"),
         ]
-        for name, status, implementation, verification, expected_error in cases:
+        for name, status, implementation, verification, gaps, expected_error in cases:
             with self.subTest(name=name):
                 self.fixture.proof_path.write_text(
-                    self.fixture.completed_proof(status=status, implementation=implementation, verification=verification),
+                    self.fixture.completed_proof(status=status, implementation=implementation, verification=verification, gaps=gaps),
                     encoding="utf-8",
                 )
                 invalid = self.fixture.run("validate-proof", str(self.fixture.tasks_path), "--package", "WP1")
                 self.assertNotEqual(0, invalid.returncode, invalid.stdout + invalid.stderr)
                 self.assertIn(expected_error, "\n".join(json.loads(invalid.stderr)["errors"]))
 
-    def test_validate_proof_rejects_duplicate_rows_and_scans_full_tables(self) -> None:
+        approved_gap = self.fixture.completed_proof(
+            gaps="- Approved gap; provenance: user accepted excluding flaky external check; scope: this package proof only."
+        )
+        self.fixture.proof_path.write_text(approved_gap, encoding="utf-8")
+        approved = self.fixture.run("validate-proof", str(self.fixture.tasks_path), "--package", "WP1")
+        self.assertEqual(0, approved.returncode, approved.stdout + approved.stderr)
+
+    def test_validate_proof_rejects_duplicate_unexpected_and_contradictory_rows(self) -> None:
         proof = self.fixture.completed_proof()
         duplicate_slice = (
             "| `HELPER-PLAN-001` | unresolved duplicate | TODO | TODO | OPEN |\n"
@@ -343,6 +386,11 @@ class SliceproofTests(unittest.TestCase):
             duplicate_expectation,
             1,
         )
+        proof = proof.replace(
+            "| `HELPER-PROOF-002` | Proof placeholders and proof closure are mechanical |",
+            "| `HELPER-EXTRA-999` | unexpected | evidence | verification | PASS |\n| `HELPER-PROOF-002` | Proof placeholders and proof closure are mechanical |",
+            1,
+        )
         self.fixture.proof_path.write_text(proof, encoding="utf-8")
 
         result = self.fixture.run("validate-proof", str(self.fixture.tasks_path), "--package", "WP1")
@@ -350,8 +398,8 @@ class SliceproofTests(unittest.TestCase):
         errors = "\n".join(json.loads(result.stderr)["errors"])
         self.assertIn("duplicate Slice Closure Table row for HELPER-PLAN-001", errors)
         self.assertIn("HELPER-PLAN-001 status OPEN blocks", errors)
+        self.assertIn("unexpected Slice Closure Table row for HELPER-EXTRA-999", errors)
         self.assertIn("duplicate Acceptance / Verification Closure row", errors)
-        self.assertIn("status OPEN blocks", errors)
 
     def test_escaped_pipe_table_cells_round_trip_from_generated_proof(self) -> None:
         package_text = self.fixture.package_text(must_id="HELPER-PIPE-004").replace(
@@ -370,58 +418,34 @@ class SliceproofTests(unittest.TestCase):
         result = self.fixture.run("validate-proof", str(self.fixture.tasks_path), "--package", "WP1")
         self.assertEqual(0, result.returncode, result.stdout + result.stderr)
 
-    def test_validate_proof_rejects_negated_approval_for_deferrals(self) -> None:
-        cases = [
-            (
-                "slice row",
-                lambda proof: proof.replace(
-                    "| `HELPER-PLAN-001` | Registry and package references validate mechanically | sliceproof.py validates registry/package/Slice references. | unittest fixture observed the helper command exit 0. | PASS |",
-                    "| `HELPER-PLAN-001` | Registry and package references validate mechanically | deferred implementation with not approved deferral scope | verification evidence captured | DEFERRED |",
-                ),
-                "HELPER-PLAN-001 DEFERRED requires explicit approved",
-            ),
-            (
-                "expectation row",
-                lambda proof: proof.replace(
-                    "| `sliceproof.py validate-plan` succeeds for the valid fixture. | unittest fixture observed validate-plan exit 0. | PASS |",
-                    "| `sliceproof.py validate-plan` succeeds for the valid fixture. | no approval for deferral scope despite evidence | DEFERRED |",
-                ),
-                "DEFERRED requires explicit approved",
-            ),
-            (
-                "gaps section",
-                lambda proof: proof.replace(
-                    "## Gaps, Deviations, or Deferred Items\n- None.\n",
-                    "## Gaps, Deviations, or Deferred Items\n- DEFERRED by unapproved scope note.\n",
-                ),
-                "deferred gap/deviation requires explicit approved",
-            ),
-        ]
-        for name, mutate, expected_error in cases:
-            with self.subTest(name=name):
-                self.fixture.proof_path.write_text(mutate(self.fixture.completed_proof()), encoding="utf-8")
-                result = self.fixture.run("validate-proof", str(self.fixture.tasks_path), "--package", "WP1")
-                self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
-                self.assertIn(expected_error, "\n".join(json.loads(result.stderr)["errors"]))
-
-                plan = self.fixture.plan()
-                plan["work_packages"][0]["status"] = "done"
-                self.fixture.write_plan(plan)
-                final = self.fixture.run("validate-final", str(self.fixture.tasks_path))
-                self.assertNotEqual(0, final.returncode, final.stdout + final.stderr)
-                self.assertIn(expected_error, "\n".join(json.loads(final.stderr)["errors"]))
-
-    def test_create_proof_force_refuses_status_only_blocker_drift_without_backup(self) -> None:
+    def test_create_proof_refuses_unsafe_overwrites_and_preserves_approved_replacement(self) -> None:
         first = self.fixture.run("create-proof", str(self.fixture.tasks_path), "--package", "WP1")
         self.assertEqual(0, first.returncode, first.stdout + first.stderr)
-        placeholder = self.fixture.proof_path.read_text(encoding="utf-8")
-        drifted = placeholder.replace("| TODO | TODO | OPEN |", "| TODO | TODO | GAP |", 1)
-        self.fixture.proof_path.write_text(drifted, encoding="utf-8")
+        filled = self.fixture.completed_proof()
+        self.fixture.proof_path.write_text(filled, encoding="utf-8")
 
-        rejected = self.fixture.run("create-proof", str(self.fixture.tasks_path), "--package", "WP1", "--force")
-        self.assertNotEqual(0, rejected.returncode)
-        self.assertEqual(drifted, self.fixture.proof_path.read_text(encoding="utf-8"))
-        self.assertIn("proof status/content drift", "\n".join(json.loads(rejected.stderr)["errors"]))
+        no_force = self.fixture.run("create-proof", str(self.fixture.tasks_path), "--package", "WP1")
+        self.assertNotEqual(0, no_force.returncode)
+        self.assertIn("refusing overwrite", "\n".join(json.loads(no_force.stderr)["errors"]))
+        self.assertEqual(filled, self.fixture.proof_path.read_text(encoding="utf-8"))
+
+        missing_approval = self.fixture.run("create-proof", str(self.fixture.tasks_path), "--package", "WP1", "--force")
+        self.assertNotEqual(0, missing_approval.returncode)
+        self.assertIn("without approved replacement metadata", "\n".join(json.loads(missing_approval.stderr)["errors"]))
+        self.assertEqual(filled, self.fixture.proof_path.read_text(encoding="utf-8"))
+
+        weak_approval = self.fixture.run(
+            "create-proof",
+            str(self.fixture.tasks_path),
+            "--package",
+            "WP1",
+            "--force",
+            "--approved-replacement",
+            "approved replacement",
+        )
+        self.assertNotEqual(0, weak_approval.returncode)
+        self.assertIn("approval, provenance, and scope", "\n".join(json.loads(weak_approval.stderr)["errors"]))
+        self.assertEqual(filled, self.fixture.proof_path.read_text(encoding="utf-8"))
 
         approved = self.fixture.run(
             "create-proof",
@@ -430,12 +454,14 @@ class SliceproofTests(unittest.TestCase):
             "WP1",
             "--force",
             "--approved-replacement",
-            "User approved replacing stale status drift; existing proof must be preserved.",
+            "Approved by user; provenance: stale fixture proof intentionally reset; scope: WP1 proof placeholder only.",
         )
         self.assertEqual(0, approved.returncode, approved.stdout + approved.stderr)
         data = json.loads(approved.stdout)
         backup = self.fixture.repo / data["preserved_existing_proof"]
-        self.assertEqual(drifted, backup.read_text(encoding="utf-8"))
+        self.assertTrue(backup.exists())
+        self.assertEqual(filled, backup.read_text(encoding="utf-8"))
+        self.assertIn("TODO", self.fixture.proof_path.read_text(encoding="utf-8"))
 
     def test_create_proof_preserve_backup_rejects_dangling_symlink(self) -> None:
         if not hasattr(os, "symlink"):
@@ -456,7 +482,7 @@ class SliceproofTests(unittest.TestCase):
             "WP1",
             "--force",
             "--approved-replacement",
-            "User approved replacing stale evidence; existing proof must be preserved.",
+            "Approved by user; provenance: stale evidence reset; scope: WP1 proof placeholder only.",
         )
         self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
         self.assertFalse(outside.exists())
@@ -484,57 +510,8 @@ class SliceproofTests(unittest.TestCase):
         self.assertNotIn("Traceback", write_error.stderr)
         self.assertIn("unable to create directory", "\n".join(json.loads(write_error.stderr)["errors"]))
 
-    def test_create_proof_force_refuses_edited_gaps_section_and_preserves_file(self) -> None:
-        first = self.fixture.run("create-proof", str(self.fixture.tasks_path), "--package", "WP1")
-        self.assertEqual(0, first.returncode, first.stdout + first.stderr)
-        placeholder = self.fixture.proof_path.read_text(encoding="utf-8")
-        edited = placeholder.replace(
-            "## Gaps, Deviations, or Deferred Items\n- None.\n",
-            "## Gaps, Deviations, or Deferred Items\n- Investigate fixture evidence before dispatch.\n",
-        )
-        self.fixture.proof_path.write_text(edited, encoding="utf-8")
-
-        rejected = self.fixture.run("create-proof", str(self.fixture.tasks_path), "--package", "WP1", "--force")
-        self.assertNotEqual(0, rejected.returncode)
-        self.assertEqual(edited, self.fixture.proof_path.read_text(encoding="utf-8"))
-        self.assertIn("contains filled proof evidence", "\n".join(json.loads(rejected.stderr)["errors"]))
-
-    def test_create_proof_force_refuses_filled_evidence_without_preserving_approved_replacement(self) -> None:
-        first = self.fixture.run("create-proof", str(self.fixture.tasks_path), "--package", "WP1")
-        self.assertEqual(0, first.returncode, first.stdout + first.stderr)
-
-        no_force = self.fixture.run("create-proof", str(self.fixture.tasks_path), "--package", "WP1")
-        self.assertNotEqual(0, no_force.returncode)
-        self.assertIn("already exists", "\n".join(json.loads(no_force.stderr)["errors"]))
-
-        empty_force = self.fixture.run("create-proof", str(self.fixture.tasks_path), "--package", "WP1", "--force")
-        self.assertEqual(0, empty_force.returncode, empty_force.stdout + empty_force.stderr)
-
-        filled = self.fixture.completed_proof()
-        self.fixture.proof_path.write_text(filled, encoding="utf-8")
-        rejected = self.fixture.run("create-proof", str(self.fixture.tasks_path), "--package", "WP1", "--force")
-        self.assertNotEqual(0, rejected.returncode)
-        self.assertEqual(filled, self.fixture.proof_path.read_text(encoding="utf-8"))
-        self.assertIn("contains filled proof evidence", "\n".join(json.loads(rejected.stderr)["errors"]))
-
-        approved = self.fixture.run(
-            "create-proof",
-            str(self.fixture.tasks_path),
-            "--package",
-            "WP1",
-            "--force",
-            "--approved-replacement",
-            "User approved replacing stale evidence; existing proof must be preserved.",
-        )
-        self.assertEqual(0, approved.returncode, approved.stdout + approved.stderr)
-        data = json.loads(approved.stdout)
-        backup = self.fixture.repo / data["preserved_existing_proof"]
-        self.assertTrue(backup.exists())
-        self.assertEqual(filled, backup.read_text(encoding="utf-8"))
-        self.assertIn("TODO", self.fixture.proof_path.read_text(encoding="utf-8"))
-
-    def test_validate_final_requires_done_packages_and_valid_proofs(self) -> None:
-        self.fixture.proof_path.write_text(self.fixture.completed_proof(), encoding="utf-8")
+    def test_validate_final_requires_done_proofs_and_fresh_report_binding(self) -> None:
+        self.fixture.write_completed_proof_and_report()
         not_done = self.fixture.run("validate-final", str(self.fixture.tasks_path))
         self.assertNotEqual(0, not_done.returncode)
         self.assertIn("expected 'done'", "\n".join(json.loads(not_done.stderr)["errors"]))
@@ -544,6 +521,50 @@ class SliceproofTests(unittest.TestCase):
         self.fixture.write_plan(plan)
         done = self.fixture.run("validate-final", str(self.fixture.tasks_path))
         self.assertEqual(0, done.returncode, done.stdout + done.stderr)
+
+        self.fixture.report_path.unlink()
+        missing_report = self.fixture.run("validate-final", str(self.fixture.tasks_path))
+        self.assertNotEqual(0, missing_report.returncode)
+        self.assertIn("report: file not found", "\n".join(json.loads(missing_report.stderr)["errors"]))
+
+        proof = self.fixture.completed_proof()
+        self.fixture.proof_path.write_text(proof, encoding="utf-8")
+        self.fixture.report_path.write_text(self.fixture.report_text(proof), encoding="utf-8")
+        self.fixture.proof_path.write_text(proof.replace("Mechanical helper evidence", "Changed proof evidence"), encoding="utf-8")
+        stale_report = self.fixture.run("validate-final", str(self.fixture.tasks_path))
+        self.assertNotEqual(0, stale_report.returncode)
+        self.assertIn("Proof Digest does not match current proof content", "\n".join(json.loads(stale_report.stderr)["errors"]))
+
+    def test_zero_slice_registry_allows_index_only_package_assignment(self) -> None:
+        plan = self.fixture.plan()
+        plan["authoritative_slices"] = []
+        plan["work_packages"][0]["status"] = "done"
+        self.fixture.write_plan(plan)
+        self.fixture.package_path.write_text(
+            self.fixture.package_text().replace(
+                textwrap.dedent(
+                    """
+                    ### `.planning/fixture/slices/helper.md`
+                    Must satisfy:
+                    - `HELPER-PLAN-001` — Registry and package references validate mechanically
+                    - `HELPER-PROOF-002` — Proof placeholders and proof closure are mechanical
+
+                    Context only:
+                    - `HELPER-CONTEXT-003` — Context-only IDs stay required reading
+                    """
+                ).strip(),
+                "- None.",
+            ),
+            encoding="utf-8",
+        )
+        created = self.fixture.run("create-proof", str(self.fixture.tasks_path), "--package", "WP1")
+        self.assertEqual(0, created.returncode, created.stdout + created.stderr)
+        proof = self.fixture.proof_path.read_text(encoding="utf-8")
+        completed = proof.replace("TODO", "observed evidence").replace("OPEN", "PASS")
+        self.fixture.proof_path.write_text(completed, encoding="utf-8")
+        self.fixture.report_path.write_text(self.fixture.report_text(completed), encoding="utf-8")
+        result = self.fixture.run("validate-final", str(self.fixture.tasks_path))
+        self.assertEqual(0, result.returncode, result.stdout + result.stderr)
 
 
 if __name__ == "__main__":
