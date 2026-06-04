@@ -347,7 +347,10 @@ class SliceproofTests(unittest.TestCase):
             ("N/A", "N/A", "some implementation evidence", "observed command output", "- None.", "N/A requires rationale"),
             ("missing verification", "PASS", "some implementation evidence", "", "- None.", "verification evidence is missing"),
             ("arbitrary gap", "PASS", "some implementation evidence", "observed command output", "- Investigate fixture evidence before dispatch.", "gap/deviation text without approval"),
+            ("bare approval", "PASS", "some implementation evidence", "observed command output", "- Approval for gap; provenance: user note; scope: WP1 proof.", "gap/deviation text without approval"),
+            ("pending approval", "PASS", "some implementation evidence", "observed command output", "- Approval pending; provenance: user note; scope: WP1 proof.", "gap/deviation text without approval"),
             ("negated approval", "PASS", "some implementation evidence", "observed command output", "- Unapproved gap; provenance: none; scope: all evidence.", "gap/deviation text without approval"),
+            ("deferred pending approval", "DEFERRED", "approval requested; provenance: user note; scope: WP1 proof", "observed command output", "- None.", "DEFERRED requires approval"),
         ]
         for name, status, implementation, verification, gaps, expected_error in cases:
             with self.subTest(name=name):
@@ -360,7 +363,7 @@ class SliceproofTests(unittest.TestCase):
                 self.assertIn(expected_error, "\n".join(json.loads(invalid.stderr)["errors"]))
 
         approved_gap = self.fixture.completed_proof(
-            gaps="- Approved gap; provenance: user accepted excluding flaky external check; scope: this package proof only."
+            gaps="- Approved by user; provenance: user accepted excluding flaky external check; scope: this package proof only."
         )
         self.fixture.proof_path.write_text(approved_gap, encoding="utf-8")
         approved = self.fixture.run("validate-proof", str(self.fixture.tasks_path), "--package", "WP1")
@@ -446,6 +449,27 @@ class SliceproofTests(unittest.TestCase):
         self.assertNotEqual(0, weak_approval.returncode)
         self.assertIn("approval, provenance, and scope", "\n".join(json.loads(weak_approval.stderr)["errors"]))
         self.assertEqual(filled, self.fixture.proof_path.read_text(encoding="utf-8"))
+
+        non_approvals = [
+            "approval pending; provenance: user note; scope: WP1 proof placeholder only.",
+            "approval requested; provenance: user note; scope: WP1 proof placeholder only.",
+            "Approved by user; provenance: none; scope: WP1 proof placeholder only.",
+            "Approved by user; provenance: stale fixture proof intentionally reset; scope: TBD.",
+        ]
+        for replacement in non_approvals:
+            with self.subTest(replacement=replacement):
+                rejected = self.fixture.run(
+                    "create-proof",
+                    str(self.fixture.tasks_path),
+                    "--package",
+                    "WP1",
+                    "--force",
+                    "--approved-replacement",
+                    replacement,
+                )
+                self.assertNotEqual(0, rejected.returncode)
+                self.assertIn("approval, provenance, and scope", "\n".join(json.loads(rejected.stderr)["errors"]))
+                self.assertEqual(filled, self.fixture.proof_path.read_text(encoding="utf-8"))
 
         approved = self.fixture.run(
             "create-proof",

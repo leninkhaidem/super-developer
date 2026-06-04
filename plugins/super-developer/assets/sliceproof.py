@@ -55,11 +55,20 @@ BLOCKING_MARKER_RE = re.compile(r"\b(?:TODO|OPEN|GAP)\b", re.IGNORECASE)
 UNRESOLVED_MARKER_RE = re.compile(r"\b(?:TODO|OPEN)\b", re.IGNORECASE)
 NEGATED_APPROVAL_RE = re.compile(
     r"\b(?:unapproved|not\s+(?:explicitly\s+)?(?:user[-\s]?)?approved|no\s+(?:user[-\s]?)?approval|"
-    r"without\s+(?:user[-\s]?)?approval|approval\s+(?:is\s+|was\s+)?(?:missing|absent|denied|rejected|not\s+granted)|"
-    r"approval\s+not\s+(?:granted|given|provided))\b",
+    r"without\s+(?:user[-\s]?)?approval|(?:pending|requested|awaiting)\s+approval|approval\s+(?:pending|requested|awaiting)|"
+    r"approval\s*(?::|is\s+|was\s+)?\s*(?:missing|absent|denied|rejected|not\s+granted|none|no|tbd|to\s+be\s+determined|unknown|unconfirmed)|"
+    r"approval\s+not\s+(?:granted|given|provided|confirmed))\b",
     re.IGNORECASE,
 )
-POSITIVE_APPROVAL_RE = re.compile(r"\b(?:approved|approval|user[-\s]?approved)\b", re.IGNORECASE)
+APPROVAL_SOURCE_RE = re.compile(
+    r"\b(?:approved\s+by|approval\s+(?:granted|given|provided|confirmed)\s+by)\s+(?P<source>[^;\n|]+)",
+    re.IGNORECASE,
+)
+USER_APPROVED_RE = re.compile(r"\buser[-\s]?approved\b", re.IGNORECASE)
+APPROVAL_METADATA_VALUE_RE = re.compile(
+    r"\b(?P<field>provenance|scope)\s*:\s*(?P<value>[^;\n|]+)",
+    re.IGNORECASE,
+)
 PLACEHOLDER_VALUES = {"", "todo", "open", "gap", "tbd", "n/a", "na"}
 FORBIDDEN_REGISTRY_KEYS = {
     "phases",
@@ -192,7 +201,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     create_proof.add_argument(
         "--approved-replacement",
-        help="Approval text containing approval, provenance, and scope for replacing edited or filled proof evidence.",
+        help="Approval text containing explicit approved-by source, provenance, and scope for replacing edited or filled proof evidence.",
     )
     create_proof.set_defaults(func=cmd_create_proof)
 
@@ -1326,16 +1335,48 @@ def is_empty_gaps_deviations_section(value: str) -> bool:
 
 
 def has_approval_provenance_scope(value: str) -> bool:
-    lowered = value.lower()
     return (
         has_positive_approval(value)
-        and "provenance" in lowered
-        and "scope" in lowered
+        and has_non_placeholder_metadata(value, "provenance")
+        and has_non_placeholder_metadata(value, "scope")
     )
 
 
 def has_positive_approval(value: str) -> bool:
-    return not NEGATED_APPROVAL_RE.search(value) and bool(POSITIVE_APPROVAL_RE.search(value))
+    if NEGATED_APPROVAL_RE.search(value):
+        return False
+    source_match = APPROVAL_SOURCE_RE.search(value)
+    if source_match and not is_approval_placeholder_value(source_match.group("source")):
+        return True
+    return bool(USER_APPROVED_RE.search(value))
+
+
+def has_non_placeholder_metadata(value: str, field: str) -> bool:
+    for match in APPROVAL_METADATA_VALUE_RE.finditer(value):
+        if match.group("field").lower() == field and not is_approval_placeholder_value(match.group("value")):
+            return True
+    return False
+
+
+def is_approval_placeholder_value(value: str) -> bool:
+    normalized = normalize_text(value).strip(" -*`'\".:?!").lower()
+    placeholders = {
+        "",
+        "none",
+        "no",
+        "n/a",
+        "na",
+        "tbd",
+        "to be determined",
+        "todo",
+        "open",
+        "gap",
+        "unknown",
+        "unconfirmed",
+        "missing",
+        "absent",
+    }
+    return normalized in placeholders or normalized.startswith(("pending", "requested", "awaiting"))
 
 
 def digest_text(value: str) -> str:
