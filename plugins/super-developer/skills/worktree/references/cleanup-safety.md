@@ -8,7 +8,7 @@ From the integration worktree for the target feature:
 
 ```bash
 cd "$PROJECT_ROOT/.worktrees/<feature>/merge"
-git merge-base --is-ancestor task/<feature>/<WP-ID> HEAD
+git merge-base --is-ancestor wp/<feature>/<WP-ID> HEAD
 ```
 
 Interpretation:
@@ -22,8 +22,8 @@ Example for two package branches:
 
 ```bash
 cd "$PROJECT_ROOT/.worktrees/<feature>/merge"
-git merge-base --is-ancestor task/<feature>/WP1 HEAD
-git merge-base --is-ancestor task/<feature>/WP2 HEAD
+git merge-base --is-ancestor wp/<feature>/WP1 HEAD
+git merge-base --is-ancestor wp/<feature>/WP2 HEAD
 ```
 
 Only package branches with successful checks can be removed.
@@ -36,7 +36,7 @@ After a package branch is proven integrated into `feature/<feature>`:
 cd "$PROJECT_ROOT"
 git worktree remove .worktrees/<feature>/wp-<WP-ID>
 cd "$PROJECT_ROOT/.worktrees/<feature>/merge"
-git branch -d task/<feature>/<WP-ID>
+git branch -d wp/<feature>/<WP-ID>
 ```
 
 Run `git branch -d` from the feature integration worktree so Git checks merge status against `feature/<feature>` rather than the root worktree's current branch. Use force deletion only for explicitly disposable spike branches or when the orchestrator has separately proven the branch is redundant and safe to discard.

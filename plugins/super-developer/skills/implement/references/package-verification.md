@@ -1,6 +1,6 @@
 # Package Verification Contract
 
-Load this reference only for a holistic package verification reviewer in the Super Developer planned-feature pipeline. It applies when schema-version-4 Slice-first artifacts exist: work-package Markdown, assigned Slice files, and package proof Markdown. It does not apply to ordinary PR review or ad hoc local code review outside the planned-feature pipeline.
+Load this reference only for a holistic package verification reviewer in the Super Developer planned-feature pipeline. It applies to greenfield Slice-first artifacts: work-package Markdown, assigned Slice files, and package proof Markdown. It does not apply to ordinary PR review or ad hoc local code review outside the planned-feature pipeline.
 
 Package verification is a blocker before a package is treated as complete. It is package-local and assigned-scope focused; it does not replace final integrated review-code or final audit.
 
@@ -54,7 +54,7 @@ After the audit-lite lens, inspect the package code/diff for:
 - test/evidence quality and command output credibility;
 - failure/edge/default cases implied by Slice content and verification expectations;
 - security/privacy/safety concerns when relevant;
-- data integrity, migration, API/schema, compatibility, performance, and concurrency concerns when relevant;
+- data integrity, migration, API/contract stability, performance, and concurrency concerns when relevant;
 - maintainability and boundary issues that create concrete implementation risk;
 - mock/stub/fixture/generated-snapshot risks, especially when mocks replace the contract under test.
 
