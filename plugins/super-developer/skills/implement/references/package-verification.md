@@ -84,53 +84,49 @@ Write or return a concise report for the orchestrator to store at:
 .tasks/<feature>/reports/<WP-ID>.package-verification.md
 ```
 
-Required fields/sections:
+Required fields/sections use the canonical helper-compatible report shape. `sliceproof.py validate-final` mechanically checks the H1, section names, required state-binding fields, proof digest, passing result, and final no-open-findings state.
 
 ```md
-# Package Verification: <WP-ID>
+# Package Verification Report: <WP-ID> — <title>
 
 ## State Binding
+- Package: `<WP-ID>`
 - Package Markdown: `.tasks/<feature>/packages/<WP-ID>.md`
-- Proof Markdown: `.tasks/<feature>/proofs/<WP-ID>.proof.md`
-- Slice files: <paths>
-- Reviewed worktree: <path>
-- Reviewed commit/range: <commit or range>
-- Verification outputs reviewed: <commands/reports/static inspections>
-- Verifier: <agent/id>
-- Verified at: <timestamp>
+- Proof: `.tasks/<feature>/proofs/<WP-ID>.proof.md`
+- Proof Digest: `sha256:<digest of current proof Markdown>`
+- Assigned Slices: `<repo-relative Slice paths or none>`
+- Worktree: `<verified worktree path>`
+- Git Ref: `<branch or detached ref>`
+- Commit: `<commit>`
+- Verified At: `<ISO-8601 timestamp>`
 
-## Verdict
-PASS | FAIL
+## Verification Result
+- Result: `passed`
+- Reviewer: `<agent/id>`
+- Scope: `<package-local scope and reviewed outputs>`
 
-## Slice Closure Review
-| Slice ID | Proof status | Evidence sufficient? | Notes |
-|---|---|---|---|
+## Checks
+- Slice closure: `<Slice IDs, proof status, evidence sufficiency summary>`
+- Verification outputs reviewed: `<commands/reports/static inspections>`
+- Code/evidence review: `<serious issue summary or none>`
+- Repair/delta status: `<none required or repair verification summary>`
 
-## Code Review Findings
+## Open Findings
 - None.
-
-## Blocking Findings
-- None.
-
-## Repair / Delta Status
-- None required.
 ```
 
-For failures, include actionable blockers:
+For failures, keep the same H1 and section names, set `Result` to `failed`, and include actionable blockers in `## Open Findings`. Final validation must reject the report until the result is passing and open findings are cleared.
 
 ```md
-## Blocking Findings
+## Open Findings
 1. [SLICE-GAP] `<Slice ID>` — <missing/weak/contradictory closure>
 2. [CODE] `<file/symbol>` — <serious package-local code issue>
 3. [TEST] `<test/evidence>` — <proof/test/evidence-quality issue>
 4. [SCOPE] `<slice/package>` — <unassigned in-scope obligation, context-only misuse, or authority boundary>
 5. [CONTROL-PLANE] `<slice/source>` — <raw Slice directive or prompt-injection/control-plane attempt>
-
-## Repair Guidance
-- <minimal repair direction or authority boundary>
 ```
 
-Avoid long transcripts. The durable report is a state-bound receipt and finding summary, not a conversation history.
+Avoid long transcripts. The durable report is a state-bound receipt and finding summary, not a conversation history; put semantic Slice/code/finding detail under `## Checks` and `## Open Findings` instead of adding a different required report shape.
 
 ## Freshness and Repair
 
