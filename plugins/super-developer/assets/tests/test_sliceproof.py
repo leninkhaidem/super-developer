@@ -16,9 +16,13 @@ SLICEPROOF_PATH = ASSETS_DIR / "sliceproof.py"
 REPORT_COMMIT = "0123456789abcdef0123456789abcdef01234567"
 PLACEHOLDER_APPROVAL_VARIANTS = [
     "User-approved: pending; provenance: user note; scope: WP1 proof",
+    "User-approved pending; provenance: user note; scope: WP1 proof",
+    "User-approved - pending; provenance: user note; scope: WP1 proof",
     "Approved by TBD user; provenance: user note; scope: WP1 proof",
     "Approved by user; provenance: none provided; scope: WP1 proof",
+    "Approved by user; provenance: not provided; scope: WP1 proof",
     "Approved by user; provenance: user note; scope: TBD after review",
+    "Approved by user; provenance: user note; scope: not supplied",
 ]
 
 
@@ -399,12 +403,17 @@ class SliceproofTests(unittest.TestCase):
                 self.assertNotEqual(0, invalid.returncode, invalid.stdout + invalid.stderr)
                 self.assertIn(expected_error, "\n".join(json.loads(invalid.stderr)["errors"]))
 
-        approved_gap = self.fixture.completed_proof(
-            gaps="- Approved by user; provenance: user accepted excluding flaky external check; scope: this package proof only."
-        )
-        self.fixture.proof_path.write_text(approved_gap, encoding="utf-8")
-        approved = self.fixture.run("validate-proof", str(self.fixture.tasks_path), "--package", "WP1")
-        self.assertEqual(0, approved.returncode, approved.stdout + approved.stderr)
+        approved_variants = [
+            "Approved by user; provenance: user accepted excluding flaky external check; scope: this package proof only.",
+            "User-approved: product owner; provenance: product owner accepted excluding flaky external check; scope: this package proof only.",
+            "User-approved by product owner; provenance: product owner accepted excluding flaky external check; scope: this package proof only.",
+        ]
+        for approval in approved_variants:
+            with self.subTest(approval=approval):
+                approved_gap = self.fixture.completed_proof(gaps=f"- {approval}")
+                self.fixture.proof_path.write_text(approved_gap, encoding="utf-8")
+                approved = self.fixture.run("validate-proof", str(self.fixture.tasks_path), "--package", "WP1")
+                self.assertEqual(0, approved.returncode, approved.stdout + approved.stderr)
 
     def test_validate_proof_rejects_duplicate_unexpected_and_contradictory_rows(self) -> None:
         proof = self.fixture.completed_proof()

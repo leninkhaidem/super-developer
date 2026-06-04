@@ -64,7 +64,6 @@ APPROVAL_SOURCE_RE = re.compile(
     r"\b(?:approved\s+by|approval\s+(?:granted|given|provided|confirmed)\s+by)\s+(?P<source>[^;\n|]+)",
     re.IGNORECASE,
 )
-USER_APPROVED_RE = re.compile(r"\buser[-\s]?approved\b", re.IGNORECASE)
 USER_APPROVED_SOURCE_RE = re.compile(
     r"\buser[-\s]?approved\s*(?::|by)\s*(?P<source>[^;\n|]+)",
     re.IGNORECASE,
@@ -75,7 +74,8 @@ APPROVAL_METADATA_VALUE_RE = re.compile(
 )
 APPROVAL_PLACEHOLDER_TOKEN_RE = re.compile(
     r"(?:^|[^a-z0-9])"
-    r"(?:none|no|n/a|na|tbd|to\s+be\s+determined|todo|open|gap|unknown|unconfirmed|missing|absent|pending|requested|awaiting)"
+    r"(?:none|no|n/a|na|tbd|to\s+be\s+determined|todo|open|gap|unknown|unconfirmed|missing|absent|"
+    r"pending|requested|awaiting|not\s+(?:provided|supplied|given|specified|available|set|known|confirmed|applicable|relevant))"
     r"(?:$|[^a-z0-9])",
     re.IGNORECASE,
 )
@@ -1357,9 +1357,9 @@ def has_positive_approval(value: str) -> bool:
         return False
     approval_sources = [match.group("source") for match in APPROVAL_SOURCE_RE.finditer(value)]
     approval_sources.extend(match.group("source") for match in USER_APPROVED_SOURCE_RE.finditer(value))
-    if approval_sources:
-        return all(not is_approval_placeholder_value(source) for source in approval_sources)
-    return bool(USER_APPROVED_RE.search(value))
+    return bool(approval_sources) and all(
+        not is_approval_placeholder_value(source) for source in approval_sources
+    )
 
 
 def has_non_placeholder_metadata(value: str, field: str) -> bool:
