@@ -80,6 +80,15 @@ APPROVAL_PLACEHOLDER_TOKEN_RE = re.compile(
     re.IGNORECASE,
 )
 PLACEHOLDER_VALUES = {"", "todo", "open", "gap", "tbd", "n/a", "na"}
+REPORT_BINDING_PLACEHOLDER_VALUES = {
+    "none",
+    "no",
+    "missing",
+    "not provided",
+    "not set",
+    "to be determined",
+    "unknown",
+}
 FORBIDDEN_REGISTRY_KEYS = {
     "phases",
     "tasks",
@@ -1074,7 +1083,7 @@ def validate_report_markdown(
         value = clean_cell_id(binding[field])
         if field == "Assigned Slices" and expected_assigned_slices == "none" and value == "none":
             continue
-        if is_placeholder_text(value):
+        if is_report_binding_placeholder_text(value):
             errors.append(f"{report_path}: State Binding {field} must be non-placeholder")
 
     if clean_cell_id(binding["Package"]) != package.package_id:
@@ -1361,6 +1370,13 @@ def is_placeholder_text(value: str) -> bool:
     if stripped in PLACEHOLDER_VALUES:
         return True
     return bool(BLOCKING_MARKER_RE.fullmatch(stripped))
+
+
+def is_report_binding_placeholder_text(value: str) -> bool:
+    stripped = normalize_text(value).lower().strip("-* `\'\".:?!\t")
+    if stripped in REPORT_BINDING_PLACEHOLDER_VALUES:
+        return True
+    return is_placeholder_text(value)
 
 
 def is_empty_gaps_deviations_section(value: str) -> bool:

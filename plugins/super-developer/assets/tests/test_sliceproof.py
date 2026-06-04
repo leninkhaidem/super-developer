@@ -633,6 +633,26 @@ class SliceproofTests(unittest.TestCase):
                 "State Binding Assigned Slices must be .planning/fixture/slices/helper.md",
             ),
             (
+                "worktree none placeholder",
+                valid_report.replace(f"- Worktree: `{self.fixture.repo}`", "- Worktree: `none`"),
+                "State Binding Worktree must be non-placeholder",
+            ),
+            (
+                "git ref none placeholder",
+                valid_report.replace("- Git Ref: `wp/fixture/WP1`", "- Git Ref: `none`"),
+                "State Binding Git Ref must be non-placeholder",
+            ),
+            (
+                "worktree tbd placeholder",
+                valid_report.replace(f"- Worktree: `{self.fixture.repo}`", "- Worktree: `TBD`"),
+                "State Binding Worktree must be non-placeholder",
+            ),
+            (
+                "git ref tbd placeholder",
+                valid_report.replace("- Git Ref: `wp/fixture/WP1`", "- Git Ref: `TBD`"),
+                "State Binding Git Ref must be non-placeholder",
+            ),
+            (
                 "todo check marker",
                 valid_report.replace("Verified proof closure", "TODO verify proof closure"),
                 "## Checks contains unresolved TODO/OPEN/GAP marker",
