@@ -118,7 +118,7 @@ Do not refresh proof evidence for failed or partial intermediate attempts as acc
 
 ## Report Freshness
 
-A package verification report must bind to package ID, package Markdown path, proof path, proof digest, assigned Slice paths, worktree, git ref/commit, reviewed verification output, verifier, timestamp, verdict, and open findings.
+A package verification report must bind to package ID, package Markdown path, proof path, proof digest, assigned Slice paths (or explicit `none`), worktree, git ref/commit, reviewed verification output, verifier, timestamp, verdict, and open findings.
 
 Reports block completion when missing, failed, stale, contradicted by code/proof/Slice content, bound to pre-repair evidence, or missing state binding.
 

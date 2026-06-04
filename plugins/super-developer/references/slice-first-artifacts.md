@@ -16,7 +16,7 @@ Planned-feature state is file-based and Slice-first:
 - `.tasks/<feature>/packages/<WP-ID>.md` — package assignment.
 - `.tasks/<feature>/proofs/<WP-ID>.proof.md` — package closure evidence.
 - `.tasks/<feature>/reports/<WP-ID>.package-verification.md` — independent package verification receipt.
-- `.tasks/<feature>/review-code-state.json` — review-code governance readiness for audit handoff.
+- `.tasks/<feature>/reviews/review-code-state.json` — review-code governance readiness for audit handoff.
 
 ## Lightweight Registry
 
@@ -120,6 +120,7 @@ Required sections:
 - Package Markdown: `.tasks/<feature>/packages/WP1.md`
 - Proof: `.tasks/<feature>/proofs/WP1.proof.md`
 - Proof Digest: `sha256:<digest>`
+- Assigned Slices: `<repo-relative Slice paths or none>`
 - Worktree: `<verified worktree path>`
 - Git Ref: `<branch or detached ref>`
 - Commit: `<commit>`
@@ -140,6 +141,8 @@ Required sections:
 If proof content or reviewed implementation state changes after the report, freshness is lost until a new report is produced.
 
 ## Review-Code Governance State
+
+Canonical path: `.tasks/<feature>/reviews/review-code-state.json`.
 
 `review-code-state.json` is governance readiness, not proof evidence.
 
