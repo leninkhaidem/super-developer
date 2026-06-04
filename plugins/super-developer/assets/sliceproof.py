@@ -65,8 +65,18 @@ APPROVAL_SOURCE_RE = re.compile(
     re.IGNORECASE,
 )
 USER_APPROVED_RE = re.compile(r"\buser[-\s]?approved\b", re.IGNORECASE)
+USER_APPROVED_SOURCE_RE = re.compile(
+    r"\buser[-\s]?approved\s*(?::|by)\s*(?P<source>[^;\n|]+)",
+    re.IGNORECASE,
+)
 APPROVAL_METADATA_VALUE_RE = re.compile(
     r"\b(?P<field>provenance|scope)\s*:\s*(?P<value>[^;\n|]+)",
+    re.IGNORECASE,
+)
+APPROVAL_PLACEHOLDER_TOKEN_RE = re.compile(
+    r"(?:^|[^a-z0-9])"
+    r"(?:none|no|n/a|na|tbd|to\s+be\s+determined|todo|open|gap|unknown|unconfirmed|missing|absent|pending|requested|awaiting)"
+    r"(?:$|[^a-z0-9])",
     re.IGNORECASE,
 )
 PLACEHOLDER_VALUES = {"", "todo", "open", "gap", "tbd", "n/a", "na"}
@@ -1345,38 +1355,25 @@ def has_approval_provenance_scope(value: str) -> bool:
 def has_positive_approval(value: str) -> bool:
     if NEGATED_APPROVAL_RE.search(value):
         return False
-    source_match = APPROVAL_SOURCE_RE.search(value)
-    if source_match and not is_approval_placeholder_value(source_match.group("source")):
-        return True
+    approval_sources = [match.group("source") for match in APPROVAL_SOURCE_RE.finditer(value)]
+    approval_sources.extend(match.group("source") for match in USER_APPROVED_SOURCE_RE.finditer(value))
+    if approval_sources:
+        return all(not is_approval_placeholder_value(source) for source in approval_sources)
     return bool(USER_APPROVED_RE.search(value))
 
 
 def has_non_placeholder_metadata(value: str, field: str) -> bool:
-    for match in APPROVAL_METADATA_VALUE_RE.finditer(value):
-        if match.group("field").lower() == field and not is_approval_placeholder_value(match.group("value")):
-            return True
-    return False
+    metadata_values = [
+        match.group("value")
+        for match in APPROVAL_METADATA_VALUE_RE.finditer(value)
+        if match.group("field").lower() == field
+    ]
+    return bool(metadata_values) and all(not is_approval_placeholder_value(metadata) for metadata in metadata_values)
 
 
 def is_approval_placeholder_value(value: str) -> bool:
     normalized = normalize_text(value).strip(" -*`'\".:?!").lower()
-    placeholders = {
-        "",
-        "none",
-        "no",
-        "n/a",
-        "na",
-        "tbd",
-        "to be determined",
-        "todo",
-        "open",
-        "gap",
-        "unknown",
-        "unconfirmed",
-        "missing",
-        "absent",
-    }
-    return normalized in placeholders or normalized.startswith(("pending", "requested", "awaiting"))
+    return not normalized or APPROVAL_PLACEHOLDER_TOKEN_RE.search(normalized) is not None
 
 
 def digest_text(value: str) -> str:

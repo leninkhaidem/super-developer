@@ -14,6 +14,12 @@ from pathlib import Path
 ASSETS_DIR = Path(__file__).resolve().parents[1]
 SLICEPROOF_PATH = ASSETS_DIR / "sliceproof.py"
 REPORT_COMMIT = "0123456789abcdef0123456789abcdef01234567"
+PLACEHOLDER_APPROVAL_VARIANTS = [
+    "User-approved: pending; provenance: user note; scope: WP1 proof",
+    "Approved by TBD user; provenance: user note; scope: WP1 proof",
+    "Approved by user; provenance: none provided; scope: WP1 proof",
+    "Approved by user; provenance: user note; scope: TBD after review",
+]
 
 
 class SliceproofFixture:
@@ -352,6 +358,37 @@ class SliceproofTests(unittest.TestCase):
             ("negated approval", "PASS", "some implementation evidence", "observed command output", "- Unapproved gap; provenance: none; scope: all evidence.", "gap/deviation text without approval"),
             ("deferred pending approval", "DEFERRED", "approval requested; provenance: user note; scope: WP1 proof", "observed command output", "- None.", "DEFERRED requires approval"),
         ]
+        for approval_variant in PLACEHOLDER_APPROVAL_VARIANTS:
+            cases.append(
+                (
+                    f"gap approval placeholder: {approval_variant}",
+                    "PASS",
+                    "some implementation evidence",
+                    "observed command output",
+                    f"- {approval_variant}.",
+                    "gap/deviation text without approval",
+                )
+            )
+            cases.append(
+                (
+                    f"deferred approval placeholder: {approval_variant}",
+                    "DEFERRED",
+                    approval_variant,
+                    "observed command output",
+                    "- None.",
+                    "DEFERRED requires approval",
+                )
+            )
+            cases.append(
+                (
+                    f"n/a approval placeholder: {approval_variant}",
+                    "N/A",
+                    f"rationale: fixture row intentionally not applicable; {approval_variant}",
+                    "observed command output",
+                    "- None.",
+                    "N/A requires rationale plus approval",
+                )
+            )
         for name, status, implementation, verification, gaps, expected_error in cases:
             with self.subTest(name=name):
                 self.fixture.proof_path.write_text(
@@ -455,6 +492,7 @@ class SliceproofTests(unittest.TestCase):
             "approval requested; provenance: user note; scope: WP1 proof placeholder only.",
             "Approved by user; provenance: none; scope: WP1 proof placeholder only.",
             "Approved by user; provenance: stale fixture proof intentionally reset; scope: TBD.",
+            *PLACEHOLDER_APPROVAL_VARIANTS,
         ]
         for replacement in non_approvals:
             with self.subTest(replacement=replacement):
