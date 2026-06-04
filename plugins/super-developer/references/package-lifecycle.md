@@ -1,44 +1,68 @@
-# Package Status and Lifecycle Boundary
+# Package Lifecycle, Proof, and Report Freshness
 
-Load this cold reference when a status/dashboard workflow needs package lifecycle language. Workflow runbooks own when packages may move; this reference only defines what status and helper output mean.
+Load when implementing, repairing, reviewing, displaying, or auditing planned-feature package state.
 
-## V4 Slice-First Boundary
+## Boundary
 
-Schema-version-4 planned-feature packages use:
+This reference owns package completion semantics and freshness. Artifact shapes live in `slice-first-artifacts.md`; command shapes live in `tool-usage.md`; workflow runbooks decide when to act.
 
-- `tasks.json.work_packages[]` as lightweight registry/bookkeeping;
-- `.tasks/<feature>/packages/<WP-ID>.md` as the package assignment source;
-- `.tasks/<feature>/proofs/<WP-ID>.proof.md` as package closure evidence;
-- `.tasks/<feature>/reports/<WP-ID>.package-verification.md` as durable package verification evidence when produced by the implement workflow.
+## Package Status Signals
 
-Registry `status` values such as `pending`, `in_progress`, `done`, and `blocked` are dashboard/routing signals only. `done` should be written by the implement workflow only after proof Markdown mechanically validates, verification expectations are addressed, package verification passes, repairs/delta verification are closed, and no Slice plan defect remains. Status does not prove implementation correctness and cannot bypass package verification, final code review, or final audit.
+Registry package status is a routing signal only:
 
-Dependency readiness shown by dashboards is also a signal: a pending package may be shown as ready when every `depends_on` package is registry `done`. If dependency proof Markdown or package verification report signals are missing, invalid, failed, or stale, surface warnings instead of treating readiness as semantic acceptance.
+- `pending`: package has not started.
+- `in_progress`: package work or repair is underway.
+- `blocked`: package needs an authority-boundary decision before continuing.
+- `done`: package passed the completion gate below.
 
-## V4 Helper Boundary
+Status does not prove implementation correctness. A dashboard may show status, dependency readiness, proof/report paths, and helper results, but must label them as mechanical signals.
 
-Use `sliceproof.py` for mechanical checks only:
+## Completion Gate
 
-```bash
-python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-plan ".tasks/<feature>/tasks.json"
-python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-proof ".tasks/<feature>/tasks.json" --package WP1
-python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-final ".tasks/<feature>/tasks.json"
-```
+A package may become `done` only after all of these are true:
 
-`validate-plan` can support registry/package-path/dependency dashboard health. `validate-proof` and `validate-final` can support proof Markdown mechanical status. Helper success does not judge evidence sufficiency, run tests, inspect git freshness, accept/reopen packages, mutate registry status, or replace review/audit.
+1. Package Markdown assignment validates mechanically.
+2. Proof Markdown validates mechanically and closes every required Slice row and verification expectation.
+3. Required commands or inspections from the package assignment are recorded in the proof.
+4. The package implementer completion statement and `SELF_REVIEW` evidence are present in the handoff/reporting channel required by the workflow.
+5. Independent package verification has produced a package verification report bound to the proof digest and verified worktree state.
+6. Required repairs and delta verification are closed.
+7. No unresolved Slice plan defect, unapproved gap/deviation, or authority-boundary blocker remains.
 
-## Dashboard Non-Bypass Rule
+Do not mark a package complete from registry status, helper success, proof table `PASS` rows, or package assignment text alone.
 
-A dashboard may report:
+## Freshness Rules
 
-- package registry status;
-- package/proof/report paths;
-- dependency readiness from registry dependencies;
-- proof Markdown existence and mechanical validation state;
-- blocked or interrupted package signals.
+Freshness is lost when any package-owned implementation, test, documentation, assignment, proof, or verification artifact changes after proof/report capture.
 
-A dashboard must not present package assignment, status output, helper validation, proof `PASS` rows, or manually edited files as semantic implementation proof. Missing/invalid proof Markdown, failed helper validation, blocked status, unresolved proof markers, missing package verification reports, or stale-looking evidence are warnings/blockers for workflow gates, not facts the dashboard resolves.
+When freshness is lost:
 
-## Legacy Compatibility Boundary
+- proof evidence affected by the change must be refreshed or rewritten;
+- package verification must rerun for the affected scope;
+- the package verification report must be replaced with a new proof digest and state binding;
+- review-code readiness must be refreshed when the change occurs after review-code reached readiness;
+- audit must treat the package as not final-ready until proof, report, and review-code readiness are fresh again.
 
-Schema-version-2/3 plans may still use legacy JSON proof lifecycle commands documented in `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/tool-usage.md`, including `taskctl.py accept-package`, `reopen-package`, `record-targeted-review`, and `refresh-proof-state`. Keep those commands in the legacy path only. Do not use legacy `.proof.json` lifecycle state, targeted-review receipts, or accept/reopen commands to satisfy v4 Markdown proof closure.
+Mechanical helper success is necessary but not sufficient: it checks structure, closure rows, and report binding, not semantic sufficiency.
+
+## Non-Bypass Semantics
+
+Package completion, review-code readiness, and audit are separate gates:
+
+- Package completion requires valid proof Markdown plus a fresh package verification report.
+- Review-code readiness requires the review/fix loop to close serious findings and confirm package proof/report freshness after repairs.
+- Audit requires final artifact validation, fresh package reports, review-code readiness, and material Slice obligation closure.
+
+A later gate may reject an earlier gate's output. Do not downgrade, hide, or override missing proof rows, failed reports, stale bindings, unresolved findings, or unapproved deferrals through dashboard edits or registry status changes.
+
+## Dashboard Rule
+
+Dashboards are read-only. They may surface:
+
+- registry status and dependency readiness;
+- package/proof/report file paths;
+- proof Markdown mechanical validation state;
+- package verification report presence and binding state;
+- review-code readiness state when present.
+
+Dashboards must not mutate lifecycle state or present mechanical signals as semantic proof.
