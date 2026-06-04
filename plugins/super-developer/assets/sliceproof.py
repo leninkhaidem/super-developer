@@ -1050,7 +1050,17 @@ def validate_report_markdown(
 
     binding = parse_key_values(sections["State Binding"])
     result = parse_key_values(sections["Verification Result"])
-    required_binding = {"Package", "Proof", "Proof Digest", "Worktree", "Git Ref", "Commit", "Verified At"}
+    required_binding = {
+        "Package",
+        "Package Markdown",
+        "Proof",
+        "Proof Digest",
+        "Assigned Slices",
+        "Worktree",
+        "Git Ref",
+        "Commit",
+        "Verified At",
+    }
     required_result = {"Result", "Reviewer", "Scope"}
     for field in sorted(required_binding - set(binding)):
         errors.append(f"{report_path}: ## State Binding missing {field!r}")
@@ -1059,13 +1069,25 @@ def validate_report_markdown(
     if errors:
         return errors
 
+    expected_assigned_slices = assigned_slices_binding(package_md)
+    for field in sorted(required_binding):
+        value = clean_cell_id(binding[field])
+        if field == "Assigned Slices" and expected_assigned_slices == "none" and value == "none":
+            continue
+        if is_placeholder_text(value):
+            errors.append(f"{report_path}: State Binding {field} must be non-placeholder")
+
     if clean_cell_id(binding["Package"]) != package.package_id:
         errors.append(f"{report_path}: State Binding Package must be {package.package_id}")
+    if normalize_path_value(binding["Package Markdown"]) != package.path:
+        errors.append(f"{report_path}: State Binding Package Markdown must be {package.path}")
     if normalize_path_value(binding["Proof"]) != package.proof_path:
         errors.append(f"{report_path}: State Binding Proof must be {package.proof_path}")
     actual_digest = digest_text(read_text_file(proof_path, f"proof {proof_path}"))
     if clean_cell_id(binding["Proof Digest"]) != actual_digest:
         errors.append(f"{report_path}: State Binding Proof Digest does not match current proof content")
+    if clean_cell_id(binding["Assigned Slices"]) != expected_assigned_slices:
+        errors.append(f"{report_path}: State Binding Assigned Slices must be {expected_assigned_slices}")
     if not normalize_text(binding["Worktree"]):
         errors.append(f"{report_path}: State Binding Worktree must be non-empty")
     if not normalize_text(binding["Git Ref"]):
@@ -1083,12 +1105,19 @@ def validate_report_markdown(
         errors.append(f"{report_path}: Verification Result Scope must be non-placeholder")
     if not sections["Checks"].strip() or is_placeholder_text(sections["Checks"]):
         errors.append(f"{report_path}: ## Checks must contain non-placeholder verification notes")
+    if BLOCKING_MARKER_RE.search(sections["Checks"]):
+        errors.append(f"{report_path}: ## Checks contains unresolved TODO/OPEN/GAP marker")
     if UNRESOLVED_MARKER_RE.search(sections["Open Findings"]):
         errors.append(f"{report_path}: ## Open Findings contains unresolved TODO/OPEN marker")
     if not is_empty_gaps_deviations_section(sections["Open Findings"]):
         errors.append(f"{report_path}: ## Open Findings must be '- None.' for final validation")
-    _ = package_md  # keep signature explicit: report validation is package-assignment scoped.
     return errors
+
+
+def assigned_slices_binding(package_md: PackageMarkdown) -> str:
+    if not package_md.slice_refs:
+        return "none"
+    return ", ".join(sorted(ref.path for ref in package_md.slice_refs))
 
 
 def parse_key_values(body: str) -> dict[str, str]:

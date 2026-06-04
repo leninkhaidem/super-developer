@@ -94,7 +94,7 @@ Required fields/sections use the canonical helper-compatible report shape. `slic
 - Package Markdown: `.tasks/<feature>/packages/<WP-ID>.md`
 - Proof: `.tasks/<feature>/proofs/<WP-ID>.proof.md`
 - Proof Digest: `sha256:<digest of current proof Markdown>`
-- Assigned Slices: `<repo-relative Slice paths or none>`
+- Assigned Slices: `<comma-separated repo-relative Slice paths in lexicographic order, or none>`
 - Worktree: `<verified worktree path>`
 - Git Ref: `<branch or detached ref>`
 - Commit: `<commit>`

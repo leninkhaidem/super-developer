@@ -217,7 +217,14 @@ class SliceproofFixture:
             """
         ).lstrip()
 
-    def report_text(self, proof_text: str | None = None, *, result: str = "passed") -> str:
+    def report_text(
+        self,
+        proof_text: str | None = None,
+        *,
+        result: str = "passed",
+        package_markdown: str = ".tasks/fixture/packages/WP1.md",
+        assigned_slices: str = ".planning/fixture/slices/helper.md",
+    ) -> str:
         if proof_text is None:
             proof_text = self.proof_path.read_text(encoding="utf-8")
         digest = "sha256:" + hashlib.sha256(proof_text.encode("utf-8")).hexdigest()
@@ -227,8 +234,10 @@ class SliceproofFixture:
 
             ## State Binding
             - Package: `WP1`
+            - Package Markdown: `{package_markdown}`
             - Proof: `.tasks/fixture/proofs/WP1.proof.md`
             - Proof Digest: `{digest}`
+            - Assigned Slices: `{assigned_slices}`
             - Worktree: `{self.repo}`
             - Git Ref: `wp/fixture/WP1`
             - Commit: `{REPORT_COMMIT}`
@@ -601,6 +610,52 @@ class SliceproofTests(unittest.TestCase):
         done = self.fixture.run("validate-final", str(self.fixture.tasks_path))
         self.assertEqual(0, done.returncode, done.stdout + done.stderr)
 
+        valid_report = self.fixture.report_path.read_text(encoding="utf-8")
+        report_cases = [
+            (
+                "missing package markdown",
+                valid_report.replace("- Package Markdown: `.tasks/fixture/packages/WP1.md`\n", ""),
+                "missing 'Package Markdown'",
+            ),
+            (
+                "wrong package markdown",
+                valid_report.replace(".tasks/fixture/packages/WP1.md", ".tasks/fixture/packages/WP2.md"),
+                "State Binding Package Markdown must be .tasks/fixture/packages/WP1.md",
+            ),
+            (
+                "missing assigned slices",
+                valid_report.replace("- Assigned Slices: `.planning/fixture/slices/helper.md`\n", ""),
+                "missing 'Assigned Slices'",
+            ),
+            (
+                "wrong assigned slices",
+                valid_report.replace(".planning/fixture/slices/helper.md", ".planning/fixture/slices/other.md"),
+                "State Binding Assigned Slices must be .planning/fixture/slices/helper.md",
+            ),
+            (
+                "todo check marker",
+                valid_report.replace("Verified proof closure", "TODO verify proof closure"),
+                "## Checks contains unresolved TODO/OPEN/GAP marker",
+            ),
+            (
+                "open check marker",
+                valid_report.replace("Verified proof closure", "OPEN verify proof closure"),
+                "## Checks contains unresolved TODO/OPEN/GAP marker",
+            ),
+            (
+                "gap check marker",
+                valid_report.replace("Verified proof closure", "GAP verify proof closure"),
+                "## Checks contains unresolved TODO/OPEN/GAP marker",
+            ),
+        ]
+        for name, report, expected_error in report_cases:
+            with self.subTest(name=name):
+                self.fixture.report_path.write_text(report, encoding="utf-8")
+                invalid_report = self.fixture.run("validate-final", str(self.fixture.tasks_path))
+                self.assertNotEqual(0, invalid_report.returncode, invalid_report.stdout + invalid_report.stderr)
+                self.assertIn(expected_error, "\n".join(json.loads(invalid_report.stderr)["errors"]))
+        self.fixture.report_path.write_text(valid_report, encoding="utf-8")
+
         self.fixture.report_path.unlink()
         missing_report = self.fixture.run("validate-final", str(self.fixture.tasks_path))
         self.assertNotEqual(0, missing_report.returncode)
@@ -641,7 +696,7 @@ class SliceproofTests(unittest.TestCase):
         proof = self.fixture.proof_path.read_text(encoding="utf-8")
         completed = proof.replace("TODO", "observed evidence").replace("OPEN", "PASS")
         self.fixture.proof_path.write_text(completed, encoding="utf-8")
-        self.fixture.report_path.write_text(self.fixture.report_text(completed), encoding="utf-8")
+        self.fixture.report_path.write_text(self.fixture.report_text(completed, assigned_slices="none"), encoding="utf-8")
         result = self.fixture.run("validate-final", str(self.fixture.tasks_path))
         self.assertEqual(0, result.returncode, result.stdout + result.stderr)
 

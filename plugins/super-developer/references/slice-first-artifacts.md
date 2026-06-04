@@ -120,7 +120,7 @@ Required sections:
 - Package Markdown: `.tasks/<feature>/packages/WP1.md`
 - Proof: `.tasks/<feature>/proofs/WP1.proof.md`
 - Proof Digest: `sha256:<digest>`
-- Assigned Slices: `<repo-relative Slice paths or none>`
+- Assigned Slices: `<comma-separated repo-relative Slice paths in lexicographic order, or none>`
 - Worktree: `<verified worktree path>`
 - Git Ref: `<branch or detached ref>`
 - Commit: `<commit>`
