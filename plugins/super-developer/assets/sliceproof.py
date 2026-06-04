@@ -81,13 +81,27 @@ APPROVAL_PLACEHOLDER_TOKEN_RE = re.compile(
 )
 PLACEHOLDER_VALUES = {"", "todo", "open", "gap", "tbd", "n/a", "na"}
 REPORT_BINDING_PLACEHOLDER_VALUES = {
+    "",
     "none",
     "no",
-    "missing",
-    "not provided",
-    "not set",
+    "n a",
+    "na",
+    "tbd",
     "to be determined",
+    "todo",
+    "open",
+    "gap",
     "unknown",
+    "unconfirmed",
+    "missing",
+    "absent",
+    "pending",
+    "requested",
+    "awaiting",
+    "not set",
+    "unset",
+    "not provided",
+    "not supplied",
 }
 FORBIDDEN_REGISTRY_KEYS = {
     "phases",
@@ -1373,10 +1387,13 @@ def is_placeholder_text(value: str) -> bool:
 
 
 def is_report_binding_placeholder_text(value: str) -> bool:
-    stripped = normalize_text(value).lower().strip("-* `\'\".:?!\t")
-    if stripped in REPORT_BINDING_PLACEHOLDER_VALUES:
-        return True
-    return is_placeholder_text(value)
+    normalized = normalize_report_binding_placeholder_value(value)
+    return normalized in REPORT_BINDING_PLACEHOLDER_VALUES
+
+
+def normalize_report_binding_placeholder_value(value: str) -> str:
+    normalized = normalize_text(value).lower()
+    return re.sub(r"[^a-z0-9]+", " ", normalized).strip()
 
 
 def is_empty_gaps_deviations_section(value: str) -> bool:
