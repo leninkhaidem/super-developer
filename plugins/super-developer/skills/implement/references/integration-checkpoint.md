@@ -1,6 +1,6 @@
 # Implement Integration Checkpoint
 
-Load this reference at implement Step 7 after package agents return and before marking packages `done` or dispatching downstream packages. It owns integration checkpoint order, proof validation, holistic package verification, rejection rules, and repair routing. `package-proof-lifecycle.md` owns proof Markdown creation/refresh runbooks; `package-verification.md` owns verifier behavior and report shape.
+Load this reference at implement Step 7 after package agents return and before marking packages `done` or dispatching downstream packages. It owns integration checkpoint order, proof validation, holistic package verification, rejection rules, and repair routing. `package-lifecycle.md` owns proof Markdown creation/refresh runbooks; `package-verification.md` owns verifier behavior and report shape.
 
 ## Checkpoint Order
 

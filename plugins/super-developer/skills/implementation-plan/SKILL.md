@@ -67,7 +67,7 @@ Use them to shape package boundaries, verification expectations, and risk notes.
 
 ## Step 4: Run Design Preflight When Triggered
 
-Read `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/design-preflight.md`. Before creating `.tasks/<feature-name>/` or writing files, decide whether Design Preflight is triggered by nontrivial or risky planning. Skip only for straightforward, low-risk plans.
+Read `${SUPER_DEVELOPER_PLUGIN_ROOT}/skills/implementation-plan/references/design-preflight.md`. Before creating `.tasks/<feature-name>/` or writing files, decide whether Design Preflight is triggered by nontrivial or risky planning. Skip only for straightforward, low-risk plans.
 
 When Design Preflight will spawn challengers, read `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/model-preferences.md` and resolve model preferences before dispatch. Use the existing `review-plan` key for standard planning challengers and the existing `skeptic-agent` key for adversarial, security, privacy, safety, or failure-mode challengers. If a resolved value is `inherit`, omit the model parameter; if `adaptive`, apply the role's existing adaptive behavior; if a model name, pass it directly.
 

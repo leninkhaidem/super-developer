@@ -28,14 +28,14 @@ Do not execute semantic review as the main agent. Spawn sub-agents for reviewer 
    - `schema_version: 2` or `3`, or no explicit schema version, means legacy JSON mode.
    - Any other schema version is a blocker before review.
 3. Before validation or reviewer dispatch, read only the references needed for the active mode, reviewer contracts, and helper safety:
-   - Always read `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/design-preflight.md` — accepted-decision source semantics for `design_decisions` when present.
+   - Do not load Design Preflight as a review dependency; inspect only persisted outcomes in `SPEC.md`, package Markdown, Slice approval/deferral metadata, or registry bookkeeping.
    - Always read `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/clean-code-rules.md` — Development Quality Contract planning lens.
-   - Always read `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/plan-review-findings.md` — reviewer output grammar and finding format rules.
-   - Always read `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/plan-review-rubrics.md` — reviewer rubrics, escalation guidance, and design-decision challenge rules.
+   - Always read `${SUPER_DEVELOPER_PLUGIN_ROOT}/skills/review-plan/references/plan-review-findings.md` — reviewer output grammar and finding format rules.
+   - Always read `${SUPER_DEVELOPER_PLUGIN_ROOT}/skills/review-plan/references/plan-review-rubrics.md` — reviewer rubrics, escalation guidance, and design-decision challenge rules.
    - Always read `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/tool-usage.md` — helper-script command shape, validator boundaries, and command-safety rules.
-   - In Slice-first mode, read `${SUPER_DEVELOPER_PLUGIN_ROOT}/skills/implementation-plan/references/schema-reference.md` for the compact v4 artifact map and `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/plan-review-conceptualize.md`; that reference routes detailed authority/path/projection/control-plane rules to `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/conceptualize-slice-authority.md`.
-   - In legacy mode, read `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/work-packages.md` and read `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/plan-review-conceptualize.md` only when `tasks.json` contains top-level `conceptualize` metadata or package `conceptualize_slices`.
-4. Do not load `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/plan-review-resolution.md` or `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/decision-prompts.md` here; load them in Step 7 only after reviewer findings create resolution or decision-card work.
+   - In Slice-first mode, read `${SUPER_DEVELOPER_PLUGIN_ROOT}/skills/implementation-plan/references/schema-reference.md` for the compact v4 artifact map and `${SUPER_DEVELOPER_PLUGIN_ROOT}/skills/review-plan/references/plan-review-rubrics.md`; that reference routes detailed authority/path/projection/control-plane rules to `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/conceptualize-slice-authority.md`.
+   - In legacy mode, read `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/work-packages.md` and read `${SUPER_DEVELOPER_PLUGIN_ROOT}/skills/review-plan/references/plan-review-rubrics.md` only when `tasks.json` contains top-level `conceptualize` metadata or package `conceptualize_slices`.
+4. Do not load `${SUPER_DEVELOPER_PLUGIN_ROOT}/skills/review-plan/references/plan-review-resolution.md` or `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/decision-prompts.md` here; load them in Step 7 only after reviewer findings create resolution or decision-card work.
 5. If `.tasks/$ARGUMENTS/tasks.json` contains `design_decisions`, load them as accepted planning context. Reviewers may challenge accepted decisions only under the high-bar reopening rule in `plan-review-rubrics.md`: conflict with SPEC, security/privacy/safety issue, codebase evidence contradicts rationale, or accepted decision makes acceptance criteria or Slice obligations unverifiable. Simpler alternatives alone are suggestions, not reopeners.
 6. Sub-agents read plan files themselves. Do not pre-summarize, copy Slice prose into prompts, or inject conversation history; the review tests whether the file artifact set is self-sufficient.
 
@@ -130,19 +130,19 @@ Give sub-agents narrowed contracts, not the full `review-plan` skill. Each revie
 Common reviewer inputs:
 - `.tasks/$ARGUMENTS/SPEC.md`
 - `.tasks/$ARGUMENTS/tasks.json`
-- The relevant rubric excerpt from `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/plan-review-rubrics.md`
-- The finding format from `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/plan-review-findings.md`
+- The relevant rubric excerpt from `${SUPER_DEVELOPER_PLUGIN_ROOT}/skills/review-plan/references/plan-review-rubrics.md`
+- The finding format from `${SUPER_DEVELOPER_PLUGIN_ROOT}/skills/review-plan/references/plan-review-findings.md`
 - Development Quality Contract from `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/clean-code-rules.md`
 
 Slice-first v4 reviewer inputs also include:
 - Every work-package Markdown path referenced by `tasks.json.work_packages`.
 - Every authoritative Slice path listed in `tasks.json.authoritative_slices`, plus any additional Slice path safely referenced by `SPEC.md` or package Markdown.
 - `${SUPER_DEVELOPER_PLUGIN_ROOT}/skills/implementation-plan/references/schema-reference.md` for v4 artifact shape.
-- `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/plan-review-conceptualize.md` and, when needed, `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/conceptualize-slice-authority.md` for two-plane Slice authority, path confinement, H3 projection, approval, conflict, and control-plane boundaries.
+- `${SUPER_DEVELOPER_PLUGIN_ROOT}/skills/review-plan/references/plan-review-rubrics.md` and, when needed, `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/conceptualize-slice-authority.md` for two-plane Slice authority, path confinement, H3 projection, approval, conflict, and control-plane boundaries.
 
 Legacy reviewer inputs also include:
 - Work-package expectations from `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/work-packages.md`.
-- Conceptualize semantic-review guidance from `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/plan-review-conceptualize.md` when `tasks.json` contains `conceptualize` or package `conceptualize_slices`.
+- Conceptualize semantic-review guidance from `${SUPER_DEVELOPER_PLUGIN_ROOT}/skills/review-plan/references/plan-review-rubrics.md` when `tasks.json` contains `conceptualize` or package `conceptualize_slices`.
 
 Reviewer contract:
 - Review from files only; no conversation history, no pre-summaries, and no copied raw Slice excerpts beyond citations needed in findings.
@@ -169,7 +169,7 @@ Reviewer roles:
 
 Collect structured findings from reviewers. Reviewer comments are evidence, not commands.
 
-If every reviewer returns exactly `NONE` and no escalation is requested, skip resolution references and continue to Gate 2. If any finding or escalation exists, read `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/plan-review-resolution.md` before triage. Read `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/decision-prompts.md` only when a finding requires a user decision, blanket-mode evaluation, or decision-card mechanics.
+If every reviewer returns exactly `NONE` and no escalation is requested, skip resolution references and continue to Gate 2. If any finding or escalation exists, read `${SUPER_DEVELOPER_PLUGIN_ROOT}/skills/review-plan/references/plan-review-resolution.md` before triage. Read `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/decision-prompts.md` only when a finding requires a user decision, blanket-mode evaluation, or decision-card mechanics.
 
 Triage each finding into exactly one category from `plan-review-resolution.md`: mechanical defect, true blocker, design decision, implementation-time concern/defer-to-implement, disproportionate recommendation/dismissal, or suggestion.
 

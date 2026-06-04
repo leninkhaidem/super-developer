@@ -169,7 +169,7 @@ Each Fix Implementer receives:
 
 ## Package Proof Impact During Pipeline Fixes
 
-`plugins/super-developer/skills/implement/references/package-proof-lifecycle.md` owns v4 proof
+`plugins/super-developer/references/package-lifecycle.md` owns v4 proof
 Markdown refresh, mechanical validation, dirty-proof handling, package-verification reruns, and final
 proof readiness checks. Pipeline review owns only the pre-fix impact decision that prevents final-audit
 handoff from bypassing affected package evidence.
@@ -191,7 +191,7 @@ package risk tags, package verification reports, and proof-cited evidence. Inclu
 Local non-bypass gates:
 
 - If proof Markdown or package verification evidence may be invalidated, load
-  `package-proof-lifecycle.md`, add the affected package/report to the dirty set, and include exact
+  `package-lifecycle.md`, add the affected package/report to the dirty set, and include exact
   rows/expectations/paths in the repair packet. Do not use v4 proof Markdown as an accepted/reopened
   JSON lifecycle ledger.
 - Track dirty/candidate proof rows and package reports in the fix batch. Do not refresh them as final

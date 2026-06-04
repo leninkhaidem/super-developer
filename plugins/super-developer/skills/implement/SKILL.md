@@ -176,7 +176,7 @@ After all package agents in the current batch return:
 7. Confirm ignored `.tasks` proof/report artifacts were not force-added or committed; hand them through the shared task store, not package branch merges.
 8. Delegate fresh repair/verification agents for failed proof validation, failed package verification, stale post-merge reports, or confirmed findings; do not fix inline.
 
-Load `plugins/super-developer/skills/implement/references/integration-checkpoint.md` for checkpoint order, package verifier routing, rejection rules, and repair packets. Load `plugins/super-developer/skills/implement/references/package-proof-lifecycle.md` for proof Markdown creation/validation/refresh runbooks.
+Load `plugins/super-developer/skills/implement/references/integration-checkpoint.md` for checkpoint order, package verifier routing, rejection rules, and repair packets. Load `plugins/super-developer/references/package-lifecycle.md` for proof Markdown creation/validation/refresh runbooks.
 
 Evidence gate: do not mark a package `done` merely because code was committed or merged. Completion requires proof Markdown mechanical validation, successful verification expectations, a durable package verification PASS bound to the reviewed state, and no unresolved repair/proof refresh/Slice plan-defect obligations.
 

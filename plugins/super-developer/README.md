@@ -201,7 +201,7 @@ Constrained task lifecycle helpers:
 - `block-task`: mark one task blocked with a required reason.
 - `reset-task`: reset one interrupted or blocked task to pending after orchestrator review.
 
-These commands do not run recorded package verification commands. Accepted package proofs must cite passing evidence for required package verification commands and the mandatory package review receipt stored in the existing `targeted_review` proof object; no separate package-review ledger, transcript, or renamed `package_review` field is authoritative. Final implementation and audit gates require completed task lifecycle plus one valid, current, lifecycle-accepted proof file per planned work package. Historical `verification.json` files are not authoritative package or final evidence. See [`references/package-lifecycle.md`](references/package-lifecycle.md) for the helper boundary index and [`skills/implement/references/package-proof-lifecycle.md`](skills/implement/references/package-proof-lifecycle.md) for canonical lifecycle transition, provenance, freshness, dirty-proof, and final-gate semantics.
+These commands do not run recorded package verification commands. Accepted package proofs must cite passing evidence for required package verification commands and the mandatory package review receipt stored in the existing `targeted_review` proof object; no separate package-review ledger, transcript, or renamed `package_review` field is authoritative. Final implementation and audit gates require completed task lifecycle plus one valid, current, lifecycle-accepted proof file per planned work package. Historical `verification.json` files are not authoritative package or final evidence. See [`references/package-lifecycle.md`](references/package-lifecycle.md) for canonical lifecycle transition, provenance, freshness, dirty-proof, and final-gate semantics.
 
 For exact command shapes, read-only vs mutation boundaries, and helper-script safety rules, see [`references/tool-usage.md`](references/tool-usage.md).
 
@@ -226,15 +226,14 @@ super-developer/
 |   +-- validate-tasks-json.py             # tasks.json schema/dependency validator
 +-- references/
 |   +-- clean-code-rules.md               # Development Quality Contract for agents
-|   +-- model-preferences.md              # Sub-agent model selection schema
-|   +-- work-packages.md                  # Work-package delegation contract
-|   +-- decision-prompts.md               # Decision-card UX mechanics (review-plan + review-code)
-|   +-- design-preflight.md              # Triggered planning challenge before durable task plans
-|   +-- plan-review-findings.md          # Plan reviewer finding format and severity contract
-|   +-- plan-review-rubrics.md           # Narrowed plan reviewer role rubrics
-|   +-- plan-review-resolution.md        # Main-agent plan review triage and re-review rules
-|   +-- package-lifecycle.md             # Targeted package proof lifecycle semantics
-|   +-- tool-usage.md                    # Helper script command shapes and safety rules
+|   +-- conceptualize-slice-authority.md  # Slice authority and path-safety boundary
+|   +-- decision-prompts.md               # Decision-card UX mechanics
+|   +-- known-risk-patterns.md            # Risk probe library
+|   +-- model-preferences.md              # Sub-agent model selection preferences
+|   +-- package-lifecycle.md              # Package proof/report freshness semantics
+|   +-- slice-first-artifacts.md          # Planned-feature artifact contract
+|   +-- tool-usage.md                     # sliceproof.py command shapes and safety rules
+|   +-- work-packages.md                  # Work-package delegation semantics
 +-- skills/
 |   +-- conceptualize/
 |   |   +-- SKILL.md                    # Minimal Conceptualize Index + optional Slices
