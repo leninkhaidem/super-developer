@@ -162,4 +162,4 @@ Minimum clean audit-handoff state includes:
 
 Keep the state compact: bounded current-state summaries and pointers are allowed; package proof bodies, report bodies, transcripts, status history, lifecycle ledgers, and format markers are not.
 
-Audit fails closed when this state is missing, not `mode: "pipeline"`, not `state: "ready_for_audit"`, not bound to the reviewed integrated state, has any `findings.open_serious` entry, or has false/uncertain `closure_status.ready_for_audit` or `closure_status.proofs_and_reports_fresh`.
+Audit may run with this state or explicit `none` as optional context. Final merge/readiness fails closed when review-code readiness is missing, not `mode: "pipeline"`, not `state: "ready_for_audit"`, not bound to the reviewed integrated state, has any `findings.open_serious` entry, or has false/uncertain `closure_status.ready_for_audit` or `closure_status.proofs_and_reports_fresh`.

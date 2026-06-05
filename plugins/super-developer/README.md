@@ -14,10 +14,10 @@ Super Developer replaces scattered prompts with a file-backed workflow. Planned-
 conceptualize (optional Index + Slices)
         |
         v
-implementation-plan -> review-plan -> implement -> review-code -> audit
-        |                 |              |             |          |
-        |                 |              |             |          final completeness gate
-        |                 |              |             audit-readiness gate
+implementation-plan -> review-plan -> implement -> final review-code + final audit
+        |                 |              |             |                  |
+        |                 |              |             |                  final completeness gate
+        |                 |              |             final code-risk gate
         |                 |              package agents + proof Markdown + reports
         |                 plan quality and Slice coverage gate
         SPEC.md + tasks.json registry + packages/proofs/reports
@@ -42,7 +42,7 @@ A planned feature lives under `.tasks/<feature>/` and points to optional `.plann
 | `.tasks/<feature>/reports/<WP-ID>.package-verification.md` | Independent package verification receipt bound to proof digest and reviewed state. |
 | `.tasks/<feature>/reviews/review-code-state.json` | Review-code governance readiness for audit handoff. |
 
-`tasks.json` is bookkeeping. Package Markdown owns assignment, proof Markdown owns closure evidence, package reports own independent verification receipt state, review-code state owns audit-readiness handoff, and audit owns the final PASS/FAIL judgment.
+`tasks.json` is bookkeeping. Package Markdown owns assignment, proof Markdown owns closure evidence, package reports own independent verification receipt state, review-code state owns final-review readiness, and audit owns the final PASS/FAIL judgment.
 
 ---
 
@@ -80,7 +80,7 @@ See [`references/tool-usage.md`](references/tool-usage.md), [`references/slice-f
 | **review-plan** | Validates planned-feature artifacts, Slice coverage, package assignment, proof/report expectations, and approved deferrals before implementation. | Pipeline + standalone |
 | **implement** | Orchestrates package worktrees, package agents, proof Markdown, package verification reports, integration checkpoints, review-code, and audit handoff. | Pipeline + standalone |
 | **review-code** | Runs bounded PR, local, or planned-feature pipeline code review with dynamic risk lenses, Skeptic verification for serious findings, and governed fix verification where the mode permits fixes. | Pipeline + standalone + PR review |
-| **audit** | Final read-only planned-feature completeness gate over accepted artifacts, proof Markdown, package reports, review-code readiness, and integrated code state. | Final gate + standalone |
+| **audit** | Final read-only planned-feature completeness gate over accepted artifacts, proof Markdown, package reports, optional review-code context, and integrated code state. | Final gate + standalone |
 | **tasks** | Read-only dashboard for registry, package, proof, report, and review-code readiness signals. | Standalone |
 | **spike-to-plan** | Runs empirical feasibility spikes before planning and routes accepted evidence into durable planning artifacts. | Planning hook |
 | **spike-and-fix** | Diagnoses bugs evidence-first, validates candidate fixes in isolation, then extracts a clean regression-tested fix. | Standalone |
@@ -160,7 +160,7 @@ Claude Code discovers packaged skills automatically. Other hosts need equivalent
 > Plan this feature
 ```
 
-Planning writes `.tasks/<feature>/SPEC.md`, `.tasks/<feature>/tasks.json`, package Markdown, and declared proof/report paths. After plan review approval, `implement` presents an Execution Contract. Approve auto-resolve to continue through package implementation, package verification, review-code readiness, and final audit, or choose step-by-step control at each gate.
+Planning writes `.tasks/<feature>/SPEC.md`, `.tasks/<feature>/tasks.json`, package Markdown, and declared proof/report paths. After plan review approval, `implement` presents an Execution Contract. Approve auto-resolve to continue through package implementation, package verification, final review-code, and final audit sibling checks, or choose step-by-step control at each gate.
 
 Useful standalone prompts:
 

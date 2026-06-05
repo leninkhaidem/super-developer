@@ -88,7 +88,7 @@ For `.tasks/<feature>/reviews/review-code-state.json`:
 - `not ready` — state says not ready, proof/report freshness is false, or open serious findings remain.
 - `stale/unknown` — state is malformed, for another feature, or not state-bound enough for dashboard confidence.
 
-Dashboard display does not validate semantic readiness; audit fails closed on stale or insufficient readiness.
+Dashboard display does not validate semantic readiness. Audit may run with review-code context `none`; final merge/readiness remains blocked until review-code readiness and audit PASS are clean for the same integrated state.
 
 ## Final Mechanical Check
 
@@ -96,7 +96,7 @@ If the user asks for final readiness, run `sliceproof.py validate-final` only as
 
 - `final mechanical PASS` — all helper mechanics passed, including report binding checks implemented by the helper;
 - `final mechanical FAIL` — helper reported missing/invalid mechanics;
-- `not audit-ready by dashboard alone` — always include this note.
+- `not final-ready by dashboard alone` — always include this note.
 
 ## Edge Cases
 
