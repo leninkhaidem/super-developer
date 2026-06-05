@@ -20,15 +20,14 @@ Orchestrate Slice-first planned-feature delivery through package agents, proof M
 ## Do
 
 1. Resolve `.tasks/<feature>/`; load `../../references/tool-usage.md`; run `sliceproof.py validate-plan`; read `SPEC.md`, registry, selected package Markdown, and safe assigned Slices only after path validation.
-2. If package dispatch is possible, load `../../references/model-preferences.md` for model choice.
-3. Load `references/execution-contract.md`; present the Execution Contract with base/feature/target refs, feature push boundary, package branch/worktree names, package/proof/report paths, Slice obligations, verification expectations, package verification depth, stop conditions, and auto-resolve vs step-by-step choice.
-4. After approval, use the `worktree` skill for setup commands and worktree safety; load `references/package-integration-gates.md` for implement-specific merge, freshness, conflict, and package-completion gates; create the integration/package worktrees without switching the root worktree.
-5. For package semantics, dependencies, sizing, and runtime batch adjustment, load `../../references/work-packages.md` and `references/package-dispatch.md`; choose the largest safe useful batch or stop on package/authority blockers.
-6. Before each package dispatch, load `../../references/package-lifecycle.md`, `references/delegation-dispatch.md`, and `references/package-agent-contract.md`; create proof placeholders, update registry status only as bookkeeping when used, and construct the package-agent prompt.
-7. When package agents return, load `references/integration-checkpoint.md` and `references/package-verification.md`; validate `SELF_REVIEW`, proof Markdown, commands/inspections, Slice plan-defect status, package verification report, post-merge freshness, and ignored `.tasks` handling.
-8. If repair is needed, load `references/repair-agent-contract.md`; delegate repair or verifier follow-up through fresh agents, then refresh affected proof rows/reports, rerun proof validation, and rerun focused or full package verification before completion.
-9. Mark packages done only after the completion gate passes; merge through the integration worktree, keep package branches/worktrees until cleanup gates pass, and loop to downstream packages.
-10. At final readiness, use `../../references/package-lifecycle.md`; run `sliceproof.py validate-final`, safe integrated checks, and contracted feature push only through the `worktree` skill's push/cleanup boundary; invoke `review-code` and `audit` only through their skills when readiness rules allow.
+2. Load `references/execution-contract.md`; present the Execution Contract with base/feature/target refs, feature push boundary, package branch/worktree names, package/proof/report paths, Slice obligations, verification expectations, package verification depth, stop conditions, and auto-resolve vs step-by-step choice.
+3. After approval, use the `worktree` skill for setup commands and worktree safety; create the integration/package worktrees without switching the root worktree.
+4. For package semantics, dependencies, sizing, and runtime batch adjustment, load `../../references/work-packages.md` and `references/package-dispatch.md`; choose the largest safe useful batch or stop on package/authority blockers.
+5. Before each package dispatch, load `../../references/package-lifecycle.md`, `../../references/model-preferences.md`, and `references/delegation-dispatch.md`; create proof placeholders, update registry status only as bookkeeping when used, and construct package-agent prompts that pass sub-agent contract paths without loading those contracts into orchestrator context.
+6. When package agents return, load `references/package-integration-gates.md` and `references/integration-checkpoint.md`; validate `SELF_REVIEW`, proof Markdown, commands/inspections, Slice plan-defect status, package verification report, post-merge freshness, and ignored `.tasks` handling.
+7. If repair is needed, use `references/delegation-dispatch.md` to construct repair or verifier follow-up prompts; delegate through fresh agents, then refresh affected proof rows/reports, rerun proof validation, and rerun focused or full package verification before completion.
+8. Mark packages done only after the completion gate passes; merge through the integration worktree, keep package branches/worktrees until cleanup gates pass, and loop to downstream packages.
+9. At final readiness, use `../../references/package-lifecycle.md`; run `sliceproof.py validate-final`, safe integrated checks, and contracted feature push only through the `worktree` skill's push/cleanup boundary; invoke `review-code` and `audit` only through their skills when readiness rules allow.
 
 ## Load if needed
 
