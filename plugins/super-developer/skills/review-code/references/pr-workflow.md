@@ -1,6 +1,7 @@
 # PR Review Workflow
 
-PR mode owns GitHub PR setup, preview, posting, approval, merge, and cleanup gates. It is review-only for code changes: no local code fixes, no delegated Fix Implementer, and no Fix Verification Review.
+PR mode owns GitHub PR setup, preview, posting, approval, merge, and cleanup gates. It is review-only for code changes: no local code fixes, no delegated Fix
+Implementer, and no Fix Verification Review.
 
 Requirement: GitHub CLI (`gh`) installed and authenticated. Use `gh`/`gh api` only; no direct REST calls or scraping.
 
@@ -21,7 +22,8 @@ git worktree add .worktrees/pr-review/${PR_NUMBER} $PR_SHA --detach
 
 Hard stops: authentication failure, PR state `MERGED`/`CLOSED`, mergeability `CONFLICTING`, or mergeability `UNKNOWN` after one retry.
 
-Capture immutable reviewed-state metadata: PR number/repository, head ref/SHA, base ref/SHA, mergeability/context, reviewed diff checksum or saved diff, file list/status, and detached review worktree path. Never switch the root worktree.
+Capture immutable reviewed-state metadata: PR number/repository, head ref/SHA, base ref/SHA, mergeability/context, reviewed diff checksum or saved diff, file
+list/status, and detached review worktree path. Never switch the root worktree.
 
 After setup, return to the main skill for reviewer dispatch.
 
@@ -65,7 +67,8 @@ Before posting or merging, rerun:
 gh pr view <PR_IDENTIFIER> --json number,state,baseRefName,headRefName,mergeable,headRefOid,baseRefOid
 ```
 
-Gate passes only when PR is open, current head/base SHAs equal reviewed head/base SHAs, mergeability/context still match, and diff checksum or reviewed file list still matches. If stale, broadened, or ambiguous, halt without side effects and require review rerun.
+Gate passes only when PR is open, current head/base SHAs equal reviewed head/base SHAs, mergeability/context still match, and diff checksum or reviewed file
+list still matches. If stale, broadened, or ambiguous, halt without side effects and require review rerun.
 
 ## Posting Actions
 
@@ -87,7 +90,8 @@ gh api --method POST "/repos/{owner}/{repo}/pulls/$PR_NUMBER/reviews" \
   --field body="<review body>"
 ```
 
-Header becomes `PR Review — #<number> <head branch> → <base branch> — Approved ✅`; verdict line is `APPROVE`. Do not merge, delete branches, or run merge commands.
+Header becomes `PR Review — #<number> <head branch> → <base branch> — Approved ✅`; verdict line is `APPROVE`. Do not merge, delete branches, or run merge
+commands.
 
 If confirmed serious findings exist and the user says `approve`, refuse and offer `request-changes` or `abort`.
 
@@ -100,7 +104,8 @@ gh pr view <PR_IDENTIFIER> --json number,reviewDecision,latestReviews,headRefOid
 gh api "/repos/{owner}/{repo}/pulls/$PR_NUMBER/reviews"
 ```
 
-Approval gate passes only when an approving review exists for the exact current/reviewed head SHA and is not stale, dismissed, superseded by later change-request review, or tied to another commit. If absent or ambiguous, halt.
+Approval gate passes only when an approving review exists for the exact current/reviewed head SHA and is not stale, dismissed, superseded by later
+change-request review, or tied to another commit. If absent or ambiguous, halt.
 
 Then merge:
 
@@ -116,4 +121,5 @@ Squash merge is hardcoded; rebase is never automated.
 
 On `abort` or after a terminal action, remove only `.worktrees/pr-review/${PR_NUMBER}`. Do not delete branches except through explicit merge.
 
-Blanket mode may cover preview and posting only when it explicitly authorizes GitHub side effects and state gates pass. It never auto-merges, never creates a PR fix path, and never bypasses security/privacy/safety sniff or Skeptic verification.
+Blanket mode may cover preview and posting only when it explicitly authorizes GitHub side effects and state gates pass. It never auto-merges, never creates a PR
+fix path, and never bypasses security/privacy/safety sniff or Skeptic verification.

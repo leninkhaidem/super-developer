@@ -1,8 +1,10 @@
 # Local Code Review Workflow
 
-Local mode owns offline diff setup, report, local fix, commit, details, and abort gates. It does not impose planned-feature Slice/proof/report/audit obligations or refresh package evidence; switch to pipeline mode for governed planned-feature fixes.
+Local mode owns offline diff setup, report, local fix, commit, details, and abort gates. It does not impose planned-feature Slice/proof/report/audit obligations
+or refresh package evidence; switch to pipeline mode for governed planned-feature fixes.
 
-Requirement: `git` installed and inside a Git repository. If the user provides intent, constraints, known tradeoffs, or focus areas, pass them to reviewers and fix agents to reduce false positives.
+Requirement: `git` installed and inside a Git repository. If the user provides intent, constraints, known tradeoffs, or focus areas, pass them to reviewers and
+fix agents to reduce false positives.
 
 ## Scope and Setup
 
@@ -37,7 +39,8 @@ git log --oneline -10
 
 Hard stops: not a Git repo or empty diff.
 
-Capture reviewed-state metadata: current branch, `HEAD` SHA, base ref/SHA for branch diff, scope, reviewed file list/status, diff checksum or saved diff, and staged checksum when reviewing staged changes.
+Capture reviewed-state metadata: current branch, `HEAD` SHA, base ref/SHA for branch diff, scope, reviewed file list/status, diff checksum or saved diff, and
+staged checksum when reviewing staged changes.
 
 Report scope before reviewer dispatch:
 
@@ -89,13 +92,17 @@ Reject stale or broadened state and instruct the user to rerun review.
 
 The main agent does not implement substantive code/test/docs fixes inline. Delegate a Fix Implementer with:
 
-- confirmed findings with dedupe keys, Skeptic verdicts, evidence, recommendations, approved decision-card outcomes, and only eligible bundled suggestions allowed by the main skill;
+- confirmed findings with dedupe keys, Skeptic verdicts, evidence, recommendations, approved decision-card outcomes, and only eligible bundled suggestions
+  allowed by the main skill;
 - reviewed-state metadata, target paths, exact local scope, user/repo/mode constraints;
 - instruction to avoid unrelated cleanup, broad rewrites, or files outside target paths unless required to close the finding.
 
-The Fix Implementer must reproduce or locate each finding, state the bug class/equivalence class, add or adjust targeted regression evidence when applicable, run targeted checks, avoid separate suggestion cleanup, and report unresolved blockers.
+The Fix Implementer must reproduce or locate each finding, state the bug class/equivalence class, add or adjust targeted regression evidence when applicable,
+run targeted checks, avoid separate suggestion cleanup, and report unresolved blockers.
 
-After fixes, run the main skill's Fix Verification Gate. Local post-fix commit/readiness requires all assigned findings closed, regression sniff pass, no unresolved widening trigger, and Local State Gate pass. After one widened verification pass, stop instead of widening recursively if more scope is still needed or no bounded seam remains.
+After fixes, run the main skill's Fix Verification Gate. Local post-fix commit/readiness requires all assigned findings closed, regression sniff pass, no
+unresolved widening trigger, and Local State Gate pass. After one widened verification pass, stop instead of widening recursively if more scope is still needed
+or no bounded seam remains.
 
 ## Commit, Details, Abort, Blanket Mode
 
@@ -110,8 +117,11 @@ git commit -m "<concise summary of changes>"
 
 Do not use `git add -A`. If serious issues exist, refuse and offer `fix` or rerun after manual repairs.
 
-`details <N>` expands finding N with code snippet, evidence, Skeptic summary for serious findings, and recommendation. Do not expose internal coverage rows, raw tags, dedupe keys, or state/fix metadata unless requested for diagnostics.
+`details <N>` expands finding N with code snippet, evidence, Skeptic summary for serious findings, and recommendation. Do not expose internal coverage rows, raw
+tags, dedupe keys, or state/fix metadata unless requested for diagnostics.
 
 `abort` closes cleanly without mutating files, staging area, commits, proof/report files, or review metadata.
 
-Blanket mode may delegate unambiguous serious fixes and eligible suggestion bundles after Local State Gate passes. Product/architecture choices still require the main skill's decision-card rule. Blanket mode never bypasses security/privacy/safety sniff, Skeptic verification, Local State Gate, Fix Verification Gate, blocker commit refusal, or repeated-widening stop.
+Blanket mode may delegate unambiguous serious fixes and eligible suggestion bundles after Local State Gate passes. Product/architecture choices still require
+the main skill's decision-card rule. Blanket mode never bypasses security/privacy/safety sniff, Skeptic verification, Local State Gate, Fix Verification Gate,
+blocker commit refusal, or repeated-widening stop.
