@@ -7,6 +7,8 @@ description: Executes reviewed greenfield Slice-first planned-feature packages. 
 
 Orchestrate Slice-first planned-feature delivery through package agents, proof Markdown, package verification reports, integration, final review-code, and audit.
 
+Implementation pipeline map: package waves → package proof + one holistic package verification reviewer → integration gates → final `review-code` + `audit` sibling checks → delegated repairs + affected reruns → final readiness for the same integrated state.
+
 ## Always
 
 - The main agent orchestrates only: validate artifacts, manage worktrees/branches, dispatch agents, verify handoffs, merge, route repairs, and continue gates.
