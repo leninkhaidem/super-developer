@@ -41,7 +41,7 @@ The goal is not a short chat or a task plan. The goal is to walk the design tree
 3. Use the Index for lightweight orientation; use Slices for stable H3 commitments that future planning, package assignment, review, audit, or resumed sessions must not reconstruct from hidden conversation context.
 4. Checkpoint only material conclusions future planning/sub-agents/resumed sessions need; do not write every conversational turn.
 5. Keep Slices living: revise stale, contradicted, or superseded H3 blocks when approved rather than appending hidden history.
-5. When the user is ready for planning, load the final handoff reference, run the coverage pass, and return the handoff summary.
+6. When the user is ready for planning, load the final handoff reference, run the coverage pass, and return the handoff summary.
 
 ## Load if needed
 
