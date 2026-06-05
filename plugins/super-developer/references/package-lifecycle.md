@@ -97,8 +97,8 @@ When freshness is lost:
 - rerun `sliceproof.py validate-proof` for every dirty package;
 - rerun focused or full package verification as required by the changed surface;
 - replace the report with a new proof digest and state binding;
-- refresh review-code readiness when the change occurs after review-code reached readiness;
-- treat the package as not final-ready until proof, report, and review-code readiness are fresh again.
+- rerun affected review-code checks and refresh review-code readiness when the change occurs after review-code reached readiness;
+- treat the package as not final-ready until proof, report, review-code readiness, and required audit reruns are fresh again.
 
 Uncertain impact fails closed by marking candidate package proofs/reports dirty or recording explicit no-impact evidence.
 
@@ -112,7 +112,9 @@ After repair:
 2. refresh affected proof rows and evidence sections;
 3. rerun mechanical proof validation;
 4. rerun package verification focused on failed findings and changed surfaces;
-5. require full package re-verification when repair widens scope, changes package contracts, invalidates coverage/mock/Slice disclosures, touches new risk surfaces, or repeatedly fails to close.
+5. rerun affected final code-review checks when changed code or risk surfaces were already reviewed;
+6. rerun focused audit checks for bounded Slice/package/global repair, or full final audit when scope is broad or assignment/completeness assumptions changed;
+7. require full package re-verification when repair widens scope, changes package contracts, invalidates coverage/mock/Slice disclosures, touches new risk surfaces, or repeatedly fails to close.
 
 Do not refresh proof evidence for failed or partial intermediate attempts as accepted evidence.
 
@@ -140,6 +142,14 @@ python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-final ".t
 ```
 
 Final readiness still requires review-code readiness and final audit. Helper success, registry mutation, manual proof edits, or dashboard output cannot bypass those gates.
+
+## End-to-End Final Loop
+
+1. Complete all packages through the package completion gate.
+2. Run final review-code; if issues are found, batch compatible findings, delegate repair, refresh affected proof/report evidence, rerun package verification, and rerun affected review-code checks.
+3. When review-code is ready for audit, run final audit against the same integrated state.
+4. If audit fails, batch audit findings with final review-code findings when possible, delegate repair, refresh affected proof Markdown and package reports, rerun `sliceproof.py validate-proof`/package verification, rerun affected review-code checks, then rerun focused or full audit as scope requires.
+5. Declare readiness only when package evidence, review-code readiness, and final audit PASS are clean for the same integrated state.
 
 ## Dashboard Rule
 

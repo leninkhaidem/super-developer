@@ -31,7 +31,7 @@ Run the final non-bypass Slice-first completeness gate from files and integrated
 
 5. Confirm every declared package proof Markdown and package verification report is present, current enough to dispatch, and bound to the final state at a mechanical level.
 6. Confirm `.tasks/<feature>/reviews/review-code-state.json` exists for pipeline audit, matches the canonical governance state in `slice-first-artifacts.md`, is for the same feature/integrated state, has `mode: "pipeline"` and `state: "ready_for_audit"`, leaves `findings.open_serious` empty, and has true `closure_status.ready_for_audit` plus `closure_status.proofs_and_reports_fresh`.
-7. Load `references/audit-subagent-contract.md` and dispatch a cold read-only sub-agent with exact paths and resolved git/worktree state.
+7. Load `references/audit-subagent-contract.md` and dispatch a cold read-only sub-agent with exact paths, final review-code report path when available or explicit `none`, and resolved git/worktree state.
 8. Return only PASS/FAIL, blocking findings, and repair handoff targets.
 
 ## Load if needed

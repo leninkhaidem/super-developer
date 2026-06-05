@@ -51,13 +51,13 @@ Final review remains integration-first. Deepen package-local inspection only for
 
 ## Review-Code Governance State
 
-Canonical path:
+Canonical readiness path:
 
 ```text
 .tasks/<feature>/reviews/review-code-state.json
 ```
 
-This file is governance readiness only. It is not proof evidence, package evidence, a review transcript, an event stream, or lifecycle history.
+Optional final report path: pass a safe repo-relative report path when a durable final review-code report was written; otherwise pass explicit `none` to audit. The readiness file remains governance state only: it is not proof evidence, package evidence, a review transcript, an event stream, or lifecycle history.
 
 Minimum clean audit-handoff shape:
 
@@ -116,7 +116,7 @@ Minimum clean audit-handoff shape:
 
 Populate it from the current reviewed state, artifact context, lens coverage, findings, and closure status. Keep it compact: bounded current-state summaries and pointers are allowed; package proof bodies, report bodies, transcripts, status history, lifecycle ledgers, and format markers are not.
 
-For a CLEAN verdict, after the package evidence gate and stale-state gate pass and before saying audit-ready or handing off to audit, write or refresh `.tasks/<feature>/reviews/review-code-state.json` at the canonical path. Set `state: "ready_for_audit"`, leave `findings.open_serious` empty, and set `closure_status.ready_for_audit` and `closure_status.proofs_and_reports_fresh` to `true` only when current evidence supports both.
+For a CLEAN verdict, after the package evidence gate and stale-state gate pass and before saying audit-ready or handing off to audit, write or refresh `.tasks/<feature>/reviews/review-code-state.json` at the canonical path. Set `state: "ready_for_audit"`, leave `findings.open_serious` empty, and set `closure_status.ready_for_audit` and `closure_status.proofs_and_reports_fresh` to `true` only when current evidence supports both. Include the final review-code report path in the audit handoff when available, or explicit `none` when the readiness state is the only durable handoff artifact.
 
 Then validate the written file using this section and the stale-state gate. If writing, refreshing, or validation fails, return **ISSUES FOUND** with the evidence blocker instead of audit-ready.
 

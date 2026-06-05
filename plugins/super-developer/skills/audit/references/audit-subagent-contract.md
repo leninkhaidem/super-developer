@@ -21,7 +21,8 @@ Read first from files:
 9. every package proof Markdown file referenced by the registry/package files
 10. every package verification report referenced by the registry/package files
 11. `.tasks/<feature>/reviews/review-code-state.json`
-12. final integrated worktree/code state only as needed to verify claims
+12. final code-review report when the dispatch packet provides a path; if packet says `none`, audit the readiness state instead
+13. final integrated worktree/code state only as needed to verify claims
 
 Use only orchestrator-screened Slice paths and re-check the one-workspace path boundary before reading Slice files.
 
@@ -161,6 +162,6 @@ When audit fails, provide the minimal affected set:
 - code/test paths;
 - required verification or rerun.
 
-The audit sub-agent does not edit files. Repairs are delegated by the orchestrator. After repair, affected proof Markdown must be refreshed, `sliceproof.py validate-proof` rerun for affected packages, affected package verification rerun, review-code readiness refreshed when changed after review, and final audit rerun focused or full depending on scope.
+The audit sub-agent does not edit files. Repairs are delegated by the orchestrator. After repair, affected proof Markdown must be refreshed, `sliceproof.py validate-proof` rerun for affected packages, affected package verification rerun, affected review-code checks rerun for changed code/risk surfaces, review-code readiness refreshed for the repaired state, and final audit rerun focused or full depending on scope.
 
 Do not declare readiness until review-code readiness and final audit PASS are clean for the same integrated state.

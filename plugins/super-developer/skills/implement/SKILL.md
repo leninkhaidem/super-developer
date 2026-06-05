@@ -28,6 +28,7 @@ Orchestrate Slice-first planned-feature delivery through package agents, proof M
 7. If repair is needed, use `references/delegation-dispatch.md` to construct repair or verifier follow-up prompts; delegate through fresh agents, then refresh affected proof rows/reports, rerun proof validation, and rerun focused or full package verification before completion.
 8. Mark packages done only after the completion gate passes; merge through the integration worktree, keep package branches/worktrees until cleanup gates pass, and loop to downstream packages.
 9. At final readiness, use `../../references/package-lifecycle.md`; run `sliceproof.py validate-final`, safe integrated checks, and contracted feature push only through the `worktree` skill's push/cleanup boundary; invoke `review-code` and `audit` only through their skills when readiness rules allow.
+10. If final review-code or audit returns findings, batch compatible findings, delegate repair, refresh affected proof/report/package-verification state, rerun affected review-code checks and focused/full audit as required, and do not declare readiness until both final gates are clean for the same integrated state.
 
 ## Load if needed
 
