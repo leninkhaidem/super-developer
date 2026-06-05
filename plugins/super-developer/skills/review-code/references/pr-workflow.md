@@ -65,6 +65,7 @@ Use `report-template.md` with:
 - **HEADER:** ``PR Review — #<number> `<head branch>` → `<base branch>` ``
 - **METADATA:** _(none for PR mode)_
 - **OPTIONAL_VERDICT_LINE:** ``**Verdict:** <APPROVE | REQUEST_CHANGES>`` based on findings
+- **OPTIONAL_MODE_FOOTER:** _(none)_
 - **Findings count line:** aggregate 🔴 | 🟠 | 🟡 counts
 
 The report should read exactly as it would appear when posted as a single PR review body (no inline

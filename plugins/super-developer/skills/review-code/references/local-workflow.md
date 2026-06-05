@@ -94,6 +94,7 @@ Use `report-template.md` with:
 
 - **HEADER:** `Local Code Review`
 - **METADATA:** ``**Branch:** `<current branch>` | **Scope:** <staged | uncommitted | branch diff against origin/<branch>> | **Files:** <count> changed``
+- **OPTIONAL_MODE_FOOTER:** _(none)_
 
 **Verdict** (shown after the report, not inside it):
 

@@ -26,6 +26,12 @@ Answer the smallest empirical question needed to make a reliable greenfield impl
 6. Delete throwaway code, temporary harnesses, branches, and worktrees after extracting evidence.
 7. Hand concise observed evidence to `implementation-plan`.
 
+## Load if needed
+
+- Official library/API docs or examples → only when repo docs/source do not resolve the assumption.
+- Worktree isolation details → `../worktree/SKILL.md` only when a temporary branch/worktree is needed.
+- Durable artifact authoring → `../implementation-plan/SKILL.md` only after evidence is extracted and the spike brief is ready.
+
 ## Handoff to Implementation Plan
 
 Return a spike brief with:

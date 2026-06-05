@@ -30,7 +30,7 @@ Run the final non-bypass Slice-first completeness gate from files and integrated
    ```
 
 5. Confirm every declared package proof Markdown and package verification report is present, current enough to dispatch, and bound to the final state at a mechanical level.
-6. Confirm `.tasks/<feature>/reviews/review-code-state.json` exists for pipeline audit, is for the same feature/state, records no open serious findings, records proof/report freshness, and says ready for audit.
+6. Confirm `.tasks/<feature>/reviews/review-code-state.json` exists for pipeline audit, matches the canonical governance state in `slice-first-artifacts.md`, is for the same feature/integrated state, has `mode: "pipeline"` and `state: "ready_for_audit"`, leaves `findings.open_serious` empty, and has true `closure_status.ready_for_audit` plus `closure_status.proofs_and_reports_fresh`.
 7. Load `references/audit-subagent-contract.md` and dispatch a cold read-only sub-agent with exact paths and resolved git/worktree state.
 8. Return only PASS/FAIL, blocking findings, and repair handoff targets.
 
@@ -46,7 +46,7 @@ Run the final non-bypass Slice-first completeness gate from files and integrated
 
 - Required artifacts, proof Markdown, package reports, Slice paths, or final code state are missing, unsafe, unreadable, stale, malformed, contradictory, or uncertain.
 - `sliceproof.py validate-final` fails.
-- Review-code readiness is missing, stale, not same-state, has open serious findings, has unresolved widening, or says proof/report freshness is not restored.
+- Review-code readiness is missing, malformed, stale, not same-state, not pipeline/ready, has open serious findings, has unresolved widening/regression, or lacks true proof/report freshness.
 - A user asks audit to fix, mark done, accept risk, bypass review-code, bypass package verification, or infer semantic proof from dashboard/helper output.
 - The correct result requires product/design choice, scope change, new dependency/service, credentials, unsafe command, or risk acceptance.
 

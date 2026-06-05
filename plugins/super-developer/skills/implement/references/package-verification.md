@@ -95,9 +95,9 @@ Required fields/sections use the canonical helper-compatible report shape. `slic
 - Proof: `.tasks/<feature>/proofs/<WP-ID>.proof.md`
 - Proof Digest: `sha256:<digest of current proof Markdown>`
 - Assigned Slices: `<comma-separated repo-relative Slice paths in lexicographic order, or none>`
-- Worktree: `<verified worktree path>`
-- Git Ref: `<branch or detached ref>`
-- Commit: `<commit>`
+- Worktree: `<absolute current git worktree root used for final validation>`
+- Git Ref: `<current branch short name, refs/heads/<branch>, or current HEAD hash>`
+- Commit: `<current HEAD commit hash>`
 - Verified At: `<ISO-8601 timestamp>`
 
 ## Verification Result

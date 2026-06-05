@@ -72,8 +72,8 @@ Missing, failed, stale, pre-repair, state-unbound, contradicted, or uncertain re
 
 ### 5. Review-Code Readiness and Integrated State
 
-- Read review-code readiness state and confirm it is for the same feature and final integrated state.
-- Fail on open serious findings, incomplete widened checks, serious fix-introduced regressions, stale state binding, or proof/report freshness not restored after review/fix work.
+- Read review-code readiness state and confirm it matches the canonical governance state in `slice-first-artifacts.md` for the same feature and final integrated state.
+- Fail when it is missing, malformed, not `mode: "pipeline"`, not `state: "ready_for_audit"`, not same-state, has any `findings.open_serious` entry, has incomplete widened checks, records a serious fix-introduced regression, or lacks true `closure_status.ready_for_audit` and `closure_status.proofs_and_reports_fresh`.
 - Inspect code/tests/build artifacts only as needed to verify claimed Slice/proof fulfillment, global behavior, SPEC requirements, and completion-relevant MUST-level quality blockers.
 - Use `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/clean-code-rules.md` for completion blockers: fake success states, missing required verification, caller-contract failure, unsafe trust boundaries, security/privacy/safety/data risk, breaking public contract changes, unresolved requirements, or missing completion evidence.
 
@@ -132,7 +132,7 @@ PASS | FAIL
 |---|---|---|---|
 
 ### Review-Code Readiness
-| State file | Same-state | Open serious findings | Proof/report freshness | Notes |
+| State file | Same-state | Open serious findings | Ready/proof-report freshness | Notes |
 |---|---|---:|---|---|
 
 ### Issues Found

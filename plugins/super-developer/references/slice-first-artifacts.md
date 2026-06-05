@@ -20,7 +20,7 @@ Planned-feature state is file-based and Slice-first:
 
 ## Lightweight Registry
 
-`tasks.json` is bookkeeping only. It contains no package scope prose, Slice assignment details, proof evidence, review findings, lifecycle history, command output, or rich task bodies.
+`tasks.json` is bookkeeping only. It contains no package scope prose, Slice assignment details, proof evidence, review findings, lifecycle history, command output, or detailed task bodies.
 
 Required shape:
 
@@ -121,9 +121,9 @@ Required sections:
 - Proof: `.tasks/<feature>/proofs/WP1.proof.md`
 - Proof Digest: `sha256:<digest>`
 - Assigned Slices: `<comma-separated repo-relative Slice paths in lexicographic order, or none>`
-- Worktree: `<verified worktree path>`
-- Git Ref: `<branch or detached ref>`
-- Commit: `<commit>`
+- Worktree: `<absolute current git worktree root used for final validation>`
+- Git Ref: `<current branch short name, refs/heads/<branch>, or current HEAD hash>`
+- Commit: `<current HEAD commit hash>`
 - Verified At: `<ISO-8601 timestamp>`
 
 ## Verification Result
@@ -144,21 +144,63 @@ If proof content or reviewed implementation state changes after the report, fres
 
 Canonical path: `.tasks/<feature>/reviews/review-code-state.json`.
 
-`review-code-state.json` is governance readiness, not proof evidence.
+`review-code-state.json` is governance readiness only. It is not proof evidence, package evidence, a review transcript, an event stream, or lifecycle history.
 
-Minimum durable fields:
+Minimum clean audit-handoff shape:
 
 ```json
 {
   "feature": "feature-slug",
+  "mode": "pipeline",
   "state": "ready_for_audit",
-  "reviewed_ref": "feature/<feature>",
-  "reviewed_commit": "<commit>",
   "captured_at": "<ISO-8601 timestamp>",
-  "open_serious_findings": 0,
-  "proofs_and_reports_fresh": true,
-  "scope": "planned-feature review-code readiness"
+  "reviewed_state": {
+    "feature_ref": "feature/<feature>",
+    "reviewed_commit": "<commit>",
+    "base_ref": "<target-ref>",
+    "base_commit": "<commit>",
+    "target_ref": "<target-ref>",
+    "diff_checksum": "sha256:<digest>",
+    "file_list_checksum": "sha256:<digest>",
+    "worktree": ".worktrees/<feature>/merge/"
+  },
+  "artifact_context": {
+    "spec_path": ".tasks/<feature>/SPEC.md",
+    "registry_path": ".tasks/<feature>/tasks.json",
+    "packages": [
+      {
+        "id": "WP1",
+        "package_path": ".tasks/<feature>/packages/WP1.md",
+        "proof_path": ".tasks/<feature>/proofs/WP1.proof.md",
+        "report_path": ".tasks/<feature>/reports/WP1.package-verification.md",
+        "report_result": "passed",
+        "report_fresh": true
+      }
+    ],
+    "authoritative_slices": [".planning/<concept>/slices/example.md"],
+    "changed_file_ownership": []
+  },
+  "lenses": [
+    {
+      "name": "integration-seams",
+      "depth": "deep",
+      "status": "complete",
+      "evidence": "<coverage summary or pointer>"
+    }
+  ],
+  "findings": {
+    "open_serious": []
+  },
+  "closure_status": {
+    "serious_findings_closed": true,
+    "no_serious_regression": true,
+    "widening_complete": true,
+    "proofs_and_reports_fresh": true,
+    "ready_for_audit": true
+  }
 }
 ```
 
-Audit fails closed when this state is missing, not `ready_for_audit`, not bound to the reviewed state, or reports unresolved serious findings.
+Keep the state compact: bounded current-state summaries and pointers are allowed; package proof bodies, report bodies, transcripts, status history, lifecycle ledgers, and format markers are not.
+
+Audit fails closed when this state is missing, not `mode: "pipeline"`, not `state: "ready_for_audit"`, not bound to the reviewed integrated state, has any `findings.open_serious` entry, or has false/uncertain `closure_status.ready_for_audit` or `closure_status.proofs_and_reports_fresh`.

@@ -14,14 +14,15 @@ Use the single state file:
 
 It is schema-less governance state only. It must not store proof bodies, report bodies, transcripts, package status history, or lifecycle ledgers.
 
-During the fix loop, keep only bounded current status:
+During the fix loop, keep only bounded current status based on the canonical clean-handoff shape in `pipeline-report.md`:
 
-- `feature`, `mode: "pipeline"`, `state`, `updated_at`;
+- `feature`, `mode: "pipeline"`, `state`, and `captured_at` for ready handoff or `updated_at` while active;
 - `reviewed_state` bound to the discovery review and post-fix lineage;
 - `artifact_context` manifests for SPEC, registry, packages, proofs, Slices, reports, report freshness, and changed-file ownership;
-- `findings` with confirmed serious dedupe keys, status, affected packages/Slices/proof rows, and assigned batch;
+- `lenses` with required coverage status and concrete pointers/summaries;
+- `findings` with confirmed serious dedupe keys, status, affected packages/Slices/proof rows, and assigned batch; clean handoff leaves `findings.open_serious` empty;
 - `fix_batches` with batch id, dedupe keys, delegated fix commit(s), batch state, proof/report freshness status, and Fix Verification summary;
-- `closure_status` with open/closed/reopened keys, serious regression status, evidence blockers, and `ready_for_audit`;
+- `closure_status` with open/closed/reopened keys, serious regression status, evidence blockers, proof/report freshness, and `ready_for_audit`;
 - `widening_triggers` with trigger name, affected scope, and open/complete state;
 - `escalation_tier` as `none`, `stronger-fix-agent`, `specialist-widened-verification`, `stronger-discovery`, `semantic-split`, or `authority-boundary`.
 

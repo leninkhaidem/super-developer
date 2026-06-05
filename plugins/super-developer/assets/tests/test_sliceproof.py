@@ -71,6 +71,35 @@ class SliceproofFixture:
             stderr=subprocess.PIPE,
         )
 
+    def git_checked(self, *args: str) -> str:
+        result = subprocess.run(
+            ["git", *args],
+            cwd=self.repo,
+            check=False,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        if result.returncode != 0:
+            raise AssertionError(f"git {' '.join(args)} failed: {result.stdout}{result.stderr}")
+        return result.stdout.strip()
+
+    def init_git(self, branch: str = "wp/fixture/WP1") -> None:
+        self.git_checked("init")
+        self.git_checked("config", "user.email", "sliceproof@example.invalid")
+        self.git_checked("config", "user.name", "Sliceproof Fixture")
+        self.git_checked("config", "commit.gpgsign", "false")
+        self.git_checked("checkout", "-b", branch)
+        self.git_checked("add", ".")
+        self.git_checked("commit", "-m", "initial fixture")
+
+    def current_git_binding(self) -> dict[str, str]:
+        return {
+            "worktree": str(self.repo.resolve(strict=False)),
+            "git_ref": self.git_checked("branch", "--show-current"),
+            "commit": self.git_checked("rev-parse", "HEAD"),
+        }
+
     def plan(self) -> dict:
         return {
             "feature": "fixture",
@@ -224,10 +253,16 @@ class SliceproofFixture:
         result: str = "passed",
         package_markdown: str = ".tasks/fixture/packages/WP1.md",
         assigned_slices: str = ".planning/fixture/slices/helper.md",
+        worktree: str | None = None,
+        git_ref: str | None = None,
+        commit: str | None = None,
     ) -> str:
         if proof_text is None:
             proof_text = self.proof_path.read_text(encoding="utf-8")
         digest = "sha256:" + hashlib.sha256(proof_text.encode("utf-8")).hexdigest()
+        worktree = str(self.repo.resolve(strict=False)) if worktree is None else worktree
+        git_ref = "wp/fixture/WP1" if git_ref is None else git_ref
+        commit = REPORT_COMMIT if commit is None else commit
         return textwrap.dedent(
             f"""
             # Package Verification Report: WP1 — Helper behavior
@@ -238,9 +273,9 @@ class SliceproofFixture:
             - Proof: `.tasks/fixture/proofs/WP1.proof.md`
             - Proof Digest: `{digest}`
             - Assigned Slices: `{assigned_slices}`
-            - Worktree: `{self.repo}`
-            - Git Ref: `wp/fixture/WP1`
-            - Commit: `{REPORT_COMMIT}`
+            - Worktree: `{worktree}`
+            - Git Ref: `{git_ref}`
+            - Commit: `{commit}`
             - Verified At: `2026-06-04T00:00:00Z`
 
             ## Verification Result
@@ -256,10 +291,11 @@ class SliceproofFixture:
             """
         ).lstrip()
 
-    def write_completed_proof_and_report(self) -> None:
+    def write_completed_proof_and_report(self, *, use_git: bool = False) -> None:
         proof = self.completed_proof()
         self.proof_path.write_text(proof, encoding="utf-8")
-        self.report_path.write_text(self.report_text(proof), encoding="utf-8")
+        binding = self.current_git_binding() if use_git else {}
+        self.report_path.write_text(self.report_text(proof, **binding), encoding="utf-8")
 
 
 class SliceproofTests(unittest.TestCase):
@@ -360,6 +396,20 @@ class SliceproofTests(unittest.TestCase):
         placeholder_validation = self.fixture.run("validate-proof", str(self.fixture.tasks_path), "--package", "WP1")
         self.assertNotEqual(0, placeholder_validation.returncode)
         self.assertIn("unresolved TODO/OPEN/GAP", "\n".join(json.loads(placeholder_validation.stderr)["errors"]))
+
+    def test_create_proof_refuses_existing_repo_internal_symlink_at_proof_path(self) -> None:
+        if not hasattr(os, "symlink"):
+            self.skipTest("symlink not available on this platform")
+        target = self.fixture.proofs_dir / "alternate.proof.md"
+        target.write_text("existing target must not be overwritten\n", encoding="utf-8")
+        os.symlink(target.name, self.fixture.proof_path)
+
+        result = self.fixture.run("create-proof", str(self.fixture.tasks_path), "--package", "WP1")
+
+        self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+        self.assertEqual("existing target must not be overwritten\n", target.read_text(encoding="utf-8"))
+        self.assertIn("refusing to write through symlink proof path", "\n".join(json.loads(result.stderr)["errors"]))
+
 
     def test_validate_proof_accepts_completed_rows_and_rejects_blocking_or_unapproved_rows(self) -> None:
         self.fixture.proof_path.write_text(self.fixture.completed_proof(), encoding="utf-8")
@@ -599,7 +649,8 @@ class SliceproofTests(unittest.TestCase):
         self.assertIn("unable to create directory", "\n".join(json.loads(write_error.stderr)["errors"]))
 
     def test_validate_final_requires_done_proofs_and_fresh_report_binding(self) -> None:
-        self.fixture.write_completed_proof_and_report()
+        self.fixture.init_git()
+        self.fixture.write_completed_proof_and_report(use_git=True)
         not_done = self.fixture.run("validate-final", str(self.fixture.tasks_path))
         self.assertNotEqual(0, not_done.returncode)
         self.assertIn("expected 'done'", "\n".join(json.loads(not_done.stderr)["errors"]))
@@ -611,6 +662,11 @@ class SliceproofTests(unittest.TestCase):
         self.assertEqual(0, done.returncode, done.stdout + done.stderr)
 
         valid_report = self.fixture.report_path.read_text(encoding="utf-8")
+        binding = self.fixture.current_git_binding()
+        valid_worktree_line = f"- Worktree: `{binding['worktree']}`"
+        valid_ref_line = f"- Git Ref: `{binding['git_ref']}`"
+        valid_commit_line = f"- Commit: `{binding['commit']}`"
+        wrong_commit = "0" * 40 if binding["commit"] != "0" * 40 else "1" * 40
         report_cases = [
             (
                 "missing package markdown",
@@ -631,6 +687,26 @@ class SliceproofTests(unittest.TestCase):
                 "wrong assigned slices",
                 valid_report.replace(".planning/fixture/slices/helper.md", ".planning/fixture/slices/other.md"),
                 "State Binding Assigned Slices must be .planning/fixture/slices/helper.md",
+            ),
+            (
+                "wrong worktree",
+                valid_report.replace(valid_worktree_line, f"- Worktree: `{self.fixture.repo.parent / 'other-worktree'}`"),
+                "State Binding Worktree must match current git worktree root",
+            ),
+            (
+                "wrong git ref",
+                valid_report.replace(valid_ref_line, "- Git Ref: `wp/fixture/WP2`"),
+                "State Binding Git Ref must match current git ref",
+            ),
+            (
+                "wrong commit",
+                valid_report.replace(valid_commit_line, f"- Commit: `{wrong_commit}`"),
+                "State Binding Commit must match current HEAD",
+            ),
+            (
+                "short commit",
+                valid_report.replace(valid_commit_line, f"- Commit: `{binding['commit'][:12]}`"),
+                "State Binding Commit must match current HEAD",
             ),
             (
                 "todo check marker",
@@ -681,8 +757,8 @@ class SliceproofTests(unittest.TestCase):
             "  not---provided.  ",
         ]
         binding_fields = {
-            "Worktree": f"- Worktree: `{self.fixture.repo}`",
-            "Git Ref": "- Git Ref: `wp/fixture/WP1`",
+            "Worktree": valid_worktree_line,
+            "Git Ref": valid_ref_line,
         }
         for field, valid_line in binding_fields.items():
             for placeholder in placeholder_variants:
@@ -699,6 +775,15 @@ class SliceproofTests(unittest.TestCase):
                 invalid_report = self.fixture.run("validate-final", str(self.fixture.tasks_path))
                 self.assertNotEqual(0, invalid_report.returncode, invalid_report.stdout + invalid_report.stderr)
                 self.assertIn(expected_error, "\n".join(json.loads(invalid_report.stderr)["errors"]))
+
+        for accepted_ref in (f"refs/heads/{binding['git_ref']}", binding["commit"]):
+            with self.subTest(accepted_ref=accepted_ref):
+                self.fixture.report_path.write_text(
+                    valid_report.replace(valid_ref_line, f"- Git Ref: `{accepted_ref}`"),
+                    encoding="utf-8",
+                )
+                accepted = self.fixture.run("validate-final", str(self.fixture.tasks_path))
+                self.assertEqual(0, accepted.returncode, accepted.stdout + accepted.stderr)
         self.fixture.report_path.write_text(valid_report, encoding="utf-8")
 
         self.fixture.report_path.unlink()
@@ -708,11 +793,25 @@ class SliceproofTests(unittest.TestCase):
 
         proof = self.fixture.completed_proof()
         self.fixture.proof_path.write_text(proof, encoding="utf-8")
-        self.fixture.report_path.write_text(self.fixture.report_text(proof), encoding="utf-8")
+        self.fixture.report_path.write_text(self.fixture.report_text(proof, **self.fixture.current_git_binding()), encoding="utf-8")
         self.fixture.proof_path.write_text(proof.replace("Mechanical helper evidence", "Changed proof evidence"), encoding="utf-8")
         stale_report = self.fixture.run("validate-final", str(self.fixture.tasks_path))
         self.assertNotEqual(0, stale_report.returncode)
         self.assertIn("Proof Digest does not match current proof content", "\n".join(json.loads(stale_report.stderr)["errors"]))
+
+    def test_validate_final_fails_closed_without_git_metadata(self) -> None:
+        self.fixture.write_completed_proof_and_report()
+        plan = self.fixture.plan()
+        plan["work_packages"][0]["status"] = "done"
+        self.fixture.write_plan(plan)
+
+        result = self.fixture.run("validate-final", str(self.fixture.tasks_path))
+
+        self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+        errors = "\n".join(json.loads(result.stderr)["errors"])
+        self.assertIn("current git metadata is required", errors)
+        self.assertIn("State Binding cannot be checked", errors)
+
 
     def test_zero_slice_registry_allows_index_only_package_assignment(self) -> None:
         plan = self.fixture.plan()
@@ -736,12 +835,16 @@ class SliceproofTests(unittest.TestCase):
             ),
             encoding="utf-8",
         )
+        self.fixture.init_git()
         created = self.fixture.run("create-proof", str(self.fixture.tasks_path), "--package", "WP1")
         self.assertEqual(0, created.returncode, created.stdout + created.stderr)
         proof = self.fixture.proof_path.read_text(encoding="utf-8")
         completed = proof.replace("TODO", "observed evidence").replace("OPEN", "PASS")
         self.fixture.proof_path.write_text(completed, encoding="utf-8")
-        self.fixture.report_path.write_text(self.fixture.report_text(completed, assigned_slices="none"), encoding="utf-8")
+        self.fixture.report_path.write_text(
+            self.fixture.report_text(completed, assigned_slices="none", **self.fixture.current_git_binding()),
+            encoding="utf-8",
+        )
         result = self.fixture.run("validate-final", str(self.fixture.tasks_path))
         self.assertEqual(0, result.returncode, result.stdout + result.stderr)
 

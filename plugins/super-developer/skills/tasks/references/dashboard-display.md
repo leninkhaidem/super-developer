@@ -84,8 +84,8 @@ Never convert report signal into package acceptance. Freshness and semantic suff
 For `.tasks/<feature>/reviews/review-code-state.json`:
 
 - `missing` — no readiness state.
-- `ready_for_audit` — file parses and visibly records the expected feature/state with no open serious findings.
-- `not ready` — state says not ready or open serious findings remain.
+- `ready_for_audit` — file parses, records the expected feature with `mode: "pipeline"`, `state: "ready_for_audit"`, empty `findings.open_serious`, and true `closure_status.ready_for_audit` plus `closure_status.proofs_and_reports_fresh`.
+- `not ready` — state says not ready, proof/report freshness is false, or open serious findings remain.
 - `stale/unknown` — state is malformed, for another feature, or not state-bound enough for dashboard confidence.
 
 Dashboard display does not validate semantic readiness; audit fails closed on stale or insufficient readiness.
