@@ -34,7 +34,7 @@ The eager workflow should be enough to orient planning. Load references only at 
 
 ## Load if needed
 
-- Foreseeable caller-contract, maintainability, verification, trust-boundary, or quality-risk planning concern → `../../references/clean-code-rules.md`
+- Non-trivial code design, reusable/module boundary, caller-contract, trust-boundary, or verification risk → `../../references/clean-code-rules.md`
 - Helper command syntax or command safety is unclear → `../../references/tool-usage.md`
 
 ## Stop if
