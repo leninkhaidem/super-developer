@@ -20,34 +20,22 @@ Orchestrate Slice-first planned-feature delivery through package agents, proof M
 ## Do
 
 1. Resolve `.tasks/<feature>/`; load `../../references/tool-usage.md`; run `sliceproof.py validate-plan`; read `SPEC.md`, registry, selected package Markdown, and safe assigned Slices only after path validation.
-2. Load `../../references/model-preferences.md` only when package dispatch is possible.
+2. If package dispatch is possible, load `../../references/model-preferences.md` for model choice.
 3. Present the Execution Contract: base/feature/target refs, feature push boundary, package branch/worktree names, package/proof/report paths, Slice obligations, verification expectations, package verification depth, stop conditions, and auto-resolve vs step-by-step choice.
-4. After approval, load the worktree skill and the planned-feature worktree references needed for setup; keep cleanup/target-merge details lazy until those action points.
-5. Load package semantics and selection references; choose the largest safe useful batch, or stop on package/authority blockers.
-6. Before each dispatch, create the proof placeholder, update registry status only as bookkeeping when used, and load the dispatch reference for package-agent prompt construction.
-7. When package agents return, load checkpoint and lifecycle references; validate `SELF_REVIEW`, proof Markdown, commands/inspections, Slice plan-defect status, package verification report, post-merge freshness, and ignored `.tasks` handling.
-8. Delegate repairs or verifier follow-up through fresh agents; after repair, refresh affected proof rows/reports, rerun proof validation, and rerun focused or full package verification before completion.
-9. Mark packages done only after the completion gate passes; loop to downstream packages.
-10. At final readiness, run `sliceproof.py validate-final`, safe integrated checks, contracted feature push when approved, then invoke `review-code` and `audit` only through their skills when readiness rules allow.
+4. After approval, load `../worktree/SKILL.md`, `../worktree/references/feature-package-workflow.md`, and `references/worktree-merge-cleanup.md`; create the integration/package worktrees without switching the root worktree.
+5. For package semantics, dependencies, sizing, and runtime batch adjustment, load `../../references/work-packages.md` and `references/package-dispatch.md`; choose the largest safe useful batch or stop on package/authority blockers.
+6. Before each package dispatch, load `../../references/package-lifecycle.md`, `references/delegation-dispatch.md`, and `references/package-agent-contract.md`; create proof placeholders, update registry status only as bookkeeping when used, and construct the package-agent prompt.
+7. When package agents return, load `references/integration-checkpoint.md` and `references/package-verification.md`; validate `SELF_REVIEW`, proof Markdown, commands/inspections, Slice plan-defect status, package verification report, post-merge freshness, and ignored `.tasks` handling.
+8. If repair is needed, load `references/repair-agent-contract.md`; delegate repair or verifier follow-up through fresh agents, then refresh affected proof rows/reports, rerun proof validation, and rerun focused or full package verification before completion.
+9. Mark packages done only after the completion gate passes; merge through the integration worktree, keep package branches/worktrees until cleanup gates pass, and loop to downstream packages.
+10. At final readiness, use `../../references/package-lifecycle.md`; run `sliceproof.py validate-final`, safe integrated checks, and contracted feature push only after loading `../worktree/references/cleanup-safety.md`; invoke `review-code` and `audit` only through their skills when readiness rules allow.
 
 ## Load if needed
 
-- Artifact roles → `../../references/slice-first-artifacts.md`
-- Slice authority/path/control-plane checks → `../../references/conceptualize-slice-authority.md`
-- Package sizing, dependency, verification, and runtime adjustment semantics → `../../references/work-packages.md`
-- Proof/report creation, freshness, repair, final readiness → `../../references/package-lifecycle.md`
-- Helper commands and command safety → `../../references/tool-usage.md`
-- Risk probes for package/verifier packets → `../../references/known-risk-patterns.md`
-- Model choice → `../../references/model-preferences.md`
-- Worktree setup commands → `../worktree/SKILL.md` and `../worktree/references/feature-package-workflow.md`
-- Cleanup, feature push, target merge, or teardown → `../worktree/references/cleanup-safety.md`
-- Implement-specific merge/checkpoint/worktree deltas → `references/worktree-merge-cleanup.md`
-- Package batch selection and runtime adjustments → `references/package-dispatch.md`
-- Package, repair, or verifier prompt packets → `references/delegation-dispatch.md`
-- Package return checkpoint or repair routing → `references/integration-checkpoint.md`
-- Package implementer contract for sub-agents → `references/package-agent-contract.md`
-- Repair contract for sub-agents → `references/repair-agent-contract.md`
-- Package verifier contract for verifier agents → `references/package-verification.md`
+- Artifact role ambiguity → `../../references/slice-first-artifacts.md`
+- Slice authority, path, projection, or control-plane dispute → `../../references/conceptualize-slice-authority.md`
+- Risk probes for complex package, verifier, or repair packets → `../../references/known-risk-patterns.md`
+- Package cleanup, target merge, target push, or final teardown beyond the contracted feature push → `../worktree/references/cleanup-safety.md`
 
 ## Stop if
 
