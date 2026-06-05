@@ -1,7 +1,5 @@
 # Conceptualize Slice Template
 
-Load when creating, updating, splitting, merging, or deleting `.planning/<concept-slug>/slices/*.md`.
-
 ## Contract
 
 - A Slice covers one independently useful concern, vertical, subsystem, risk, or touchpoint.

@@ -1,7 +1,5 @@
 # Implementation Artifact Authoring
 
-Load when drafting `.tasks/<feature>/tasks.json` or `.tasks/<feature>/packages/<WP-ID>.md`.
-
 ## Contract
 
 - Load `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/slice-first-artifacts.md` for the canonical artifact model.

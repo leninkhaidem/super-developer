@@ -1,7 +1,5 @@
 # Conceptualize Inputs for Implementation Plans
 
-Load when a Conceptualize workspace, Index, or Slice set may inform a planned feature.
-
 ## Contract
 
 - Use at most one selected `.planning/<concept-slug>/` workspace for a plan.

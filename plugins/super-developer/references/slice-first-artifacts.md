@@ -1,7 +1,5 @@
 # Slice-First Planned-Feature Artifacts
 
-Load when creating, validating, or consuming planned-feature artifacts.
-
 ## Boundary
 
 This reference owns artifact roles and file shapes. Slice authority lives in `conceptualize-slice-authority.md`; package sizing lives in `work-packages.md`; completion and freshness live in `package-lifecycle.md`; command shapes live in `tool-usage.md`.

@@ -1,7 +1,5 @@
 # Work Packages
 
-Load when planning, selecting, dispatching, reviewing, or displaying planned-feature work packages.
-
 ## Boundary
 
 This reference owns package semantics: sizing, dependency, assignment, parallelism, primary paths, and verification expectations. Artifact shapes live in `slice-first-artifacts.md`; completion/freshness gates live in `package-lifecycle.md`; command safety lives in `tool-usage.md`.

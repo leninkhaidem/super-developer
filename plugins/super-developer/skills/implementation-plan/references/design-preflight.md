@@ -1,7 +1,5 @@
 # Design Preflight
 
-Load when implementation planning has consequential design uncertainty before durable artifacts are written.
-
 ## Purpose
 
 Design Preflight is a read-only adversarial planning challenge. It surfaces choices the main agent must resolve before writing `SPEC.md`, the registry, package Markdown, proof paths, or report paths.

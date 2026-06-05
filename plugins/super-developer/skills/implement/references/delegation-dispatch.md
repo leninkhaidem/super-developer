@@ -1,6 +1,8 @@
 # Implement Delegation Dispatch
 
-Load before spawning package, repair, or package-verification agents. This file is orchestrator-facing only: it defines prompt construction and role-specific contract paths. It intentionally does not repeat package-agent, repair-agent, or verifier behavior.
+## Boundary
+
+This file is orchestrator-facing only: it defines prompt construction and role-specific contract paths. It intentionally does not repeat package-agent, repair-agent, or verifier behavior.
 
 ## Context Boundary
 

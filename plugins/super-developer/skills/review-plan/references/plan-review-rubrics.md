@@ -1,6 +1,8 @@
 # Plan Review Rubrics
 
-Load when dispatching plan-review sub-agents. Reviewers work cold from supplied files and references; they do not inherit hidden conversation context.
+## Boundary
+
+Reviewers work cold from supplied files and references; they do not inherit hidden conversation context.
 
 ## Common Rules
 

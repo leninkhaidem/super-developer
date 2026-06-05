@@ -1,7 +1,5 @@
 # Package Lifecycle, Proof, and Report Freshness
 
-Load when implementing, repairing, reviewing, displaying, or auditing planned-feature package state.
-
 ## Boundary
 
 This reference owns package completion, proof creation/refresh, verification reports, freshness, and non-bypass semantics. Artifact shapes live in `slice-first-artifacts.md`; package sizing lives in `work-packages.md`; command shapes live in `tool-usage.md`.

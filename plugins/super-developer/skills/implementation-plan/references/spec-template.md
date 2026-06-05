@@ -1,7 +1,5 @@
 # SPEC.md Template and Purity Rules
 
-Load when drafting `.tasks/<feature-name>/SPEC.md`.
-
 `SPEC.md` is a concise requirements and manifest file. It is not package assignment, proof evidence, architecture debate, implementation transcript, or a replacement for authoritative Slices.
 
 ## Template

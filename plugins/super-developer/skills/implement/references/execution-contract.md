@@ -1,6 +1,8 @@
 # Execution Contract
 
-Load before creating worktrees, dispatching package agents, running package verification, or pushing the feature branch. This reference owns the user-facing implement approval template and its approval boundaries.
+## Boundary
+
+This reference owns the user-facing implement approval template and its approval boundaries.
 
 ## Contract
 

@@ -1,6 +1,8 @@
 # Decision Prompts
 
-Load when a skill must present user-facing decision cards for review findings or workflow choices. This reference owns display mechanics only; each skill owns eligibility, side-effect gates, and whether a decision may be auto-applied.
+## Boundary
+
+This reference owns decision-card display mechanics only. Each skill owns eligibility, side-effect gates, and whether a decision may be auto-applied.
 
 ## Card Template
 

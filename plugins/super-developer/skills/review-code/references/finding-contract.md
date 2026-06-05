@@ -1,6 +1,8 @@
 # Review Finding Contract
 
-Load before delegating reviewers. This reference owns severity, coverage rows, finding fields, output format, and suggestion actionability.
+## Boundary
+
+This reference owns severity, coverage rows, finding fields, output format, and suggestion actionability.
 
 ## Severity
 

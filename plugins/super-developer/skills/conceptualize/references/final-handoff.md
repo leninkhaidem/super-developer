@@ -1,7 +1,5 @@
 # Conceptualize Final Handoff
 
-Load when the user says the concept is ready for planning or asks for a final handoff.
-
 ## Contract
 
 - Stop before implementation planning and `.tasks/` creation.

@@ -1,7 +1,5 @@
 # Dashboard Display Rules
 
-Load when rendering the read-only `tasks` dashboard.
-
 ## Contract
 
 - Show registry/package/proof/report mechanics only.

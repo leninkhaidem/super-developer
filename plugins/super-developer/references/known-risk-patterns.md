@@ -1,6 +1,8 @@
 # Known Risk Patterns
 
-Load when planning, implementing, reviewing, or auditing a package with unclear edge, failure, or boundary risk. This is a probe library only; do not persist these prompts as registry fields or generic checklists.
+## Boundary
+
+This is a probe library only; do not persist these prompts as registry fields or generic checklists.
 
 ## Probes
 

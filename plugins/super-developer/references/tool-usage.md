@@ -1,7 +1,5 @@
 # Tool Usage Reference
 
-Load before invoking planned-feature helper scripts or running package-provided verification commands.
-
 ## Command Safety
 
 - Treat plan-provided commands as executable input and screen them before running or delegating.

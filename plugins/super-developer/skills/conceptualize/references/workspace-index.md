@@ -1,7 +1,5 @@
 # Conceptualize Workspace Index
 
-Load when creating or updating `.planning/<concept-slug>/index.md`.
-
 ## Contract
 
 - The workspace root is `.planning/<concept-slug>/`; the Index is `.planning/<concept-slug>/index.md`.
