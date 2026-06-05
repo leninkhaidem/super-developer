@@ -19,9 +19,9 @@ Create a greenfield planned-feature file set: `SPEC.md`, lightweight `tasks.json
 ## Do
 
 1. Resolve a safe feature slug and source material; stop on missing or contradictory product requirements.
-2. If Conceptualize material may apply, load `references/conceptualize-inputs.md` and the shared Slice authority reference it names.
+2. If Conceptualize material may apply, load `references/conceptualize-inputs.md`; follow its second-hop references only when the active Slice/path/authority question requires them.
 3. Decide whether design preflight or an empirical spike is needed before writing durable artifacts.
-4. Load artifact-authoring and SPEC references only when drafting those files.
+4. Load artifact-authoring, SPEC, package, validation, or tool references only at the moment that work needs them.
 5. Create `.tasks/<feature>/SPEC.md`, package Markdown, `tasks.json`, and declared proof/report paths.
 6. Run `sliceproof.py validate-plan`; fix artifacts until it passes.
 7. If implementation will start immediately, run `sliceproof.py create-proof` for each dispatch package.
@@ -29,15 +29,13 @@ Create a greenfield planned-feature file set: `SPEC.md`, lightweight `tasks.json
 
 ## Load if needed
 
-- Conceptualize Index/Slices may apply → `references/conceptualize-inputs.md` and `../../references/conceptualize-slice-authority.md`
-- Artifact roles and registry/package/proof/report shape → `../../references/slice-first-artifacts.md`
-- Package sizing/dependencies/verification expectations → `../../references/work-packages.md`
-- SPEC authoring → `references/spec-template.md`
-- Registry and package Markdown authoring → `references/artifact-authoring.md`
-- Pre-write/post-write gates → `references/validation-checklist.md`
-- Design uncertainty before artifacts → `references/design-preflight.md`
-- Helper commands or command safety → `../../references/tool-usage.md`
-- Model choice for challenger sub-agents → `../../references/model-preferences.md`
+- Conceptualize handoff or Slice inventory applies → `references/conceptualize-inputs.md`
+- Draft `SPEC.md` → `references/spec-template.md`
+- Draft registry or package Markdown → `references/artifact-authoring.md`
+- Package sizing, dependencies, or verification expectations are unclear → `../../references/work-packages.md`
+- Ready to write or validate artifacts → `references/validation-checklist.md`
+- Material design uncertainty blocks artifact writing → `references/design-preflight.md`
+- Helper command syntax or command safety is unclear → `../../references/tool-usage.md`
 
 ## Stop if
 

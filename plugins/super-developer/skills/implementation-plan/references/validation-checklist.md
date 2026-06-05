@@ -9,7 +9,7 @@ Mechanical path, registry, package, proof, report, and H3 checks belong to `${SU
 Do not create or overwrite `.tasks/<feature-name>/` artifacts until all applicable gates pass.
 
 - Feature slug is safe and any existing feature directory conflict is resolved by the user.
-- Required references for the active path have been read: Slice authority when Conceptualize material applies, artifact authoring, SPEC template, work-package guidance, tool usage, and this checklist.
+- Only references needed by the active path have been read: Conceptualize inputs when a handoff applies; SPEC/artifact/package guidance while drafting those surfaces; tool usage only for command syntax or safety ambiguity; design preflight only when triggered.
 - Design preflight trigger decision is made; if it ran, unresolved `MUST_DECIDE` and `BLOCKERS` findings are resolved.
 - Conditional spike decision is made; if a spike was required, evidence is accepted and no exploratory code will be persisted.
 - Any decision that changes user-visible semantics, risk acceptance, scope, or Slice commitments has user approval.
