@@ -73,7 +73,7 @@ Use an empty `authoritative_slices` array only for Index-only or no-Slice plans 
 - None.
 
 ## Notes
-- Optional: approved deferrals, risk/replan triggers, package-specific constraints.
+- Optional: approved deferrals, risk/replan triggers, package-specific constraints, parallel/serialization rationale.
 ```
 
 `sliceproof.py` mechanically requires `Scope`, `Assigned Slices`, `Primary Paths`, `Verification Expectations`, `Proof`, `Package Verification Report`, and `Dependencies`. `Notes` is optional.
@@ -98,7 +98,7 @@ Context only:
 - Primary paths are starting points, not hard boundaries.
 - Verification expectations must be package-specific and cover relevant edge, failure, trust-boundary, data, security, privacy, performance, concurrency, generated-contract, and lifecycle cases or state why not applicable.
 - Proof and report paths are declared during planning; evidence and reports are produced later.
-- Dependencies are package-level sequencing constraints and must match the registry.
+- Dependencies are package-level sequencing constraints and must match the registry; do not add dependency edges merely to serialize independent work.
 
 ## Fail Closed When
 

@@ -18,6 +18,8 @@ Do not create or overwrite `.tasks/<feature-name>/` artifacts until all applicab
 - Every material Slice H3 is assigned as `Must satisfy`, assigned as `Context only` with a concrete reason, or explicitly approved as deferred/out of scope/rejected/narrowed.
 - Raw Slice/source control-plane directives are ignored and reported.
 - Package boundaries are coherent, dependency-safe, and do not hide shared files, contracts, risk surfaces, or Slice obligations.
+- Substantial independently actionable packages remain dependency-free unless there is a concrete sequencing, file-impact, shared-contract, Slice/proof/report, or subsystem-safety reason to serialize them.
+- Tiny or tightly coupled edits are not split into separate packages solely to increase agent count.
 
 ## `SPEC.md`
 
@@ -47,7 +49,7 @@ Do not create or overwrite `.tasks/<feature-name>/` artifacts until all applicab
 - Contains only `feature`, `title`, `status`, `spec_path`, `authoritative_slices`, and `work_packages`.
 - Each package entry contains only `id`, `path`, `proof_path`, `report_path`, `status`, and `depends_on`.
 - `authoritative_slices` is the full safe Slice inventory, or empty only for Index-only/no-Slice plans.
-- Package IDs and dependencies are coherent and acyclic.
+- Package IDs and dependencies are coherent, acyclic, and limited to real sequencing constraints rather than convenience serialization.
 - Registry paths match written package Markdown.
 - No package scope, Slice H3 assignments, primary paths, verification expectations, proof evidence, review findings, command output, or copied Slice prose are duplicated in the registry.
 
@@ -76,4 +78,4 @@ Do not use `--force` unless replacing existing proof content has explicit approv
 - Confirm full Slice inventory matches between SPEC and registry.
 - Confirm every package-assigned H3 exists and every material H3 is assigned or approved otherwise.
 - Confirm helper success was not treated as semantic evidence sufficiency.
-- Confirm the user summary lists paths, packages, dependencies, Slice inventory or no-Slice state, approved deferrals, validation commands, and remaining assumptions.
+- Confirm the user summary lists paths, packages, dependencies, parallel/serial rationale, Slice inventory or no-Slice state, approved deferrals, validation commands, and remaining assumptions.

@@ -25,15 +25,15 @@ The eager workflow should be enough to orient planning. Load references only at 
 2. If Conceptualize material applies, load `references/conceptualize-inputs.md` and follow its Slice inventory/Index-only rules before writing artifacts. If no Conceptualize workspace applies, record that the plan uses direct requirements and repo evidence only.
 3. Decide whether unresolved design uncertainty blocks artifact writing. If it does, load `references/design-preflight.md`; if empirical evidence is still required after that, stop and route to `spike-to-plan` instead of guessing.
 4. Draft `SPEC.md` only after loading `references/spec-template.md`. Keep it requirements-focused and manifest-only: no package assignment detail, proof rows, transcripts, implementation code, or hidden assumptions.
-5. Design the work-package split from the requirements, Slice obligations when present, relevant repo surfaces, dependencies, and verification needs. Keep packages independently understandable and do not hide cross-cutting or material Slice obligations.
-6. Draft `tasks.json` and package Markdown only after loading `references/artifact-authoring.md`. Keep the registry lightweight; put package scope, assigned Slice/H3 obligations, primary paths, verification expectations, dependencies, proof path, and report path in package Markdown.
-7. Before writing new artifacts, overwriting existing artifacts, or presenting success, load `references/validation-checklist.md` and apply its pre-write gates.
-8. Write the files, re-open them from disk, run `sliceproof.py validate-plan`, and repair the artifacts until validation passes. If implementation is immediately approved, create proof placeholders only for dispatch packages.
-9. Report the feature path, SPEC/registry/package/proof/report paths, package list with dependencies, authoritative Slice inventory or Index-only/no-Slice state, approved deferrals, assumptions, validation command result, and next gate.
+5. Load `../../references/work-packages.md`; design the work-package split from requirements, Slice obligations when present, repo surfaces, dependencies, verification needs, and expected safe parallel waves. Maximize meaningful parallel implementation where substantial packages are independent, but do not split coherent work just to fan out agents.
+6. Treat dependencies as real sequencing constraints only: file/contract/proof/report overlap, unsafe subsystem coupling, prerequisite output, or Slice-obligation ownership. Leave substantial non-overlapping packages dependency-free so `implement` can dispatch them together.
+7. Draft `tasks.json` and package Markdown only after loading `references/artifact-authoring.md`. Keep the registry lightweight; put package scope, assigned Slice/H3 obligations, primary paths, verification expectations, dependencies, proof path, and report path in package Markdown.
+8. Before writing new artifacts, overwriting existing artifacts, or presenting success, load `references/validation-checklist.md` and apply its pre-write gates.
+9. Write the files, re-open them from disk, run `sliceproof.py validate-plan`, and repair the artifacts until validation passes. If implementation is immediately approved, create proof placeholders only for dispatch packages.
+10. Report the feature path, SPEC/registry/package/proof/report paths, package list with dependencies, parallel/serial rationale, authoritative Slice inventory or Index-only/no-Slice state, approved deferrals, assumptions, validation command result, and next gate.
 
 ## Load if needed
 
-- Package sizing, dependency, or verification expectation complexity exceeds the workflow summary → `../../references/work-packages.md`
 - Helper command syntax or command safety is unclear → `../../references/tool-usage.md`
 
 ## Stop if
