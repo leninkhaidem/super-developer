@@ -48,16 +48,24 @@ REQUIRED_PROOF_SECTIONS = {
     "Gaps, Deviations, or Deferred Items",
     "Package Agent Completion Statement",
 }
-REQUIRED_REPORT_SECTIONS = {
-    "State Binding",
-    "Verification Result",
+REQUIRED_SOURCE_REPORT_H3 = {
+    "Verdict",
     "Slice Closure Review",
     "Code Review Findings",
-    "Blocking Findings",
-    "Repair Guidance",
+}
+FAILURE_SOURCE_REPORT_H3 = {"Blocking Findings", "Repair Guidance"}
+REQUIRED_STATE_BINDING_FIELDS = {
+    "Package",
+    "Package Markdown",
+    "Proof",
+    "Proof Digest",
+    "Assigned Slices",
+    "Worktree",
+    "Git Ref",
+    "Commit",
+    "Verified At",
 }
 PROOF_STATUS_VALUES = {"PASS", "GAP", "DEFERRED", "N/A", "OPEN"}
-PASS_REPORT_VALUES = {"passed", "pass", "verified"}
 BLOCKING_MARKER_RE = re.compile(r"\b(?:TODO|OPEN|GAP)\b", re.IGNORECASE)
 UNRESOLVED_MARKER_RE = re.compile(r"\b(?:TODO|OPEN)\b", re.IGNORECASE)
 NEGATED_APPROVAL_RE = re.compile(
@@ -832,6 +840,55 @@ def split_h2_sections(text: str) -> dict[str, str]:
     return {name: "\n".join(lines).strip() for name, lines in sections.items()}
 
 
+def h2_order(text: str) -> list[str]:
+    names: list[str] = []
+    in_fence = False
+    for raw_line in text.splitlines():
+        line = raw_line.rstrip("\n")
+        stripped = line.strip()
+        if is_fence(stripped):
+            in_fence = not in_fence
+            continue
+        if not in_fence and line.startswith("## ") and not line.startswith("### "):
+            names.append(line[3:].strip())
+    return names
+
+
+def split_h3_sections(text: str) -> dict[str, str]:
+    sections: dict[str, list[str]] = {}
+    current: str | None = None
+    in_fence = False
+    for raw_line in text.splitlines():
+        line = raw_line.rstrip("\n")
+        stripped = line.strip()
+        if is_fence(stripped):
+            in_fence = not in_fence
+            if current is not None:
+                sections[current].append(line)
+            continue
+        if not in_fence and line.startswith("### ") and not line.startswith("#### "):
+            current = line[4:].strip()
+            sections.setdefault(current, [])
+            continue
+        if current is not None:
+            sections[current].append(line)
+    return {name: "\n".join(lines).strip() for name, lines in sections.items()}
+
+
+def h3_order(text: str) -> list[str]:
+    names: list[str] = []
+    in_fence = False
+    for raw_line in text.splitlines():
+        line = raw_line.rstrip("\n")
+        stripped = line.strip()
+        if is_fence(stripped):
+            in_fence = not in_fence
+            continue
+        if not in_fence and line.startswith("### ") and not line.startswith("#### "):
+            names.append(line[4:].strip())
+    return names
+
+
 def extract_slice_h3_titles(path: Path) -> dict[str, str]:
     titles: dict[str, str] = {}
     in_fence = False
@@ -1076,42 +1133,150 @@ def validate_report_markdown(
         return [f"report: file not found: {report_path}"]
     text = read_text_file(report_path, f"package verification report {report_path}")
     errors: list[str] = []
-    h1_match = re.search(r"^#\s+Package Verification Report:\s+(WP[1-9]\d*)\s*(?:—|-)?\s*(.*?)\s*$", text, flags=re.MULTILINE)
-    if not h1_match:
-        errors.append(f"{report_path}: expected H1 '# Package Verification Report: {package.package_id} — <title>'")
-    elif h1_match.group(1) != package.package_id:
-        errors.append(f"{report_path}: H1 package id {h1_match.group(1)!r} does not match registry id {package.package_id!r}")
-
     sections = split_h2_sections(text)
-    for section in sorted(REQUIRED_REPORT_SECTIONS):
-        if section not in sections:
-            errors.append(f"{report_path}: missing required section ## {section}")
+    section_order = h2_order(text)
+    source_section = f"Package Verification: {package.package_id}"
+    if section_order and section_order[0] != source_section:
+        errors.append(f"{report_path}: first report section must be ## {source_section}")
+    if source_section in sections and "State Binding" in sections:
+        source_index = section_order.index(source_section)
+        state_index = section_order.index("State Binding")
+        if state_index < source_index:
+            errors.append(f"{report_path}: ## State Binding must appear after ## {source_section}")
+    if source_section not in sections:
+        found_source_sections = sorted(section for section in sections if section.startswith("Package Verification:"))
+        if found_source_sections:
+            errors.append(f"{report_path}: source report section must be ## {source_section}")
+        else:
+            errors.append(f"{report_path}: missing required section ## {source_section}")
+    if "State Binding" not in sections:
+        errors.append(f"{report_path}: missing required section ## State Binding")
     if errors:
         return errors
 
-    binding = parse_key_values(sections["State Binding"])
-    result = parse_key_values(sections["Verification Result"])
-    required_binding = {
-        "Package",
-        "Package Markdown",
-        "Proof",
-        "Proof Digest",
-        "Assigned Slices",
-        "Worktree",
-        "Git Ref",
-        "Commit",
-        "Verified At",
-    }
-    required_result = {"Result", "Reviewer", "Scope"}
-    for field in sorted(required_binding - set(binding)):
+    source_h3 = split_h3_sections(sections[source_section])
+    source_h3_names = h3_order(sections[source_section])
+    canonical_h3_order = ["Verdict", "Slice Closure Review", "Code Review Findings", "Blocking Findings", "Repair Guidance"]
+    present_canonical_h3 = [name for name in source_h3_names if name in canonical_h3_order]
+    expected_h3_order = [name for name in canonical_h3_order if name in source_h3]
+    if present_canonical_h3 != expected_h3_order:
+        errors.append(
+            f"{report_path}: source report sections must appear in order: "
+            "### Verdict, ### Slice Closure Review, ### Code Review Findings, ### Blocking Findings, ### Repair Guidance"
+        )
+    for section in sorted(REQUIRED_SOURCE_REPORT_H3):
+        if section not in source_h3:
+            errors.append(f"{report_path}: missing required source section ### {section}")
+
+    verdict = ""
+    if "Verdict" in source_h3:
+        verdict = source_report_verdict(source_h3["Verdict"])
+        if verdict not in {"PASS", "FAIL"}:
+            errors.append(f"{report_path}: ### Verdict must be PASS or FAIL")
+        elif verdict != "PASS":
+            errors.append(f"{report_path}: ### Verdict must be PASS for final validation")
+        if verdict == "FAIL":
+            for section in sorted(FAILURE_SOURCE_REPORT_H3):
+                if section not in source_h3:
+                    errors.append(f"{report_path}: FAIL report missing required source section ### {section}")
+
+    if "Slice Closure Review" in source_h3:
+        errors.extend(validate_report_slice_closure_review(report_path, package_md, source_h3["Slice Closure Review"]))
+    if "Code Review Findings" in source_h3:
+        errors.extend(validate_report_code_review_findings(report_path, source_h3["Code Review Findings"]))
+    if "Blocking Findings" in source_h3 and not is_empty_gaps_deviations_section(source_h3["Blocking Findings"]):
+        errors.append(f"{report_path}: ### Blocking Findings must be empty or None for final validation")
+    if "Open Findings" in sections:
+        open_findings = sections["Open Findings"]
+        if UNRESOLVED_MARKER_RE.search(open_findings):
+            errors.append(f"{report_path}: ## Open Findings contains unresolved TODO/OPEN marker")
+        if not is_empty_gaps_deviations_section(open_findings):
+            errors.append(f"{report_path}: ## Open Findings must be '- None.' for final validation")
+
+    errors.extend(validate_report_state_binding(report_path, package, package_md, proof_path, sections["State Binding"]))
+    return errors
+
+
+def source_report_verdict(body: str) -> str:
+    for raw_line in body.splitlines():
+        line = raw_line.strip()
+        if not line:
+            continue
+        line = re.sub(r"^(?:[-*]|\d+\.)\s+", "", line)
+        return clean_cell_id(line).upper()
+    return ""
+
+
+def validate_report_slice_closure_review(report_path: Path, package_md: PackageMarkdown, body: str) -> list[str]:
+    errors: list[str] = []
+    if is_report_section_placeholder_body(body):
+        return [f"{report_path}: ### Slice Closure Review must contain non-placeholder review evidence"]
+    if BLOCKING_MARKER_RE.search(body):
+        errors.append(f"{report_path}: ### Slice Closure Review contains unresolved TODO/OPEN/GAP marker")
+    rows = parse_table(body)
+    if not rows:
+        if package_md.must_satisfy_ids:
+            errors.append(f"{report_path}: ### Slice Closure Review must include a table row for each required Slice ID")
+        return errors
+
+    required_columns = {"Slice ID", "Proof status", "Evidence sufficient?", "Notes"}
+    if not required_columns.issubset(rows[0].cells):
+        errors.append(f"{report_path}: ### Slice Closure Review missing columns {sorted(required_columns - set(rows[0].cells))}")
+        return errors
+
+    required_ids = set(package_md.must_satisfy_ids)
+    rows_by_id: dict[str, ProofRow] = {}
+    for index, row in enumerate(rows, start=1):
+        slice_id = clean_cell_id(row.cells.get("Slice ID", ""))
+        row_label = slice_id or f"Slice Closure Review row {index}"
+        if not slice_id:
+            errors.append(f"{report_path}: {row_label} Slice ID must be non-placeholder")
+            continue
+        if slice_id in rows_by_id:
+            errors.append(f"{report_path}: duplicate Slice Closure Review row for {slice_id}")
+        else:
+            rows_by_id[slice_id] = row
+        for field in sorted(required_columns):
+            value = row.cells.get(field, "")
+            if is_report_section_placeholder_body(value):
+                errors.append(f"{report_path}: {row_label} {field} must be non-placeholder")
+        if slice_id in required_ids:
+            proof_status = normalize_status(row.cells.get("Proof status", ""))
+            if proof_status != "PASS":
+                errors.append(f"{report_path}: {slice_id} Proof status must be PASS")
+            evidence_sufficient = normalize_text(row.cells.get("Evidence sufficient?", "")).strip("`").lower()
+            if evidence_sufficient not in {"yes", "y", "true"}:
+                errors.append(f"{report_path}: {slice_id} Evidence sufficient? must be yes")
+    for slice_id in package_md.must_satisfy_ids:
+        if slice_id not in rows_by_id:
+            errors.append(f"{report_path}: ### Slice Closure Review missing required row for {slice_id}")
+    return errors
+
+
+def validate_report_code_review_findings(report_path: Path, body: str) -> list[str]:
+    if is_report_section_placeholder_body(body):
+        return [f"{report_path}: ### Code Review Findings must contain non-placeholder review evidence"]
+    if BLOCKING_MARKER_RE.search(body):
+        return [f"{report_path}: ### Code Review Findings contains unresolved TODO/OPEN/GAP marker"]
+    return []
+
+
+def validate_report_state_binding(
+    report_path: Path,
+    package: RegistryPackage,
+    package_md: PackageMarkdown,
+    proof_path: Path,
+    body: str,
+) -> list[str]:
+    errors: list[str] = []
+    binding = parse_key_values(body)
+    for field in sorted(REQUIRED_STATE_BINDING_FIELDS - set(binding)):
         errors.append(f"{report_path}: ## State Binding missing {field!r}")
-    for field in sorted(required_result - set(result)):
-        errors.append(f"{report_path}: ## Verification Result missing {field!r}")
     if errors:
         return errors
 
     expected_assigned_slices = assigned_slices_binding(package_md)
-    for field in sorted(required_binding):
+    for field in sorted(REQUIRED_STATE_BINDING_FIELDS):
         value = clean_cell_id(binding[field])
         if field == "Assigned Slices" and expected_assigned_slices == "none" and value == "none":
             continue
@@ -1129,31 +1294,19 @@ def validate_report_markdown(
         errors.append(f"{report_path}: State Binding Proof Digest does not match current proof content")
     if clean_cell_id(binding["Assigned Slices"]) != expected_assigned_slices:
         errors.append(f"{report_path}: State Binding Assigned Slices must be {expected_assigned_slices}")
+    worktree = clean_cell_id(binding["Worktree"])
+    if not Path(worktree).is_absolute():
+        errors.append(f"{report_path}: State Binding Worktree must be an absolute reviewed worktree path")
     commit = clean_cell_id(binding["Commit"])
     if not COMMIT_RE.fullmatch(commit):
         errors.append(f"{report_path}: State Binding Commit must look like a git commit")
     if not is_iso8601(clean_cell_id(binding["Verified At"])):
         errors.append(f"{report_path}: State Binding Verified At must be ISO-8601")
-    if clean_cell_id(result["Result"]).lower() not in PASS_REPORT_VALUES:
-        errors.append(f"{report_path}: Verification Result must be passed")
-    if is_placeholder_text(result["Reviewer"]):
-        errors.append(f"{report_path}: Verification Result Reviewer must be non-placeholder")
-    if is_placeholder_text(result["Scope"]):
-        errors.append(f"{report_path}: Verification Result Scope must be non-placeholder")
-
-    blocking_findings = sections["Blocking Findings"]
-    if UNRESOLVED_MARKER_RE.search(blocking_findings):
-        errors.append(f"{report_path}: ## Blocking Findings contains unresolved TODO/OPEN marker")
-    if not is_empty_gaps_deviations_section(blocking_findings):
-        errors.append(f"{report_path}: ## Blocking Findings must be '- None.' for final validation")
-
-    if "Open Findings" in sections:
-        open_findings = sections["Open Findings"]
-        if UNRESOLVED_MARKER_RE.search(open_findings):
-            errors.append(f"{report_path}: ## Open Findings contains unresolved TODO/OPEN marker")
-        if not is_empty_gaps_deviations_section(open_findings):
-            errors.append(f"{report_path}: ## Open Findings must be '- None.' for final validation")
     return errors
+
+
+def is_report_section_placeholder_body(body: str) -> bool:
+    return not body.strip() or is_placeholder_text(body)
 
 
 def assigned_slices_binding(package_md: PackageMarkdown) -> str:

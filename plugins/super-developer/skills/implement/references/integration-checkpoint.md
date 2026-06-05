@@ -79,7 +79,7 @@ Required durable report path convention:
 .tasks/<feature>/reports/<WP-ID>.package-verification.md
 ```
 
-The report must use the canonical helper-compatible shape from `package-verification.md`: `# Package Verification Report: <WP-ID> — <title>`, `## State Binding`, `## Verification Result`, `## Slice Closure Review`, `## Code Review Findings`, `## Blocking Findings`, and `## Repair Guidance`. State binding includes package/proof/Slice paths, proof digest, reviewed worktree/ref/commit, and timestamp; verification result carries reviewer identity and scope; source-aligned reviewer sections summarize Slice closure, code findings, blockers, and repair guidance. Missing, failed, stale, or pre-repair reports block package completion and final readiness.
+The report must use the source-aligned shape from `package-verification.md`: `## Package Verification: <WP-ID>` with H3 `Verdict`, `Slice Closure Review`, `Code Review Findings`, and failure-only `Blocking Findings` / `Repair Guidance`. If lifecycle freshness metadata is kept, add it separately as `## State Binding` after the source report body with package/proof/Slice paths, proof digest, reviewed worktree/ref/commit, and timestamp. Missing, failed, stale, old H1/`Verification Result`-only, or pre-repair reports block package completion and final readiness.
 
 Package verification is package-local and does not replace final integrated review-code or final audit.
 

@@ -108,14 +108,30 @@ Closure tables use `PASS`, `DEFERRED`, or `N/A`. `OPEN` and `GAP` block closure.
 
 ## Package Verification Report
 
-A report confirms independent package verification occurred after proof evidence was available and binds that verification to the current proof content.
+A report confirms independent package verification occurred after proof evidence was available and binds that verification to current proof content through helper metadata.
 
-Required sections:
+Canonical source report body:
 
 ```md
-# Package Verification Report: WP1 — <title>
+## Package Verification: WP1
 
+### Verdict
+PASS | FAIL
+
+### Slice Closure Review
+| Slice ID | Proof status | Evidence sufficient? | Notes |
+|---|---|---|---|
+| `<Slice ID>` | `PASS` | yes | <concise closure note> |
+
+### Code Review Findings
+- None.
+```
+
+For failures, add `### Blocking Findings` and `### Repair Guidance` under the same `## Package Verification: WP1` H2. For lifecycle freshness, append helper metadata separately:
+
+```md
 ## State Binding
+Helper/package-lifecycle metadata; the source report body above remains canonical.
 - Package: `WP1`
 - Package Markdown: `.tasks/<feature>/packages/WP1.md`
 - Proof: `.tasks/<feature>/proofs/WP1.proof.md`
@@ -125,28 +141,9 @@ Required sections:
 - Git Ref: `<reviewed branch/ref/commit>`
 - Commit: `<reviewed commit hash>`
 - Verified At: `<ISO-8601 timestamp>`
-
-## Verification Result
-- Result: `passed`
-- Reviewer: `<agent or reviewer id>`
-- Scope: `<what was verified>`
-
-## Slice Closure Review
-| Slice ID | Proof status | Evidence sufficient? | Notes |
-|---|---|---|---|
-| `<Slice ID>` | `PASS` | yes | <concise closure note> |
-
-## Code Review Findings
-- None.
-
-## Blocking Findings
-- None.
-
-## Repair Guidance
-- None required.
 ```
 
-If proof content or reviewed implementation state changes after the report, freshness is lost until a new report is produced.
+If proof content or reviewed implementation state changes after the report, freshness is lost until a new source report/state binding is produced. The old H1 / `## Verification Result` replacement shape is not canonical.
 
 ## Review-Code Governance State
 

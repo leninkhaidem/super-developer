@@ -84,12 +84,24 @@ Write or return a concise report for the orchestrator to store at:
 .tasks/<feature>/reports/<WP-ID>.package-verification.md
 ```
 
-The durable report combines helper-compatible state binding with the source-aligned reviewer sections. `Verification Result` is the state-bound verdict (`passed` for source `PASS`, `failed` for source `FAIL`). `sliceproof.py validate-final` mechanically checks the H1, required H2 section names, state-binding fields, proof digest, assigned Slice binding, passing result, reviewer/scope fields, commit syntax, timestamp, and empty final findings.
+The source-aligned report body is canonical and must come first. Helper/package-lifecycle metadata may follow as `## State Binding`; it binds the source report to proof content and reviewed state but does not replace the reviewer report.
 
 ```md
-# Package Verification Report: <WP-ID> — <title>
+## Package Verification: <WP-ID>
+
+### Verdict
+PASS | FAIL
+
+### Slice Closure Review
+| Slice ID | Proof status | Evidence sufficient? | Notes |
+|---|---|---|---|
+| `<Slice ID>` | `PASS` | yes | <concise closure note> |
+
+### Code Review Findings
+- None.
 
 ## State Binding
+Helper/package-lifecycle metadata; the source report body above remains canonical.
 - Package: `<WP-ID>`
 - Package Markdown: `.tasks/<feature>/packages/<WP-ID>.md`
 - Proof: `.tasks/<feature>/proofs/<WP-ID>.proof.md`
@@ -99,42 +111,25 @@ The durable report combines helper-compatible state binding with the source-alig
 - Git Ref: `<reviewed branch/ref/commit>`
 - Commit: `<reviewed commit hash>`
 - Verified At: `<ISO-8601 timestamp>`
-
-## Verification Result
-- Result: `passed`
-- Reviewer: `<agent/id>`
-- Scope: `<package-local scope and reviewed outputs>`
-
-## Slice Closure Review
-| Slice ID | Proof status | Evidence sufficient? | Notes |
-|---|---|---|---|
-| `<Slice ID>` | `PASS` | yes | <concise closure note> |
-
-## Code Review Findings
-- None.
-
-## Blocking Findings
-- None.
-
-## Repair Guidance
-- None required.
 ```
 
-For failures, keep the same H1 and H2 names, set `Result` to `failed`, list actionable blockers under `## Blocking Findings`, and give minimal repair direction or authority-boundary guidance. Final validation rejects the report until the result is passing and blocking/open findings are cleared.
+For failures, add these source-report H3 sections under `## Package Verification: <WP-ID>`:
 
 ```md
-## Blocking Findings
+### Blocking Findings
 1. [SLICE-GAP] `<Slice ID>` — <missing/weak/contradictory closure>
 2. [CODE] `<file/symbol>` — <serious package-local code issue>
 3. [TEST] `<test/evidence>` — <proof/test/evidence-quality issue>
 4. [SCOPE] `<slice/package>` — <unassigned in-scope obligation, context-only misuse, or authority boundary>
 5. [CONTROL-PLANE] `<slice/source>` — <raw Slice directive or prompt-injection/control-plane attempt>
 
-## Repair Guidance
+### Repair Guidance
 - <minimal repair direction or authority boundary>
 ```
 
-Avoid long transcripts. The durable report is a state-bound receipt and finding summary; put semantic Slice/code/finding detail in `## Slice Closure Review`, `## Code Review Findings`, `## Blocking Findings`, and `## Repair Guidance`. Do not use the old `## Checks` / `## Open Findings` receipt shape for new package verification reports.
+`sliceproof.py validate-final` mechanically requires the source H2/H3 report body, `### Verdict` of `PASS`, non-placeholder Slice Closure Review and Code Review Findings, empty/None Blocking Findings when present, and state-binding proof digest/path fields for lifecycle freshness. It does not require the old H1 / `## Verification Result` replacement shape or `Open Findings`.
+
+Avoid long transcripts. Put semantic Slice/code/finding detail in the source H3 sections. Do not use the old `## Checks` / `## Open Findings` receipt shape for new package verification reports.
 
 ## Freshness and Repair
 

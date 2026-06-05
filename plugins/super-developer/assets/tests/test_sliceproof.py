@@ -21,6 +21,10 @@ def remove_h2_section(text: str, section: str) -> str:
     return re.sub(rf"\n## {re.escape(section)}\n.*?(?=\n## |\Z)", "\n", text, count=1, flags=re.DOTALL)
 
 
+def remove_h3_section(text: str, section: str) -> str:
+    return re.sub(rf"\n### {re.escape(section)}\n.*?(?=\n### |\n## |\Z)", "\n", text, count=1, flags=re.DOTALL)
+
+
 PLACEHOLDER_APPROVAL_VARIANTS = [
     "User-approved: pending; provenance: user note; scope: WP1 proof",
     "User-approved pending; provenance: user note; scope: WP1 proof",
@@ -251,12 +255,16 @@ class SliceproofFixture:
         self,
         proof_text: str | None = None,
         *,
-        result: str = "passed",
+        verdict: str = "PASS",
         package_markdown: str = ".tasks/fixture/packages/WP1.md",
         assigned_slices: str = ".planning/fixture/slices/helper.md",
         worktree: str | None = None,
         git_ref: str | None = None,
         commit: str | None = None,
+        slice_closure_review: str | None = None,
+        code_review_findings: str = "- None.",
+        blocking_findings: str | None = "- None.",
+        repair_guidance: str | None = "- None required.",
     ) -> str:
         if proof_text is None:
             proof_text = self.proof_path.read_text(encoding="utf-8")
@@ -264,42 +272,52 @@ class SliceproofFixture:
         worktree = str(self.repo.resolve(strict=False)) if worktree is None else worktree
         git_ref = "wp/fixture/WP1" if git_ref is None else git_ref
         commit = REPORT_COMMIT if commit is None else commit
-        return textwrap.dedent(
-            f"""
-            # Package Verification Report: WP1 — Helper behavior
-
-            ## State Binding
-            - Package: `WP1`
-            - Package Markdown: `{package_markdown}`
-            - Proof: `.tasks/fixture/proofs/WP1.proof.md`
-            - Proof Digest: `{digest}`
-            - Assigned Slices: `{assigned_slices}`
-            - Worktree: `{worktree}`
-            - Git Ref: `{git_ref}`
-            - Commit: `{commit}`
-            - Verified At: `2026-06-04T00:00:00Z`
-
-            ## Verification Result
-            - Result: `{result}`
-            - Reviewer: `package-verifier`
-            - Scope: `WP1 helper behavior fixture`
-
-            ## Slice Closure Review
-            | Slice ID | Proof status | Evidence sufficient? | Notes |
-            |---|---|---|---|
-            | `HELPER-PLAN-001` | `PASS` | yes | Fixture proof closure verified mechanically. |
-            | `HELPER-PROOF-002` | `PASS` | yes | Fixture proof closure verified mechanically. |
-
-            ## Code Review Findings
-            - None.
-
-            ## Blocking Findings
-            - None.
-
-            ## Repair Guidance
-            - None required.
-            """
-        ).lstrip()
+        if slice_closure_review is None:
+            if assigned_slices == "none":
+                slice_closure_review = "- None."
+            else:
+                slice_closure_review = textwrap.dedent(
+                    """
+                    | Slice ID | Proof status | Evidence sufficient? | Notes |
+                    |---|---|---|---|
+                    | `HELPER-PLAN-001` | `PASS` | yes | Fixture proof closure verified mechanically. |
+                    | `HELPER-PROOF-002` | `PASS` | yes | Fixture proof closure verified mechanically. |
+                    """
+                ).strip()
+        lines = [
+            "## Package Verification: WP1",
+            "",
+            "### Verdict",
+            verdict,
+            "",
+            "### Slice Closure Review",
+            slice_closure_review,
+            "",
+            "### Code Review Findings",
+            code_review_findings,
+            "",
+        ]
+        if blocking_findings is not None:
+            lines.extend(["### Blocking Findings", blocking_findings, ""])
+        if repair_guidance is not None:
+            lines.extend(["### Repair Guidance", repair_guidance, ""])
+        lines.extend(
+            [
+                "## State Binding",
+                "Helper/package-lifecycle metadata; the source report body above remains canonical.",
+                f"- Package: `WP1`",
+                f"- Package Markdown: `{package_markdown}`",
+                "- Proof: `.tasks/fixture/proofs/WP1.proof.md`",
+                f"- Proof Digest: `{digest}`",
+                f"- Assigned Slices: `{assigned_slices}`",
+                f"- Worktree: `{worktree}`",
+                f"- Git Ref: `{git_ref}`",
+                f"- Commit: `{commit}`",
+                "- Verified At: `2026-06-04T00:00:00Z`",
+                "",
+            ]
+        )
+        return "\n".join(lines)
 
     def write_completed_proof_and_report(self) -> None:
         proof = self.completed_proof()
@@ -778,12 +796,20 @@ class SliceproofTests(unittest.TestCase):
         self.assertEqual(0, done.returncode, done.stdout + done.stderr)
 
         valid_report = self.fixture.report_path.read_text(encoding="utf-8")
+        state_binding_index = valid_report.index("## State Binding")
+        state_binding_first_report = valid_report[state_binding_index:] + "\n" + valid_report[:state_binding_index]
+        verdict_index = valid_report.index("### Verdict")
+        slice_review_index = valid_report.index("### Slice Closure Review")
+        code_review_index = valid_report.index("### Code Review Findings")
+        h3_reordered_report = (
+            valid_report[:verdict_index]
+            + valid_report[slice_review_index:code_review_index]
+            + valid_report[verdict_index:slice_review_index]
+            + valid_report[code_review_index:]
+        )
         valid_worktree_line = f"- Worktree: `{self.fixture.repo.resolve(strict=False)}`"
         valid_ref_line = "- Git Ref: `wp/fixture/WP1`"
         valid_commit_line = f"- Commit: `{REPORT_COMMIT}`"
-        valid_result_line = "- Result: `passed`"
-        valid_reviewer_line = "- Reviewer: `package-verifier`"
-        valid_scope_line = "- Scope: `WP1 helper behavior fixture`"
         valid_verified_at_line = "- Verified At: `2026-06-04T00:00:00Z`"
         report_cases = [
             (
@@ -807,6 +833,21 @@ class SliceproofTests(unittest.TestCase):
                 "State Binding Assigned Slices must be .planning/fixture/slices/helper.md",
             ),
             (
+                "relative worktree binding",
+                valid_report.replace(valid_worktree_line, "- Worktree: `relative/worktree`"),
+                "State Binding Worktree must be an absolute reviewed worktree path",
+            ),
+            (
+                "state binding before source body",
+                state_binding_first_report,
+                "first report section must be ## Package Verification: WP1",
+            ),
+            (
+                "source h3 sections out of order",
+                h3_reordered_report,
+                "source report sections must appear in order",
+            ),
+            (
                 "invalid commit",
                 valid_report.replace(valid_commit_line, "- Commit: `not-a-commit`"),
                 "State Binding Commit must look like a git commit",
@@ -822,59 +863,74 @@ class SliceproofTests(unittest.TestCase):
                 "State Binding Verified At must be ISO-8601",
             ),
             (
-                "failed result",
-                valid_report.replace(valid_result_line, "- Result: `failed`"),
-                "Verification Result must be passed",
+                "failed verdict",
+                valid_report.replace("### Verdict\nPASS", "### Verdict\nFAIL"),
+                "### Verdict must be PASS for final validation",
             ),
             (
-                "missing result",
-                valid_report.replace(f"{valid_result_line}\n", ""),
-                "missing 'Result'",
+                "invalid verdict spelling",
+                valid_report.replace("### Verdict\nPASS", "### Verdict\npassed"),
+                "### Verdict must be PASS or FAIL",
             ),
             (
-                "reviewer placeholder",
-                valid_report.replace(valid_reviewer_line, "- Reviewer: `TODO`"),
-                "Verification Result Reviewer must be non-placeholder",
+                "missing source report body",
+                valid_report.replace("## Package Verification: WP1", "# Package Verification Report: WP1 — Helper behavior"),
+                "missing required section ## Package Verification: WP1",
             ),
             (
-                "scope placeholder",
-                valid_report.replace(valid_scope_line, "- Scope: `n/a`"),
-                "Verification Result Scope must be non-placeholder",
+                "missing verdict",
+                remove_h3_section(valid_report, "Verdict"),
+                "missing required source section ### Verdict",
             ),
             (
                 "missing slice closure review",
-                remove_h2_section(valid_report, "Slice Closure Review"),
-                "missing required section ## Slice Closure Review",
+                remove_h3_section(valid_report, "Slice Closure Review"),
+                "missing required source section ### Slice Closure Review",
             ),
             (
                 "missing code review findings",
-                remove_h2_section(valid_report, "Code Review Findings"),
-                "missing required section ## Code Review Findings",
+                remove_h3_section(valid_report, "Code Review Findings"),
+                "missing required source section ### Code Review Findings",
             ),
             (
-                "missing blocking findings",
-                remove_h2_section(valid_report, "Blocking Findings"),
-                "missing required section ## Blocking Findings",
+                "slice closure placeholder",
+                valid_report.replace("Fixture proof closure verified mechanically.", "TODO", 1),
+                "### Slice Closure Review contains unresolved TODO/OPEN/GAP marker",
             ),
             (
-                "missing repair guidance",
-                remove_h2_section(valid_report, "Repair Guidance"),
-                "missing required section ## Repair Guidance",
+                "slice closure missing required row",
+                re.sub(r"\n\| `HELPER-PROOF-002` .*", "", valid_report, count=1),
+                "### Slice Closure Review missing required row for HELPER-PROOF-002",
             ),
             (
-                "blocking findings marker",
-                valid_report.replace("## Blocking Findings\n- None.", "## Blocking Findings\n- OPEN fixture blocker"),
-                "## Blocking Findings contains unresolved TODO/OPEN marker",
+                "slice closure non-pass proof status",
+                valid_report.replace("| `HELPER-PLAN-001` | `PASS` | yes |", "| `HELPER-PLAN-001` | `DEFERRED` | yes |"),
+                "HELPER-PLAN-001 Proof status must be PASS",
+            ),
+            (
+                "slice closure insufficient evidence",
+                valid_report.replace("| `HELPER-PLAN-001` | `PASS` | yes |", "| `HELPER-PLAN-001` | `PASS` | no |"),
+                "HELPER-PLAN-001 Evidence sufficient? must be yes",
+            ),
+            (
+                "code review findings placeholder",
+                valid_report.replace("### Code Review Findings\n- None.", "### Code Review Findings\nTODO"),
+                "### Code Review Findings must contain non-placeholder review evidence",
             ),
             (
                 "blocking findings non-empty",
-                valid_report.replace("## Blocking Findings\n- None.", "## Blocking Findings\n- Fixture blocker remains."),
-                "## Blocking Findings must be '- None.' for final validation",
+                valid_report.replace("### Blocking Findings\n- None.", "### Blocking Findings\n- Fixture blocker remains."),
+                "### Blocking Findings must be empty or None for final validation",
             ),
             (
-                "legacy open findings marker",
-                valid_report + "\n## Open Findings\n- OPEN legacy blocker\n",
-                "## Open Findings contains unresolved TODO/OPEN marker",
+                "fail report missing blocking findings",
+                remove_h3_section(valid_report.replace("### Verdict\nPASS", "### Verdict\nFAIL"), "Blocking Findings"),
+                "FAIL report missing required source section ### Blocking Findings",
+            ),
+            (
+                "fail report missing repair guidance",
+                remove_h3_section(valid_report.replace("### Verdict\nPASS", "### Verdict\nFAIL"), "Repair Guidance"),
+                "FAIL report missing required source section ### Repair Guidance",
             ),
         ]
         placeholder_variants = [
@@ -929,6 +985,12 @@ class SliceproofTests(unittest.TestCase):
                 invalid_report = self.fixture.run("validate-final", str(self.fixture.tasks_path))
                 self.assertNotEqual(0, invalid_report.returncode, invalid_report.stdout + invalid_report.stderr)
                 self.assertIn(expected_error, "\n".join(json.loads(invalid_report.stderr)["errors"]))
+
+        with self.subTest(name="legacy open findings rejected when present"):
+            self.fixture.report_path.write_text(valid_report + "\n## Open Findings\n- OPEN legacy blocker\n", encoding="utf-8")
+            rejected = self.fixture.run("validate-final", str(self.fixture.tasks_path))
+            self.assertNotEqual(0, rejected.returncode, rejected.stdout + rejected.stderr)
+            self.assertIn("## Open Findings contains unresolved TODO/OPEN marker", "\n".join(json.loads(rejected.stderr)["errors"]))
 
         for commit_like in ("abcdef0", "abcdef012345"):
             with self.subTest(commit_like=commit_like):
