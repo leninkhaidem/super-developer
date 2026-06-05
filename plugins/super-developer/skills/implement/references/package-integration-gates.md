@@ -1,8 +1,8 @@
 # Package Integration Gates
 
-Load after the implement Execution Contract is approved when setting up package/integration worktrees, accepting package returns, merging package branches, handling conflicts, deciding cleanup readiness, or preparing feature push readiness.
+This reference governs implement-specific package integration gates after the Execution Contract is approved: package return acceptance, branch merge readiness, conflict handling, proof/report freshness, package completion, cleanup readiness, and feature-push readiness.
 
-The `worktree` skill owns git command runbooks, root-worktree safety, branch/ref invariants, cleanup, feature push, and target-merge boundaries. This reference owns implement-specific gates: when package branches may merge, when proof/report evidence is fresh enough, and when package completion is allowed.
+The `worktree` skill owns git command runbooks, root-worktree safety, branch/ref invariants, cleanup, feature push, and target-merge boundaries. This reference owns when package branches may merge, when proof/report evidence is fresh enough, and when package completion is allowed.
 
 ## Contract
 

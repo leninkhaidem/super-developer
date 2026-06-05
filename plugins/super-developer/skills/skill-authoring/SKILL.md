@@ -61,11 +61,11 @@ Return <fixed response fields, only if useful>.
 
 ## Reference File Shape
 
-References are not skills. They have no frontmatter and no routing description. They are loaded only because a skill workflow reached a concrete condition.
+References are not skills. They have no frontmatter and no routing description. The parent skill owns when to load them; the reference states the boundary it owns after loading.
 
 ```md
 # <Reference Title>
-Load when <specific condition>. State the boundary this file owns.
+This reference governs <specific boundary, template, checklist, or safety contract>.
 ## Contract
 - <boundary-specific invariant>
 ## Do
@@ -76,7 +76,7 @@ Load when <specific condition>. State the boundary this file owns.
 Return <fields only if this boundary needs a fixed result>.
 ```
 
-Reference sections may vary, but each reference must have a clear load condition, one boundary, concise rules, and no routing/frontmatter.
+Reference sections may vary, but each reference must have one boundary, concise rules, and no routing/frontmatter. Its load condition belongs in the parent skill or referencing workflow step.
 
 ## Always
 
@@ -108,7 +108,7 @@ Reference sections may vary, but each reference must have a clear load condition
 9. Draft `Stop if` for ambiguity, unsafe action, missing authority, scope conflict, or places where the agent must ask instead of inventing.
 10. Draft `Output` only when the skill needs a fixed handoff or response shape.
 11. Run a compression pass: remove duplicated rules, second-hop refs, cross-skill private-reference links, long examples, and anything better owned by a reference or script.
-12. Verify line count, link targets, activation triggers, near-miss behavior, and that every reference has a concrete load condition.
+12. Verify line count, link targets, activation triggers, near-miss behavior, and that every reference has a concrete parent load condition.
 
 ## Load if needed
 
