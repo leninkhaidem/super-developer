@@ -60,7 +60,7 @@ Internal simplification may be applied without a prompt only when it preserves t
 5. Persist accepted decisions in the owning artifact.
 6. Keep `SPEC.md` requirements-focused; package assignment belongs in package Markdown.
 7. Encode implementation-time concerns durably in package Markdown or verification expectations, not chat-only summaries.
-8. Rerun mechanical validation and perform focused re-review when changed content affects semantic review scope.
+8. Rerun mechanical validation and perform focused re-review only for changed content that affects semantic review scope.
 
 ## Re-Review
 
@@ -68,5 +68,6 @@ Re-review is delta-only and bounded:
 
 - send changed artifacts or exact targets;
 - include affected package Markdown and Slice paths from files, not summarized excerpts;
+- do not perform holistic re-review after repairs unless the repair changes global package boundaries, Slice inventory, cross-package dependency shape, or the user explicitly asks;
 - do not loop until reviewers are satisfied;
 - stop when blockers are resolved, semantic decisions are approved or explicitly deferred, and remaining suggestions are accepted or dismissed by the main agent.
