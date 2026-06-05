@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -14,6 +15,12 @@ from pathlib import Path
 ASSETS_DIR = Path(__file__).resolve().parents[1]
 SLICEPROOF_PATH = ASSETS_DIR / "sliceproof.py"
 REPORT_COMMIT = "0123456789abcdef0123456789abcdef01234567"
+
+
+def remove_h2_section(text: str, section: str) -> str:
+    return re.sub(rf"\n## {re.escape(section)}\n.*?(?=\n## |\Z)", "\n", text, count=1, flags=re.DOTALL)
+
+
 PLACEHOLDER_APPROVAL_VARIANTS = [
     "User-approved: pending; provenance: user note; scope: WP1 proof",
     "User-approved pending; provenance: user note; scope: WP1 proof",
@@ -277,11 +284,20 @@ class SliceproofFixture:
             - Reviewer: `package-verifier`
             - Scope: `WP1 helper behavior fixture`
 
-            ## Checks
-            - Verified proof closure and package helper behavior against fixture commands.
+            ## Slice Closure Review
+            | Slice ID | Proof status | Evidence sufficient? | Notes |
+            |---|---|---|---|
+            | `HELPER-PLAN-001` | `PASS` | yes | Fixture proof closure verified mechanically. |
+            | `HELPER-PROOF-002` | `PASS` | yes | Fixture proof closure verified mechanically. |
 
-            ## Open Findings
+            ## Code Review Findings
             - None.
+
+            ## Blocking Findings
+            - None.
+
+            ## Repair Guidance
+            - None required.
             """
         ).lstrip()
 
@@ -826,29 +842,39 @@ class SliceproofTests(unittest.TestCase):
                 "Verification Result Scope must be non-placeholder",
             ),
             (
-                "todo check marker",
-                valid_report.replace("Verified proof closure", "TODO verify proof closure"),
-                "## Checks contains unresolved TODO/OPEN/GAP marker",
+                "missing slice closure review",
+                remove_h2_section(valid_report, "Slice Closure Review"),
+                "missing required section ## Slice Closure Review",
             ),
             (
-                "open check marker",
-                valid_report.replace("Verified proof closure", "OPEN verify proof closure"),
-                "## Checks contains unresolved TODO/OPEN/GAP marker",
+                "missing code review findings",
+                remove_h2_section(valid_report, "Code Review Findings"),
+                "missing required section ## Code Review Findings",
             ),
             (
-                "gap check marker",
-                valid_report.replace("Verified proof closure", "GAP verify proof closure"),
-                "## Checks contains unresolved TODO/OPEN/GAP marker",
+                "missing blocking findings",
+                remove_h2_section(valid_report, "Blocking Findings"),
+                "missing required section ## Blocking Findings",
             ),
             (
-                "open findings marker",
-                valid_report.replace("## Open Findings\n- None.", "## Open Findings\n- OPEN fixture blocker"),
+                "missing repair guidance",
+                remove_h2_section(valid_report, "Repair Guidance"),
+                "missing required section ## Repair Guidance",
+            ),
+            (
+                "blocking findings marker",
+                valid_report.replace("## Blocking Findings\n- None.", "## Blocking Findings\n- OPEN fixture blocker"),
+                "## Blocking Findings contains unresolved TODO/OPEN marker",
+            ),
+            (
+                "blocking findings non-empty",
+                valid_report.replace("## Blocking Findings\n- None.", "## Blocking Findings\n- Fixture blocker remains."),
+                "## Blocking Findings must be '- None.' for final validation",
+            ),
+            (
+                "legacy open findings marker",
+                valid_report + "\n## Open Findings\n- OPEN legacy blocker\n",
                 "## Open Findings contains unresolved TODO/OPEN marker",
-            ),
-            (
-                "open findings non-empty",
-                valid_report.replace("## Open Findings\n- None.", "## Open Findings\n- Fixture blocker remains."),
-                "## Open Findings must be '- None.' for final validation",
             ),
         ]
         placeholder_variants = [

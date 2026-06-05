@@ -48,7 +48,14 @@ REQUIRED_PROOF_SECTIONS = {
     "Gaps, Deviations, or Deferred Items",
     "Package Agent Completion Statement",
 }
-REQUIRED_REPORT_SECTIONS = {"State Binding", "Verification Result", "Checks", "Open Findings"}
+REQUIRED_REPORT_SECTIONS = {
+    "State Binding",
+    "Verification Result",
+    "Slice Closure Review",
+    "Code Review Findings",
+    "Blocking Findings",
+    "Repair Guidance",
+}
 PROOF_STATUS_VALUES = {"PASS", "GAP", "DEFERRED", "N/A", "OPEN"}
 PASS_REPORT_VALUES = {"passed", "pass", "verified"}
 BLOCKING_MARKER_RE = re.compile(r"\b(?:TODO|OPEN|GAP)\b", re.IGNORECASE)
@@ -1133,14 +1140,19 @@ def validate_report_markdown(
         errors.append(f"{report_path}: Verification Result Reviewer must be non-placeholder")
     if is_placeholder_text(result["Scope"]):
         errors.append(f"{report_path}: Verification Result Scope must be non-placeholder")
-    if not sections["Checks"].strip() or is_placeholder_text(sections["Checks"]):
-        errors.append(f"{report_path}: ## Checks must contain non-placeholder verification notes")
-    if BLOCKING_MARKER_RE.search(sections["Checks"]):
-        errors.append(f"{report_path}: ## Checks contains unresolved TODO/OPEN/GAP marker")
-    if UNRESOLVED_MARKER_RE.search(sections["Open Findings"]):
-        errors.append(f"{report_path}: ## Open Findings contains unresolved TODO/OPEN marker")
-    if not is_empty_gaps_deviations_section(sections["Open Findings"]):
-        errors.append(f"{report_path}: ## Open Findings must be '- None.' for final validation")
+
+    blocking_findings = sections["Blocking Findings"]
+    if UNRESOLVED_MARKER_RE.search(blocking_findings):
+        errors.append(f"{report_path}: ## Blocking Findings contains unresolved TODO/OPEN marker")
+    if not is_empty_gaps_deviations_section(blocking_findings):
+        errors.append(f"{report_path}: ## Blocking Findings must be '- None.' for final validation")
+
+    if "Open Findings" in sections:
+        open_findings = sections["Open Findings"]
+        if UNRESOLVED_MARKER_RE.search(open_findings):
+            errors.append(f"{report_path}: ## Open Findings contains unresolved TODO/OPEN marker")
+        if not is_empty_gaps_deviations_section(open_findings):
+            errors.append(f"{report_path}: ## Open Findings must be '- None.' for final validation")
     return errors
 
 

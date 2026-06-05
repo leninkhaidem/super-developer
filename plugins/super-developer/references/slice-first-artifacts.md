@@ -121,9 +121,9 @@ Required sections:
 - Proof: `.tasks/<feature>/proofs/WP1.proof.md`
 - Proof Digest: `sha256:<digest>`
 - Assigned Slices: `<comma-separated repo-relative Slice paths in lexicographic order, or none>`
-- Worktree: `<absolute current git worktree root used for final validation>`
-- Git Ref: `<current branch short name, refs/heads/<branch>, or current HEAD hash>`
-- Commit: `<current HEAD commit hash>`
+- Worktree: `<absolute reviewed worktree root>`
+- Git Ref: `<reviewed branch/ref/commit>`
+- Commit: `<reviewed commit hash>`
 - Verified At: `<ISO-8601 timestamp>`
 
 ## Verification Result
@@ -131,11 +131,19 @@ Required sections:
 - Reviewer: `<agent or reviewer id>`
 - Scope: `<what was verified>`
 
-## Checks
-- <checks performed>
+## Slice Closure Review
+| Slice ID | Proof status | Evidence sufficient? | Notes |
+|---|---|---|---|
+| `<Slice ID>` | `PASS` | yes | <concise closure note> |
 
-## Open Findings
+## Code Review Findings
 - None.
+
+## Blocking Findings
+- None.
+
+## Repair Guidance
+- None required.
 ```
 
 If proof content or reviewed implementation state changes after the report, freshness is lost until a new report is produced.
@@ -146,60 +154,14 @@ Canonical path: `.tasks/<feature>/reviews/review-code-state.json`.
 
 `review-code-state.json` is governance readiness only. It is not proof evidence, package evidence, a review transcript, an event stream, or lifecycle history.
 
-Minimum clean audit-handoff shape:
+Minimum clean audit-handoff state includes:
 
-```json
-{
-  "feature": "feature-slug",
-  "mode": "pipeline",
-  "state": "ready_for_audit",
-  "captured_at": "<ISO-8601 timestamp>",
-  "reviewed_state": {
-    "feature_ref": "feature/<feature>",
-    "reviewed_commit": "<commit>",
-    "base_ref": "<target-ref>",
-    "base_commit": "<commit>",
-    "target_ref": "<target-ref>",
-    "diff_checksum": "sha256:<digest>",
-    "file_list_checksum": "sha256:<digest>",
-    "worktree": ".worktrees/<feature>/merge/"
-  },
-  "artifact_context": {
-    "spec_path": ".tasks/<feature>/SPEC.md",
-    "registry_path": ".tasks/<feature>/tasks.json",
-    "packages": [
-      {
-        "id": "WP1",
-        "package_path": ".tasks/<feature>/packages/WP1.md",
-        "proof_path": ".tasks/<feature>/proofs/WP1.proof.md",
-        "report_path": ".tasks/<feature>/reports/WP1.package-verification.md",
-        "report_result": "passed",
-        "report_fresh": true
-      }
-    ],
-    "authoritative_slices": [".planning/<concept>/slices/example.md"],
-    "changed_file_ownership": []
-  },
-  "lenses": [
-    {
-      "name": "integration-seams",
-      "depth": "deep",
-      "status": "complete",
-      "evidence": "<coverage summary or pointer>"
-    }
-  ],
-  "findings": {
-    "open_serious": []
-  },
-  "closure_status": {
-    "serious_findings_closed": true,
-    "no_serious_regression": true,
-    "widening_complete": true,
-    "proofs_and_reports_fresh": true,
-    "ready_for_audit": true
-  }
-}
-```
+- `feature`, `mode: "pipeline"`, `state: "ready_for_audit"`, and `captured_at`;
+- `reviewed_state` with feature/base/target refs, reviewed commit, diff/file-list checksums, and merge worktree;
+- `artifact_context` with SPEC, registry, package/proof/report paths, report freshness, authoritative Slices, and changed-file ownership;
+- `lenses` with completed coverage evidence;
+- `findings.open_serious: []`;
+- `closure_status` with serious findings closed, no serious regression, widening complete, proofs/reports fresh, and ready-for-audit true.
 
 Keep the state compact: bounded current-state summaries and pointers are allowed; package proof bodies, report bodies, transcripts, status history, lifecycle ledgers, and format markers are not.
 
