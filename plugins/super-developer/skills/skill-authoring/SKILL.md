@@ -25,12 +25,12 @@ skills/<skill-name>/
     <boundary-or-template>.md
   scripts/
     <deterministic-helper>
-references/
+shared-references/
   <shared-contract>.md
 ```
 
 - Skill-local references live under that skill's `references/` directory.
-- Shared references live in a shared `references/` directory.
+- Shared references live in `shared-references/`.
 - Scripts live under the skill's `scripts/` directory unless intentionally shared.
 - Do not deep-link another skill's private references; invoke that skill by name or promote the rule to a shared reference.
 
@@ -50,7 +50,7 @@ description: <capability>. Use when <specific triggers>. Do not use when <near-m
 ## Do
 1. <high-level workflow step>
 2. <load mandatory reference inline only if this step needs it>
-3. <invoke another skill by exact skill name, not by file path>
+3. <if another skill owns this boundary, invoke it by exact skill name, not by file path>
 ## Load if needed
 - <optional concrete condition> → `references/<file>.md`
 ## Stop if
