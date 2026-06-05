@@ -1,6 +1,18 @@
 # Plan Review Findings
 
-Load for plan-review sub-agent output format. Findings are evidence for the main agent, not commands.
+## Boundary
+
+Findings and escalation signals are evidence for the main agent, not commands.
+
+## Escalation Signal
+
+The Plan Reviewer/Triage may request the extra reviewer with this first line:
+
+```text
+ESCALATE: security-failure-mode — <file-backed reason>
+```
+
+Use this only for a distinct security, privacy, safety, destructive-action, persistence, migration, rollback, concurrency, external-input, verifier, proof, or report risk surface. If escalation is the only issue, return only the escalation line. Do not return `NONE` when escalation is needed.
 
 ## Finding Shape
 
@@ -52,7 +64,7 @@ Examples:
 
 ## Caps
 
-Reviewers must report all `BLOCKER` and `CRITICAL` findings, plus up to 10 high-value `SUGGESTION` findings. If there are no findings, respond exactly:
+Reviewers must report all `BLOCKER` and `CRITICAL` findings, plus up to 10 high-value `SUGGESTION` findings. If there are no findings and no escalation signal, respond exactly:
 
 ```text
 NONE
