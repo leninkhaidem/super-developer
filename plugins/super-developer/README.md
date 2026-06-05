@@ -220,9 +220,7 @@ plugins/super-developer/
 |   |   +-- references/validation-checklist.md
 |   +-- implement/
 |   |   +-- SKILL.md
-|   |   +-- references/delegation-dispatch.md
 |   |   +-- references/execution-contract.md
-|   |   +-- references/integration-checkpoint.md
 |   |   +-- references/package-agent-contract.md
 |   |   +-- references/package-dispatch.md
 |   |   +-- references/package-verification.md

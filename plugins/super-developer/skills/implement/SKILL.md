@@ -24,16 +24,18 @@ Implementation pipeline map: package waves → package proof + one holistic pack
 1. Resolve `.tasks/<feature>/`; load `../../references/tool-usage.md`; run `sliceproof.py validate-plan`; read `SPEC.md`, registry, selected package Markdown, and safe assigned Slices only after path validation.
 2. Load `references/execution-contract.md`; present the Execution Contract with base/feature/target refs, feature push boundary, package branch/worktree names, package/proof/report paths, Slice obligations, verification expectations, package verification depth, stop conditions, and auto-resolve vs step-by-step choice.
 3. After approval, use the `worktree` skill for setup commands and worktree safety; create the integration/package worktrees without switching the root worktree.
-4. For package semantics, dependencies, sizing, and runtime batch adjustment, load `../../references/work-packages.md` and `references/package-dispatch.md`; choose the largest safe useful batch or stop on package/authority blockers.
-5. Before each package dispatch, load `../../references/package-lifecycle.md`, `../../references/model-preferences.md`, and `references/delegation-dispatch.md`; create proof placeholders, update registry status only as bookkeeping when used, and construct package-agent prompts that pass sub-agent contract paths without loading those contracts into orchestrator context.
-6. When package agents return, load `references/package-integration-gates.md` and `references/integration-checkpoint.md`; validate `SELF_REVIEW`, proof Markdown, commands/inspections, Slice plan-defect status, package verification report, post-merge freshness, and ignored `.tasks` handling.
-7. If repair is needed, use `references/delegation-dispatch.md` to construct repair or verifier follow-up prompts; delegate through fresh agents, then refresh affected proof rows/reports, rerun proof validation, and rerun focused or full package verification before completion.
-8. Mark packages done only after the completion gate passes; merge through the integration worktree, keep package branches/worktrees until cleanup gates pass, and loop to downstream packages.
-9. At final readiness, use `../../references/package-lifecycle.md`; run `sliceproof.py validate-final`, safe integrated checks, and contracted feature push only through the `worktree` skill's push/cleanup boundary; invoke `review-code` and `audit` only through their skills when readiness rules allow.
-10. If final review-code or audit returns findings, batch compatible findings, delegate repair, refresh affected proof/report/package-verification state, rerun affected review-code checks and focused/full audit as required, and do not declare readiness until both final gates are clean for the same integrated state.
+4. Load `references/package-dispatch.md`; choose the largest safe useful package batch, create proof placeholders, update registry status only as bookkeeping when used, and construct compact package-agent prompts that pass sub-agent contract paths without loading those contracts into orchestrator context.
+5. When package agents return, load `references/package-integration-gates.md`; validate `SELF_REVIEW`, proof Markdown, commands/inspections, Slice plan-defect status, package verification report, post-merge freshness, and ignored `.tasks` handling.
+6. If repair is needed, use `references/package-dispatch.md` to construct repair or verifier follow-up prompts; delegate through fresh agents, then refresh affected proof rows/reports, rerun proof validation, and rerun focused or full package verification before completion.
+7. Mark packages done only after integration gates pass; merge through the integration worktree, keep package branches/worktrees until cleanup gates pass, and loop to downstream packages.
+8. At final readiness, use `references/package-integration-gates.md`; run `sliceproof.py validate-final`, safe integrated checks, and contracted feature push only through the `worktree` skill's push/cleanup boundary; invoke `review-code` and `audit` only through their skills when readiness rules allow.
+9. If final review-code or audit returns findings, batch compatible findings, delegate repair, refresh affected proof/report/package-verification state, rerun affected review-code checks and focused/full audit as required, and do not declare readiness until both final gates are clean for the same integrated state.
 
 ## Load if needed
 
+- Package sizing/dependency semantics ambiguity → `../../references/work-packages.md`
+- Proof/report freshness or non-bypass dispute beyond integration gates → `../../references/package-lifecycle.md`
+- Local model override/adaptive selection → `../../references/model-preferences.md`
 - Artifact role ambiguity → `../../references/slice-first-artifacts.md`
 - Slice authority, path, projection, or control-plane dispute → `../../references/conceptualize-slice-authority.md`
 - Risk probes for complex package, verifier, or repair packets → `../../references/known-risk-patterns.md`
