@@ -227,7 +227,7 @@ plugins/super-developer/
 |   |   +-- references/package-dispatch.md
 |   |   +-- references/package-verification.md
 |   |   +-- references/repair-agent-contract.md
-|   |   +-- references/worktree-merge-cleanup.md
+|   |   +-- references/package-integration-gates.md
 |   +-- review-code/
 |   |   +-- SKILL.md
 |   |   +-- references/decision-filter.md
