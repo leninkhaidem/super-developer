@@ -13,7 +13,6 @@ import hashlib
 import json
 import os
 import re
-import subprocess
 import sys
 import tempfile
 from dataclasses import dataclass
@@ -191,23 +190,6 @@ class PackageState:
     report_path: Path
 
 
-@dataclass(frozen=True)
-class GitState:
-    worktree_root: Path
-    head: str
-    branch: str | None
-    symbolic_ref: str | None
-
-    @property
-    def accepted_refs(self) -> set[str]:
-        refs = {self.head}
-        if self.branch:
-            refs.add(self.branch)
-        if self.symbolic_ref:
-            refs.add(self.symbolic_ref)
-        return refs
-
-
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
@@ -372,8 +354,7 @@ def cmd_validate_proof(args: argparse.Namespace) -> dict[str, Any]:
 
 def cmd_validate_final(args: argparse.Namespace) -> dict[str, Any]:
     registry, packages = load_and_validate_plan(args.tasks)
-    git_state, git_errors = load_current_git_state(registry.root)
-    errors: list[str] = [*git_errors]
+    errors: list[str] = []
     validated_reports: list[str] = []
     for package in registry.packages:
         package_md = packages[package.package_id]
@@ -392,7 +373,7 @@ def cmd_validate_final(args: argparse.Namespace) -> dict[str, Any]:
             expected_suffix=".package-verification.md",
         )
         errors.extend(validate_proof_markdown(proof_path, package_md))
-        report_errors = validate_report_markdown(report_path, package, package_md, proof_path, git_state)
+        report_errors = validate_report_markdown(report_path, package, package_md, proof_path)
         if not report_errors:
             validated_reports.append(package.report_path)
         errors.extend(report_errors)
@@ -1083,7 +1064,6 @@ def validate_report_markdown(
     package: RegistryPackage,
     package_md: PackageMarkdown,
     proof_path: Path,
-    git_state: GitState | None,
 ) -> list[str]:
     if not report_path.is_file():
         return [f"report: file not found: {report_path}"]
@@ -1142,15 +1122,9 @@ def validate_report_markdown(
         errors.append(f"{report_path}: State Binding Proof Digest does not match current proof content")
     if clean_cell_id(binding["Assigned Slices"]) != expected_assigned_slices:
         errors.append(f"{report_path}: State Binding Assigned Slices must be {expected_assigned_slices}")
-    if git_state is None:
-        errors.append(f"{report_path}: State Binding cannot be checked because current git metadata is unavailable")
-    else:
-        errors.extend(validate_report_git_binding(report_path, binding, git_state))
     commit = clean_cell_id(binding["Commit"])
     if not COMMIT_RE.fullmatch(commit):
         errors.append(f"{report_path}: State Binding Commit must look like a git commit")
-    elif git_state is not None and commit.lower() != git_state.head:
-        errors.append(f"{report_path}: State Binding Commit must match current HEAD {git_state.head}")
     if not is_iso8601(clean_cell_id(binding["Verified At"])):
         errors.append(f"{report_path}: State Binding Verified At must be ISO-8601")
     if clean_cell_id(result["Result"]).lower() not in PASS_REPORT_VALUES:
@@ -1174,92 +1148,6 @@ def assigned_slices_binding(package_md: PackageMarkdown) -> str:
     if not package_md.slice_refs:
         return "none"
     return ", ".join(sorted(ref.path for ref in package_md.slice_refs))
-
-
-def load_current_git_state(root: Path) -> tuple[GitState | None, list[str]]:
-    worktree_code, worktree_out, worktree_err = run_git(root, "rev-parse", "--show-toplevel")
-    if worktree_code != 0 or not worktree_out.strip():
-        return None, [
-            "validate-final: current git metadata is required; unable to determine git worktree root "
-            f"for {root}: {format_git_command_error(worktree_err)}"
-        ]
-    head_code, head_out, head_err = run_git(root, "rev-parse", "--verify", "HEAD")
-    if head_code != 0 or not head_out.strip():
-        return None, [
-            "validate-final: current git metadata is required; unable to determine current HEAD "
-            f"for {root}: {format_git_command_error(head_err)}"
-        ]
-    head = head_out.splitlines()[0].strip().lower()
-    if not COMMIT_RE.fullmatch(head):
-        return None, [f"validate-final: current git metadata is invalid; HEAD is not a commit hash: {head!r}"]
-
-    symbolic_ref: str | None = None
-    branch: str | None = None
-    ref_code, ref_out, _ref_err = run_git(root, "symbolic-ref", "--quiet", "HEAD")
-    if ref_code == 0 and ref_out.strip():
-        symbolic_ref = ref_out.splitlines()[0].strip()
-        if symbolic_ref.startswith("refs/heads/"):
-            branch = symbolic_ref.removeprefix("refs/heads/")
-
-    return GitState(
-        worktree_root=Path(worktree_out.splitlines()[0].strip()).resolve(strict=False),
-        head=head,
-        branch=branch,
-        symbolic_ref=symbolic_ref,
-    ), []
-
-
-def run_git(root: Path, *args: str) -> tuple[int, str, str]:
-    try:
-        completed = subprocess.run(
-            ["git", "-C", str(root), *args],
-            check=False,
-            text=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
-    except FileNotFoundError:
-        return 127, "", "git executable not found"
-    except OSError as exc:
-        return 1, "", str(exc)
-    return completed.returncode, completed.stdout, completed.stderr
-
-
-def format_git_command_error(stderr: str) -> str:
-    return re.sub(r"\s+", " ", stderr.strip()) or "git command failed"
-
-
-def validate_report_git_binding(report_path: Path, binding: dict[str, str], git_state: GitState) -> list[str]:
-    errors: list[str] = []
-
-    # Worktree is intentionally schema-less but strictly bound: the report must
-    # name an absolute path that resolves to the current git worktree root.
-    worktree = clean_cell_id(binding["Worktree"])
-    worktree_path = Path(worktree)
-    if not worktree_path.is_absolute():
-        errors.append(f"{report_path}: State Binding Worktree must be absolute current git worktree root {git_state.worktree_root}")
-    elif worktree_path.resolve(strict=False) != git_state.worktree_root:
-        errors.append(f"{report_path}: State Binding Worktree must match current git worktree root {git_state.worktree_root}")
-
-    # Git Ref accepts the current branch short name, its full refs/heads/* name,
-    # or the exact current HEAD hash for detached/head-pinned reports.
-    git_ref = clean_cell_id(binding["Git Ref"])
-    if git_ref not in git_state.accepted_refs:
-        errors.append(
-            f"{report_path}: State Binding Git Ref must match current git ref "
-            f"({format_git_ref_expectation(git_state)})"
-        )
-    return errors
-
-
-def format_git_ref_expectation(git_state: GitState) -> str:
-    refs = []
-    if git_state.branch:
-        refs.append(f"branch {git_state.branch}")
-    if git_state.symbolic_ref:
-        refs.append(f"ref {git_state.symbolic_ref}")
-    refs.append(f"HEAD {git_state.head}")
-    return ", ".join(refs)
 
 
 def parse_key_values(body: str) -> dict[str, str]:
