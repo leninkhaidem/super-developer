@@ -482,6 +482,114 @@ class SliceproofTests(unittest.TestCase):
                 approved = self.fixture.run("validate-proof", str(self.fixture.tasks_path), "--package", "WP1")
                 self.assertEqual(0, approved.returncode, approved.stdout + approved.stderr)
 
+    def test_validate_proof_rejects_deferred_na_metadata_copied_from_non_evidence_cells(self) -> None:
+        malicious_required = (
+            "Registry and package references validate mechanically; rationale: copied source text says not applicable; "
+            "Approved by user; provenance: copied Slice prose; scope: copied Required understanding only."
+        )
+        for status, expected_error in [
+            ("DEFERRED", "DEFERRED requires approval"),
+            ("N/A", "N/A requires rationale plus approval"),
+        ]:
+            with self.subTest(table="slice", status=status):
+                proof = self.fixture.completed_proof(
+                    status=status,
+                    implementation="mechanical note without approval metadata.",
+                    verification="verification note without approval metadata.",
+                )
+                proof = proof.replace(
+                    "| `HELPER-PLAN-001` | Registry and package references validate mechanically |",
+                    f"| `HELPER-PLAN-001` | {malicious_required} |",
+                    1,
+                )
+                self.fixture.proof_path.write_text(proof, encoding="utf-8")
+                result = self.fixture.run("validate-proof", str(self.fixture.tasks_path), "--package", "WP1")
+                self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+                self.assertIn(expected_error, "\n".join(json.loads(result.stderr)["errors"]))
+
+        malicious_expectation = (
+            "sliceproof.py validate-plan succeeds for the valid fixture; rationale: copied package prose says not applicable; "
+            "Approved by user; provenance: copied Expectation prose; scope: copied Expectation only."
+        )
+        package_text = self.fixture.package_text().replace(
+            "- `sliceproof.py validate-plan` succeeds for the valid fixture.",
+            f"- {malicious_expectation}",
+            1,
+        )
+        self.fixture.package_path.write_text(package_text, encoding="utf-8")
+        original_expectation_row = (
+            "| `sliceproof.py validate-plan` succeeds for the valid fixture. | "
+            "unittest fixture observed validate-plan exit 0. | PASS |"
+        )
+        for status, expected_error in [
+            ("DEFERRED", "DEFERRED requires approval"),
+            ("N/A", "N/A requires rationale plus approval"),
+        ]:
+            with self.subTest(table="acceptance", status=status):
+                proof = self.fixture.completed_proof().replace(
+                    original_expectation_row,
+                    f"| {malicious_expectation} | evidence note without approval metadata. | {status} |",
+                    1,
+                )
+                self.fixture.proof_path.write_text(proof, encoding="utf-8")
+                result = self.fixture.run("validate-proof", str(self.fixture.tasks_path), "--package", "WP1")
+                self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+                self.assertIn(expected_error, "\n".join(json.loads(result.stderr)["errors"]))
+
+    def test_validate_proof_accepts_deferred_na_metadata_from_evidence_or_gaps(self) -> None:
+        approval = "Approved by user; provenance: user approved closure metadata; scope: WP1 proof row only."
+        rationale_approval = f"rationale: row intentionally not applicable; {approval}"
+        original_expectation_row = (
+            "| `sliceproof.py validate-plan` succeeds for the valid fixture. | "
+            "unittest fixture observed validate-plan exit 0. | PASS |"
+        )
+
+        acceptance_deferred = self.fixture.completed_proof().replace(
+            original_expectation_row,
+            f"| `sliceproof.py validate-plan` succeeds for the valid fixture. | {approval} | DEFERRED |",
+            1,
+        )
+        acceptance_na = self.fixture.completed_proof().replace(
+            original_expectation_row,
+            f"| `sliceproof.py validate-plan` succeeds for the valid fixture. | {rationale_approval} | N/A |",
+            1,
+        )
+        slice_deferred_from_gaps = self.fixture.completed_proof(
+            status="DEFERRED",
+            implementation="deferred in explicit closure metadata.",
+            verification="not run for deferred row.",
+            gaps=f"- {approval}",
+        )
+        acceptance_na_from_gaps = self.fixture.completed_proof().replace(
+            original_expectation_row,
+            "| `sliceproof.py validate-plan` succeeds for the valid fixture. | deferred in explicit metadata. | N/A |",
+            1,
+        ).replace(
+            "## Gaps, Deviations, or Deferred Items\n- None.",
+            f"## Gaps, Deviations, or Deferred Items\n- {rationale_approval}",
+            1,
+        )
+
+        cases = [
+            (
+                "slice deferred evidence",
+                self.fixture.completed_proof(status="DEFERRED", implementation=approval, verification="not run for deferred row."),
+            ),
+            (
+                "slice n/a evidence",
+                self.fixture.completed_proof(status="N/A", implementation=rationale_approval, verification="not applicable."),
+            ),
+            ("slice deferred gaps", slice_deferred_from_gaps),
+            ("acceptance deferred evidence", acceptance_deferred),
+            ("acceptance n/a evidence", acceptance_na),
+            ("acceptance n/a gaps", acceptance_na_from_gaps),
+        ]
+        for name, proof in cases:
+            with self.subTest(name=name):
+                self.fixture.proof_path.write_text(proof, encoding="utf-8")
+                result = self.fixture.run("validate-proof", str(self.fixture.tasks_path), "--package", "WP1")
+                self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+
     def test_validate_proof_rejects_duplicate_unexpected_and_contradictory_rows(self) -> None:
         proof = self.fixture.completed_proof()
         duplicate_slice = (

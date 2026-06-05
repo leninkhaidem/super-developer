@@ -1034,7 +1034,7 @@ def validate_slice_row_status(proof_path: Path, row: ProofRow, row_label: str, s
     implementation = row.cells.get("Implementation evidence", "")
     verification = row.cells.get("Verification evidence", "")
     status = normalize_status(row.cells.get("Status", ""))
-    row_text = " ".join(row.cells.values()) + " " + sections["Gaps, Deviations, or Deferred Items"]
+    row_text = "\n".join([implementation, verification, sections["Gaps, Deviations, or Deferred Items"]])
     if status not in PROOF_STATUS_VALUES:
         errors.append(f"{proof_path}: {row_label} status {status!r} is not supported")
     elif status == "PASS":
@@ -1061,7 +1061,7 @@ def validate_expectation_row_status(proof_path: Path, row: ProofRow, row_label: 
     errors: list[str] = []
     evidence = row.cells.get("Evidence", "")
     status = normalize_status(row.cells.get("Status", ""))
-    row_text = " ".join(row.cells.values()) + " " + sections["Gaps, Deviations, or Deferred Items"]
+    row_text = "\n".join([evidence, sections["Gaps, Deviations, or Deferred Items"]])
     if status not in PROOF_STATUS_VALUES:
         errors.append(f"{proof_path}: {row_label} status {status!r} is not supported")
     elif status == "PASS":
