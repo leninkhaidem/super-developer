@@ -141,14 +141,14 @@ Run:
 python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-final ".tasks/<feature>/tasks.json"
 ```
 
-Final readiness still requires review-code readiness and final audit. Helper success, registry mutation, manual proof edits, or dashboard output cannot bypass those gates.
+This package-final readiness allows dispatching final review-code and final audit. Merge/readiness still requires review-code readiness and final audit PASS clean for the same integrated state. Helper success, registry mutation, manual proof edits, or dashboard output cannot bypass those gates.
 
 ## End-to-End Final Loop
 
-1. Complete all packages through the package completion gate.
-2. Run final review-code; if issues are found, batch compatible findings, delegate repair, refresh affected proof/report evidence, rerun package verification, and rerun affected review-code checks.
-3. When review-code is ready for audit, run final audit against the same integrated state.
-4. If audit fails, batch audit findings with final review-code findings when possible, delegate repair, refresh affected proof Markdown and package reports, rerun `sliceproof.py validate-proof`/package verification, rerun affected review-code checks, then rerun focused or full audit as scope requires.
+1. Complete all packages through the package completion gate and run final package validation.
+2. Run final review-code and final audit as sibling checks against the same integrated state when practical. Audit receives review-code state/report when already available, or explicit `none`; review-code readiness is not required before audit dispatch.
+3. Batch compatible final review-code and final audit findings when possible, delegate repair, refresh affected proof Markdown/package reports, rerun `sliceproof.py validate-proof`/package verification, and rerun affected final code-review plus focused/full audit checks as scope requires.
+4. If either final check was not run, is stale, or is affected by repair, run or rerun it before readiness.
 5. Declare readiness only when package evidence, review-code readiness, and final audit PASS are clean for the same integrated state.
 
 ## Dashboard Rule

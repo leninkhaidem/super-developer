@@ -1,8 +1,8 @@
 # Audit Sub-Agent Contract
 
-Load only after `audit/SKILL.md` passes readiness and is about to spawn the final audit sub-agent. This reference owns the cold file packet, verification procedure, report format, repair handoff, and PASS/FAIL contract.
+Load only after `audit/SKILL.md` passes package-final readiness and is about to spawn the final audit sub-agent. This reference owns the cold file packet, verification procedure, report format, repair handoff, and PASS/FAIL contract.
 
-The sub-agent is read-only, receives no conversation history, and verifies the final integrated state. Its lens is completion: current Slice obligations, package assignment closure, proof Markdown truthfulness, package report freshness, review-code readiness, and completion-relevant quality blockers.
+The sub-agent is read-only, receives no conversation history, and verifies the final integrated state. Its lens is completion: current Slice obligations, package assignment closure, proof Markdown truthfulness, package report freshness, optional review-code context, and completion-relevant quality blockers.
 
 ## Required Packet and First Reads
 
@@ -20,9 +20,11 @@ Read first from files:
 8. every safe authoritative Slice in the selected workspace and every Slice referenced by SPEC/package Markdown
 9. every package proof Markdown file referenced by the registry/package files
 10. every package verification report referenced by the registry/package files
-11. `.tasks/<feature>/reviews/review-code-state.json`
-12. final code-review report when the dispatch packet provides a path; if packet says `none`, audit the readiness state instead
+11. optional review-code state path when the dispatch packet provides one or a safe canonical state is available; if packet says `none`, proceed without it
+12. optional final code-review report path when the dispatch packet provides one or a safe durable report is available; if packet says `none`, proceed without it
 13. final integrated worktree/code state only as needed to verify claims
+
+Review-code inputs are optional context, not audit prerequisites. When present, validate same-state and clean-readiness fields and report their status; when absent, do not rely on review-code for audit PASS.
 
 Use only orchestrator-screened Slice paths and re-check the one-workspace path boundary before reading Slice files.
 
@@ -71,16 +73,17 @@ For every package report:
 
 Missing, failed, stale, pre-repair, state-unbound, contradicted, or uncertain reports fail audit before completion can be declared.
 
-### 5. Review-Code Readiness and Integrated State
+### 5. Optional Review-Code Context and Integrated State
 
-- Read review-code readiness state and confirm it matches the canonical governance state in `slice-first-artifacts.md` for the same feature and final integrated state.
-- Fail when it is missing, malformed, not `mode: "pipeline"`, not `state: "ready_for_audit"`, not same-state, has any `findings.open_serious` entry, has incomplete widened checks, records a serious fix-introduced regression, or lacks true `closure_status.ready_for_audit` and `closure_status.proofs_and_reports_fresh`.
+- If a review-code state/report path is supplied or safely available, read it and validate whether it is for the same feature and final integrated state, uses `mode: "pipeline"`, has `state: "ready_for_audit"`, has no `findings.open_serious`, has completed widening/no serious regression, and has true `closure_status.ready_for_audit` plus `closure_status.proofs_and_reports_fresh`.
+- If review-code context is `none`, audit proceeds without relying on review-code. Absence or non-clean review-code context blocks final merge/readiness, but does not by itself block audit dispatch or audit PASS.
+- Treat review-code context as audit-blocking only when it reveals a direct contradiction with Slice/proof/package-report/code evidence or the audit was explicitly asked to rely on unsafe/stale context.
 - Inspect code/tests/build artifacts only as needed to verify claimed Slice/proof fulfillment, global behavior, SPEC requirements, and completion-relevant MUST-level quality blockers.
 - Use `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/clean-code-rules.md` for completion blockers: fake success states, missing required verification, caller-contract failure, unsafe trust boundaries, security/privacy/safety/data risk, breaking public contract changes, unresolved requirements, or missing completion evidence.
 
 ### 6. Global Completeness
 
-Cross-check Slices, SPEC, packages, proof Markdown, reports, review-code state, and final code for:
+Cross-check Slices, SPEC, packages, proof Markdown, reports, optional review-code context, and final code for:
 
 - every material current Slice obligation fulfilled or explicitly approved out of scope;
 - weak/stale proof evidence;
@@ -98,7 +101,7 @@ Use concise categories:
 [PROOF-GAP]
 [PROOF-CONTRADICTION]
 [PACKAGE-VERIFY]
-[REVIEW-READINESS]
+[REVIEW-CONTEXT]
 [IMPLEMENTATION-GAP]
 [INTEGRATION-GAP]
 [UNAPPROVED-DEFERRAL]
@@ -132,9 +135,9 @@ PASS | FAIL
 | Package | Report file | Verdict/freshness | Notes |
 |---|---|---|---|
 
-### Review-Code Readiness
-| State file | Same-state | Open serious findings | Ready/proof-report freshness | Notes |
-|---|---|---:|---|---|
+### Review-Code Context (Optional)
+| State/report | Supplied | Same-state | Clean readiness | Notes |
+|---|---|---|---|---|
 
 ### Issues Found
 1. [CATEGORY] <description> — evidence: <Slice/package/proof/report/code refs>
@@ -146,9 +149,9 @@ PASS | FAIL
 - <required repair or `None`>
 ```
 
-PASS requires complete current Slice inventory, every material H3 assigned/proven or approved out of scope, every required proof row mechanically and semantically sufficient, every package report present/fresh/PASS/state-bound, review-code readiness clean for the same final state, final code satisfying authoritative artifacts, and no blocking category.
+PASS requires complete current Slice inventory, every material H3 assigned/proven or approved out of scope, every required proof row mechanically and semantically sufficient, every package report present/fresh/PASS/state-bound, final code satisfying authoritative artifacts, and no audit-blocking category.
 
-FAIL on any blocking category. Manual or deferred evidence passes only with durable approval metadata that names provenance, scope, limits, approved state, and affected Slice/package/proof refs.
+Audit PASS is not final merge/readiness unless review-code readiness is also clean for the same integrated state. FAIL on any audit-blocking category. Manual or deferred evidence passes only with durable approval metadata that names provenance, scope, limits, approved state, and affected Slice/package/proof refs.
 
 ## Repair Handoff
 
@@ -158,7 +161,7 @@ When audit fails, provide the minimal affected set:
 - packages;
 - proof rows and evidence sections;
 - package reports;
-- review-code readiness fields;
+- review-code context/readiness fields when supplied or relevant to final readiness;
 - code/test paths;
 - required verification or rerun.
 

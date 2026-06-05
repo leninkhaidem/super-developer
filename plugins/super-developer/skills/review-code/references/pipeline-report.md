@@ -1,6 +1,6 @@
-# Pipeline Review Report and Audit-Readiness Gate
+# Pipeline Review Report and Optional Audit Context
 
-Load in planned-feature pipeline mode after the shared review engine completes, before any pipeline verdict or action. This reference owns report slots, package evidence gates, schema-less review-code state, clean handoff, and routing to pipeline fix actions.
+Load in planned-feature pipeline mode after the shared review engine completes, before any pipeline verdict or action. This reference owns report slots, package evidence gates, schema-less review-code state, optional audit context, and routing to pipeline fix actions.
 
 ## Report Slots
 
@@ -15,7 +15,7 @@ Use `report-template.md` with:
 - **CLEAN** — no Skeptic-confirmed 🔴/🟠 findings and required package proof/report evidence is present, fresh, state-bound, and non-contradictory.
 - **ISSUES FOUND** — one or more Skeptic-confirmed 🔴/🟠 findings, including missing, failed, stale, state-ambiguous, or contradictory required package evidence.
 
-Suggestions alone do not change a clean verdict. CLEAN means review-code may hand off to final audit; it is not audit PASS, package proof acceptance, or merge readiness.
+Suggestions alone do not change a clean verdict. CLEAN means review-code may provide clean optional context to final audit; it is not an audit-dispatch prerequisite, audit PASS, package proof acceptance, or merge readiness.
 
 ## Pipeline Artifact Input
 
@@ -57,9 +57,9 @@ Canonical readiness path:
 .tasks/<feature>/reviews/review-code-state.json
 ```
 
-Optional final report path: pass a safe repo-relative report path when a durable final review-code report was written; otherwise pass explicit `none` to audit. The readiness file remains governance state only: it is not proof evidence, package evidence, a review transcript, an event stream, or lifecycle history.
+Optional final report path: pass a safe repo-relative report path when a durable final review-code report was written; otherwise pass explicit `none` to audit. Audit may also be dispatched with explicit `none` before this readiness file exists. The readiness file remains governance state only: it is not proof evidence, package evidence, a review transcript, an event stream, or lifecycle history.
 
-Minimum clean audit-handoff shape:
+Minimum clean review-code readiness shape:
 
 ```json
 {
@@ -116,15 +116,15 @@ Minimum clean audit-handoff shape:
 
 Populate it from the current reviewed state, artifact context, lens coverage, findings, and closure status. Keep it compact: bounded current-state summaries and pointers are allowed; package proof bodies, report bodies, transcripts, status history, lifecycle ledgers, and format markers are not.
 
-For a CLEAN verdict, after the package evidence gate and stale-state gate pass and before saying audit-ready or handing off to audit, write or refresh `.tasks/<feature>/reviews/review-code-state.json` at the canonical path. Set `state: "ready_for_audit"`, leave `findings.open_serious` empty, and set `closure_status.ready_for_audit` and `closure_status.proofs_and_reports_fresh` to `true` only when current evidence supports both. Include the final review-code report path in the audit handoff when available, or explicit `none` when the readiness state is the only durable handoff artifact.
+For a CLEAN verdict, after the package evidence gate and stale-state gate pass and before saying review-code is ready, write or refresh `.tasks/<feature>/reviews/review-code-state.json` at the canonical path. Set `state: "ready_for_audit"`, leave `findings.open_serious` empty, and set `closure_status.ready_for_audit` and `closure_status.proofs_and_reports_fresh` to `true` only when current evidence supports both. Include the final review-code report path as optional audit context when available, or explicit `none` when the readiness state is the only durable handoff artifact.
 
-Then validate the written file using this section and the stale-state gate. If writing, refreshing, or validation fails, return **ISSUES FOUND** with the evidence blocker instead of audit-ready.
+Then validate the written file using this section and the stale-state gate. If writing, refreshing, or validation fails, return **ISSUES FOUND** with the evidence blocker instead of review-code readiness.
 
-Validate this state before audit handoff: parseable JSON, same feature and `mode: "pipeline"`, required clean-handoff fields, completed required lenses, current artifact/report status, no open serious findings/regressions/triggers/evidence blockers, true proof/report freshness, and binding to the stale-state gate.
+Validate this state before claiming clean review-code readiness or using it as audit context: parseable JSON, same feature and `mode: "pipeline"`, required clean-readiness fields, completed required lenses, current artifact/report status, no open serious findings/regressions/triggers/evidence blockers, true proof/report freshness, and binding to the stale-state gate.
 
 ## Stale-State Gate
 
-Before CLEAN can hand off to audit, revalidate current state against discovery reviewed state:
+Before CLEAN can claim review-code readiness or provide clean audit context, revalidate current state against discovery reviewed state:
 
 - feature branch head;
 - base branch and base SHA/ref;

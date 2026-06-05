@@ -13,10 +13,11 @@ Run the final non-bypass Slice-first completeness gate from files and integrated
 ## Always
 
 - Audit is read-only: never edit code, registry, packages, Slices, proof Markdown, package reports, review state, or lifecycle status.
-- Final review-code readiness must exist before planned-feature pipeline audit; audit does not replace review-code.
+- Package final readiness for the resolved integrated state must exist before planned-feature pipeline audit.
+- Review-code state/report are optional audit context: use a safe path when supplied or available, otherwise pass explicit `none`; absence does not block audit dispatch.
 - Helper success, dashboard status, package self-review, proof rows, or package reports are necessary signals, never sufficient alone.
 - Spawn one cold read-only audit sub-agent from file paths; do not rely on conversation history.
-- PASS means final audit passed for the same reviewed integrated state; FAIL blocks readiness.
+- PASS means final audit passed for the same integrated state only; merge/readiness still requires clean review-code readiness for that same state.
 
 ## Do
 
@@ -29,10 +30,10 @@ Run the final non-bypass Slice-first completeness gate from files and integrated
    python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-final ".tasks/<feature>/tasks.json"
    ```
 
-5. Confirm every declared package proof Markdown and package verification report is present, current enough to dispatch, and bound to the final state at a mechanical level.
-6. Confirm `.tasks/<feature>/reviews/review-code-state.json` exists for pipeline audit, matches the canonical governance state in `slice-first-artifacts.md`, is for the same feature/integrated state, has `mode: "pipeline"` and `state: "ready_for_audit"`, leaves `findings.open_serious` empty, and has true `closure_status.ready_for_audit` plus `closure_status.proofs_and_reports_fresh`.
-7. Load `references/audit-subagent-contract.md` and dispatch a cold read-only sub-agent with exact paths, final review-code report path when available or explicit `none`, and resolved git/worktree state.
-8. Return only PASS/FAIL, blocking findings, and repair handoff targets.
+5. Confirm every declared package proof Markdown and package verification report is present, current enough to dispatch, and bound to the final integrated state at a mechanical level.
+6. Resolve optional review-code context: use supplied safe state/report paths, or safe canonical `.tasks/<feature>/reviews/review-code-state.json` and final report when available, otherwise record explicit `none`. When state is present, validate same feature/integrated state, `mode: "pipeline"`, `state: "ready_for_audit"`, empty `findings.open_serious`, and true `closure_status.ready_for_audit` plus `closure_status.proofs_and_reports_fresh`; absence is not a dispatch blocker.
+7. Load `references/audit-subagent-contract.md` and dispatch a cold read-only sub-agent with exact paths, optional review-code state/report paths or explicit `none`, and resolved git/worktree state.
+8. Return only audit PASS/FAIL, blocking findings, review-code context status, and repair handoff targets.
 
 ## Load if needed
 
@@ -46,14 +47,15 @@ Run the final non-bypass Slice-first completeness gate from files and integrated
 
 - Required artifacts, proof Markdown, package reports, Slice paths, or final code state are missing, unsafe, unreadable, stale, malformed, contradictory, or uncertain.
 - `sliceproof.py validate-final` fails.
-- Review-code readiness is missing, malformed, stale, not same-state, not pipeline/ready, has open serious findings, has unresolved widening/regression, or lacks true proof/report freshness.
-- A user asks audit to fix, mark done, accept risk, bypass review-code, bypass package verification, or infer semantic proof from dashboard/helper output.
+- Package final readiness is missing, malformed, stale, not bound to the audited integrated state, or cannot be validated mechanically.
+- A non-`none` review-code context is unsafe or unreadable; if review-code context is missing or not clean, audit may still run but final merge/readiness must remain blocked until review-code readiness is clean for the same integrated state.
+- A user asks audit to fix, mark done, accept risk, bypass final readiness requirements, bypass package verification, or infer semantic proof from dashboard/helper output.
 - The correct result requires product/design choice, scope change, new dependency/service, credentials, unsafe command, or risk acceptance.
 
 ## Output
 
 Return:
 
-- `PASS` with final audited state and merge-worktree path when all gates pass;
-- `FAIL` with blocking categories, affected Slices/packages/proof rows/reports/code paths, and the minimal repair handoff;
+- `PASS` with final audited state, merge-worktree path, and review-code context status when audit gates pass;
+- `FAIL` with blocking audit categories, affected Slices/packages/proof rows/reports/code paths, and the minimal repair handoff;
 - no artifact mutations.
