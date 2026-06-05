@@ -33,7 +33,7 @@ The eager workflow should be enough to guide the session. Load references only a
 5. Identify the next dependent branch, hidden assumption, conflict, risk, or planning implication. Repeat the loop until remaining unknowns are resolved, explicitly deferred/out of scope with approval, or blocking.
 6. At each context-boundary checkpoint, save materialized conclusions to the Index. If a concern needs stable H3 commitments or is too important, cross-cutting, detailed, or independently useful for Index bullets alone, load `references/slice-template.md` before creating or changing Slices.
 7. Keep Slices living: revise stale, contradicted, or superseded H3 blocks when approved rather than appending hidden history. Do not write every conversational turn.
-8. When the user is ready for planning or handoff, load `references/final-handoff.md`; run the coverage pass, report blockers or approved deferrals, and return the handoff summary. If planning is approved, invoke `implementation-plan` with the workspace path and feature slug; do not create `.tasks/` inline.
+8. When the user is ready for planning or handoff, load `references/final-handoff.md`; run the coverage pass, report blockers or approved deferrals, and return the handoff summary. If planning is approved, load `../../references/model-preferences.md` for delegation model choice, then invoke `implementation-plan` with the workspace path and feature slug; do not create `.tasks/` inline.
 
 ## Load if needed
 
