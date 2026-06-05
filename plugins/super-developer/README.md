@@ -228,18 +228,9 @@ plugins/super-developer/
 |   |   +-- references/package-integration-gates.md
 |   +-- review-code/
 |   |   +-- SKILL.md
-|   |   +-- references/decision-filter.md
-|   |   +-- references/finding-contract.md
-|   |   +-- references/fix-verification.md
-|   |   +-- references/local-actions.md
 |   |   +-- references/local-workflow.md
-|   |   +-- references/pipeline-actions.md
 |   |   +-- references/pipeline-report.md
-|   |   +-- references/pr-actions.md
 |   |   +-- references/pr-workflow.md
-|   |   +-- references/report-template.md
-|   |   +-- references/review-engine.md
-|   |   +-- references/skeptic-checklist.md
 |   +-- review-plan/
 |   |   +-- SKILL.md
 |   |   +-- references/plan-review-findings.md
