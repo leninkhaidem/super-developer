@@ -81,7 +81,6 @@ See [`references/tool-usage.md`](references/tool-usage.md), [`references/slice-f
 | **implement** | Orchestrates package worktrees, package agents, proof Markdown, package verification reports, integration checkpoints, review-code, and audit handoff. | Pipeline + standalone |
 | **review-code** | Runs bounded PR, local, or planned-feature pipeline code review with dynamic risk lenses, Skeptic verification for serious findings, and governed fix verification where the mode permits fixes. | Pipeline + standalone + PR review |
 | **audit** | Final read-only planned-feature completeness gate over accepted artifacts, proof Markdown, package reports, optional review-code context, and integrated code state. | Final gate + standalone |
-| **tasks** | Read-only dashboard for registry, package, proof, report, and review-code readiness signals. | Standalone |
 | **spike-to-plan** | Runs empirical feasibility spikes before planning and routes accepted evidence into durable planning artifacts. | Planning hook |
 | **spike-and-fix** | Diagnoses bugs evidence-first, validates candidate fixes in isolation, then extracts a clean regression-tested fix. | Standalone |
 | **perspectives** | Explores architecture or design options from multiple angles with a final skeptic synthesis. | Standalone |
@@ -168,7 +167,6 @@ Useful standalone prompts:
 > Conceptualize this product idea before planning
 > Get perspectives on this architecture decision
 > Spike this feature assumption before planning
-> Show me task status
 > Review this PR: owner/repo#42
 > Review my code
 > Audit the auth-system feature
@@ -238,9 +236,6 @@ plugins/super-developer/
 |   |   +-- references/plan-review-rubrics.md
 |   +-- skill-authoring/
 |   |   +-- SKILL.md
-|   +-- tasks/
-|   |   +-- SKILL.md
-|   |   +-- references/dashboard-display.md
 |   +-- worktree/
 |   |   +-- SKILL.md
 |   |   +-- references/bugfix-hotfix-workflow.md
