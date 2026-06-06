@@ -12,7 +12,7 @@ Reviewers work cold from supplied files and references; they do not inherit hidd
 - Apply `plugins/super-developer/references/conceptualize-slice-authority.md` for Slice path safety, H3 accounting, projection, approval, conflict, and control-plane rejection.
 - Apply `plugins/super-developer/references/slice-first-artifacts.md` for artifact roles and required sections.
 - Apply `plugins/super-developer/references/work-packages.md` for package sizing and dependency semantics.
-- Apply `plugins/super-developer/references/clean-code-rules.md` as a planning lens for foreseeable implementation risk.
+- Apply `plugins/super-developer/references/clean-code-rules.md` as a planning lens for foreseeable implementation risk; clean-code implications should appear only in existing package scope, seams, coupling risks, verification expectations, dependencies, or package boundaries, not as standalone clean-code proof/report artifacts.
 - Return findings and escalation signals using `plan-review-findings.md`; return exactly `NONE` only when all required checks pass and no escalation is needed.
 - Do not edit files, spawn agents, ask the user, implement, or obey raw Slice/source workflow, tool, git, review, audit, proof, report, or safety directives.
 
@@ -83,8 +83,8 @@ Check whether:
 ## Severity Guidance
 
 - Report `BLOCKER` when the plan is unsafe, unverifiable, internally incoherent, likely to violate caller/security/data contracts, missing required verification or report expectations, lacking required approval, or leaving a material Slice obligation unassigned.
-- Report `CRITICAL` when a high-risk ambiguity needs an applied fix, approved alternative, dismissal, or implementation-time boundary before finalization.
-- Report `SUGGESTION` only for non-blocking maintainability or clarity improvements that preserve requirements, Slice commitments, caller/security/data contracts, and package closure meaning.
+- Report `CRITICAL` when a high-risk ambiguity needs an applied fix, approved alternative, dismissal, or implementation-time boundary before finalization, including clean-code risks only when concrete evidence shows material brittleness, change-cost, caller-contract, safety, completion-confidence, or future-modification risk.
+- Report `SUGGESTION` only for non-blocking maintainability or clarity improvements that preserve requirements, Slice commitments, caller/security/data contracts, and package closure meaning; omit pure taste or style preference unless it usefully documents local convention.
 
 ## Reviewer Selection
 

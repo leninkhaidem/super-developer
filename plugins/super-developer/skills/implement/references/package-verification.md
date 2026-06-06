@@ -55,7 +55,7 @@ After the audit-lite lens, inspect the package code/diff for:
 - failure/edge/default cases implied by Slice content and verification expectations;
 - security/privacy/safety concerns when relevant;
 - data integrity, migration, API/contract stability, performance, and concurrency concerns when relevant;
-- maintainability and boundary issues that create concrete implementation risk;
+- maintainability and boundary issues that create concrete material implementation risk (brittleness, scattered future edits, caller-contract risk, safety/security/data risk, completion-confidence risk, or future-modification risk), not taste or style preference;
 - mock/stub/fixture/generated-snapshot risks, especially when mocks replace the contract under test.
 
 Do not invent new product scope. If correct implementation requires a product/design decision, scope expansion, new dependency/service, unsafe command, credentials, external facts, or risk acceptance, return `FAIL` with the exact authority boundary.
