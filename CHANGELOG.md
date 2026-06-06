@@ -6,6 +6,11 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [v1.29.1] - 2026-06-06
+
+### Fixed
+- Fixed plugin and marketplace version metadata so installed plugin refreshes report the released version.
+
 ## [v1.29.0] - 2026-06-06
 
 ### Added
