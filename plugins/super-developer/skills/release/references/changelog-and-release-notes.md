@@ -6,18 +6,50 @@ Owns changelog updates and GitHub release-note prose. Load only when changelog o
 
 When updating or creating `CHANGELOG.md`:
 
-- Follow a format based on [Keep a Changelog](https://keepachangelog.com/) without pinning a specific version.
-- Preserve compatible repository convention: version heading style, date delimiter, `Unreleased` handling, compare/reference links, and topic subsections.
+- Preserve compatible repository convention first: heading style, date delimiter, `Unreleased` handling, compare links, and topic subsections.
 - Do not rewrite historical entries merely to normalize style.
+- If no compatible convention exists, use the lightweight inline format below. Do not rely on the Keep a Changelog URL as the operational spec.
 - Inspect the actual release diff, merge contents, commits since the previous release tag, and existing `Unreleased` notes.
 - Do not rely only on implementation summaries, task names, PR titles, or branch names.
 - Include all user-visible or operator-relevant additions, changes, fixes, removals, deprecations, security items, migrations,
   compatibility changes, and docs/help updates.
 - Avoid catch-all feature-only summaries that hide fixes, removals, migrations, or behavior changes.
 
+## Default Lightweight Format
+
+Use this fallback only when creating a new convention or when the existing file is too ambiguous to preserve safely:
+
+```md
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+## [Unreleased]
+
+## [vX.Y.Z] - YYYY-MM-DD
+
+### Added
+- <user/operator-visible addition>
+
+### Changed
+- <behavior, compatibility, migration, or operational change>
+
+### Fixed
+- <bug fix and affected user/operator outcome>
+```
+
+Rules for the fallback:
+
+- Keep `[Unreleased]` above released versions.
+- Use `## [vX.Y.Z] - YYYY-MM-DD` for release headings.
+- Include only non-empty change-kind sections.
+- Add compare/reference links only if the repository already uses them or the Release Contract explicitly creates them.
+- Include the Keep a Changelog URL in the header only when creating a durable new convention.
+- Mention Semantic Versioning only when the project uses SemVer.
+
 ## Classification
 
-- Use `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, and `Security` when the changelog uses kind-based headings.
+- Use `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, and `Security` for kind-based headings.
 - If the changelog uses topic/domain subsections, preserve them and make kind clear in each bullet with leading verbs.
 - Move applicable `Unreleased` entries into the new version section and recreate or leave empty `Unreleased` according to repo convention.
 - If creating a durable changelog convention, include the Keep a Changelog URL in the header. Mention Semantic Versioning only when the project uses SemVer.
