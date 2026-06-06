@@ -6,6 +6,12 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [v1.29.3] - 2026-06-06
+
+### Changed
+- Changed Conceptualize handoff rules so sessions must create at least one Slice before handoff or planning instead of allowing Index-only handoffs.
+
+
 ## [v1.29.2] - 2026-06-06
 
 ### Fixed
