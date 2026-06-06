@@ -45,7 +45,7 @@ Canonical path:
 .tasks/<feature>/reviews/review-code-state.json
 ```
 
-Schema-less current-state governance only. Store IDs, status, pointers, checksums, summaries; never bodies, transcripts, history, ledgers, or audit evidence.
+Schema-less current-state governance only. Store IDs, status, pointers, checksums, summaries; never bodies, transcripts, ledgers, or audit evidence.
 
 Refresh after discovery, fix planning/delegation, Fix Verification, evidence refresh, widened verification, escalation, readiness calculation. Sections:
 
@@ -58,7 +58,8 @@ Refresh after discovery, fix planning/delegation, Fix Verification, evidence ref
 - `widening_triggers`: trigger, scope, open/complete state;
 - `escalation_status`: none, stronger fix agent, widened verification, semantic split, or authority boundary;
 - `package_evidence_state`: clean/dirty/candidate-dirty/no-impact for affected proof/report evidence;
-- `closure_status`: serious findings closed, no serious regression, widening complete, evidence fresh, ready for audit;
+- `closure_status`: serious findings closed, no serious regression, widening complete,
+  `proofs_and_reports_fresh: true`, `ready_for_audit: true`;
 - `audit_context`: report path or `none`, plus readiness-state path.
 
 Validate before readiness/audit use: parseable JSON, same feature/mode, required sections, completed lenses, no open serious
