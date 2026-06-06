@@ -1,91 +1,94 @@
 ---
 name: worktree
 description: >
-  Git worktree strategy for branch-isolated development. Use this skill when the user wants to
-  work with git worktrees, implement a feature with branch isolation, do a bug fix in an isolated
-  branch, apply a hotfix, or manage feature branches. Triggers on phrases like "use worktrees",
-  "worktree", "branch isolation", "feature branch workflow", "bugfix branch", "hotfix",
-  "isolated branch", "worktree setup". Also used by the implement skill for git infrastructure.
+  Git worktree strategy for branch-isolated development. Use for planned-feature package work,
+  isolated bugfixes, hotfixes, spikes, feature-branch management, or worktree cleanup. Do not use
+  for direct implementation without an approved worktree action.
 ---
 
 # Git Worktree Strategy
 
-Branch-isolated, agent-managed git workflow using worktrees. This skill is the canonical invariant contract and router; load the referenced playbook for the active mode only and do not copy its runbooks into implement prompts.
+Protect the user-owned root worktree while using branch-isolated `.worktrees/` checkouts for
+package, bugfix, hotfix, spike, integration, and target-merge work.
 
-## Golden Rule
+## Always
 
-**The root working tree is user-owned and must not be switched by the agent.** The root worktree may currently be on `main`, a feature branch, or another user-selected branch. Never run root `git checkout` or any command that changes the root worktree's branch.
+- Treat the root worktree as user-owned. Never switch its branch or assume it is on `main`.
+- Resolve `PROJECT_ROOT=$(git rev-parse --show-toplevel)` before creating or removing worktrees.
+- Keep agent-managed checkouts under `$PROJECT_ROOT/.worktrees/`; ensure `.worktrees/` is ignored.
+- Feature branches are refs, not root checkouts. Create `feature/<feature>` from an explicit `<base-ref>`.
+- Use `.worktrees/<feature>/merge` as the only checkout of `feature/<feature>` for integration.
+- Planned-feature package branches use `wp/<feature>/<WP-ID>` with worktrees at `.worktrees/<feature>/wp-<WP-ID>`.
+- Package agents never create worktrees, branches, merges, target pushes, or cleanup operations.
+- Base and target refs are explicit. Default both to `main`; stacked features may use another feature branch.
+- A branch checked out in one worktree is locked for other worktrees; create separate refs instead of reusing checkouts.
+- Remove package branches only after `git merge-base --is-ancestor` proves they are included in integration `HEAD`.
+- Feature-branch push and target merge/push are separate approval boundaries.
+- Never merge or push `<target-ref>`/`main` without explicit approval for that exact target.
+- Keep integration and target-merge safety-net worktrees until the authorized merge and push boundary is complete.
+- Clean up only the named feature namespace; never remove another active feature's worktrees or refs.
 
-Planned feature work uses an explicit base/target ref. Default base/target is `main`, but stacked features may use another branch such as `feature/<base>`.
+## Do
 
-## Core Invariants
-1. **Root worktree never switches branches.** Treat the project root as user-owned. Never run `git checkout` there and never assume its current branch.
-2. **Feature branches are refs, not root checkouts.** Create `feature/<name>` from an explicit `<base-ref>`; do not check it out in the root. Use dedicated worktrees for feature integration or target-branch merges.
-3. **Development happens in worktrees.** Package, bugfix, hotfix, and temporary spike changes happen under `.worktrees/`, not in the project root.
-4. **Package branches are one worktree/branch per work package for planned-feature execution.** Tasks remain tracking units; work packages are the implementation/delegation unit. Do not normalize the unified pipeline around one worktree per small task.
-5. **Planned-feature branch prefix stays compatible.** Package branches use `task/<feature>/<WP-ID>` even though `<WP-ID>` is a work package ID. Do not rename the prefix to `wp/`.
-6. **A checked-out branch is locked.** Git cannot check the same branch out in two worktrees. Keeping feature branches as refs avoids locking them during package work.
-7. **Base and target refs are explicit.** Use `<base-ref>` for new feature/package branches; use `<target-ref>` for the final merge destination. Default both to `main` unless the plan/user names a stacked-feature base such as `feature/<base>`.
-8. **Bugfixes branch from the relevant context.** Feature bugfixes branch from the feature ref; production hotfixes branch from `main`.
-9. **Cleanup is gated by merge proof.** Before removing package worktrees or branches, verify each package branch is already included with `git merge-base --is-ancestor` from the integration worktree.
-10. **Push and merge-to-target are separate.** Pushing a feature branch for review/testing may be covered by the approved implement Execution Contract when that exact remote/ref is listed, but it never authorizes a merge into `main` or any other target branch.
-11. **Never merge to or push the target ref without explicit user approval.** "Looks good", "push it", successful tests, or a feature-branch push are not approval. Proceed only when the user clearly asks to merge into the named target branch.
-12. **Never remove safety-net worktrees before merge/push is complete.** Keep the integration/safety-net worktree until the authorized merge and push are complete; keep package worktrees until merge-base checks prove their branches are integrated.
+1. Identify the active workflow: planned-feature package, bugfix, hotfix, diagnostic spike, cleanup, feature push, or target merge.
+2. Resolve project root, current branch/worktree state, base ref, feature ref, target ref, and candidate worktree paths.
+3. Load `references/feature-package-workflow.md` for planned-feature package and integration setup commands.
+4. Load `references/bugfix-hotfix-workflow.md` for diagnostic spikes, feature bugfixes, production hotfixes, or hotfix propagation.
+5. Before cleanup, branch removal, feature push, target merge, target push, or final teardown, load `references/cleanup-safety.md`.
+6. Run commands only from the worktree named by the loaded playbook; never repair convenience by switching the root worktree.
+7. Report created refs/worktrees, current checkout paths, approval boundaries, and cleanup candidates before destructive steps.
+8. Stop instead of forcing branch deletion, worktree removal, target merge, target push, or remote action when proof or approval is missing.
 
-## Reference Router
+## Load if needed
 
-Load exactly the reference needed for the active workflow. These references are the canonical owners for their command runbooks; mode-specific prompts should retain only local action gates and deltas.
-
-- **Planned feature / implementation package:** load `plugins/super-developer/skills/worktree/references/feature-package-workflow.md` for directory layout, branch naming, feature/package commands, multi-phase dependencies, and concurrent feature examples.
-- **Bugfix, hotfix, or diagnostic spike:** load `plugins/super-developer/skills/worktree/references/bugfix-hotfix-workflow.md` for temporary spike, feature bugfix, production hotfix, and hotfix propagation playbooks.
-- **Cleanup, branch removal, push/merge boundary, or final teardown:** load `plugins/super-developer/skills/worktree/references/cleanup-safety.md` before removing any worktree or branch, pushing for review, or merging to a target branch.
-
-## Setup Contract
-
-Resolve the project root once at the start of a worktree-managed session:
-
-```bash
-PROJECT_ROOT=$(git rev-parse --show-toplevel)
-```
-
-All worktrees live below `$PROJECT_ROOT/.worktrees/`. Ensure `.worktrees/` is ignored before creating worktrees.
+- Planned feature/package commands → `references/feature-package-workflow.md`
+- Bugfix, hotfix, or diagnostic spike commands → `references/bugfix-hotfix-workflow.md`
+- Cleanup, branch removal, feature push, target merge, target push, or teardown → `references/cleanup-safety.md`
 
 ## Planned Feature Contract
 
 Use package-centric execution:
 
-- Base ref: `<base-ref>` (default `main`; may be `feature/<base>` for stacked features).
+- Base ref: `<base-ref>`.
 - Feature ref: `feature/<feature>`.
-- Target ref: `<target-ref>` (default `main`; may be the same as `<base-ref>` for stacked features).
+- Target ref: `<target-ref>`.
 - Package worktree: `.worktrees/<feature>/wp-<WP-ID>`.
-- Package branch: `task/<feature>/<WP-ID>`.
+- Package branch: `wp/<feature>/<WP-ID>`.
 - Integration worktree: `.worktrees/<feature>/merge` checking out `feature/<feature>`.
 
-`<WP-ID>` is a work package ID such as `WP1`; it is not a small task name. Multiple tasks inside one work package share the same package worktree and branch.
+`<WP-ID>` is a work package ID such as `WP1`, not a small task name. Multiple internal package
+steps share the same package worktree and branch unless the approved plan split them into separate
+work packages.
 
-## Merge and Cleanup Gates
-
-Before cleanup, prove every package branch to be removed is an ancestor of the integration branch HEAD:
+Merge-base cleanup check from the integration worktree:
 
 ```bash
-git merge-base --is-ancestor task/<feature>/<WP-ID> HEAD
+git merge-base --is-ancestor wp/<feature>/<WP-ID> HEAD
 ```
 
-Only remove branches/worktrees whose merge-base check succeeds. If any check fails, stop cleanup and keep the worktree/branch.
+Only remove a package worktree/branch when this check succeeds for that package branch.
 
-Never merge `feature/<feature>` to `<target-ref>` or push `<target-ref>` until the user explicitly approves that exact target. After an approved merge, target push completion is part of the same safety boundary: do not remove the final integration/safety-net worktree until merge and target push are complete.
+## Approval Boundaries
 
-## Merge Style Defaults
+- Creating local package/feature worktrees requires the approved worktree action or implementation Execution Contract.
+- Pushing `origin feature/<feature>` may be covered by the approved Execution Contract only when that exact push is named.
+- Target merge and target push require explicit approval for the exact `<target-ref>`.
+- Remote branch deletion is never implied by local cleanup, target merge, feature push, or release preparation.
+- Force deletion/removal is allowed only for explicitly disposable spike branches or a separately proven redundant branch.
 
-- Feature merge to target: use a non-fast-forward merge when explicitly approved, preserving package/task history for traceability.
-- Production hotfix merge to `main`: use the hotfix playbook; keep urgent history compact only when the playbook/user direction calls for it.
+## Stop if
 
-## Concurrent Work
+- The root worktree would need a branch switch.
+- `.worktrees/` is not ignored and cannot be safely ignored.
+- Base ref, feature ref, target ref, package branch, worktree path, or cleanup namespace is ambiguous.
+- A branch is already checked out elsewhere and the playbook does not provide a safe alternative.
+- Merge-base proof fails for package branch cleanup.
+- A feature push was not named in the approved Execution Contract.
+- A target merge/push lacks exact explicit approval for the named target.
+- Cleanup would remove another active feature namespace, dirty worktree, unmerged branch, or safety-net checkout.
+- A force push/delete, tag/release action, remote branch deletion, or external side effect is requested but not explicitly approved.
 
-Concurrent features are safe only when each feature owns its namespace:
+## Output
 
-- worktrees under `.worktrees/<feature>/`
-- package branches under `task/<feature>/`
-- feature ref `feature/<feature>`
-
-Clean up only the active feature's worktrees and branches. Other feature namespaces may be active.
+Return the workflow type, base/feature/target refs, worktree paths, commands run or proposed,
+approval boundary status, cleanup performed or skipped, and remaining safety-net refs/worktrees.

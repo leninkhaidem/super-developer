@@ -1,32 +1,72 @@
 # Super Developer
 
-A portable coding-assistant workflow, currently packaged as a Claude Code plugin, that orchestrates the full development lifecycle — from conceptual exploration through requirements-spec-driven planning, parallel implementation with git worktree isolation, multi-agent adversarial code review, and gated release publishing.
+Super Developer is a portable coding-assistant workflow, packaged as a Claude Code plugin, for moving from exploration to Slice-first planning, isolated implementation, bounded code review, final audit, documentation, and release preparation.
 
-One plugin. Twelve skills. Zero manual git juggling.
+One plugin. 13 skills. No manual git juggling.
 
 ---
 
 ## What It Does
 
-Super Developer packages portable skill instructions into an opinionated development workflow engine. In Claude Code, it replaces scattered slash commands and ad-hoc prompts with a structured pipeline where each stage feeds the next — with right-sized sub-agent work packages, git worktree isolation, and adversarial review gates catching issues before they ship.
+Super Developer replaces scattered prompts with a file-backed workflow. Planned-feature work uses one greenfield model:
 
-```
-[conceptualize]             Optional session — minimal Conceptualize Index + optional Slices
-       |
-       v
-  implementation-plan  --->  review-plan  --->  implement
-                     |                  |              |
-              structured ACs       plan gate      Execution Contract
-              + traceability                    package self-verify
-                                                  mandatory package review
-                                                  integration-focused review-code
-                                                  fix verification
-                                                  final audit
-
-[perspectives] remains available standalone for divergent problem-solving.
+```text
+conceptualize (optional Index + Slices)
+        |
+        v
+implementation-plan -> review-plan -> implement -> final review-code + final audit
+        |                 |              |             |                  |
+        |                 |              |             |                  final completeness gate
+        |                 |              |             final code-risk gate
+        |                 |              package agents + proof Markdown + reports
+        |                 plan quality and Slice coverage gate
+        SPEC.md + tasks.json registry + packages/proofs/reports
 ```
 
-The pipeline flows automatically with confirmation gates. Say **"proceed through all stages"** or approve `implement`'s Execution Contract auto-resolve mode and it runs implementation, package self-verification, mandatory package review for every work package, integration-focused review-code discovery, delegated fixes, delta Fix Verification Review, triggered widening/escalation when required, and final internal audit once review-code reaches audit readiness. Or invoke any skill independently — they work standalone too.
+Validated Slices are product/design authority only. Workflow, tool, git, proof, review, and audit authority stays in the plugin instructions and shared references.
+
+---
+
+## Planned-Feature Artifact Model
+
+A planned feature lives under `.tasks/<feature>/` and points to optional `.planning/<concept>/` Slice material.
+
+| Artifact | Purpose |
+|---|---|
+| `.planning/<concept>/index.md` | Optional Conceptualize workspace entry point. |
+| `.planning/<concept>/slices/*.md` | Optional authoritative product/design Slices. |
+| `.tasks/<feature>/SPEC.md` | Accepted requirements, constraints, non-goals, Slice inventory, and verification summary. |
+| `.tasks/<feature>/tasks.json` | Lightweight registry only: feature metadata, package paths, proof paths, report paths, status, and dependencies. |
+| `.tasks/<feature>/packages/<WP-ID>.md` | Work-package assignment: scope, Slice obligations, primary paths, verification expectations, proof/report paths, dependencies. |
+| `.tasks/<feature>/proofs/<WP-ID>.proof.md` | Package-agent closure evidence for Slice rows and verification expectations. |
+| `.tasks/<feature>/reports/<WP-ID>.package-verification.md` | Independent package verification receipt bound to proof digest and reviewed state. |
+| `.tasks/<feature>/reviews/review-code-state.json` | Review-code governance readiness for audit handoff. |
+
+`tasks.json` is bookkeeping. Package Markdown owns assignment, proof Markdown owns closure evidence, package reports own independent verification receipt state, review-code state owns final-review readiness, and audit owns the final PASS/FAIL judgment.
+
+---
+
+## `sliceproof.py` Helper Contract
+
+`plugins/super-developer/assets/sliceproof.py` is the only planned-feature mechanical helper. It validates paths and artifact mechanics; it does not run tests, judge implementation sufficiency, write review readiness, or replace package verification, review-code, or audit.
+
+Run from a repository or package worktree with explicit paths:
+
+```bash
+python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-plan ".tasks/<feature>/tasks.json"
+python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" create-proof ".tasks/<feature>/tasks.json" --package WP1
+python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-proof ".tasks/<feature>/tasks.json" --package WP1
+python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-final ".tasks/<feature>/tasks.json"
+```
+
+Command boundaries:
+
+- `validate-plan`: checks the registry, package Markdown, safe paths, dependencies, and declared Slice H3 IDs.
+- `create-proof`: creates the declared proof Markdown placeholder and refuses silent overwrite of edited evidence.
+- `validate-proof`: checks required proof sections, closure rows, command/file evidence, blocking markers, and approved deferrals.
+- `validate-final`: checks all packages are done, all proofs pass mechanically, and all package verification reports exist and bind to the current proof digest.
+
+See [`references/tool-usage.md`](references/tool-usage.md), [`references/slice-first-artifacts.md`](references/slice-first-artifacts.md), and [`references/package-lifecycle.md`](references/package-lifecycle.md) for the detailed boundaries.
 
 ---
 
@@ -34,91 +74,67 @@ The pipeline flows automatically with confirmation gates. Say **"proceed through
 
 | Skill | What It Does | Usage |
 |---|---|---|
-| **conceptualize** | Maintains an ignored `.planning/<concept-slug>/` entry-point `index.md` and checkpoints only durable handoff context, research, and optional focused Slices. Stops at a compact planning handoff; later planning projects hard Slice requirements and material commitments into normal plan artifacts. | Standalone + Pre-planning |
-| **perspectives** | Divergent problem-solving. Spawns 3-5 Opus-class sub-agents, each approaching the problem from a distinct angle (Infrastructure, Architecture, Data, Root Cause, etc.). A final Skeptic agent stress-tests and synthesizes proposals into a ranked recommendation. | Standalone |
-| **implementation-plan** | Converts a completed requirements discussion or Conceptualize handoff into a structured task plan under `.tasks/<feature>/` with `SPEC.md`, structured task-level acceptance criteria, traceability source refs, `context_bundles`, `design_decisions`, and work packages. Runs triggered Design Preflight and conditional `spike-to-plan` evidence collection before durable plan artifacts for nontrivial/risky features. | Pipeline + Standalone |
-| **spike-to-plan** | Empirical feature spikes that validate uncertain assumptions before implementation planning. Produces planning evidence only; accepted outcomes become `design_decisions`, not persisted spike code. | Standalone + Planning hook |
-| **review-plan** | Plan review gate. Performs deterministic schema/traceability validation, then spawns one **Plan Reviewer** that challenges the approach first and checks artifact quality second. Adds a dedicated **Security/Failure-Mode Reviewer** only for security/privacy/safety-sensitive plans or explicit escalation. Validates `SPEC.md`, `tasks.json`, context bundles, risk metadata, work packages, and accepted `design_decisions` cold from files only. | Pipeline + Standalone |
-| **tasks** | Implementation status dashboard. Shows progress across all features or drills into a specific one with phase-by-phase breakdown and package-proof evidence-health warnings. Can modify task status on request, but status overrides do not create verification evidence. | Standalone |
-| **spike-and-fix** | Bug-report troubleshooting that runs evidence-first diagnosis, validates candidate fixes in an isolated spike, then extracts a clean regression-tested bugfix/hotfix. Escalates to implementation planning when the blast radius is large. | Standalone |
-| **implement** | Unified delivery orchestrator. Presents an Execution Contract, creates git worktrees per package, dispatches packages to self-verifying sub-agents, validates package proof evidence before merge/unlock, runs mandatory targeted package review for every work package (risk determines depth, not whether review runs), coordinates delegated fixes, invokes review-code discovery/fix verification, and finishes with final internal audit. | Pipeline + Standalone |
-| **audit** | Acceptance-completeness verification. Spawns a read-only sub-agent that checks every SPEC/task acceptance criterion and accepted package proof against the final codebase state. It is the final internal pipeline gate after review-code audit readiness and remains invocable standalone. | Internal pipeline gate + Standalone |
-| **review-code** | Bounded multi-agent code review. Always runs one **Code Reviewer**, adds at most one optional **Specialist Reviewer** for the highest-priority risk trigger, and uses a **Skeptic Agent** to verify serious findings before reporting. Initial discovery uses dynamic risk lenses and compact coverage evidence; local and pipeline `fix` paths delegate non-trivial fixes and verify closure with Fix Verification Review. PR mode is review-only and has no code-fix path. | Pipeline + Standalone + PR review |
-| **code-doc** | Generate comprehensive documentation for any codebase via hybrid analysis (native extractors + LLM agents). Adaptive 8-step pipeline: Scout → Existing Doc Assessment → Doc Plan → Analyze (delegate to sub-agents) → Synthesize → User Checkpoint → Generate (fan-out doc writers) → Review & Handoff. Never auto-commits; it may propose a commit, but only runs it after explicit approval. Outputs core docs (protected/conditional README plus architecture-guide, developer-guide, codebase-context) plus recommended artifacts such as navigation, patterns, config, errors, flows, boundaries, inventory, and security. | Standalone |
-| **release** | Prepare and publish releases through one Release Contract covering base-branch detection (`main`/`master`), changelog/docs decisions, version bumps, checks, pushes/tags/GitHub releases, and exact cleanup of release worktrees and feature branches. | Standalone |
+| **conceptualize** | Runs an optional one-question-at-a-time exploration, maintains an ignored workspace Index, and writes focused Slices only when useful. | Standalone + pre-planning |
+| **implementation-plan** | Creates `SPEC.md`, the lightweight registry, package Markdown, proof paths, report paths, and proof placeholders from approved requirements, Slices, or spike evidence. | Pipeline + standalone |
+| **skill-authoring** | Creates or revises agent skills with compact eager workflows, true on-demand references, and a 150-line eager maximum. | Standalone + internal |
+| **review-plan** | Validates planned-feature artifacts, Slice coverage, package assignment, proof/report expectations, and approved deferrals before implementation. | Pipeline + standalone |
+| **implement** | Orchestrates package worktrees, package agents, proof Markdown, package verification reports, integration checkpoints, review-code, and audit handoff. | Pipeline + standalone |
+| **review-code** | Runs bounded PR, local, or planned-feature pipeline code review with dynamic risk lenses, Skeptic verification for serious findings, and governed fix verification where the mode permits fixes. | Pipeline + standalone + PR review |
+| **audit** | Final read-only planned-feature completeness gate over accepted artifacts, proof Markdown, package reports, optional review-code context, and integrated code state. | Final gate + standalone |
+| **spike-to-plan** | Runs empirical feasibility spikes before planning and routes accepted evidence into durable planning artifacts. | Planning hook |
+| **spike-and-fix** | Diagnoses bugs evidence-first, validates candidate fixes in isolation, then extracts a clean regression-tested fix. | Standalone |
+| **perspectives** | Explores architecture or design options from multiple angles with a final skeptic synthesis. | Standalone |
+| **worktree** | Provides git worktree runbooks for planned features, bugfixes, hotfixes, spikes, cleanup, and target-merge safety. | Internal + standalone |
+| **code-doc** | Generates or updates codebase documentation through scout, analysis, synthesis, review, and handoff stages. | Standalone |
+| **release** | Prepares and publishes releases behind a single release contract covering checks, pushes, tags, notes, and cleanup. | Standalone |
 
-`review-code` works in **3 modes** — it auto-detects which to use:
+---
 
-| Mode | When | What it reviews | Fix boundary |
-|---|---|---|---|
-| **Pipeline** | During unified delivery after `implement` package work completes | Feature branch diff against `main` from the merge worktree, with available plan/package-proof/context artifacts and package review receipts as integration-first context | Delegates confirmed serious fixes in coherent batches; final internal audit runs after review-code reaches audit readiness |
-| **PR** | You provide a PR identifier (`owner/repo#42`, URL, or `#42`) | Full PR diff from GitHub via `gh` CLI | Review-only: can approve, request changes, edit the report, or abort; no code-fix path and no local Fix Verification Review |
-| **Local** | No pipeline context, no PR identifier | Staged changes, unstaged changes, or branch diff (auto-detected) | `fix` delegates non-trivial fixes to a Fix Implementer, then requires a delegated Fix Verification Reviewer before post-fix commit/readiness |
+## Review-Code Modes
 
+| Mode | Trigger | Boundary |
+|---|---|---|
+| **Planned-feature pipeline** | Explicit or inherited feature context plus `.tasks/<feature>/` artifacts and reviewed implementation state. | Consumes package proof/report signals, records audit readiness, and routes serious fixes through proof/report freshness rules. |
+| **PR** | PR URL, `owner/repo#N`, or `#N` in a repository with `gh` available. | Review-only for code changes; GitHub side effects require the PR action gate. |
+| **Local** | No planned-feature context and no PR identifier. | Reviews staged, unstaged, or branch diff; local fix actions require the local action gate and fix verification. |
 
-### Review-Code Reviewer Topology
-
-`review-code` uses bounded reviewer caps instead of unconditional specialist fanout:
-
-- **Normal review cap:** Code Reviewer + conditional Skeptic Agent = 2 reviewers.
-- **Risky review cap:** Code Reviewer + one selected Specialist Reviewer + conditional Skeptic Agent = 3 reviewers.
-- **Specialist priority:** security/privacy/safety, then data integrity/persistence, then performance, then architecture/integration. If several triggers match, only the highest-priority specialist runs.
-- **Big diffs:** broad diffs are split into semantic batches; each batch keeps the same reviewer caps, and a final global integration pass deduplicates and checks cross-batch conflicts without reopening full fanout.
-- **Task-awareness:** available `SPEC.md`, `tasks.json`, package proofs, context bundles, and audit results help review-code flag apparent omissions, contradictions, stale evidence, or regressions. These are consistency signals only; audit remains authoritative for acceptance-criteria and planned-task completeness.
-- **Package review gate:** planned-feature implementation requires every work package — including low-risk, docs-only, and test-only packages — to pass mandatory package review before task completion or dependency unlock. Review depth/lenses come from risk tags and runtime signals; the compatibility receipt remains the existing `targeted_review` proof object, not a new state file or ledger.
-- **Local fixes:** non-trivial local `fix` work is delegated to a Fix Implementer and then verified by a Fix Verification Reviewer against the fix delta. The main agent only handles super-simple mechanical typo/formatting fixes inline.
-- **PR boundary:** PR mode is review-only for code changes; it does not apply fixes and does not run local Fix Verification Review.
-- **Pipeline boundary:** pipeline review runs before final internal audit and stays integration-focused: it consumes valid package review receipts as local coverage, then checks cross-package seams, shared contracts, contradictions, uncovered surfaces, end-to-end behavior, and audit readiness instead of redoing package-local reviews by default. Confirmed serious findings are delegated to Fix Implementers in coherent root-cause/package/risk batches; the orchestrator does not apply substantive production/test/documentation fixes inline.
-
-### Review-Code Loop Governance
-
-- **Discovery review:** reviewers use dynamic risk lenses selected from mode, diff surface, task/package context, risk tags, changed files, and discovered risk signals. Clean reports require compact concrete coverage rows plus completed Skeptic handling for serious candidates.
-- **Fix verification:** pipeline and local fixes use delta Fix Verification Review for assigned dedupe keys and fix-introduced serious regressions. Full or widened rereview is not the normal post-fix path; it runs only when documented widening triggers fire.
-- **Pipeline auto-resolve:** confirmed serious findings block readiness until fixed and verified `closed`. Repeated failures change strategy through stronger fix agents, specialist/widened verification, semantic batching, or other escalation before user input; user stops are reserved for authority boundaries such as product/design changes, scope expansion, unsafe/external actions, new dependencies, credentials, risk acceptance, or no viable verification seam.
-- **Review state vs proof:** pipeline review may keep one lightweight `.tasks/<feature>/reviews/review-code-state.json` governance snapshot, but it is not proof, audit evidence, an event log, or an acceptance ledger. Package proofs remain the acceptance evidence surface and must be refreshed when review-code fixes affect their evidence.
-- **Suggestions:** suggestions are report-only by default. Automatic suggestion fixes are allowed only when bundled with a confirmed serious fix, same-scope, near-zero-risk, behavior-preserving, and adding no review surface; PR mode still performs no code fixes.
-- **Progressive disclosure:** always-loaded skill files keep mode routing and critical invariants up front, then lazy-load detailed references such as `local-actions.md`, `pr-actions.md`, `pipeline-actions.md`, `finding-contract.md`, and `fix-verification.md` only when the workflow reaches that phase.
+Ordinary PR/local review does not inherit planned-feature Slice, proof, report, or audit obligations unless planned-feature artifacts are explicitly in scope.
 
 ---
 
 ## Git Worktree Strategy
 
-The `implement` skill follows a branch-isolated, agent-managed git workflow:
+The `implement` and `worktree` skills keep the root worktree user-owned and create isolated package worktrees:
 
-- **Main stays on `main`.** The main working tree never switches branches. Ever.
-- **Development happens in `.worktrees/`.** Each delegated work package gets its own worktree. Multiple substantial independent packages may run in parallel; related tasks are bundled to avoid repeated codebase exploration.
-- **The orchestrator owns git.** Sub-agents receive a work package, task IDs, primary paths, and a worktree path — they write code and commit per task ID, while the orchestrator creates worktrees, merges branches, verifies integration, and cleans up.
-- **Feature branches are refs, not worktrees.** This keeps them unlocked for merging from any worktree.
-- **Merge to main requires explicit approval.** "Push to remote" does not mean "merge to main."
-
-```
-project/                              <- always on 'main'
+```text
+project/                               # user-owned root; do not switch branches
 +-- .worktrees/
 |   +-- auth/
-|   |   +-- wp-WP1/                   <- branch: task/auth/WP1 (package: backend auth)
-|   |   +-- wp-WP2/                   <- branch: task/auth/WP2 (package: login UI)
-|   |   +-- merge/                    <- branch: feature/auth
+|   |   +-- wp-WP1/                    # branch: wp/auth/WP1
+|   |   +-- wp-WP2/                    # branch: wp/auth/WP2
+|   |   +-- merge/                     # branch/ref: feature/auth
 ```
 
-See [`skills/worktree/SKILL.md`](skills/worktree/SKILL.md) for the complete workflow including spike, bugfix, hotfix, and multi-phase dependency handling.
+Key rules:
+
+- The orchestrator owns branch/worktree creation, merges, cleanup, and approved pushes.
+- Package agents edit only their assigned package worktree and proof Markdown handoff.
+- Feature-branch push must match the approved Execution Contract.
+- Target/main merge or push always requires separate explicit approval.
+- Cleanup requires merge-base proof and clean worktrees.
 
 ---
 
 ## Installation
 
-### Install from GitHub (recommended)
-
-Add the repository as a marketplace and install — no cloning required:
+### Install from GitHub
 
 ```bash
-# 1. Add the marketplace (one-time)
 /plugin marketplace add leninkhaidem/super-developer
-
-# 2. Install the plugin
 /plugin install super-developer@super-developer-marketplace
 ```
 
-To update later:
+Update later:
 
 ```bash
 /plugin update super-developer@super-developer-marketplace
@@ -126,179 +142,132 @@ To update later:
 
 ### Install from local directory
 
-If you prefer to clone first:
-
 ```bash
 git clone https://github.com/leninkhaidem/super-developer.git
 claude --plugin-dir /path/to/super-developer/plugins/super-developer
 ```
 
-### Installation scopes
-
-| Scope | Flag | Where it applies |
-|---|---|---|
-| User (default) | `--scope user` | All your projects |
-| Project | `--scope project` | Shared with team via `.claude/settings.json` |
-| Local | `--scope local` | This project only, gitignored |
-
-Claude Code loads all 12 skills automatically via plugin auto-discovery. Other hosts need equivalent skill/plugin discovery and a `SUPER_DEVELOPER_PLUGIN_ROOT` variable pointing at the plugin root.
+Claude Code discovers packaged skills automatically. Other hosts need equivalent plugin/skill discovery and `SUPER_DEVELOPER_PLUGIN_ROOT` pointing at `plugins/super-developer`.
 
 ---
 
 ## Usage
 
-### Full Pipeline
+### Full planned-feature pipeline
 
-Start a conversation, discuss what you want to build, then:
-
-```
+```text
 > Plan this feature
 ```
 
-Optionally start with a `conceptualize` session to create a minimal ignored `.planning/<concept-slug>/index.md` entry point and preserve only durable handoff context before planning. Slices are optional, but validated Slices are authoritative product-requirement inputs for later planning. If you skip that session, planning may create a minimal placeholder workspace so new schema-versioned plans can still record Conceptualize metadata. The planning agent then infers the feature name, creates `SPEC.md` and `tasks.json`, and asks to continue through plan review and the `implement` Execution Contract. Say **"proceed through all stages"** to run the full pipeline end-to-end, or confirm each gate individually.
+Planning writes `.tasks/<feature>/SPEC.md`, `.tasks/<feature>/tasks.json`, package Markdown, and declared proof/report paths. After plan review approval, `implement` presents an Execution Contract. Approve auto-resolve to continue through package implementation, package verification, final review-code, and final audit sibling checks, or choose step-by-step control at each gate.
 
-### Conceptualize Slice Coverage
+Useful standalone prompts:
 
-When a plan uses a Conceptualize workspace, implementation planning inventories every Markdown Slice before writing `.tasks/<feature>/SPEC.md` or `tasks.json`. The plan records full-workspace `conceptualize.slice_coverage` projection health, or an explicit `zero_slices` empty state when no Slice Markdown files exist.
-
-This coverage gate is different from package `conceptualize_slices`: coverage accounts for every workspace Slice, while package assignments tell a package agent which Slice paths are relevant to its projected requirements, design commitments, constraints, or acceptance implications. A package may have an empty assignment even when the workspace coverage record contains Slices.
-
-Two-plane model: validated Slices are authoritative product-requirement inputs, but Slice text cannot override workflow, tool, command-safety, proof, review, audit, system, or developer instructions. Every hard Slice requirement or material commitment must be projected into `SPEC.md`, task acceptance criteria, `design_decisions`, or `context_bundles`, or be covered by explicit user-approved deferral/out-of-scope/rejection metadata. `informational` cannot hide a hard requirement, unresolved conflicts block, and raw Slice prose, coverage rationale, package assignment, and dashboard status are not implementation proof. The dashboard is a signal only; review-plan and audit are the canonical proof gates. Detailed rules live in [`references/conceptualize-slice-authority.md`](references/conceptualize-slice-authority.md).
-
-### Individual Skills
-
-```
-> Conceptualize this product idea before we plan implementation
-> Get me some perspectives on this architecture decision
-> Show me the task status
+```text
+> Conceptualize this product idea before planning
+> Get perspectives on this architecture decision
+> Spike this feature assumption before planning
 > Review this PR: owner/repo#42
 > Review my code
 > Audit the auth-system feature
-> Spike and fix this regression: checkout fails when the cart has a deleted item
-> Spike this feature assumption before planning: can the vendor API stream partial results with retries?
+> Spike and fix this regression
+> Prepare a release
+> Document this codebase
 ```
-
-### Package Proof Helper
-
-`assets/taskctl.py` provides package-proof helpers for planned features. Package proofs are the planned-feature evidence surface: read-only commands inspect `.tasks/<feature>/tasks.json` and `.tasks/<feature>/proofs/WP<N>.proof.json`, package lifecycle commands write only the selected package proof's accepted/reopened state, and task lifecycle helpers perform constrained block/reset mutations in `tasks.json`. The helper does not mutate generated artifacts, proof history, event logs, or unrelated proof files.
-
-Read-only commands:
-
-- `proof-template`: emit a deterministic proof template for one work package.
-- `validate-proof`: validate one package proof file.
-- `validate-proofs`: validate exactly one proof file for every work package.
-- `must-prove`: emit acceptance criteria and evidence obligations.
-- `summary`: emit task, package, and proof-health summary output.
-- `next-package`: emit proof-ready dependency candidates and interrupted packages without persisting package status.
-
-Package-level lifecycle proof writers:
-
-- `accept-package`: validate and write accepted lifecycle state for one package proof.
-- `reopen-package`: write reopened lifecycle state for one package proof.
-
-Constrained task lifecycle helpers:
-
-- `block-task`: mark one task blocked with a required reason.
-- `reset-task`: reset one interrupted or blocked task to pending after orchestrator review.
-
-These commands do not run recorded package verification commands. Accepted package proofs must cite passing evidence for required package verification commands and the mandatory package review receipt stored in the existing `targeted_review` proof object; no separate package-review ledger, transcript, or renamed `package_review` field is authoritative. Final implementation and audit gates require completed task lifecycle plus one valid, current, lifecycle-accepted proof file per planned work package. Historical `verification.json` files are not authoritative package or final evidence. See [`references/package-lifecycle.md`](references/package-lifecycle.md) for the helper boundary index and [`skills/implement/references/package-proof-lifecycle.md`](skills/implement/references/package-proof-lifecycle.md) for canonical lifecycle transition, provenance, freshness, dirty-proof, and final-gate semantics.
-
-For exact command shapes, read-only vs mutation boundaries, and helper-script safety rules, see [`references/tool-usage.md`](references/tool-usage.md).
-
-### Pipeline Flow Control
-
-| What you say | What happens |
-|---|---|
-| "Plan this feature" | Creates `SPEC.md` and `tasks.json`, asks to continue |
-| "Proceed through all stages" | Runs implementation-plan -> review-plan -> implement -> mandatory package review -> integration-focused review-code discovery/fix verification -> final audit, stopping only at required decision/unsafe-state gates |
-| Approve auto-resolve at Execution Contract | Runs package implementation, sub-agent self-verification, mandatory package review, integration-focused review-code discovery, delegated fixes, Fix Verification Review, triggered widening/escalation, and final audit when audit-ready |
-| Confirm at each gate | Step-by-step control over plan review, Execution Contract, review/fix, and final audit |
 
 ---
 
 ## Plugin Structure
 
-```
-super-developer/
+```text
+plugins/super-developer/
 +-- .claude-plugin/
-|   +-- plugin.json                     # Plugin manifest
+|   +-- plugin.json
 +-- assets/
-|   +-- validate-tasks-json.py             # tasks.json schema/dependency validator
+|   +-- sliceproof.py
+|   +-- tests/
+|       +-- test_sliceproof.py
 +-- references/
-|   +-- clean-code-rules.md               # Development Quality Contract for agents
-|   +-- model-preferences.md              # Sub-agent model selection schema
-|   +-- work-packages.md                  # Work-package delegation contract
-|   +-- decision-prompts.md               # Decision-card UX mechanics (review-plan + review-code)
-|   +-- design-preflight.md              # Triggered planning challenge before durable task plans
-|   +-- plan-review-findings.md          # Plan reviewer finding format and severity contract
-|   +-- plan-review-rubrics.md           # Narrowed plan reviewer role rubrics
-|   +-- plan-review-resolution.md        # Main-agent plan review triage and re-review rules
-|   +-- package-lifecycle.md             # Targeted package proof lifecycle semantics
-|   +-- tool-usage.md                    # Helper script command shapes and safety rules
+|   +-- clean-code-rules.md
+|   +-- conceptualize-slice-authority.md
+|   +-- decision-prompts.md
+|   +-- known-risk-patterns.md
+|   +-- model-preferences.md
+|   +-- package-lifecycle.md
+|   +-- slice-first-artifacts.md
+|   +-- tool-usage.md
+|   +-- work-packages.md
 +-- skills/
-|   +-- conceptualize/
-|   |   +-- SKILL.md                    # Minimal Conceptualize Index + optional Slices
-|   |   +-- references/
-|   |       +-- workspace-index.md      # Index template and handoff contract
-|   |       +-- slice-template.md       # Slice template and source rules
-|   +-- worktree/
-|   |   +-- SKILL.md                       # Git worktree strategy
-|   +-- spike-and-fix/
-|   |   +-- SKILL.md                    # Evidence-first bug diagnosis + clean fix
-|   +-- spike-to-plan/
-|   |   +-- SKILL.md                    # Empirical feature spike before durable planning
-|   +-- perspectives/
-|   |   +-- SKILL.md                    # Divergent problem-solving
-|   +-- implementation-plan/
-|   |   +-- SKILL.md                    # Requirements -> SPEC.md + tasks.json
-|   +-- review-plan/
-|   |   +-- SKILL.md                    # Plan review gate
-|   +-- tasks/
-|   |   +-- SKILL.md                    # Status dashboard
-|   +-- implement/
-|   |   +-- SKILL.md                    # Orchestrator + git worktrees
 |   +-- audit/
-|   |   +-- SKILL.md                    # Post-implementation verification
-|   +-- review-code/
-|   |   +-- SKILL.md                    # Multi-agent code review
-|   |   +-- references/
-|   |       +-- pr-workflow.md          # GitHub PR review workflow
-|   |       +-- local-workflow.md       # Local code review workflow
+|   |   +-- SKILL.md
+|   |   +-- references/audit-subagent-contract.md
 |   +-- code-doc/
-|       +-- SKILL.md                    # Codebase documentation generator
-|       +-- references/
-|           +-- update-merge.md         # Update/merge logic for existing docs
-|   +-- release/
-|       +-- SKILL.md                    # Single-contract release preparation and publishing
+|   |   +-- SKILL.md
+|   |   +-- references/update-merge.md
+|   +-- conceptualize/
+|   |   +-- SKILL.md
+|   |   +-- references/final-handoff.md
+|   |   +-- references/slice-template.md
+|   |   +-- references/workspace-index.md
+|   +-- implementation-plan/
+|   |   +-- SKILL.md
+|   |   +-- references/artifact-authoring.md
+|   |   +-- references/conceptualize-inputs.md
+|   |   +-- references/design-preflight.md
+|   |   +-- references/spec-template.md
+|   |   +-- references/validation-checklist.md
+|   +-- implement/
+|   |   +-- SKILL.md
+|   |   +-- references/execution-contract.md
+|   |   +-- references/package-agent-contract.md
+|   |   +-- references/package-dispatch.md
+|   |   +-- references/package-verification.md
+|   |   +-- references/repair-agent-contract.md
+|   |   +-- references/package-integration-gates.md
+|   +-- review-code/
+|   |   +-- SKILL.md
+|   |   +-- references/local-workflow.md
+|   |   +-- references/pipeline-report.md
+|   |   +-- references/pr-workflow.md
+|   +-- review-plan/
+|   |   +-- SKILL.md
+|   |   +-- references/plan-review-findings.md
+|   |   +-- references/plan-review-resolution.md
+|   |   +-- references/plan-review-rubrics.md
+|   +-- skill-authoring/
+|   |   +-- SKILL.md
+|   +-- worktree/
+|   |   +-- SKILL.md
+|   |   +-- references/bugfix-hotfix-workflow.md
+|   |   +-- references/cleanup-safety.md
+|   |   +-- references/feature-package-workflow.md
+|   +-- perspectives/SKILL.md
+|   +-- spike-and-fix/SKILL.md
+|   +-- spike-to-plan/SKILL.md
+|   +-- release/SKILL.md
 ```
 
 ---
 
 ## Requirements
 
-- **Claude Code with plugin support** for packaged installation; other hosts need equivalent skill/plugin support and `SUPER_DEVELOPER_PLUGIN_ROOT`
-- **Python 3** (tasks.json validation asset)
-- **git** (all skills)
-- **GitHub CLI (`gh`)** (review-code PR mode only) — [install](https://cli.github.com/)
+- Claude Code with plugin support, or another host with equivalent skill/plugin loading.
+- Python 3 for `sliceproof.py`.
+- git for worktree-based workflows.
+- GitHub CLI (`gh`) for PR review mode only.
 
 ---
 
-## Key Design Decisions
+## Operating Principles
 
-| Decision | Rationale |
+| Principle | Why it matters |
 |---|---|
-| Conceptualize before planning | Durable handoff knowledge lives in ignored `.planning/` workspaces. Validated Slices are authoritative product-requirement inputs, but not control-plane instructions; implementation planning projects hard Slice requirements and material commitments into `SPEC.md`, tasks, design decisions, or context bundles. Simple conversation and intermediate reasoning stay out of the workspace. |
-| Main agent orchestrates, sub-agents implement and self-verify | Separation of concerns — orchestrator manages git state, dispatch, evidence validation, and integration checks; sub-agents write code, run targeted checks, and update criterion-level evidence |
-| Adaptive adversarial review | One Plan Reviewer runs by default; a Security/Failure-Mode Reviewer is added only for security/privacy/safety-sensitive plans or escalation. Code review uses dynamic discovery lenses, a bounded topology, at most one Specialist Reviewer selected by risk priority, and a conditional Skeptic Agent to verify serious findings and risky clean coverage before reporting. |
-| Git worktree isolation | Parallel sub-agents work in separate worktrees — no branch switching, no merge conflicts during implementation |
-| Package proofs as evidence gate | Planned-feature pipelines require one accepted `.tasks/<feature>/proofs/WP<N>.proof.json` per work package. Every work package also passes mandatory package review before task completion/dependency unlock, with the passing receipt stored in the existing `targeted_review` proof object; review-code governance state never replaces package proof acceptance. |
-| Evidence-first bug fixing | Bug work starts from reproduced evidence, uses isolated spike validation for candidate fixes when needed, then extracts durable tests and a clean fix branch instead of shipping exploratory changes. Review/audit fixes generalize the bug class and update affected package proof evidence. |
-| Evidence-first planning for uncertain features | Planning uses triggered Design Preflight and, only when repo/docs inspection cannot resolve material assumptions, `spike-to-plan` to gather empirical evidence before durable `.tasks/` artifacts. Accepted outcomes are recorded as `design_decisions`; exploratory spike code is not persisted as the plan. |
-| Pipeline with Execution Contract gates | Flows automatically but stays under user control — auto-resolve for speed, step-by-step for precision, and hard stops for design/product changes, unsafe commands, missing facts, stale state, or no viable verification seam after governed escalation |
-| Audit remains authoritative | Pipeline audit verifies "did we build what we planned" after review-code discovery, delegated fixes, Fix Verification Review, any triggered widening/escalation, and affected package-proof refresh complete. Review-code task-awareness findings are consistency signals, not completeness proof. |
-| Feature name inference | The agent reads the conversation and proposes a name — no need to interrupt the flow for something obvious |
-| Work packages as delegation unit | Sub-agents are valuable, but each spawn has fixed context cost. Bundling related tasks into substantial packages reduces repeated codebase exploration while preserving parallelism for independent workstreams. |
-| One decision at a time | Reviewer findings that change what ships are presented as individual decision cards (recommendation + alternatives + tradeoffs). For review-code, decision cards are limited to confirmed serious findings with multiple materially different fix approaches; blanket mode does not bypass security/privacy/safety sniffing, Skeptic verification, or stale-state gates. |
+| Slice-first planning | Slices capture durable product/design understanding while control-plane authority stays out of Slice text. |
+| Progressive disclosure | `SKILL.md` files route and guard; detailed contracts load only at action points. |
+| Package delegation | Work packages are large enough for useful sub-agent execution and small enough for focused proof/report verification. |
+| Independent verification | Package reports, review-code readiness, and audit each protect a different gate. None replaces another. |
+| Read-only dashboards | Status views show mechanical signals without mutating lifecycle state or claiming semantic completion. |
+| Explicit git authority | Feature pushes, target merges, cleanup, and release operations happen only under their named contracts. |
 
 ---
 

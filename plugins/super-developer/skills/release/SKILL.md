@@ -3,178 +3,86 @@ name: release
 description: >
   Prepare and publish a project release on demand after development is complete. Use when the user
   asks to prepare a release, publish a release, bump a version, tag a release, create GitHub release
-  notes, ship completed work, or clean up release worktrees/feature branches.
+  notes, ship completed work, or clean up release worktrees/feature branches. Do not use for ordinary
+  development, code review, or unrelated branch cleanup.
 ---
 
-# Release: Prepare and Publish
+# Release
 
-Create a release through one explicit Release Contract. Keep this workflow concise and state-aware.
+Prepare or publish a release through one explicit Release Contract, with exact state, side effects, and cleanup candidates named before action.
 
 ## Arguments
 
-- `$ARGUMENTS` — Optional version, release type (`patch`, `minor`, `major`), feature branch/name, or `prepare-only` / `publish`.
+- `$ARGUMENTS` — Optional version, release type (`patch`, `minor`, `major`), feature branch/name, or mode: `prepare-only` / `publish`.
 
-## Rules
+## Always
 
-- Use one approval gate per release attempt: **Release Contract Approval**. The approved contract covers every listed release side effect end-to-end: file edits, feature merge, release commit, branch push, tag creation/push, GitHub release publication, and exact cleanup candidates.
-- Interpret an explicit current-turn request such as "create the release", "publish the release", or "ship vX.Y.Z" as approval for the normal full lifecycle only when version, base branch, feature branch, repository, and publish target are unambiguous. Still state the exact Release Contract before the first side effect. Stop if any blocker, ambiguity, or uncontracted action appears.
-- For `prepare-only`, the contract covers only local release preparation and optional branch push. It does not imply tag or GitHub release publication, and it must not delete a remote feature branch.
-- Do not ask for staged re-approvals after an approved contract. Report checkpoints as status updates, not gates.
-- Stop and ask only when observed state invalidates the contract or requires a new action not listed in it: base branch behind/diverged, unrelated dirty files, version-source disagreement, merge conflict, failing release checks, existing local/remote tag, missing credentials, changed publish target, destructive cleanup not named in the contract, or a new dependency/service/external side effect.
-- Detect the base branch: use the current branch if it is `main` or `master`; otherwise use `origin/HEAD` only if it resolves to `main` or `master`; otherwise use the only local `main`/`master`; if ambiguous, ask.
+- Use one approval gate per release attempt: **Release Contract Approval**.
+- Always present the exact Release Contract before the first side effect.
+- Skip only the approval prompt when the current turn unambiguously approves the full normal lifecycle and all release targets are known.
+- Current-turn approval never implies remote feature-branch deletion unless the exact remote ref deletion was explicitly approved.
+- The approved contract covers only listed file edits, feature merge, release commit, pushes, tag, GitHub release, and cleanup candidates.
+- `prepare-only` never creates/pushes tags, publishes a GitHub release, or deletes a remote feature branch.
+- Do not ask for staged re-approvals after approval; report checkpoints unless observed state invalidates the contract.
 - Use `--no-ff` when merging a feature branch into the base branch.
-- Clean up only exact release-related branches, remote refs, and worktrees named in the approved Release Contract and verified as merged. Never delete unrelated branches/worktrees or sweep by namespace.
-- For local cleanup, load `skills/worktree/references/cleanup-safety.md`. Run cleanup only after the feature branch is merged into the target ref and required target push is complete; keep a target-ref worktree available until local branch deletion finishes.
-- Remote feature branch deletion is a separate opt-in cleanup decision. Offer the visible approve/delete vs keep call to action only in `publish` mode when a remote feature branch candidate exists. Default to keeping the remote branch unless the user explicitly approves deleting the exact remote ref. In `prepare-only`, state that remote feature branch deletion is not available in that contract.
-- If the workflow is already partially complete, resume from the observed state instead of repeating completed side effects.
+- Never switch the user-owned root worktree to make a release merge or cleanup possible.
+- Clean up only exact release branches, remote refs, and worktrees named in the approved contract and proven merged.
+- If partially complete, resume only from observed state that matches the intended release commit, tag, remote state, and notes.
 
-## Changelog Requirements
+## Do
 
-When a release updates or creates `CHANGELOG.md`:
+1. Resolve mode, proposed version or bump type, feature branch if any, repository, and publish target.
+2. Detect the base branch:
+   - use current branch only if it is `main` or `master`;
+   - otherwise use `origin/HEAD` only if it resolves to `main` or `master`;
+   - otherwise use the only local `main`/`master`; ask if ambiguous.
+3. Preflight and report:
+   - base branch/upstream freshness and divergence;
+   - current working tree cleanliness and unrelated changes;
+   - version sources and latest `vX.Y.Z` tag;
+   - feature branch merge status and candidate cleanup refs/worktrees;
+   - `CHANGELOG.md` presence, most recent release format, and whether the proposed lightweight format needs user choice;
+   - GitHub CLI auth/repo/release state when publishing.
+4. Load `references/release-git-safety.md` before relying on remote refs, existing tags/releases, feature merge, publish, or cleanup.
+5. Stop before contract approval if base is behind/diverged, version sources disagree, working tree has unrelated changes, publish target is ambiguous,
+   remote state cannot be verified for publish/delete, or existing tag/release does not match the intended release commit.
+6. Load `references/release-contract.md` and present the compact Release Contract, including changelog format choices when needed.
+   Ask once unless the current turn already approved the full contract.
+7. After approval, execute only contracted actions:
+   - merge the feature branch from a base/target worktree, with `--no-ff`, unless already merged;
+   - load `references/changelog-and-release-notes.md` when changelog or GitHub release notes are updated/drafted;
+   - update contracted changelog/docs/version files;
+   - run contracted validation checks;
+   - commit release prep as `release: vX.Y.Z` unless repo convention differs;
+   - revalidate clean state, final diff, tag/release absence or resume match, and release notes before publish;
+   - for `publish`, push the base branch, create/push annotated tag, create GitHub release, and report URL;
+   - load `references/release-git-safety.md` before exact contracted cleanup.
+8. If any publish or cleanup step fails, stop, report completed side effects, and do not continue cleanup automatically.
 
-- Follow a format based on [Keep a Changelog](https://keepachangelog.com/) without pinning the instruction to a specific Keep a Changelog version.
-- Preserve the repository's existing changelog convention when it is compatible: version heading style, date delimiter, `Unreleased` handling, compare/reference links, and any topic/domain subsections. Do not rewrite historical entries just to normalize style.
-- Identify notable release changes from the actual release diff, merge contents, commits since the previous release tag, and any existing `Unreleased` notes. Do not rely only on the implementation summary or assume everything is a new feature.
-- Classify entries by change kind. Actively look for additions, behavior changes, deprecations, removals, fixes, and security changes. Use the standard kinds `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, and `Security` when the changelog uses kind-based headings.
-- If the existing changelog uses topic/domain subsections instead of kind-based headings, preserve those subsections but make each bullet's kind clear with leading verbs such as `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, or `Security`.
-- Include every user-visible or operator-relevant notable change, fix, migration, compatibility change, and documentation/help update. Avoid catch-all feature-only summaries that omit fixes or behavior changes.
-- Write changelog content for humans, not Git history readers. Entries must read like product/operator release notes, not copied commit subjects, PR titles, task names, or branch names.
-- Translate implementation details into user-visible or operator-relevant outcomes: what changed, why it matters, who is affected, and what behavior is different. Avoid commit-style prefixes such as `feat:`, `fix:`, `chore:`, ticket IDs, hashes, file paths, internal function names, and raw package/module names unless they are meaningful to the reader.
-- Combine noisy low-level commits into coherent release-note bullets. Split bullets only when the reader would experience or operate the changes separately.
-- Use clear past-tense verbs and plain language. Prefer `Fixed Query Chat copy fallback so browsers without clipboard access no longer crash the chat UI.` over `fix: clipboard fallback`; prefer `Changed workspace creation so non-platform-admin users request new team workspaces instead of creating them directly.` over `refactor workspace permissions`.
-- Mention tests only when coverage or validation is itself notable to users/operators.
-- Before committing, do a changelog readability and coverage pass against the release diff and previous tag: revise if entries read like commit messages, are missing, misclassified, too implementation-heavy, or all collapsed under `Added` despite fixes, removals, migrations, compatibility changes, or behavior changes.
-- If an `Unreleased` section exists, move applicable entries into the new version section and recreate/leave an empty `Unreleased` section according to the repository convention.
-- If creating a new durable changelog convention, include the Keep a Changelog URL in the header text and mention Semantic Versioning only when the project uses SemVer.
+## Load if needed
 
-## Step 1: Preflight
+- Release Contract template and approval choices → `references/release-contract.md`.
+- Changelog updates or GitHub release-note drafting → `references/changelog-and-release-notes.md`.
+- Remote freshness, resume checks, merge worktree, tag/release, or cleanup safety → `references/release-git-safety.md`.
+- Broad feature-branch worktree strategy is unclear or outside release scope → invoke `worktree` by name.
 
-Inspect and report:
+## Stop if
 
-- Base branch (`main` or `master`) and upstream state.
-- Current working tree cleanliness.
-- Current version source(s) and latest `vX.Y.Z` tag.
-- Whether a feature branch is already merged into the base branch.
-- Whether `CHANGELOG.md` exists, and if so, its existing format: version heading style, date style, `Unreleased` convention, grouping style, and compare/reference links.
-- Whether GitHub CLI release operations are available when publishing is requested.
+- Release mode, version, base branch, feature branch, repository, publish target, or cleanup candidate is ambiguous.
+- The requested action is not in the approved Release Contract.
+- Base/upstream/tag/release/remote branch state is stale, unverifiable, behind, diverged, or mismatched.
+- Existing local/remote tag or GitHub release points anywhere other than the intended release commit.
+- Merge conflict, failing release check, version-source disagreement, unrelated dirty files, missing credentials, or changed publish target appears.
+- Cleanup would touch an unnamed branch/ref/worktree, a dirty worktree, an unmerged branch, or remote feature branch without explicit delete approval.
+- A new dependency/service/account, destructive action, force push/delete, credential need, or external side effect is required but uncontracted.
 
-Block before the Release Contract if the base branch is behind/diverged, version sources disagree, the working tree has unrelated changes, or the release target is ambiguous.
+## Output
 
-## Step 2: Release Contract Approval
+Return:
 
-Present one compact contract before the first release side effect unless the current user request already unambiguously approves the full lifecycle. The contract must list:
-
-- Mode: `prepare-only` or `publish`.
-- Base branch and feature branch, if any.
-- Proposed version and bump reason.
-- Changelog action, including source range to inspect, how entries will be classified by kind, and how commit/PR-level details will be translated into human-readable release-note prose.
-- README/docs action.
-- Version files to update.
-- Local release checks to run.
-- Merge strategy and expected release commit message.
-- Remote actions: branch push, annotated tag creation/push, and GitHub release publication.
-- Exact cleanup candidates, if any.
-- Remote feature branch cleanup policy: publish-mode approve/delete vs keep call to action, prepare-only keep notice, or no-candidate notice.
-- Stop conditions specific to this release.
-
-Keep release checks limited to validation commands. Do not hide changelog, docs, or version-file edits under release checks; list them as planned file changes.
-
-Use this structure, adapting details to the observed repository state:
-
-```md
-## Release Contract Approval Required
-
-Mode: publish | prepare-only
-
-Base branch:
-- <base-branch>
-
-Feature branch:
-- <feature-branch or none>
-
-Proposed version:
-- vX.Y.Z
-- Reason: <patch/minor/major reason>
-
-Planned file changes:
-- Changelog: <update/create/skip and why; source range; grouping/classification style; human-readable release-note approach>
-- README/docs: <update/skip and why>
-- Version files: <exact files to update>
-
-Release checks to run:
-- <validation command or documented check>
-- <validation command or documented check>
-
-Merge/release strategy:
-- Merge <feature-branch> into <base-branch> with --no-ff, unless already merged
-- Release commit: release: vX.Y.Z
-- Annotated tag: vX.Y.Z
-
-Remote actions:
-- Push <base-branch> to origin, if publishing
-- Push tag vX.Y.Z to origin, if publishing
-- Create GitHub release for vX.Y.Z, if publishing
-
-Cleanup candidates:
-- Delete local feature branch: <feature-branch>, after merge verification and after removing any worktree that checks it out
-- Remove local worktree(s): <exact .worktrees/... paths, such as merge/target-merge worktrees if created>
-
-Remote feature branch cleanup:
-- <Use exactly one block: publish-mode CTA, prepare-only keep notice, or no-candidate notice.>
-
-Stop conditions:
-- <specific blocker>
-- <specific blocker>
-
-Approve this Release Contract? Reply with:
-- <matching approval choices for the selected remote cleanup block>
-```
-
-For `publish` mode when a remote feature branch exists, use this visible cleanup call to action and approval choices:
-
-```md
-⚠️ Remote feature branch cleanup decision required:
-The remote branch `origin/<feature-branch>` will NOT be deleted unless you explicitly approve it.
-
-Choose one:
-1. Approve deleting `origin/<feature-branch>` after merge verification against the pushed base branch
-2. Keep `origin/<feature-branch>`
-
-Approve this Release Contract? Reply with one:
-- approve + delete remote branch
-- approve + keep remote branch
-- reject
-```
-
-For `prepare-only`, replace the remote cleanup block with: `Remote feature branch cleanup: not offered in prepare-only; keep origin/<feature-branch> until a later publish/cleanup contract verifies it is merged into the pushed base branch.` Replace approval choices with `approve` / `reject`.
-
-If no remote feature branch exists, replace the remote cleanup block with: `Remote feature branch cleanup: no remote feature branch candidate found.` Replace approval choices with `approve` / `reject`.
-
-If the user has not already approved the full contract in the current request, ask once. After approval, execute the contract without further approval prompts unless a stop condition occurs.
-
-## Step 3: Execute Release Contract
-
-1. Merge the contracted feature branch into the detected base branch with `--no-ff` only if it is not already merged.
-2. If `CHANGELOG.md` exists, update it according to **Changelog Requirements** above. Inspect the actual release diff and previous release tag before writing entries, preserve the repository's compatible existing style, and classify entries by kind so additions, changes, fixes, removals, deprecations, and security items are not collapsed into generic feature bullets. If missing, follow the contracted changelog action; default to skipping creation unless the contract explicitly creates a durable changelog convention.
-3. Update README/docs only when the release changes user-visible behavior or the docs are stale. If no docs update is needed, leave them unchanged and say so.
-4. Bump all authoritative project version sources. If multiple version files are present, keep them consistent.
-5. Draft GitHub release notes in simple human language.
-6. Run relevant release checks that are documented or discoverable for the project; do not invent expensive checks.
-7. Commit release-prep changes with `release: vX.Y.Z` unless the repo convention clearly differs.
-8. Before publishing, revalidate that the base branch is clean, includes the release commit, the tag does not already exist locally or remotely unless resuming, and release notes match the final diff.
-9. For `publish` mode, push the base branch to its upstream.
-10. For `publish` mode, create annotated tag `vX.Y.Z` if it does not already exist, then push the tag.
-11. For `publish` mode, create the GitHub release for `vX.Y.Z` with the contracted notes and report the release URL.
-12. Clean up only exact contracted cleanup candidates after the feature branch is merged into the target ref and the required target push is complete. For local cleanup, load `skills/worktree/references/cleanup-safety.md`, verify each local branch with `git merge-base --is-ancestor`, remove worktrees that check out branches being deleted, delete exact local branches with `git branch -d` from a target-ref worktree, then remove temporary target-merge/empty feature worktree directories last. Stop on dirty worktrees, checked-out branches without removable worktrees, or failed ancestry. Delete an exact remote feature branch only in `publish` mode when the approved contract chose `approve + delete remote branch`, after the base branch push has succeeded and `git merge-base --is-ancestor origin/<feature-branch> origin/<base-branch>` proves the remote feature branch is included in the pushed base branch. Use the exact remote ref named in the contract. Never delete a remote feature branch in `prepare-only`.
-
-If any publish step fails, stop, report the exact completed side effects, and do not clean up automatically.
-
-## Step 4: Final Report
-
-Report:
-
-- Published version and URL, or prepared-but-unpublished state.
-- Base branch and commit SHA.
-- Tag status.
-- Cleanup performed or intentionally skipped.
-- Any remaining manual follow-up.
+- release mode and version;
+- published URL or prepared-but-unpublished state;
+- base branch and commit SHA;
+- tag status;
+- cleanup performed or intentionally skipped;
+- completed side effects and remaining manual follow-up.

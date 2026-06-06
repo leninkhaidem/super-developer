@@ -1,20 +1,14 @@
 # Local Code Review Workflow
 
-Load this reference for local mode scope detection, setup, and report only. Load `local-actions.md` only after the user reaches the gated action phase.
+Local mode owns offline diff setup, report, local fix, commit, details, and abort gates. It does not impose planned-feature Slice/proof/report/audit obligations
+or refresh package evidence; switch to pipeline mode for governed planned-feature fixes.
 
-**Requirement:** `git` installed, inside a Git repository. No GitHub dependency — works offline.
+Requirement: `git` installed and inside a Git repository. If the user provides intent, constraints, known tradeoffs, or focus areas, pass them to reviewers and
+fix agents to reduce false positives.
 
-**User context:** If the user provides additional context (intent, constraints, known trade-offs, focus areas), pass it to all review agents. This reduces false positives significantly because agents can distinguish intentional decisions from oversights.
+## Scope and Setup
 
----
-
-## Phase 0 — Determine Review Scope
-
-Detect what to review, in priority order:
-
-1. **Staged changes** (`git diff --cached --stat` non-empty) → review staged only.
-2. **Unstaged changes** (`git diff --stat` non-empty) → review all uncommitted (staged + unstaged).
-3. **No uncommitted changes** → diff current branch against upstream/default branch.
+Detect review scope in priority order:
 
 ```bash
 STAGED=$(git diff --cached --stat)
@@ -27,83 +21,107 @@ elif [ -n "$UNSTAGED" ]; then
   SCOPE="uncommitted"
   DIFF_CMD="git diff HEAD"
 else
-  DEFAULT_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null \
-    | sed 's@^refs/remotes/origin/@@' || echo "main")
+  DEFAULT_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@' || echo "main")
   SCOPE="branch"
   DIFF_CMD="git diff origin/${DEFAULT_BRANCH}...HEAD"
 fi
 ```
 
-Capture reviewed-state metadata before reviewing:
+Preflight:
 
-- Current branch name
-- `HEAD` SHA
-- Base ref and base SHA when reviewing a branch diff
-- Scope (`staged`, `uncommitted`, or `branch`)
-- Reviewed file list and file status
-- Diff checksum or exact saved diff used for review
-- Staged checksum when reviewing staged changes
-
-Report scope before proceeding:
-
+```bash
+git rev-parse --is-inside-work-tree
+$DIFF_CMD
+$DIFF_CMD --stat
+git branch --show-current
+git log --oneline -10
 ```
+
+Hard stops: not a Git repo or empty diff.
+
+Capture reviewed-state metadata: current branch, `HEAD` SHA, base ref/SHA for branch diff, scope, reviewed file list/status, diff checksum or saved diff, and
+staged checksum when reviewing staged changes.
+
+Report scope before reviewer dispatch:
+
+```text
 Review Scope: <staged | uncommitted | branch diff against origin/<branch>>
 Files changed: <count>
 Insertions: +<count>  Deletions: -<count>
 ```
 
-> **Hard Stop:** If the diff is empty (no changes in any mode), report to the user and halt.
+After setup, return to the main skill for reviewer dispatch.
 
----
+## Review Report
 
-## Phase 1 — Setup & Preflight
+Mode values for the main report template:
 
-Run in order. **Halt and report to the user if any step fails.**
+- Header: `Local Code Review`.
+- Metadata: `**Branch:** <current branch> | **Scope:** <scope> | **Files:** <count> changed`.
+- Verdict line: none in the body; state the verdict after the report.
+- Footer: none.
+
+Verdicts: `CLEAN` when no confirmed 🔴/🟠 findings exist; `ISSUES FOUND` when one or more confirmed 🔴/🟠 findings exist.
+
+Full stop after report. Await one explicit action keyword.
+
+## Action Keywords
+
+| Keyword | Action |
+|---|---|
+| `fix` | Delegate confirmed 🔴/🟠 fixes, then run the main skill's Fix Verification Gate. |
+| `commit` | Stage/commit reviewed state as-is only when no confirmed 🔴/🟠 issues remain and Local State Gate passes. |
+| `details <N>` | Expand finding N without mutating state. |
+| `abort` | No action. |
+
+Any other response requires clarification. Never treat ambiguity, silence, or partial confirmation as approval.
+
+## Local State Gate
+
+Before mutating files, staging, committing, or claiming post-fix readiness, revalidate captured metadata:
+
+- branch and `HEAD` SHA still match, except approved local fix commits from this flow;
+- reviewed file list and diff checksum still match unchanged findings;
+- staged content still matches when `SCOPE="staged"`;
+- no new unreviewed files or broadened diff appeared;
+- base ref/SHA still match for branch-diff reviews.
+
+Reject stale or broadened state and instruct the user to rerun review.
+
+## Fix Action
+
+The main agent does not implement substantive code/test/docs fixes inline. Delegate a Fix Implementer with:
+
+- confirmed findings with dedupe keys, Skeptic verdicts, evidence, recommendations, approved decision-card outcomes, and only eligible bundled suggestions
+  allowed by the main skill;
+- reviewed-state metadata, target paths, exact local scope, user/repo/mode constraints;
+- instruction to avoid unrelated cleanup, broad rewrites, or files outside target paths unless required to close the finding.
+
+The Fix Implementer must reproduce or locate each finding, state the bug class/equivalence class, add or adjust targeted regression evidence when applicable,
+run targeted checks, avoid separate suggestion cleanup, and report unresolved blockers.
+
+After fixes, run the main skill's Fix Verification Gate. Local post-fix commit/readiness requires all assigned findings closed, regression sniff pass, no
+unresolved widening trigger, and Local State Gate pass. After one widened verification pass, stop instead of widening recursively if more scope is still needed
+or no bounded seam remains.
+
+## Commit, Details, Abort, Blanket Mode
+
+`commit` is allowed only when no confirmed 🔴/🟠 issues remain and Local State Gate passes:
 
 ```bash
-# 1. Verify inside a Git repository
-git rev-parse --is-inside-work-tree
-
-# 2. Collect the full diff (using DIFF_CMD from Phase 0)
-$DIFF_CMD
-
-# 3. File list with change stats
-$DIFF_CMD --stat
-
-# 4. Current branch name
-git branch --show-current
-
-# 5. Recent commits for context
-git log --oneline -10
+if [ "$SCOPE" != "staged" ]; then
+  $DIFF_CMD --name-only | xargs git add --
+fi
+git commit -m "<concise summary of changes>"
 ```
 
-### Hard Stop Rules
+Do not use `git add -A`. If serious issues exist, refuse and offer `fix` or rerun after manual repairs.
 
-- Not inside a Git repository → halt. Report to user.
-- Diff is empty → halt. Report "nothing to review."
+`details <N>` expands finding N with code snippet, evidence, Skeptic summary for serious findings, and recommendation. Do not expose internal coverage rows, raw
+tags, dedupe keys, or state/fix metadata unless requested for diagnostics.
 
-After setup, return to SKILL.md for the shared review pipeline (Steps 2-3).
+`abort` closes cleanly without mutating files, staging area, commits, proof/report files, or review metadata.
 
-_(Phases 2-3 are shared pipeline steps defined in SKILL.md — return there now.)_
-
----
-
-## Phase 4 — Review Report
-
-Present to the user.
-
-Use `report-template.md` with:
-
-- **HEADER:** `Local Code Review`
-- **METADATA:** ``**Branch:** `<current branch>` | **Scope:** <staged | uncommitted | branch diff against origin/<branch>> | **Files:** <count> changed``
-
-**Verdict** (shown after the report, not inside it):
-
-- **CLEAN** — No 🔴 or 🟠 findings.
-- **ISSUES FOUND** — One or more 🔴 or 🟠 findings confirmed.
-
-There is no third option. Every review is either clean or has actionable issues.
-
-> **Full stop. Await explicit user response.**
-
-When the user responds with a gated action keyword, load `local-actions.md`. Do not load local mutation runbooks during scope detection, setup, review, or report rendering.
+Blanket mode may delegate unambiguous serious fixes and eligible suggestion bundles after Local State Gate passes. Product/architecture choices still require
+the main skill's decision-card rule. Blanket mode never bypasses security/privacy/safety sniff, Skeptic verification, Local State Gate, Fix Verification Gate,
+blocker commit refusal, or repeated-widening stop.

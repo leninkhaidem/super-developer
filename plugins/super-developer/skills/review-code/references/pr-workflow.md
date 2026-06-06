@@ -1,86 +1,125 @@
 # PR Review Workflow
 
-Load this reference for PR mode setup and report preview only. Load `pr-actions.md` only after the user reaches the gated action phase.
+PR mode owns GitHub PR setup, preview, posting, approval, merge, and cleanup gates. It is review-only for code changes: no local code fixes, no delegated Fix
+Implementer, and no Fix Verification Review.
 
-**Requirement:** [GitHub CLI (`gh`)](https://cli.github.com/) must be installed and authenticated. All GitHub interactions go through `gh` or `gh api` — no direct REST calls, no scraping.
+Requirement: GitHub CLI (`gh`) installed and authenticated. Use `gh`/`gh api` only; no direct REST calls or scraping.
 
-PR mode is review-only for code changes. It can post review comments, approve, request changes, or merge when explicitly gated by `pr-actions.md`, but it does not offer or perform code-fix actions and does not invoke delegated local Fix Verification Review.
+## Setup and Reviewed State
 
----
-
-## Phase 1 — Setup & Preflight
-
-Run in order. **Halt and report to the user if any step fails.**
+Run in order; halt and report if any step fails:
 
 ```bash
-# 1. Verify GitHub CLI is authenticated
 gh auth status
-
-# 2. Fetch PR metadata
 gh pr view <PR_IDENTIFIER> --json number,title,body,author,baseRefName,headRefName,mergeable,state,headRefOid,baseRefOid
-
-# 3. Check mergeability
-# CONFLICTING → halt, report merge conflict to user
-# UNKNOWN → wait and retry once, then halt if still unresolved
-
-# 4. Fetch the full diff
 gh pr diff <PR_IDENTIFIER>
-
-# 5. Create a detached worktree at the PR's HEAD (root worktree stays on its current branch)
-PR_NUMBER=<extracted from metadata>
+PR_NUMBER=<extracted number>
 git fetch origin pull/${PR_NUMBER}/head
 PR_SHA=$(git rev-parse FETCH_HEAD)
 git worktree remove .worktrees/pr-review/${PR_NUMBER} 2>/dev/null || true
 git worktree add .worktrees/pr-review/${PR_NUMBER} $PR_SHA --detach
 ```
 
-Capture reviewed-state metadata before returning to the shared review pipeline:
+Hard stops: authentication failure, PR state `MERGED`/`CLOSED`, mergeability `CONFLICTING`, or mergeability `UNKNOWN` after one retry.
 
-- PR number and repository
-- PR head ref and immutable head SHA
-- PR base ref and immutable base SHA
-- Mergeability result and merge context observed during review
-- Full reviewed diff checksum or exact saved diff
-- Reviewed file list and file status
+Capture immutable reviewed-state metadata: PR number/repository, head ref/SHA, base ref/SHA, mergeability/context, reviewed diff checksum or saved diff, file
+list/status, and detached review worktree path. Never switch the root worktree.
 
-> **Worktree Cleanup:** After the review is complete (after `pr-actions.md` finishes or the user aborts), remove the worktree: `git worktree remove .worktrees/pr-review/${PR_NUMBER}`
-> The root worktree is never switched — no branch restore needed.
+After setup, return to the main skill for reviewer dispatch.
 
-### Hard Stop Rules
+## Preview Report
 
-- Authentication failure → halt. Do not proceed.
-- PR state is `MERGED` or `CLOSED` → halt. Report to user.
-- Branch has merge conflicts → halt. Report conflict details.
+Present a body-only PR review preview. Do not touch GitHub yet.
 
-After setup, return to SKILL.md for the shared review pipeline (Steps 2-3).
+Mode values for the main report template:
 
-_(Phases 2-3 are shared pipeline steps defined in SKILL.md — return there now.)_
+- Header: `PR Review — #<number> <head branch> → <base branch>`.
+- Metadata: none.
+- Verdict line: `**Verdict:** APPROVE` when no confirmed 🔴/🟠 findings; otherwise `**Verdict:** REQUEST_CHANGES`.
+- Footer: none.
 
----
+All finding locations use explicit `Path:` fields. Do not render internal coverage rows, raw tags, dedupe keys, or state metadata.
 
-## Phase 4 — Review Preview
+Preview verdicts:
 
-Compile and **present the following to the user — do NOT post anything to GitHub yet.**
+- `APPROVE` — no confirmed 🔴/🟠 findings.
+- `REQUEST_CHANGES` — one or more confirmed 🔴/🟠 findings.
 
-Use `report-template.md` with:
+Full stop after preview. Await one explicit action keyword.
 
-- **HEADER:** ``PR Review — #<number> `<head branch>` → `<base branch>` ``
-- **METADATA:** _(none for PR mode)_
-- **OPTIONAL_VERDICT_LINE:** ``**Verdict:** <APPROVE | REQUEST_CHANGES>`` based on findings
-- **Findings count line:** aggregate 🔴 | 🟠 | 🟡 counts
+## Action Keywords
 
-The report should read exactly as it would appear when posted as a single PR review body (no inline
-diff comments). All finding locations are expressed via explicit `Path:` fields for AI-agent
-parseability. Do not include internal `DISCOVERY_COVERAGE`, raw tags, or dedupe/tracking keys in the
-PR body.
+| Keyword | Action |
+|---|---|
+| `request-changes` | Post request-changes review body. |
+| `approve` | Post approval review only; blocked when confirmed 🔴/🟠 findings exist. |
+| `merge` | Merge an already-approved clean PR; requires fresh revalidation and approval-state gate. |
+| `edit` | Accept user edits to report body, then return to action selection. |
+| `abort` | No GitHub action; cleanup only. |
 
-**Verdict** (shown after the preview, not inside it):
+Any other response requires clarification. Never interpret ambiguity, silence, or blanket approval as merge permission. `approve` never implies `merge`.
 
-- **APPROVE** — No 🔴 or 🟠 findings.
-- **REQUEST CHANGES** — One or more 🔴 or 🟠 findings confirmed.
+## PR State Revalidation Gate
 
-There is no third option. Every review is either clean or has actionable issues.
+Before posting or merging, rerun:
 
-> **Full stop. Do not touch GitHub. Await explicit user response.**
+```bash
+gh pr view <PR_IDENTIFIER> --json number,state,baseRefName,headRefName,mergeable,headRefOid,baseRefOid
+```
 
-When the user responds with a gated action keyword, load `pr-actions.md`. Do not load PR side-effect runbooks during setup or preview.
+Gate passes only when PR is open, current head/base SHAs equal reviewed head/base SHAs, mergeability/context still match, and diff checksum or reviewed file
+list still matches. If stale, broadened, or ambiguous, halt without side effects and require review rerun.
+
+## Posting Actions
+
+`request-changes`: allowed only after explicit keyword. Revalidate first, then post one body-only review:
+
+```bash
+gh api --method POST "/repos/{owner}/{repo}/pulls/$PR_NUMBER/reviews" \
+  --field event="REQUEST_CHANGES" \
+  --field body="<review body>"
+```
+
+Header becomes `PR Review — #<number> <head branch> → <base branch> — Changes Requested`; verdict line is `REQUEST_CHANGES`.
+
+`approve`: allowed only after explicit keyword and no confirmed 🔴/🟠 findings. Revalidate first, then post approval only:
+
+```bash
+gh api --method POST "/repos/{owner}/{repo}/pulls/$PR_NUMBER/reviews" \
+  --field event="APPROVE" \
+  --field body="<review body>"
+```
+
+Header becomes `PR Review — #<number> <head branch> → <base branch> — Approved ✅`; verdict line is `APPROVE`. Do not merge, delete branches, or run merge
+commands.
+
+If confirmed serious findings exist and the user says `approve`, refuse and offer `request-changes` or `abort`.
+
+## Merge Action
+
+`merge` is allowed only after a clean review and approval for the same reviewed head state. Revalidate PR state, then verify approval records:
+
+```bash
+gh pr view <PR_IDENTIFIER> --json number,reviewDecision,latestReviews,headRefOid
+gh api "/repos/{owner}/{repo}/pulls/$PR_NUMBER/reviews"
+```
+
+Approval gate passes only when an approving review exists for the exact current/reviewed head SHA and is not stale, dismissed, superseded by later
+change-request review, or tied to another commit. If absent or ambiguous, halt.
+
+Then merge:
+
+```bash
+gh pr merge <PR_IDENTIFIER> --squash --delete-branch --subject "<PR title> (#<PR number>)"
+gh pr view <PR_IDENTIFIER> --json state,mergeCommit
+git worktree remove .worktrees/pr-review/${PR_NUMBER}
+```
+
+Squash merge is hardcoded; rebase is never automated.
+
+## Cleanup and Blanket Mode
+
+On `abort` or after a terminal action, remove only `.worktrees/pr-review/${PR_NUMBER}`. Do not delete branches except through explicit merge.
+
+Blanket mode may cover preview and posting only when it explicitly authorizes GitHub side effects and state gates pass. It never auto-merges, never creates a PR
+fix path, and never bypasses security/privacy/safety sniff or Skeptic verification.

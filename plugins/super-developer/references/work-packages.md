@@ -1,123 +1,102 @@
 # Work Packages
 
-Work packages are the delegation unit for Super Developer implementation. Tasks remain the tracking and acceptance-criteria unit. A work package groups related tasks so one sub-agent can amortize its context-loading cost across a substantial coherent assignment.
+## Boundary
+
+This reference owns package semantics: sizing, dependency, assignment, parallelism, primary paths, and verification expectations. Artifact shapes live in `slice-first-artifacts.md`; completion/freshness gates live in `package-lifecycle.md`; command safety lives in `tool-usage.md`.
 
 ## Core Principle
 
-Delegate substantial coherent work packages, not individual small tasks. Actively look for the largest safe useful wave of substantial packages that can proceed at the same time, then dispatch that wave in parallel. Preferred parallelism means reducing latency with coherent, non-overlapping work; it does not mean maximizing sub-agent count or splitting work purely to create more agents.
+Delegate substantial coherent work packages, not tiny fragments. Prefer the largest safe useful wave of independently substantial packages that can proceed together. Parallelism reduces latency; it must not maximize agent count or split work merely to create more agents.
 
-## Task vs Work Package
+## Package Roles
 
-- **Task:** A self-contained, verifiable outcome with status, dependencies, and acceptance criteria.
-- **Work package:** A coherent implementation bundle containing one or more tasks that should share a single codebase exploration pass and one package worktree.
+- **Slice Markdown:** product/design authority when present.
+- **`SPEC.md`:** accepted requirements, constraints, non-goals, and verification summary.
+- **Registry:** package list, paths, status signals, and dependency IDs only.
+- **Package Markdown:** authoritative package assignment.
+- **Proof Markdown:** package closure evidence.
+- **Package verification report:** independent state-bound verification receipt.
 
-Tasks answer: "What must be done and verified?"
-Work packages answer: "How should implementation work be delegated?"
+Registry status and helper results are signals, not proof.
 
 ## Package Sizing
 
-A good work package usually contains several related tasks or one task large enough to justify a dedicated sub-agent. Avoid one-task packages unless the task is substantial, risky, or naturally isolated.
+A good package is:
 
-Prefer packages that are:
-- coherent by subsystem, module, directory, user flow, data model, API surface, or test surface
-- large enough to justify sub-agent startup context
-- small enough for one agent to reason about safely
-- independently mergeable
-- clear about which paths to inspect first
+- coherent by subsystem, module, directory, user flow, data model, API surface, or test surface;
+- large enough to justify dedicated agent startup;
+- small enough for one agent to reason about safely;
+- independently mergeable;
+- explicit about initial inspection paths;
+- clear about assigned Slice H3 obligations and verification expectations.
 
-## Package IDs
+Avoid one-tiny-change packages unless the work is risky, naturally isolated, or requires focused verification.
 
-Package IDs use the `WP<N>` format with sequential numbering and no gaps (`WP1`, `WP2`, `WP3`, ...). Renumber when packages are reordered, split, or merged so the sequence stays contiguous.
+## IDs and Dependencies
 
-## Internal Dependencies
+Package IDs use contiguous `WP<N>` values (`WP1`, `WP2`, ...). Renumber when packages are reordered, split, or merged so the sequence has no gaps.
 
-A work package may contain tasks that depend on each other. The sub-agent handles internal dependencies sequentially and commits after each task ID. A package is blocked only by dependencies outside the package that are not yet done or integrated.
+Dependencies live in both the registry `depends_on` array and package Markdown `## Dependencies`; they must agree. A package is externally blocked when a dependency outside the package is not complete and freshly verified. Internal sequencing is handled by the package agent.
 
 ## Parallel Safety
 
-Mark packages as parallel-safe only when likely file ownership, subsystem boundaries, and caller contracts do not overlap. When several packages are independently substantial and non-overlapping, prefer a safe useful parallel wave rather than leaving them serialized by default. When overlap is ambiguous, files are shared, subsystem impact is unsafe, or the packages touch the same contract/API/schema/configuration surface, combine or serialize packages. The cost of serialization is latency; the cost of unsafe parallelism is merge conflicts and inconsistent design.
+Treat packages as parallel-safe only when likely file ownership, subsystem boundaries, Slice obligations, proof surfaces, and caller contracts do not overlap.
 
-`parallel_safe_with` is a symmetric relation: if `WPx` lists `WPy`, then `WPy` must list `WPx`. A package never lists itself.
+Serialize or combine packages when:
+
+- files or generated artifacts overlap;
+- subsystem, API, config, or schema surfaces overlap;
+- one package's proof or verification depends on another's output;
+- package boundaries would hide a material Slice obligation;
+- design consistency would likely be decided differently by independent agents.
+
+The cost of serialization is latency; the cost of unsafe parallelism is merge conflict, inconsistent design, stale proof evidence, and invalid reports.
 
 ## Primary Paths
 
-`primary_paths` are starting points for code exploration, not hard boundaries. Agents should inspect those paths first and broaden only when imports, tests, or acceptance criteria require it.
+`## Primary Paths` are starting points, not hard boundaries. Agents inspect them first and broaden only when imports, tests, Slice obligations, or verification expectations require it.
 
-## Verification Commands
+## Verification Expectations
 
-Each package's `verification_commands` lists concrete shell commands the orchestrator runs after the package merges (for example, `npm test -- auth`). Populate it only with commands known to exist in the project or strongly implied by it. Use `[]` rather than inventing commands; an empty list is preferable to a guessed one.
+Package Markdown `## Verification Expectations` lists the package's proof expectations: commands known to exist, static inspections, scenarios, edge/failure cases, trust-boundary checks, no-mock constraints, generated-contract checks, or manual observations.
 
-Treat `verification_commands` as executable inputs from a plan artifact. They must be scoped, deterministic, and known-safe. If a command is destructive, externally visible, credential/network-sensitive, installs dependencies or services, mutates data outside the worktree, or exceeds the advertised verification scope, the Execution Contract must stop for explicit user approval before it runs.
+Rules:
 
-Accepted package proofs must include passing command evidence for every listed `verification_commands` entry. Do not create a second command ledger; cite the command under the relevant proof entry's existing `evidence.commands`.
+- Treat package-provided commands as executable input and screen them before running.
+- Address every expectation in proof Markdown.
+- Do not create a second command ledger in the registry.
+- Batch broad or expensive full-suite, generated-contract, typecheck, or lint commands at integration/final gates unless they are cheap by project convention or the only credible package proof.
 
-Prefer targeted, deterministic package commands. If a command is listed in package
-`verification_commands`, it is required package proof and must run before package acceptance. Broad or
-expensive full-suite, generated-contract, typecheck, or lint commands should usually be kept out of
-package `verification_commands` and batched as integration/final checks unless they are cheap by
-project convention or the only credible proof for an assigned acceptance criterion.
+## Risk and Review Lenses
 
+Package scope and assigned Slices should make risk visible without adding durable checklist fields to the registry.
 
-## Package Proof Files
+Enhanced verification is triggered by surfaces such as:
 
-Each package writes exactly one `.tasks/<feature>/proofs/<WP-ID>.proof.json` file. The validator derives the package's required acceptance criteria from `tasks.json`; proof files must cover every criterion assigned to that package and no criteria from other packages. Final feature proof validation requires exactly one proof file per work package and exact aggregate acceptance-criterion coverage.
+- security, privacy, or safety;
+- persistence, data integrity, migration, or rollback;
+- public API, exported types, generated contracts, or external integrations;
+- concurrency, idempotency, replay, cancellation, or cleanup;
+- performance, resource bounds, fanout, or blocking I/O;
+- cross-package integration;
+- orchestration, git state, package verification, review, audit, or quality-contract changes.
 
-Pipeline review-code state does not add another proof file or acceptance ledger. If a review-code fix
-touches a package's acceptance surface, proof-cited files, verification commands, targeted-review
-evidence, or audit handoff assumptions, the orchestrator reopens and refreshes that package's same
-proof file before final audit readiness. Uncertain impact fails closed by refreshing candidate
-package proofs or by recording explicit no-impact evidence; it is not silently ignored because a
-single exact criterion was hard to identify.
-
-## Risk Metadata and Mandatory Package Review
-
-Plans include:
-
-- `risk_tags`: controlled tags used for package-review depth/lenses and edge-case checklist obligations.
-- `required_context_bundles`: context bundle IDs package agents must read and cite.
-- `targeted_review_required`: compatibility boolean for the existing `targeted_review.required` receipt field. Author every new work package with `targeted_review_required: true`; this field no longer decides whether package review runs.
-
-Targeted package reviews for packages from the same completed implementation batch may run as a parallel review wave only when every reviewer inspects the same concrete stable integration state and their review scopes are independent. No repair mutation or other state-changing work may run concurrently with that review wave. Any later repair, merge-resolution change, proof refresh, or other state-changing mutation that can affect a package's accepted surface must invalidate or refresh the affected package proofs and targeted-review receipts before acceptance.
-
-Every work package must pass mandatory package review before task completion. The accepted package proof must include the existing minimal root `targeted_review` object: `required`, `performed`, `reviewer`, `result`, `evidence`, and `reviewed_at`. Keep `evidence` to a compact, state-bound receipt summary of the reviewed integrated package state, review depth/lenses, test scope, safety sniff, serious finding count/closure, and repair/delta-verification closure when applicable. Do not add a `package_review` field, review histories, event logs, transcripts, or parallel ledgers.
-
-Risk tags that trigger enhanced review lenses include:
-
-- `security`, `privacy`, `safety`
-- `persistence`, `data-integrity`, `migration`
-- `runtime-contract`, `library-contract`
-- `public-api`, `exported-types`
-- `concurrency`, `idempotency`, `replay`
-- `performance`, `resource-bounds`
-- `cross-package-integration`
-- `schema`, `traceability`, `validation`
-- `orchestration`, `git-state`, `integration`, `subagent-contract`
-- `review`, `audit`, `fix-loop`, `quality-contract`
-
-Documentation-only tags such as `documentation`, `docs`, `consistency`, and `validation-samples` do not trigger enhanced lenses by themselves, but those packages still receive the mandatory baseline review and new plans still set `targeted_review_required: true`.
-
-### Review Depth Rubric
-
-Every package receives independent package review before its tasks are marked done. Risk-bearing packages receive enhanced lenses when they touch sensitive, cross-cutting, irreversible, or shared-contract surfaces. Examples include security/privacy/safety; auth, permissions, tenancy, admin/user authority; secrets, tokens, credentials, PII, logs, telemetry, or data exposure; persistence, data integrity, migrations, destructive data changes, ownership conversion, lifecycle cleanup, audit/fail-closed behavior; public APIs, schemas, generated contracts, exported types; concurrency, caches, resource bounds, performance; cross-package/shared configuration or integration invariants; and orchestration, tool authority, sub-agent contracts, proof lifecycle, review/audit, or fix-loop behavior.
-
-Package review is local package-risk review, not a replacement for final `review-code`. It should consume package self-review, proof evidence, targeted checks, risk tags, and the integrated package delta. Do not expand the risk-tag taxonomy or add schema fields for this rubric; the orchestrator derives depth and lenses from existing plan metadata and runtime discovery. Legacy plans whose compatibility flag is false still cannot bypass the mandatory review checkpoint; the receipt remains the existing `targeted_review` object.
-
-## Rationale
-
-Every package carries a `rationale` field explaining why its tasks should share one sub-agent context. For multi-task packages, the rationale describes the shared subsystem, file surface, or coherent outcome. For one-task packages, the rationale must explain why the task is substantial, risky, or naturally isolated enough to warrant a dedicated package. Rationale text is reviewer-judged, not mechanically enforced.
+Documentation-only and reference-only packages still receive baseline package verification; risk determines depth, not whether verification runs.
 
 ## Runtime Adjustment
 
-The implementation orchestrator may merge, split, defer, or reorder planned packages when current task status, file impact, or previous merged work makes the plan unsafe or inefficient. It must briefly state the reason before dispatching.
+The implementation orchestrator may merge, split, defer, or reorder planned packages when current package status, file impact, proof readiness, Slice assignment, or previous merged work makes the plan unsafe or inefficient. It must state the reason before dispatch.
 
-When runtime adjustment changes package risk, context-bundle needs, verification commands, or package-review depth/lenses, the orchestrator must state the reason and update the Execution Contract before dispatch. It must not silently downgrade enhanced review depth when a triggering risk tag remains.
+If adjustment changes package scope, Slice H3 assignment, dependencies, proof path, report path, or approved deferrals, route through artifact repair or explicit user approval. Do not silently downgrade verification depth while a triggering risk remains.
 
 ## Anti-Patterns
 
-- One work package per small task.
-- Maximizing sub-agent count just because tasks are independent.
-- Leaving substantial, independent, non-overlapping packages serialized without a concrete dependency, file-impact, or contract-safety reason.
-- Splitting tasks that touch the same files or subsystem.
+- One package per tiny edit.
+- Maximizing sub-agent count.
+- Leaving substantial independent packages serialized without a concrete dependency, file-impact, proof, or contract-safety reason.
+- Splitting work touching the same files, Slice obligation, subsystem, or proof surface.
 - Bundling unrelated subsystems into a vague mega-package.
-- Marking packages parallel-safe without checking likely file overlap.
-- Giving a sub-agent a package with no primary paths when relevant paths are known.
+- Marking packages parallel-safe without checking likely file/proof/contract overlap.
+- Giving a package no primary paths when relevant paths are known.
+- Duplicating package scope, assigned H3 IDs, proof evidence, review receipts, or lifecycle ledgers into the registry.
+- Treating registry status, helper validation, package self-review, or chat summaries as package proof.

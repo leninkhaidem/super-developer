@@ -1,17 +1,20 @@
 # Known Risk Patterns
 
-Generic prompt source for planning, implementation, review, and must-prove checklists. This is not a schema, risk-tag taxonomy, or persistent checklist. Use it to sharpen probes, then record feature-specific proof in acceptance criteria, verification hints, context bundles, package proof files, reviews, or audit output.
+## Boundary
 
-## Required Probes
+This is a probe library only; do not persist these prompts as registry fields or generic checklists.
 
-- **Optional boundary fields and defaults** — When payloads, requests, configs, commands, events, or serialized records cross a boundary, prove which fields may be omitted, which defaults are applied, and whether omission differs from an explicit empty/null/false value.
-- **Generated contract defaults** — When code consumes generated clients, schemas, types, CLIs, fixtures, or docs, verify generated defaults and compatibility at the generated boundary; do not infer behavior from handwritten wrappers alone.
-- **Global, import, environment, and test pollution** — When tests or runtime code mutate import caches, module registries, environment variables, globals, monkeypatches, singleton caches, or equivalent shared process state, run pollution-sensitive ordering checks: test alone, test before and after likely consumers, and the combined affected suite, or document why the trigger does not apply.
-- **Cache invalidation** — For memoized state, caches, registries, singletons, generated artifacts, or retained handles, prove invalidation on write/update/delete/reset paths and across process, request, tenant, user, and configuration boundaries that matter to the feature.
-- **Lifecycle/reaper partial outcomes** — For cleanup, reapers, retries, migrations, queues, finalizers, or background work, prove partial success, partial failure, idempotent reruns, interruption, stale ownership, and observability of skipped or failed items.
-- **Model/default precedence** — When multiple defaults or overrides can apply, prove deterministic precedence between user input, config files, environment, generated defaults, stored state, CLI flags, model preferences, and hardcoded fallbacks.
-- **Pure boundary contract construction** — When constructing boundary payloads, requests, configs, command descriptors, or similar contracts with optional/default/contract-drift risk, prefer small pure builders and tests that assert the observable contract instead of scattering ad hoc construction through orchestration or UI code.
+## Probes
+
+- **Optional boundary fields and defaults** — When payloads, requests, configs, commands, events, or serialized records cross a boundary, verify which fields may be omitted, which defaults apply, and whether omission differs from explicit empty/null/false values.
+- **Generated contract defaults** — When code consumes generated clients, schemas, types, CLIs, fixtures, or docs, verify generated defaults and compatibility at the generated boundary instead of inferring behavior from handwritten wrappers.
+- **Global, import, environment, and test pollution** — When tests or runtime code mutate import caches, module registries, environment variables, globals, monkeypatches, singleton caches, or shared process state, run pollution-sensitive ordering checks or document why the trigger does not apply.
+- **Cache invalidation** — For memoized state, caches, registries, generated artifacts, or retained handles, verify invalidation on write/update/delete/reset paths and across process, request, tenant, user, and configuration boundaries that matter.
+- **Lifecycle/reaper partial outcomes** — For cleanup, reapers, retries, migrations, queues, finalizers, or background work, verify partial success, partial failure, idempotent reruns, interruption, stale ownership, and observability of skipped or failed items.
+- **Model/default precedence** — When multiple defaults or overrides can apply, verify deterministic precedence between user input, config files, environment, generated defaults, stored state, CLI flags, model preferences, and hardcoded fallbacks.
+- **Pure boundary contract construction** — When constructing boundary payloads, requests, configs, command descriptors, or similar contracts, prefer small pure builders and tests that assert the observable contract instead of scattered ad hoc construction.
+- **Proof/report freshness** — When repairs, merge resolutions, or artifact edits touch proof-cited files, verification output, assigned Slice scope, package reports, or review readiness, verify freshness was restored rather than assuming the previous report still applies.
 
 ## Use
 
-Before coding or reviewing a risky package, scan the probes above against the work package's acceptance criteria, risk tags, context bundles, and verification hints. Add only the applicable probes to the package's must-prove reasoning. Do not add durable checklist fields or new validator risk tags for these prompts.
+Scan the probes against the package scope, assigned Slices, verification expectations, changed files, and runtime observations. Add only applicable probes to package evidence, review findings, or audit reasoning. Omit non-applicable probes instead of creating durable checklist noise.
