@@ -41,12 +41,13 @@ Prepare or publish a release through one explicit Release Contract, with exact s
    - current working tree cleanliness and unrelated changes;
    - version sources and latest `vX.Y.Z` tag;
    - feature branch merge status and candidate cleanup refs/worktrees;
-   - `CHANGELOG.md` presence and compatible convention;
+   - `CHANGELOG.md` presence, most recent release format, and whether the proposed lightweight format needs user choice;
    - GitHub CLI auth/repo/release state when publishing.
 4. Load `references/release-git-safety.md` before relying on remote refs, existing tags/releases, feature merge, publish, or cleanup.
 5. Stop before contract approval if base is behind/diverged, version sources disagree, working tree has unrelated changes, publish target is ambiguous,
    remote state cannot be verified for publish/delete, or existing tag/release does not match the intended release commit.
-6. Load `references/release-contract.md` and present the compact Release Contract. Ask once unless the current turn already approved the full contract.
+6. Load `references/release-contract.md` and present the compact Release Contract, including changelog format choices when needed.
+   Ask once unless the current turn already approved the full contract.
 7. After approval, execute only contracted actions:
    - merge the feature branch from a base/target worktree, with `--no-ff`, unless already merged;
    - load `references/changelog-and-release-notes.md` when changelog or GitHub release notes are updated/drafted;

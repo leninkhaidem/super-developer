@@ -6,9 +6,13 @@ Owns changelog updates and GitHub release-note prose. Load only when changelog o
 
 When updating or creating `CHANGELOG.md`:
 
-- Preserve compatible repository convention first: heading style, date delimiter, `Unreleased` handling, compare links, and topic subsections.
-- Do not rewrite historical entries merely to normalize style.
-- If no compatible convention exists, use the lightweight inline format below. Do not rely on the Keep a Changelog URL as the operational spec.
+- Inspect the most recent released section first, plus `Unreleased` when present.
+- Treat the proposed lightweight format below as the preferred future format.
+- If the latest release already uses the lightweight format, continue it without a separate format prompt.
+- If the latest release is incompatible, ambiguous, or no changelog exists, prompt through the Release Contract before editing.
+- Offer: adopt lightweight format for this release section, preserve existing format for this release, or skip changelog update.
+- If the user chooses the lightweight format, use it for the current release section.
+- Do not rewrite historical release sections merely to normalize style unless the Release Contract explicitly names that migration.
 - Inspect the actual release diff, merge contents, commits since the previous release tag, and existing `Unreleased` notes.
 - Do not rely only on implementation summaries, task names, PR titles, or branch names.
 - Include all user-visible or operator-relevant additions, changes, fixes, removals, deprecations, security items, migrations,
@@ -17,7 +21,7 @@ When updating or creating `CHANGELOG.md`:
 
 ## Default Lightweight Format
 
-Use this fallback only when creating a new convention or when the existing file is too ambiguous to preserve safely:
+Use this format when the latest release already follows it, or when the Release Contract choice adopts it for this release:
 
 ```md
 # Changelog
@@ -38,7 +42,7 @@ All notable changes to this project will be documented in this file.
 - <bug fix and affected user/operator outcome>
 ```
 
-Rules for the fallback:
+Rules for this format:
 
 - Keep `[Unreleased]` above released versions.
 - Use `## [vX.Y.Z] - YYYY-MM-DD` for release headings.
@@ -50,7 +54,8 @@ Rules for the fallback:
 ## Classification
 
 - Use `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, and `Security` for kind-based headings.
-- If the changelog uses topic/domain subsections, preserve them and make kind clear in each bullet with leading verbs.
+- If adopting the lightweight format, use standard kind sections even when older history used topic/domain subsections.
+- If the user chose to preserve the existing format for this release, keep topic/domain subsections and make kind clear in each bullet.
 - Move applicable `Unreleased` entries into the new version section and recreate or leave empty `Unreleased` according to repo convention.
 - If creating a durable changelog convention, include the Keep a Changelog URL in the header. Mention Semantic Versioning only when the project uses SemVer.
 

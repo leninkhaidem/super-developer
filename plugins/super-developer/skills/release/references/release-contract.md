@@ -7,7 +7,7 @@ Owns the one approval packet for a release attempt. Load before the first releas
 - Present the contract every time. Skip only the approval prompt when the current turn already unambiguously approves the full listed lifecycle.
 - The contract must list every side effect: file edits, merge, release commit, branch push, tag creation/push, GitHub release, and cleanup.
 - Keep release checks to validation commands. List changelog, docs, and version edits as planned file changes, not checks.
-- If state changes or a new action is needed, stop for a revised contract.
+- If state changes, changelog format choice is missing, or a new action is needed, stop for a revised contract.
 - Remote feature branch deletion is opt-in and must name the exact `origin/<branch>` ref.
 - `prepare-only` can include local preparation and an explicitly listed branch push, but never tag/GitHub release publication or remote branch deletion.
 - Local cleanup that deletes the feature branch/worktree requires the target/base push to be complete; otherwise keep the safety-net refs/worktrees.
@@ -32,7 +32,7 @@ Proposed version:
 - Reason: <patch/minor/major reason>
 
 Planned file changes:
-- Changelog: <update/create/skip; source range; grouping/classification style; human-readable note plan>
+- Changelog: <update/create/skip; source range; latest-format compatibility; format choice; grouping/classification style; human-readable note plan>
 - README/docs: <update/skip and why>
 - Version files: <exact files to update>
 
@@ -68,6 +68,19 @@ Stop conditions:
 Approve this Release Contract? Reply with:
 - <matching approval choices for selected cleanup block>
 ```
+
+## Changelog Format Choice
+
+When the latest released changelog section does not already use the proposed lightweight format, include one choice in the contract:
+
+```md
+Changelog format decision:
+- Latest release format: <compatible | incompatible | ambiguous | no changelog>
+- Proposed action: adopt lightweight format for this release section | preserve existing format for this release | skip changelog update
+```
+
+If the lightweight format is chosen, use it for the current release section.
+Do not rewrite historical release sections unless the contract explicitly names that migration.
 
 ## Remote Cleanup Blocks
 
