@@ -1,7 +1,8 @@
 ---
 name: skill-authoring
-description: Creates or revises agent skills using compact eager workflows, explicit line budgets, and true on-demand references. Use when adding a skill,
-rewriting a skill, reviewing skill structure, or aligning a prompt/skill for progressive disclosure. Do not use for the domain task the skill would perform.
+description: >
+  Creates or revises agent skills using compact eager workflows, explicit line budgets, and true on-demand references. Use when adding a skill,
+  rewriting a skill, reviewing skill structure, or aligning a prompt/skill for progressive disclosure. Do not use for the domain task the skill would perform.
 ---
 
 # Skill Authoring
@@ -102,12 +103,13 @@ references. Its load condition belongs in the parent skill or current workflow s
 9. Run a compression pass: remove duplicated rules, cross-skill private-reference links, long examples, stale refs, and anything better owned by a reference or
    script.
 10. Verify line/word/char counts, max-line outliers, link targets, triggers, near-miss behavior, reference totals, always-loaded refs, lazy refs, and every
-    reference's parent load condition.
+    reference's parent load condition. Run `scripts/audit-skill.py --strict` when enforcing deterministic authoring budgets.
 
 ## Load if needed
 
 - A mode, phase, template, manual checklist, long report format, example, or edge-case rule would bloat eager instructions and is not universal → create or
   update `references/<topic>.md`
+- Deterministic skill metrics, frontmatter, local-link, and reference-budget checks are useful → run `scripts/audit-skill.py [--strict] <skill-dir-or-SKILL.md>`
 - A deterministic operation would otherwise be described repeatedly in prose → create or update `scripts/<tool>`
 - A shared rule exists elsewhere → point to it only at the workflow step or optional condition that actually needs it
 

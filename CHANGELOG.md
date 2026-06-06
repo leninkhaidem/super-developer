@@ -6,6 +6,14 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [v1.29.2] - 2026-06-06
+
+### Fixed
+- Fixed `skill-authoring` frontmatter so plugin skill loading no longer fails on malformed wrapped YAML descriptions.
+
+### Added
+- Added a skill-local `audit-skill.py` helper for deterministic skill frontmatter, metrics, local-link, and reference-budget checks.
+
 ## [v1.29.1] - 2026-06-06
 
 ### Fixed
