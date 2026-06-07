@@ -83,7 +83,9 @@ When review-code state/report is supplied or safely available, validate same fea
 Audit-block review-code context only when it contradicts Slice/proof/report/code evidence or the audit was asked to rely on unsafe/stale context.
 Inspect code/tests/build artifacts only as needed to verify claims, global behavior, SPEC requirements, and MUST-level blockers.
 Use `clean-code-rules.md` for fake success, missing verification, caller-contract failure, unsafe trust boundaries,
-security/privacy/safety/data risk, public-contract breaks, unresolved requirements, missing completion evidence, or material brittleness/maintainability risk. Clean-code audit blockers require concrete risk evidence; pure taste or style preference is advisory or omitted.
+security/privacy/safety/data risk, public-contract breaks, unresolved requirements, missing completion evidence,
+or material brittleness/maintainability risk. Clean-code audit blockers require concrete risk evidence; pure taste
+or style preference is advisory or omitted.
 
 ### 6. Global Completeness
 

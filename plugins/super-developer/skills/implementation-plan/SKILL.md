@@ -17,7 +17,9 @@ The eager workflow should be enough to orient planning. Load references only at 
 - Index-only planning is allowed when no Slice is independently useful; when Slices exist, inventory and read every safe Slice in full.
 - Registry is bookkeeping only; package Markdown owns assignment, proof Markdown owns closure evidence, and reports own independent verification receipts.
 - Package boundaries must keep material requirements observable to agents reading files cold.
-- Clean-code rules are a normal planning input: load/apply `../../references/clean-code-rules.md` during package shaping, project only material implications into existing SPEC/package fields, and never create standalone clean-code proof/report artifacts.
+- Clean-code rules are a normal planning input: load/apply `../../references/clean-code-rules.md` during package
+  shaping, project only material implications into existing SPEC/package fields, and never create standalone
+  clean-code proof/report artifacts.
 - Validate artifacts before presenting success.
 
 ## Do
@@ -26,7 +28,11 @@ The eager workflow should be enough to orient planning. Load references only at 
 2. If Conceptualize material applies, load `references/conceptualize-inputs.md` and follow its Slice inventory/Index-only rules before writing artifacts. If no Conceptualize workspace applies, record that the plan uses direct requirements and repo evidence only.
 3. Decide whether unresolved design uncertainty blocks artifact writing. If it does, load `references/design-preflight.md`; if empirical evidence is still required after that, stop and route to `spike-to-plan` instead of guessing.
 4. Draft `SPEC.md` only after loading `references/spec-template.md`. Keep it requirements-focused and manifest-only: no package assignment detail, proof rows, transcripts, implementation code, or hidden assumptions.
-5. Load `../../references/clean-code-rules.md` and `../../references/work-packages.md`; design the work-package split from requirements, Slice obligations when present, repo surfaces, dependency direction, seams, coupling risks, verification needs, and expected safe parallel waves. Project clean-code implications only into existing scope, package boundaries, dependencies, risks, and verification expectations. Maximize meaningful parallel implementation where substantial packages are independent, but do not split coherent work just to fan out agents.
+5. Load `../../references/clean-code-rules.md` and `../../references/work-packages.md`; design the work-package split
+   from requirements, Slice obligations when present, repo surfaces, dependency direction, seams, coupling risks,
+   verification needs, and expected safe parallel waves. Project clean-code implications only into existing scope,
+   package boundaries, dependencies, risks, and verification expectations. Maximize meaningful parallel
+   implementation where substantial packages are independent, but do not split coherent work just to fan out agents.
 6. Treat dependencies as real sequencing constraints only: file/contract/proof/report overlap, unsafe subsystem coupling, prerequisite output, or Slice-obligation ownership. Leave substantial non-overlapping packages dependency-free so `implement` can dispatch them together.
 7. Draft `tasks.json` and package Markdown only after loading `references/artifact-authoring.md`. Keep the registry lightweight; put package scope, assigned Slice/H3 obligations, primary paths, verification expectations, dependencies, proof path, and report path in package Markdown.
 8. Before writing new artifacts, overwriting existing artifacts, or presenting success, load `references/validation-checklist.md` and apply its pre-write gates.
