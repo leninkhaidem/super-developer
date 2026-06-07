@@ -19,7 +19,9 @@ Run the final non-bypass Slice-first completion gate from files and the integrat
 - Package final readiness must be mechanically valid and bound to the resolved integrated state before audit dispatch.
 - Review-code state/report are optional audit context. Use safe paths when supplied or available; otherwise pass explicit `none`.
 - If review-code state exists but is non-clean, pass/report it. Absence or non-clean state does not block audit dispatch, only final readiness.
-- Spawn one cold read-only auditor from file paths and resolved state; do not rely on conversation history.
+- Main agent performs only mechanical prerequisites, dispatches one cold read-only auditor with a
+  self-contained packet, preserves its report, and summarizes; do not perform semantic audit inline
+  or rely on conversation history.
 - PASS means final audit passed for that integrated state only. Merge/readiness still needs clean review-code readiness for the same state.
 
 ## Do
@@ -47,7 +49,7 @@ Run the final non-bypass Slice-first completion gate from files and the integrat
    - otherwise record explicit `none`;
    - when state is present, validate same feature/integrated state, `mode: "pipeline"`, `state: "ready_for_audit"`, empty `findings.open_serious`,
      `closure_status.ready_for_audit: true`, and `closure_status.proofs_and_reports_fresh: true`.
-9. Load `references/audit-subagent-contract.md` and dispatch a cold read-only auditor with an explicit packet:
+9. Load `references/audit-subagent-contract.md` and dispatch a cold read-only auditor through a fresh sub-agent/role invocation with an explicit packet:
    - artifact root and integrated worktree root;
    - feature, git ref/commit, base/target refs when known;
    - SPEC, registry, package, proof, report, and authoritative Slice paths;

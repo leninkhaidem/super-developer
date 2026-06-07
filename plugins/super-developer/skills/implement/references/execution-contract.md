@@ -64,7 +64,7 @@ Pipeline:
 6. refresh proof/report evidence after repairs, merge-impact changes, or verifier findings
 7. run final validation and safe integrated checks
 8. push feature branch only if the exact feature push above is covered
-9. hand off to `review-code` and `audit` skills when readiness rules allow
+9. hand off to `review-code` and `audit` through fresh Skill-tool/sub-agent invocations when readiness rules allow
 
 Stop conditions:
 - unsafe, missing, stale, contradictory, or out-of-scope plan/package/proof/report/Slice/worktree path
