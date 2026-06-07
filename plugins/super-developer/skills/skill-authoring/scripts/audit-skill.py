@@ -136,6 +136,8 @@ def print_metric(prefix: str, item: Metrics) -> None:
 
 
 def audit(skill_dir: Path, *, strict: bool = False) -> int:
+    # Keep the public signature/CLI stable, but always enforce strict checks internally.
+    strict = True
     skill_file = skill_dir / "SKILL.md"
     ref_dir = skill_dir / "references"
     script_dir = skill_dir / "scripts"
