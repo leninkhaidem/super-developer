@@ -6,12 +6,25 @@ Use RFC 2119 meanings for MUST, MUST NOT, SHOULD, SHOULD NOT, and MAY.
 This language-agnostic contract combines a concise craft chapter with operational gates. It is not a style
 guide, lint surrogate, language recipe catalog, or parallel proof system. Correctness, safety, caller
 contracts, verification, trust boundaries, data behavior, and error behavior are MUST-level obligations.
-Modifiability and durability are enforced clean-code criteria, but they do not outrank those duties.
+Modifiability and durability are enforced development-quality criteria, but they do not outrank those duties.
 
 A change is non-trivial when it touches multiple files, changes behavior/API/data/error handling, affects
 contracts or generated/docs artifacts, introduces security/privacy/reliability/concurrency/performance risk,
 refactors shared code, or requires package/repository verification. Tiny edits MAY use lighter evidence,
 but still MUST preserve correctness and avoid collateral cleanup.
+
+## Principle Grounding
+This quality contract uses established software-design vocabulary as diagnostic lenses, not dogma.
+Local requirements, evidence, and risk decide severity; principle names are shorthand, not cargo-cult rules.
+- Design by Contract grounds explicit outcomes, preconditions, postconditions, failure modes, and proof truth.
+- High cohesion, low coupling, and SRP ground ownership, boundaries, and localized change.
+- DRY is balanced by anti-premature-abstraction: share real concepts, not superficial similarity.
+- KISS and YAGNI ground small surfaces, few moving parts, and no unused extension mechanisms.
+- Information hiding and encapsulation ground APIs that hide incidental state and vendor shapes.
+- Dependency inversion and ports/adapters thinking ground stable cores with replaceable volatile edges.
+- DDD ubiquitous language grounds names and artifacts in the shared domain model.
+- Testability and legacy-seam practice ground deterministic seams, observable behavior, and safe brownfield change.
+- Maintainability quality attributes ground analyzability, modifiability, testability, and change isolation.
 
 ## 1. Clean Work
 Clean work lets maintainers change safely because behavior is truthful, boundaries are visible, and the
