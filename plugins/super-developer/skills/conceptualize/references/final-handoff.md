@@ -2,7 +2,7 @@
 
 ## Contract
 
-- Stop before implementation planning and `.tasks/` creation.
+- Stop before implementation planning and `.tasks/` creation; this reference returns only a compact handoff.
 - A successful handoff requires at least one safe Slice Markdown file in `slices/`; Index-only handoff is not allowed.
 - Perform a safe full Slice inventory from the selected workspace's `slices/` directory before claiming readiness.
 - The full inventory must be based on path-checked files, not only the Index, user mentions, summaries, or prior memory.
@@ -11,11 +11,15 @@
 ## Procedure
 
 1. Re-apply workspace path and symlink checks.
-2. If no safe Slice exists, report the missing required Slice as a blocker and return to the parent Conceptualize workflow for approved Slice creation; do not claim readiness.
+2. If no safe Slice exists, report the missing required Slice as a blocker and return to the parent
+   Conceptualize workflow for approved Slice creation; do not claim readiness.
 3. Read every safe Slice Markdown file in full.
-4. Check each Slice for stable H3 IDs, stale contradictions, unresolved questions, missing approval for deferrals/out-of-scope items, useful source references, relevant implementation surfaces, and verification expectations.
+4. Check each Slice for stable H3 IDs, stale contradictions, unresolved questions, missing approval
+   for deferrals/out-of-scope items, useful source references, relevant implementation surfaces, and
+   verification expectations.
 5. Ask for approval before material Slice fixes. If approval is not available, report the blocker rather than claiming planning readiness.
-6. Return the compact handoff; do not invoke `implementation-plan` inline.
+6. Return the compact handoff; do not perform planning. Any planning transition is handled by the
+   parent Conceptualize skill via fresh Skill-tool/sub-agent invocation, never inline.
 
 ## Handoff Format
 

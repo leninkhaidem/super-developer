@@ -2,7 +2,10 @@
 
 ## Boundary
 
-This reference governs local model preference keys and resolution before a skill delegates or spawns agents. Each skill owns role behavior after a value resolves.
+This reference governs local model preference keys and resolution before a skill delegates or
+spawns agents. Model resolution never authorizes inline execution; callers must still dispatch the
+resolved role/skill as a fresh sub-agent or Skill-tool invocation. Each skill owns role behavior
+after a value resolves.
 
 ## Local File
 

@@ -1,6 +1,10 @@
 ---
 name: spike-to-plan
-description: Runs a bounded feasibility spike before implementation planning, discards exploratory code, and hands observed evidence to implementation-plan. Use when planning depends on uncertain API/library behavior, integration feasibility, performance/concurrency risk, data-model/UX uncertainty, or an explicit spike/prototype request. Do not use for routine implementation or code review.
+description: >
+  Runs a bounded feasibility spike before implementation planning, discards exploratory code, and
+  hands observed evidence to implementation-plan. Use when planning depends on uncertain API/library
+  behavior, integration feasibility, performance/concurrency risk, data-model/UX uncertainty, or an
+  explicit spike/prototype request. Do not use for routine implementation or code review.
 ---
 
 # Spike to Plan
@@ -14,7 +18,9 @@ Answer the smallest empirical question needed to make a reliable greenfield impl
 - Keep the spike isolated, bounded, reversible, and focused on one planning assumption.
 - Preserve user work: do not stash, reset, overwrite, or discard dirty changes without approval.
 - Do not persist exploratory code as planned-feature artifacts.
-- Accepted outcomes that affect planning must remain durable through `SPEC.md` constraints/non-goals, package Markdown notes/verification expectations, Slice approval/deferral notes, or registry bookkeeping.
+- Accepted outcomes that affect planning must remain durable through `SPEC.md` constraints/non-goals,
+  package Markdown notes/verification expectations, Slice approval/deferral notes, or registry
+  bookkeeping.
 
 ## Do
 
@@ -24,17 +30,19 @@ Answer the smallest empirical question needed to make a reliable greenfield impl
 4. Use an isolated temporary branch/worktree when practical; use the current tree only for small low-risk probes with a clean or user-approved state.
 5. Run the minimum commands/scenarios/measurements needed to accept or reject the assumption.
 6. Delete throwaway code, temporary harnesses, branches, and worktrees after extracting evidence.
-7. Hand concise observed evidence to `implementation-plan`.
+7. Hand concise observed evidence to `implementation-plan` through a fresh Skill-tool/sub-agent
+   invocation; do not draft planned-feature artifacts inline.
 
 ## Load if needed
 
 - Official library/API docs or examples → only when repo docs/source do not resolve the assumption.
-- Worktree isolation details → `../worktree/SKILL.md` only when a temporary branch/worktree is needed.
-- Durable artifact authoring → `../implementation-plan/SKILL.md` only after evidence is extracted and the spike brief is ready.
+- Worktree isolation details → invoke `worktree` only when a temporary branch/worktree is needed.
+- Durable artifact authoring → invoke `implementation-plan` through the Skill tool or a fresh
+  sub-agent only after evidence is extracted and the spike brief is ready.
 
 ## Handoff to Implementation Plan
 
-Return a spike brief with:
+Return a spike brief for a fresh `implementation-plan` Skill-tool/sub-agent invocation with:
 
 - planning question answered or still blocked;
 - evidence sources, commands, scenarios, measurements, traces, screenshots, or fixtures used;
@@ -54,4 +62,4 @@ Return a spike brief with:
 
 ## Output
 
-Report observed facts only, then either hand off to `implementation-plan` with the spike brief or state the exact blocker.
+Report observed facts only, then either invoke `implementation-plan` as a fresh Skill-tool/sub-agent with the spike brief or state the exact blocker.

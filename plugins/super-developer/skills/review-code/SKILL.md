@@ -17,7 +17,9 @@ Run bounded review; route report/actions by mode.
 - Keep PR/local review separate from Slice/proof/report/audit obligations unless pipeline artifacts are in scope.
 - Pipeline review is the integrated code/evidence-risk gate; audit remains the Slice/package/proof completeness gate.
 - `CLEAN` means no confirmed serious review-code findings remain for the reviewed state; it is not audit PASS or merge readiness.
-- Main agent owns orchestration, state gates, reports, and action routing. No mutation until the active mode allows it.
+- Main agent owns orchestration, state gates, reports, and action routing; semantic review and role
+  work happen through dispatched sub-agents/role invocations. No mutation until the active mode
+  allows it.
 - Revalidate reviewed-state metadata before posting, fixing, committing, evidence refresh, or audit-context handoff.
 
 ## Mode Routing
@@ -37,12 +39,12 @@ Run bounded review; route report/actions by mode.
 - Per batch: preserve mode metadata, run bounded topology, assign stable dedupe keys, and merge all verdict types into one cross-batch set.
 - After batches, run one global integration pass for duplicates, conflicting recommendations, cross-batch serious risks, and seam issues.
 - Reopen reviewer fanout only when batch boundaries cannot preserve confidence.
-- Run one default Code Reviewer for each diff or semantic batch.
+- Run one default Code Reviewer sub-agent for each diff or semantic batch.
 - Add at most one specialist per review/batch, chosen by first risk: security/privacy/safety; data/persistence/migration; performance/concurrency; public
   contract/architecture/integration.
 - Add Skeptic only for serious findings, risky-clean coverage, cross-batch serious conflicts, or required mode gates. Caps include Skeptic: normal 2, risky 3.
-- Resolve reviewer model only when local policy matters: `../../references/model-preferences.md`. Pass `../../references/clean-code-rules.md`; do not load it in
-  the orchestrator.
+- Resolve reviewer model only when local policy matters: `../../references/model-preferences.md`.
+  Pass `../../references/clean-code-rules.md`; do not load it in the orchestrator.
 - For changed tests, declare deep, sampled, or not-reviewed scope with rationale; deep-review proof-critical or sensitive tests.
 - In pipeline mode, add Slice-first context: package IDs, proof/report paths, Slice/H3 IDs, verification results, risks, freshness, deferred concerns,
   ownership.
@@ -105,15 +107,18 @@ surface, and choice needs product/architecture authority. Otherwise delegate una
 Render one Markdown body, not inline diff comments: header, optional verdict, finding counts, file/line counts, metadata, then 🔴/🟠/🟡 sections. Each finding
 needs title, `Path`, evidence, and recommendation/tradeoffs. Omit empty sections; if all empty, render `No issues found. ✅`.
 
-Footer states bounded review and Skeptic verification for serious findings, plus mode footer. Never render coverage rows, raw tags, dedupe keys, state/lifecycle
-fields, or tracking IDs. Pipeline findings are consistency/evidence signals.
+Footer states bounded review and Skeptic verification for serious findings, plus mode footer. Never
+render coverage rows, raw tags, dedupe keys, state/lifecycle fields, or tracking IDs. Pipeline
+findings are consistency/evidence signals.
 
 ## Fix Verification Gate
 
-Local and pipeline fixes are delegated; PR mode has no code-fix path. Main agent may apply only trivial behavior-preserving mechanical edits and must say why.
+Local and pipeline fixes are delegated to Fix Implementer sub-agents; PR mode has no code-fix path.
+Main agent may apply only trivial behavior-preserving mechanical edits and must say why.
 
-After a delegated fix batch, run Fix Verification as closure gate, not second discovery. Inputs: original findings, Fix Implementer report, pre/post metadata,
-batch boundaries, constraints, target paths, relevant proof/report context, and enough code to verify the delta.
+After a delegated fix batch, run Fix Verification as a fresh role/sub-agent closure gate, not second
+discovery. Inputs: original findings, Fix Implementer report, pre/post metadata, batch boundaries,
+constraints, target paths, relevant proof/report context, and enough code to verify the delta.
 
 Return per dedupe key: `dedupe_key`, `verdict: closed|partially_closed|not_closed|reopened`, evidence, remaining risk, and `next_action:
 none|same_scope_fix|widened_verification|full_rereview|authority_boundary`. Also include affected-surface regression sniff, triggers, and readiness:

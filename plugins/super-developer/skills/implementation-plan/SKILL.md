@@ -26,7 +26,9 @@ The eager workflow should be enough to orient planning. Load references only at 
 
 1. Resolve the feature slug and source material. Use direct user requirements, repo evidence, spike evidence, or one selected Conceptualize workspace; ask one focused question if the source is ambiguous.
 2. If Conceptualize material applies, load `references/conceptualize-inputs.md` and follow its Slice inventory/Index-only rules before writing artifacts. If no Conceptualize workspace applies, record that the plan uses direct requirements and repo evidence only.
-3. Decide whether unresolved design uncertainty blocks artifact writing. If it does, load `references/design-preflight.md`; if empirical evidence is still required after that, stop and route to `spike-to-plan` instead of guessing.
+3. Decide whether unresolved design uncertainty blocks artifact writing. If it does, load `references/design-preflight.md`.
+   If empirical evidence is still required after that, stop artifact writing and invoke `spike-to-plan`
+   via fresh Skill-tool/sub-agent packet; do not guess or run the spike workflow inline.
 4. Draft `SPEC.md` only after loading `references/spec-template.md`. Keep it requirements-focused and manifest-only: no package assignment detail, proof rows, transcripts, implementation code, or hidden assumptions.
 5. Load `../../references/clean-code-rules.md` and `../../references/work-packages.md`; design the work-package split
    from requirements, Slice obligations when present, repo surfaces, dependency direction, seams, coupling risks,

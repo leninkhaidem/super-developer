@@ -35,7 +35,10 @@ The eager workflow should be enough to guide the session. Load references only a
 6. At each context-boundary checkpoint, save materialized conclusions to the Index. As soon as a material concern, commitment, risk, or planning implication exists, load `references/slice-template.md` and create or update one or more Slices; do not wait until final handoff.
 7. Keep Slices living: revise stale, contradicted, or superseded H3 blocks when approved rather than appending hidden history. Do not write every conversational turn.
 8. Before handoff or planning, ensure the workspace has at least one safe Slice with at least one stable H3 under `## Shared Understanding`; otherwise continue discovery or request approval for required Slice creation.
-9. When the user is ready for planning or handoff, load `references/final-handoff.md`; run the coverage pass, report blockers or approved deferrals, and return the handoff summary. If planning is approved, load `../../references/model-preferences.md` for delegation model choice, then invoke `implementation-plan` with the workspace path and feature slug; do not create `.tasks/` inline.
+9. When the user is ready for planning or handoff, load `references/final-handoff.md`.
+   Run the coverage pass, report blockers or approved deferrals, and return the handoff summary.
+   If planning is approved, load `../../references/model-preferences.md`, then dispatch `implementation-plan`
+   via Skill tool/fresh sub-agent with workspace path and feature slug; do not create `.tasks/` or run planning inline.
 
 ## Load if needed
 
@@ -47,7 +50,8 @@ The eager workflow should be enough to guide the session. Load references only a
 - A material requirement, scope reduction, deferral, conflict, required Slice creation, or Slice rewrite needs user approval.
 - A handoff or planning transition is requested before at least one safe approved Slice exists.
 - Remaining questions would make implementation planning invent behavior.
-- The next step is creating `.tasks/` artifacts; hand off to `implementation-plan` instead of doing it inline.
+- The next step is creating `.tasks/` artifacts; invoke `implementation-plan` via Skill tool/fresh sub-agent
+  with a self-contained packet instead of doing it inline.
 
 ## Output
 
