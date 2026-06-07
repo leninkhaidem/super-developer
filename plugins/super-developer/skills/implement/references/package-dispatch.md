@@ -126,7 +126,7 @@ Each package-verifier prompt includes:
 
 - Role: holistic package verification reviewer.
 - Required first read: `plugins/super-developer/skills/implement/references/package-verification.md`.
-- Package Markdown path, proof Markdown path, durable report path, full assigned Slice paths, safe resolved read paths, package diff/code location, package agent `SELF_REVIEW`, and verification outputs/static-inspection summaries.
+- Package Markdown path, proof Markdown path, durable report path, full assigned Slice paths, safe resolved read paths, package diff/code location, exact reviewed commit/ref when available, package agent `SELF_REVIEW`, and verification outputs/static-inspection summaries.
 - Required output: concise PASS/FAIL report for `.tasks/<feature>/reports/<WP-ID>.package-verification.md`.
 
 The verifier reads files directly, audits Slice/proof obligations first, then reviews package code/evidence.

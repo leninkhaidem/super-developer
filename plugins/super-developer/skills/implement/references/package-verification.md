@@ -86,7 +86,7 @@ Write or return a concise report for the orchestrator to store at:
 .tasks/<feature>/reports/<WP-ID>.package-verification.md
 ```
 
-The source-aligned report body is canonical and must come first. Helper/package-lifecycle metadata may follow as `## State Binding`; it binds the source report to proof content and reviewed state but does not replace the reviewer report.
+The source-aligned report body is canonical and must come first. Helper/package-lifecycle metadata may follow as `## State Binding`; it binds the source report to proof content and reviewed state but does not replace the reviewer report. Prefer verifying after the package branch is committed/stabilized so this binding names an exact commit/ref.
 
 ```md
 ## Package Verification: <WP-ID>
@@ -136,6 +136,8 @@ Avoid long transcripts. Put semantic Slice/code/finding detail in the source H3 
 ## Freshness and Repair
 
 A package verification report is stale when any later mutation can affect the reviewed package state, proof evidence, verification output, assigned Slice closure, package Markdown, or serious finding closure. Examples include repair commits, merge-resolution edits, proof refreshes, changed verification commands, changed package assignments, or updated Slice scope/approval metadata.
+
+Binding-only refresh carve-out: if the source report body already semantically reviewed identical code tree/diff, proof content/digest, package Markdown, assigned Slice set, implementer report/`SELF_REVIEW`, and verification output, and the only change is updating `## State Binding` from an uncommitted/moving state to exact commit/ref metadata, the orchestrator may refresh that metadata without rerunning semantic package verification/code review. The source report body, proof digest, assigned Slice set, package Markdown, implementer report/`SELF_REVIEW`, verification output, and reviewed code tree/diff must be unchanged; no repairs, merge-resolution edits, proof-evidence changes, or package/Slice/output changes may have occurred. Uncertain impact fails closed and requires focused or full package verification.
 
 After repair:
 

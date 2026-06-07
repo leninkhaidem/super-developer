@@ -79,7 +79,7 @@ A package may become `done` only after all are true:
 3. required commands or inspections are recorded in proof evidence;
 4. the package implementer supplied the required completion statement and `SELF_REVIEW` evidence;
 5. no unresolved Slice plan defect, unapproved gap/deviation, or authority-boundary blocker remains;
-6. independent package verification returned `PASS` and wrote the report bound to proof digest and verified worktree state;
+6. independent package verification returned `PASS` and wrote the report bound to proof digest and verified worktree state, preferably after the package branch was committed/stabilized so the PASS binds directly to an exact commit/ref;
 7. repairs and delta verification are closed;
 8. post-merge or integration changes did not stale the proof/report, or freshness was restored.
 
@@ -87,7 +87,7 @@ Do not mark a package complete from registry status, helper success, proof rows,
 
 ## Freshness Rules
 
-Freshness is lost when any package-owned implementation, test, documentation, assignment, Slice approval metadata, proof, verification output, merge-resolution edit, or report binding changes after proof/report capture.
+Freshness is lost when any package-owned implementation, test, documentation, assignment, Slice approval metadata, proof, verification output, merge-resolution edit, or semantic report body changes after proof/report capture.
 
 When freshness is lost:
 
@@ -98,7 +98,9 @@ When freshness is lost:
 - rerun affected review-code checks and refresh review-code readiness when the change occurs after review-code reached readiness;
 - treat the package as not final-ready until proof, report, review-code readiness, and required audit reruns are fresh again.
 
-Uncertain impact fails closed by marking candidate package proofs/reports dirty or recording explicit no-impact evidence.
+Narrow binding-only refresh: if package verification already semantically reviewed identical code tree/diff, proof content/digest, package Markdown, assigned Slice set, implementer report/`SELF_REVIEW`, and verification output, and the only change is updating `## State Binding` from uncommitted/moving state to exact commit/ref metadata, update binding/report metadata without rerunning semantic package verification or code review.
+
+The carve-out is invalid unless the source report body is unchanged, proof digest is unchanged, assigned Slice set is unchanged, package Markdown is unchanged, implementer report/`SELF_REVIEW` is unchanged, verification output is unchanged, reviewed code tree/diff is unchanged, and there were no repairs, merge-resolution edits, proof-evidence changes, or package/Slice/output changes. Uncertain impact fails closed by marking candidate package proofs/reports dirty or recording explicit no-impact evidence and rerunning focused/full package verification as required.
 
 ## Repair Handling
 

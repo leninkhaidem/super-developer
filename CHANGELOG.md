@@ -6,6 +6,12 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [v1.29.6] - 2026-06-08
+
+### Changed
+- Changed package verification freshness rules so committed package states are reviewed once and binding-only report metadata refreshes no longer rerun semantic verification when reviewed inputs are unchanged.
+- Clarified audit readiness so exact package commit report bindings remain valid after integration when ancestry and post-merge freshness prove the package state was unchanged.
+
 ## [v1.29.5] - 2026-06-07
 
 ### Changed

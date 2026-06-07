@@ -136,7 +136,7 @@ PASS | FAIL
 ```
 
 PASS requires complete Slice inventory, each material H3 assigned/proven or approved out of scope, sufficient proof rows,
-fresh state-bound PASS package reports, compliant final code, and no blocker.
+fresh state-bound PASS package reports, compliant final code, and no blocker. Exact package commit/ref bindings are acceptable only when ancestry/content-equivalence and post-merge freshness show the reviewed package state was not changed by merge/integration.
 Audit PASS is not merge/readiness unless review-code readiness is clean for the same state.
 
 ## Repair Handoff

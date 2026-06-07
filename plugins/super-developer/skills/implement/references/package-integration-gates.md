@@ -17,12 +17,13 @@ For each returned package:
 
 3. Reject proof handoff if proof Markdown is missing, mechanically invalid, lacks implementation/verification evidence, has unresolved required markers, has unsupported statuses, misses package verification expectation closure, or names an unresolved Slice plan defect.
 4. Run safe package verification expectations/commands from the package worktree or stable integration worktree, and ensure proof Markdown records observed evidence.
-5. Run one holistic package verifier for every returned package. Use `plugins/super-developer/skills/implement/references/package-verification.md` as the verifier contract; dispatch through the verifier packet in `plugins/super-developer/skills/implement/references/package-dispatch.md`.
-6. Store the verifier PASS/FAIL report at `.tasks/<feature>/reports/<WP-ID>.package-verification.md` or the declared durable report path. The report must bind to reviewed package state and proof evidence.
-7. Reject missing, failed, stale, old-shape, placeholder, or pre-repair package verification reports.
-8. Confirm package branches did not force-add or commit ignored `.tasks` proof/report artifacts. If they did, preserve artifacts in the shared task store, repair the branch to code/doc changes only, and keep the package incomplete.
-9. Merge each accepted package branch at most once through the integration worktree using the `worktree` skill.
-10. After merge, verify package branch ancestry, integration worktree cleanliness, proof/report task-store handoff, and post-merge freshness. If merge resolution or integration changes affect evidence, proof rows, verification output, assignment, or package claims, rerun affected proof validation and package verification before completion.
+5. Prefer committing/stabilizing the package branch before holistic package verification so a `PASS` report binds directly to an exact commit/ref. Do not commit ignored `.tasks` proof/report artifacts.
+6. Run one holistic package verifier for every returned package. Use `plugins/super-developer/skills/implement/references/package-verification.md` as the verifier contract; dispatch through the verifier packet in `plugins/super-developer/skills/implement/references/package-dispatch.md`.
+7. Store the verifier PASS/FAIL report at `.tasks/<feature>/reports/<WP-ID>.package-verification.md` or the declared durable report path. The report must bind to reviewed package state and proof evidence.
+8. Reject missing, failed, stale, old-shape, placeholder, or pre-repair package verification reports.
+9. Confirm package branches did not force-add or commit ignored `.tasks` proof/report artifacts. If they did, preserve artifacts in the shared task store, repair the branch to code/doc changes only, and keep the package incomplete.
+10. Merge each accepted package branch at most once through the integration worktree using the `worktree` skill.
+11. After merge, verify package branch ancestry, integration worktree cleanliness, proof/report task-store handoff, and post-merge freshness. If merge resolution or integration changes affect evidence, proof rows, verification output, assignment, or package claims, rerun affected proof validation and package verification before completion.
 
 Mark a package `done` only after proof validation, verification expectations, package verification PASS, ignored `.tasks` handling, post-merge freshness, repair/delta closure, and Slice plan-defect gates all pass.
 
@@ -42,6 +43,8 @@ Slice plan defects are blockers, not advisory notes. Resolve by projecting the r
 Package verification reports use the source-aligned shape from `plugins/super-developer/skills/implement/references/package-verification.md`: `## Package Verification: <WP-ID>` with H3 `Verdict`, `Slice Closure Review`, `Code Review Findings`, and failure-only `Blocking Findings` / `Repair Guidance`. If lifecycle metadata is kept, add it separately as `## State Binding` after the source report body.
 
 A package verification report is stale when later mutation can affect reviewed package state, proof evidence, verification output, assigned Slice closure, package Markdown, or serious finding closure. State-changing repairs, merge-resolution edits, proof refreshes, changed verification commands, changed assignments, or changed Slice scope/approval metadata require focused or full package re-verification.
+
+Binding-only refresh carve-out: if a verifier already semantically reviewed identical code tree/diff, proof content/digest, package Markdown, assigned Slice set, implementer report/`SELF_REVIEW`, and verification output, and the only change is `## State Binding` metadata moving from uncommitted/moving state to exact commit/ref metadata, update only the binding/report metadata without rerunning semantic package verification. The source report body must remain unchanged. Any uncertainty, repair, merge-resolution edit, proof-evidence change, package/Slice/output change, implementer-report change, or reviewed-code change fails closed and requires focused or full package verification.
 
 ## Rejection and Repair
 
