@@ -6,6 +6,12 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [v1.29.5] - 2026-06-07
+
+### Changed
+- Clarified Super Developer skill handoff instructions so downstream planning, spike, review, audit, and repair workflows require fresh Skill-tool or sub-agent invocations instead of inline execution.
+- Changed the skill-authoring audit helper so every invocation enforces strict budget checks, even when `--strict` is omitted.
+
 ## [v1.29.4] - 2026-06-06
 
 ### Changed
