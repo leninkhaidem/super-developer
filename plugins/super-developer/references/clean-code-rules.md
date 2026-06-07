@@ -1,141 +1,142 @@
 # Development Quality Contract
 
 Implementation, repair, review, and audit agents MUST apply this contract during Super Developer workflow execution.
-
 Use RFC 2119 meanings for MUST, MUST NOT, SHOULD, SHOULD NOT, and MAY.
 
-Correctness, safety, caller contracts, verification, and trust boundaries are MUST-level requirements. Maintainability rules are SHOULD-level heuristics unless they protect a MUST-level requirement.
+This language-agnostic contract combines a concise craft chapter with operational gates. It is not a style
+guide, lint surrogate, language recipe catalog, or parallel proof system. Correctness, safety, caller
+contracts, verification, trust boundaries, data behavior, and error behavior are MUST-level obligations.
+Modifiability and durability are enforced development-quality criteria, but they do not outrank those duties.
 
-## 1. Scope and Severity
+A change is non-trivial when it touches multiple files, changes behavior/API/data/error handling, affects
+contracts or generated/docs artifacts, introduces security/privacy/reliability/concurrency/performance risk,
+refactors shared code, or requires package/repository verification. Tiny edits MAY use lighter evidence,
+but still MUST preserve correctness and avoid collateral cleanup.
 
-A change is non-trivial when it touches multiple files, changes behavior/public API/data/error handling, affects generated artifacts/docs/contracts, introduces security/privacy/reliability/concurrency/performance risk, refactors shared code, or requires verification by package scope, repository convention, or risk profile.
+## Principle Grounding
+This quality contract uses established software-design vocabulary as diagnostic lenses, not dogma.
+Local requirements, evidence, and risk decide severity; principle names are shorthand, not cargo-cult rules.
+- Design by Contract grounds explicit outcomes, preconditions, postconditions, failure modes, and proof truth.
+- High cohesion, low coupling, and SRP ground ownership, boundaries, and localized change.
+- DRY is balanced by anti-premature-abstraction: share real concepts, not superficial similarity.
+- KISS and YAGNI ground small surfaces, few moving parts, and no unused extension mechanisms.
+- Information hiding and encapsulation ground APIs that hide incidental state and vendor shapes.
+- Dependency inversion and ports/adapters thinking ground stable cores with replaceable volatile edges.
+- DDD ubiquitous language grounds names and artifacts in the shared domain model.
+- Testability and legacy-seam practice ground deterministic seams, observable behavior, and safe brownfield change.
+- Maintainability quality attributes ground analyzability, modifiability, testability, and change isolation.
 
-Tiny isolated edits MAY be exempt from the full evidence block, but they still MUST preserve correctness and avoid collateral cleanup.
+## 1. Clean Work
+Clean work lets maintainers change safely because behavior is truthful, boundaries are visible, and the
+design carries only the concepts it needs. For non-trivial changes, agents MUST protect:
+- **Truthful outcomes:** success, failure, partial success, invalid input, and skipped work are
+  distinguishable; no fake success or silent fallback unless accepted, documented, and observable.
+- **Clear contracts:** APIs, package artifacts, proof claims, schemas, generated contracts, config, and
+  operational surfaces stay compatible unless accepted artifacts require a break.
+- **Validated boundaries:** untrusted or dynamic data is validated or narrowed before trusted use.
+- **Local changeability:** behavior has a clear owner, cohesive boundary, and smallest useful seam.
+- **Readable model:** names, domain vocabulary, flow, state transitions, and tests explain intent.
+- **Compact evidence:** cite proof rows, verification output, tests, reports, or findings; do not create
+  standalone clean-code proof/report artifacts.
 
-Severity guidance:
+## 2. Severity and Material Evidence
+Severity follows the strongest material risk supported by evidence:
+- **BLOCKER:** MUST-level violation, unverified non-trivial behavior, broken caller contract, fake success,
+  security/privacy/safety/data/integrity risk, missing trust-boundary validation, incompatible public API,
+  unsafe migration, unresolved assigned obligation, or required proof/verification gap.
+- **CODE-QUALITY:** concrete maintainability risk: brittle seam, scattered future edits, unclear owner,
+  unjustified duplication, speculative abstraction, excess coupling, cognitive complexity, poor testability,
+  dependency/framework leakage, or domain-model inconsistency.
+- **ADVISORY:** optional improvement, local style convention, small clarity improvement, or future cleanup.
 
-- **BLOCKER**: MUST-level violation, unverified non-trivial behavior, broken caller contract, fake success state, security/privacy/safety/data/integrity risk, missing trust-boundary validation, incompatible public API change, unsafe migration, missing required verification, or unresolved assigned obligation.
-- **CODE-QUALITY**: maintainability violation without immediate correctness/safety impact, unjustified duplication, unclear boundary, unnecessary coupling, hard-to-review structure, inconsistent good convention, or local complexity that materially raises maintenance risk.
-- **ADVISORY**: optional improvement, style preference grounded in local convention, small clarity improvement, or future cleanup useful but not required now.
+Reviewers and auditors MUST NOT elevate taste, formatting preference, or personal style into serious
+findings. Maintainability concerns become serious only with evidence of brittleness, change cost,
+caller-contract risk, safety/security/data risk, completion-confidence risk, or future-modification risk.
+Material correctness, safety, maintainability, or verification risks MUST NOT remain advisory.
 
-Reviewers MUST classify at the seriousness justified by evidence. Findings that materially affect correctness, safety, maintainability, or verification confidence MUST NOT remain advisory.
+## 3. Craft Principles
+- **Preserve contracts first.** Callers must distinguish material outcomes. Preserve success/failure,
+  partial-failure, invalid/default input, public API, persistence, generated-artifact, and operational
+  expectations unless accepted artifacts change them.
+- **Design around real seams.** A seam owns a concept, invariant, boundary, or variable behavior. Prefer
+  cohesive modules, explicit dependency direction, and replaceable edges for fallible/volatile collaborators.
+- **Reuse real concepts.** Reduce duplication for the same concept, invariant, policy, boundary behavior,
+  bug fix, or caller contract. Keep superficial similarity local when abstraction would invent knobs,
+  flags, factories, hooks, wrappers, or extension points.
+- **Prefer simplicity and small surfaces.** Add config, dependencies, indirection, caches, retries, flags,
+  or lifecycle states only when requirement or risk justifies them. Extensibility comes from clear seams.
+- **Encapsulate details.** Shared APIs SHOULD expose coherent caller operations, hide incidental state or
+  vendor/framework shapes, make defaults explicit, and be easy to use correctly and hard to misuse.
+- **Make cognitive load visible.** Watch deep nesting, long functions, scattered conditionals, hidden
+  temporal coupling, unclear ownership, implicit state transitions, misleading/generic names, and vocabulary drift.
+- **Treat testability as design feedback.** Prefer deterministic seams, observable outcomes, narrow setup,
+  and clear boundary behavior. Isolate brittle time, randomness, I/O, globals, subprocesses, network,
+  LLM/tool output, and framework lifecycle. Mocks MUST NOT replace an unverified external/library/runtime/
+  API contract under test.
+- **Keep dependencies disciplined.** Dependencies are design decisions. Avoid unnecessary packages/services,
+  preserve dependency direction, isolate vendor/framework details where practical, and check lifecycle,
+  security, operations, performance, and replacement cost.
+- **Work cleanly in brownfield code.** Messy surroundings are evidence, not permission to spread mess.
+  New and meaningfully changed code SHOULD meet this contract while minimizing unrelated disturbance.
+  Classify patterns as contract, convention, defective, or unknown; preserve real contracts, avoid copying
+  defects, isolate the smallest useful clean seam, improve touched paths when needed, and surface broader
+  cleanup as separate scope.
 
-## 2. Discovery Gate
+## 4. Operational Gates
+- **Discovery:** read requirements, package scope, assigned Slice context, and existing code; search callsites
+  before changing APIs, data models, shared behavior, generated artifacts, or workflow contracts; classify
+  patterns; identify trust boundaries, caller-visible states, config/persistence/generated implications, and
+  verification seams.
+- **Design:** identify outcome contracts, invalid/default input, cancellation/cleanup when relevant,
+  validation boundaries, module boundaries, dependency direction, public surface changes, modifiability
+  strategy, risk surfaces, and verification tied to assigned proof obligations.
+- **Implementation:** solve the in-scope behavior/risk class; preserve contracts/dependency direction unless
+  accepted artifacts change them; update affected callsites/tests/docs/generated artifacts/schemas/examples;
+  stay focused; avoid broad cleanup,
+  stale code/TODOs, and unvalidated data; stop before product/design changes, speculative features, broad
+  refactors, new services, unsafe commands, credentials, external facts, destructive actions, or risk acceptance.
+- **Verification:** run targeted checks, prefer real paths over mocks, disclose mocks/skips/manual/static scope,
+  and cover material outcomes, invalid/default input, trust-boundary validation, public contracts,
+  persistence/data, security/privacy/safety, resource bounds, concurrency, generated artifacts, and brownfield
+  contracts where relevant.
+- **Review/audit:** confirm evidence truthfulness before polish; serious quality findings need concrete
+  material risk; downgrade or omit taste/style/optional cleanup; treat missing verification, fake success,
+  invalid proof claims, unvalidated boundaries, public-contract breaks, and unresolved obligations as blockers.
 
-For non-trivial changes, implementers MUST:
+## 5. Common Risk Surfaces
+Use these language-neutral surfaces instead of per-language adapters:
+- External input/dynamic data: user input, JSON/YAML, requests, messages, LLM/tool output, and data payloads.
+- Public/shared APIs: exports, commands, prompts, schemas, artifacts, config keys, file formats, defaults,
+  generated contracts, and misuse resistance.
+- Files/env/config: missing, malformed, partial, secret-bearing, or environment-specific values.
+- Persistence/migrations: compatibility, rollback/backfill, idempotency, integrity, partial failure, recovery.
+- Network/subprocess/services: validation, bounded timeouts/retries/fanout, distinguishable failure.
+- Errors/partial success: context without secrets/private data; observable, compensated, or fail-closed work.
+- Async/concurrency/lifecycle: ownership, locking/atomicity, idempotency, races, cancellation, cleanup, release.
+- Performance/resources: expected complexity, worst case, and bounded loops, memory, retries, queues, I/O, fanout.
+- Framework/vendor boundaries: isolate lifecycle, ORM/request objects, SDK shapes, and vendor types from domain logic.
+- Security/privacy: no hardcoded/logged/committed secrets; minimize, validate, access-control, and exclude sensitive data.
 
-- read requirements, package scope, assigned Slice context, and existing code before editing;
-- search callsites before changing exported symbols, public APIs, data models, or shared behavior;
-- treat existing code as evidence, not authority;
-- classify discovered patterns as contract, good convention, defective existing pattern, or unknown.
-
-Preserve contracts. Follow good conventions. Do not spread defective patterns. When evidence is unknown, choose the simplest local fit and surface uncertainty.
-
-## 3. Design Gate
-
-Before implementation, non-trivial work MUST identify:
-
-- caller contract for success, failure, partial success, and invalid input;
-- trust boundaries and runtime validation requirements;
-- module boundaries and dependency direction;
-- verification tied to assigned Slice/package/proof obligations and changed behavior;
-- applicable security, privacy, data-integrity, performance, concurrency, default/omission, lifecycle, and failure concerns;
-- public API, persistence, migration, configuration, operational, or generated-contract implications.
-
-## 4. Implementation Gate
-
-Implementation MUST:
-
-- solve the complete in-scope behavior/risk class implied by the package, not only an example path;
-- preserve contracts and dependency direction unless the accepted plan explicitly changes them;
-- update affected callsites, tests, docs, generated artifacts, schemas, and contracts;
-- keep changes focused on assigned scope;
-- stop for approval before product/design changes, speculative features, broad refactors, new dependencies/services, unsafe commands, or external facts/credentials;
-- use a clean cutover by default, documenting any incremental migration required for compatibility, rollout risk, or shared ownership.
-
-## 5. Testing and Verification Gate
-
-Non-trivial changes MUST have relevant verification and MUST run targeted checks before completion. Prefer real integration paths over mocks. Mocks MUST NOT replace the contract under test at external/library/runtime/API boundaries unless the seam was already verified or isolation is the behavior under test.
-
-Disclose mocks, skipped checks, manual observations, and command scope in completion evidence.
-
-## 6. Contracts, Boundaries, and Errors
-
-- Callers MUST be able to distinguish success, failure, partial success, and invalid input.
-- Fallible boundaries MUST handle, propagate, retry with bounds, compensate, or fail closed.
-- Silent fallback is prohibited unless documented product behavior and observable when relevant.
-- Runtime validation is REQUIRED at trust boundaries: user input, network/API input, files, environment/config, database rows, queues, subprocesses, LLM/tool output, and generated artifacts.
-- Public API compatibility MUST be preserved unless the accepted plan requires a breaking change.
-- Secrets MUST NOT be hardcoded, logged, committed, or exposed in errors.
-- Privacy-sensitive data MUST be minimized, validated, access-controlled, and excluded from unnecessary logs, traces, prompts, fixtures, and generated artifacts.
-
-## 7. Data, Operations, and Concurrency
-
-Persistence and migration changes MUST define compatibility, rollback/backfill behavior, idempotency, data integrity checks, and partial-failure handling.
-
-Performance-sensitive changes MUST identify resource bounds, expected complexity, and worst-case behavior. Unbounded loops, retries, fanout, memory growth, queue growth, or blocking I/O are blocker risks when reachable.
-
-Concurrency-sensitive changes MUST define ownership, locking/atomicity/idempotency, race behavior, cancellation/timeout behavior, and cleanup on failure.
-
-External integrations MUST validate responses, handle timeouts/retries with bounds, expose distinguishable failure, and avoid treating malformed responses as success.
-
-## 8. Maintainability Heuristics
-
-SHOULD-level rules:
-
-- one primary responsibility per file/module;
-- create/extract focused seams when new behavior would mix responsibilities;
-- avoid broad cleanup unless it directly supports the current change;
-- abstract duplication only when it is the same concept, a shared invariant, or a bug fix that must apply consistently;
-- avoid speculative factories, wrappers, flags, hooks, extension points, or configuration knobs;
-- prefer descriptive names over explanatory comments;
-- replace reused domain magic values with named constants;
-- keep parameter lists readable;
-- avoid unchecked dynamic typing where narrower types or runtime validation express the contract;
-- remove unreachable code, orphan files, stale exports, obsolete shims, and unresolved TODO/FIXME/HACK markers for current-scope work.
-
-## 9. Compact Completion Evidence
-
-For non-trivial work, completion reports MUST include:
-
+## 6. Compact Quality Contract Evidence
+For non-trivial implementation or repair work, completion reports MUST include:
 ```markdown
 Quality Contract Evidence:
 - Inspection outcome: <contracts/conventions/defective patterns/unknowns found>
 - Boundary/design choice: <caller contract, seam, trust boundary, and error strategy>
-- Behavior/risk class covered: <edge/failure/security/privacy/data/concurrency cases or why not applicable>
+- Behavior/risk class covered: <edge/failure/security/privacy/data/performance/concurrency cases or why not applicable>
 - Affected artifacts: <files, public contracts/APIs, callsites, tests, docs, generated artifacts>
-- Verification run: <commands/tests/scenarios with observed result>
+- Verification run: <commands/tests/static inspections/manual observations; cite proof rows or reports>
 - Rule exceptions: <MUST/SHOULD exception and justification, or none>
 ```
+For planned-feature package work, this evidence complements existing SPEC/package/proof/report/review/audit
+artifacts. It MUST NOT introduce a standalone clean-code proof file, report file, registry field,
+lifecycle state, or command ledger, and it should not duplicate package proof rows beyond concise citations.
 
-For planned-feature package work, this evidence complements the package proof Markdown; it does not replace package proof, package verification, review-code readiness, or audit.
-
-## 10. Language Adapters
-
-### TypeScript
-
-- Validate `unknown`, JSON, request bodies, environment variables, LLM/tool output, and database/API payloads crossing trust boundaries.
-- Do not use `any` to bypass contracts, validation, or type errors; isolate and narrow it immediately if unavoidable.
-- Check exported type changes against imports/callsites.
-- Handle promise rejection through `await`, return propagation, or explicit fire-and-forget documentation with an error sink.
-
-### Python
-
-- Validate untyped inputs at module boundaries and when loading JSON/YAML/env/files.
-- Avoid broad `except Exception` unless rethrowing, wrapping with context, or deliberately handling a boundary.
-- Keep import-time side effects explicit; configuration, I/O, and network calls SHOULD live behind functions or adapters.
-- Public signature changes MUST update callers and tests.
-
-### Go
-
-- Check returned `error` values or document why ignoring is safe.
-- Use `context.Context` for request-scoped I/O, cancellation, deadlines, and external calls.
-- Validate decoded JSON, flags/env/config, database rows, and RPC inputs before trusting them.
-- Keep interfaces small and consumer-owned.
-
-### Rust
-
-- Do not use `unwrap`/`expect` in production paths unless the invariant is local, proven, and documented.
-- Validate deserialized/config/external data before converting into trusted domain types.
-- Prefer explicit ownership and lifetimes over cloning when clone cost or semantics matter.
-- Public enum/struct changes MUST consider downstream pattern matches and serialization compatibility.
+## 7. Lightweight Audit Cues
+Ask whether callers can distinguish outcomes; untrusted data is validated; future changes stay localized;
+reuse, duplication, dependencies, and extension points are justified by current concepts; tests/proofs
+verify stable behavior and risk cases without replacing real contracts with mocks; brownfield new/touched
+code is cleaner without unrelated disturbance; and serious findings have material evidence rather than taste.
+Treat correctness, safety, caller-contract, verification, trust-boundary, data, security, or privacy risk
+as blocker; material brittleness or maintainability risk as code-quality; and preference as advisory or
+unreported.

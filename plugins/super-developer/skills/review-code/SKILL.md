@@ -72,8 +72,13 @@ Skeptic/stronger review only for high-risk unresolved coverage.
 Severity:
 
 - 🔴 **BLOCKER** — must resolve before merge/commit/audit handoff: correctness, security, privacy, safety, data loss, integrity, or required-evidence failure.
-- 🟠 **CRITICAL** — significant maintainability, operational, regression, or quality risk before readiness.
-- 🟡 **SUGGESTION** — non-blocking, report-only, actionable, diff-relevant, deduplicated, repo-grounded.
+- 🟠 **CRITICAL** — material maintainability, brittleness, operational, regression, completion-confidence,
+  or future-modification risk backed by concrete evidence before readiness.
+- 🟡 **SUGGESTION** — non-blocking, report-only, actionable, diff-relevant, deduplicated, repo-grounded;
+  optional style/taste concerns stay here only when useful, otherwise omit them.
+
+Clean-code findings require material evidence, not taste. Downgrade or exclude preferences that do not show
+brittleness, change-cost, caller-contract, safety/security/data, completion-confidence, or future-modification risk.
 
 Internal fields: severity, tags, location, title, evidence, artifact refs, introduced-by-change, planned signal, recommendation, dedupe key, Skeptic verdict,
 suggestion actionability, fix status.
