@@ -6,6 +6,11 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [v1.29.4] - 2026-06-06
+
+### Changed
+- Improved the Super Developer Development Quality Contract with established principle grounding, maintainability and design-quality guidance, brownfield discipline, and material-risk calibration for planning, review, and audit workflows.
+
 ## [v1.29.3] - 2026-06-06
 
 ### Changed
