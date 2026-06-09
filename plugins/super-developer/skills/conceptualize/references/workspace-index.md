@@ -29,7 +29,7 @@ Workspace: `.planning/<concept-slug>/`
 - Use `Pending required Slice creation.` only during early discovery before the first Slice exists; replace it before handoff or planning.
 
 ## Durable Shared Understanding
-- <approved requirement, constraint, decision, accepted tradeoff, non-goal, or `None identified.`>
+- <settled requirement, constraint, decision, accepted tradeoff, non-goal, or `None identified.`>
 
 ## Research and Source References
 - <distilled implementation/review/audit-useful claim> — Source: <repo path, command, URL, artifact, or approved user statement>
@@ -55,4 +55,4 @@ Prefer replacing stale bullets over appending history. Do not update only becaus
 - The Index would be the only record of a material Slice-worthy concern.
 - The handoff or planning transition would be Index-only.
 - The handoff would require later planning to reconstruct hidden conversation context.
-- User approval is missing for a material commitment change, deferral, narrowing, or removal.
+- A user decision is missing for a material commitment change, deferral, narrowing, or removal.
