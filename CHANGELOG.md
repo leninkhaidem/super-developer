@@ -6,6 +6,11 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [v1.29.7] - 2026-06-09
+
+### Changed
+- Changed Conceptualize Slice capture so agents preserve implementation-shaping discussion details through a completeness rubric while keeping routine faithful captures low-friction and reserving user input for product decisions.
+
 ## [v1.29.6] - 2026-06-08
 
 ### Changed
