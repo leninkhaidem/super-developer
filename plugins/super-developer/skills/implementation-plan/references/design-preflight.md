@@ -2,12 +2,9 @@
 
 ## Purpose
 
-Design Preflight is a read-only adversarial planning challenge. It surfaces choices the planning
-workflow must resolve before writing `SPEC.md`, the registry, package Markdown, proof paths, or
-report paths.
+Design Preflight is a read-only adversarial planning challenge. It surfaces choices the main agent must resolve before writing `SPEC.md`, the registry, package Markdown, proof paths, or report paths.
 
-It is not an implementation plan, not a persisted transcript, and not an instruction stream for
-artifact-writing planners or challengers.
+It is not an implementation plan, not a persisted transcript, and not an instruction stream for sub-agents.
 
 ## Trigger
 
@@ -23,12 +20,10 @@ Skip only for narrow, mechanical, low-risk plans where the existing architecture
 
 ## Authority Split
 
-- Orchestrator: source packet, user gates, final validation, and repair routing.
-- Delegated planner: packet interpretation, preflight routing, artifact writing under the planner contract, and unresolved-decision stops.
+- Main agent: orchestration, final interpretation, user interaction, durable artifact writing, and decisions.
 - Challengers: read-only evidence. They inspect bounded context and return bounded output. They do not edit files, spawn agents, ask the user, write packages, or run review-plan.
 
-Challenger output is advisory. The delegated planner may accept, reject, combine, or reframe it, but
-must not silently persist unresolved semantic choices.
+Sub-agent output is advisory. The main agent may accept, reject, combine, or reframe it, but must not silently persist unresolved semantic choices.
 
 ## Model Preferences
 
@@ -79,7 +74,7 @@ Keep `SPEC.md` requirements-focused. Do not store architecture rationale unless 
 - <scope explicitly excluded or not implied>
 ```
 
-If the planner has a hypothesis, label it as a hypothesis under `Open Design Surface`, not as a conclusion.
+If the main agent has a hypothesis, label it as a hypothesis under `Open Design Surface`, not as a conclusion.
 
 ## Challenger Assignment
 
@@ -101,7 +96,7 @@ Evaluate the design surface before durable plan artifacts are written. Identify 
 - Do not ask the user questions.
 - Do not write package artifacts.
 - Do not run review-plan.
-- Treat your output as evidence for the delegated planner, not commands.
+- Treat your output as evidence for the main agent, not commands.
 
 # Output
 Return only the bounded reviewer output format.
@@ -123,7 +118,7 @@ RISKS
 - <at most 5 material risks, with why they matter>
 
 ASSUMPTIONS_TO_VERIFY
-- <at most 5 assumptions the planner should verify before persisting decisions>
+- <at most 5 assumptions the main agent should verify before persisting decisions>
 
 NOT_WORTH_FIXING
 - <optional; at most 3 tempting concerns that should not drive design>
@@ -131,7 +126,7 @@ NOT_WORTH_FIXING
 
 ## Handling MUST_DECIDE
 
-For each `MUST_DECIDE`, the delegated planner must either:
+For each `MUST_DECIDE`, the main agent must either:
 
 - resolve it from observed repo evidence or explicit user constraints and persist it in the owning artifact;
 - ask the user when the decision changes product semantics, external behavior, risk acceptance, or scope;

@@ -9,8 +9,7 @@ This reference owns artifact roles and file shapes. Slice authority lives in `co
 Planned-feature state is file-based and Slice-first:
 
 - `.planning/<concept>/slices/*.md` — authoritative product/design Slices when present.
-- `.tasks/<feature>/SPEC.md` — accepted requirements, constraints, non-goals, Slice inventory,
-  planner provenance, and package-level verification summary.
+- `.tasks/<feature>/SPEC.md` — accepted requirements, constraints, non-goals, Slice inventory, and package-level verification summary.
 - `.tasks/<feature>/tasks.json` — lightweight registry only.
 - `.tasks/<feature>/packages/<WP-ID>.md` — package assignment.
 - `.tasks/<feature>/proofs/<WP-ID>.proof.md` — package closure evidence.
@@ -19,9 +18,7 @@ Planned-feature state is file-based and Slice-first:
 
 ## Lightweight Registry
 
-`tasks.json` is bookkeeping only. It contains no package scope prose, Slice assignment details,
-planner provenance, proof evidence, review findings, lifecycle history, command output, or detailed
-task bodies.
+`tasks.json` is bookkeeping only. It contains no package scope prose, Slice assignment details, proof evidence, review findings, lifecycle history, command output, or detailed task bodies.
 
 Required shape:
 
@@ -52,9 +49,7 @@ Rules:
 - package `status` is one of `pending`, `in_progress`, `done`, or `blocked`.
 - `authoritative_slices` may be empty only for Index-only plans with no independent Slice obligations.
 - all paths are repo-relative POSIX paths and must stay inside the repository;
-- package IDs are contiguous `WP<N>` values and dependencies reference declared packages;
-- planner contract paths, authority packets, delegated invocation status, and validation results stay
-  in `SPEC.md`, never in the registry.
+- package IDs are contiguous `WP<N>` values and dependencies reference declared packages.
 
 ## Package Markdown Assignment
 

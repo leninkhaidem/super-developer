@@ -12,7 +12,7 @@ A formatting, ID, dependency, locator, path, package/proof/report reference, H3 
 
 ### true blocker
 
-A defect that prevents safe finalization because requirements, planner provenance, package assignments, Slice obligations, approvals, dependencies, or verification expectations are missing, unknown, contradicted, unsafe, or unverifiable. Resolve before implementation.
+A defect that prevents safe finalization because requirements, package assignments, Slice obligations, approvals, dependencies, or verification expectations are missing, contradictory, unsafe, or unverifiable. Resolve before implementation.
 
 ### design decision
 
@@ -21,7 +21,7 @@ A finding that requires choosing between materially different approaches. Ask th
 - `SPEC.md` for requirements, constraints, non-goals, acceptance summary, or approved scope notes;
 - package Markdown for package-specific boundaries, sequencing, notes, dependencies, verification expectations, and assigned Slice scope;
 - Slice approval/deferral metadata when a Slice commitment changes, narrows, or is excluded;
-- registry bookkeeping only for paths, status signals, and dependencies; never planner provenance.
+- registry bookkeeping only for paths, status signals, and dependencies.
 
 ### implementation-time concern
 
@@ -41,17 +41,9 @@ Ask the user before changes to product behavior, user-visible scope, external in
 
 Internal simplification may be applied without a prompt only when it preserves the same requested outcome, externally visible behavior, Slice commitments, and package closure meaning.
 
-## Planner Provenance Resolution Rules
-
-- Treat missing, unknown, contradicted, chat-only, runtime-identity-based, or registry-only delegated-planner provenance as a true blocker/process defect before Gate 2.
-- Resolve planner provenance defects through delegated-planner audit/regeneration or an explicit approved exception recorded in `SPEC.md ## Planner Provenance`; hidden chat assurances do not close them.
-- Keep planner contract paths, authority packet/source summaries, delegated invocation status, and validation command/results in `SPEC.md` or another deliberately selected non-registry artifact, never in `tasks.json`.
-- Remove prohibited registry provenance fields rather than normalizing them as review evidence.
-- Rerun `sliceproof.py validate-plan` and focused file-only re-review after planner provenance changes.
-
 ## Slice-First Resolution Rules
 
-- Keep the registry lightweight. Do not duplicate package scope, Slice assignments, planner provenance, proof evidence, command output, findings, or lifecycle state into it.
+- Keep the registry lightweight. Do not duplicate package scope, Slice assignments, proof evidence, command output, findings, or lifecycle state into it.
 - Fix package-assignment findings in package Markdown, not hidden prompt notes.
 - Fix product requirement gaps in `SPEC.md` or approved Slice updates.
 - Defer, exclude, reject, narrow, or contradict a hard Slice requirement only with durable user approval metadata.
@@ -68,8 +60,7 @@ Internal simplification may be applied without a prompt only when it preserves t
 5. Persist accepted decisions in the owning artifact.
 6. Keep `SPEC.md` requirements-focused; package assignment belongs in package Markdown.
 7. Encode implementation-time concerns durably in package Markdown or verification expectations, not chat-only summaries.
-8. Resolve planner provenance blockers in `SPEC.md`/approved non-registry provenance artifacts, not hidden history or `tasks.json`.
-9. Rerun mechanical validation and perform focused re-review only for changed content that affects semantic review scope.
+8. Rerun mechanical validation and perform focused re-review only for changed content that affects semantic review scope.
 
 ## Re-Review
 

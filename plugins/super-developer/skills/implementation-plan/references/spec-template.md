@@ -10,13 +10,6 @@
 ## Overview
 1-2 sentences describing the user goal and intended outcome.
 
-## Planner Provenance
-Non-registry process receipt for delegated artifact authoring.
-- Delegated planner invocation: `yes` or `no - <approved exception>`
-- Planner contract: `plugins/super-developer/skills/implementation-plan/references/planner-agent-contract.md`
-- Authority packet / source summary: <approved user task/source material and key repo/planning/spike paths; no transcripts>
-- Validation: `python3 plugins/super-developer/assets/sliceproof.py validate-plan .tasks/<feature>/tasks.json` — <PASS/FAIL and date or blocker>
-
 ## Conceptualize Inputs
 Path-only planning handoff link.
 - Index: `.planning/<concept-slug>/index.md`
@@ -60,9 +53,6 @@ User-approved exclusions, deferred items, or boundaries. Include approval proven
 
 ## Manifest Rules
 
-- `Planner Provenance` is a non-registry process receipt. It records delegated invocation status,
-  planner contract path, authority packet/source summary, and final `sliceproof.py validate-plan`
-  command/result; it does not authorize package implementation or replace review-plan.
 - `Conceptualize Inputs` is path-only and non-normative.
 - `Authoritative Slices` lists the same full safe Slice inventory as `tasks.json.authoritative_slices`; for Index-only/no-Slice plans both surfaces explicitly say there are no Slice files.
 - `Work Packages` lists package Markdown paths and short titles only.
@@ -72,6 +62,5 @@ User-approved exclusions, deferred items, or boundaries. Include approval proven
 
 - Raw Slice text, source excerpts, transcripts, debate, implementation sequencing, proof rows, review findings, line numbers, code snippets, or diffs are copied into `SPEC.md`.
 - Feature-level requirements omit user-stated or safely projected commitments.
-- Delegated planner provenance is missing, unknown, contradicted, or moved into `tasks.json`.
 - An approved deferral/exclusion lacks provenance and scope.
 - The Slice manifest and registry Slice inventory disagree.

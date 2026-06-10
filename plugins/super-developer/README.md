@@ -20,8 +20,7 @@ implementation-plan -> review-plan -> implement -> final review-code + final aud
         |                 |              |             final code-risk gate
         |                 |              package agents + proof Markdown + reports
         |                 plan quality and Slice coverage gate
-        delegated planner writes SPEC.md + tasks.json + packages
-        and declares proof/report paths; proof placeholders only when dispatch is next
+        SPEC.md + tasks.json registry + packages/proofs/reports
 ```
 
 Validated Slices are product/design authority only. Workflow, tool, git, proof, review, and audit authority stays in the plugin instructions and shared references.
@@ -30,20 +29,20 @@ Validated Slices are product/design authority only. Workflow, tool, git, proof, 
 
 ## Planned-Feature Artifact Model
 
-A planned feature lives under `.tasks/<feature>/` and points to optional `.planning/<concept>/` Slice material. The `implementation-plan` orchestrator dispatches a fresh delegated planner to write and validate planning artifacts, declare proof/report paths, and record planner provenance in `SPEC.md`; package proof evidence and package verification reports are filled later.
+A planned feature lives under `.tasks/<feature>/` and points to optional `.planning/<concept>/` Slice material.
 
 | Artifact | Purpose |
 |---|---|
 | `.planning/<concept>/index.md` | Optional Conceptualize workspace entry point. |
 | `.planning/<concept>/slices/*.md` | Optional authoritative product/design Slices. |
-| `.tasks/<feature>/SPEC.md` | Accepted requirements, constraints, non-goals, delegated-planner provenance, Slice inventory, and verification summary. |
-| `.tasks/<feature>/tasks.json` | Lightweight registry only: feature metadata, package paths, proof paths, report paths, status, and dependencies; no planner provenance. |
+| `.tasks/<feature>/SPEC.md` | Accepted requirements, constraints, non-goals, Slice inventory, and verification summary. |
+| `.tasks/<feature>/tasks.json` | Lightweight registry only: feature metadata, package paths, proof paths, report paths, status, and dependencies. |
 | `.tasks/<feature>/packages/<WP-ID>.md` | Work-package assignment: scope, Slice obligations, primary paths, verification expectations, proof/report paths, dependencies. |
 | `.tasks/<feature>/proofs/<WP-ID>.proof.md` | Package-agent closure evidence for Slice rows and verification expectations. |
 | `.tasks/<feature>/reports/<WP-ID>.package-verification.md` | Independent package verification receipt bound to proof digest and reviewed state. |
 | `.tasks/<feature>/reviews/review-code-state.json` | Review-code governance readiness for audit handoff. |
 
-`SPEC.md` planner provenance records delegated invocation status, planner contract path, authority packet/source summary, and final `sliceproof.py validate-plan` command/result. `tasks.json` is bookkeeping. Package Markdown owns assignment, proof Markdown owns closure evidence, package reports own independent verification receipt state, review-code state owns final-review readiness, and audit owns the final PASS/FAIL judgment.
+`tasks.json` is bookkeeping. Package Markdown owns assignment, proof Markdown owns closure evidence, package reports own independent verification receipt state, review-code state owns final-review readiness, and audit owns the final PASS/FAIL judgment.
 
 ---
 
@@ -76,7 +75,7 @@ See [`references/tool-usage.md`](references/tool-usage.md), [`references/slice-f
 | Skill | What It Does | Usage |
 |---|---|---|
 | **conceptualize** | Runs an optional one-question-at-a-time exploration, maintains an ignored workspace Index, and writes focused Slices only when useful. | Standalone + pre-planning |
-| **implementation-plan** | Orchestrates a delegated planner that creates `SPEC.md`, the lightweight registry, package Markdown, declared proof/report paths, and proof placeholders only when dispatch is next. | Pipeline + standalone |
+| **implementation-plan** | Creates `SPEC.md`, the lightweight registry, package Markdown, proof paths, report paths, and proof placeholders from approved requirements, Slices, or spike evidence. | Pipeline + standalone |
 | **skill-authoring** | Creates or revises agent skills with compact eager workflows, true on-demand references, and a 150-line eager maximum. | Standalone + internal |
 | **review-plan** | Validates planned-feature artifacts, Slice coverage, package assignment, proof/report expectations, and approved deferrals before implementation. | Pipeline + standalone |
 | **implement** | Orchestrates package worktrees, package agents, proof Markdown, package verification reports, integration checkpoints, review-code, and audit handoff. | Pipeline + standalone |
@@ -160,7 +159,7 @@ Claude Code discovers packaged skills automatically. Other hosts need equivalent
 > Plan this feature
 ```
 
-The `implementation-plan` orchestrator dispatches a fresh delegated planner, and that planner writes `.tasks/<feature>/SPEC.md`, `.tasks/<feature>/tasks.json`, package Markdown, and declared proof/report paths; proof placeholders are created only when dispatch is next, while proof evidence and package verification reports are filled later. After plan review approval, `implement` presents an Execution Contract. Approve auto-resolve to continue through package implementation, package verification, final review-code, and final audit sibling checks, or choose step-by-step control at each gate.
+Planning writes `.tasks/<feature>/SPEC.md`, `.tasks/<feature>/tasks.json`, package Markdown, and declared proof/report paths. After plan review approval, `implement` presents an Execution Contract. Approve auto-resolve to continue through package implementation, package verification, final review-code, and final audit sibling checks, or choose step-by-step control at each gate.
 
 Useful standalone prompts:
 
@@ -213,7 +212,6 @@ plugins/super-developer/
 |   +-- implementation-plan/
 |   |   +-- SKILL.md
 |   |   +-- references/artifact-authoring.md
-|   |   +-- references/planner-agent-contract.md
 |   |   +-- references/conceptualize-inputs.md
 |   |   +-- references/design-preflight.md
 |   |   +-- references/spec-template.md
@@ -238,7 +236,6 @@ plugins/super-developer/
 |   |   +-- references/plan-review-rubrics.md
 |   +-- skill-authoring/
 |   |   +-- SKILL.md
-|   |   +-- references/delegation-surfaces.md
 |   +-- worktree/
 |   |   +-- SKILL.md
 |   |   +-- references/bugfix-hotfix-workflow.md

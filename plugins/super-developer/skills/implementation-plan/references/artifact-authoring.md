@@ -2,11 +2,7 @@
 
 ## Contract
 
-- Delegated planners load this reference from an explicit planner packet; it is not standalone authority
-  to write `.tasks/<feature>/` artifacts.
 - Load `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/slice-first-artifacts.md` for the canonical artifact model.
-- `SPEC.md` records planner provenance as the non-registry process receipt: planner contract path,
-  delegated invocation status, authority packet/source summary, and validation command/result.
 - `tasks.json` is a lightweight registry: feature metadata, Slice inventory, package paths, proof paths, report paths, status signals, and dependencies only.
 - Package Markdown is the package assignment source of truth.
 - Proof Markdown is generated from package assignment before dispatch and filled by package agents.
@@ -45,8 +41,6 @@ Use an empty `authoritative_slices` array only for Index-only or no-Slice plans 
 - `spec_path` points to the written `SPEC.md` file.
 - `authoritative_slices` lists the full safe Slice inventory when Slices exist.
 - Each package entry contains only `id`, `path`, `proof_path`, `report_path`, `status`, and `depends_on`.
-- Do not add planner contract, packet, delegated invocation, validation result, or other provenance
-  fields to the registry; `SPEC.md` owns that process receipt.
 - Dependencies are package IDs and must match package Markdown.
 - Keep paths repo-relative POSIX paths; reject absolute, traversal, home, drive-qualified, empty-segment, symlink-escape, or out-of-repo paths.
 
