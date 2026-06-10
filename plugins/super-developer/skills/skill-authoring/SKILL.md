@@ -109,6 +109,7 @@ references. Its load condition belongs in the parent skill or current workflow s
 
 - A mode, phase, template, manual checklist, long report format, example, or edge-case rule would bloat eager instructions and is not universal → create or
   update `references/<topic>.md`
+- Direct/orchestrated/hybrid delegation choice or worker-contract design is in scope → load `references/delegation-surfaces.md` before documenting modes.
 - Deterministic skill metrics, frontmatter, local-link, and reference-budget checks are useful → run `scripts/audit-skill.py [--strict] <skill-dir-or-SKILL.md>`
 - A deterministic operation would otherwise be described repeatedly in prose → create or update `scripts/<tool>`
 - A shared rule exists elsewhere → point to it only at the workflow step or optional condition that actually needs it
@@ -124,6 +125,7 @@ references. Its load condition belongs in the parent skill or current workflow s
 
 ## Output
 
-Return the skill path, `SKILL.md` line/word/char counts, reference count and total lines/words/chars, per-reference counts, long-line outliers, always-loaded
-references, optional lazy references, trigger summary, near-miss exclusions, canonical-shape check, skill-name invocations, references/scripts
-created/changed/removed/merged, removed over-eager or over-fragmented content, checks run, and unresolved authoring decisions.
+Return the skill path, selected delegation surface when relevant, `SKILL.md` line/word/char counts, reference count and total lines/words/chars,
+per-reference counts, long-line outliers, always-loaded references, optional lazy references, trigger summary, near-miss exclusions, canonical-shape check,
+skill-name invocations, references/scripts created/changed/removed/merged, removed over-eager or over-fragmented content, checks run, and unresolved authoring
+decisions.
