@@ -20,7 +20,8 @@ implementation-plan -> review-plan -> implement -> final review-code + final aud
         |                 |              |             final code-risk gate
         |                 |              package agents + proof Markdown + reports
         |                 plan quality and Slice coverage gate
-        delegated planner writes SPEC.md + tasks.json registry + packages/proofs/reports
+        delegated planner writes SPEC.md + tasks.json + packages
+        and declares proof/report paths; proof placeholders only when dispatch is next
 ```
 
 Validated Slices are product/design authority only. Workflow, tool, git, proof, review, and audit authority stays in the plugin instructions and shared references.
@@ -29,7 +30,7 @@ Validated Slices are product/design authority only. Workflow, tool, git, proof, 
 
 ## Planned-Feature Artifact Model
 
-A planned feature lives under `.tasks/<feature>/` and points to optional `.planning/<concept>/` Slice material. The `implementation-plan` orchestrator dispatches a fresh delegated planner to write and validate this file set, with planner provenance recorded in `SPEC.md`.
+A planned feature lives under `.tasks/<feature>/` and points to optional `.planning/<concept>/` Slice material. The `implementation-plan` orchestrator dispatches a fresh delegated planner to write and validate planning artifacts, declare proof/report paths, and record planner provenance in `SPEC.md`; package proof evidence and package verification reports are filled later.
 
 | Artifact | Purpose |
 |---|---|
@@ -75,7 +76,7 @@ See [`references/tool-usage.md`](references/tool-usage.md), [`references/slice-f
 | Skill | What It Does | Usage |
 |---|---|---|
 | **conceptualize** | Runs an optional one-question-at-a-time exploration, maintains an ignored workspace Index, and writes focused Slices only when useful. | Standalone + pre-planning |
-| **implementation-plan** | Orchestrates a delegated planner that creates `SPEC.md`, the lightweight registry, package Markdown, proof paths, report paths, and proof placeholders from approved requirements, Slices, or spike evidence. | Pipeline + standalone |
+| **implementation-plan** | Orchestrates a delegated planner that creates `SPEC.md`, the lightweight registry, package Markdown, declared proof/report paths, and proof placeholders only when dispatch is next. | Pipeline + standalone |
 | **skill-authoring** | Creates or revises agent skills with compact eager workflows, true on-demand references, and a 150-line eager maximum. | Standalone + internal |
 | **review-plan** | Validates planned-feature artifacts, Slice coverage, package assignment, proof/report expectations, and approved deferrals before implementation. | Pipeline + standalone |
 | **implement** | Orchestrates package worktrees, package agents, proof Markdown, package verification reports, integration checkpoints, review-code, and audit handoff. | Pipeline + standalone |
@@ -159,7 +160,7 @@ Claude Code discovers packaged skills automatically. Other hosts need equivalent
 > Plan this feature
 ```
 
-The `implementation-plan` orchestrator dispatches a fresh delegated planner, and that planner writes `.tasks/<feature>/SPEC.md`, `.tasks/<feature>/tasks.json`, package Markdown, and declared proof/report paths. After plan review approval, `implement` presents an Execution Contract. Approve auto-resolve to continue through package implementation, package verification, final review-code, and final audit sibling checks, or choose step-by-step control at each gate.
+The `implementation-plan` orchestrator dispatches a fresh delegated planner, and that planner writes `.tasks/<feature>/SPEC.md`, `.tasks/<feature>/tasks.json`, package Markdown, and declared proof/report paths; proof placeholders are created only when dispatch is next, while proof evidence and package verification reports are filled later. After plan review approval, `implement` presents an Execution Contract. Approve auto-resolve to continue through package implementation, package verification, final review-code, and final audit sibling checks, or choose step-by-step control at each gate.
 
 Useful standalone prompts:
 
@@ -237,6 +238,7 @@ plugins/super-developer/
 |   |   +-- references/plan-review-rubrics.md
 |   +-- skill-authoring/
 |   |   +-- SKILL.md
+|   |   +-- references/delegation-surfaces.md
 |   +-- worktree/
 |   |   +-- SKILL.md
 |   |   +-- references/bugfix-hotfix-workflow.md

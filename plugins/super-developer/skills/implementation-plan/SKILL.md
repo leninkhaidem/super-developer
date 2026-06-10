@@ -62,9 +62,11 @@ rules are required; do not preload references merely because they are named.
      root, expected `.tasks/<feature>/` paths, validation command, stop conditions, and expected output.
 6. Dispatch the delegated planner as a fresh Skill-tool/sub-agent/role invocation with the packet;
    pass no hidden chat context as required source material.
-7. On planner return, re-open `SPEC.md`, `tasks.json`, package Markdown, proof placeholders when
-   created, and declared report paths from disk. Confirm the `SPEC.md` planner provenance names the
-   contract path, packet/source summary, delegated invocation status, and validation command/result.
+7. On planner return, re-open `SPEC.md`, `tasks.json`, package Markdown, and any proof
+   placeholders created because dispatch is next. Confirm proof/report paths are only declared
+   planning outputs, with package proof evidence and package verification reports filled later, and
+   confirm the `SPEC.md` planner provenance names the contract path, packet/source summary,
+   delegated invocation status, and validation command/result.
 8. Run `python3 plugins/super-developer/assets/sliceproof.py validate-plan .tasks/<feature>/tasks.json`
    from the artifact root or package worktree. If it fails or semantic gates are unmet, route repair
    back through a delegated planner packet rather than patching artifacts inline.
