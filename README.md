@@ -49,7 +49,7 @@ Orchestrates the full development lifecycle with 13 skills:
 conceptualize → implementation-plan → review-plan → implement → final review-code + final audit → release
 ```
 
-The optional `conceptualize` stage maintains a minimal planning index and writes focused Slices only when useful. Planning creates `.tasks/<feature>/SPEC.md`, a lightweight `tasks.json` registry, package Markdown, declared proof paths, and package verification report paths. `tasks.json` is bookkeeping only; package Markdown owns work-package scope, Slice assignments, dependencies, verification expectations, proof paths, and report paths.
+The optional `conceptualize` stage maintains a minimal planning index and writes focused Slices only when useful. The `implementation-plan` orchestrator dispatches a fresh delegated planner; that planner writes `.tasks/<feature>/SPEC.md`, the lightweight `tasks.json` registry, package Markdown, declared proof paths, and package verification report paths. `SPEC.md` records delegated-planner provenance, `tasks.json` is bookkeeping only, and package Markdown owns work-package scope, Slice assignments, dependencies, verification expectations, proof paths, and report paths.
 
 Plus standalone skills: **conceptualize** (minimal pre-planning index with optional handoff slices), **perspectives** (divergent problem-solving), **spike-to-plan** (empirical feature spikes before implementation planning), **spike-and-fix** (evidence-first bug diagnosis with isolated spike validation), **review-code** (works independently for PR and local code review), **code-doc** (generate comprehensive codebase documentation via hybrid analysis), and **release** (prepare/publish releases with approval gates).
 
