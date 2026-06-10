@@ -71,9 +71,10 @@ Only remove a package worktree/branch when this check succeeds for that package 
 ## Approval Boundaries
 
 - Creating local package/feature worktrees requires the approved worktree action or implementation Execution Contract.
-- Pushing `origin feature/<feature>` may be covered by the approved Execution Contract only when that exact push is named.
+- Pushing `origin feature/<feature>` is covered by the approved Execution Contract by default when that exact push is named.
 - Target merge and target push require explicit approval for the exact `<target-ref>`.
-- Remote branch deletion is never implied by local cleanup, target merge, feature push, or release preparation.
+- Remote branch deletion is never implied by local cleanup, target merge, or feature push; release preparation
+  may delete only the exact remote ref named in its approved Release Contract.
 - Force deletion/removal is allowed only for explicitly disposable spike branches or a separately proven redundant branch.
 
 ## Stop if

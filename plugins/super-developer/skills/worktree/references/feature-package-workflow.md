@@ -90,9 +90,9 @@ Resolve conflicts in the integration worktree. Verification for the integrated f
 cd "$PROJECT_ROOT/.worktrees/<feature>/merge"
 git push -u origin feature/<feature>
 ```
-This publishes the feature branch only. If the exact `origin feature/<feature>` push was listed in
-the approved implement Execution Contract, run it without a second approval prompt. If the contract
-omitted it or the remote/ref changes, stop for approval.
+This publishes the feature branch only. The implement Execution Contract lists the exact
+`origin feature/<feature>` push by default; run it without a second approval prompt after contract
+approval unless the user excluded it. If the remote/ref changes, stop for approval.
 
 A feature-branch push does not authorize merging into `<target-ref>` or pushing `<target-ref>`.
 
