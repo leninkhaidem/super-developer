@@ -10,6 +10,7 @@ The format is based on Keep a Changelog.
 
 ### Changed
 - Changed implementation planning so the skill delegates artifact drafting to a fresh planner using a compact planner-agent contract instead of drafting planning artifacts inline.
+- Changed skill-authoring guidance so direct skill invocation remains the eager default while orchestrator/worker delegation details load only when that pattern is needed.
 
 ## [v1.29.8] - 2026-06-10
 
