@@ -6,6 +6,12 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [v1.29.8] - 2026-06-10
+
+### Changed
+- Changed release workflows so `prepare-only` integrates feature branches into the base branch, keeps changelog entries under `Unreleased`, pushes the base branch, and cleans up exact feature refs without creating tags or GitHub releases.
+- Changed implement execution contracts so non-force pushes of the exact `feature/<feature>` ref are covered by default after integrated readiness while target/main pushes remain separate approvals.
+
 ## [v1.29.7] - 2026-06-09
 
 ### Changed
