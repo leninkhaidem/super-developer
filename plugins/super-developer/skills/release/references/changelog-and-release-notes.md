@@ -7,13 +7,17 @@ Owns changelog updates and GitHub release-note prose. Load only when changelog o
 When updating or creating `CHANGELOG.md`:
 
 - Inspect the most recent released section first, plus `Unreleased` when present.
+- In `prepare-only`, add the integrated feature's user/operator-visible changes under `[Unreleased]`;
+  do not create a versioned release section.
+- In `publish`, move applicable `[Unreleased]` entries and release diff into the new `vX.Y.Z` section,
+  then recreate or leave `[Unreleased]` according to repo convention.
 - Treat the proposed lightweight format below as the preferred future format.
 - If the latest release already uses the lightweight format, continue it without a separate format prompt.
 - If the latest release is incompatible, ambiguous, or no changelog exists, prompt through the Release Contract before editing.
-- Offer: adopt lightweight format for this release section, preserve existing format for this release, or skip changelog update.
-- If the user chooses the lightweight format, use it for the current release section.
+- Offer: adopt lightweight format for this prepare/release section, preserve existing format for this prepare/release, or skip changelog update.
+- If the user chooses the lightweight format, use it for the current `Unreleased` or release section.
 - Do not rewrite historical release sections merely to normalize style unless the Release Contract explicitly names that migration.
-- Inspect the actual release diff, merge contents, commits since the previous release tag, and existing `Unreleased` notes.
+- Inspect the actual merge/release diff, merge contents, commits since the previous release tag, and existing `Unreleased` notes.
 - Do not rely only on implementation summaries, task names, PR titles, or branch names.
 - Include all user-visible or operator-relevant additions, changes, fixes, removals, deprecations, security items, migrations,
   compatibility changes, and docs/help updates.
@@ -56,7 +60,8 @@ Rules for this format:
 - Use `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, and `Security` for kind-based headings.
 - If adopting the lightweight format, use standard kind sections even when older history used topic/domain subsections.
 - If the user chose to preserve the existing format for this release, keep topic/domain subsections and make kind clear in each bullet.
-- Move applicable `Unreleased` entries into the new version section and recreate or leave empty `Unreleased` according to repo convention.
+- In `prepare-only`, add or merge entries under `Unreleased` and keep them there for a later publish.
+- In `publish`, move applicable `Unreleased` entries into the new version section and recreate or leave empty `Unreleased` according to repo convention.
 - If creating a durable changelog convention, include the Keep a Changelog URL in the header. Mention Semantic Versioning only when the project uses SemVer.
 
 ## Human Prose Rules
@@ -79,9 +84,11 @@ Examples:
 ## Release Notes
 
 Draft GitHub release notes from the final release diff and changelog section in simple human language.
+Do this only for `publish`; `prepare-only` must not create or update GitHub release notes.
 The notes must match the final release commit and tag target. Do not publish notes copied from stale drafts, task plans, or pre-merge summaries.
 
 ## Readability Pass
 
-Before the release commit or publication, compare the notes against the release diff and previous tag. Revise when entries are missing, misclassified,
-too implementation-heavy, copied from commits, or collapsed under `Added` despite fixes, removals, migrations, compatibility changes, or behavior changes.
+Before the prepare/release commit or publication, compare the changelog/notes against the merge/release diff
+and previous tag. Revise when entries are missing, misclassified, too implementation-heavy, copied from commits,
+or collapsed under `Added` despite fixes, removals, migrations, compatibility changes, or behavior changes.

@@ -45,9 +45,9 @@ Pushing a feature branch publishes review/test state only:
 cd "$PROJECT_ROOT/.worktrees/<feature>/merge"
 git push -u origin feature/<feature>
 ```
-If this exact `origin feature/<feature>` push was listed in the approved implement Execution
-Contract, it needs no second approval prompt. If it was omitted, the remote/ref changes, or a
-force/delete/tag/release/target-branch push is needed, stop for explicit approval.
+The implement Execution Contract lists this exact `origin feature/<feature>` push by default, so it
+needs no second approval prompt after approval unless the user excluded it. If the remote/ref changes,
+or a force/delete/tag/release/target-branch push is needed, stop for explicit approval.
 
 This feature push is not approval to merge into `main`, push `main`, or update any other
 `<target-ref>`. Never infer merge approval from:
@@ -111,9 +111,9 @@ Rules:
 - Never delete another active feature namespace while cleaning up the current feature.
 - If cleanup fails because a worktree is dirty, stop and inspect; do not force-remove by default.
 - If cleanup fails because a branch is not merged, keep it and resolve ancestry/integration first.
-- Remote branch deletion is a separate opt-in policy decision.
-- Release workflows must name the exact remote ref, get approve/delete vs keep, and verify inclusion in the pushed target.
-- Prepare-only release contracts must keep remote branches.
+- Remote branch deletion is separate from local cleanup and must be named explicitly.
+- Release workflows may delete the exact remote feature ref named in the approved Release Contract after verifying inclusion in the pushed target.
+- If a release prepare/publish contract does not name the exact remote ref, keep the remote branch.
 
 ## Bugfix, Hotfix, and Spike Cleanup
 Feature bugfix branches should be merged into `feature/<feature>` and checked before removal:
