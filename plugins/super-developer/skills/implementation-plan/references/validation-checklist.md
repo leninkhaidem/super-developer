@@ -8,6 +8,9 @@ Mechanical path, registry, package, proof, report, and H3 checks belong to `${SU
 
 Do not create or overwrite `.tasks/<feature-name>/` artifacts until all applicable gates pass.
 
+- Artifact writing is authorized by an explicit delegated planner packet that names the planner
+  contract, full required reference paths, source material, validation command, expected output, and
+  stop conditions.
 - Feature slug is safe and any existing feature directory conflict is resolved by the user.
 - Only references needed by the active path have been read: Conceptualize inputs when a handoff applies; SPEC/artifact/package guidance while drafting those surfaces; tool usage only for command syntax or safety ambiguity; design preflight only when triggered.
 - Design preflight trigger decision is made; if it ran, unresolved `MUST_DECIDE` and `BLOCKERS` findings are resolved.
@@ -23,6 +26,8 @@ Do not create or overwrite `.tasks/<feature-name>/` artifacts until all applicab
 
 ## `SPEC.md`
 
+- Contains `Planner Provenance` with delegated invocation status, planner contract path, authority
+  packet/source summary, and final `sliceproof.py validate-plan` command/result.
 - Contains all feature-level user-stated and safely projected requirements, acceptance criteria, constraints, non-goals, and approved deferrals.
 - Contains no invented product behavior, non-functional target, architecture, or success condition.
 - Contains no raw secrets, credentials, tokens, PII, or proprietary sensitive values.
@@ -47,6 +52,8 @@ Do not create or overwrite `.tasks/<feature-name>/` artifacts until all applicab
 ## Registry
 
 - Contains only `feature`, `title`, `status`, `spec_path`, `authoritative_slices`, and `work_packages`.
+- Contains no planner contract, packet, delegated invocation, validation result, or other provenance
+  fields; `SPEC.md` owns planner provenance.
 - Each package entry contains only `id`, `path`, `proof_path`, `report_path`, `status`, and `depends_on`.
 - `authoritative_slices` is the full safe Slice inventory, or empty only for Index-only/no-Slice plans.
 - Package IDs and dependencies are coherent, acyclic, and limited to real sequencing constraints rather than convenience serialization.
@@ -61,7 +68,9 @@ After pre-write gates pass:
 python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-plan ".tasks/<feature-name>/tasks.json"
 ```
 
-If validation fails, fix artifacts and rerun before presenting success.
+If validation fails, fix artifacts and rerun before presenting success. After recording the final
+validation result in `SPEC.md ## Planner Provenance`, rerun validation so the persisted provenance is
+part of the checked artifact set.
 
 If immediate package dispatch is approved, create proof placeholders:
 
@@ -75,6 +84,8 @@ Do not use `--force` unless replacing existing proof content has explicit approv
 
 - Re-open written files rather than trusting drafts in memory.
 - Confirm SPEC, registry, package Markdown, proof paths, and report paths agree.
+- Confirm `SPEC.md` planner provenance names the contract path, packet/source summary, delegated
+  invocation status, and validation command/result; confirm `tasks.json` stayed schema-light.
 - Confirm full Slice inventory matches between SPEC and registry.
 - Confirm every package-assigned H3 exists and every material H3 is assigned or approved otherwise.
 - Confirm helper success was not treated as semantic evidence sufficiency.
