@@ -6,6 +6,8 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [v1.29.9] - 2026-06-10
+
 ### Changed
 - Changed implementation planning so the skill delegates artifact drafting to a fresh planner using a compact planner-agent contract instead of drafting planning artifacts inline.
 
