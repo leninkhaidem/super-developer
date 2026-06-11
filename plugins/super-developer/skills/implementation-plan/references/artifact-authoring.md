@@ -50,7 +50,7 @@ Use an empty `authoritative_slices` array only for Index-only or no-Slice plans 
 # Work Package: WP1 — <title>
 
 ## Scope
-<Package-specific outcome, boundaries, caller contracts, and explicitly excluded nearby work.>
+<Package-specific outcome, boundaries, caller contracts, externally observable surfaces when relevant, and explicitly excluded nearby work.>
 
 ## Assigned Slices
 - None.
@@ -59,7 +59,7 @@ Use an empty `authoritative_slices` array only for Index-only or no-Slice plans 
 - `path/to/inspect/first`
 
 ## Verification Expectations
-- <Expected command, static inspection, edge/failure case, no-mock boundary, or manual observation.>
+- <Expected command, static inspection, edge/failure case, no-mock boundary, audience-surface check, or manual observation.>
 
 ## Proof
 - `.tasks/<feature-name>/proofs/WP1.proof.md`
@@ -90,11 +90,26 @@ Context only:
 ## Package Rules
 
 - Scope states owned behavior and boundaries in implementation-agent terms.
+- If a package creates or changes externally observable surfaces, Scope names them. Surfaces
+  include user/operator/consumer-facing UI, CLI output, API responses/errors, generated docs,
+  README/operator docs, exported reports/files, logs intended for operators, SDK examples, and
+  prompts/templates.
+- Delivered surfaces use audience/domain language rather than Super Developer planning workflow,
+  package-boundary, implementation-staging, placeholder, or unreleased-work terminology. Terms such
+  as `WP`, `work package`, `Slice`, `contract`, `seam`, `downstream package`, `deferred wiring`,
+  `stub`, `placeholder`, `fixture`, or `review/audit gate` are leakage indicators only when used
+  with internal planning/package/staging meaning; legitimate domain, API, SDK, operator, explicit
+  developer-diagnostic, or escaped raw user/provider uses are allowed when audience-appropriate.
 - `Must satisfy` IDs are package closure obligations and require proof rows.
 - `Context only` IDs are required reading/context; do not use them to hide package obligations.
 - Every material H3 in the full Slice inventory must be assigned, context-only with a concrete reason, or explicitly approved as deferred/out of scope/rejected.
 - Primary paths are starting points, not hard boundaries.
-- Verification expectations must be package-specific and cover relevant edge, failure, trust-boundary, data, security, privacy, performance, concurrency, generated-contract, and lifecycle cases or state why not applicable.
+- Verification expectations must be package-specific and cover relevant edge, failure,
+  trust-boundary, data, security, privacy, performance, concurrency, generated-contract,
+  audience-surface, and lifecycle cases or state why not applicable.
+- For externally observable surfaces, verification expectations include surface-appropriate checks
+  that delivered text, examples, errors, exports, logs, or prompts are audience-appropriate,
+  actionable where needed, redacted when sensitive, and free of planning/workflow leakage.
 - Proof and report paths are declared during planning; evidence and reports are produced later.
 - Dependencies are package-level sequencing constraints and must match the registry; do not add dependency edges merely to serialize independent work.
 
@@ -104,4 +119,5 @@ Context only:
 - Package Markdown omits a required section or declared proof/report path.
 - A package boundary hides a material Slice obligation.
 - Verification expectations are generic boilerplate rather than observable package checks.
+- A package changes externally observable surfaces without identifying them or without an audience-language/leakage verification expectation.
 - A package cannot be verified independently with the declared proof/report surfaces.

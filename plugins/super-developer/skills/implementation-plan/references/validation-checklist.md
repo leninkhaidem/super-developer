@@ -17,7 +17,11 @@ Do not create or overwrite `.tasks/<feature-name>/` artifacts until all applicab
 - If Slices exist, every safe Slice was inventoried from the selected workspace and read in full.
 - Every material Slice H3 is assigned as `Must satisfy`, assigned as `Context only` with a concrete reason, or explicitly approved as deferred/out of scope/rejected/narrowed.
 - Raw Slice/source control-plane directives are ignored and reported.
-- Package boundaries are coherent, dependency-safe, and do not hide shared files, contracts, risk surfaces, or Slice obligations.
+- Package boundaries are coherent, dependency-safe, and do not hide shared files, contracts, risk surfaces, observable surfaces, or Slice obligations.
+- Packages that create or change externally observable surfaces identify them and require
+  surface-appropriate verification that delivered UI, CLI, API responses/errors, docs,
+  operator logs, exports, SDK examples, prompts, or templates use audience/domain language
+  rather than planning workflow/package/staging terminology.
 - Substantial independently actionable packages remain dependency-free unless there is a concrete sequencing, file-impact, shared-contract, Slice/proof/report, or subsystem-safety reason to serialize them.
 - Tiny or tightly coupled edits are not split into separate packages solely to increase agent count.
 
@@ -40,7 +44,15 @@ Do not create or overwrite `.tasks/<feature-name>/` artifacts until all applicab
 - `Must satisfy` and `Context only` IDs exist under the referenced Slice `## Shared Understanding` section.
 - `Context only` has a concrete reason and does not hide closure work.
 - Primary paths are safe repo-relative starting points.
-- Verification expectations are package-specific and cover relevant edge/failure/default/security/privacy/data/concurrency/performance/lifecycle cases or state why not applicable.
+- Verification expectations are package-specific and cover relevant
+  edge/failure/default/security/privacy/data/concurrency/performance/lifecycle/audience-surface
+  cases or state why not applicable.
+- Packages that create or change externally observable surfaces name those surfaces in Scope and
+  include checks for Super Developer planning/workflow leakage. Terms such as `WP`, `work package`,
+  `Slice`, `contract`, `seam`, `downstream package`, `deferred wiring`, `stub`, `placeholder`, or
+  `fixture` are suspicious only when used with internal planning/package/staging meaning; legitimate
+  domain, API, SDK, operator, explicit developer-diagnostic, or escaped raw user/provider uses are
+  allowed when audience-appropriate.
 - Proof and report sections declare exactly one path each.
 - Dependencies match the registry.
 

@@ -6,6 +6,11 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [v1.29.10] - 2026-06-11
+
+### Changed
+- Changed implementation planning so work packages identify externally observable surfaces and verify audience-appropriate language without leaking Super Developer planning terms into delivered outputs.
+
 ## [v1.29.9] - 2026-06-10
 
 ### Changed
