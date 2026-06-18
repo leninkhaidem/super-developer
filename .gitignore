@@ -6,5 +6,7 @@ __pycache__/
 *.pyc
 .worktrees/
 .tasks/
+# Local Super Developer model preferences
 .claude/model-preferences.yml
+.superdeveloper/model-preferences.yml
 .planning/

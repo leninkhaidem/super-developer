@@ -9,15 +9,20 @@ after a value resolves.
 
 ## Local File
 
-Path: `$PROJECT_ROOT/.claude/model-preferences.yml`
+Path: `$PROJECT_ROOT/.superdeveloper/model-preferences.yml`
 
-Create it when missing:
+Create the parent directory and file when missing with the full role list:
 
 ```yaml
 default-model: inherit
+implementation-plan: inherit
+implement: adaptive
+review-plan: adaptive
+review-code: inherit
+skeptic-agent: adaptive
 ```
 
-Keep `.claude/model-preferences.yml` gitignored; it is developer-local preference, not repository state.
+Keep `.superdeveloper/model-preferences.yml` gitignored; it is developer-local preference, not repository state.
 
 ## Keys
 
@@ -53,6 +58,6 @@ Adaptive defaults:
 
 ## Resolution
 
-1. Read `.claude/model-preferences.yml`; create it with `default-model: inherit` when missing.
+1. Read `.superdeveloper/model-preferences.yml`; create it with the full role list above when missing.
 2. Resolve role value: role key → `default-model` → hardcoded `inherit`.
 3. Interpret value: `inherit` omits model, `adaptive` applies role behavior, any other value is passed directly.
