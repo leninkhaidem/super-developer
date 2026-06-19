@@ -53,6 +53,7 @@ class SliceproofFixture:
         self.package_dir = self.feature_dir / "packages"
         self.proofs_dir = self.feature_dir / "proofs"
         self.reports_dir = self.feature_dir / "reports"
+        self.semgrep_dir = self.feature_dir / "semgrep"
         self.slice_dir = self.repo / ".planning" / "fixture" / "slices"
         self.package_path = self.package_dir / "WP1.md"
         self.proof_path = self.proofs_dir / "WP1.proof.md"
@@ -63,6 +64,7 @@ class SliceproofFixture:
         self.package_dir.mkdir()
         self.proofs_dir.mkdir()
         self.reports_dir.mkdir()
+        self.semgrep_dir.mkdir()
         self.slice_dir.mkdir(parents=True)
         (self.feature_dir / "SPEC.md").write_text("# Fixture Spec\n", encoding="utf-8")
         self.slice_path.write_text(self.slice_text(), encoding="utf-8")
@@ -265,6 +267,7 @@ class SliceproofFixture:
         code_review_findings: str = "- None.",
         blocking_findings: str | None = "- None.",
         repair_guidance: str | None = "- None required.",
+        semgrep_evidence: str | None = None,
     ) -> str:
         if proof_text is None:
             proof_text = self.proof_path.read_text(encoding="utf-8")
@@ -317,7 +320,46 @@ class SliceproofFixture:
                 "",
             ]
         )
+        if semgrep_evidence is not None:
+            lines.extend(["## Semgrep Evidence", semgrep_evidence, ""])
         return "\n".join(lines)
+
+    def write_semgrep_evidence(self, stem: str = "WP1") -> tuple[str, str, str, str]:
+        raw = self.semgrep_dir / f"{stem}.semgrep.json"
+        summary = self.semgrep_dir / f"{stem}.semgrep-summary.json"
+        raw.write_text('{"errors": [], "results": []}\n', encoding="utf-8")
+        raw_digest = hashlib.sha256(raw.read_bytes()).hexdigest()
+        summary_data = {
+            "raw_digest": raw_digest,
+            "result_count": 0,
+            "scan_errors": [],
+            "severity_counts": {},
+            "semgrep_severity_is_advisory": True,
+        }
+        canonical = json.dumps(summary_data, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        summary_digest = hashlib.sha256(canonical).hexdigest()
+        summary_data["summary_digest"] = summary_digest
+        summary.write_text(json.dumps(summary_data, sort_keys=True), encoding="utf-8")
+        return (
+            f".tasks/fixture/semgrep/{stem}.semgrep.json",
+            raw_digest,
+            f".tasks/fixture/semgrep/{stem}.semgrep-summary.json",
+            summary_digest,
+        )
+
+    def semgrep_evidence_text(self, *, stem: str = "WP1", raw_digest: str | None = None, summary_digest: str | None = None) -> str:
+        raw_path, actual_raw_digest, summary_path, actual_summary_digest = self.write_semgrep_evidence(stem)
+        return textwrap.dedent(
+            f"""
+            - Status: `enabled`
+            - Raw Path: `{raw_path}`
+            - Raw Digest: `{raw_digest or actual_raw_digest}`
+            - Summary Path: `{summary_path}`
+            - Summary Digest: `{summary_digest or actual_summary_digest}`
+            - Scan Scope: `package WP1 worktree`
+            - Bounded Summary: `helper summarize reported 0 findings and 0 scan errors; no raw JSON was consumed by agents.`
+            """
+        ).strip()
 
     def write_completed_proof_and_report(self) -> None:
         proof = self.completed_proof()
@@ -1014,6 +1056,73 @@ class SliceproofTests(unittest.TestCase):
         stale_report = self.fixture.run("validate-final", str(self.fixture.tasks_path))
         self.assertNotEqual(0, stale_report.returncode)
         self.assertIn("Proof Digest does not match current proof content", "\n".join(json.loads(stale_report.stderr)["errors"]))
+
+    def test_validate_final_validates_optional_semgrep_evidence_binding(self) -> None:
+        proof = self.fixture.completed_proof()
+        self.fixture.proof_path.write_text(proof, encoding="utf-8")
+        plan = self.fixture.plan()
+        plan["work_packages"][0]["status"] = "done"
+        self.fixture.write_plan(plan)
+
+        valid_evidence = self.fixture.semgrep_evidence_text()
+        self.fixture.report_path.write_text(
+            self.fixture.report_text(proof, semgrep_evidence=valid_evidence),
+            encoding="utf-8",
+        )
+        valid = self.fixture.run("validate-final", str(self.fixture.tasks_path))
+        self.assertEqual(0, valid.returncode, valid.stdout + valid.stderr)
+
+        cases = [
+            (
+                "missing status",
+                valid_evidence.replace("- Status: `enabled`\n", ""),
+                "## Semgrep Evidence missing 'Status'",
+            ),
+            (
+                "outside tree",
+                valid_evidence.replace(".tasks/fixture/semgrep/WP1.semgrep.json", ".tasks/fixture/WP1.semgrep.json"),
+                "path must be under .tasks/fixture/semgrep/",
+            ),
+            (
+                "wrong package stem",
+                self.fixture.semgrep_evidence_text(stem="WP2"),
+                "Raw Path must use package stem WP1.semgrep.json",
+            ),
+            (
+                "raw digest mismatch",
+                self.fixture.semgrep_evidence_text(raw_digest="0" * 64),
+                "Raw Digest does not match current raw output",
+            ),
+            (
+                "summary digest mismatch",
+                self.fixture.semgrep_evidence_text(summary_digest="f" * 64),
+                "Summary Digest does not match current summary output",
+            ),
+        ]
+        for name, evidence, expected_error in cases:
+            with self.subTest(name=name):
+                self.fixture.report_path.write_text(
+                    self.fixture.report_text(proof, semgrep_evidence=evidence),
+                    encoding="utf-8",
+                )
+                result = self.fixture.run("validate-final", str(self.fixture.tasks_path))
+                self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+                self.assertIn(expected_error, "\n".join(json.loads(result.stderr)["errors"]))
+
+        with self.subTest(name="symlink evidence rejected"):
+            raw_path, _raw_digest, _summary_path, _summary_digest = self.fixture.write_semgrep_evidence()
+            raw_file = self.fixture.repo / raw_path
+            raw_file.unlink()
+            outside = self.fixture.repo / "outside.semgrep.json"
+            outside.write_text("{}\n", encoding="utf-8")
+            raw_file.symlink_to(outside)
+            self.fixture.report_path.write_text(
+                self.fixture.report_text(proof, semgrep_evidence=valid_evidence),
+                encoding="utf-8",
+            )
+            result = self.fixture.run("validate-final", str(self.fixture.tasks_path))
+            self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+            self.assertIn("path must not contain symlinks", "\n".join(json.loads(result.stderr)["errors"]))
 
     def test_validate_final_passes_without_git_metadata_and_does_not_call_git(self) -> None:
         self.fixture.write_completed_proof_and_report()

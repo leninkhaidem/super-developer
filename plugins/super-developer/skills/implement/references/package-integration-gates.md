@@ -17,6 +17,7 @@ For each returned package:
 
 3. Reject proof handoff if proof Markdown is missing, mechanically invalid, lacks implementation/verification evidence, has unresolved required markers, has unsupported statuses, misses package verification expectation closure, or names an unresolved Slice plan defect.
 4. Run safe package verification expectations/commands from the package worktree or stable integration worktree, and ensure proof Markdown records observed evidence.
+   When Semgrep is enabled or contracted, require helper-produced raw path, raw digest, summary path, summary digest, scan scope, and concise bounded finding/no-finding summary in proof/report evidence. Evidence outside `.tasks/<feature>/semgrep/`, unpaired stems, symlink/traversal escapes, stale/missing files, digest mismatches, or raw JSON dumps are invalid proof. Semgrep findings remain advisory unless verifier/reviewer/skeptic authority marks a material package risk.
 5. Prefer committing/stabilizing the package branch before holistic package verification so a `PASS` report binds directly to an exact commit/ref. Do not commit ignored `.tasks` proof/report artifacts.
 6. Run one holistic package verifier for every returned package. Use `plugins/super-developer/skills/implement/references/package-verification.md` as the verifier contract; dispatch through the verifier packet in `plugins/super-developer/skills/implement/references/package-dispatch.md`.
 7. Store the verifier PASS/FAIL report at `.tasks/<feature>/reports/<WP-ID>.package-verification.md` or the declared durable report path. The report must bind to reviewed package state and proof evidence.
@@ -74,6 +75,8 @@ Before moving to final `review-code` and `audit`, every package must have:
 - no unresolved Slice plan defects;
 - integration worktree clean for the intended final state;
 - package branches merged once and retained until cleanup gates pass.
+
+If Semgrep is enabled for final state, keep package scans primary. Run an integrated Semgrep scan only once when a verifier/reviewer names concrete cross-package/shared-surface risk; record raw plus summary evidence and do not start widen/fix/rescan cycles without a newly named affected surface.
 
 Then run:
 

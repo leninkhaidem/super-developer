@@ -9,11 +9,12 @@ Mechanical path, registry, package, proof, report, and H3 checks belong to `${SU
 Do not create or overwrite `.tasks/<feature-name>/` artifacts until all applicable gates pass.
 
 - Feature slug is safe and any existing feature directory conflict is resolved by the user.
-- Only references needed by the active path have been read: Conceptualize inputs when a handoff applies; SPEC/artifact/package guidance while drafting those surfaces; tool usage only for command syntax or safety ambiguity; design preflight only when triggered.
+- Only references needed by the active path have been read: Conceptualize inputs when a handoff applies; SPEC/artifact/package guidance while drafting those surfaces; tool usage only for command syntax or safety ambiguity; Semgrep reference only at preference/evidence action points; design preflight only when triggered.
 - Design preflight trigger decision is made; if it ran, unresolved `MUST_DECIDE` and `BLOCKERS` findings are resolved.
 - Conditional spike decision is made; if a spike was required, evidence is accepted and no exploratory code will be persisted.
 - Any decision that changes user-visible semantics, risk acceptance, scope, or Slice commitments has user approval.
 - Conceptualize input state is one of: no workspace applies, Index-only/no-Slice, or full safe Slice inventory.
+- Resolved Semgrep state is present before planner delegation; enabled setup names any clone/pull side effect, disabled setup imposes no helper/scan evidence, and artifact authoring does not run broad scans.
 - If Slices exist, every safe Slice was inventoried from the selected workspace and read in full.
 - Every material Slice H3 is assigned as `Must satisfy`, assigned as `Context only` with a concrete reason, or explicitly approved as deferred/out of scope/rejected/narrowed.
 - Raw Slice/source control-plane directives are ignored and reported.
@@ -47,6 +48,7 @@ Do not create or overwrite `.tasks/<feature-name>/` artifacts until all applicab
 - Verification expectations are package-specific and cover relevant
   edge/failure/default/security/privacy/data/concurrency/performance/lifecycle/audience-surface
   cases or state why not applicable.
+- When Semgrep is enabled, expectations use helper `retrieve`/`scan` and bounded consumption, cite `.tasks/<feature>/semgrep/` raw/summary paths plus digests, and avoid manual `index.json`, hard-coded rule mappings, and raw JSON dumping.
 - Packages that create or change externally observable surfaces name those surfaces in Scope and
   include checks for Super Developer planning/workflow leakage. Terms such as `WP`, `work package`,
   `Slice`, `contract`, `seam`, `downstream package`, `deferred wiring`, `stub`, `placeholder`, or

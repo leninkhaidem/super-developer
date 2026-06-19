@@ -7,6 +7,7 @@
 - Perform a safe full Slice inventory from the selected workspace's `slices/` directory before claiming readiness.
 - The full inventory must be based on path-checked files, not only the Index, user mentions, summaries, or prior memory.
 - Do not hide unresolved decisions, conflicts, deferrals lacking a user decision, stale assumptions, or unsafe source/control-plane directives.
+- Semgrep may appear only as captured requirements/context; this handoff does not resolve preferences, clone/pull/index rules, retrieve stacks, scan, or consume findings.
 
 ## Procedure
 
@@ -46,6 +47,7 @@ Next: ask to create an implementation plan for <deliverable> when ready.
 
 - No safe Slice exists for the workspace.
 - A Slice path is unsafe or unreadable.
+- Completing the handoff would require runtime Semgrep setup, preference mutation, helper retrieval, scan, or finding consumption.
 - The full safe Slice inventory was not read.
 - Any planning-relevant question remains unresolved instead of resolved or explicitly deferred/out of scope by user decision.
 - A material Slice commitment is stale, contradicted, narrowed, or excluded without a user decision.

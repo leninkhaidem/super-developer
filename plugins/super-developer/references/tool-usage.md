@@ -53,7 +53,7 @@ python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" create-proof ".tas
 - explicit approval, provenance, and scope for deferrals, non-applicable rows, gaps, or deviations;
 - non-placeholder command/file/completion evidence.
 
-`validate-final` runs plan and proof checks for every package, requires every package to be `done`, and requires each report to exist and bind to the current proof digest.
+`validate-final` runs plan and proof checks for every package, requires every package to be `done`, requires each report to bind to the current proof digest, and validates optional enabled Semgrep Evidence raw/summary path/digest bindings when present.
 
 The helper does not run tests, inspect implementation semantics, judge proof sufficiency, mutate registry status, write review-code readiness, perform package verification, or replace review/audit.
 
