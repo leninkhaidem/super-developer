@@ -7,6 +7,13 @@
 - Prefer helper scripts over ad hoc parsing for mechanical artifact checks.
 - Helper success is not semantic proof that code works; package verification, review-code, and audit still gate completion.
 
+## Semgrep Helper Boundary
+
+When Semgrep verification is enabled by an approved workflow, load `semgrep.md` at the action point
+and use the shipped helper commands for indexing, retrieval, scanning, summarizing, listing, and
+showing findings. Do not hand-assemble Semgrep shell commands, read raw Semgrep JSON wholesale, or
+perform hidden rule clone/pull/network sync; routine scans are local-only.
+
 ## `sliceproof.py`
 
 `sliceproof.py` is the planned-feature mechanical helper. Run it from the repository root or package worktree with explicit artifact paths.
