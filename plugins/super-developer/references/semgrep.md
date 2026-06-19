@@ -99,11 +99,17 @@ injection shapes. Do not create `.superdeveloper/semgrep-policy.yml`.
 same ID does not reliably override a community rule; to replace or suppress a community rule, list
 the community rule ID in `excluded-rules.yml` and optionally add a local replacement rule.
 
-With `project-policy-gate: skeptic`, implementers may propose policy/rule updates, independent
-verifier/reviewer/skeptic authority may recommend them, and the orchestrator performs compact local
-writes after the gate is satisfied. Audit is read-only. Exclusions must not hide real introduced
-security or privacy issues; material risks require a fix, explicit risk acceptance, or a serious
-review finding.
+Policy/rule update authority:
+- User explicit approval always authorizes local `excluded-rules.yml` or `local-rules.yml` updates.
+- Package implementers may propose exclusions/local rules, but must not suppress their own findings directly.
+- Independent package verifiers, review-code reviewers, or skeptics may recommend evidence-based updates.
+- With `project-policy-gate: skeptic`, skeptic agreement satisfies the default gate and authorizes
+  the main orchestrator write without another user prompt.
+- The main orchestrator performs only mechanical, compact, local/gitignored writes after authority is satisfied.
+- Audit is read-only and must not update Semgrep preferences, excluded rules, local rules, stack
+  profiles, or scan outputs.
+- Exclusions must not hide real introduced security/privacy risks; material risks require a fix,
+  explicit risk acceptance, or a serious review finding.
 
 ## Stack Profile
 `.superdeveloper/semgrep/stack-profile.yml` is a machine-local absolute-path lookup table, not an
