@@ -70,6 +70,68 @@ See [`references/tool-usage.md`](references/tool-usage.md), [`references/slice-f
 
 ---
 
+## Optional Local Semgrep Validation
+
+Semgrep validation is optional, local-first, and disabled by default. Ordinary planning, implementation, review, and audit continue without helper setup, scan evidence, or internet access when `semgrep.enabled: false`.
+
+### Local preferences and policy files
+
+The only supported preferences file is `.superdeveloper/preferences.yml`. It is developer-local/gitignored and stores both model preferences and Semgrep defaults:
+
+```yaml
+models:
+  default-model: inherit
+  implementation-plan: inherit
+  implement: adaptive
+  review-plan: adaptive
+  review-code: inherit
+  skeptic-agent: adaptive
+
+semgrep:
+  enabled: false
+  privacy-mode: true
+  rules-provider: plugin-community-cache
+  project-policy-gate: skeptic
+```
+
+The old `.superdeveloper/model-preferences.yml` path is ignored/deprecated for this greenfield surface. Super Developer does not read, copy, translate, preserve, migrate, or bridge old local settings.
+
+Project-local Semgrep files are also developer-local/gitignored:
+
+| Path | Role |
+|---|---|
+| `.superdeveloper/semgrep/excluded-rules.yml` | Compact command policy; each safe `excluded-rules[].id` becomes one helper-owned `--exclude-rule` argument. |
+| `.superdeveloper/semgrep/local-rules.yml` | Additive project-local Semgrep rules, included automatically when present. |
+| `.superdeveloper/semgrep/stack-profile.yml` | Machine-local lookup from detected stacks to absolute local Semgrep config paths. |
+
+### Rule cache, network boundary, and helper use
+
+Community rules are shared per installed plugin under `${SUPER_DEVELOPER_PLUGIN_ROOT}/.cache/semgrep-rules/community` with inventory at `${SUPER_DEVELOPER_PLUGIN_ROOT}/.cache/semgrep-rules/index.json`. First opt-in happens before implementation planning and names any approved network setup/update: clone the community rules repo if the cache is missing, or `git pull --ff-only` inside the cache when it already exists. If the plugin cache is not writable, the workflow stops for an approved shared-cache alternative instead of cloning into the project. Routine scans must not clone, pull, fetch Registry configs, sync rules, use cloud/AppSec/CI/Pro/secrets modes, emit telemetry, or use `auto`.
+
+Agents use `plugins/super-developer/assets/semgrep_rules.py` for all Semgrep work: `index`, `retrieve`, `scan`, `summarize`, `list-findings`, and `show-finding`. They do not inspect `index.json` manually, hand-assemble Semgrep shell commands, or dump/read raw Semgrep JSON. Normal finding consumption is bounded: `summarize` first, filtered/limited `list-findings` second, and selected `show-finding` only for stable local refs.
+
+### Evidence, freshness, and findings
+
+Enabled package scans write paired local evidence under `.tasks/<feature>/semgrep/`:
+
+```text
+.tasks/<feature>/semgrep/<WP-ID>.semgrep.json
+.tasks/<feature>/semgrep/<WP-ID>.semgrep-summary.json
+```
+
+When concrete cross-package/shared-surface risk requires a final integrated check, the one-shot integrated scan writes:
+
+```text
+.tasks/<feature>/semgrep/integration.semgrep.json
+.tasks/<feature>/semgrep/integration.semgrep-summary.json
+```
+
+Proofs and package verification reports cite raw path, raw digest, summary path, summary digest, scan scope, and a concise helper-derived finding/no-finding summary when Semgrep is enabled or contracted. Evidence is invalid when it escapes `.tasks/<feature>/semgrep/`, uses unpaired stems, traverses or follows symlinks outside the repo/worktree/task evidence root, has stale/mismatched digests, or comes from wholesale raw JSON consumption.
+
+Semgrep findings preserve Semgrep severity but are advisory by default. They do not create product requirements, override Slice/plan authority, automatically become Super Developer blockers, or trigger fix-all/unbounded scan-repair loops. Package scans are primary; integrated scans are conditional and one-shot. Local exclusions or local rules follow the `project-policy-gate: skeptic` authority model: implementers may propose, independent verifier/reviewer/skeptic authority may authorize, the orchestrator writes compact local policy, and final audit is read-only.
+
+---
+
 ## Skills
 
 | Skill | What It Does | Usage |
@@ -159,7 +221,7 @@ Claude Code discovers packaged skills automatically. Other hosts need equivalent
 > Plan this feature
 ```
 
-Planning writes `.tasks/<feature>/SPEC.md`, `.tasks/<feature>/tasks.json`, package Markdown, and declared proof/report paths. After plan review approval, `implement` presents an Execution Contract. Approve auto-resolve to continue through package implementation, package verification, final review-code, and final audit sibling checks, or choose step-by-step control at each gate.
+A delegated planner agent writes `.tasks/<feature>/SPEC.md`, `.tasks/<feature>/tasks.json`, package Markdown, and declared proof/report paths. After plan review approval, `implement` presents an Execution Contract. Approve auto-resolve to continue through package implementation, package verification, final review-code, and final audit sibling checks, or choose step-by-step control at each gate.
 
 Useful standalone prompts:
 
@@ -184,8 +246,11 @@ plugins/super-developer/
 +-- .claude-plugin/
 |   +-- plugin.json
 +-- assets/
+|   +-- semgrep_rules.py
 |   +-- sliceproof.py
 |   +-- tests/
+|       +-- test_semgrep_rules.py
+|       +-- test_skill_prompts.py
 |       +-- test_sliceproof.py
 +-- references/
 |   +-- clean-code-rules.md
@@ -194,6 +259,7 @@ plugins/super-developer/
 |   +-- known-risk-patterns.md
 |   +-- model-preferences.md
 |   +-- package-lifecycle.md
+|   +-- semgrep.md
 |   +-- slice-first-artifacts.md
 |   +-- tool-usage.md
 |   +-- work-packages.md
@@ -252,8 +318,9 @@ plugins/super-developer/
 ## Requirements
 
 - Claude Code with plugin support, or another host with equivalent skill/plugin loading.
-- Python 3 for `sliceproof.py`.
-- git for worktree-based workflows.
+- Python 3 for `sliceproof.py` and local helper assets.
+- git for worktree-based workflows and optional approved Semgrep rule-cache clone/pull setup.
+- Semgrep CLI only when optional local Semgrep validation is enabled.
 - GitHub CLI (`gh`) for PR review mode only.
 
 ---
