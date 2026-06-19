@@ -46,8 +46,9 @@ Run bounded review; route report/actions by mode.
 - Resolve reviewer model only when local policy matters: `../../references/model-preferences.md`.
   Pass `../../references/clean-code-rules.md`; do not load it in the orchestrator.
 - For changed tests, declare deep, sampled, or not-reviewed scope with rationale; deep-review proof-critical or sensitive tests.
-- In pipeline mode, add Slice-first context: package IDs, proof/report paths, Slice/H3 IDs, verification results, risks, freshness, deferred concerns,
-  ownership.
+- In pipeline mode, add Slice-first context: package IDs, proof/report paths, Slice/H3 IDs,
+  verification results, Semgrep evidence/freshness when enabled or contracted, risks, deferred
+  concerns, ownership.
 - Pipeline final review is integration-first. Do not deep-rereview package-local code unless a seam, gap, contradiction, stale report, or serious risk triggers
   it.
 
@@ -139,7 +140,8 @@ surfaces cannot be isolated.
 - A serious finding lacks Skeptic verdict or required lens coverage is weak.
 - A fix requires product/design choice, scope expansion, new dependency/service, unsafe command, credentials, external facts, destructive action, or risk
   acceptance.
-- Pipeline proof/report freshness, review-code state, package verification rerun need, or widened verification is missing/stale/contradictory/uncertain.
+- Pipeline proof/report/Semgrep-evidence freshness, review-code state, package verification rerun
+  need, or widened verification is missing/stale/contradictory/uncertain.
 
 ## Output
 

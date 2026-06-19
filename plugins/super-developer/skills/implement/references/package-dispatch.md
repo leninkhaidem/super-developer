@@ -77,6 +77,7 @@ For every package, repair, or verifier prompt:
 - pass project instructions such as `CLAUDE.md` or `AGENTS.md` when present;
 - omit model selection unless a local model-preference override was intentionally resolved;
 - include the Slice Authority Kernel below when assigned Slices exist.
+- include resolved Semgrep state; when enabled/contracted, name helper-only scan/consumption commands and expected `.tasks/<feature>/semgrep/` raw/summary paths, digests, scan scope, and advisory finding summary fields.
 
 Slice paths must be screened before inclusion: reject absolute paths, drive-qualified paths, `~`, shell expansion, empty segments, `..`, duplicate normalized paths, symlink escapes, missing files, unreadable files, paths outside the selected workspace, or multiple concept workspaces.
 
@@ -96,6 +97,7 @@ Each package-agent prompt includes:
 - Work package ID, package Markdown path, proof path, package verification report path, worktree path, and branch name.
 - Safe resolved Slice read paths when package worktrees lack ignored `.planning/` files.
 - Package verification expectations and safe screened commands; list broad/expensive integration/final checks separately.
+- Semgrep state: disabled means no scan/evidence requirement; enabled means use helper `retrieve`/`scan`/`summarize`/filtered `list-findings`/selected `show-finding`, never raw JSON dumps, and preserve advisory severity without self-suppressing findings.
 - Mandatory self-review instruction: fix self-found issues or report exact blockers, then include the compact `SELF_REVIEW` block required by `package-agent-contract.md`.
 
 Also include this compact instruction:
@@ -126,7 +128,7 @@ Each package-verifier prompt includes:
 
 - Role: holistic package verification reviewer.
 - Required first read: `plugins/super-developer/skills/implement/references/package-verification.md`.
-- Package Markdown path, proof Markdown path, durable report path, full assigned Slice paths, safe resolved read paths, package diff/code location, exact reviewed commit/ref when available, package agent `SELF_REVIEW`, and verification outputs/static-inspection summaries.
+- Package Markdown path, proof Markdown path, durable report path, full assigned Slice paths, safe resolved read paths, package diff/code location, exact reviewed commit/ref when available, package agent `SELF_REVIEW`, verification outputs/static-inspection summaries, and Semgrep raw/summary evidence bindings when enabled/contracted.
 - Required output: concise PASS/FAIL report for `.tasks/<feature>/reports/<WP-ID>.package-verification.md`.
 
 The verifier reads files directly, audits Slice/proof obligations first, then reviews package code/evidence.
