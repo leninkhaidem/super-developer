@@ -1,38 +1,51 @@
-# Model Preferences
+# Local Preferences
 
 ## Boundary
 
-This reference governs local model preference keys and resolution before a skill delegates or
-spawns agents. Model resolution never authorizes inline execution; callers must still dispatch the
-resolved role/skill as a fresh sub-agent or Skill-tool invocation. Each skill owns role behavior
-after a value resolves.
+This reference governs developer-local preference resolution before a skill delegates or spawns
+agents. Model resolution never authorizes inline execution; callers must still dispatch the
+resolved role/skill as a fresh sub-agent or Skill-tool invocation. Semgrep settings are stored in
+the same local preferences file but do not enable scans unless the owning workflow resolves and
+contracts Semgrep separately.
 
 ## Local File
 
-Path: `$PROJECT_ROOT/.superdeveloper/model-preferences.yml`
+Path: `$PROJECT_ROOT/.superdeveloper/preferences.yml`
 
-Create the parent directory and file when missing with the full role list:
+Create the parent directory and file when missing with the full first-run defaults:
 
 ```yaml
-default-model: inherit
-implementation-plan: inherit
-implement: adaptive
-review-plan: adaptive
-review-code: inherit
-skeptic-agent: adaptive
+models:
+  default-model: inherit
+  implementation-plan: inherit
+  implement: adaptive
+  review-plan: adaptive
+  review-code: inherit
+  skeptic-agent: adaptive
+
+semgrep:
+  enabled: false
+  privacy-mode: true
+  rules-provider: plugin-community-cache
+  project-policy-gate: skeptic
 ```
 
-Keep `.superdeveloper/model-preferences.yml` gitignored; it is developer-local preference, not repository state.
+Keep `.superdeveloper/preferences.yml` gitignored; it is developer-local preference, not
+repository state. The old `.superdeveloper/model-preferences.yml` path is deprecated local state
+and is intentionally ignored: do not read, copy, translate, preserve, migrate, or bridge it.
 
-## Keys
+## Model Keys
+
+Model preferences live under `models:`:
 
 ```yaml
-default-model: inherit
-implementation-plan: inherit
-implement: adaptive
-review-plan: adaptive
-review-code: inherit
-skeptic-agent: adaptive
+models:
+  default-model: inherit
+  implementation-plan: inherit
+  implement: adaptive
+  review-plan: adaptive
+  review-code: inherit
+  skeptic-agent: adaptive
 ```
 
 - `default-model` — fallback for every role.
@@ -58,6 +71,12 @@ Adaptive defaults:
 
 ## Resolution
 
-1. Read `.superdeveloper/model-preferences.yml`; create it with the full role list above when missing.
-2. Resolve role value: role key → `default-model` → hardcoded `inherit`.
-3. Interpret value: `inherit` omits model, `adaptive` applies role behavior, any other value is passed directly.
+1. Read `.superdeveloper/preferences.yml`; create it with the full defaults above when missing.
+2. Resolve role value from `models.<role>` → `models.default-model` → hardcoded `inherit`.
+3. Interpret value: `inherit` omits model, `adaptive` applies role behavior, any other value is
+   passed directly.
+4. Ignore `.superdeveloper/model-preferences.yml` even when present; the greenfield preferences
+   surface has no migration, compatibility bridge, or preservation behavior.
+
+For Semgrep key meanings, local policy files, and cache/network boundaries, load `semgrep.md` only
+at the Semgrep action point.
