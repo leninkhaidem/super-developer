@@ -114,6 +114,8 @@ class SkillPromptSurfaceTests(unittest.TestCase):
             "plugins/super-developer/README.md",
             "plugins/super-developer/references/model-preferences.md",
             "plugins/super-developer/references/semgrep.md",
+            "plugins/super-developer/skills/conceptualize/SKILL.md",
+            "plugins/super-developer/skills/conceptualize/references/final-handoff.md",
             "plugins/super-developer/skills/implementation-plan/SKILL.md",
         ]
         for rel in current_path_surfaces:
@@ -136,6 +138,27 @@ class SkillPromptSurfaceTests(unittest.TestCase):
         self.assertIn("ignore", stale_window)
         self.assertIn("do not read", stale_window)
         self.assertNotIn("resolve/create", read_repo("plugins/super-developer/skills/implementation-plan/SKILL.md"))
+
+    def test_conceptualize_handoff_resolves_semgrep_before_plan_skill(self) -> None:
+        conceptualize = read_repo("plugins/super-developer/skills/conceptualize/SKILL.md")
+        transition = "Before invoking `implementation-plan` from a Conceptualize handoff"
+        self.assertIn(transition, conceptualize)
+        self.assertIn("parent/main planning", conceptualize)
+        self.assertIn(CURRENT_PREF_PATH, conceptualize)
+        self.assertIn("Semgrep opt-in/setup", conceptualize)
+        self.assertIn("pass the resolved Semgrep state", conceptualize)
+        self.assertNotIn("dispatch `implementation-plan` via Skill tool/fresh sub-agent", conceptualize)
+
+        handoff = read_repo("plugins/super-developer/skills/conceptualize/references/final-handoff.md")
+        self.assertIn("parent/main", handoff)
+        self.assertIn(CURRENT_PREF_PATH, handoff)
+        self.assertIn("Semgrep opt-in/setup", handoff)
+        self.assertIn("before invoking `implementation-plan`", handoff)
+
+        implementation_plan = read_repo("plugins/super-developer/skills/implementation-plan/SKILL.md")
+        self.assertIn("do not reopen opt-in", implementation_plan)
+        self.assertIn("Only when no resolved Semgrep state is supplied", implementation_plan)
+        self.assertIn("treat this as\n  direct invocation", implementation_plan)
 
     def test_obsolete_or_unsafe_terms_are_only_negative_guidance(self) -> None:
         for path in prompt_surface_paths():

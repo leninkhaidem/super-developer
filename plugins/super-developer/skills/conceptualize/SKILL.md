@@ -42,11 +42,10 @@ The eager workflow should be enough to guide the session. Load references only a
 9. Before handoff or planning, ensure the workspace has at least one safe Slice with at least one stable H3 under `## Shared Understanding`; otherwise continue discovery or create the required faithful Slice checkpoint.
 10. When the user is ready for planning or handoff, load `references/final-handoff.md`.
    Run the coverage pass, report blockers or user-decided deferrals, and return the handoff summary.
-   If planning is approved, dispatch `implementation-plan` via Skill tool/fresh sub-agent with
-   workspace path and feature slug. Semgrep preference/opt-in resolution belongs to the user-facing
-   planning orchestrator before planner-agent delegation, not to Conceptualize; direct
-   `implementation-plan` invocation uses that skill as the fallback orchestrator. Do not create
-   `.tasks/`, run planning inline, or perform Semgrep setup/scans here.
+   Before invoking `implementation-plan` from a Conceptualize handoff, the parent/main planning
+   transition must resolve `.superdeveloper/preferences.yml`, handle any Semgrep opt-in/setup
+   choice, and pass the resolved Semgrep state with workspace path and feature slug. Conceptualize
+   does not create `.tasks/`, run planning inline, or perform Semgrep setup/scans.
 
 ## Load if needed
 
@@ -59,8 +58,8 @@ The eager workflow should be enough to guide the session. Load references only a
 - A handoff or planning transition is requested before at least one safe Slice captures the settled shared understanding.
 - Remaining questions would make implementation planning invent behavior.
 - The next action would run/configure Semgrep, clone/pull rules, index/retrieve stacks, scan, or write Semgrep preferences.
-- The next step is creating `.tasks/` artifacts; invoke `implementation-plan` via Skill tool/fresh sub-agent
-  with a self-contained packet instead of doing it inline.
+- The next step is creating `.tasks/` artifacts; route through the parent/main planning transition
+  instead of doing it inline.
 
 ## Output
 

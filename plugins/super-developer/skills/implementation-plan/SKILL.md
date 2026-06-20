@@ -40,10 +40,10 @@ rules are required; do not preload references merely because they are named.
   `../../references/clean-code-rules.md` during package shaping, projects only material implications
   into existing SPEC/package fields, and never creates standalone clean-code proof/report artifacts.
 - Validate returned artifacts before presenting success.
-- Semgrep opt-in is a user-facing planning-orchestrator boundary: use resolved state passed by a
-  parent when present; for direct `implementation-plan` invocation, resolve
-  `.superdeveloper/preferences.yml` before planner-agent dispatch. Disabled means no helper setup,
-  scan evidence, or internet is required.
+- Semgrep opt-in is a user-facing planning-orchestrator boundary: use parent-resolved state when
+  supplied and do not reopen opt-in. Only when no resolved Semgrep state is supplied, treat this as
+  direct invocation and resolve `.superdeveloper/preferences.yml` before planner-agent dispatch.
+  Disabled means no helper setup, scan evidence, or internet is required.
 - Semgrep setup is optional and action-point-loaded: use `../../references/semgrep.md` only to
   disclose/approve clone or fast-forward pull side effects, then keep artifact authoring scan-free.
 
@@ -56,12 +56,12 @@ rules are required; do not preload references merely because they are named.
    unapproved overwrite of `.tasks/<feature>/`, or a required spike/risk acceptance.
 3. If empirical evidence is required before planning, stop artifact writing and invoke `spike-to-plan`
    via fresh Skill-tool/sub-agent packet; do not guess or run the spike workflow inline.
-4. Resolve local preferences before planner dispatch by using a parent-provided Semgrep state when
-   available; otherwise load `../../references/model-preferences.md` as the direct-invocation
-   fallback. If Semgrep is relevant or the Semgrep preference section is missing, load
-   `../../references/semgrep.md`, present the opt-in/setup choice, name any clone or
-   fast-forward pull side effect before it runs, and continue with Semgrep disabled when declined.
-   Do not run Semgrep scans during artifact authoring.
+4. Resolve the planner packet's Semgrep state before planner dispatch. Use supplied resolved state
+   as authoritative and do not reopen opt-in. If no resolved Semgrep state is supplied, treat this
+   as direct invocation: load `../../references/model-preferences.md`; if Semgrep is relevant or
+   the Semgrep preference section is missing, load `../../references/semgrep.md`, present the
+   opt-in/setup choice, name any clone or fast-forward pull side effect before it runs, and
+   continue with Semgrep disabled when declined. Do not run Semgrep scans during artifact authoring.
 5. Dispatch a fresh planner agent with a compact packet containing:
    - feature slug and artifact root;
    - approved requirements and selected source material;
