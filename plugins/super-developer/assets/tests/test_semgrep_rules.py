@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import contextlib
+import copy
 import io
 import json
 import os
@@ -36,8 +37,11 @@ class SemgrepRulesFixture:
         self.tmp = tempfile.TemporaryDirectory()
         self.root = Path(self.tmp.name)
         self.repo = self.root / "repo"
-        self.rules_root = self.root / "plugin" / ".cache" / "semgrep-rules" / "community"
-        self.index_path = self.root / "plugin" / ".cache" / "semgrep-rules" / "index.json"
+        self.plugin_root = self.root / "plugin"
+        self.rules_root = self.plugin_root / ".cache" / "semgrep-rules" / "community"
+        self.index_path = self.plugin_root / ".cache" / "semgrep-rules" / "index.json"
+        self.previous_plugin_root = os.environ.get("SUPER_DEVELOPER_PLUGIN_ROOT")
+        os.environ["SUPER_DEVELOPER_PLUGIN_ROOT"] = str(self.plugin_root)
         self.repo.mkdir()
         self.rules_root.mkdir(parents=True)
         self.target = self.repo / "target"
@@ -47,6 +51,10 @@ class SemgrepRulesFixture:
         self.fake_semgrep.chmod(0o755)
 
     def cleanup(self) -> None:
+        if self.previous_plugin_root is None:
+            os.environ.pop("SUPER_DEVELOPER_PLUGIN_ROOT", None)
+        else:
+            os.environ["SUPER_DEVELOPER_PLUGIN_ROOT"] = self.previous_plugin_root
         self.tmp.cleanup()
 
     def write_rule(self, rel: str, *, language: str = "python", rule_id: str = "python.security.demo", metadata: str = "technology: [django]") -> Path:
@@ -350,6 +358,56 @@ class SemgrepRulesTest(unittest.TestCase):
         self.assertNotEqual(code, 0)
         self.assertIn("traversal", stderr)
 
+    def test_scan_rejects_project_local_profile_rules_root_or_index(self) -> None:
+        self.fixture.write_rule("python/rule.yml")
+        self.fixture.index()
+        good_profile = self.fixture.retrieve("python")
+        raw, summary = self.fixture.evidence_paths("WP2")
+
+        project_rules_root = self.fixture.repo / ".superdeveloper" / "semgrep" / "community"
+        project_rule_dir = project_rules_root / "python"
+        project_rule_dir.mkdir(parents=True)
+        (project_rule_dir / "rule.yml").write_text(
+            "rules:\n"
+            "  - id: project.local.bad\n"
+            "    pattern: $X\n"
+            "    message: local\n"
+            "    languages: [python]\n"
+            "    severity: ERROR\n",
+            encoding="utf-8",
+        )
+        project_index_path = self.fixture.repo / ".superdeveloper" / "semgrep" / "index.json"
+        project_index = semgrep_rules._build_index(project_rules_root)
+        project_index_path.write_text(json.dumps(project_index), encoding="utf-8")
+        project_profile = self.fixture.repo / ".superdeveloper" / "semgrep" / "project-stack-profile.yml"
+        project_freshness = project_index["freshness"]
+        semgrep_rules._write_yaml(
+            project_profile,
+            {
+                "version": 1,
+                "rules-index": {
+                    "community-rules-commit": project_freshness["community_rules_commit"],
+                    "content-fingerprint": project_freshness["content_fingerprint"],
+                    "fingerprint-source": project_freshness["source"],
+                    "index-path": str(project_index_path),
+                    "rules-root": str(project_rules_root),
+                },
+                "stacks": {"python": {"semgrep-configs": [str(project_rule_dir.resolve())]}},
+            },
+        )
+        code, _stdout, stderr = self.fixture.run(self.fixture.scan_argv(project_profile, raw, summary), runner=FakeSemgrepRunner())
+        self.assertNotEqual(code, 0)
+        self.assertIn("shared plugin Semgrep rules cache", stderr)
+
+        project_index_copy = self.fixture.repo / ".superdeveloper" / "semgrep" / "local-index.json"
+        project_index_copy.write_text(self.fixture.index_path.read_text(encoding="utf-8"), encoding="utf-8")
+        tampered_profile = copy.deepcopy(semgrep_rules._load_yaml(good_profile, label="profile"))
+        tampered_profile["rules-index"]["index-path"] = str(project_index_copy)
+        semgrep_rules._write_yaml(good_profile, tampered_profile)
+        code, _stdout, stderr = self.fixture.run(self.fixture.scan_argv(good_profile, raw, summary), runner=FakeSemgrepRunner())
+        self.assertNotEqual(code, 0)
+        self.assertIn("index path", stderr)
+
     def test_scan_rejects_unsafe_excludes_malformed_yamls_modes_and_bad_evidence_paths(self) -> None:
         self.fixture.write_rule("python/rule.yml")
         self.fixture.index()
@@ -589,6 +647,109 @@ class SemgrepRulesTest(unittest.TestCase):
         )
         self.assertNotEqual(code, 0)
         self.assertIn("traversal", stderr)
+
+    def test_show_finding_accepts_repo_root_relative_subdir_path_only_under_target(self) -> None:
+        source = self.fixture.target / "app.py"
+        source.write_text("one\ntwo\nthree\n", encoding="utf-8")
+        secret = self.fixture.repo / "secret.py"
+        secret.write_text("secret\n", encoding="utf-8")
+        raw, summary = self.fixture.evidence_paths("WP2")
+        self.write_raw(
+            raw,
+            {
+                "results": [
+                    {
+                        "check_id": "rule.target-prefixed",
+                        "path": "target/app.py",
+                        "start": {"line": 2, "col": 1},
+                        "extra": {"severity": "ERROR", "message": "repo-root relative path"},
+                    }
+                ]
+            },
+        )
+        code, _stdout, stderr = self.fixture.run(
+            [
+                "summarize",
+                "--json-output",
+                str(raw),
+                "--summary-output",
+                str(summary),
+                "--target",
+                str(self.fixture.target),
+                "--repo-root",
+                str(self.fixture.repo),
+            ]
+        )
+        self.assertEqual(code, 0, stderr)
+        summary_digest = json.loads(summary.read_text(encoding="utf-8"))["summary_digest"]
+        code, stdout, stderr = self.fixture.run(
+            [
+                "show-finding",
+                "--json-output",
+                str(raw),
+                "--finding",
+                "F001",
+                "--context-lines",
+                "1",
+                "--target",
+                str(self.fixture.target),
+                "--expected-summary-digest",
+                summary_digest,
+                "--repo-root",
+                str(self.fixture.repo),
+            ]
+        )
+        self.assertEqual(code, 0, stderr)
+        detail = json.loads(stdout)["finding"]
+        self.assertEqual(detail["location"], "target/app.py:2:1")
+        self.assertEqual([line["text"] for line in detail["context"]], ["one", "two", "three"])
+
+        self.write_raw(
+            raw,
+            {
+                "results": [
+                    {
+                        "check_id": "rule.root-outside-target",
+                        "path": "secret.py",
+                        "start": {"line": 1},
+                        "extra": {"severity": "ERROR", "message": "outside target"},
+                    }
+                ]
+            },
+        )
+        self.fixture.run(
+            [
+                "summarize",
+                "--json-output",
+                str(raw),
+                "--summary-output",
+                str(summary),
+                "--target",
+                str(self.fixture.target),
+                "--repo-root",
+                str(self.fixture.repo),
+            ]
+        )
+        outside_digest = json.loads(summary.read_text(encoding="utf-8"))["summary_digest"]
+        code, _stdout, stderr = self.fixture.run(
+            [
+                "show-finding",
+                "--json-output",
+                str(raw),
+                "--finding",
+                "F001",
+                "--context-lines",
+                "1",
+                "--target",
+                str(self.fixture.target),
+                "--expected-summary-digest",
+                outside_digest,
+                "--repo-root",
+                str(self.fixture.repo),
+            ]
+        )
+        self.assertNotEqual(code, 0)
+        self.assertIn("escapes the scan target", stderr)
 
     def test_show_finding_context_requires_scan_target_binding_and_preserves_no_context(self) -> None:
         secret = self.fixture.repo / "secret.txt"
