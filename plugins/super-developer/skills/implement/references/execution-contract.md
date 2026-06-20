@@ -55,7 +55,7 @@ Semgrep:
   helper checks: <none when disabled | retrieve plus python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/semgrep_rules.py" scan ... then summarize/list-findings/show-finding>
   package evidence: .tasks/<feature>/semgrep/<WP-ID>.semgrep.json + .semgrep-summary.json with digests when enabled
   integrated evidence: <not planned | conditional one-shot for named cross-package/shared-surface risk>
-  consumption/materiality: summarize -> filtered list-findings -> selected show-finding; raw JSON dumps forbidden; Semgrep severity advisory by default
+  consumption/materiality: summarize -> filtered list-findings -> selected show-finding (target + expected summary digest for excerpts); raw JSON dumps forbidden; Semgrep severity advisory by default
   side effects not authorized here: hidden registry/URL/cloud/telemetry scans, dependency installs, credentials, or network clone/pull unless separately listed and approved
 
 Packages:

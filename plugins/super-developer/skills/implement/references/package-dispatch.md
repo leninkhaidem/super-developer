@@ -102,8 +102,9 @@ Each package-agent prompt includes:
 - Package verification expectations and safe screened commands; list broad/expensive integration/final checks separately.
 - Semgrep state: disabled means no scan/evidence requirement; enabled means use helper `retrieve`
   and the scan wrapper `python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/semgrep_rules.py" scan ...`,
-  then `summarize`/filtered `list-findings`/selected `show-finding`; never run raw direct
-  `semgrep` scans, never dump raw JSON, and preserve advisory severity without self-suppressing findings.
+  then `summarize`/filtered `list-findings`/selected `show-finding` (`--target` plus expected
+  summary digest for excerpts); never run raw direct `semgrep` scans, never dump raw JSON, and
+  preserve advisory severity without self-suppressing findings.
 - Mandatory self-review instruction: fix self-found issues or report exact blockers, then include the compact `SELF_REVIEW` block required by `package-agent-contract.md`.
 
 Also include this compact instruction:

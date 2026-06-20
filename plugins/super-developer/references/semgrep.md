@@ -90,7 +90,10 @@ enforces local config paths, telemetry/version-check suppression, registry/URL/c
 structured arguments, safe excluded-rule expansion, and bounded summary creation.
 
 Normal consumption order is `summarize`, then filtered/limited `list-findings`, then
-`show-finding` only for selected stable local finding refs.
+`show-finding` only for selected stable local finding refs. Use `show-finding --context-lines 0`
+for metadata-only. For code excerpts, pass `--target <scan-scope>` plus externally recorded
+`--expected-summary-digest <summary_digest>`; the helper rejects missing/mismatched summary binding
+or widened target context.
 
 ## Policy Semantics and Authority
 `.superdeveloper/semgrep/excluded-rules.yml` is command policy, not a narrative triage log:

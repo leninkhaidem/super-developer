@@ -99,7 +99,9 @@ When Semgrep is enabled, verification expectations should stay helper-owned and 
   summary output `.tasks/<feature>/semgrep/<WP-ID>.semgrep-summary.json`; never require raw direct
   `semgrep` scans;
 - cite raw path, raw digest, summary path, summary digest, scan scope, and a concise bounded finding/no-finding summary in proof/report evidence;
-- consume findings through `summarize`, then filtered/limited `list-findings`, then `show-finding` only for selected refs; never require raw JSON dumps;
+- consume findings through `summarize`, then filtered/limited `list-findings`, then
+  `show-finding` only for selected refs; excerpts require `--target` plus expected summary digest;
+  never require raw JSON dumps;
 - integrated scans are conditional one-shot expectations only for concrete cross-package/shared-surface risk.
 
 ## Package Rules

@@ -35,10 +35,12 @@ MAX_MESSAGE = 240
 MAX_CONTEXT_LINES = 10
 SUMMARY_TOP_N = 10
 LIST_LIMIT_MAX = 100
+LOCAL_RULES_RELATIVE = Path(".superdeveloper/semgrep/local-rules.yml")
 RULE_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]{0,255}$")
 SAFE_STACK_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.+:-]{0,80}$")
 EVIDENCE_BASE_RE = re.compile(r"^(integration|WP[A-Za-z0-9_-]+)$")
 CONTROL_CHARS_RE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]+")
+SUMMARY_DIGEST_RE = re.compile(r"^[0-9a-f]{64}$")
 REGISTRY_PREFIXES = ("p/", "r/", "http://", "https://")
 SHELL_SEPARATORS = ("\x00", "\n", "\r", ";", "&&", "||", "`", "$(", "|", ">", "<")
 
@@ -504,7 +506,36 @@ def _profile_configs(profile: dict[str, Any]) -> list[str]:
     return deduped
 
 
-def _validate_profile_freshness(profile: dict[str, Any]) -> None:
+def _allowed_index_config_paths(index: dict[str, Any], rules_root: Path) -> set[Path]:
+    rules_root = rules_root.resolve(strict=True)
+    allowed: set[Path] = set()
+    files = index.get("files")
+    if not isinstance(files, list):
+        raise HelperError("Semgrep rules index is missing file entries")
+    for entry in files:
+        if not isinstance(entry, dict):
+            continue
+        config = entry.get("config_path")
+        if not isinstance(config, str) or not config.strip():
+            continue
+        _reject_registry_config(config, "indexed config")
+        raw = Path(config).expanduser()
+        _reject_path_traversal(raw, "indexed config")
+        if not raw.is_absolute():
+            raise HelperError("indexed config paths must be absolute local paths")
+        try:
+            resolved = raw.resolve(strict=True)
+        except FileNotFoundError as exc:
+            raise HelperError("indexed config path does not exist; rerun index") from exc
+        if not is_relative_to(resolved, rules_root):
+            raise HelperError("indexed config path escapes the bound rules root; rerun index")
+        if not (resolved.is_file() or resolved.is_dir()):
+            raise HelperError("indexed config path must be a file or directory")
+        allowed.add(resolved)
+    return allowed
+
+
+def _validate_profile_freshness(profile: dict[str, Any]) -> set[Path]:
     rules_index = profile.get("rules-index")
     if not isinstance(rules_index, dict):
         raise HelperError("stack profile is missing rules-index binding")
@@ -525,6 +556,7 @@ def _validate_profile_freshness(profile: dict[str, Any]) -> None:
         raise HelperError("stack profile commit binding is stale; rerun retrieve")
     if rules_index.get("content-fingerprint") != stored.get("content_fingerprint"):
         raise HelperError("stack profile fingerprint binding is stale; rerun retrieve")
+    return _allowed_index_config_paths(index, rules_root)
 
 
 def _validate_local_config(value: str, *, repo_root: Path, label: str, require_absolute: bool) -> Path:
@@ -577,6 +609,15 @@ def _validate_rule_id(rule_id: str) -> None:
         raise HelperError(f"unsafe excluded rule id: {_sanitize_string(text, 120)}")
     if not RULE_ID_RE.fullmatch(text):
         raise HelperError(f"unsafe excluded rule id: {_sanitize_string(text, 120)}")
+
+
+def _validate_local_rules_path(path: Path | None, *, repo_root: Path) -> Path | None:
+    if path is None:
+        return None
+    allowed = (repo_root / LOCAL_RULES_RELATIVE).resolve(strict=False)
+    if path.resolve(strict=False) != allowed:
+        raise HelperError("local rules must use .superdeveloper/semgrep/local-rules.yml")
+    return path
 
 
 def _validate_local_rules(path: Path | None) -> Path | None:
@@ -850,15 +891,18 @@ def command_scan(args: argparse.Namespace, *, runner: Callable[..., subprocess.C
     repo_root = _repo_root_from_arg(args.repo_root)
     profile_path = _resolve_existing_path(args.profile, repo_root=repo_root, label="stack profile")
     profile = _load_stack_profile(profile_path)
-    _validate_profile_freshness(profile)
+    allowed_profile_configs = _validate_profile_freshness(profile)
     target = _validate_target(args.target, repo_root=repo_root)
     raw_path, summary_path = _validate_evidence_pair(args.json_output, args.summary_output, repo_root=repo_root, must_exist=False)
     raw_path.parent.mkdir(parents=True, exist_ok=True)
-    configs = [
-        _validate_local_config(config, repo_root=repo_root, label="profile config", require_absolute=True)
-        for config in _profile_configs(profile)
-    ]
+    configs = []
+    for config in _profile_configs(profile):
+        resolved_config = _validate_local_config(config, repo_root=repo_root, label="profile config", require_absolute=True)
+        if resolved_config not in allowed_profile_configs:
+            raise HelperError("profile config is not in the current rules index; rerun retrieve")
+        configs.append(resolved_config)
     local_rules_path = _resolve_optional_project_path(args.local_rules, repo_root=repo_root, label="local rules") if args.local_rules else None
+    local_rules_path = _validate_local_rules_path(local_rules_path, repo_root=repo_root)
     local_rules = _validate_local_rules(local_rules_path)
     if local_rules is not None:
         configs.append(local_rules)
@@ -976,19 +1020,36 @@ def _context_excerpt(finding: dict[str, Any], *, target: Path, context_lines: in
     ]
 
 
+def _validate_expected_summary_digest(value: str | None) -> str:
+    if not isinstance(value, str) or not value.strip():
+        raise HelperError("show-finding context requires --expected-summary-digest")
+    digest = value.strip().lower()
+    if not SUMMARY_DIGEST_RE.fullmatch(digest):
+        raise HelperError("expected summary digest must be a 64-character sha256 hex digest")
+    return digest
+
+
 def _target_for_show(args: argparse.Namespace, *, repo_root: Path, summary: dict[str, Any] | None) -> Path:
-    if args.target:
-        return _validate_target(args.target, repo_root=repo_root)
+    if not args.target:
+        raise HelperError("show-finding context requires explicit --target")
     if summary is None:
-        raise HelperError("show-finding context requires --target or a summary with a scan_target binding")
+        raise HelperError("show-finding context requires a valid summary file")
     if summary.get("version") != VERSION:
         raise HelperError("show-finding context requires a current summary binding; rerun summarize")
-    if not isinstance(summary.get("summary_digest"), str):
+    expected_digest = _validate_expected_summary_digest(args.expected_summary_digest)
+    current_digest = summary.get("summary_digest")
+    if not isinstance(current_digest, str):
         raise HelperError("show-finding context requires a digest-bound summary; rerun summarize")
+    if current_digest.lower() != expected_digest:
+        raise HelperError("summary digest does not match --expected-summary-digest")
     scan_target = summary.get("scan_target")
     if not isinstance(scan_target, str) or not scan_target.strip():
-        raise HelperError("show-finding context requires --target or a summary with a scan_target binding")
-    return _validate_target(scan_target, repo_root=repo_root)
+        raise HelperError("show-finding context requires a summary scan_target binding")
+    explicit_target = _validate_target(args.target, repo_root=repo_root)
+    summary_target = _validate_target(scan_target, repo_root=repo_root)
+    if explicit_target != summary_target:
+        raise HelperError("--target must match the summary scan_target; refusing widened context")
+    return explicit_target
 
 
 def command_show_finding(args: argparse.Namespace) -> int:
@@ -1078,6 +1139,7 @@ def build_parser() -> argparse.ArgumentParser:
     show.add_argument("--finding", required=True)
     show.add_argument("--context-lines", type=int, default=0)
     show.add_argument("--target")
+    show.add_argument("--expected-summary-digest", help="required with --context-lines > 0; must match the trusted summary_digest")
     show.add_argument("--repo-root")
     show.set_defaults(func=command_show_finding)
 
