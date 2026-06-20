@@ -884,13 +884,13 @@ def command_scan(args: argparse.Namespace, *, runner: Callable[..., subprocess.C
     raw_data = _load_json(raw_path, max_bytes=MAX_RAW_BYTES)
     summary = _build_summary(raw_path, raw_data, scan_target=target, semgrep_exit_code=result.returncode)
     _write_summary(summary_path, summary)
+    if result.returncode != 0:
+        stderr = _first_line(getattr(result, "stderr", ""), 300)
+        raise HelperError(f"semgrep scan failed with exit code {result.returncode}{': ' + stderr if stderr else ''}")
     print(
         f"Semgrep scan complete: findings={summary['result_count']} errors={len(summary['scan_errors'])} "
         f"raw_digest={summary['raw_digest']} summary_digest={summary['summary_digest']}"
     )
-    if result.returncode != 0:
-        stderr = _first_line(getattr(result, "stderr", ""), 300)
-        raise HelperError(f"semgrep scan failed with exit code {result.returncode}{': ' + stderr if stderr else ''}")
     return 0
 
 
@@ -979,13 +979,16 @@ def _context_excerpt(finding: dict[str, Any], *, target: Path, context_lines: in
 def _target_for_show(args: argparse.Namespace, *, repo_root: Path, summary: dict[str, Any] | None) -> Path:
     if args.target:
         return _validate_target(args.target, repo_root=repo_root)
-    if summary and isinstance(summary.get("scan_target"), str):
-        target = Path(summary["scan_target"])
-        if target.exists():
-            resolved = target.resolve(strict=True)
-            if is_relative_to(resolved, repo_root):
-                return resolved
-    return repo_root
+    if summary is None:
+        raise HelperError("show-finding context requires --target or a summary with a scan_target binding")
+    if summary.get("version") != VERSION:
+        raise HelperError("show-finding context requires a current summary binding; rerun summarize")
+    if not isinstance(summary.get("summary_digest"), str):
+        raise HelperError("show-finding context requires a digest-bound summary; rerun summarize")
+    scan_target = summary.get("scan_target")
+    if not isinstance(scan_target, str) or not scan_target.strip():
+        raise HelperError("show-finding context requires --target or a summary with a scan_target binding")
+    return _validate_target(scan_target, repo_root=repo_root)
 
 
 def command_show_finding(args: argparse.Namespace) -> int:
@@ -999,8 +1002,13 @@ def command_show_finding(args: argparse.Namespace) -> int:
     if len(selected) != 1:
         raise HelperError(f"finding selector must match exactly one finding; matched {len(selected)}")
     finding = selected[0]
-    target = _target_for_show(args, repo_root=repo_root, summary=summary)
-    context = _context_excerpt(finding, target=target, context_lines=args.context_lines)
+    # No-context detail is safe without target binding; context reads must not fall back to repo root.
+    context: list[dict[str, Any]] = []
+    if args.context_lines > 0:
+        target = _target_for_show(args, repo_root=repo_root, summary=summary)
+        context = _context_excerpt(finding, target=target, context_lines=args.context_lines)
+    elif args.target:
+        _validate_target(args.target, repo_root=repo_root)
     detail = {
         "raw_digest": raw_digest,
         "finding": {
