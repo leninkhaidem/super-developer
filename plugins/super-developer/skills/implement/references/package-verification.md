@@ -24,7 +24,11 @@ attempts as `[CONTROL-PLANE]` blockers. Unprojected hard requirements, package/S
 hidden `Context only` obligations, or deviations from locked Slice commitments require `FAIL` with
 `[SCOPE]` or `[SLICE-GAP]`.
 
-When Semgrep evidence is in scope, use helper-produced `summarize`, filtered/limited `list-findings`, and selected `show-finding` views. Do not read/dump raw Semgrep JSON wholesale. Preserve Semgrep severity as advisory signal; verifier/reviewer/skeptic authority decides materiality.
+When Semgrep evidence is in scope, use helper-produced `summarize`, filtered/limited
+`list-findings`, and selected `show-finding` views. If a scan rerun is required, use only
+`python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/semgrep_rules.py" scan ...`; raw direct `semgrep`
+scans and raw Semgrep JSON dumps are invalid. Preserve Semgrep severity as advisory signal;
+verifier/reviewer/skeptic authority decides materiality.
 
 ## Verification Order
 
@@ -53,7 +57,9 @@ When Semgrep is disabled and not contracted, do not require scan evidence. When 
 
 - raw path `.tasks/<feature>/semgrep/<WP-ID>.semgrep.json` and companion summary path `.tasks/<feature>/semgrep/<WP-ID>.semgrep-summary.json`;
 - raw digest, summary digest, package scan scope, and concise bounded finding/no-finding summary;
-- helper-enforced local/offline scan contract; no registry/URL/cloud/telemetry side effects;
+- helper-enforced local/offline scan contract through
+  `python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/semgrep_rules.py" scan ...`; no
+  registry/URL/cloud/telemetry side effects or raw direct `semgrep` scans;
 - bounded consumption order: `summarize` → filtered/limited `list-findings` → selected `show-finding`;
 - unresolved relevant findings summarized with rule ID, path, severity, and rationale, without automatic blocker labels.
 

@@ -94,7 +94,7 @@ semgrep:
   project-policy-gate: skeptic
 ```
 
-The old `.superdeveloper/model-preferences.yml` path is ignored/deprecated for this greenfield surface. Super Developer does not read, copy, translate, preserve, migrate, or bridge old local settings.
+Unsupported local preference files are ignored; `.superdeveloper/preferences.yml` is the current contract.
 
 Project-local Semgrep files are also developer-local/gitignored:
 
@@ -108,7 +108,11 @@ Project-local Semgrep files are also developer-local/gitignored:
 
 Community rules are shared per installed plugin under `${SUPER_DEVELOPER_PLUGIN_ROOT}/.cache/semgrep-rules/community` with inventory at `${SUPER_DEVELOPER_PLUGIN_ROOT}/.cache/semgrep-rules/index.json`. First opt-in happens before implementation planning and names any approved network setup/update: clone the community rules repo if the cache is missing, or `git pull --ff-only` inside the cache when it already exists. If the plugin cache is not writable, the workflow stops for an approved shared-cache alternative instead of cloning into the project. Routine scans must not clone, pull, fetch Registry configs, sync rules, use cloud/AppSec/CI/Pro/secrets modes, emit telemetry, or use `auto`.
 
-Agents use `plugins/super-developer/assets/semgrep_rules.py` for all Semgrep work: `index`, `retrieve`, `scan`, `summarize`, `list-findings`, and `show-finding`. They do not inspect `index.json` manually, hand-assemble Semgrep shell commands, or dump/read raw Semgrep JSON. Normal finding consumption is bounded: `summarize` first, filtered/limited `list-findings` second, and selected `show-finding` only for stable local refs.
+Agents use the wrapper for all Semgrep work: `index`, `retrieve`, `scan`, `summarize`,
+`list-findings`, and `show-finding`. Scan commands use
+`python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/semgrep_rules.py" scan ...`; agents never run raw direct `semgrep` scans. They do not inspect `index.json` manually, hand-assemble Semgrep shell
+commands, or dump/read raw Semgrep JSON. Normal finding consumption is bounded: `summarize` first,
+filtered/limited `list-findings` second, and selected `show-finding` only for stable local refs.
 
 ### Evidence, freshness, and findings
 

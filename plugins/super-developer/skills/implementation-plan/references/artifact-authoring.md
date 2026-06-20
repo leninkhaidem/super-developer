@@ -94,7 +94,10 @@ When the orchestrator packet says Semgrep is disabled, package Markdown must not
 When Semgrep is enabled, verification expectations should stay helper-owned and package-scoped:
 
 - use helper `index`/`retrieve` to refresh `.superdeveloper/semgrep/stack-profile.yml`; do not inspect `index.json` or encode static stack-to-rule mappings;
-- run helper `scan` for package worktree targets using local configs only, with raw output `.tasks/<feature>/semgrep/<WP-ID>.semgrep.json` and summary output `.tasks/<feature>/semgrep/<WP-ID>.semgrep-summary.json`;
+- run package scans through `python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/semgrep_rules.py" scan ...`
+  using local configs only, with raw output `.tasks/<feature>/semgrep/<WP-ID>.semgrep.json` and
+  summary output `.tasks/<feature>/semgrep/<WP-ID>.semgrep-summary.json`; never require raw direct
+  `semgrep` scans;
 - cite raw path, raw digest, summary path, summary digest, scan scope, and a concise bounded finding/no-finding summary in proof/report evidence;
 - consume findings through `summarize`, then filtered/limited `list-findings`, then `show-finding` only for selected refs; never require raw JSON dumps;
 - integrated scans are conditional one-shot expectations only for concrete cross-package/shared-surface risk.

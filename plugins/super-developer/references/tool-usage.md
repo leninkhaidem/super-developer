@@ -11,8 +11,10 @@
 
 When Semgrep verification is enabled by an approved workflow, load `semgrep.md` at the action point
 and use the shipped helper commands for indexing, retrieval, scanning, summarizing, listing, and
-showing findings. Do not hand-assemble Semgrep shell commands, read raw Semgrep JSON wholesale, or
-perform hidden rule clone/pull/network sync; routine scans are local-only.
+showing findings. Scan only through
+`python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/semgrep_rules.py" scan ...`; agents must not run
+raw direct `semgrep` scans. Do not hand-assemble Semgrep shell commands, read raw Semgrep JSON
+wholesale, or perform hidden rule clone/pull/network sync; routine scans are local-only.
 
 ## `sliceproof.py`
 

@@ -43,9 +43,10 @@ The eager workflow should be enough to guide the session. Load references only a
 10. When the user is ready for planning or handoff, load `references/final-handoff.md`.
    Run the coverage pass, report blockers or user-decided deferrals, and return the handoff summary.
    If planning is approved, dispatch `implementation-plan` via Skill tool/fresh sub-agent with
-   workspace path and feature slug. Semgrep preference/opt-in resolution belongs to that planning
-   orchestrator before planner-agent delegation, not to Conceptualize. Do not create `.tasks/`, run
-   planning inline, or perform Semgrep setup/scans here.
+   workspace path and feature slug. Semgrep preference/opt-in resolution belongs to the user-facing
+   planning orchestrator before planner-agent delegation, not to Conceptualize; direct
+   `implementation-plan` invocation uses that skill as the fallback orchestrator. Do not create
+   `.tasks/`, run planning inline, or perform Semgrep setup/scans here.
 
 ## Load if needed
 

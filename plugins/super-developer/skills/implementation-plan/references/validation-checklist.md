@@ -48,7 +48,10 @@ Do not create or overwrite `.tasks/<feature-name>/` artifacts until all applicab
 - Verification expectations are package-specific and cover relevant
   edge/failure/default/security/privacy/data/concurrency/performance/lifecycle/audience-surface
   cases or state why not applicable.
-- When Semgrep is enabled, expectations use helper `retrieve`/`scan` and bounded consumption, cite `.tasks/<feature>/semgrep/` raw/summary paths plus digests, and avoid manual `index.json`, hard-coded rule mappings, and raw JSON dumping.
+- When Semgrep is enabled, expectations use helper `retrieve` and
+  `python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/semgrep_rules.py" scan ...` plus bounded
+  consumption, cite `.tasks/<feature>/semgrep/` raw/summary paths plus digests, and avoid manual
+  `index.json`, hard-coded rule mappings, raw direct `semgrep` scans, and raw JSON dumping.
 - Packages that create or change externally observable surfaces name those surfaces in Scope and
   include checks for Super Developer planning/workflow leakage. Terms such as `WP`, `work package`,
   `Slice`, `contract`, `seam`, `downstream package`, `deferred wiring`, `stub`, `placeholder`, or

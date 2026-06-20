@@ -1,11 +1,15 @@
 from __future__ import annotations
 
+import re
 import unittest
 from pathlib import Path
 
 
 PLUGIN_ROOT = Path(__file__).resolve().parents[2]
 REPO_ROOT = PLUGIN_ROOT.parents[1]
+CANONICAL_SCAN = 'python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/semgrep_rules.py" scan'
+STALE_PREF_PATH = ".superdeveloper/model-preferences.yml"
+CURRENT_PREF_PATH = ".superdeveloper/preferences.yml"
 
 
 def read_repo(path: str) -> str:
@@ -29,10 +33,24 @@ def context_window(text: str, needle: str, radius: int = 120) -> str:
 
 
 class SkillPromptSurfaceTests(unittest.TestCase):
-    def test_readmes_document_optional_local_semgrep_lifecycle(self) -> None:
-        required = [
-            ".superdeveloper/preferences.yml",
-            ".superdeveloper/model-preferences.yml",
+    def test_readmes_document_optional_local_semgrep_lifecycle_without_history(self) -> None:
+        root_text = read_repo("README.md")
+        for needle in [
+            CURRENT_PREF_PATH,
+            "disabled by default",
+            "clone",
+            "git pull --ff-only",
+            "shipped helper",
+            ".tasks/<feature>/semgrep/",
+            "advisory",
+            "read-only",
+        ]:
+            self.assertIn(needle, root_text)
+        self.assertNotIn(STALE_PREF_PATH, root_text)
+
+        plugin_text = read_repo("plugins/super-developer/README.md")
+        for needle in [
+            CURRENT_PREF_PATH,
             ".superdeveloper/semgrep/excluded-rules.yml",
             ".superdeveloper/semgrep/local-rules.yml",
             ".superdeveloper/semgrep/stack-profile.yml",
@@ -40,6 +58,8 @@ class SkillPromptSurfaceTests(unittest.TestCase):
             "clone",
             "git pull --ff-only",
             "disabled by default",
+            CANONICAL_SCAN,
+            "raw direct `semgrep` scans",
             "summarize",
             "list-findings",
             "show-finding",
@@ -51,34 +71,78 @@ class SkillPromptSurfaceTests(unittest.TestCase):
             "summary digest",
             "advisory",
             "read-only",
+        ]:
+            self.assertIn(needle, plugin_text)
+        self.assertNotIn(STALE_PREF_PATH, plugin_text)
+        self.assertNotIn("--config auto", plugin_text)
+
+    def test_action_point_references_require_wrapper_scan_and_forbid_raw_direct_semgrep(self) -> None:
+        action_point_paths = [
+            "plugins/super-developer/README.md",
+            "plugins/super-developer/references/semgrep.md",
+            "plugins/super-developer/references/tool-usage.md",
+            "plugins/super-developer/skills/implementation-plan/references/planner-agent-contract.md",
+            "plugins/super-developer/skills/implementation-plan/references/artifact-authoring.md",
+            "plugins/super-developer/skills/implementation-plan/references/validation-checklist.md",
+            "plugins/super-developer/skills/implement/references/execution-contract.md",
+            "plugins/super-developer/skills/implement/references/package-dispatch.md",
+            "plugins/super-developer/skills/implement/references/package-integration-gates.md",
+            "plugins/super-developer/skills/implement/references/package-verification.md",
+            "plugins/super-developer/skills/review-code/references/pipeline-report.md",
         ]
-        for rel in ["README.md", "plugins/super-developer/README.md"]:
-            with self.subTest(readme=rel):
-                text = read_repo(rel)
-                for needle in required:
-                    self.assertIn(needle, text)
-                self.assertRegex(text, r"old `\.superdeveloper/model-preferences\.yml`[^.]+ignored/deprecated")
-                self.assertRegex(text.lower(), r"routine scans? (must |never|do not|must not|no hidden|never hide)")
-                self.assertNotRegex(text, r"semgrep scan\s+\\")
-                self.assertNotIn("--config auto", text)
+        for rel in action_point_paths:
+            with self.subTest(path=rel):
+                self.assertIn(CANONICAL_SCAN, read_repo(rel))
+
+        raw_direct_command = re.compile(r"(?im)(?:^|[`\\s])semgrep\\s+(?:scan|ci)\\b")
+        forbidden_helper_internals = ["--config auto", "--metrics=off", "--disable-version-check"]
+        for path in prompt_surface_paths():
+            text = path.read_text(encoding="utf-8")
+            rel = path.relative_to(REPO_ROOT)
+            self.assertIsNone(raw_direct_command.search(text), rel)
+            for token in forbidden_helper_internals:
+                self.assertNotIn(token, text, rel)
+
+    def test_preference_path_contract_is_current_and_terse(self) -> None:
+        current_path_surfaces = [
+            "README.md",
+            "CHANGELOG.md",
+            "plugins/super-developer/README.md",
+            "plugins/super-developer/references/model-preferences.md",
+            "plugins/super-developer/references/semgrep.md",
+            "plugins/super-developer/skills/implementation-plan/SKILL.md",
+        ]
+        for rel in current_path_surfaces:
+            self.assertIn(CURRENT_PREF_PATH, read_repo(rel), rel)
+
+        no_history_surfaces = [
+            "README.md",
+            "CHANGELOG.md",
+            "plugins/super-developer/README.md",
+            "plugins/super-developer/references/semgrep.md",
+            "plugins/super-developer/skills/conceptualize/SKILL.md",
+            "plugins/super-developer/skills/implementation-plan/SKILL.md",
+        ]
+        for rel in no_history_surfaces:
+            self.assertNotIn(STALE_PREF_PATH, read_repo(rel), rel)
+
+        model_preferences = read_repo("plugins/super-developer/references/model-preferences.md")
+        self.assertEqual(model_preferences.count(STALE_PREF_PATH), 1)
+        stale_window = context_window(model_preferences, STALE_PREF_PATH)
+        self.assertIn("ignore", stale_window)
+        self.assertIn("do not read", stale_window)
+        self.assertNotIn("resolve/create", read_repo("plugins/super-developer/skills/implementation-plan/SKILL.md"))
 
     def test_obsolete_or_unsafe_terms_are_only_negative_guidance(self) -> None:
         for path in prompt_surface_paths():
             text = path.read_text(encoding="utf-8")
             rel = path.relative_to(REPO_ROOT)
-            if ".superdeveloper/model-preferences.yml" in text:
-                window = context_window(text, ".superdeveloper/model-preferences.yml")
-                self.assertIn("deprecated", window, rel)
-                self.assertRegex(window, r"ignor(?:e|ed)", rel)
-                if any(word in window for word in ["read", "copy", "translate", "preserve", "migrate", "bridge"]):
-                    self.assertRegex(window, r"\b(do not|does not|never|no migration|never migrated|ignored:)\b", rel)
+            if STALE_PREF_PATH in text:
+                self.assertEqual(rel.as_posix(), "plugins/super-developer/references/model-preferences.md")
             for token in [".superdeveloper/semgrep-policy.yml", "local-rule-files", "local-rules-path"]:
                 if token in text:
                     window = context_window(text, token)
                     self.assertRegex(window, r"\b(do not|no|without|reject|forbid|forbidden|never)\b", f"{rel}: {token}")
-            if path.name != "semgrep.md":
-                self.assertNotIn("--config auto", text, rel)
-                self.assertNotRegex(text, r"(?m)^\s*semgrep\s+scan\b", rel)
             for line in text.splitlines():
                 lowered = line.lower()
                 if "semgrep" in lowered and "fix-all" in lowered:
@@ -99,9 +163,9 @@ class SkillPromptSurfaceTests(unittest.TestCase):
             "semgrep-rules.git",
             ".cache/semgrep-rules/community",
             ".tasks/<feature>/semgrep/<WP-ID>.semgrep.json",
+            CANONICAL_SCAN,
             "show-finding --",
             "list-findings --",
-            "semgrep scan",
         ]
         for path in skill_paths:
             text = path.read_text(encoding="utf-8")
