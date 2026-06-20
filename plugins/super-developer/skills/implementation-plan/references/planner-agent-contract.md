@@ -40,8 +40,9 @@ Load these only as their step requires:
    If Semgrep is disabled, do not require helper setup, scans, or evidence. If enabled, detect
    impacted stacks from normal repo/package analysis, use helper `index`/`retrieve` for local config
    paths/profile refresh, never inspect `index.json` manually or hard-code curated rule mappings, and
-   add package verification expectations for helper `scan` plus bounded `summarize` → limited
-   `list-findings` → selected `show-finding` consumption. Do not run broad scans while authoring.
+   add package verification expectations for `python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/semgrep_rules.py" scan ...`
+   plus bounded `summarize` → limited `list-findings` → selected `show-finding` consumption. Do
+   not run broad scans or raw direct `semgrep` scans while authoring.
 5. Keep `tasks.json` lightweight; package Markdown owns scope, Slice/H3 assignment, primary paths,
    verification expectations, dependencies, proof path, and report path.
 6. Write files only after validation-checklist gates pass.

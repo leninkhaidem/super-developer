@@ -7,7 +7,7 @@ The format is based on Keep a Changelog.
 ## [Unreleased]
 
 ### Changed
-- Changed model preferences so first-run creation writes every supported role key under `.superdeveloper/model-preferences.yml`, with the local preference file ignored by git.
+- Changed model preferences so first-run creation writes every supported role key under `.superdeveloper/preferences.yml`, with the local preference file ignored by git.
 
 ## [v1.29.10] - 2026-06-11
 

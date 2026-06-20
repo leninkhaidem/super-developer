@@ -31,8 +31,7 @@ semgrep:
 ```
 
 Keep `.superdeveloper/preferences.yml` gitignored; it is developer-local preference, not
-repository state. The old `.superdeveloper/model-preferences.yml` path is deprecated local state
-and is intentionally ignored: do not read, copy, translate, preserve, migrate, or bridge it.
+repository state. It is the only supported preferences file.
 
 ## Model Keys
 
@@ -75,8 +74,8 @@ Adaptive defaults:
 2. Resolve role value from `models.<role>` → `models.default-model` → hardcoded `inherit`.
 3. Interpret value: `inherit` omits model, `adaptive` applies role behavior, any other value is
    passed directly.
-4. Ignore `.superdeveloper/model-preferences.yml` even when present; the greenfield preferences
-   surface has no migration, compatibility bridge, or preservation behavior.
+4. Ignore `.superdeveloper/model-preferences.yml` if present; do not read, copy, translate,
+   preserve, migrate, or bridge it.
 
 For Semgrep key meanings, local policy files, and cache/network boundaries, load `semgrep.md` only
 at the Semgrep action point.

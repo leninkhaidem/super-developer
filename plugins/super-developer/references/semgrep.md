@@ -31,10 +31,9 @@ semgrep:
 - `rules-provider: plugin-community-cache` derives rules from the installed plugin cache only.
 - `project-policy-gate: skeptic` gates local policy/rule writes through independent authority.
 
-`.superdeveloper/preferences.yml` is developer-local and gitignored. The old
-`.superdeveloper/model-preferences.yml` is deprecated local state; do not read, copy, translate,
-preserve, migrate, or bridge it. Do not add `local-rules-path`, `local-rule-files`, a project-local
-community clone path, or persistent network-sync preferences.
+`.superdeveloper/preferences.yml` is developer-local, gitignored, and the only supported
+preferences file. Unsupported preference files are ignored. Do not add `local-rules-path`,
+`local-rule-files`, a project-local community clone path, or persistent network-sync preferences.
 
 ## Local Files and Roles
 Project-local files are developer-local/gitignored by default:
@@ -70,16 +69,25 @@ alternative; do not fall back to a project-local clone.
 
 ## Helper Command Contract
 The helper asset owns `index`, `retrieve`, `scan`, `summarize`, `list-findings`, and
-`show-finding`. Agents should not manually inspect `index.json`, hand-assemble Semgrep shell
-commands, or read raw Semgrep JSON wholesale.
+`show-finding`. Agents must not run raw direct `semgrep` scans, manually inspect `index.json`,
+hand-assemble Semgrep shell commands, or read raw Semgrep JSON wholesale.
 
-`scan` must build structured argv and enforce:
-- `semgrep scan`, `--metrics=off`, `--disable-version-check`, `--json`, and local output paths;
-- only local filesystem `--config` values from `stack-profile.yml` plus baked-in
-  `.superdeveloper/semgrep/local-rules.yml` when it exists;
-- rejection of `auto`, `p/...`, `r/...`, URL configs, `semgrep ci`, cloud/AppSec/CI/Pro modes,
-  and secrets-validation network behavior;
-- expansion of each safe `excluded-rules[].id` into one `--exclude-rule <RULE_ID>` argument.
+Canonical package scan wrapper:
+
+```bash
+python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/semgrep_rules.py" scan \
+  --profile ".superdeveloper/semgrep/stack-profile.yml" \
+  --excluded-rules ".superdeveloper/semgrep/excluded-rules.yml" \
+  --local-rules ".superdeveloper/semgrep/local-rules.yml" \
+  --target "<package-worktree-or-scope>" \
+  --json-output ".tasks/<feature>/semgrep/<WP-ID>.semgrep.json" \
+  --summary-output ".tasks/<feature>/semgrep/<WP-ID>.semgrep-summary.json"
+```
+
+Integrated or affected-scope rerun scans use the same wrapper; change only the target and output
+stem, for example `integration.semgrep.json` plus `integration.semgrep-summary.json`. The wrapper
+enforces local config paths, telemetry/version-check suppression, registry/URL/cloud rejection,
+structured arguments, safe excluded-rule expansion, and bounded summary creation.
 
 Normal consumption order is `summarize`, then filtered/limited `list-findings`, then
 `show-finding` only for selected stable local finding refs.

@@ -28,7 +28,11 @@ raw-plus-summary evidence is an evidence blocker; Semgrep findings themselves re
 reviewer/skeptic authority confirms material risk. Route to narrow follow-up, proof refresh, focused
 package verification, or bounded widening. Do not defer blockers to audit while claiming ready.
 
-Use helper `summarize`, filtered/limited `list-findings`, and selected `show-finding` for Semgrep context; never dump raw JSON. Use package-level `../../../references/package-lifecycle.md` only when proof/report freshness or non-bypass routing is disputed.
+If Semgrep evidence must be refreshed, scan only through
+`python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/semgrep_rules.py" scan ...`; raw direct `semgrep`
+scans are invalid. Use helper `summarize`, filtered/limited `list-findings`, and selected
+`show-finding` for Semgrep context; never dump raw JSON. Use package-level
+`../../../references/package-lifecycle.md` only when proof/report freshness or non-bypass routing is disputed.
 
 ## Report and Verdict
 
@@ -108,8 +112,8 @@ suggestion cleanup, update affected proof Markdown only after verified closure, 
 After Fix Verification closes the batch with no serious regression or unresolved trigger: refresh
 affected proof and Semgrep evidence, run `sliceproof.py validate-proof` for dirty packages, rerun
 focused package verification when stale/failed/pre-repair/affected, require fresh `PASS` reports
-before audit handoff, refresh state. Semgrep reruns are affected-scope only and cannot widen/fix/rescan
-without a named surface.
+before audit handoff, refresh state. Semgrep reruns use the same helper wrapper, are affected-scope
+only, and cannot widen/fix/rescan without a named surface.
 
 If any finding remains non-closed, a serious regression appears, a trigger fires, or lineage is stale, update state and route to targeted surface verification,
 package/seam review, focused package verification, specialist review, stronger fix agent, semantic split, or user authority. Full rereview only when surfaces

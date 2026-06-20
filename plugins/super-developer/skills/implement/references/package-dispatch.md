@@ -77,7 +77,10 @@ For every package, repair, or verifier prompt:
 - pass project instructions such as `CLAUDE.md` or `AGENTS.md` when present;
 - omit model selection unless a local model-preference override was intentionally resolved;
 - include the Slice Authority Kernel below when assigned Slices exist.
-- include resolved Semgrep state; when enabled/contracted, name helper-only scan/consumption commands and expected `.tasks/<feature>/semgrep/` raw/summary paths, digests, scan scope, and advisory finding summary fields.
+- include resolved Semgrep state; when enabled/contracted, name the helper-only scan wrapper
+  `python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/semgrep_rules.py" scan ...`, bounded
+  consumption commands, expected `.tasks/<feature>/semgrep/` raw/summary paths, digests,
+  scan scope, and advisory finding summary fields; forbid raw direct `semgrep` scans.
 
 Slice paths must be screened before inclusion: reject absolute paths, drive-qualified paths, `~`, shell expansion, empty segments, `..`, duplicate normalized paths, symlink escapes, missing files, unreadable files, paths outside the selected workspace, or multiple concept workspaces.
 
@@ -97,7 +100,10 @@ Each package-agent prompt includes:
 - Work package ID, package Markdown path, proof path, package verification report path, worktree path, and branch name.
 - Safe resolved Slice read paths when package worktrees lack ignored `.planning/` files.
 - Package verification expectations and safe screened commands; list broad/expensive integration/final checks separately.
-- Semgrep state: disabled means no scan/evidence requirement; enabled means use helper `retrieve`/`scan`/`summarize`/filtered `list-findings`/selected `show-finding`, never raw JSON dumps, and preserve advisory severity without self-suppressing findings.
+- Semgrep state: disabled means no scan/evidence requirement; enabled means use helper `retrieve`
+  and the scan wrapper `python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/semgrep_rules.py" scan ...`,
+  then `summarize`/filtered `list-findings`/selected `show-finding`; never run raw direct
+  `semgrep` scans, never dump raw JSON, and preserve advisory severity without self-suppressing findings.
 - Mandatory self-review instruction: fix self-found issues or report exact blockers, then include the compact `SELF_REVIEW` block required by `package-agent-contract.md`.
 
 Also include this compact instruction:
