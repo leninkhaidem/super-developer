@@ -21,8 +21,9 @@
 5. Complete faithful additive Slice fixes as routine capture. Pause for user input only when a fix
    must resolve ambiguity, accept risk, narrow/remove/defer scope, contradict existing Slice content,
    or turn an unaccepted recommendation into a requirement.
-6. Return the compact handoff; do not perform planning. Any planning transition is handled by the
-   parent Conceptualize skill via fresh Skill-tool/sub-agent invocation, never inline.
+6. Return the compact handoff; do not perform planning. If the user proceeds, the parent/main
+   planning transition resolves `.superdeveloper/preferences.yml`, handles Semgrep opt-in/setup,
+   and passes resolved Semgrep state before invoking `implementation-plan`.
 
 ## Handoff Format
 
@@ -40,7 +41,7 @@ Planning Handoff:
 - <highest-signal requirements, constraints, risks, non-goals, and H3 pointers when useful>
 Planning Blockers:
 - <only unresolved blockers or `None.`>
-Next: ask to create an implementation plan for <deliverable> when ready.
+Next: create an implementation plan for <deliverable> after parent/main preference and Semgrep-state resolution.
 ```
 
 ## Fail Closed When
