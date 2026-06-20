@@ -139,6 +139,20 @@ def _repo_root_from_arg(value: str | None) -> Path:
     return root
 
 
+def _expected_plugin_root() -> Path:
+    configured = os.environ.get("SUPER_DEVELOPER_PLUGIN_ROOT")
+    root = Path(configured).expanduser() if configured and configured.strip() else Path(__file__).resolve().parents[1]
+    return root.resolve(strict=False)
+
+
+def _expected_rules_root() -> Path:
+    return (_expected_plugin_root() / ".cache" / "semgrep-rules" / "community").resolve(strict=False)
+
+
+def _expected_index_path() -> Path:
+    return (_expected_plugin_root() / ".cache" / "semgrep-rules" / "index.json").resolve(strict=False)
+
+
 def _reject_path_traversal(path: Path, label: str) -> None:
     if any(part == ".." for part in path.parts):
         raise HelperError(f"{label} must not contain '..' traversal")
@@ -545,10 +559,20 @@ def _validate_profile_freshness(profile: dict[str, Any]) -> set[Path]:
         raise HelperError("stack profile is missing rules-index.index-path")
     if not isinstance(rules_root_text, str) or not rules_root_text:
         raise HelperError("stack profile is missing rules-index.rules-root")
+    expected_root = _expected_rules_root()
+    expected_index = _expected_index_path()
     index_path = Path(index_path_text).expanduser().resolve(strict=False)
+    rules_root = Path(rules_root_text).expanduser().resolve(strict=False)
+    if rules_root != expected_root:
+        raise HelperError("stack profile rules root must match the shared plugin Semgrep rules cache")
+    if index_path != expected_index:
+        raise HelperError("stack profile index path must match the shared plugin Semgrep rules cache")
     if not index_path.is_file():
         raise HelperError("stack profile points at a missing rules index")
-    rules_root = Path(rules_root_text).expanduser().resolve(strict=True)
+    try:
+        rules_root = rules_root.resolve(strict=True)
+    except FileNotFoundError as exc:
+        raise HelperError("stack profile points at a missing shared plugin rules root") from exc
     index = _load_index(index_path)
     _validate_index_current(index, rules_root)
     stored = index.get("freshness") if isinstance(index.get("freshness"), dict) else {}
@@ -987,29 +1011,40 @@ def command_list_findings(args: argparse.Namespace) -> int:
     return 0
 
 
-def _resolve_context_file(finding_path: str, *, target: Path) -> Path:
+def _resolve_context_file(finding_path: str, *, repo_root: Path, target: Path) -> Path:
     if not finding_path:
         raise HelperError("finding path is empty; cannot read context")
     raw = Path(finding_path)
     _reject_path_traversal(raw, "finding path")
-    if raw.is_absolute():
-        resolved = raw.resolve(strict=True)
-    else:
-        resolved = (target / raw).resolve(strict=True)
-    if not is_relative_to(resolved, target):
+    candidates = [raw] if raw.is_absolute() else [repo_root / raw, target / raw]
+    saw_escape = False
+    saw_non_file = False
+    for candidate in candidates:
+        try:
+            resolved = candidate.resolve(strict=True)
+        except FileNotFoundError:
+            continue
+        if not is_relative_to(resolved, target):
+            saw_escape = True
+            continue
+        if not resolved.is_file():
+            saw_non_file = True
+            continue
+        if resolved.stat().st_size > MAX_RAW_BYTES:
+            raise HelperError("finding context file is too large")
+        return resolved
+    if saw_escape:
         raise HelperError("finding context path escapes the scan target")
-    if not resolved.is_file():
+    if saw_non_file:
         raise HelperError("finding context path is not a file")
-    if resolved.stat().st_size > MAX_RAW_BYTES:
-        raise HelperError("finding context file is too large")
-    return resolved
+    raise HelperError("finding context path does not exist under the scan target")
 
 
-def _context_excerpt(finding: dict[str, Any], *, target: Path, context_lines: int) -> list[dict[str, Any]]:
+def _context_excerpt(finding: dict[str, Any], *, repo_root: Path, target: Path, context_lines: int) -> list[dict[str, Any]]:
     if context_lines <= 0:
         return []
     context_lines = min(context_lines, MAX_CONTEXT_LINES)
-    source = _resolve_context_file(finding["path"], target=target)
+    source = _resolve_context_file(finding["path"], repo_root=repo_root, target=target)
     lines = source.read_text(encoding="utf-8", errors="replace").splitlines()
     line_no = max(1, int(finding.get("line") or 1))
     start = max(1, line_no - context_lines)
@@ -1067,7 +1102,7 @@ def command_show_finding(args: argparse.Namespace) -> int:
     context: list[dict[str, Any]] = []
     if args.context_lines > 0:
         target = _target_for_show(args, repo_root=repo_root, summary=summary)
-        context = _context_excerpt(finding, target=target, context_lines=args.context_lines)
+        context = _context_excerpt(finding, repo_root=repo_root, target=target, context_lines=args.context_lines)
     elif args.target:
         _validate_target(args.target, repo_root=repo_root)
     detail = {
