@@ -313,6 +313,35 @@ class SemgrepRulesTest(unittest.TestCase):
         self.assertTrue(integration_raw.exists())
         self.assertEqual(json.loads(integration_summary.read_text(encoding="utf-8"))["result_count"], 0)
 
+    def test_scan_rejects_empty_local_rules_argument_instead_of_suppressing_default(self) -> None:
+        self.fixture.write_rule("python/rule.yml")
+        self.fixture.index()
+        profile = self.fixture.retrieve("python")
+        local_rules = self.fixture.repo / ".superdeveloper" / "semgrep" / "local-rules.yml"
+        local_rules.write_text(
+            "rules:\n  - id: project.python.local\n    pattern: $X\n    message: local\n    languages: [python]\n    severity: ERROR\n",
+            encoding="utf-8",
+        )
+
+        raw, summary = self.fixture.evidence_paths("WP2")
+        default_fake = FakeSemgrepRunner()
+        code, _stdout, stderr = self.fixture.run(self.fixture.scan_argv(profile, raw, summary), runner=default_fake)
+        self.assertEqual(code, 0, stderr)
+        self.assertIn(str(local_rules.resolve()), default_fake.calls[0]["argv"])
+
+        blank_raw, blank_summary = self.fixture.evidence_paths("WP3")
+        blank_fake = FakeSemgrepRunner()
+        code, stdout, stderr = self.fixture.run(
+            self.fixture.scan_argv(profile, blank_raw, blank_summary, "--local-rules", ""),
+            runner=blank_fake,
+        )
+        self.assertNotEqual(code, 0)
+        self.assertEqual("", stdout)
+        self.assertIn("local rules path must not be empty", stderr)
+        self.assertEqual([], blank_fake.calls)
+        self.assertFalse(blank_raw.exists())
+        self.assertFalse(blank_summary.exists())
+
     def test_scan_rejects_registry_url_relative_missing_and_shell_like_configs(self) -> None:
         self.fixture.write_rule("python/rule.yml")
         self.fixture.index()

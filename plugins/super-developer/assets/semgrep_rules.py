@@ -925,7 +925,10 @@ def command_scan(args: argparse.Namespace, *, runner: Callable[..., subprocess.C
         if resolved_config not in allowed_profile_configs:
             raise HelperError("profile config is not in the current rules index; rerun retrieve")
         configs.append(resolved_config)
-    local_rules_path = _resolve_optional_project_path(args.local_rules, repo_root=repo_root, label="local rules") if args.local_rules else None
+    local_rules_value = args.local_rules
+    if local_rules_value is not None and not local_rules_value.strip():
+        raise HelperError("local rules path must not be empty; omit --local-rules or use .superdeveloper/semgrep/local-rules.yml")
+    local_rules_path = _resolve_optional_project_path(local_rules_value, repo_root=repo_root, label="local rules") if local_rules_value else None
     local_rules_path = _validate_local_rules_path(local_rules_path, repo_root=repo_root)
     local_rules = _validate_local_rules(local_rules_path)
     if local_rules is not None:
