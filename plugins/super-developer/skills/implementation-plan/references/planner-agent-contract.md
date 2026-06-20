@@ -41,7 +41,8 @@ Load these only as their step requires:
    impacted stacks from normal repo/package analysis, use helper `index`/`retrieve` for local config
    paths/profile refresh, never inspect `index.json` manually or hard-code curated rule mappings, and
    add package verification expectations for `python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/semgrep_rules.py" scan ...`
-   plus bounded `summarize` → limited `list-findings` → selected `show-finding` consumption. Do
+   plus bounded `summarize` → limited `list-findings` → selected `show-finding` consumption
+   (target plus expected summary digest for excerpts). Do
    not run broad scans or raw direct `semgrep` scans while authoring.
 5. Keep `tasks.json` lightweight; package Markdown owns scope, Slice/H3 assignment, primary paths,
    verification expectations, dependencies, proof path, and report path.

@@ -113,6 +113,8 @@ Agents use the wrapper for all Semgrep work: `index`, `retrieve`, `scan`, `summa
 `python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/semgrep_rules.py" scan ...`; agents never run raw direct `semgrep` scans. They do not inspect `index.json` manually, hand-assemble Semgrep shell
 commands, or dump/read raw Semgrep JSON. Normal finding consumption is bounded: `summarize` first,
 filtered/limited `list-findings` second, and selected `show-finding` only for stable local refs.
+`show-finding` code excerpts require `--target <scan-scope>` and
+`--expected-summary-digest <summary_digest>` from recorded summary evidence.
 
 ### Evidence, freshness, and findings
 

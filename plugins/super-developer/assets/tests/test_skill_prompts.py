@@ -63,6 +63,7 @@ class SkillPromptSurfaceTests(unittest.TestCase):
             "summarize",
             "list-findings",
             "show-finding",
+            "--expected-summary-digest",
             ".tasks/<feature>/semgrep/<WP-ID>.semgrep.json",
             ".tasks/<feature>/semgrep/<WP-ID>.semgrep-summary.json",
             ".tasks/<feature>/semgrep/integration.semgrep.json",
@@ -93,6 +94,9 @@ class SkillPromptSurfaceTests(unittest.TestCase):
         for rel in action_point_paths:
             with self.subTest(path=rel):
                 self.assertIn(CANONICAL_SCAN, read_repo(rel))
+        for rel in ["plugins/super-developer/README.md", "plugins/super-developer/references/semgrep.md"]:
+            with self.subTest(path=rel, option="expected-summary-digest"):
+                self.assertIn("--expected-summary-digest", read_repo(rel))
 
         raw_direct_command = re.compile(r"(?im)(?:^|[`\\s])semgrep\\s+(?:scan|ci)\\b")
         forbidden_helper_internals = ["--config auto", "--metrics=off", "--disable-version-check"]

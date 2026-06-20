@@ -31,7 +31,8 @@ package verification, or bounded widening. Do not defer blockers to audit while 
 If Semgrep evidence must be refreshed, scan only through
 `python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/semgrep_rules.py" scan ...`; raw direct `semgrep`
 scans are invalid. Use helper `summarize`, filtered/limited `list-findings`, and selected
-`show-finding` for Semgrep context; never dump raw JSON. Use package-level
+`show-finding` for Semgrep context; code excerpts require `--target <scan-scope>` plus
+`--expected-summary-digest <summary_digest>`. Never dump raw JSON. Use package-level
 `../../../references/package-lifecycle.md` only when proof/report freshness or non-bypass routing is disputed.
 
 ## Report and Verdict
