@@ -32,6 +32,30 @@ Cross-role consumers rely on these durable authoring invariants:
 - `## Source References` is optional and cites useful repo paths, commands, URLs, artifacts, or approved user statements;
 - planning-relevant questions must be resolved or explicitly deferred/out of scope by user decision before implementation planning.
 
+## Interface Contracts
+
+A material H3 is *interface-bearing* when a reasonable implementation could satisfy its words and still be wrong (wrong command, API, flag, path, config key, output, or lifecycle trigger). Apply one test per material H3:
+
+> Could a reasonable implementation satisfy these words and still be wrong?
+
+`Yes` captures an inline interface contract inside that H3; the block's presence is the marker, with no separate flag. `No` stays prose — do not force contracts onto pure design, UX, or data-shape intent.
+
+Author the contract inside the H3 with these exact labels so every downstream consumer parses it identically:
+
+```md
+**Interface contract**
+- Must exist: <concrete obligation>
+- Consumer: <agent role, user, or component that invokes it>
+- Exact interface: <command shape, API/function, flag, path, config key, output path, lifecycle trigger, or ownership boundary — whichever apply>
+- Forbidden behaviors: <explicit negative constraints>
+- Expected evidence: <what proof should cite>
+- Non-compliance: <what counts as a violation>
+```
+
+`Forbidden behaviors` is mandatory: a negative cannot be confirmed, only falsified, so it must be stated for verification and audit to hunt against code. Fill only applicable fields; aim for an exact checkable obligation, not a padded form. Example: an H3 requiring a `--dry-run` flag pins the exact spelling `--dry-run` with no side effects, and forbids aliases like `--dryrun`, positional substitutes, or executing while reporting dry-run.
+
+Verification and audit classify each interface-bearing H3's fulfillment with one exactness verdict: **exact** (interface and forbidden behaviors fully honored), **ambiguous** (wording still admits a wrong-but-honest implementation), **partial** (contract not fully met), **contradicted** (a forbidden behavior present or the interface diverged), or **over-broad** (does more than authorized). Only `exact` is sufficient; the rest are findings.
+
 ## Full Inventory
 
 Before writing or reviewing a plan, inventory every Markdown Slice in the selected workspace's `slices/` directory after path checks. Do not rely only on Index listings, user mentions, package assignments, or copied excerpts.
