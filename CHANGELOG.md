@@ -6,8 +6,11 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [v1.30.0] - 2026-06-21
+
 ### Added
 - Added optional privacy-first Semgrep validation for Super Developer workflows, using local helper-owned scans, task-scoped raw/summary evidence, and bounded finding views instead of raw JSON prompt dumps.
+- Added falsifiable interface contracts to the planned-feature workflow: interface-bearing requirements are captured as exact, checkable obligations with explicit forbidden behaviors during conceptualization, carried through planning, and actively falsified at package verification and final audit, so vague requirements can no longer pass review while implemented incorrectly.
 
 ### Changed
 - Changed model preferences so first-run creation writes every supported role key under `.superdeveloper/preferences.yml`, with the local preference file ignored by git.
