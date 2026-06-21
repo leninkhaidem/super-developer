@@ -215,6 +215,31 @@ class SkillPromptSurfaceTests(unittest.TestCase):
         for workflow_word in ["proof", "package verification", "Slice", "planning", "staging"]:
             self.assertNotIn(workflow_word, summary_region)
 
+    def test_interface_contract_thread_is_present_and_consistent(self) -> None:
+        authority = read_repo("plugins/super-developer/references/conceptualize-slice-authority.md")
+        for needle in [
+            "**Interface contract**",
+            "Forbidden behaviors",
+            "ambiguous",
+            "contradicted",
+            "over-broad",
+        ]:
+            self.assertIn(needle, authority, "conceptualize-slice-authority.md")
+
+        for rel in [
+            "plugins/super-developer/skills/conceptualize/references/slice-template.md",
+            "plugins/super-developer/skills/implementation-plan/references/conceptualize-inputs.md",
+            "plugins/super-developer/skills/review-plan/references/plan-review-rubrics.md",
+            "plugins/super-developer/skills/implement/references/package-verification.md",
+            "plugins/super-developer/skills/implement/references/repair-agent-contract.md",
+            "plugins/super-developer/skills/audit/references/audit-subagent-contract.md",
+        ]:
+            self.assertIn("Interface contract", read_repo(rel), rel)
+
+        self.assertIn("Forbidden behaviors", read_repo("plugins/super-developer/skills/implement/references/package-verification.md"))
+        self.assertIn("[INTERFACE-EXACTNESS]", read_repo("plugins/super-developer/skills/audit/references/audit-subagent-contract.md"))
+        self.assertIn("interface-contract seams", read_repo("plugins/super-developer/skills/review-code/references/pipeline-report.md"))
+
 
 if __name__ == "__main__":
     unittest.main()

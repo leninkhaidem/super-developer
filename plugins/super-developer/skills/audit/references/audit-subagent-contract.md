@@ -61,7 +61,8 @@ For each proof Markdown, verify every assigned `Must satisfy` H3 has a closure r
 for `DEFERRED`/`N/A`; evidence, acceptance closure, commands, inspected files, and completion statement are concrete;
 no unresolved `TODO`, `OPEN`, `GAP`, placeholder, contradiction, or unsupported status remains.
 
-Mechanical validation is necessary, never sufficient. Judge evidence sufficiency.
+Mechanical validation is necessary, never sufficient: judge evidence sufficiency, and for each interface-bearing H3 (carrying an `Interface contract`) disprove exact fulfillment
+and assign an exactness verdict per the authority reference, failing any non-`exact` result as `[INTERFACE-EXACTNESS]`.
 
 ### 4. Package Verification Reports
 
@@ -95,7 +96,7 @@ security/privacy/safety requirements, and accepted tradeoffs.
 
 Use concise categories: `[SLICE-GAP]`, `[UNASSIGNED-SLICE]`, `[PROOF-GAP]`,
 `[PROOF-CONTRADICTION]`, `[PACKAGE-VERIFY]`, `[SEMGREP-EVIDENCE]`, `[REVIEW-CONTEXT]`,
-`[IMPLEMENTATION-GAP]`, `[INTEGRATION-GAP]`, `[UNAPPROVED-DEFERRAL]`,
+`[IMPLEMENTATION-GAP]`, `[INTEGRATION-GAP]`, `[INTERFACE-EXACTNESS]`, `[UNAPPROVED-DEFERRAL]`,
 `[UNRESOLVED-QUESTION]`, `[QUALITY-BLOCKER]`, `[CONTROL-PLANE]`, `[ADVISORY]`.
 Advisory items block only when they expose a real completion or safety issue.
 

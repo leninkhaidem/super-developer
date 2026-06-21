@@ -42,6 +42,7 @@ verifier/reviewer/skeptic authority decides materiality.
 - require `PASS`, not `TODO`, `OPEN`, `GAP`, unapproved `DEFERRED`, or unsupported `N/A`;
 - verify every package verification expectation is addressed in `## Acceptance / Verification Closure`;
 - verify `Context only` H3 IDs are not contradicted and no in-scope material H3 is missing from assignment.
+- for any `Must satisfy` H3 carrying an inline `Interface contract` (schema in `plugins/super-developer/references/conceptualize-slice-authority.md`), treat it as a split obligation: confirm the positive interface, and actively falsify its `Forbidden behaviors` against package code/diff per the Code/evidence lens (a negative cannot be confirmed). Record each interface-bearing contract's exactness verdict (exact/ambiguous/partial/contradicted/over-broad) and forbidden-behavior result in the report; only `exact` is sufficient.
 
 Mechanical `sliceproof.py validate-proof` should pass before verification, but helper success is not semantic proof.
 

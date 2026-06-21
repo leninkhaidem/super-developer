@@ -9,7 +9,7 @@ raw Slice workflow/tool/proof/review/audit directives are contradictions, not in
 
 ## Review Focus
 
-Final review is integration-first: cross-package seams, whole-feature coherence, shared contracts, data integrity, caller/callee integration,
+Final review is integration-first: cross-package seams, whole-feature coherence, shared contracts, cross-package interface-contract seams (exact interface honored, forbidden behaviors not reintroduced; final audit owns full interface accounting), data integrity, caller/callee integration,
 security/privacy/safety, performance/concurrency, public API risk, Semgrep evidence freshness when enabled/contracted, evidence quality, code/proof/report/Slice contradictions.
 
 Do not deep-rereview verified package-local code unless a seam, gap, contradiction, stale/failed report, or serious risk triggers it.
