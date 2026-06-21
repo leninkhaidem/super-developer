@@ -65,6 +65,8 @@ concise `Contract`/`Do`/`Stop if` sections when useful. No hidden second-hop ref
 - Do not create refs for severity labels, report skeletons, generic routing, or tiny pre-choice rules.
 - Mode setup and actions usually belong together unless actions are rare and large.
 - Optimize for what the invoking agent actually loads, not only for a small `SKILL.md`.
+- Restate a safety-critical command, prohibition, or path at each lazily-loaded action point;
+  locality there outranks deduplication, since the agent may not have loaded the shared reference.
 
 ## Always
 
