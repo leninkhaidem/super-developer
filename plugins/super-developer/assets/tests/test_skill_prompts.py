@@ -133,10 +133,7 @@ class SkillPromptSurfaceTests(unittest.TestCase):
             self.assertNotIn(STALE_PREF_PATH, read_repo(rel), rel)
 
         model_preferences = read_repo("plugins/super-developer/references/model-preferences.md")
-        self.assertEqual(model_preferences.count(STALE_PREF_PATH), 1)
-        stale_window = context_window(model_preferences, STALE_PREF_PATH)
-        self.assertIn("ignore", stale_window)
-        self.assertIn("do not read", stale_window)
+        self.assertNotIn(STALE_PREF_PATH, model_preferences)
         self.assertNotIn("resolve/create", read_repo("plugins/super-developer/skills/implementation-plan/SKILL.md"))
 
     def test_conceptualize_handoff_resolves_semgrep_before_plan_skill(self) -> None:
@@ -165,7 +162,7 @@ class SkillPromptSurfaceTests(unittest.TestCase):
             text = path.read_text(encoding="utf-8")
             rel = path.relative_to(REPO_ROOT)
             if STALE_PREF_PATH in text:
-                self.assertEqual(rel.as_posix(), "plugins/super-developer/references/model-preferences.md")
+                self.fail(f"{rel}: greenfield harness must not reference legacy {STALE_PREF_PATH}")
             for token in [".superdeveloper/semgrep-policy.yml", "local-rule-files", "local-rules-path"]:
                 if token in text:
                     window = context_window(text, token)

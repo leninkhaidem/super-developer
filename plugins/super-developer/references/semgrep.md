@@ -31,9 +31,8 @@ semgrep:
 - `rules-provider: plugin-community-cache` derives rules from the installed plugin cache only.
 - `project-policy-gate: skeptic` gates local policy/rule writes through independent authority.
 
-`.superdeveloper/preferences.yml` is developer-local, gitignored, and the only supported
-preferences file. Unsupported preference files are ignored. Do not add `local-rules-path`,
-`local-rule-files`, a project-local community clone path, or persistent network-sync preferences.
+Unsupported preference files are ignored. Do not add `local-rules-path`, `local-rule-files`, a
+project-local community clone path, or persistent network-sync preferences.
 
 ## Local Files and Roles
 Project-local files are developer-local/gitignored by default:
@@ -86,8 +85,8 @@ python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/semgrep_rules.py" scan \
 
 Integrated or affected-scope rerun scans use the same wrapper; change only the target and output
 stem, for example `integration.semgrep.json` plus `integration.semgrep-summary.json`. The wrapper
-enforces local config paths, telemetry/version-check suppression, registry/URL/cloud rejection,
-structured arguments, safe excluded-rule expansion, and bounded summary creation.
+enforces local config paths, the `privacy-mode` contract above, structured arguments, safe
+excluded-rule expansion, and bounded summary creation.
 
 Normal consumption order is `summarize`, then filtered/limited `list-findings`, then
 `show-finding` only for selected stable local finding refs. Use `show-finding --context-lines 0`
@@ -126,8 +125,8 @@ Policy/rule update authority:
   explicit risk acceptance, or a serious review finding.
 
 ## Stack Profile
-`.superdeveloper/semgrep/stack-profile.yml` is a machine-local absolute-path lookup table, not an
-evidence or confidence report:
+`.superdeveloper/semgrep/stack-profile.yml` (defined above) is a path lookup table, not an evidence
+or confidence report:
 
 ```yaml
 version: 1

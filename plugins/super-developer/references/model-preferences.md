@@ -62,8 +62,6 @@ Adaptive defaults:
 2. Resolve role value from `models.<role>` → `models.default-model` → hardcoded `inherit`.
 3. Interpret value: `inherit` omits model, `adaptive` applies role behavior, any other value is
    passed directly.
-4. Ignore `.superdeveloper/model-preferences.yml` if present; do not read, copy, translate,
-   preserve, migrate, or bridge it.
 
 For Semgrep key meanings, local policy files, and cache/network boundaries, load `semgrep.md` only
 at the Semgrep action point.
