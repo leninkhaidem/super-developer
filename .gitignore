@@ -5,8 +5,11 @@
 __pycache__/
 *.pyc
 .worktrees/
+# Task-store artifacts, including Semgrep evidence under .tasks/<feature>/semgrep/
+.tasks/*/semgrep/
 .tasks/
-# Local Super Developer model preferences
+# Local Super Developer preferences and Semgrep state
 .claude/model-preferences.yml
-.superdeveloper/model-preferences.yml
+.superdeveloper/preferences.yml
+.superdeveloper/semgrep/
 .planning/

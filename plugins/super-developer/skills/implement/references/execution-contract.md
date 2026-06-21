@@ -23,8 +23,9 @@ This reference owns the user-facing implement approval template and its approval
 2. Name the exact base ref, feature ref, target ref, package refs/worktrees, proof paths, report paths,
    and default-covered feature-push command.
 3. For each package, summarize assigned Slice obligations, primary paths, dependencies, verification expectations,
-   package verification depth, and known blockers.
-4. List command-safety boundaries and all actions that are not authorized by this contract.
+   package verification depth, Semgrep evidence expectations when enabled/contracted, and known blockers.
+4. Disclose resolved Semgrep state, privacy/local rule source, helper checks, evidence paths/digests, bounded consumption order, advisory finding policy, and unapproved side effects.
+5. List command-safety boundaries and all actions that are not authorized by this contract.
 5. Offer exactly three choices: `approve auto-resolve`, `step-by-step`, or `abort`.
 6. Stop unless the user approves one choice or prior explicit instruction already selected one.
 
@@ -47,6 +48,15 @@ Worktrees:
   integration: .worktrees/<feature>/merge on feature/<feature>
   packages:
     - <WP-ID>: .worktrees/<feature>/wp-<WP-ID> on wp/<feature>/<WP-ID>
+
+Semgrep:
+  state: <disabled | enabled with privacy-mode from .superdeveloper/preferences.yml>
+  local rule source/cache: <plugin community cache/index/profile or none>
+  helper checks: <none when disabled | retrieve plus python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/semgrep_rules.py" scan ... then summarize/list-findings/show-finding>
+  package evidence: .tasks/<feature>/semgrep/<WP-ID>.semgrep.json + .semgrep-summary.json with digests when enabled
+  integrated evidence: <not planned | conditional one-shot for named cross-package/shared-surface risk>
+  consumption/materiality: summarize -> filtered list-findings -> selected show-finding (target + expected summary digest for excerpts); raw JSON dumps forbidden; Semgrep severity advisory by default
+  side effects not authorized here: hidden registry/URL/cloud/telemetry scans, dependency installs, credentials, or network clone/pull unless separately listed and approved
 
 Packages:
 - <WP-ID>: <title>

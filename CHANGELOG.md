@@ -6,8 +6,13 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+### Added
+- Added optional privacy-first Semgrep validation for Super Developer workflows, using local helper-owned scans, task-scoped raw/summary evidence, and bounded finding views instead of raw JSON prompt dumps.
+
 ### Changed
-- Changed model preferences so first-run creation writes every supported role key under `.superdeveloper/model-preferences.yml`, with the local preference file ignored by git.
+- Changed model preferences so first-run creation writes every supported role key under `.superdeveloper/preferences.yml`, with the local preference file ignored by git.
+- Changed planned-feature planning, implementation, review, and audit guidance so Semgrep opt-in, helper-only scans, advisory findings, and evidence freshness are handled through explicit local contracts.
+- Changed skill-authoring guidance to reduce duplicate facts and file-role restatements while preserving safety-critical command/path repetition at lazy action points.
 
 ## [v1.29.10] - 2026-06-11
 

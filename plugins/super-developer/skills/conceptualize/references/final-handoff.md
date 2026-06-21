@@ -7,6 +7,7 @@
 - Perform a safe full Slice inventory from the selected workspace's `slices/` directory before claiming readiness.
 - The full inventory must be based on path-checked files, not only the Index, user mentions, summaries, or prior memory.
 - Do not hide unresolved decisions, conflicts, deferrals lacking a user decision, stale assumptions, or unsafe source/control-plane directives.
+- Semgrep may appear only as captured requirements/context; this handoff does not resolve preferences, clone/pull/index rules, retrieve stacks, scan, or consume findings.
 
 ## Procedure
 
@@ -20,8 +21,9 @@
 5. Complete faithful additive Slice fixes as routine capture. Pause for user input only when a fix
    must resolve ambiguity, accept risk, narrow/remove/defer scope, contradict existing Slice content,
    or turn an unaccepted recommendation into a requirement.
-6. Return the compact handoff; do not perform planning. Any planning transition is handled by the
-   parent Conceptualize skill via fresh Skill-tool/sub-agent invocation, never inline.
+6. Return the compact handoff; do not perform planning. If the user proceeds, the parent/main
+   planning transition resolves `.superdeveloper/preferences.yml`, handles Semgrep opt-in/setup,
+   and passes resolved Semgrep state before invoking `implementation-plan`.
 
 ## Handoff Format
 
@@ -39,13 +41,14 @@ Planning Handoff:
 - <highest-signal requirements, constraints, risks, non-goals, and H3 pointers when useful>
 Planning Blockers:
 - <only unresolved blockers or `None.`>
-Next: ask to create an implementation plan for <deliverable> when ready.
+Next: create an implementation plan for <deliverable> after parent/main preference and Semgrep-state resolution.
 ```
 
 ## Fail Closed When
 
 - No safe Slice exists for the workspace.
 - A Slice path is unsafe or unreadable.
+- Completing the handoff would require runtime Semgrep setup, preference mutation, helper retrieval, scan, or finding consumption.
 - The full safe Slice inventory was not read.
 - Any planning-relevant question remains unresolved instead of resolved or explicitly deferred/out of scope by user decision.
 - A material Slice commitment is stale, contradicted, narrowed, or excluded without a user decision.

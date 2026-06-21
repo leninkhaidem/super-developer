@@ -40,6 +40,12 @@ rules are required; do not preload references merely because they are named.
   `../../references/clean-code-rules.md` during package shaping, projects only material implications
   into existing SPEC/package fields, and never creates standalone clean-code proof/report artifacts.
 - Validate returned artifacts before presenting success.
+- Semgrep opt-in is a user-facing planning-orchestrator boundary: use parent-resolved state when
+  supplied and do not reopen opt-in. Only when no resolved Semgrep state is supplied, treat this as
+  direct invocation and resolve `.superdeveloper/preferences.yml` before planner-agent dispatch.
+  Disabled means no helper setup, scan evidence, or internet is required.
+- Semgrep setup is optional and action-point-loaded: use `../../references/semgrep.md` only to
+  disclose/approve clone or fast-forward pull side effects, then keep artifact authoring scan-free.
 
 ## Do
 
@@ -50,13 +56,19 @@ rules are required; do not preload references merely because they are named.
    unapproved overwrite of `.tasks/<feature>/`, or a required spike/risk acceptance.
 3. If empirical evidence is required before planning, stop artifact writing and invoke `spike-to-plan`
    via fresh Skill-tool/sub-agent packet; do not guess or run the spike workflow inline.
-4. Load `../../references/model-preferences.md` when local model resolution is needed for the planner.
+4. Resolve the planner packet's Semgrep state before planner dispatch. Use supplied resolved state
+   as authoritative and do not reopen opt-in. If no resolved Semgrep state is supplied, treat this
+   as direct invocation: load `../../references/model-preferences.md`; if Semgrep is relevant or
+   the Semgrep preference section is missing, load `../../references/semgrep.md`, present the
+   opt-in/setup choice, name any clone or fast-forward pull side effect before it runs, and
+   continue with Semgrep disabled when declined. Do not run Semgrep scans during artifact authoring.
 5. Dispatch a fresh planner agent with a compact packet containing:
    - feature slug and artifact root;
    - approved requirements and selected source material;
    - Conceptualize workspace/index and Slice paths when applicable;
    - path to `references/planner-agent-contract.md`;
    - paths to required implementation-plan references and shared references;
+   - resolved Semgrep state: disabled, or enabled with privacy-mode, local cache/index/profile facts, approved setup side effects, and helper availability;
    - overwrite approval state, stop conditions, and expected output fields.
 6. After the planner returns, re-open `SPEC.md`, `tasks.json`, and package Markdown from disk.
 7. Run `python3 plugins/super-developer/assets/sliceproof.py validate-plan \
@@ -69,6 +81,7 @@ rules are required; do not preload references merely because they are named.
 ## Load if needed
 
 - Helper command syntax or command safety is unclear → `../../references/tool-usage.md`
+- Semgrep preference/cache/policy/evidence boundaries are in scope → `../../references/semgrep.md`
 
 ## Stop if
 
@@ -80,6 +93,7 @@ rules are required; do not preload references merely because they are named.
 - A required spike would need unsafe commands, credentials, external side effects, or broad production
   changes.
 - `sliceproof.py validate-plan` fails and cannot be repaired within scope.
+- Semgrep enablement would require unapproved network setup/update, unavailable writable shared cache, hidden registry/URL/cloud behavior, or making scans mandatory.
 
 ## Output
 

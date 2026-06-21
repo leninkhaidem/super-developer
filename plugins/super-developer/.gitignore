@@ -3,3 +3,5 @@
 *.swo
 *~
 .claude/*.local.md
+# Local plugin cache state, including cloned Semgrep community rules and inventory.
+.cache/semgrep-rules/

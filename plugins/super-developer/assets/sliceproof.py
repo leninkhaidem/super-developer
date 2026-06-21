@@ -25,6 +25,7 @@ PACKAGE_ID_RE = re.compile(r"^WP[1-9]\d*$")
 SLICE_ID_RE = re.compile(r"^[A-Z][A-Z0-9-]*-[0-9]{3}$")
 H3_ID_RE = re.compile(r"^\s*###\s+`?([A-Z][A-Z0-9-]*-[0-9]{3})`?(?:\s+(?:—|-)\s*(.*?))?\s*$")
 COMMIT_RE = re.compile(r"^[0-9a-fA-F]{7,64}$")
+SEMGREP_DIGEST_RE = re.compile(r"^(?:sha256:)?([0-9a-fA-F]{64})$")
 STATUS_VALUES = {"pending", "in_progress", "done", "blocked"}
 FEATURE_STATUS_VALUES = {"planned", "reviewed", "in_progress", "completed", "blocked", "on_hold"}
 REGISTRY_KEYS = {"feature", "title", "status", "spec_path", "authoritative_slices", "work_packages"}
@@ -65,6 +66,9 @@ REQUIRED_STATE_BINDING_FIELDS = {
     "Commit",
     "Verified At",
 }
+SEMGREP_EVIDENCE_FIELDS = {"Status", "Raw Path", "Raw Digest", "Summary Path", "Summary Digest", "Scan Scope", "Bounded Summary"}
+SEMGREP_ENABLED_STATUSES = {"enabled", "contracted"}
+SEMGREP_DISABLED_STATUSES = {"disabled", "not-contracted", "not contracted"}
 PROOF_STATUS_VALUES = {"PASS", "GAP", "DEFERRED", "N/A", "OPEN"}
 BLOCKING_MARKER_RE = re.compile(r"\b(?:TODO|OPEN|GAP)\b", re.IGNORECASE)
 UNRESOLVED_MARKER_RE = re.compile(r"\b(?:TODO|OPEN)\b", re.IGNORECASE)
@@ -388,7 +392,7 @@ def cmd_validate_final(args: argparse.Namespace) -> dict[str, Any]:
             expected_suffix=".package-verification.md",
         )
         errors.extend(validate_proof_markdown(proof_path, package_md))
-        report_errors = validate_report_markdown(report_path, package, package_md, proof_path)
+        report_errors = validate_report_markdown(report_path, package, package_md, proof_path, registry.root, registry.feature)
         if not report_errors:
             validated_reports.append(package.report_path)
         errors.extend(report_errors)
@@ -1128,6 +1132,8 @@ def validate_report_markdown(
     package: RegistryPackage,
     package_md: PackageMarkdown,
     proof_path: Path,
+    root: Path,
+    feature: str,
 ) -> list[str]:
     if not report_path.is_file():
         return [f"report: file not found: {report_path}"]
@@ -1194,6 +1200,8 @@ def validate_report_markdown(
             errors.append(f"{report_path}: ## Open Findings must be '- None.' for final validation")
 
     errors.extend(validate_report_state_binding(report_path, package, package_md, proof_path, sections["State Binding"]))
+    if "Semgrep Evidence" in sections:
+        errors.extend(validate_semgrep_evidence_binding(report_path, root, feature, package, sections["Semgrep Evidence"]))
     return errors
 
 
@@ -1259,6 +1267,158 @@ def validate_report_code_review_findings(report_path: Path, body: str) -> list[s
     if BLOCKING_MARKER_RE.search(body):
         return [f"{report_path}: ### Code Review Findings contains unresolved TODO/OPEN/GAP marker"]
     return []
+
+
+
+def validate_semgrep_evidence_binding(
+    report_path: Path,
+    root: Path,
+    feature: str,
+    package: RegistryPackage,
+    body: str,
+) -> list[str]:
+    errors: list[str] = []
+    binding = parse_key_values(body)
+    status = normalize_text(clean_cell_id(binding.get("Status", ""))).lower()
+    if not status:
+        return [f"{report_path}: ## Semgrep Evidence missing 'Status'"]
+    if status not in SEMGREP_ENABLED_STATUSES | SEMGREP_DISABLED_STATUSES:
+        errors.append(f"{report_path}: ## Semgrep Evidence Status must be enabled, contracted, disabled, or not-contracted")
+
+    evidence_fields_present = any(
+        field in binding and not is_report_binding_placeholder_text(clean_cell_id(binding[field]))
+        for field in SEMGREP_EVIDENCE_FIELDS
+        if field != "Status"
+    )
+    if status not in SEMGREP_ENABLED_STATUSES and evidence_fields_present:
+        errors.append(f"{report_path}: ## Semgrep Evidence raw/summary fields require Status enabled or contracted")
+    if status not in SEMGREP_ENABLED_STATUSES:
+        return errors
+
+    for field in sorted(SEMGREP_EVIDENCE_FIELDS - set(binding)):
+        errors.append(f"{report_path}: ## Semgrep Evidence missing {field!r}")
+    if errors:
+        return errors
+
+    for field in sorted(SEMGREP_EVIDENCE_FIELDS):
+        value = clean_cell_id(binding[field])
+        if is_report_binding_placeholder_text(value):
+            errors.append(f"{report_path}: Semgrep Evidence {field} must be non-placeholder")
+    if errors:
+        return errors
+
+    try:
+        raw_path = resolve_semgrep_evidence_path(
+            root,
+            feature,
+            normalize_path_value(binding["Raw Path"]),
+            f"{report_path}: Semgrep Evidence Raw Path",
+            expected_suffix=".semgrep.json",
+        )
+        summary_path = resolve_semgrep_evidence_path(
+            root,
+            feature,
+            normalize_path_value(binding["Summary Path"]),
+            f"{report_path}: Semgrep Evidence Summary Path",
+            expected_suffix=".semgrep-summary.json",
+        )
+    except SliceproofError as exc:
+        return [*errors, *exc.errors]
+
+    raw_value = normalize_path_value(binding["Raw Path"])
+    summary_value = normalize_path_value(binding["Summary Path"])
+    raw_stem = Path(raw_value).name[: -len(".semgrep.json")]
+    summary_stem = Path(summary_value).name[: -len(".semgrep-summary.json")]
+    if raw_stem != package.package_id:
+        errors.append(f"{report_path}: Semgrep Evidence Raw Path must use package stem {package.package_id}.semgrep.json")
+    if summary_stem != package.package_id:
+        errors.append(f"{report_path}: Semgrep Evidence Summary Path must use package stem {package.package_id}.semgrep-summary.json")
+    if raw_stem != summary_stem:
+        errors.append(f"{report_path}: Semgrep Evidence raw and summary paths must have paired stems")
+
+    raw_digest = file_digest_hex(raw_path)
+    expected_raw_digest = normalize_semgrep_digest(binding["Raw Digest"], f"{report_path}: Semgrep Evidence Raw Digest", errors)
+    if expected_raw_digest and expected_raw_digest != raw_digest:
+        errors.append(f"{report_path}: Semgrep Evidence Raw Digest does not match current raw output")
+
+    summary_data = load_semgrep_summary_json(summary_path, report_path, errors)
+    if isinstance(summary_data, dict):
+        summary_raw_digest = normalize_semgrep_digest(str(summary_data.get("raw_digest", "")), f"{report_path}: Semgrep summary raw_digest", errors)
+        if summary_raw_digest and summary_raw_digest != raw_digest:
+            errors.append(f"{report_path}: Semgrep summary raw_digest does not match current raw output")
+        actual_summary_digest = normalize_semgrep_digest(str(summary_data.get("summary_digest", "")), f"{report_path}: Semgrep summary summary_digest", errors)
+        computed_summary_digest = digest_semgrep_summary(summary_data)
+        if actual_summary_digest and actual_summary_digest != computed_summary_digest:
+            errors.append(f"{report_path}: Semgrep summary_digest does not match summary content")
+        expected_summary_digest = normalize_semgrep_digest(binding["Summary Digest"], f"{report_path}: Semgrep Evidence Summary Digest", errors)
+        if expected_summary_digest and expected_summary_digest != computed_summary_digest:
+            errors.append(f"{report_path}: Semgrep Evidence Summary Digest does not match current summary output")
+    return errors
+
+
+def resolve_semgrep_evidence_path(root: Path, feature: str, value: str, label: str, *, expected_suffix: str) -> Path:
+    path = repo_relative_path(value, label, expected_suffix=expected_suffix)
+    parts = path.parts
+    if len(parts) != 4 or parts[0] != ".tasks" or parts[1] != feature or parts[2] != "semgrep":
+        raise SliceproofError([f"{label}: path must be under .tasks/{feature}/semgrep/"])
+    current = root
+    for part in parts:
+        current = current / part
+        try:
+            if current.is_symlink():
+                raise SliceproofError([f"{label}: path must not contain symlinks: {value}"])
+        except OSError as exc:
+            raise SliceproofError([f"{label}: unable to inspect path {value}: {exc}"])
+    resolved = (root / path).resolve(strict=False)
+    try:
+        resolved.relative_to(root)
+    except ValueError:
+        raise SliceproofError([f"{label}: path escapes repository root"])
+    semgrep_root = (root / ".tasks" / feature / "semgrep").resolve(strict=False)
+    try:
+        resolved.relative_to(semgrep_root)
+    except ValueError:
+        raise SliceproofError([f"{label}: path must resolve under .tasks/{feature}/semgrep/"])
+    if not resolved.is_file():
+        raise SliceproofError([f"{label}: file not found: {value}"])
+    return resolved
+
+
+def normalize_semgrep_digest(value: str, label: str, errors: list[str]) -> str:
+    cleaned = clean_cell_id(value).strip()
+    match = SEMGREP_DIGEST_RE.fullmatch(cleaned)
+    if not match:
+        errors.append(f"{label}: expected 64 hex digest or sha256:<digest>")
+        return ""
+    return match.group(1).lower()
+
+
+def file_digest_hex(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def load_semgrep_summary_json(path: Path, report_path: Path, errors: list[str]) -> Any:
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        errors.append(f"{report_path}: Semgrep summary JSON is invalid at line {exc.lineno} column {exc.colno}: {exc.msg}")
+        return None
+    except (OSError, UnicodeError) as exc:
+        errors.append(f"{report_path}: unable to read Semgrep summary JSON: {exc}")
+        return None
+    if not isinstance(data, dict):
+        errors.append(f"{report_path}: Semgrep summary JSON must be a mapping")
+    return data
+
+
+def digest_semgrep_summary(summary: dict[str, Any]) -> str:
+    clone = dict(summary)
+    clone.pop("summary_digest", None)
+    return hashlib.sha256(json.dumps(clone, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
 
 
 def validate_report_state_binding(

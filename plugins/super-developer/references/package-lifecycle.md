@@ -27,6 +27,10 @@ Package agents fill or refresh only their assigned proof file and package commit
 
 Proof Markdown owns package evidence for assigned `Must satisfy` H3 IDs and package verification expectations. `PASS` in a proof row is a package-agent claim, not package acceptance.
 
+When Semgrep is enabled or contracted for a package, raw and summary outputs live under
+`.tasks/<feature>/semgrep/` and proofs/reports cite paths and digests. These files are local task
+store evidence, not lifecycle state or a replacement for proof/report judgment.
+
 ## Pre-Dispatch Proof Creation
 
 Before dispatching a package, create the declared proof placeholder:
@@ -87,7 +91,7 @@ Do not mark a package complete from registry status, helper success, proof rows,
 
 ## Freshness Rules
 
-Freshness is lost when any package-owned implementation, test, documentation, assignment, Slice approval metadata, proof, verification output, merge-resolution edit, or semantic report body changes after proof/report capture.
+Freshness is lost when any package-owned implementation, test, documentation, assignment, Slice approval metadata, proof, verification output, Semgrep evidence cited by proof/report, merge-resolution edit, or semantic report body changes after proof/report capture.
 
 When freshness is lost:
 

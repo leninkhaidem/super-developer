@@ -14,6 +14,10 @@ Planned-feature state is file-based and Slice-first:
 - `.tasks/<feature>/packages/<WP-ID>.md` — package assignment.
 - `.tasks/<feature>/proofs/<WP-ID>.proof.md` — package closure evidence.
 - `.tasks/<feature>/reports/<WP-ID>.package-verification.md` — independent package verification receipt.
+- `.tasks/<feature>/semgrep/<WP-ID>.semgrep.json` and `.semgrep-summary.json` — optional local
+  raw/summary Semgrep package evidence when Semgrep was enabled or contracted.
+- `.tasks/<feature>/semgrep/integration.semgrep.json` and `.semgrep-summary.json` — optional
+  one-shot integrated Semgrep evidence for concrete cross-package/shared-surface risk.
 - `.tasks/<feature>/reviews/review-code-state.json` — review-code governance readiness for audit handoff.
 
 ## Lightweight Registry

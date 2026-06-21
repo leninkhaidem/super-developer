@@ -49,7 +49,9 @@ Orchestrates the full development lifecycle with 13 skills:
 conceptualize → implementation-plan → review-plan → implement → final review-code + final audit → release
 ```
 
-The optional `conceptualize` stage maintains a minimal planning index and writes focused Slices only when useful. Planning creates `.tasks/<feature>/SPEC.md`, a lightweight `tasks.json` registry, package Markdown, declared proof paths, and package verification report paths. `tasks.json` is bookkeeping only; package Markdown owns work-package scope, Slice assignments, dependencies, verification expectations, proof paths, and report paths.
+The optional `conceptualize` stage maintains a minimal planning index and writes focused Slices only when useful. `implementation-plan` delegates artifact authoring to planner agents that create `.tasks/<feature>/SPEC.md`, a lightweight `tasks.json` registry, package Markdown, declared proof paths, and package verification report paths. `tasks.json` is bookkeeping only; package Markdown owns work-package scope, Slice assignments, dependencies, verification expectations, proof paths, and report paths.
+
+Optional Semgrep validation is disabled by default in the developer-local `.superdeveloper/preferences.yml`. First opt-in names any approved rule-cache clone or `git pull --ff-only`; routine scans stay local and run through the shipped helper, never raw Semgrep commands. Findings are advisory, evidence stays under `.tasks/<feature>/semgrep/`, and final audit remains read-only.
 
 Plus standalone skills: **conceptualize** (minimal pre-planning index with optional handoff slices), **perspectives** (divergent problem-solving), **spike-to-plan** (empirical feature spikes before implementation planning), **spike-and-fix** (evidence-first bug diagnosis with isolated spike validation), **review-code** (works independently for PR and local code review), **code-doc** (generate comprehensive codebase documentation via hybrid analysis), and **release** (prepare/publish releases with approval gates).
 

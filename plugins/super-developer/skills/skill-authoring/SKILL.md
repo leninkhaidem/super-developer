@@ -65,6 +65,8 @@ concise `Contract`/`Do`/`Stop if` sections when useful. No hidden second-hop ref
 - Do not create refs for severity labels, report skeletons, generic routing, or tiny pre-choice rules.
 - Mode setup and actions usually belong together unless actions are rare and large.
 - Optimize for what the invoking agent actually loads, not only for a small `SKILL.md`.
+- Restate a safety-critical command, prohibition, or path at each lazily-loaded action point;
+  locality there outranks deduplication, since the agent may not have loaded the shared reference.
 
 ## Always
 
@@ -83,6 +85,9 @@ concise `Contract`/`Do`/`Stop if` sections when useful. No hidden second-hop ref
 - References are one-hop, boundary-specific, and loaded only at action points.
 - Scripts are for deterministic validation, formatting, generation, or mechanical inspection.
 - Move long templates, examples, edge cases, API details, and bulky report formats out of `SKILL.md`.
+- State each fact, file role, constraint, or invariant once per file; refer back to it by name
+  instead of restating it, and define each artifact or file role in exactly one place. Tokens are
+  costly: do not pay for the same information twice.
 - Remove broad bundles, duplicated doctrine, stale compatibility language, tiny fragment refs, and
   generic advice the model can infer safely.
 
@@ -105,7 +110,8 @@ concise `Contract`/`Do`/`Stop if` sections when useful. No hidden second-hop ref
 7. Draft references only for concrete delayed boundaries; keep each under line cap and use the
    reference shape when useful.
 8. Run reference-economy and compression passes: merge refs loaded together, inline tiny universal
-   refs, delete duplicated routing, cross-skill private-reference links, stale refs, and long examples.
+   refs, collapse within-file restatements of the same fact or file role, delete duplicated routing,
+   cross-skill private-reference links, stale refs, and long examples.
 9. Verify counts, max-line outliers, links, triggers, near-miss behavior, reference totals,
    always-loaded refs, lazy refs, and every reference's parent load condition. Run
    `scripts/audit-skill.py --strict` when enforcing deterministic budgets.
@@ -131,6 +137,8 @@ concise `Contract`/`Do`/`Stop if` sections when useful. No hidden second-hop ref
 - A proposed reference has no mandatory step, optional load condition, or distinct delayed boundary.
 - Several proposed references would always be loaded together but have not been consolidated.
 - The draft duplicates another skill instead of invoking it by name.
+- The draft restates the same fact, file role, or constraint in multiple places within one file
+  instead of stating it once.
 - The user wants hidden conversation context to substitute for durable skill instructions.
 
 ## Output
