@@ -4,9 +4,7 @@
 
 This reference governs developer-local preference resolution before a skill delegates or spawns
 agents. Model resolution never authorizes inline execution; callers must still dispatch the
-resolved role/skill as a fresh sub-agent or Skill-tool invocation. Semgrep settings are stored in
-the same local preferences file but do not enable scans unless the owning workflow resolves and
-contracts Semgrep separately.
+resolved role/skill as a fresh sub-agent or Skill-tool invocation.
 
 ## Local File
 
@@ -36,16 +34,6 @@ repository state. It is the only supported preferences file.
 ## Model Keys
 
 Model preferences live under `models:`:
-
-```yaml
-models:
-  default-model: inherit
-  implementation-plan: inherit
-  implement: adaptive
-  review-plan: adaptive
-  review-code: inherit
-  skeptic-agent: adaptive
-```
 
 - `default-model` — fallback for every role.
 - `implementation-plan` — delegated planning artifact writer.
