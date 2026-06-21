@@ -6,6 +6,11 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [v1.30.1] - 2026-06-21
+
+### Fixed
+- Fixed Semgrep setup guidance so agents ask before installing a missing local `semgrep` executable with `uv tool install semgrep`, and never install it during scan execution.
+
 ## [v1.30.0] - 2026-06-21
 
 ### Added

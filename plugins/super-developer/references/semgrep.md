@@ -64,7 +64,8 @@ First opt-in may run exactly one user-approved network setup/update action: miss
 uses `git clone https://github.com/semgrep/semgrep-rules.git <community>`; existing `community/`
 uses `git pull --ff-only` inside it. Routine scans must not clone, pull, fetch registry configs, or
 silently sync rules. If the plugin cache is not writable, stop and ask for an approved shared cache
-alternative; do not fall back to a project-local clone.
+alternative; do not fall back to a project-local clone. If `semgrep` is missing during approved
+setup, ask before installing it with `uv tool install semgrep`; never install during scan execution.
 
 ## Helper Command Contract
 The helper asset owns `index`, `retrieve`, `scan`, `summarize`, `list-findings`, and
