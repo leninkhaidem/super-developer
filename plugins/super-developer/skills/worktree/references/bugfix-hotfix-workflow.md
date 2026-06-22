@@ -7,7 +7,8 @@ propagation. Boundary: isolated bug/hotfix worktrees and non-root merge paths.
 - The root worktree is user-owned and must not be switched.
 - Diagnostic spikes are temporary evidence-gathering branches, not final delivery branches.
 - Feature bugfixes land back in `feature/<feature>`.
-- Production hotfixes land on `main` only after explicit approval.
+- Production hotfixes land on the approved `<base-branch>` only after explicit approval.
+- For production hotfixes, `main` may be an example value for `<base-branch>`, but this workflow is not hardcoded to it.
 - Hotfix propagation updates each affected feature ref deliberately.
 - Branch/worktree removal is outside this playbook; use the parent skill's cleanup gate.
 
@@ -21,7 +22,7 @@ cd .worktrees/spike-<name>
 # reproduce, instrument, test candidate fixes, capture evidence
 ```
 Rules:
-- Choose `<base-ref>` from the context that exhibits the bug: `main`, `feature/<feature>`, or another explicit ref.
+- Choose `<base-ref>` from the context that exhibits the bug: `<base-branch>`, `feature/<feature>`, or another explicit ref.
 - Do not merge spike branches as final work.
 - Extract durable evidence, regression tests, fixtures, and the minimal fix strategy.
 - Remove the spike only after the durable bugfix/hotfix branch has what it needs.
@@ -55,8 +56,8 @@ side effects or the remote/ref differs, stop for exact approval.
 cd "$PROJECT_ROOT/.worktrees/bugfix-<name>"
 git push -u origin bugfix/<name>
 ```
-This branch push is not approval to merge into or push `feature/<feature>`, `main`, or any target
-ref. No other remote side effects are implied.
+This branch push is not approval to merge into or push `<base-branch>`, `feature/<feature>`, or
+any target ref. No other remote side effects are implied.
 
 ### Merge bugfix back into the feature ref
 Use the existing feature integration worktree when available:
@@ -75,47 +76,50 @@ After the merge, stop before removing the bugfix worktree or branch. Keep featur
 nets until feature merge and push completion.
 
 ## Production Hotfix
-Use this when production is broken and the fix must land on `main` directly. Hotfixes start from
-`main` in their own worktree; do not switch the root worktree to the hotfix branch.
+Use this when production is broken and the fix must land on the approved `<base-branch>` directly.
+Hotfixes start from `<base-branch>` in their own worktree; do not switch the root worktree to the
+hotfix branch.
 
 ### Create hotfix worktree
 ```bash
 cd "$PROJECT_ROOT"
-git worktree add .worktrees/hotfix-<name> -b hotfix/<name> main
+git worktree add .worktrees/hotfix-<name> -b hotfix/<name> <base-branch>
 cd .worktrees/hotfix-<name>
 # fix and verify the production failure path; do not commit yet
 ```
 Commit hotfix branch changes only after verification, CLEAN `review-code`, and approved delivery.
 
-### Merge hotfix to main after approval
-Do not merge to `main` without explicit user approval and clean reviewed hotfix delivery. Once
-approved, merge from a worktree already on `main`; never switch the root worktree to make that true.
-If no existing worktree is on `main`, create a temporary hotfix-merge worktree:
+### Merge hotfix to `<base-branch>` after approval
+Do not merge to `<base-branch>` without explicit user approval and clean reviewed hotfix delivery.
+Once approved, merge from a worktree already on `<base-branch>`; never switch the root worktree to
+make that true. If no existing worktree is on `<base-branch>`, create a temporary hotfix-merge
+worktree:
 ```bash
 cd "$PROJECT_ROOT"
-git worktree add .worktrees/hotfix-merge-<name> main
+git worktree add .worktrees/hotfix-merge-<name> <base-branch>
 cd .worktrees/hotfix-merge-<name>
 git merge --squash hotfix/<name>
 git commit -m "hotfix: <name> -- <summary>"
-git push origin main
+git push origin <base-branch>
 ```
-If the root or another worktree is already on `main`, use that existing worktree without switching it.
-Keep `.worktrees/hotfix-<name>` until merge and push complete, then stop before cleanup.
+If the root or another worktree is already on `<base-branch>`, use that existing worktree without
+switching it. Keep `.worktrees/hotfix-<name>` until merge and push complete, then stop before
+cleanup.
 
 ## Hotfix Propagation
-After a hotfix lands on `main`, propagate it to active feature refs that need the fix.
+After a hotfix lands on `<base-branch>`, propagate it to active feature refs that need the fix.
 
 Prefer the feature's existing integration worktree:
 ```bash
 cd "$PROJECT_ROOT/.worktrees/<feature>/merge"
-git merge main --no-edit
+git merge <base-branch> --no-edit
 ```
 If the feature has no integration worktree, create a temporary propagation worktree:
 ```bash
 cd "$PROJECT_ROOT"
 git worktree add .worktrees/merge-hotfix-propagate-<feature> feature/<feature>
 cd .worktrees/merge-hotfix-propagate-<feature>
-git merge main --no-edit
+git merge <base-branch> --no-edit
 cd "$PROJECT_ROOT"
 git worktree remove .worktrees/merge-hotfix-propagate-<feature>
 ```

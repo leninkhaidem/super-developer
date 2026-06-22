@@ -49,8 +49,8 @@ The implement Execution Contract lists this exact `origin feature/<feature>` pus
 needs no second approval prompt after approval unless the user excluded it. If the remote/ref changes,
 or a force/delete/tag/release/target-branch push is needed, stop for explicit approval.
 
-This feature push is not approval to merge into `main`, push `main`, or update any other
-`<target-ref>`. Never infer merge approval from:
+This feature push is not approval to merge into `<target-ref>`, push `<target-ref>`, or update
+any other target/base ref. Never infer merge approval from:
 - "push it"
 - "looks good"
 - successful tests/builds
@@ -123,11 +123,11 @@ Feature bugfix branches should be merged into `feature/<feature>` and checked be
 cd "$PROJECT_ROOT/.worktrees/<feature>/merge"
 git merge-base --is-ancestor bugfix/<name> HEAD
 ```
-Production hotfix worktrees stay until the hotfix merge to `main` and push complete:
+Production hotfix worktrees stay until the hotfix merge to `<base-branch>` and push complete:
 ```bash
 cd "$PROJECT_ROOT"
 git worktree remove .worktrees/hotfix-<name>
-cd "<worktree-on-main>"
+cd "<worktree-on-base-branch>"
 git branch -d hotfix/<name>
 cd "$PROJECT_ROOT"
 if [ -d .worktrees/hotfix-merge-<name> ]; then
