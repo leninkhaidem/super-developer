@@ -6,6 +6,16 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [v1.31.3] - 2026-06-22
+
+### Changed
+- Changed `diagnose-and-fix` so diagnosis reports select one recommended route and ask approval for that route instead of asking users to choose the fix strategy.
+- Changed localized bugfix delivery guidance to resolve implementer model preferences, require `review-code` before delivery claims, and push reviewed bugfix branches when approved.
+- Changed worktree bugfix and release guidance to use approved `<base-branch>` and `<target-ref>` placeholders instead of hardcoding `main` for generic hotfix and cleanup flows.
+
+### Fixed
+- Fixed worktree bugfix and hotfix guidance that could imply committing before clean `review-code` verification.
+
 ## [v1.31.2] - 2026-06-22
 
 ### Changed
