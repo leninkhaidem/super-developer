@@ -6,6 +6,11 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [v1.30.2] - 2026-06-22
+
+### Changed
+- Changed the implement workflow so package agents can install or add dependencies when exact commands and manifest or lockfile paths are approved in the Execution Contract, while unapproved dependency or service changes still stop the workflow.
+
 ## [v1.30.1] - 2026-06-21
 
 ### Fixed
