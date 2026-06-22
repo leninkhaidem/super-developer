@@ -6,6 +6,11 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [v1.31.2] - 2026-06-22
+
+### Changed
+- Changed the release workflow so every contracted base-branch push is followed by local/remote base sync verification before tag creation, GitHub release publication, or cleanup.
+
 ## [v1.31.1] - 2026-06-22
 
 ### Changed

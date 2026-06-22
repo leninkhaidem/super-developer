@@ -30,6 +30,8 @@ with exact state, side effects, and cleanup candidates named before action.
 - Use `--no-ff` when merging a feature branch into the base branch.
 - Never switch the user-owned root worktree to make a release merge or cleanup possible.
 - Clean up only exact feature branches, remote refs, and worktrees named in the approved contract and proven merged.
+- After any contracted base push, refresh remote refs and verify local base, remote-tracking base,
+  and the intended prepare/publish commit match; never force-reset or switch root to repair mismatch.
 - If partially complete, resume only from observed state that matches the intended prepare/publish commit,
   tag/release state when publishing, remote state, and notes.
 
@@ -61,8 +63,10 @@ with exact state, side effects, and cleanup candidates named before action.
    - run contracted validation checks;
    - commit contracted prep/integration changes, using `release: vX.Y.Z` only for publish prep unless repo convention differs;
    - revalidate clean state, final diff, and publish-only tag/release absence or resume match;
-   - for `prepare-only`, push the base branch and clean up exact local/remote feature refs/worktrees after merge verification;
-   - for `publish`, push the base branch, create/push annotated tag, create GitHub release, and report URL;
+   - after any base branch push, fetch remote refs and verify local base, `origin/<base>`, and the
+     intended commit all match before tag/release creation or cleanup;
+   - for `prepare-only`, push the base branch, run post-push sync verification, and clean up exact local/remote feature refs/worktrees after merge verification;
+   - for `publish`, push the base branch, run post-push sync verification, create/push annotated tag, create GitHub release, and report URL;
    - load `references/release-git-safety.md` before exact contracted cleanup.
 8. If any push, publish, or cleanup step fails, stop, report completed side effects, and do not continue cleanup automatically.
 
@@ -91,6 +95,7 @@ Return:
 - release mode and version action;
 - published URL or prepared integrated state;
 - base branch and commit SHA;
+- post-push local/remote base sync verification status;
 - tag/GitHub release status;
 - cleanup performed or intentionally skipped;
 - completed side effects and remaining manual follow-up.

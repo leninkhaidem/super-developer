@@ -4,8 +4,10 @@ Owns the one approval packet for a release attempt. Load before the first releas
 
 ## Contract Rules
 
-- Present the contract every time. Skip only the approval prompt when the current turn already unambiguously approves the full listed lifecycle.
-- The contract must list every side effect: file edits, merge, commits, base push, tag creation/push, GitHub release, and local/remote cleanup.
+- Present the contract every time. Skip only the approval prompt when the current turn already
+  unambiguously approves the full listed lifecycle.
+- The contract must list every side effect: file edits, merge, commits, base push, post-push base
+  sync verification, tag creation/push, GitHub release, and local/remote cleanup.
 - Keep release checks to validation commands. List changelog, docs, and version edits as planned file changes, not checks.
 - If state changes, changelog format choice is missing, or a new action is needed, stop for a revised contract.
 - Remote feature branch deletion requires the exact `origin/<branch>` ref to be listed in the contract and approved with the contract.
@@ -52,6 +54,9 @@ Merge/release strategy:
 
 Remote actions:
 - Push <base-branch> to origin after merge/checks
+- Post-push sync verification: fetch remote refs, then verify local <base-branch>,
+  origin/<base-branch>, and the intended commit all match; stop on mismatch without force-reset or
+  root branch switching
 - Push tag vX.Y.Z to origin, if publishing
 - Create GitHub release for vX.Y.Z, if publishing
 - Delete remote feature branch: <origin/<feature-branch> after pushed-base inclusion verification, or none>

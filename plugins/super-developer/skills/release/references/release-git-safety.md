@@ -67,9 +67,21 @@ Before pushing the base branch, verify:
 - `prepare-only` made no version bump, tag, or GitHub release change;
 - local/remote tags and GitHub release are absent for a new publish, or existing state passes the resume matrix.
 
-For `prepare-only`, push the base branch, then run contracted cleanup. Do not create or update tags or GitHub releases.
-For `publish`, push base first, then create/push the annotated tag, then create the GitHub release.
-If any push, publish, or cleanup step fails, stop and report completed side effects. Do not continue cleanup automatically.
+After any successful base push, refresh refs and verify local/remote base sync before tag/release creation or cleanup:
+
+```bash
+git fetch --prune --tags origin
+git rev-parse <base-branch>
+git rev-parse origin/<base-branch>
+git rev-parse HEAD  # or the exact intended prepare/publish commit named in the contract
+```
+
+The local base ref, `origin/<base>`, and intended prepare/publish commit must match. Stop on mismatch and report completed side effects.
+Do not force-reset, force-push, switch the user-owned root worktree, or silently repair the local branch to make verification pass.
+
+For `prepare-only`, push the base branch, run post-push sync verification, then run contracted cleanup. Do not create or update tags or GitHub releases.
+For `publish`, push base first, run post-push sync verification, then create/push the annotated tag and create the GitHub release.
+If any push, sync verification, publish, or cleanup step fails, stop and report completed side effects. Do not continue cleanup automatically.
 
 ## Cleanup Safety
 
