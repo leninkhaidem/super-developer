@@ -215,6 +215,63 @@ class SkillPromptSurfaceTests(unittest.TestCase):
         for workflow_word in ["proof", "package verification", "Slice", "planning", "staging"]:
             self.assertNotIn(workflow_word, summary_region)
 
+    def test_diagnose_and_fix_recommends_one_route_and_reviewed_delivery(self) -> None:
+        text = read_repo("plugins/super-developer/skills/diagnose-and-fix/SKILL.md")
+        compact = " ".join(text.split())
+        for needle in [
+            "exactly one recommended route",
+            "stop/missing-info",
+            "localized `worktree` fix",
+            "`implementation-plan`",
+            "named diagnostic spike",
+            "approve the recommended route",
+            "shared `../../references/model-preferences.md`",
+            "resolved model/policy",
+            "After any delivered localized fix, invoke `review-code`",
+            "push `origin bugfix/<name>`",
+            "unless the user explicitly excluded remote side effects",
+        ]:
+            self.assertIn(" ".join(needle.split()), compact)
+        self.assertNotIn("Ask for one explicit approval choice", text)
+
+    def test_worktree_bugfix_push_and_target_merge_skip_are_explicit(self) -> None:
+        bugfix = read_repo("plugins/super-developer/skills/worktree/references/bugfix-hotfix-workflow.md")
+        for forbidden in [
+            "fix, commit, verify",
+            "fix, commit, verify the focused bug scenario",
+            "fix, commit, verify the production failure path",
+        ]:
+            self.assertNotIn(forbidden, bugfix.lower())
+        for needle in [
+            "git push -u origin bugfix/<name>",
+            "after verification and clean `review-code`",
+            "Commit bugfix changes only after verification and CLEAN `review-code`/approved delivery",
+            "Commit hotfix branch changes only after verification, CLEAN `review-code`, and approved delivery",
+            "not approval to merge into or push `<base-branch>`, `feature/<feature>`, or",
+            "git worktree add .worktrees/hotfix-<name> -b hotfix/<name> <base-branch>",
+            "git worktree add .worktrees/hotfix-merge-<name> <base-branch>",
+            "git push origin <base-branch>",
+            "git merge <base-branch> --no-edit",
+            "`main` may be an example value for `<base-branch>`",
+            "remote side effects",
+        ]:
+            self.assertIn(needle, bugfix)
+        for line in bugfix.splitlines():
+            if re.search(r"\bmain\b", line):
+                self.assertIn("`main` may be an example value for `<base-branch>`", line)
+
+        cleanup = read_repo("plugins/super-developer/skills/worktree/references/cleanup-safety.md")
+        for needle in [
+            "git merge-base --is-ancestor feature/<feature> <target-ref>",
+            "already merged; skip the target merge",
+            "git merge --no-ff feature/<feature>",
+            "Production hotfix worktrees stay until the hotfix merge to `<base-branch>`",
+            "<worktree-on-base-branch>",
+        ]:
+            self.assertIn(needle, cleanup)
+        self.assertNotIn("hotfix merge to `main`", cleanup)
+        self.assertNotIn("<worktree-on-main>", cleanup)
+
     def test_interface_contract_thread_is_present_and_consistent(self) -> None:
         authority = read_repo("plugins/super-developer/references/conceptualize-slice-authority.md")
         for needle in [
