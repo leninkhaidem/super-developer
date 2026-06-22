@@ -11,7 +11,7 @@ description: >
 # Diagnose and Fix
 
 Diagnose first, ask approval second, and fix only after the user accepts the route. This is the
-single maintained bug diagnosis/fix workflow.
+maintained bug diagnosis/fix workflow.
 
 ## Always
 
@@ -54,15 +54,19 @@ single maintained bug diagnosis/fix workflow.
    - ranked hypotheses with confidence and confirm/reject evidence;
    - likely root cause, or explicit uncertainty if not proven;
    - blast radius and risk: localized or broad/risky;
-   - recommended route: stop for more info, localized `worktree` fix, or `implementation-plan`;
+   - exactly one recommended route selected from: stop/missing-info, localized `worktree` fix,
+     `implementation-plan`, or named diagnostic spike, with rationale;
    - proposed fix strategy plus non-goals/guardrails;
    - regression/spec test and verification plan;
-   - approval options before production-code changes.
-7. Ask for one explicit approval choice. Do not treat silence, prior "fix this" wording, or a bug
-   report as approval. Valid choices are: provide missing info, approve localized fix, approve
-   planning escalation, approve a named diagnostic spike, or stop.
+   - approval prompt for the recommended route and its exact boundaries.
+7. Ask the user to approve the recommended route, not to choose the best route. Prompt may offer
+   stop, override, or missing-info, but silence, prior "fix this", or a bug report does not approve
+   production-code edits, remote push, target merge/push, destructive cleanup, credentials, or network
+   side effects.
 8. If a localized fix is approved, invoke/use `worktree` for a `bugfix/<name>` or `hotfix/<name>`
-   branch/worktree from the context that exhibits the bug. Then dispatch a fresh Fix Implementer
+   branch/worktree from the bug context. Resolve `implement` via the shared
+   `../../references/model-preferences.md` before dispatch, and include the resolved model/policy
+   when supported. Then dispatch a fresh Fix Implementer
    sub-agent with the diagnosis report, approved scope, target worktree/path, branch/ref context,
    repro, fix strategy, regression plan, required checks, and forbidden unrelated work. The Fix
    Implementer edits only inside the target worktree and must:
@@ -72,29 +76,34 @@ single maintained bug diagnosis/fix workflow.
    - rerun the regression, original repro, smallest affected existing test slice, and targeted
      standard checks relevant to touched files;
    - report changed files, commands/results, unresolved blockers, and remaining risks.
-   The main agent verifies the Fix Implementer report against the approved route and commits only
-   when the approved fix workflow includes a commit or the user asks for one.
+   The main agent verifies the report and commits only when approved. After any delivered localized
+   fix, invoke `review-code` through a fresh Skill-tool/sub-agent packet before final success,
+   commit, push, merge, or cleanup claims; do not run review inline. With CLEAN review and
+   verification, the approved localized bugfix route includes push `origin bugfix/<name>` unless the
+   user explicitly excluded remote side effects. Target/base merge and push remain separate exact
+   named-ref approval boundaries unless included by exact named refs in the approval.
 9. If the fix is broad/risky, invoke `implementation-plan` through a fresh Skill-tool/sub-agent
    packet and do not plan inline. The handoff must include symptom, repro, evidence, hypotheses,
    likely root cause or uncertainty, blast-radius reason, proposed strategy, tests, non-goals,
    rollback/cleanup notes, and any approved deferrals or risk acceptance.
-10. For nontrivial or risky fixes, or whenever the user asks, invoke `review-code` through a fresh
-    Skill-tool/sub-agent packet after verification; do not run review inline.
-11. Clean up only approved throwaway diagnostic artifacts. Keep useful fixtures/traces in appropriate
+10. Clean up only approved throwaway diagnostic artifacts. Keep useful fixtures/traces in appropriate
     test fixture paths. Do not remove worktrees/branches without the relevant `worktree` cleanup gate.
-12. Final-report only observed facts: symptom, repro status, root cause or uncertainty, route chosen,
+11. Final-report only observed facts: symptom, repro status, root cause or uncertainty, route chosen,
     fix summary if any, tests/fixtures changed, command results, cleanup performed, and remaining
     risks or blockers.
 
 ## Load if needed
 
-- Worktree creation, diagnostic spike, bugfix/hotfix branch, or cleanup commands are needed → invoke
-  `worktree`; that skill owns its command references and approval boundaries.
-- Substantive localized fix edits are needed after approval and worktree setup → dispatch a fresh Fix
-  Implementer sub-agent with the bounded packet from step 8; do not implement those edits inline.
+- Worktree creation, diagnostic spike, bugfix/hotfix branch, branch push, target merge/push, or
+  cleanup commands are needed → invoke `worktree`; that skill owns its command references and
+  approval boundaries.
+- Substantive localized fix edits are needed after approval and worktree setup → resolve shared
+  `../../references/model-preferences.md` for `implement`, then dispatch a fresh Fix Implementer
+  sub-agent with the bounded packet from step 8; do not implement those edits inline.
 - Diagnosis shows broad/risky implementation is required → invoke `implementation-plan` with the
   diagnosis packet; do not create `.tasks/` artifacts inline.
-- Independent review is requested or risk warrants it → invoke `review-code` after verification.
+- After any delivered localized fix, invoke `review-code` before success or git delivery claims.
+- Push `origin bugfix/<name>` unless the user explicitly excluded remote side effects.
 - A planned-feature package, PR review, documentation, release, or feature feasibility spike is the
   actual task → use the owning skill instead of this one.
 
@@ -118,4 +127,4 @@ single maintained bug diagnosis/fix workflow.
 Return the structured diagnosis report before approval. After approved fix work, return the final
 observed-facts report, Fix Implementer report summary when used, commands run and results, route
 taken, changed tests/fixtures, cleanup status, remaining risks/blockers, and the next approval
-boundary such as review, merge, push, or cleanup.
+boundary such as target merge/push or cleanup.

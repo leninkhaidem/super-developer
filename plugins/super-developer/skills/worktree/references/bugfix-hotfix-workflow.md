@@ -42,8 +42,21 @@ that feature merges into its approved target branch.
 cd "$PROJECT_ROOT"
 git worktree add .worktrees/bugfix-<name> -b bugfix/<name> feature/<feature>
 cd .worktrees/bugfix-<name>
-# fix, commit, verify the focused bug scenario
+# fix and verify the focused bug scenario; do not commit yet
 ```
+Commit bugfix changes only after verification and CLEAN `review-code`/approved delivery; preserve the
+original approval boundaries for any remote or target-ref side effects.
+
+### Publish bugfix branch after clean review
+In `diagnose-and-fix`, approved localized bugfix delivery includes this remote side effect unless
+explicitly excluded. Run only after verification and clean `review-code`; if approval excluded remote
+side effects or the remote/ref differs, stop for exact approval.
+```bash
+cd "$PROJECT_ROOT/.worktrees/bugfix-<name>"
+git push -u origin bugfix/<name>
+```
+This branch push is not approval to merge into or push `feature/<feature>`, `main`, or any target
+ref. No other remote side effects are implied.
 
 ### Merge bugfix back into the feature ref
 Use the existing feature integration worktree when available:
@@ -70,13 +83,14 @@ Use this when production is broken and the fix must land on `main` directly. Hot
 cd "$PROJECT_ROOT"
 git worktree add .worktrees/hotfix-<name> -b hotfix/<name> main
 cd .worktrees/hotfix-<name>
-# fix, commit, verify the production failure path
+# fix and verify the production failure path; do not commit yet
 ```
+Commit hotfix branch changes only after verification, CLEAN `review-code`, and approved delivery.
 
 ### Merge hotfix to main after approval
-Do not merge to `main` without explicit user approval. Once approved, merge from a worktree already
-on `main`; never switch the root worktree to make that true. If no existing worktree is on `main`,
-create a temporary hotfix-merge worktree:
+Do not merge to `main` without explicit user approval and clean reviewed hotfix delivery. Once
+approved, merge from a worktree already on `main`; never switch the root worktree to make that true.
+If no existing worktree is on `main`, create a temporary hotfix-merge worktree:
 ```bash
 cd "$PROJECT_ROOT"
 git worktree add .worktrees/hotfix-merge-<name> main

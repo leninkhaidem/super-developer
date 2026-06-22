@@ -66,8 +66,10 @@ Before an approved merge into `<target-ref>`:
 cd "$PROJECT_ROOT/.worktrees/<feature>/merge"
 git status
 git log --oneline -5
+git merge-base --is-ancestor feature/<feature> <target-ref>
 ```
-The integration worktree must be clean and must contain the intended package merges. Resolve any
+The integration worktree must be clean and contain the intended package merges. If the ancestry check
+exits 0, feature is already merged; skip the target merge and report the no-op. Otherwise resolve any
 uncertainty before merging.
 
 Merge from a worktree that is already on `<target-ref>`. Never switch the root worktree to make this
