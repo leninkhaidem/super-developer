@@ -82,8 +82,8 @@ affected reruns → final readiness for the same integrated state.
 - Execution Contract is not approved, or requested git/remote action differs from the approved contract.
 - A package exposes unassigned material Slice obligations, unresolved plan defects, unapproved deferrals,
   weak proof evidence, failed verification, stale reports, or ignored proof/report artifacts committed to git.
-- Correct work requires product/design change, scope expansion, new dependency/service, existing-feature
-  contract change, unsafe command, credentials/external facts, destructive action, or risk acceptance.
+- Correct work requires product/design change, scope expansion, unapproved dependency/service change,
+  existing-feature contract change, unsafe command, credentials/external facts, destructive action, or risk acceptance.
 - The root worktree would need branch switching, or any target/main merge or push lacks explicit approval
   for that exact target.
 - Final review-code readiness or audit prerequisites are not fresh and closed.

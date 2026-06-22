@@ -11,7 +11,10 @@ This reference owns the user-facing implement approval template and its approval
 - Feature-branch push is covered by default when listed as `git push -u origin feature/<feature>`
   for review/testing; the user may explicitly exclude it.
 - Target branch merge, target push, force push, tag, release, branch delete, destructive command,
-  dependency/service install, credentialed action, or external side effect always needs separate explicit approval.
+  service install/start, credentialed action, or external side effect always needs separate explicit approval.
+- Dependency installs/additions are covered only when exact commands and manifest/lockfile paths are
+  derived from approved artifacts or explicit user instruction and listed in this contract; otherwise
+  they require separate approval.
 - Auto-resolve mode continues through approved implementation gates and the covered feature push until
   a stop condition, review-code/audit handoff boundary, or completion.
 - Step-by-step mode asks before each major gate, package wave, repair loop, feature push, and final handoff.
@@ -22,8 +25,9 @@ This reference owns the user-facing implement approval template and its approval
    and current git refs before presenting the contract.
 2. Name the exact base ref, feature ref, target ref, package refs/worktrees, proof paths, report paths,
    and default-covered feature-push command.
-3. For each package, summarize assigned Slice obligations, primary paths, dependencies, verification expectations,
-   package verification depth, Semgrep evidence expectations when enabled/contracted, and known blockers.
+3. For each package, summarize assigned Slice obligations, primary paths, package dependencies, approved
+   dependency install/addition commands, verification expectations, package verification depth, Semgrep evidence
+   expectations when enabled/contracted, and known blockers.
 4. Disclose resolved Semgrep state, privacy/local rule source, helper checks, evidence paths/digests, bounded consumption order, advisory finding policy, and unapproved side effects.
 5. List command-safety boundaries and all actions that are not authorized by this contract.
 5. Offer exactly three choices: `approve auto-resolve`, `step-by-step`, or `abort`.
@@ -56,7 +60,7 @@ Semgrep:
   package evidence: .tasks/<feature>/semgrep/<WP-ID>.semgrep.json + .semgrep-summary.json with digests when enabled
   integrated evidence: <not planned | conditional one-shot for named cross-package/shared-surface risk>
   consumption/materiality: summarize -> filtered list-findings -> selected show-finding (target + expected summary digest for excerpts); raw JSON dumps forbidden; Semgrep severity advisory by default
-  side effects not authorized here: hidden registry/URL/cloud/telemetry scans, dependency installs, credentials, or network clone/pull unless separately listed and approved
+  side effects not authorized here: hidden registry/URL/cloud/telemetry scans, unlisted dependency installs, credentials, service starts/installs, or network clone/pull unless separately listed and approved
 
 Packages:
 - <WP-ID>: <title>
@@ -68,6 +72,7 @@ Packages:
   context-only Slices/H3 IDs: <slice paths + H3 IDs or none>
   dependencies: <package IDs or none>
   verification expectations: <safe scoped commands/inspections or none>
+  dependency installs/additions: <none or exact approved manifest/lockfile paths and commands>
   package verification: <standard | enhanced + lenses/reasons>
   known blockers/deferrals: <none or approved details>
 
@@ -87,7 +92,7 @@ Stop conditions:
 - unassigned material Slice obligation, unresolved plan defect, unapproved deferral, or weak proof evidence
 - failed verification, stale package report, or ignored proof/report artifact committed to git
 - product/design change, scope expansion, existing-feature contract change, or risk acceptance needed
-- unsafe/destructive/external/credentialed command or dependency/service install needed
+- unsafe/destructive/external/credentialed command, service install/start, or unlisted dependency install needed
 - feature push remote/ref differs from this contract, remote diverges/non-fast-forwards unexpectedly, or credentials fail
 - any target merge/push, force/delete/tag/release action, or branch deletion is requested
 - final review-code readiness or audit prerequisites are not fresh and closed
@@ -103,7 +108,8 @@ Choices:
 
 - Any template field cannot be derived from safe approved artifacts or explicit user instruction.
 - The user wants the contract to authorize target merge/push, force/delete/tag/release action, destructive command,
-  dependency/service install, credentialed action, or external side effect.
+  service install/start, credentialed action, or external side effect, or a dependency install not derived from
+  approved artifacts/explicit instruction and listed exactly in the contract.
 - Package verification depth, Slice obligations, package dependencies, or default feature-push boundary are ambiguous enough to affect execution.
 
 ## Output

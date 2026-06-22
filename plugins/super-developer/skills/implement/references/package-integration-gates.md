@@ -65,7 +65,7 @@ For confirmed in-scope findings:
 4. rerun `sliceproof.py validate-proof`;
 5. rerun package verification focused on failed findings and changed surfaces, or full verification when scope widened, package contracts changed, safety/mock/test coverage changed, or repeated repairs failed to close.
 
-Stop for the user when repair requires product/design authority, new dependencies/services, scope expansion, unsafe commands, external facts, credentials, risk acceptance, or package/Slice assignment changes.
+Stop for the user when repair requires product/design authority, unapproved dependency/service changes, scope expansion, unsafe commands, external facts, credentials, risk acceptance, or package/Slice assignment changes.
 
 ## Conflict Handling
 
