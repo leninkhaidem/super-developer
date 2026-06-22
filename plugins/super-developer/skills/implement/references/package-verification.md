@@ -52,7 +52,7 @@ Inspect package code/diff for correctness against assigned obligations, proof-cl
 evidence quality, edge/failure/default cases, security/privacy/safety, data integrity, API/contract
 stability, performance/concurrency, maintainability risks backed by material evidence, and
 mock/stub/generated-fixture risk. Do not invent product scope. Stop on product/design decisions,
-scope expansion, new dependency/service, unsafe command, credentials, external facts, or risk acceptance.
+scope expansion, unapproved dependency/service changes, unsafe command, credentials, external facts, or risk acceptance.
 
 ### 3. Semgrep evidence lens
 

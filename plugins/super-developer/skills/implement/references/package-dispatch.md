@@ -73,6 +73,7 @@ For every package, repair, or verifier prompt:
 
 - keep it compact and pointer-based;
 - include validated package/proof/report/Slice/worktree paths;
+- include approved dependency additions/install commands and manifest/lockfile paths from the Execution Contract when present; otherwise state none;
 - do not paste full package Markdown, Slice prose, proof templates, or hidden conversation summaries;
 - pass project instructions such as `CLAUDE.md` or `AGENTS.md` when present;
 - omit model selection unless a local model-preference override was intentionally resolved;
@@ -100,6 +101,7 @@ Each package-agent prompt includes:
 - Work package ID, package Markdown path, proof path, package verification report path, worktree path, and branch name.
 - Safe resolved Slice read paths when package worktrees lack ignored `.planning/` files.
 - Package verification expectations and safe screened commands; list broad/expensive integration/final checks separately.
+- Approved dependency additions/install commands and manifest/lockfile paths, or `none`.
 - Semgrep state: disabled means no scan/evidence requirement; enabled means use helper `retrieve`
   and the scan wrapper `python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/semgrep_rules.py" scan ...`,
   then `summarize`/filtered `list-findings`/selected `show-finding` (`--target` plus expected
@@ -127,7 +129,7 @@ Each repair-agent prompt includes:
 - Original `SPEC.md`, `tasks.json`, package Markdown, proof Markdown, and package verification report paths.
 - Package ID, affected Slice H3 IDs, proof rows, verification expectations, findings, failed outputs/observations, current worktree path, and safe verification commands.
 - Bounded scope: close only named findings, affected proof rows, Slice plan-defect resolution, and touched-file verification.
-- Terminal handling: stop for product/design changes, new dependencies/services, scope expansion, unsafe commands, credentials/external facts, risk acceptance, or repeated non-closing repairs.
+- Terminal handling: stop for product/design changes, unapproved dependency/service changes, scope expansion, unsafe commands, credentials/external facts, risk acceptance, or repeated non-closing repairs.
 
 ## Package Verifier Packet
 
