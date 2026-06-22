@@ -150,7 +150,7 @@ Semgrep findings preserve Semgrep severity but are advisory by default. They do 
 | **review-code** | Runs bounded PR, local, or planned-feature pipeline code review with dynamic risk lenses, Skeptic verification for serious findings, and governed fix verification where the mode permits fixes. | Pipeline + standalone + PR review |
 | **audit** | Final read-only planned-feature completeness gate over accepted artifacts, proof Markdown, package reports, optional review-code context, and integrated code state. | Final gate + standalone |
 | **spike-to-plan** | Runs empirical feasibility spikes before planning and routes accepted evidence into durable planning artifacts. | Planning hook |
-| **spike-and-fix** | Diagnoses bugs evidence-first, validates candidate fixes in isolation, then extracts a clean regression-tested fix. | Standalone |
+| **diagnose-and-fix** | Diagnoses issues evidence-first, reports findings for approval, then routes approved fixes through worktree or implementation-plan. | Standalone |
 | **perspectives** | Explores architecture or design options from multiple angles with a final skeptic synthesis. | Standalone |
 | **worktree** | Provides git worktree runbooks for planned features, bugfixes, hotfixes, spikes, cleanup, and target-merge safety. | Internal + standalone |
 | **code-doc** | Generates or updates codebase documentation through scout, analysis, synthesis, review, and handoff stages. | Standalone |
@@ -314,7 +314,7 @@ plugins/super-developer/
 |   |   +-- references/cleanup-safety.md
 |   |   +-- references/feature-package-workflow.md
 |   +-- perspectives/SKILL.md
-|   +-- spike-and-fix/SKILL.md
+|   +-- diagnose-and-fix/SKILL.md
 |   +-- spike-to-plan/SKILL.md
 |   +-- release/SKILL.md
 ```

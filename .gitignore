@@ -10,6 +10,7 @@ __pycache__/
 .tasks/
 # Local Super Developer preferences and Semgrep state
 .claude/model-preferences.yml
+.superdeveloper/model-preferences.yml
 .superdeveloper/preferences.yml
 .superdeveloper/semgrep/
 .planning/

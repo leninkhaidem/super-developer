@@ -53,7 +53,7 @@ The optional `conceptualize` stage maintains a minimal planning index and writes
 
 Optional Semgrep validation is disabled by default in the developer-local `.superdeveloper/preferences.yml`. First opt-in names any approved rule-cache clone or `git pull --ff-only`; routine scans stay local and run through the shipped helper, never raw Semgrep commands. Findings are advisory, evidence stays under `.tasks/<feature>/semgrep/`, and final audit remains read-only.
 
-Plus standalone skills: **conceptualize** (minimal pre-planning index with optional handoff slices), **perspectives** (divergent problem-solving), **spike-to-plan** (empirical feature spikes before implementation planning), **spike-and-fix** (evidence-first bug diagnosis with isolated spike validation), **review-code** (works independently for PR and local code review), **code-doc** (generate comprehensive codebase documentation via hybrid analysis), and **release** (prepare/publish releases with approval gates).
+Plus standalone skills: **conceptualize** (minimal pre-planning index with optional handoff slices), **perspectives** (divergent problem-solving), **spike-to-plan** (empirical feature spikes before implementation planning), **diagnose-and-fix** (evidence-first issue diagnosis with approval-gated fix routing), **review-code** (works independently for PR and local code review), **code-doc** (generate comprehensive codebase documentation via hybrid analysis), and **release** (prepare/publish releases with approval gates).
 
 See the [full documentation](plugins/super-developer/README.md).
 

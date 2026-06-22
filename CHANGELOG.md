@@ -6,6 +6,15 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [v1.31.0] - 2026-06-22
+
+### Added
+- Added `diagnose-and-fix` as the single maintained issue diagnosis and bug-fix workflow, with structured evidence reporting and explicit approval before production-code changes.
+
+### Changed
+- Changed issue and `fix this` handling so agents diagnose first, route approved localized fixes through worktree isolation, and escalate broad or risky fixes to implementation planning.
+- Replaced the old `spike-and-fix` skill path and documentation references with `diagnose-and-fix`.
+
 ## [v1.30.2] - 2026-06-22
 
 ### Changed
