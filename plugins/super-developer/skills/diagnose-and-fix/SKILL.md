@@ -23,6 +23,8 @@ single maintained bug diagnosis/fix workflow.
   `not reproduced`, `already covered by deterministic failing test`, or `blocked`.
 - Keep the root worktree user-owned. Use `worktree` for approved diagnostic spike, bugfix, or
   hotfix work; never switch the root worktree branch.
+- Delegate approved localized fix implementation to a fresh Fix Implementer sub-agent bound to the
+  approved worktree, diagnosis packet, and regression plan; the main agent orchestrates and verifies.
 - Do not ship plausible fixes. Prove the root cause enough for the chosen route, or name uncertainty
   and ask for the missing artifact, permission, or risk acceptance.
 - Keep scope minimal: no unrelated refactors, dependency upgrades, formatting sweeps, broad
@@ -60,13 +62,18 @@ single maintained bug diagnosis/fix workflow.
    report as approval. Valid choices are: provide missing info, approve localized fix, approve
    planning escalation, approve a named diagnostic spike, or stop.
 8. If a localized fix is approved, invoke/use `worktree` for a `bugfix/<name>` or `hotfix/<name>`
-   branch/worktree from the context that exhibits the bug. Then:
+   branch/worktree from the context that exhibits the bug. Then dispatch a fresh Fix Implementer
+   sub-agent with the diagnosis report, approved scope, target worktree/path, branch/ref context,
+   repro, fix strategy, regression plan, required checks, and forbidden unrelated work. The Fix
+   Implementer edits only inside the target worktree and must:
    - convert the repro into a durable regression/spec test or fixture;
    - confirm the regression fails for the original reason before the fix when practical;
    - apply the minimal production fix;
    - rerun the regression, original repro, smallest affected existing test slice, and targeted
      standard checks relevant to touched files;
-   - commit only when the approved fix workflow includes a commit or the user asks for one.
+   - report changed files, commands/results, unresolved blockers, and remaining risks.
+   The main agent verifies the Fix Implementer report against the approved route and commits only
+   when the approved fix workflow includes a commit or the user asks for one.
 9. If the fix is broad/risky, invoke `implementation-plan` through a fresh Skill-tool/sub-agent
    packet and do not plan inline. The handoff must include symptom, repro, evidence, hypotheses,
    likely root cause or uncertainty, blast-radius reason, proposed strategy, tests, non-goals,
@@ -83,6 +90,8 @@ single maintained bug diagnosis/fix workflow.
 
 - Worktree creation, diagnostic spike, bugfix/hotfix branch, or cleanup commands are needed → invoke
   `worktree`; that skill owns its command references and approval boundaries.
+- Substantive localized fix edits are needed after approval and worktree setup → dispatch a fresh Fix
+  Implementer sub-agent with the bounded packet from step 8; do not implement those edits inline.
 - Diagnosis shows broad/risky implementation is required → invoke `implementation-plan` with the
   diagnosis packet; do not create `.tasks/` artifacts inline.
 - Independent review is requested or risk warrants it → invoke `review-code` after verification.
@@ -107,5 +116,6 @@ single maintained bug diagnosis/fix workflow.
 ## Output
 
 Return the structured diagnosis report before approval. After approved fix work, return the final
-observed-facts report, commands run and results, route taken, changed tests/fixtures, cleanup status,
-remaining risks/blockers, and the next approval boundary such as review, merge, push, or cleanup.
+observed-facts report, Fix Implementer report summary when used, commands run and results, route
+taken, changed tests/fixtures, cleanup status, remaining risks/blockers, and the next approval
+boundary such as review, merge, push, or cleanup.

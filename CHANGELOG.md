@@ -6,6 +6,11 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [v1.31.1] - 2026-06-22
+
+### Changed
+- Changed `diagnose-and-fix` so approved localized fix implementation is delegated to a fresh Fix Implementer sub-agent bound to the approved worktree, diagnosis packet, and regression plan.
+
 ## [v1.31.0] - 2026-06-22
 
 ### Added
