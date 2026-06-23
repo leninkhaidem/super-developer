@@ -48,11 +48,11 @@ maintained bug diagnosis/fix workflow.
 3. If diagnosis needs temporary instrumentation, candidate-fix validation, credentials, network
    side effects, or non-read-only changes, stop and ask approval for that diagnostic action first.
    Approved diagnostic spikes must use `worktree`, stay throwaway, and never become final history.
-4. Generate 3-5 ranked, falsifiable hypotheses, then drive each material hypothesis to a definite
-   state — confirmed or rejected by observed evidence. Do not stop at probability ordering: continue
-   troubleshooting until the true root cause is confirmed, or until every remaining branch is
-   explicitly blocked on a named missing artifact, access, or risk acceptance. Record the confirming
-   or rejecting evidence for each branch.
+4. Investigate until the root cause is confirmed by observed evidence. Use falsifiable candidate
+   causes as an internal method — rule each in or out with evidence so the investigation does not
+   tunnel-vision on the first plausible cause — but treat this as the agent's private troubleshooting
+   process, not findings to surface. Continue until the root cause is confirmed, or until the
+   investigation is explicitly blocked on a named missing artifact, access, or risk acceptance.
 5. Minimize the failing case when useful: smallest input, scenario, fixture, test, or command that
    still demonstrates the issue. If reproduction fails, report what was attempted and what artifact
    is needed next.
@@ -60,7 +60,6 @@ maintained bug diagnosis/fix workflow.
    - original symptom or user-reported issue;
    - reproduction status: reproduced, not reproduced, deterministic failing test, or blocked;
    - evidence gathered: commands, logs, traces, inputs, files/symbols, or unavailable evidence;
-   - hypotheses each marked confirmed or rejected, with the observed evidence that decided it;
    - confirmed root cause with the evidence that proves the mechanism, or — only when not yet
      provable — an explicit blocker naming the exact artifact/command/access needed to confirm it
      (never a hedged or "likely" guess presented as the answer);
@@ -94,7 +93,7 @@ maintained bug diagnosis/fix workflow.
    user explicitly excluded remote side effects. Target/base merge and push remain separate exact
    named-ref approval boundaries unless included by exact named refs in the approval.
 9. If the fix is broad/risky, invoke `implementation-plan` through a fresh Skill-tool/sub-agent
-   packet and do not plan inline. The handoff must include symptom, repro, evidence, hypotheses,
+   packet and do not plan inline. The handoff must include symptom, repro, evidence,
    confirmed root cause or an explicit named blocker, blast-radius reason, proposed strategy, tests, non-goals,
    rollback/cleanup notes, and any approved deferrals or risk acceptance.
 10. Clean up only approved throwaway diagnostic artifacts. Keep useful fixtures/traces in appropriate
