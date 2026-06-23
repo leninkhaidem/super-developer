@@ -19,8 +19,14 @@ maintained bug diagnosis/fix workflow.
   diagnosis-first. Initial wording is not approval to modify production code.
 - Do not edit production code, create fix branches, or commit before a structured diagnosis report
   and explicit user approval.
-- Prefer observed evidence over plausible guesses: reproduce the failing path or clearly state
-  `not reproduced`, `already covered by deterministic failing test`, or `blocked`.
+- Drive diagnosis to a confirmed root cause backed by observed evidence. Do total troubleshooting:
+  reproduce the failing path and prove the mechanism, or clearly state `not reproduced`,
+  `already covered by deterministic failing test`, or `blocked`. Do not present a hedged or
+  probabilistic root cause ("likely", "probably", "most likely") in place of doing the work to
+  confirm or reject it.
+- A root cause is reported as confirmed only when evidence proves the mechanism; otherwise report it
+  as an explicit blocker naming the exact artifact, command, or access needed to confirm it — never a
+  vague guess offered as if it were the answer.
 - Keep the root worktree user-owned. Use `worktree` for approved diagnostic spike, bugfix, or
   hotfix work; never switch the root worktree branch.
 - Delegate approved localized fix implementation to a fresh Fix Implementer sub-agent bound to the
@@ -42,8 +48,11 @@ maintained bug diagnosis/fix workflow.
 3. If diagnosis needs temporary instrumentation, candidate-fix validation, credentials, network
    side effects, or non-read-only changes, stop and ask approval for that diagnostic action first.
    Approved diagnostic spikes must use `worktree`, stay throwaway, and never become final history.
-4. Generate 3-5 ranked, falsifiable hypotheses. For each material branch, record what evidence
-   confirmed, rejected, or left it unresolved.
+4. Investigate until the root cause is confirmed by observed evidence. Use falsifiable candidate
+   causes as an internal method — rule each in or out with evidence so the investigation does not
+   tunnel-vision on the first plausible cause — but treat this as the agent's private troubleshooting
+   process, not findings to surface. Continue until the root cause is confirmed, or until the
+   investigation is explicitly blocked on a named missing artifact, access, or risk acceptance.
 5. Minimize the failing case when useful: smallest input, scenario, fixture, test, or command that
    still demonstrates the issue. If reproduction fails, report what was attempted and what artifact
    is needed next.
@@ -51,8 +60,9 @@ maintained bug diagnosis/fix workflow.
    - original symptom or user-reported issue;
    - reproduction status: reproduced, not reproduced, deterministic failing test, or blocked;
    - evidence gathered: commands, logs, traces, inputs, files/symbols, or unavailable evidence;
-   - ranked hypotheses with confidence and confirm/reject evidence;
-   - likely root cause, or explicit uncertainty if not proven;
+   - confirmed root cause with the evidence that proves the mechanism, or — only when not yet
+     provable — an explicit blocker naming the exact artifact/command/access needed to confirm it
+     (never a hedged or "likely" guess presented as the answer);
    - blast radius and risk: localized or broad/risky;
    - exactly one recommended route selected from: stop/missing-info, localized `worktree` fix,
      `implementation-plan`, or named diagnostic spike, with rationale;
@@ -83,12 +93,12 @@ maintained bug diagnosis/fix workflow.
    user explicitly excluded remote side effects. Target/base merge and push remain separate exact
    named-ref approval boundaries unless included by exact named refs in the approval.
 9. If the fix is broad/risky, invoke `implementation-plan` through a fresh Skill-tool/sub-agent
-   packet and do not plan inline. The handoff must include symptom, repro, evidence, hypotheses,
-   likely root cause or uncertainty, blast-radius reason, proposed strategy, tests, non-goals,
+   packet and do not plan inline. The handoff must include symptom, repro, evidence,
+   confirmed root cause or an explicit named blocker, blast-radius reason, proposed strategy, tests, non-goals,
    rollback/cleanup notes, and any approved deferrals or risk acceptance.
 10. Clean up only approved throwaway diagnostic artifacts. Keep useful fixtures/traces in appropriate
     test fixture paths. Do not remove worktrees/branches without the relevant `worktree` cleanup gate.
-11. Final-report only observed facts: symptom, repro status, root cause or uncertainty, route chosen,
+11. Final-report only observed facts: symptom, repro status, confirmed root cause or explicit named blocker, route chosen,
     fix summary if any, tests/fixtures changed, command results, cleanup performed, and remaining
     risks or blockers.
 
