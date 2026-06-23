@@ -6,6 +6,15 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [v1.32.0] - 2026-06-24
+
+### Added
+- Added `readme-polish`, a README-front-door skill for creating or polishing a single repository README with an explicit checklist contract before README or banner writes.
+
+### Changed
+- Changed `skill-authoring` guidance to keep skill frontmatter descriptions concise, routing-only, and free of workflow detail or long trigger catalogs.
+
+
 ## [v1.31.3] - 2026-06-22
 
 ### Changed
