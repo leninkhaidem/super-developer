@@ -13,6 +13,7 @@ Create/revise skills with safe eager instructions; detailed manuals, templates, 
 
 ## Budgets
 
+- Frontmatter `description`: target 1–3 short lines / ≤280 chars; routing only, not workflow.
 - `SKILL.md`: target 80–140 normal-width lines, hard maximum 150, target 600–1,200 words.
 - References: target 60–130 normal-width lines, hard maximum 150, target 300–900 words.
 - Do not satisfy budgets by packing long lines. Justify larger files by safety value.
@@ -71,6 +72,7 @@ concise `Contract`/`Do`/`Stop if` sections when useful. No hidden second-hop ref
 ## Always
 
 - Frontmatter is routing only: capability, trigger phrases, and near-miss exclusions.
+- Keep frontmatter descriptions concise: no workflow steps, rationale, examples, evidence, or long trigger catalogs.
 - Do not put project-specific reference names in frontmatter unless the skill itself is project-specific.
 - Choose the delegation surface from visible task shape: standalone direct, orchestrator plus
   worker-contract, or explicit hybrid. Direct invocation needs no reference; never use runtime
@@ -101,8 +103,8 @@ concise `Contract`/`Do`/`Stop if` sections when useful. No hidden second-hop ref
      are material;
    - explicit hybrid only when visible task shapes require both surfaces and the mode boundary is
      compact enough to state eagerly.
-4. Draft frontmatter for routing only; keep workflow, reference paths, and other skill paths out of
-   the description.
+4. Draft concise frontmatter for routing only; keep workflow, reference paths, other skill paths,
+   examples, and rationale out of the description.
 5. Design the eager workflow first: phases, decision gates, mandatory loads, skill invocations,
    stop gates, and output.
 6. Draft `Always`, `Do`, `Load if needed`, `Stop if`, and `Output`; delete optional sections that add
@@ -112,9 +114,9 @@ concise `Contract`/`Do`/`Stop if` sections when useful. No hidden second-hop ref
 8. Run reference-economy and compression passes: merge refs loaded together, inline tiny universal
    refs, collapse within-file restatements of the same fact or file role, delete duplicated routing,
    cross-skill private-reference links, stale refs, and long examples.
-9. Verify counts, max-line outliers, links, triggers, near-miss behavior, reference totals,
-   always-loaded refs, lazy refs, and every reference's parent load condition. Run
-   `scripts/audit-skill.py --strict` when enforcing deterministic budgets.
+9. Verify frontmatter description length, counts, max-line outliers, links, triggers, near-miss
+   behavior, reference totals, always-loaded refs, lazy refs, and every reference's parent load
+   condition. Run `scripts/audit-skill.py --strict` when enforcing deterministic budgets.
 
 ## Load if needed
 
