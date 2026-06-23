@@ -16,7 +16,7 @@ The eager workflow should be enough to guide the session. Load references only a
 - Inspect the repo instead of asking when repo evidence can answer; ask only for remaining intent, preference, or risk acceptance.
 - Continue the loop until shared understanding is sufficient for implementation planning without inventing behavior.
 - Prefer explicit uncertainty over confident invention; name assumptions and unresolved branches instead of filling gaps silently.
-- Use exactly one safe repo-local `.planning/<concept-slug>/` workspace.
+- Always derive a new concept slug autonomously from the concept itself and use exactly one safe repo-local `.planning/<concept-slug>/` workspace. Never ask the user to name, choose, confirm, or reuse a slug unless the user explicitly authorizes slug selection, or a path-safety/collision conflict makes autonomous slug derivation unsafe.
 - When shared understanding materializes into a settled requirement, constraint, decision, non-goal, risk, blocker, accepted tradeoff, or planning implication, checkpoint it to the workspace instead of leaving it only in chat context.
 - Capture autonomously: when discussion produces implementation-shaping context, update Slices as a normal checkpoint if the update is additive, faithful to the conversation, and does not narrow, defer, remove, contradict, or invent a requirement.
 - The agent owns Slice completeness. The user owns product decisions.
@@ -31,7 +31,7 @@ The eager workflow should be enough to guide the session. Load references only a
 
 ## Do
 
-1. Resolve the concept slug and selected workspace. Before creating or updating the Index, load `references/workspace-index.md` and follow its path, checkpoint, and required-Slice pointer rules.
+1. Autonomously derive a new concept slug from the concept (do not ask the user for it) and resolve the selected workspace. Before creating or updating the Index, load `references/workspace-index.md` and follow its path, checkpoint, and required-Slice pointer rules. Only pause for user input on slug selection if the user explicitly authorized it or a path-safety/collision conflict blocks safe autonomous derivation.
 2. Frame the current highest-leverage branch of the design tree: the next decision, dependency, risk, unknown, or scope boundary that most improves shared understanding.
 3. Gather repo or research evidence first when it can materially reduce uncertainty; ask only for the remaining user intent, preference, or risk acceptance.
 4. Ask exactly one focused question with a recommended answer or clear options. After the answer, state the updated shared understanding in plain language.
