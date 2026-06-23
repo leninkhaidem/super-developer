@@ -1,12 +1,9 @@
 ---
 name: readme-polish
-description: >
-  Author or upgrade a single repository's front-door README.md — analyze the repo, propose a
-  structured per-section checklist contract, and only after the user approves or edits it,
-  write/update README.md. Use when the user wants to create/update a README, polish a README,
-  make a repo look professional or complete, or add a banner, badges, About/description, or
-  README sections. Front-door README authoring only — for whole-codebase documentation,
-  architecture guides, developer guides, or multi-file doc generation, use code-doc instead.
+description: >-
+  Author or polish a single repository README when asked to create/update README, make repo
+  professional/professional README, improve README polish, or add README banner, badges, or About
+  positioning. Near miss: whole-codebase or multi-file docs route to code-doc.
 ---
 
 # Readme-Polish
