@@ -12,6 +12,8 @@ The format is based on Keep a Changelog.
 - Added `readme-polish`, a README-front-door skill for creating or polishing a single repository README with an explicit checklist contract before README or banner writes.
 
 ### Changed
+- Changed `conceptualize` so agents derive new concept slugs autonomously and ask about slug selection only when explicitly authorized or blocked by path-safety/collision concerns.
+- Changed `diagnose-and-fix` to require evidence-confirmed root causes or explicit named blockers, keeping falsifiable hypotheses internal instead of presenting hedged likely causes as findings.
 - Changed `skill-authoring` guidance to keep skill frontmatter descriptions concise, routing-only, and free of workflow detail or long trigger catalogs.
 
 
