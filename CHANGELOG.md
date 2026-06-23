@@ -6,6 +6,11 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [v1.32.1] - 2026-06-24
+
+### Changed
+- Changed `readme-polish` so Repository Polish Contracts can include GitHub and GitHub Enterprise repository metadata updates for About/description, website URL, topics/tags, and social preview handling.
+
 ## [v1.32.0] - 2026-06-24
 
 ### Added
