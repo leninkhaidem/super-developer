@@ -297,6 +297,88 @@ class SkillPromptSurfaceTests(unittest.TestCase):
         self.assertIn("[INTERFACE-EXACTNESS]", read_repo("plugins/super-developer/skills/audit/references/audit-subagent-contract.md"))
         self.assertIn("interface-contract seams", read_repo("plugins/super-developer/skills/review-code/references/pipeline-report.md"))
 
+    def test_package_verification_deliverable_matrix_contract_is_durable(self) -> None:
+        contract_rel = "plugins/super-developer/references/package-verification-report.md"
+        contract = read_repo(contract_rel)
+        verifier = read_repo("plugins/super-developer/skills/implement/references/package-verification.md")
+        artifacts = read_repo("plugins/super-developer/references/slice-first-artifacts.md")
+        dispatch = read_repo("plugins/super-developer/skills/implement/references/package-dispatch.md")
+        risks = read_repo("plugins/super-developer/references/known-risk-patterns.md")
+
+        for rel in [
+            contract_rel,
+            "plugins/super-developer/skills/implement/references/package-verification.md",
+            "plugins/super-developer/references/slice-first-artifacts.md",
+            "plugins/super-developer/skills/implement/references/package-dispatch.md",
+            "plugins/super-developer/references/known-risk-patterns.md",
+        ]:
+            self.assertLessEqual(len(read_repo(rel).splitlines()), 150, rel)
+
+        for token in [
+            "### Deliverable Completeness Matrix",
+            "Source ID",
+            "Row Type",
+            "Deliverable",
+            "Evidence Type",
+            "Evidence Refs",
+            "Exactness / Risk Disposition",
+            "Verdict",
+            "delivered",
+            "missing",
+            "partial",
+            "contradicted",
+            "unverified",
+        ]:
+            self.assertIn(token, contract)
+
+        for token in [
+            "exact H3 ID",
+            "VE-<n>",
+            "RISK-<slug-or-n>",
+            "verifier-selected",
+            "planner seeds do not limit discovery",
+            "non-applicable probes must not become checklist noise",
+        ]:
+            self.assertIn(token, contract)
+
+        for token in [
+            "Package Markdown Digest",
+            "Proof Digest",
+            "Assigned Slices",
+            "Assigned Slice Digests",
+            "Matrix Source Snapshot",
+            "Worktree",
+            "Git Ref",
+            "Commit",
+        ]:
+            self.assertIn(token, contract)
+
+        for token in [
+            "code:<repo-relative-path>",
+            "test:<repo-relative-path>",
+            "static:<repo-relative-path>#section",
+            "command:proof#Commands Run:<label>",
+            "manual:scenario=<specific scenario>; observed=<specific result>",
+            "unsafe, nonexistent, placeholder, fabricated, or structurally vague anchors",
+        ]:
+            self.assertIn(token, contract)
+
+        for token in [
+            "`### Slice Closure Review` and proof prose alone as completion blockers",
+            "Helpers validate shape, row coverage, clean verdict state, bindings, and evidence-anchor structure only",
+            "Package verifiers and final auditors judge semantic truthfulness and sufficiency",
+        ]:
+            self.assertIn(token, verifier)
+
+        self.assertIn(contract_rel, verifier)
+        self.assertIn(contract_rel, artifacts)
+        self.assertIn(contract_rel, dispatch)
+        self.assertIn("Required first reads", dispatch)
+        self.assertIn("hidden chat context", dispatch)
+        self.assertIn("deliverable completeness matrix", artifacts)
+        self.assertIn("RISK-<...>", risks)
+        self.assertIn("rationale/disposition", risks)
+
 
 if __name__ == "__main__":
     unittest.main()

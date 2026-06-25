@@ -17,4 +17,4 @@ This is a probe library only; do not persist these prompts as registry fields or
 
 ## Use
 
-Scan the probes against the package scope, assigned Slices, verification expectations, changed files, and runtime observations. Add only applicable probes to package evidence, review findings, or audit reasoning. Omit non-applicable probes instead of creating durable checklist noise.
+Scan the probes against the package scope, assigned Slices, verification expectations, changed files/diff/tests, and runtime observations. Package verifiers add only applicable probes as deliverable-matrix triggered-risk rows with explicit `RISK-<...>` source IDs and rationale/disposition. Nearby high-signal non-applicable probes get a concise note; omit the rest instead of creating durable checklist noise.
