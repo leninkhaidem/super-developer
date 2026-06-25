@@ -40,7 +40,8 @@ The eager workflow should be enough to guide the session. Load references only a
 7. Before moving from one material design branch to the next, run a capture checkpoint using the Capture Completeness Rubric: update the relevant Slice/H3 blocks with applicable implementation-shaping context, then briefly report the Slice path and notable H3 IDs captured. For each material H3, apply the interface-bearing test and capture an inline interface contract when a reasonable implementation could satisfy the words but still be wrong, per `../../references/conceptualize-slice-authority.md`.
 8. Keep Slices living: revise stale, contradicted, or superseded H3 blocks when the user has made the product decision that changes them rather than appending hidden history. Do not write every conversational turn, but do not leave implementation-shaping context only in chat.
 9. Before handoff or planning, ensure the workspace has at least one safe Slice with at least one stable H3 under `## Shared Understanding`; otherwise continue discovery or create the required faithful Slice checkpoint.
-10. When the user is ready for planning or handoff, load `references/final-handoff.md`.
+10. Before handoff, run a completeness challenge: deliberately hunt for observable behaviors, edge cases, failure modes, defaults, or obligations a reasonable implementer would expect that no Slice covers. Surface each candidate gap as a focused question or capture it; never let an unasked requirement pass silently into planning.
+11. When the user is ready for planning or handoff, load `references/final-handoff.md`.
    Run the coverage pass, report blockers or user-decided deferrals, and return the handoff summary.
    Before invoking `implementation-plan` from a Conceptualize handoff, the parent/main planning
    transition must resolve `.superdeveloper/preferences.yml`, handle any Semgrep opt-in/setup
@@ -56,6 +57,7 @@ The eager workflow should be enough to guide the session. Load references only a
 - A workspace path, slug, Slice path, or source path is unsafe.
 - A material product decision, scope reduction, deferral, risk acceptance, conflict, or Slice rewrite requires user input before it can be captured faithfully.
 - A handoff or planning transition is requested before at least one safe Slice captures the settled shared understanding.
+- The completeness challenge surfaces a plausible requirement, edge case, or failure mode the user has not resolved, deferred, or ruled out of scope.
 - Remaining questions would make implementation planning invent behavior.
 - The next action would run/configure Semgrep, clone/pull rules, index/retrieve stacks, scan, or write Semgrep preferences.
 - The next step is creating `.tasks/` artifacts; route through the parent/main planning transition
