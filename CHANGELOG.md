@@ -6,6 +6,14 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [v1.33.1] - 2026-06-25
+
+### Added
+- Added banner examples for readable ASCII and SVG README hero patterns so `readme-polish` can adapt user-supplied banner styles into legible repository front doors.
+
+### Changed
+- Changed `readme-polish` banner guidance to prioritize readable wordmarks, high contrast, short taglines, and a lazily loaded banner reference only when banner work is requested.
+
 ## [v1.33.0] - 2026-06-25
 
 ### Added

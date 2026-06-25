@@ -8,130 +8,103 @@ description: >-
 
 # Readme-Polish
 
-Author or improve a repository's front-door `README.md` and optional GitHub/GitHub Enterprise repo
-metadata through one explicit approval gate: analyze the repo, name exactly what will be changed in a
-structured checklist, and write/apply only after the user approves the contract.
+Improve one repository's front-door `README.md` and optional GitHub/GitHub Enterprise metadata
+through one explicit approval gate: analyze real repo signals, propose a structured Repository Polish
+Contract, then write/apply only after the user approves that contract.
 
 ## Arguments
 
-- `$ARGUMENTS` — Optional repo path (defaults to cwd) and/or mode hint: open-ended (default) or
+- `$ARGUMENTS` — Optional repo path (defaults to cwd) and/or mode hint: open-ended default, or
   `menu` / "let me pick" for menu-selection mode.
 
 ## Always
 
 - Use exactly one approval gate per attempt: **Repository Polish Contract Approval**.
-- Present the proposed Repository Polish Contract — a structured checklist covering README items and
-  any repo metadata actions — before any file write or remote metadata change.
-- Never write/overwrite `README.md`, write/overwrite a banner/social-preview asset, or change GitHub
-  or GitHub Enterprise metadata before the user approves the contract.
-- Scope is the single front-door `README.md`, any banner/social-preview asset it references or uses,
-  and approved repo metadata: About/description, website URL, topics/tags, and social preview image.
-  This is not a whole-codebase documentation generator; defer architecture/developer/multi-file docs
-  to `code-doc`.
-- Default mode is **analyze → draft plan → present contract → approve/edit → write/apply**; the user
-  does not start from a blank menu.
-- Menu-selection mode is opt-in only (the user asks to pick sections); it converges on the same
-  no-write-or-apply-before-approval discipline and is never the default.
-- Treat the approved checklist as the only gate: no diff preview, no `.bak` backup, no draft file.
-  Write/edit `README.md` and assets with ordinary tooling; git history and remote audit history
-  provide rollback where available.
-- Keep enhancement scope two-tier: Tier 1 core (Banner, About/Description, Badges, Repo Metadata) is
-  first-class; Tier 2 sections are scouted per-repo. Do not hardcode a fixed catalog of non-core
-  sections.
-- Make every proposed badge, topic, website URL, or metadata value trace to a detected repo signal or
-  explicit user instruction; propose no item when no signal exists and never fabricate facts.
-- Offer the banner as ASCII **or** SVG, mutually exclusive — one README gets one or neither, never
-  both.
-- Generate banner/social-preview artwork with the LLM directly
-- Surface every choice with a tradeoff (banner form, palette, scouted sections, badge set, metadata
-  values, remote application method) in the contract so the user decides before write/apply.
-- Prefer `gh` for GitHub/GHE metadata when authenticated and capable; otherwise stop with exact
-  manual steps or ask for the user's preferred method. Never request or expose credentials.
+- Before approval, do not write/overwrite `README.md`, banner/social-preview assets, or GitHub/GHE
+  metadata. A README-polish request is not write approval.
+- Scope is the single front-door README, assets it references/uses, and approved repo metadata:
+  About/description, website URL, topics/tags, and social preview image. Whole-codebase docs,
+  architecture guides, and multi-file documentation belong to `code-doc`.
+- Default mode is analyze → draft contract → approve/edit → write/apply. Menu-selection mode is
+  opt-in only and still uses the same no-write-before-approval gate.
+- Treat the approved checklist as the only gate: no diff-preview gate, `.bak` backup, or draft file.
+  Use ordinary file edits; git/remote history provide rollback where available.
+- Keep scope two-tier: Tier 1 core is Banner, About/Description, Badges, and Repo Metadata; Tier 2
+  sections are scouted per repo, not hardcoded from a fixed catalog.
+- Every proposed badge, topic, website URL, metadata value, or section must trace to a detected repo
+  signal or explicit user instruction. Drop unsupported items; never fabricate facts.
+- Offer one banner form per README: ASCII **or** SVG **or** none. For requested banner work,
+  optimize for a readable wordmark first: block letters or large text, short tagline, high contrast,
+  and no tiny glyph art that collapses in README rendering.
+- Generate banner/social-preview artwork with the LLM directly; do not rely on external image
+  generators, remote asset services, external fonts, scripts, or network-loaded image content.
+- Surface tradeoffs in the contract: banner form, palette, example family, badges, scouted sections,
+  metadata values, asset paths, and remote application method.
+- Prefer `gh` for GitHub/GHE metadata when authenticated and capable; otherwise stop with concise
+  manual steps or ask for method preference. Never request or expose credentials.
 
 ## Do
 
-1. Resolve the target repo (default cwd), mode (open-ended default, or menu-selection if requested),
-   and whether repo metadata polish is in scope from the user's request.
-2. Analyze the repository to ground every proposal in real facts:
-   - existing `README.md` (present/absent, size, template-like vs. substantial, human content to
-     preserve);
-   - project type, primary language, frameworks, structure, package manifests, and likely audience;
-   - Git remote host/owner/repo and whether it is GitHub.com or GitHub Enterprise;
-   - existing repo metadata if available without new credentials (`gh repo view --json` or equivalent):
-     description/About, homepage/website URL, repository topics, and visibility constraints;
-   - badge signals: license file (`LICENSE`, `LICENSE.md`), CI config (`.github/workflows/`,
-     `.gitlab-ci.yml`, etc.), package manifest (`package.json`, `pyproject.toml`, `Cargo.toml`,
-     `go.mod`, etc.), primary language/tech, coverage config/report;
-   - URL signals for website/homepage: package manifest homepage/docs, Docusaurus/Vite/Pages config,
-     docs site links, existing README links, or explicit user instruction;
-   - topic/tag signals: project name/domain, primary language, frameworks, package ecosystem,
-     deployment target, and existing topics;
-   - branding signals for palette and social preview (existing logo, brand colors, project identity);
-   - existing asset pattern/dir (`.github/assets/`, `docs/assets/`, `assets/`, images referenced by
-     an existing README) for SVG/social-preview placement.
-3. Build the proposed plan as a **structured per-section checklist**, not a prose blurb and not a
-   full pre-rendered README draft. Each item carries a short note on what will be added/changed:
-   - **Banner** — chosen form (ASCII xor SVG) + note; for SVG, resolved asset path and palette/theme;
-   - **About / Description** — new or revised README summary;
-   - **Badges** — fact-detected set, each item naming the repo signal it traces to (omit entirely if
-     no signal);
-   - **Repo Metadata** — only if requested or clearly part of repo polish: About/description, website
-     URL, topics/tags, and social preview image, each showing current value, proposed value, evidence,
-     and apply method (`gh`, API, or manual);
-   - **Scouted sections** (Tier 2) — repo-appropriate additions (e.g. Installation, Usage, Features,
-     Configuration, Contributing, License) proposed only because repo analysis warrants them.
-4. For the banner item, make the ASCII-vs-SVG tradeoff visible: ASCII is portable monochrome plain
-   text in a code block (renders everywhere, zero deps); SVG is a committed color/gradient vector
-   asset (renders on GitHub/GitLab web, not in plain-text views, requires an asset file + path ref).
-5. For SVG/banner/social-preview assets, resolve the asset location: default to `.github/assets/`;
-   if the repo already has an established asset pattern/dir, reuse that instead. Reference README
-   assets by **relative path**. Surface palette/theme and dimensions in the contract for tweaking.
-6. For repo metadata, separate file-backed values from remote-only values:
-   - description/About, website URL, and topics/tags may be applied with `gh repo edit` when supported
-     by the target host and authenticated account;
-   - social preview image is commonly remote UI-only or host/version-dependent; if no supported local
-     API/tool is available, create/commit the approved image asset if requested and return concise
-     manual upload steps instead of pretending it was applied.
-7. Present the Repository Polish Contract checklist and let the user **approve all, deselect
-   individual items, or request edits**. The approved checklist is the contract. Ask once; do not
-   re-prompt for staged re-approvals unless observed repo or remote state invalidates the contract.
-8. After approval, write/apply only approved items:
-   - write/edit `README.md` in place with ordinary tooling (new file or in-place edit);
-   - when an SVG banner or social-preview asset was approved, write the asset to the resolved path
-     and reference it where applicable;
-   - apply approved GitHub/GHE metadata only through the approved method and only to the resolved
-     repository;
-   - do not create diff previews, `.bak` backups, or draft files.
-9. Report what changed: README path, banner/social-preview asset paths, badges and their signals,
-   metadata values applied or left as manual steps, and scouted sections written.
+1. Resolve target repo, mode, and whether repo metadata polish is in scope.
+2. Analyze before proposing. Ground the contract in:
+   - existing README state and human content to preserve;
+   - project type, language/frameworks, manifests, structure, audience, and likely usage path;
+   - git remote host/owner/repo plus GitHub.com vs. GHE status;
+   - existing repo metadata available without new credentials (`gh repo view --json` or equivalent);
+   - badge signals: license, CI, package manifests, primary language/tech, coverage config/report;
+   - URL/topic signals: package homepage/docs, Pages/docs config, existing links, project domain,
+     primary ecosystem, deployment target, existing topics, or explicit user instruction;
+   - branding/asset signals: existing logo, palette, social preview, and asset directory pattern
+     (`.github/assets/`, `docs/assets/`, `assets/`, or currently referenced image paths).
+3. Draft the **Repository Polish Contract** as a structured checklist, not a prose blurb or full
+   rendered README. Include only supported items:
+   - **Banner** — ASCII xor SVG, readable example family, tagline note; for SVG/social preview, asset
+     path, dimensions, and palette/theme;
+   - **About / Description** — new or revised summary and evidence source;
+   - **Badges** — each badge plus the repo signal that justifies it; omit when no signal exists;
+   - **Repo Metadata** — if requested or clearly in scope: current value, proposed value, evidence,
+     and apply method (`gh`, API, or manual) for description/About, website URL, topics/tags, and
+     social preview;
+   - **Scouted sections** — repo-appropriate Tier 2 sections such as Installation, Usage, Features,
+     Configuration, Contributing, or License, only when analysis warrants them.
+4. For any banner item, load `references/banner-examples.md`. If the user supplied a style example,
+   adapt its readable structure, spacing, contrast, and tagline pattern without copying unrelated
+   branding. Make the ASCII-vs-SVG tradeoff explicit: ASCII is portable monochrome text in a code
+   block; SVG is a committed color/gradient asset that renders on web views but needs an asset path.
+5. Resolve SVG/social-preview asset location before approval. Default to `.github/assets/`; reuse an
+   established repo asset directory when one exists. README asset references must be relative paths.
+6. Separate remote-only metadata from file-backed work. `gh repo edit` may apply description, website,
+   and topics when supported and authenticated. If social preview has no supported local API/tool,
+   create the approved asset if requested and return manual upload steps instead of pretending it was
+   applied remotely.
+7. Present the contract and ask once. The user may approve all, deselect items, or request edits.
+   Re-prompt only if observed repo/remote state invalidates the contract.
+8. After approval, write/apply only approved items: edit `README.md` in place, write approved assets,
+   reference them where applicable, and apply approved metadata only through the approved method to
+   the resolved repo.
+9. Report the approved/deselected items, paths changed, badge signals, metadata applied or left as
+   manual steps, banner form/palette/assets, and scouted sections written.
+
+## Load if needed
+
+- Banner, wordmark, ASCII art, SVG hero, social-preview art, or user-supplied banner style example is
+  requested/proposed → `references/banner-examples.md`
 
 ## Stop if
 
-- The user has not yet approved the Repository Polish Contract — never write/overwrite `README.md`,
-  write/overwrite assets, or change remote metadata before approval.
-- A requested write or metadata change is not an item in the approved contract.
-- A proposed badge, topic, website URL, metadata value, or section cannot be traced to a real detected
-  repo signal or explicit user instruction — drop it rather than fabricate.
-- The request is for whole-codebase documentation, architecture/developer guides, or multi-file doc
-  generation — that is `code-doc`'s territory, not this skill's.
-- The target repo, README, remote repository identity, metadata target, or asset location is ambiguous
-  and cannot be resolved from analysis — clarify before proposing.
-- The GitHub/GHE operation would require credentials, changing auth state, elevated permissions,
-  visibility/default-branch changes, repository transfer/deletion, or settings outside approved
-  polish metadata — stop and ask or provide manual instructions.
-- A social preview update has no supported local API/tool path — do not automate browser-only flows;
-  provide the approved asset and manual upload steps.
+- The Repository Polish Contract has not been approved.
+- A requested write, asset, or metadata change is not in the approved contract.
+- A proposed badge, topic, website URL, metadata value, or section lacks a detected repo signal or
+  explicit user instruction.
+- Target repo, README, remote identity, metadata target, or asset location is ambiguous after
+  analysis.
+- A GitHub/GHE operation requires credentials, auth-state changes, elevated permissions,
+  visibility/default-branch changes, transfer/deletion, or settings outside approved polish metadata.
+- Social preview update has no supported local API/tool path; provide the approved asset and manual
+  upload steps instead of automating browser-only flows.
 
 ## Output
 
-Return:
-
-- mode used (default analyze-propose or menu-selection);
-- the approved Repository Polish Contract checklist (items approved / deselected / edited);
-- `README.md` written or updated (new vs. in-place);
-- banner form chosen (ASCII, SVG, or none) and, for SVG, the asset path and palette;
-- badges added, each with the repo signal it traces to;
-- repo metadata applied or proposed: About/description, website URL, topics/tags, social preview;
-- social-preview asset path and whether it was applied remotely or requires manual upload;
-- scouted (Tier 2) sections written;
-- any items the user declined.
+Return mode used, approved/deselected contract items, README write status, banner form and asset path
+if any, badges with signals, metadata applied/proposed/manual, social-preview status, scouted sections
+written, checks run, and unresolved blockers or declined items.
