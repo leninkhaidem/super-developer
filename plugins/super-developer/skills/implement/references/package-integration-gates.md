@@ -91,6 +91,8 @@ Before moving to final `review-code` and `audit`, every package must have:
 - integration worktree clean for the intended final state;
 - package branches merged once and retained until cleanup gates pass.
 
+For bounded stacked-feature readiness, build a packet naming the top integrated worktree/code state and every relevant task/Slice artifact set; each included set must have clean package completion and `validate-final` prerequisites before readiness claims. Do not audit only a follow-up task set when the top branch includes base feature deliverables; stop when included sets are unknown or out of scope.
+
 If Semgrep is enabled for final state, keep package scans primary. Run an integrated scan only once,
 through `python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/semgrep_rules.py" scan ...`, when a
 verifier/reviewer names concrete cross-package/shared-surface risk. Write
@@ -99,13 +101,13 @@ verifier/reviewer names concrete cross-package/shared-surface risk. Write
 start widen/fix/rescan cycles without a newly named affected surface. Raw direct `semgrep` scans are
 not valid evidence.
 
-Then run:
+Then run for each included task set:
 
 ```bash
 python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-final ".tasks/<feature>/tasks.json"
 ```
 
-Run final `review-code` and final `audit` as sibling checks against the same integrated state when practical. Batch compatible final findings, delegate repairs, refresh affected proof/report/package-verification state, rerun affected package proof validation and package verification, then rerun affected code-review checks and focused/full audit checks as required. Declare readiness only when package evidence, review-code readiness, and final audit PASS are clean for the same integrated state.
+Run final `review-code` and final `audit` as sibling checks against the same integrated state when practical. For any post-gate change or final finding, record an affected-surface impact classification before selecting targeted versus broad reruns. Batch compatible final findings, delegate repairs, refresh affected proof/report/package-verification state, rerun affected package proof validation, package verification, and `validate-package-complete`, then rerun affected code-review checks and focused/full audit checks as required. Declare readiness only when package evidence, review-code readiness, and final audit PASS are clean for the same integrated state.
 
 ## Status Output
 

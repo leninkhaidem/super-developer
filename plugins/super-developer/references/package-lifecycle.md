@@ -122,7 +122,7 @@ Binding-only refresh is allowed only when semantic verification already reviewed
 
 ## Final Readiness
 
-Before final review-code or audit, every package must have:
+Before final review-code or audit, every package in every included task set must have:
 
 - valid package Markdown and mechanically valid proof Markdown;
 - no unresolved `GAP`, `OPEN`, `TODO`, unapproved `DEFERRED`, unsupported `N/A`, or Slice plan defect;
@@ -130,15 +130,15 @@ Before final review-code or audit, every package must have:
 - a clean `validate-package-complete` result for the current proof/package/report/Slice state;
 - closed repair/delta verification and a clean integration worktree for the intended final state.
 
-Run package completion checks for every package, then `python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-final ".tasks/<feature>/tasks.json"`.
+Run package completion checks for every package, then `python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-final ".tasks/<feature>/tasks.json"` for each included task set. For bounded stacked readiness, the packet must identify the top integrated worktree/code state and all relevant task/Slice artifact sets; do not audit only a follow-up set when the top branch includes base feature deliverables, and stop if included sets are unknown.
 
-This allows dispatching final review-code and final audit. Merge/readiness still requires review-code readiness and final audit PASS clean for the same integrated state; helper success, registry mutation, manual proof edits, or dashboard output cannot bypass those gates.
+This allows dispatching final review-code and final audit against the same top state. Merge/readiness still requires review-code readiness and final audit PASS clean for that state; helper success, registry mutation, manual proof edits, or dashboard output cannot bypass those gates.
 
 ## End-to-End Final Loop
 
 1. Complete all packages through the package completion gate and run final package validation.
-2. Run final review-code and final audit as sibling checks against the same integrated state when practical; audit receives review-code state/report when already available, or explicit `none`.
-3. Batch compatible final findings, delegate repair, classify affected surfaces, refresh affected proof/report/package-verification state, rerun `validate-proof`/package verification/`validate-package-complete`, and rerun affected code-review plus focused/full audit checks as scope requires.
+2. Run final review-code and final audit as sibling checks against the same top integrated state when practical; audit receives review-code state/report when already available, or explicit `none`.
+3. Batch compatible final findings, delegate repair, classify affected surfaces (including matrix rows, source bindings, evidence anchors, and stacked readiness), refresh affected proof/report/package-verification state, rerun `validate-proof`/package verification/`validate-package-complete`, and rerun affected code-review plus focused/full audit checks as scope requires.
 4. If either final check was not run, is stale, or is affected by repair, run or rerun it before readiness.
 5. Declare readiness only when package evidence, review-code readiness, and final audit PASS are clean for the same integrated state.
 
