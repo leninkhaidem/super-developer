@@ -1271,6 +1271,24 @@ class SliceproofTests(unittest.TestCase):
                 ),
                 "triggered-risk row must record rationale/disposition",
             ),
+            (
+                "triggered risk with bare triggered",
+                lambda fixture, report: report.replace(
+                    "| VE-1 |",
+                    "| RISK-fixture | triggered-risk | Fixture risk checked. | static | static:plugins/super-developer/assets/sliceproof.py#validate_plan | triggered | delivered |\n| VE-1 |",
+                    1,
+                ),
+                "triggered-risk row must record rationale/disposition",
+            ),
+            (
+                "triggered risk with bare because",
+                lambda fixture, report: report.replace(
+                    "| VE-1 |",
+                    "| RISK-fixture | triggered-risk | Fixture risk checked. | static | static:plugins/super-developer/assets/sliceproof.py#validate_plan | because | delivered |\n| VE-1 |",
+                    1,
+                ),
+                "triggered-risk row must record rationale/disposition",
+            ),
         ]
         for name, mutate, expected_error in cases:
             with self.subTest(name=name):
@@ -1304,6 +1322,23 @@ class SliceproofTests(unittest.TestCase):
         errors = "\n".join(json.loads(result.stderr)["errors"])
         self.assertIn("interface row must record exact interface fulfillment", errors)
         self.assertIn("interface row must record forbidden-behavior falsification", errors)
+
+        negated_matrix = self.fixture.deliverable_matrix().replace("HELPER-PLAN-001", "HELPER-INTERFACE-005").replace(
+            "no interface; fixture plan behavior covered",
+            "interface: exact; forbidden behavior not falsified",
+            1,
+        )
+        negated_report = self.fixture.report_text(proof, deliverable_matrix=negated_matrix).replace(
+            "HELPER-PLAN-001",
+            "HELPER-INTERFACE-005",
+        )
+        self.fixture.report_path.write_text(negated_report, encoding="utf-8")
+
+        negated = self.fixture.run("validate-package-complete", str(self.fixture.tasks_path), "--package", "WP1")
+
+        self.assertNotEqual(0, negated.returncode, negated.stdout + negated.stderr)
+        negated_errors = "\n".join(json.loads(negated.stderr)["errors"])
+        self.assertIn("interface row must not negate forbidden-behavior falsification", negated_errors)
 
     def test_validate_final_reuses_deliverable_matrix_validation(self) -> None:
         proof = self.fixture.completed_proof()

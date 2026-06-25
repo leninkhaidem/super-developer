@@ -71,6 +71,52 @@ MATRIX_EVIDENCE_TYPES = {"code", "test", "static", "command", "manual", "mixed"}
 MATRIX_VERDICTS = {"delivered", "missing", "partial", "contradicted", "unverified"}
 MATRIX_CLEAN_VERDICT = "delivered"
 RISK_SOURCE_ID_RE = re.compile(r"^RISK-[A-Za-z0-9][A-Za-z0-9_-]*$")
+FALSIFICATION_TERM = r"falsif(?:y|ies|ied|ication|ications)"
+FORBIDDEN_BEHAVIOR_TERM = r"forbidden[-\s]+behaviou?rs?"
+AFFIRMATIVE_FORBIDDEN_FALSIFICATION_RE = re.compile(
+    rf"(?:\b{FORBIDDEN_BEHAVIOR_TERM}\b.{{0,160}}\b{FALSIFICATION_TERM}\b|"
+    rf"\b{FALSIFICATION_TERM}\b.{{0,160}}\b{FORBIDDEN_BEHAVIOR_TERM}\b)",
+    re.IGNORECASE,
+)
+NEGATED_FORBIDDEN_FALSIFICATION_RE = re.compile(
+    rf"(?:\b(?:not|never|without|unfalsified)\b.{{0,80}}\b{FALSIFICATION_TERM}\b|"
+    rf"\b(?:did|does|do|was|were|is|are|has|have|had)\s+not\s+(?:\w+\s+){{0,3}}{FALSIFICATION_TERM}\b|"
+    rf"\bno\b.{{0,80}}\b{FALSIFICATION_TERM}\b|"
+    rf"\b(?:fail(?:ed|s)?|unable|cannot|can't)\s+(?:to\s+)?{FALSIFICATION_TERM}\b|"
+    rf"\b{FALSIFICATION_TERM}\b\s+(?:(?:was|were|is|are|has|have|had)\s+)?"
+    rf"(?:not|never|missing|absent|unverified)\b)",
+    re.IGNORECASE,
+)
+TRIGGERED_RISK_RATIONALE_RE = re.compile(
+    r"\btriggered\s+(?:because|by|due\s+to|from)\s+(?P<rationale>[^;|.]+)",
+    re.IGNORECASE,
+)
+TRIGGERED_RISK_GENERIC_TOKENS = {
+    "a",
+    "an",
+    "and",
+    "are",
+    "because",
+    "by",
+    "disposition",
+    "due",
+    "for",
+    "from",
+    "in",
+    "is",
+    "of",
+    "or",
+    "result",
+    "risk",
+    "row",
+    "rows",
+    "the",
+    "to",
+    "triggered",
+    "was",
+    "were",
+    "with",
+}
 EVIDENCE_REF_PREFIX_RE = re.compile(r"(?:^|;\s*)(code|test|static|command|manual):")
 REQUIRED_STATE_BINDING_FIELDS = {
     "Package",
@@ -1533,16 +1579,65 @@ def validate_interface_matrix_row(report_path: Path, row_label: str, disposition
     dirty_exactness = {"ambiguous", "partial", "contradicted", "over-broad", "over broad", "missing", "unverified"}
     if any(token in text for token in dirty_exactness):
         errors.append(f"{report_path}: {row_label} interface row contains non-exact interface disposition")
-    if "forbidden" not in text or not re.search(r"\bfalsif(?:y|ied|ication)\b", text):
-        errors.append(f"{report_path}: {row_label} interface row must record forbidden-behavior falsification")
+    if has_negated_forbidden_falsification(text):
+        errors.append(f"{report_path}: {row_label} interface row must not negate forbidden-behavior falsification")
+    if not has_affirmative_forbidden_falsification(text):
+        errors.append(
+            f"{report_path}: {row_label} interface row must record forbidden-behavior falsification with affirmative wording"
+        )
     return errors
+
+
+def has_negated_forbidden_falsification(text: str) -> bool:
+    return any(
+        AFFIRMATIVE_FORBIDDEN_FALSIFICATION_RE.search(clause) and NEGATED_FORBIDDEN_FALSIFICATION_RE.search(clause)
+        for clause in split_matrix_disposition_clauses(text)
+    )
+
+
+def has_affirmative_forbidden_falsification(text: str) -> bool:
+    return any(
+        AFFIRMATIVE_FORBIDDEN_FALSIFICATION_RE.search(clause) and not NEGATED_FORBIDDEN_FALSIFICATION_RE.search(clause)
+        for clause in split_matrix_disposition_clauses(text)
+    )
 
 
 def validate_triggered_risk_matrix_row(report_path: Path, row_label: str, disposition: str) -> list[str]:
     text = normalize_text(disposition).lower()
-    if "triggered" not in text and "because" not in text:
-        return [f"{report_path}: {row_label} triggered-risk row must record rationale/disposition"]
+    rationale_match = TRIGGERED_RISK_RATIONALE_RE.search(text)
+    rationale_ok = bool(rationale_match and is_concrete_risk_phrase(rationale_match.group("rationale")))
+    result_ok = has_triggered_risk_result_clause(text)
+    if not rationale_ok or not result_ok:
+        return [
+            f"{report_path}: {row_label} triggered-risk row must record rationale/disposition as "
+            "'triggered because ...; disposition/result ...'"
+        ]
     return []
+
+
+def has_triggered_risk_result_clause(text: str) -> bool:
+    clauses = split_matrix_disposition_clauses(text)
+    for index, clause in enumerate(clauses):
+        if TRIGGERED_RISK_RATIONALE_RE.search(clause):
+            return any(is_concrete_risk_phrase(candidate) for candidate in clauses[index + 1 :])
+    return False
+
+
+def is_concrete_risk_phrase(value: str) -> bool:
+    if is_report_section_placeholder_body(value):
+        return False
+    tokens = re.findall(r"[a-z0-9][a-z0-9_-]*", value.lower())
+    meaningful_tokens = [token for token in tokens if token not in TRIGGERED_RISK_GENERIC_TOKENS]
+    return len(meaningful_tokens) >= 2
+
+
+def split_matrix_disposition_clauses(value: str) -> list[str]:
+    clauses: list[str] = []
+    for part in re.split(r"[;|\n]+", value):
+        clause = normalize_text(part).lower().strip(" :-")
+        if clause:
+            clauses.append(clause)
+    return clauses
 
 
 def interface_bearing_slice_ids(root: Path, package_md: PackageMarkdown) -> set[str]:
