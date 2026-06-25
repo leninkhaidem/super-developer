@@ -297,6 +297,280 @@ class SkillPromptSurfaceTests(unittest.TestCase):
         self.assertIn("[INTERFACE-EXACTNESS]", read_repo("plugins/super-developer/skills/audit/references/audit-subagent-contract.md"))
         self.assertIn("interface-contract seams", read_repo("plugins/super-developer/skills/review-code/references/pipeline-report.md"))
 
+    def test_package_verification_deliverable_matrix_contract_is_durable(self) -> None:
+        contract_rel = "plugins/super-developer/references/package-verification-report.md"
+        contract = read_repo(contract_rel)
+        verifier = read_repo("plugins/super-developer/skills/implement/references/package-verification.md")
+        artifacts = read_repo("plugins/super-developer/references/slice-first-artifacts.md")
+        dispatch = read_repo("plugins/super-developer/skills/implement/references/package-dispatch.md")
+        risks = read_repo("plugins/super-developer/references/known-risk-patterns.md")
+
+        for rel in [
+            contract_rel,
+            "plugins/super-developer/skills/implement/references/package-verification.md",
+            "plugins/super-developer/references/slice-first-artifacts.md",
+            "plugins/super-developer/skills/implement/references/package-dispatch.md",
+            "plugins/super-developer/references/known-risk-patterns.md",
+        ]:
+            self.assertLessEqual(len(read_repo(rel).splitlines()), 150, rel)
+
+        for token in [
+            "### Deliverable Completeness Matrix",
+            "Source ID",
+            "Row Type",
+            "Deliverable",
+            "Evidence Type",
+            "Evidence Refs",
+            "Exactness / Risk Disposition",
+            "Verdict",
+            "delivered",
+            "missing",
+            "partial",
+            "contradicted",
+            "unverified",
+        ]:
+            self.assertIn(token, contract)
+
+        for token in [
+            "exact H3 ID",
+            "VE-<n>",
+            "RISK-<slug-or-n>",
+            "verifier-selected",
+            "planner seeds do not limit discovery",
+            "non-applicable probes must not become checklist noise",
+        ]:
+            self.assertIn(token, contract)
+
+        for token in [
+            "Package Markdown Digest",
+            "Proof Digest",
+            "Assigned Slices",
+            "Assigned Slice Digests",
+            "Matrix Source Snapshot",
+            "Worktree",
+            "Git Ref",
+            "Commit",
+        ]:
+            self.assertIn(token, contract)
+
+        for token in [
+            "code:<repo-relative-path>",
+            "test:<repo-relative-path>",
+            "static:<repo-relative-path>#section",
+            "command:proof#Commands Run:<label>",
+            "manual:scenario=<specific scenario>; observed=<specific result>",
+            "unsafe, nonexistent, placeholder, fabricated, or structurally vague anchors",
+        ]:
+            self.assertIn(token, contract)
+
+        for token in [
+            "`### Slice Closure Review` and proof prose alone as completion blockers",
+            "Helpers validate shape, row coverage, clean verdict state, bindings, and evidence-anchor structure only",
+            "Package verifiers and final auditors judge semantic truthfulness and sufficiency",
+        ]:
+            self.assertIn(token, verifier)
+
+        self.assertIn(contract_rel, verifier)
+        self.assertIn(contract_rel, artifacts)
+        self.assertIn(contract_rel, dispatch)
+        self.assertIn("Required first reads", dispatch)
+        self.assertIn("hidden chat context", dispatch)
+        self.assertIn("deliverable completeness matrix", artifacts)
+        self.assertIn("RISK-<...>", risks)
+        self.assertIn("rationale/disposition", risks)
+
+    def test_package_completion_helper_gates_done_unlock_merge_and_final_handoff(self) -> None:
+        implement = read_repo("plugins/super-developer/skills/implement/SKILL.md")
+        dispatch = read_repo("plugins/super-developer/skills/implement/references/package-dispatch.md")
+        gates = read_repo("plugins/super-developer/skills/implement/references/package-integration-gates.md")
+        lifecycle = read_repo("plugins/super-developer/references/package-lifecycle.md")
+        command = 'python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-package-complete ".tasks/<feature>/tasks.json" --package <WP-ID>'
+
+        self.assertIn("clean `validate-package-complete`", implement)
+        self.assertIn(command, gates)
+        self.assertIn(command, lifecycle)
+        for text in [dispatch, lifecycle]:
+            with self.subTest(surface=text[:40]):
+                self.assertIn("fresh `PASS`", text)
+                self.assertIn("clean `validate-package-complete`", text)
+                self.assertIn("registry `done`", text)
+                self.assertIn("proof rows", text)
+        for needle in [
+            "before accepting/merging as complete",
+            "marking `done`",
+            "unlocking dependents",
+            "final readiness handoff",
+            "mechanical signal only",
+        ]:
+            self.assertIn(needle, gates + lifecycle)
+        self.assertIn("review-code readiness and final audit PASS", lifecycle)
+
+    def test_planner_risk_seeding_preserves_verifier_discovery(self) -> None:
+        artifact = read_repo("plugins/super-developer/skills/implementation-plan/references/artifact-authoring.md")
+        planner = read_repo("plugins/super-developer/skills/implementation-plan/references/planner-agent-contract.md")
+        checklist = read_repo("plugins/super-developer/skills/implementation-plan/references/validation-checklist.md")
+        packages = read_repo("plugins/super-developer/references/work-packages.md")
+        dispatch = read_repo("plugins/super-developer/skills/implement/references/package-dispatch.md")
+
+        for text in [artifact, planner, checklist, packages]:
+            with self.subTest(surface=text[:40]):
+                self.assertIn("VE-<n>", text)
+                self.assertRegex(text, r"exact interfaces?|exact interface")
+                self.assertIn("forbidden", text)
+                for risk in [
+                    "interactive UI",
+                    "retry/fail-closed",
+                    "trigger precedence",
+                    "lifecycle/restart/reaper",
+                    "cache invalidation",
+                    "model/default precedence",
+                    "generated defaults",
+                    "state pollution",
+                ]:
+                    self.assertIn(risk, text)
+        for text in [artifact, checklist, packages, dispatch]:
+            with self.subTest(discovery=text[:40]):
+                self.assertIn("do not limit verifier discovery", text)
+                self.assertIn("changed code/diff", text)
+                self.assertIn("known failure modes", text)
+        self.assertIn("verifier-owned triggered risk selection", dispatch)
+
+    def test_repair_freshness_uses_affected_surface_classification_and_proportional_reruns(self) -> None:
+        lifecycle = read_repo("plugins/super-developer/references/package-lifecycle.md")
+        gates = read_repo("plugins/super-developer/skills/implement/references/package-integration-gates.md")
+        dispatch = read_repo("plugins/super-developer/skills/implement/references/package-dispatch.md")
+
+        for text in [lifecycle, gates]:
+            with self.subTest(surface=text[:40]):
+                self.assertIn("affected-surface", text)
+                self.assertIn("narrow", text)
+                self.assertIn("bounded", text)
+                self.assertIn("cannot be bounded", text)
+                self.assertIn("delivered behavior", text)
+                self.assertIn("evidence bindings", text)
+                self.assertIn("contracts", text)
+                self.assertIn("integration", text)
+                self.assertRegex(text, r"safety/security/privacy/data")
+                self.assertIn("source bindings", text)
+                self.assertIn("validate-package-complete", text)
+                self.assertIn("validate-proof", text)
+                self.assertIn("package verification", text)
+        for needle in [
+            "package Markdown/digest",
+            "assigned Slice source/digest",
+            "matrix source snapshot",
+            "matrix evidence anchors",
+        ]:
+            self.assertIn(needle, lifecycle)
+        self.assertIn("matrix rows/evidence anchors", dispatch)
+        self.assertIn("classified rerun scope", dispatch)
+
+    def test_final_audit_consumes_matrices_as_reconciler_and_stack_backstop(self) -> None:
+        audit_skill = read_repo("plugins/super-developer/skills/audit/SKILL.md")
+        audit_contract = read_repo("plugins/super-developer/skills/audit/references/audit-subagent-contract.md")
+        gates = read_repo("plugins/super-developer/skills/implement/references/package-integration-gates.md")
+        lifecycle = read_repo("plugins/super-developer/references/package-lifecycle.md")
+        workflow = read_repo("plugins/super-developer/skills/worktree/references/feature-package-workflow.md")
+
+        for token in [
+            "bounded stack packet",
+            "top integrated worktree/code state",
+            "one or more related task/Slice artifact sets",
+            "clean deliverable matrix",
+            "validate-final",
+        ]:
+            self.assertIn(token, audit_skill)
+        for token in [
+            "deliverable-matrix reconciliation",
+            "### Deliverable Completeness Matrix",
+            "matrix source bindings",
+            "evidence-anchor structure",
+            "Matrix Reconciliation",
+            "targeted skeptic backstop",
+            "not a full second package verifier",
+            "interface-bearing rows",
+            "triggered risk rows",
+            "global/cross-package seams",
+            "stacked-feature obligations",
+            "claims cheaply disprovable from code",
+            "stale source bindings",
+            "invalid evidence refs",
+        ]:
+            self.assertIn(token, audit_contract)
+        for text in [gates, lifecycle, workflow]:
+            with self.subTest(surface=text[:40]):
+                self.assertIn("top integrated", text)
+                self.assertIn("task/Slice artifact", text)
+                self.assertRegex(text.lower(), r"do not audit .*follow-up")
+                self.assertRegex(text.lower(), r"base feature|base/follow-up")
+        self.assertIn("validate-package-complete", gates)
+        self.assertIn("same top state", lifecycle)
+
+    def test_review_code_uses_matrices_as_context_only_with_refresh_classification(self) -> None:
+        review_skill = read_repo("plugins/super-developer/skills/review-code/SKILL.md")
+        pipeline = read_repo("plugins/super-developer/skills/review-code/references/pipeline-report.md")
+
+        for token in [
+            "deliverable matrices are context only",
+            "not a third deliverable-completeness gate",
+            "proof/report invalidation",
+            "invalidated matrix",
+            "generic affected-surface impact classification",
+        ]:
+            self.assertIn(token, review_skill)
+        for token in [
+            "Use deliverable matrices as context only",
+            "Do not own full deliverable completeness",
+            "proof/report invalidation",
+            "dirty matrix",
+            "matrix rows/evidence anchors",
+            "source bindings",
+            "boundedness",
+            "do not run full final gates solely because any new commit exists",
+            "full matrix bodies",
+            "proof/report transcripts",
+            "separate completion ledgers",
+        ]:
+            self.assertIn(token, pipeline)
+
+    def test_delivery_gate_prompt_changes_stay_progressively_disclosed(self) -> None:
+        line_capped = [
+            "plugins/super-developer/skills/audit/SKILL.md",
+            "plugins/super-developer/skills/audit/references/audit-subagent-contract.md",
+            "plugins/super-developer/skills/review-code/SKILL.md",
+            "plugins/super-developer/skills/review-code/references/pipeline-report.md",
+            "plugins/super-developer/skills/implement/SKILL.md",
+            "plugins/super-developer/skills/implementation-plan/references/artifact-authoring.md",
+            "plugins/super-developer/skills/implementation-plan/references/planner-agent-contract.md",
+            "plugins/super-developer/skills/implementation-plan/references/validation-checklist.md",
+            "plugins/super-developer/references/work-packages.md",
+            "plugins/super-developer/references/package-lifecycle.md",
+            "plugins/super-developer/skills/implement/references/package-dispatch.md",
+            "plugins/super-developer/skills/implement/references/package-integration-gates.md",
+            "plugins/super-developer/skills/skill-authoring/SKILL.md",
+            "plugins/super-developer/skills/skill-authoring/references/orchestrator-worker-contracts.md",
+        ]
+        for rel in line_capped:
+            with self.subTest(path=rel):
+                self.assertLessEqual(len(read_repo(rel).splitlines()), 150, rel)
+
+        implement = read_repo("plugins/super-developer/skills/implement/SKILL.md")
+        gates = read_repo("plugins/super-developer/skills/implement/references/package-integration-gates.md")
+        self.assertNotIn("### Deliverable Completeness Matrix", implement)
+        self.assertNotIn("Source ID | Row Type", implement)
+        self.assertIn("invoke `review-code` and `audit` only", implement)
+        self.assertIn("semantic truthfulness remains with package verification and final audit", gates)
+        self.assertIn("Declare readiness only when package evidence, review-code readiness, and final audit PASS", gates)
+
+        for rel in [
+            "plugins/super-developer/skills/audit/SKILL.md",
+            "plugins/super-developer/skills/review-code/SKILL.md",
+        ]:
+            text = read_repo(rel)
+            self.assertNotIn("Source ID | Row Type", text, rel)
+            self.assertNotIn("plugins/super-developer/skills/", text, rel)
+        self.assertIn("Do not deep-link another skill's private references", read_repo("plugins/super-developer/skills/skill-authoring/SKILL.md"))
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -6,7 +6,7 @@
 - `tasks.json` is a lightweight registry: feature metadata, Slice inventory, package paths, proof paths, report paths, status signals, and dependencies only.
 - Package Markdown is the package assignment source of truth.
 - Proof Markdown is generated from package assignment before dispatch and filled by package agents.
-- Package verification reports are declared during planning and written by independent package verification.
+- Package verification reports are declared during planning and written by independent package verification; their matrices consume package `## Verification Expectations` as `VE-<n>` row sources.
 - Do not duplicate package scope, assigned H3 IDs, primary paths, verification expectations, proof evidence, review findings, command output, or lifecycle history in the registry.
 
 ## Registry Shape
@@ -59,7 +59,7 @@ Use an empty `authoritative_slices` array only for Index-only or no-Slice plans 
 - `path/to/inspect/first`
 
 ## Verification Expectations
-- <Expected command, static inspection, edge/failure case, no-mock boundary, audience-surface check, or manual observation.>
+- <Expected command, static inspection, edge/failure case, no-mock boundary, audience-surface check, risk/interface seed, or manual observation; this becomes `VE-<n>` in the deliverable matrix.>
 
 ## Proof
 - `.tasks/<feature-name>/proofs/WP1.proof.md`
@@ -124,6 +124,9 @@ When Semgrep is enabled, verification expectations should stay helper-owned and 
 - Verification expectations must be package-specific and cover relevant edge, failure,
   trust-boundary, data, security, privacy, performance, concurrency, generated-contract,
   audience-surface, and lifecycle cases or state why not applicable.
+- Each listed expectation becomes a mandatory deliverable-matrix `VE-<n>` row in package order; if a Slice row proves it, keep the `VE-<n>` row and cross-reference the same evidence.
+- Seed visible interface/risk expectations without boilerplate: exact interfaces, forbidden behaviors, interactive UI, retry/fail-closed, trigger precedence, lifecycle/restart/reaper, cache invalidation, model/default precedence, generated defaults, and state pollution when applicable.
+- Planner seeds do not limit verifier discovery; verifier packets still require inspection of package scope, assigned Slices, changed code/diff, tests, verification expectations, and known failure modes for emergent triggered-risk rows.
 - For externally observable surfaces, verification expectations include surface-appropriate checks
   that delivered text, examples, errors, exports, logs, or prompts are audience-appropriate,
   actionable where needed, redacted when sensitive, and free of planning/workflow leakage.
@@ -135,6 +138,6 @@ When Semgrep is enabled, verification expectations should stay helper-owned and 
 - Registry contains package assignment or evidence details.
 - Package Markdown omits a required section or declared proof/report path.
 - A package boundary hides a material Slice obligation.
-- Verification expectations are generic boilerplate rather than observable package checks.
+- Verification expectations are generic boilerplate, omit visible interface/risk seeds, or imply verifier discovery is limited to planner-declared risks.
 - A package changes externally observable surfaces without identifying them or without an audience-language/leakage verification expectation.
 - A package cannot be verified independently with the declared proof/report surfaces.

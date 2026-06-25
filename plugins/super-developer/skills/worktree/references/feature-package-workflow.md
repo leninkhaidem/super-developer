@@ -8,6 +8,7 @@ package branch creation, package merge order, dependency examples, and feature-p
 - Package branches use `wp/<feature>/<WP-ID>`.
 - Package worktrees live at `.worktrees/<feature>/wp-<WP-ID>`.
 - The feature ref is `feature/<feature>` and its integration worktree is `.worktrees/<feature>/merge`.
+- Stacked-feature final readiness must name the top integrated code state plus every relevant base/follow-up task artifact set; do not audit a follow-up feature alone when its top branch includes base deliverables.
 - Package agents implement inside assigned package worktrees only.
 - The orchestrator creates worktrees/branches, merges packages, pushes feature refs, and handles cleanup.
 - Never put worktree-managed development in the root worktree or assume the root is on `main`.
@@ -34,7 +35,7 @@ Keep `.worktrees/` ignored before creating these paths.
 | Package branch | `wp/<feature>/<WP-ID>` | `wp/auth/WP1` |
 
 `<WP-ID>` is a work package ID (`WP1`, `WP2`, ...). `<base-ref>` starts the feature and defaults
-to `main`; stacked features may use `feature/base-capability`. `<target-ref>` is the later merge
+to `main`; stacked features may use `feature/base-capability` and carry that base feature's task/Slice artifacts into final readiness. `<target-ref>` is the later merge
 destination after explicit approval and defaults to `main`.
 
 ## Feature and Package Commands

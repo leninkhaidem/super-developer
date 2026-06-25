@@ -28,6 +28,7 @@ Check whether:
 
 - the plan solves the requested product problem rather than an adjacent one;
 - requirements, constraints, non-goals, and accepted deferrals are explicit;
+- beyond internal consistency, the plan covers the requirements, edge cases, failure modes, defaults, and observable surfaces a feature of this kind is reasonably expected to deliver; flag plausible expected-but-absent obligations as findings;
 - the artifact model remains Slice-first and package-based;
 - every material Slice H3 is assigned, context-only with a valid reason, or durably approved as deferred/out of scope/rejected/narrowed;
 - package boundaries align with architecture, Slice obligations, dependency direction, proof/report surfaces, and verification expectations;

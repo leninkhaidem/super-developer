@@ -2,9 +2,11 @@
 
 ## Purpose
 
-Design Preflight is a read-only adversarial planning challenge. It surfaces choices the main agent must resolve before writing `SPEC.md`, the registry, package Markdown, proof paths, or report paths.
+Design Preflight is a read-only adversarial planning challenge. It surfaces decisions and requirement-completeness gaps before writing `SPEC.md`, the registry, package Markdown, proof paths, or report paths.
 
-It is not an implementation plan, not a persisted transcript, and not an instruction stream for sub-agents.
+Completeness gaps include missing observable behaviors, edge cases, failure modes, defaults, or obligations a reasonable implementer would expect.
+
+It is not an implementation plan, persisted transcript, or instruction stream for sub-agents.
 
 ## Trigger
 
@@ -88,7 +90,7 @@ You are a read-only design challenger for Design Preflight.
 - Model preference: <resolved value; omit dispatch model parameter when inherit>
 
 # Task
-Evaluate the design surface before durable plan artifacts are written. Identify the smallest set of decisions that must be made now to produce a coherent plan.
+Evaluate the design surface before durable artifacts are written. Identify decisions needed for a coherent plan and surface requirement-completeness gaps: missing expected behaviors, edge cases, failure modes, defaults, or observable surfaces.
 
 # Constraints
 - Do not edit files.
@@ -111,6 +113,9 @@ RECOMMENDED_APPROACH
 MUST_DECIDE
 - <at most 5 decisions that must be resolved before artifacts are written>
 
+COVERAGE_GAPS
+- <at most 5 missing requirements, edge cases, failure modes, defaults, or observable surfaces; omit the bullet if none>
+
 BLOCKERS
 - <at most 5 blockers to a coherent plan>
 
@@ -124,13 +129,11 @@ NOT_WORTH_FIXING
 - <optional; at most 3 tempting concerns that should not drive design>
 ```
 
-## Handling MUST_DECIDE
+## Handling Decisions and Gaps
 
-For each `MUST_DECIDE`, the main agent must either:
+For each `MUST_DECIDE`, resolve from repo evidence/constraints and persist it, ask the user when it changes semantics, risk, or scope, or defer only when package artifacts preserve the boundary.
 
-- resolve it from observed repo evidence or explicit user constraints and persist it in the owning artifact;
-- ask the user when the decision changes product semantics, external behavior, risk acceptance, or scope;
-- defer it only when it is genuinely implementation-time detail and the package artifacts preserve the boundary through notes, assigned Slice scope, verification expectations, or proof closure expectations.
+Treat each `COVERAGE_GAPS` item as a candidate requirement: resolve and persist it, ask the user, or record it as an approved non-goal. Never pass gaps silently into packages.
 
 Do not hide unresolved decisions inside vague packages. Do not let sub-agent recommendations override user intent.
 

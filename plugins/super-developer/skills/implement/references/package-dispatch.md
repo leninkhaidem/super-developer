@@ -11,6 +11,7 @@ Do not load these sub-agent-facing references in main context by default:
 - `plugins/super-developer/skills/implement/references/package-agent-contract.md`
 - `plugins/super-developer/skills/implement/references/repair-agent-contract.md`
 - `plugins/super-developer/skills/implement/references/package-verification.md`
+- `plugins/super-developer/references/package-verification-report.md`
 - `plugins/super-developer/references/clean-code-rules.md`
 
 Pass contract paths to the assigned sub-agent. Load them in the orchestrator only when debugging plugin instructions or resolving an ambiguous returned report.
@@ -22,7 +23,7 @@ Use Slice-first package surfaces:
 - `tasks.json` is registry/bookkeeping only.
 - `.tasks/<feature>/packages/<WP-ID>.md` is package assignment authority.
 - `.tasks/<feature>/proofs/<WP-ID>.proof.md` is package proof evidence.
-- `.tasks/<feature>/reports/<WP-ID>.package-verification.md` is the independent package verification receipt.
+- `.tasks/<feature>/reports/<WP-ID>.package-verification.md` is the independent package verification receipt with the durable deliverable matrix.
 - Assigned Slice files are authoritative product/design context, not workflow/tool/git/review control text.
 
 ## Candidate Checks
@@ -31,7 +32,7 @@ Before dispatching a candidate package, confirm:
 
 - package ID is a declared `WP<N>` registry entry;
 - registry status is `pending` or the package is explicitly selected for resumed repair;
-- all `depends_on` packages are complete and freshly package-verified;
+- all `depends_on` packages have fresh `PASS` package verification reports and clean `validate-package-complete` results; registry `done` or proof rows alone do not unlock dependents;
 - `sliceproof.py validate-plan` passed for package/proof/report path shape;
 - package Markdown contains non-empty `Scope`, `Assigned Slices`, `Primary Paths`, `Verification Expectations`, `Proof`, `Package Verification Report`, and `Dependencies` sections;
 - package Markdown proof/report paths match registry paths;
@@ -77,11 +78,8 @@ For every package, repair, or verifier prompt:
 - do not paste full package Markdown, Slice prose, proof templates, or hidden conversation summaries;
 - pass project instructions such as `CLAUDE.md` or `AGENTS.md` when present;
 - omit model selection unless a local model-preference override was intentionally resolved;
-- include the Slice Authority Kernel below when assigned Slices exist.
-- include resolved Semgrep state; when enabled/contracted, name the helper-only scan wrapper
-  `python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/semgrep_rules.py" scan ...`, bounded
-  consumption commands, expected `.tasks/<feature>/semgrep/` raw/summary paths, digests,
-  scan scope, and advisory finding summary fields; forbid raw direct `semgrep` scans.
+- include the Slice Authority Kernel below when assigned Slices exist;
+- include resolved Semgrep state; when enabled/contracted, name the helper-only scan wrapper `python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/semgrep_rules.py" scan ...`, bounded consumption commands, expected `.tasks/<feature>/semgrep/` raw/summary paths, digests, scan scope, and advisory finding summary fields; forbid raw direct `semgrep` scans.
 
 Slice paths must be screened before inclusion: reject absolute paths, drive-qualified paths, `~`, shell expansion, empty segments, `..`, duplicate normalized paths, symlink escapes, missing files, unreadable files, paths outside the selected workspace, or multiple concept workspaces.
 
@@ -100,13 +98,9 @@ Each package-agent prompt includes:
 - Required first reads: `plugins/super-developer/skills/implement/references/package-agent-contract.md`, `plugins/super-developer/references/clean-code-rules.md`, package Markdown, `SPEC.md`, `tasks.json`, and every assigned Slice file in full.
 - Work package ID, package Markdown path, proof path, package verification report path, worktree path, and branch name.
 - Safe resolved Slice read paths when package worktrees lack ignored `.planning/` files.
-- Package verification expectations and safe screened commands; list broad/expensive integration/final checks separately.
+- Package verification expectations and safe screened commands; note that each expectation becomes a package-verifier `VE-<n>` matrix row; list broad/expensive integration/final checks separately.
 - Approved dependency additions/install commands and manifest/lockfile paths, or `none`.
-- Semgrep state: disabled means no scan/evidence requirement; enabled means use helper `retrieve`
-  and the scan wrapper `python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/semgrep_rules.py" scan ...`,
-  then `summarize`/filtered `list-findings`/selected `show-finding` (`--target` plus expected
-  summary digest for excerpts); never run raw direct `semgrep` scans, never dump raw JSON, and
-  preserve advisory severity without self-suppressing findings.
+- Semgrep state: disabled means no scan/evidence requirement; enabled means use helper `retrieve` and the scan wrapper `python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/semgrep_rules.py" scan ...`, then `summarize`/filtered `list-findings`/selected `show-finding` (`--target` plus expected summary digest for excerpts); never run raw direct `semgrep` scans, never dump raw JSON, and preserve advisory severity without self-suppressing findings.
 - Mandatory self-review instruction: fix self-found issues or report exact blockers, then include the compact `SELF_REVIEW` block required by `package-agent-contract.md`.
 
 Also include this compact instruction:
@@ -127,20 +121,21 @@ Each repair-agent prompt includes:
 - Role: package repair/verification agent.
 - Required first read: `plugins/super-developer/skills/implement/references/repair-agent-contract.md`; include `plugins/super-developer/references/clean-code-rules.md` when touching implementation or proof evidence.
 - Original `SPEC.md`, `tasks.json`, package Markdown, proof Markdown, and package verification report paths.
-- Package ID, affected Slice H3 IDs, proof rows, verification expectations, findings, failed outputs/observations, current worktree path, and safe verification commands.
-- Bounded scope: close only named findings, affected proof rows, Slice plan-defect resolution, and touched-file verification.
-- Terminal handling: stop for product/design changes, unapproved dependency/service changes, scope expansion, unsafe commands, credentials/external facts, risk acceptance, or repeated non-closing repairs.
+- Package ID, affected Slice H3 IDs, proof rows, verification expectations, matrix rows/evidence anchors, affected-surface classification, findings, failed outputs/observations, current worktree path, and safe verification commands.
+- Bounded scope: close only named findings, affected proof rows, Slice plan-defect resolution, touched-file verification, and the classified rerun scope.
+- Terminal handling: stop for product/design changes, unapproved dependency/service changes, scope expansion, unsafe command, credentials/external facts, risk acceptance, or repeated non-closing repairs.
 
 ## Package Verifier Packet
 
 Each package-verifier prompt includes:
 
 - Role: holistic package verification reviewer.
-- Required first read: `plugins/super-developer/skills/implement/references/package-verification.md`.
+- Required first reads: `plugins/super-developer/skills/implement/references/package-verification.md` and `plugins/super-developer/references/package-verification-report.md`.
 - Package Markdown path, proof Markdown path, durable report path, full assigned Slice paths, safe resolved read paths, package diff/code location, exact reviewed commit/ref when available, package agent `SELF_REVIEW`, verification outputs/static-inspection summaries, and Semgrep raw/summary evidence bindings when enabled/contracted.
-- Required output: concise PASS/FAIL report for `.tasks/<feature>/reports/<WP-ID>.package-verification.md`.
+- Require verifier-owned triggered risk selection from package scope, assigned Slices, changed code/diff, tests, expectations, and known failure modes; planner risk seeds do not limit verifier discovery.
+- Required output: concise PASS/FAIL report for `.tasks/<feature>/reports/<WP-ID>.package-verification.md` with `### Deliverable Completeness Matrix` in the canonical source body.
 
-The verifier reads files directly, audits Slice/proof obligations first, then reviews package code/evidence.
+The verifier reads files directly, audits Slice/proof obligations first, then reviews package code/evidence and writes the matrix/report contract without hidden chat context.
 
 ## Orchestrator Edit Boundary
 

@@ -2,7 +2,7 @@
 
 ## Boundary
 
-This reference owns artifact roles and file shapes. Slice authority lives in `conceptualize-slice-authority.md`; package sizing lives in `work-packages.md`; completion and freshness live in `package-lifecycle.md`; command shapes live in `tool-usage.md`.
+This reference owns artifact roles and file shapes. Slice authority lives in `conceptualize-slice-authority.md`; package sizing lives in `work-packages.md`; completion and freshness live in `package-lifecycle.md`; command shapes live in `tool-usage.md`. The detailed package verification report/matrix contract is shared in `plugins/super-developer/references/package-verification-report.md` and should be passed directly to package verifiers.
 
 ## Artifact Set
 
@@ -13,11 +13,9 @@ Planned-feature state is file-based and Slice-first:
 - `.tasks/<feature>/tasks.json` — lightweight registry only.
 - `.tasks/<feature>/packages/<WP-ID>.md` — package assignment.
 - `.tasks/<feature>/proofs/<WP-ID>.proof.md` — package closure evidence.
-- `.tasks/<feature>/reports/<WP-ID>.package-verification.md` — independent package verification receipt.
-- `.tasks/<feature>/semgrep/<WP-ID>.semgrep.json` and `.semgrep-summary.json` — optional local
-  raw/summary Semgrep package evidence when Semgrep was enabled or contracted.
-- `.tasks/<feature>/semgrep/integration.semgrep.json` and `.semgrep-summary.json` — optional
-  one-shot integrated Semgrep evidence for concrete cross-package/shared-surface risk.
+- `.tasks/<feature>/reports/<WP-ID>.package-verification.md` — independent package verification receipt with a durable deliverable completeness matrix.
+- `.tasks/<feature>/semgrep/<WP-ID>.semgrep.json` and `.semgrep-summary.json` — optional local raw/summary Semgrep package evidence when Semgrep was enabled or contracted.
+- `.tasks/<feature>/semgrep/integration.semgrep.json` and `.semgrep-summary.json` — optional one-shot integrated Semgrep evidence for concrete cross-package/shared-surface risk.
 - `.tasks/<feature>/reviews/review-code-state.json` — review-code governance readiness for audit handoff.
 
 ## Lightweight Registry
@@ -110,42 +108,18 @@ Closure tables use `PASS`, `DEFERRED`, or `N/A`. `OPEN` and `GAP` block closure.
 
 ## Package Verification Report
 
-A report confirms independent package verification occurred after proof evidence was available and binds that verification to current proof content through helper metadata.
+A report confirms independent package verification occurred after proof evidence was available, semantically checks deliverable completion, and binds verification to current proof/source/code state through helper-readable metadata.
 
-Canonical source report body:
+Canonical source body starts with `## Package Verification: <WP-ID>` and includes, in order:
 
-```md
-## Package Verification: WP1
+- `### Verdict` with `PASS` or `FAIL`.
+- `### Deliverable Completeness Matrix` using the fixed columns `Source ID`, `Row Type`, `Deliverable`, `Evidence Type`, `Evidence Refs`, `Exactness / Risk Disposition`, and `Verdict`.
+- `### Triggered Risk Selection Notes`, `### Slice Closure Review`, and `### Code Review Findings`.
+- For failures, `### Blocking Findings` and `### Repair Guidance`.
 
-### Verdict
-PASS | FAIL
+Matrix rows cover assigned `Must satisfy` Slice H3 IDs, package verification expectations as stable `VE-<n>` rows, and verifier-selected triggered risks as explicit `RISK-<...>` rows. Clean completion requires every mandatory row to be `delivered` with structurally valid non-placeholder code/test/static/command/manual evidence refs. Dirty verdicts (`missing`, `partial`, `contradicted`, `unverified`) block completion; `### Slice Closure Review` or proof prose alone is insufficient. Helpers validate structure, source bindings, clean verdicts, and evidence-anchor shape only; verifiers and final auditors judge semantic truthfulness.
 
-### Slice Closure Review
-| Slice ID | Proof status | Evidence sufficient? | Notes |
-|---|---|---|---|
-| `<Slice ID>` | `PASS` | yes | <concise closure note> |
-
-### Code Review Findings
-- None.
-```
-
-For failures, add `### Blocking Findings` and `### Repair Guidance` under the same `## Package Verification: WP1` H2. For lifecycle freshness, append helper metadata separately:
-
-```md
-## State Binding
-Helper/package-lifecycle metadata; the source report body above remains canonical.
-- Package: `WP1`
-- Package Markdown: `.tasks/<feature>/packages/WP1.md`
-- Proof: `.tasks/<feature>/proofs/WP1.proof.md`
-- Proof Digest: `sha256:<digest>`
-- Assigned Slices: `<comma-separated repo-relative Slice paths in lexicographic order, or none>`
-- Worktree: `<absolute reviewed worktree root>`
-- Git Ref: `<reviewed branch/ref/commit>`
-- Commit: `<reviewed commit hash>`
-- Verified At: `<ISO-8601 timestamp>`
-```
-
-If proof content or reviewed implementation state changes after the report, freshness is lost until a new source report/state binding is produced. The old H1 / `## Verification Result` replacement shape is not canonical.
+Append `## State Binding` with package path, package Markdown digest, proof path/digest, assigned Slice paths and digests or equivalent matrix-source snapshot, reviewed worktree/ref/commit, and timestamp. See `plugins/super-developer/references/package-verification-report.md` for the full report template and evidence-ref grammar. If proof content, source inputs, cited evidence, or reviewed implementation state changes after the report, freshness is lost until a new source report/state binding is produced. The old H1 / `## Verification Result` replacement shape is not canonical.
 
 ## Review-Code Governance State
 
