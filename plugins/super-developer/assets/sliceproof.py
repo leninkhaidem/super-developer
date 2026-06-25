@@ -13,6 +13,7 @@ import hashlib
 import json
 import os
 import re
+import subprocess
 import sys
 import tempfile
 from dataclasses import dataclass
@@ -1338,13 +1339,71 @@ def source_report_verdict(body: str) -> str:
 
 
 def evidence_root_from_state_binding(root: Path, body: str) -> Path:
-    worktree = clean_cell_id(parse_key_values(body).get("Worktree", ""))
+    """Return the trusted root for matrix file evidence.
+
+    State Binding Worktree is report-controlled metadata. It may redirect
+    code/test/static evidence only when the current repository independently
+    lists that path as one of its git worktrees at the bound commit.
+    """
+    trusted_root = root.resolve(strict=False)
+    binding = parse_key_values(body)
+    worktree = clean_cell_id(binding.get("Worktree", ""))
     if not worktree:
-        return root
+        return trusted_root
     worktree_path = Path(worktree)
-    if worktree_path.is_absolute() and worktree_path.is_dir():
-        return worktree_path.resolve(strict=False)
-    return root
+    if not worktree_path.is_absolute():
+        return trusted_root
+    trusted_worktree = worktree_path.resolve(strict=False)
+    if trusted_worktree == trusted_root:
+        return trusted_root
+    commit = clean_cell_id(binding.get("Commit", ""))
+    if is_registered_git_worktree_at_commit(trusted_root, trusted_worktree, commit):
+        return trusted_worktree
+    return trusted_root
+
+
+def is_registered_git_worktree_at_commit(root: Path, worktree: Path, commit: str) -> bool:
+    if not COMMIT_RE.fullmatch(commit):
+        return False
+    commit = commit.lower()
+    for listed_worktree, listed_head in git_worktree_list(root):
+        if listed_worktree == worktree and listed_head.lower().startswith(commit):
+            return True
+    return False
+
+
+def git_worktree_list(root: Path) -> list[tuple[Path, str]]:
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(root), "worktree", "list", "--porcelain"],
+            check=False,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            timeout=5,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return []
+    if result.returncode != 0:
+        return []
+
+    worktrees: list[tuple[Path, str]] = []
+    current_path: Path | None = None
+    current_head = ""
+    for raw_line in [*result.stdout.splitlines(), ""]:
+        line = raw_line.strip()
+        if not line:
+            if current_path is not None and current_head:
+                worktrees.append((current_path, current_head))
+            current_path = None
+            current_head = ""
+            continue
+        key, _separator, value = line.partition(" ")
+        if key == "worktree":
+            current_path = Path(value).resolve(strict=False)
+        elif key == "HEAD":
+            current_head = value.strip()
+    return worktrees
 
 
 def validate_deliverable_completeness_matrix(
@@ -1548,12 +1607,59 @@ def validate_command_evidence_ref(
         errors: list[str] = []
         if is_report_section_placeholder_body(label):
             errors.append(f"{report_path}: {row_label} verification-output label must be non-placeholder")
+        evidence_path: Path | None = None
         try:
-            resolve_safe_path(root, path_value, f"{report_path}: {row_label} verification-output evidence path", must_exist_file=True)
+            evidence_path = resolve_safe_path(root, path_value, f"{report_path}: {row_label} verification-output evidence path", must_exist_file=True)
         except SliceproofError as exc:
             errors.extend(exc.errors)
+        if evidence_path is not None and not is_report_section_placeholder_body(label):
+            try:
+                evidence_text = read_text_file(evidence_path, f"{report_path}: {row_label} verification-output evidence file")
+            except SliceproofError as exc:
+                errors.extend(exc.errors)
+            else:
+                if not verification_output_contains_label(evidence_text, label):
+                    errors.append(
+                        f"{report_path}: {row_label} verification-output label {label!r} "
+                        f"was not found in evidence file {path_value}"
+                    )
         return errors
     return [f"{report_path}: {row_label} command evidence must reference proof#Commands Run or verification-output"]
+
+
+def verification_output_contains_label(content: str, label: str) -> bool:
+    normalized_label = normalize_command_ref_text(label)
+    label_slug = markdown_anchor_slug(label)
+    if not normalized_label and not label_slug:
+        return False
+    for raw_line in content.splitlines():
+        normalized_line = normalize_command_ref_text(raw_line)
+        if normalized_label and normalized_label in normalized_line:
+            return True
+        if label_slug and label_slug in markdown_anchor_slugs(raw_line):
+            return True
+    return False
+
+
+def markdown_anchor_slugs(line: str) -> set[str]:
+    anchors: set[str] = set()
+    stripped = line.strip()
+    heading = re.match(r"^#{1,6}\s+(.+?)\s*$", stripped)
+    if heading:
+        heading_text = re.sub(r"\s+\{#[^}]+\}\s*$", "", heading.group(1)).strip()
+        slug = markdown_anchor_slug(heading_text)
+        if slug:
+            anchors.add(slug)
+    for custom_anchor in re.findall(r"\{#([A-Za-z0-9][A-Za-z0-9_.:-]*)\}", stripped):
+        anchors.add(custom_anchor.lower())
+    for html_anchor in re.findall(r"<a\s+[^>]*(?:id|name)=[\"']([^\"']+)[\"']", stripped, flags=re.IGNORECASE):
+        anchors.add(html_anchor.lower())
+    return anchors
+
+
+def markdown_anchor_slug(value: str) -> str:
+    normalized = normalize_command_ref_text(value)
+    return re.sub(r"[^a-z0-9]+", "-", normalized).strip("-")
 
 
 def validate_manual_evidence_ref(report_path: Path, row_label: str, payload: str) -> list[str]:
@@ -1574,9 +1680,22 @@ def validate_manual_evidence_ref(report_path: Path, row_label: str, payload: str
 def validate_interface_matrix_row(report_path: Path, row_label: str, disposition: str) -> list[str]:
     text = normalize_text(disposition).lower()
     errors: list[str] = []
-    if "interface" not in text or "exact" not in text:
+    if not has_exact_interface_disposition(text):
         errors.append(f"{report_path}: {row_label} interface row must record exact interface fulfillment")
-    dirty_exactness = {"ambiguous", "partial", "contradicted", "over-broad", "over broad", "missing", "unverified"}
+    dirty_exactness = {
+        "ambiguous",
+        "partial",
+        "contradicted",
+        "over-broad",
+        "over broad",
+        "missing",
+        "unverified",
+        "inexact",
+        "not exact",
+        "not-exact",
+        "non-exact",
+        "non exact",
+    }
     if any(token in text for token in dirty_exactness):
         errors.append(f"{report_path}: {row_label} interface row contains non-exact interface disposition")
     if has_negated_forbidden_falsification(text):
@@ -1586,6 +1705,18 @@ def validate_interface_matrix_row(report_path: Path, row_label: str, disposition
             f"{report_path}: {row_label} interface row must record forbidden-behavior falsification with affirmative wording"
         )
     return errors
+
+
+def has_exact_interface_disposition(text: str) -> bool:
+    negated_exactness = re.compile(r"\b(?:inexact|not[-\s]+exact|non[-\s]+exact)\b")
+    for clause in split_matrix_disposition_clauses(text):
+        if "interface" not in clause:
+            continue
+        if negated_exactness.search(clause):
+            continue
+        if re.search(r"\bexact\b", clause):
+            return True
+    return False
 
 
 def has_negated_forbidden_falsification(text: str) -> bool:

@@ -48,7 +48,9 @@ PLACEHOLDER_APPROVAL_VARIANTS = [
 class SliceproofFixture:
     def __init__(self) -> None:
         self.tmp = tempfile.TemporaryDirectory()
+        self.external_tmp = tempfile.TemporaryDirectory()
         self.repo = Path(self.tmp.name)
+        self.external_worktree = Path(self.external_tmp.name)
         self.feature_dir = self.repo / ".tasks" / "fixture"
         self.package_dir = self.feature_dir / "packages"
         self.proofs_dir = self.feature_dir / "proofs"
@@ -81,6 +83,7 @@ class SliceproofFixture:
 
     def cleanup(self) -> None:
         self.tmp.cleanup()
+        self.external_tmp.cleanup()
 
     def run(self, *args: str, env: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:
         return subprocess.run(
@@ -1304,6 +1307,68 @@ class SliceproofTests(unittest.TestCase):
                 finally:
                     fixture.cleanup()
 
+    def test_validate_package_complete_does_not_trust_report_worktree_for_matrix_file_evidence(self) -> None:
+        proof = self.fixture.completed_proof()
+        self.fixture.proof_path.write_text(proof, encoding="utf-8")
+        fake_paths = [
+            ("outside-only/code.py", "def fake():\n    pass\n"),
+            ("outside-only/test_fake.py", "def test_fake():\n    pass\n"),
+            ("outside-only/evidence.md", "## fake-anchor\n"),
+        ]
+        for relative_path, content in fake_paths:
+            target = self.fixture.external_worktree / relative_path
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(content, encoding="utf-8")
+        fake_refs = (
+            "code:outside-only/code.py#fake; "
+            "test:outside-only/test_fake.py::test_fake; "
+            "static:outside-only/evidence.md#fake-anchor"
+        )
+        matrix = self.fixture.deliverable_matrix().replace(
+            "static:plugins/super-developer/assets/sliceproof.py#validate_plan; "
+            "test:plugins/super-developer/assets/tests/test_sliceproof.py::test_validate_plan_accepts_valid_registry_package_slice_fixture",
+            fake_refs,
+            1,
+        )
+        report = self.fixture.report_text(proof, deliverable_matrix=matrix, worktree=str(self.fixture.external_worktree))
+        self.fixture.report_path.write_text(report, encoding="utf-8")
+
+        result = self.fixture.run("validate-package-complete", str(self.fixture.tasks_path), "--package", "WP1")
+
+        self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+        errors = "\n".join(json.loads(result.stderr)["errors"])
+        self.assertIn("code evidence path: file not found: outside-only/code.py", errors)
+
+    def test_validate_package_complete_verifies_verification_output_labels(self) -> None:
+        proof = self.fixture.completed_proof()
+        self.fixture.proof_path.write_text(proof, encoding="utf-8")
+        output_rel = ".tasks/fixture/verification-output/WP1.md"
+        output_path = self.fixture.feature_dir / "verification-output" / "WP1.md"
+        output_path.parent.mkdir(parents=True)
+        output_path.write_text("# Durable verifier output\n\n## existing-label\nObserved command output.\n", encoding="utf-8")
+        matrix = self.fixture.deliverable_matrix().replace(
+            "| HELPER-PLAN-001 | slice | Registry and package references validate mechanically. | mixed | "
+            "static:plugins/super-developer/assets/sliceproof.py#validate_plan; "
+            "test:plugins/super-developer/assets/tests/test_sliceproof.py::test_validate_plan_accepts_valid_registry_package_slice_fixture |",
+            "| HELPER-PLAN-001 | slice | Registry and package references validate mechanically. | command | "
+            f"command:verification-output:{output_rel}#existing-label |",
+            1,
+        )
+        self.fixture.report_path.write_text(self.fixture.report_text(proof, deliverable_matrix=matrix), encoding="utf-8")
+
+        accepted = self.fixture.run("validate-package-complete", str(self.fixture.tasks_path), "--package", "WP1")
+
+        self.assertEqual(0, accepted.returncode, accepted.stdout + accepted.stderr)
+
+        rejected_matrix = matrix.replace("#existing-label", "#not-a-real-label", 1)
+        self.fixture.report_path.write_text(self.fixture.report_text(proof, deliverable_matrix=rejected_matrix), encoding="utf-8")
+
+        rejected = self.fixture.run("validate-package-complete", str(self.fixture.tasks_path), "--package", "WP1")
+
+        self.assertNotEqual(0, rejected.returncode, rejected.stdout + rejected.stderr)
+        errors = "\n".join(json.loads(rejected.stderr)["errors"])
+        self.assertIn("verification-output label 'not-a-real-label' was not found", errors)
+
     def test_validate_package_complete_rejects_interface_rows_without_exactness(self) -> None:
         self.fixture.package_path.write_text(self.fixture.package_text(must_id="HELPER-INTERFACE-005"), encoding="utf-8")
         proof = self.fixture.completed_proof().replace("HELPER-PLAN-001", "HELPER-INTERFACE-005")
@@ -1339,6 +1404,28 @@ class SliceproofTests(unittest.TestCase):
         self.assertNotEqual(0, negated.returncode, negated.stdout + negated.stderr)
         negated_errors = "\n".join(json.loads(negated.stderr)["errors"])
         self.assertIn("interface row must not negate forbidden-behavior falsification", negated_errors)
+
+        for disposition in (
+            "interface: not exact; forbidden behavior falsified",
+            "interface: inexact; forbidden behavior falsified",
+        ):
+            with self.subTest(disposition=disposition):
+                inexact_matrix = self.fixture.deliverable_matrix().replace("HELPER-PLAN-001", "HELPER-INTERFACE-005").replace(
+                    "no interface; fixture plan behavior covered",
+                    disposition,
+                    1,
+                )
+                inexact_report = self.fixture.report_text(proof, deliverable_matrix=inexact_matrix).replace(
+                    "HELPER-PLAN-001",
+                    "HELPER-INTERFACE-005",
+                )
+                self.fixture.report_path.write_text(inexact_report, encoding="utf-8")
+
+                inexact = self.fixture.run("validate-package-complete", str(self.fixture.tasks_path), "--package", "WP1")
+
+                self.assertNotEqual(0, inexact.returncode, inexact.stdout + inexact.stderr)
+                inexact_errors = "\n".join(json.loads(inexact.stderr)["errors"])
+                self.assertIn("interface row contains non-exact interface disposition", inexact_errors)
 
     def test_validate_final_reuses_deliverable_matrix_validation(self) -> None:
         proof = self.fixture.completed_proof()
