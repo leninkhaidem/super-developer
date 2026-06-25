@@ -53,7 +53,10 @@ rules are required; do not preload references merely because they are named.
    evidence, or one selected Conceptualize workspace; ask one focused question if the source is
    ambiguous.
 2. Check orchestration blockers before delegation: unsafe paths, unresolved product/design decisions,
-   unapproved overwrite of `.tasks/<feature>/`, or a required spike/risk acceptance.
+   unapproved overwrite of `.tasks/<feature>/`, or a required spike/risk acceptance. For nontrivial or
+   risky plans, run the design-preflight challenge in `references/design-preflight.md`—including its
+   requirement-completeness pass—and resolve `COVERAGE_GAPS`, `MUST_DECIDE`, and `BLOCKERS` before any
+   artifact writing; skip only for narrow, low-risk plans.
 3. If empirical evidence is required before planning, stop artifact writing and invoke `spike-to-plan`
    via fresh Skill-tool/sub-agent packet; do not guess or run the spike workflow inline.
 4. Resolve the planner packet's Semgrep state before planner dispatch. Use supplied resolved state

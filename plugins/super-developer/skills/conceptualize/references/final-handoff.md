@@ -18,10 +18,13 @@
 4. Check each Slice for stable H3 IDs, stale contradictions, hidden unresolved questions,
    deferrals/out-of-scope items lacking a user decision, useful source references, relevant
    implementation surfaces, and verification expectations.
-5. Complete faithful additive Slice fixes as routine capture. Pause for user input only when a fix
+5. Run the canonical completeness challenge across the full Slice set: hunt for observable behaviors, edge cases,
+   failure modes, defaults, or obligations a reasonable implementer would expect that no Slice covers.
+   Treat plausible gaps as discovery to resolve with the user, not as handoff line items.
+6. Complete faithful additive Slice fixes as routine capture. Pause for user input only when a fix
    must resolve ambiguity, accept risk, narrow/remove/defer scope, contradict existing Slice content,
    or turn an unaccepted recommendation into a requirement.
-6. Return the compact handoff; do not perform planning. If the user proceeds, the parent/main
+7. Return the compact handoff; do not perform planning. If the user proceeds, the parent/main
    planning transition resolves `.superdeveloper/preferences.yml`, handles Semgrep opt-in/setup,
    and passes resolved Semgrep state before invoking `implementation-plan`.
 
@@ -33,6 +36,7 @@ Key Slices:
 - `slices/<name>.md` — <focus and notable H3 IDs>
 Slice Coverage:
 - full safe Slice inventory completed: yes/no
+- completeness challenge run: yes/no — <gaps surfaced and disposition, or None>
 - revised for stale assumptions: yes/no/not needed
 - unresolved blockers: <None or exact Slice/H3/question>
 - implementation surfaces covered: <compact list or None identified>
@@ -50,6 +54,7 @@ Next: create an implementation plan for <deliverable> after parent/main preferen
 - A Slice path is unsafe or unreadable.
 - Completing the handoff would require runtime Semgrep setup, preference mutation, helper retrieval, scan, or finding consumption.
 - The full safe Slice inventory was not read.
+- The completeness challenge surfaced a foreseeable requirement, edge case, or failure mode that was never explored or resolved.
 - Any planning-relevant question remains unresolved instead of resolved or explicitly deferred/out of scope by user decision.
 - A material Slice commitment is stale, contradicted, narrowed, or excluded without a user decision.
 - Later planning would need hidden conversation context to understand a requirement.
