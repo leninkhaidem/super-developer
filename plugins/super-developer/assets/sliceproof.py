@@ -51,16 +51,36 @@ REQUIRED_PROOF_SECTIONS = {
 }
 REQUIRED_SOURCE_REPORT_H3 = {
     "Verdict",
+    "Deliverable Completeness Matrix",
+    "Triggered Risk Selection Notes",
     "Slice Closure Review",
     "Code Review Findings",
 }
 FAILURE_SOURCE_REPORT_H3 = {"Blocking Findings", "Repair Guidance"}
+MATRIX_COLUMNS = [
+    "Source ID",
+    "Row Type",
+    "Deliverable",
+    "Evidence Type",
+    "Evidence Refs",
+    "Exactness / Risk Disposition",
+    "Verdict",
+]
+MATRIX_ROW_TYPES = {"slice", "verification-expectation", "triggered-risk"}
+MATRIX_EVIDENCE_TYPES = {"code", "test", "static", "command", "manual", "mixed"}
+MATRIX_VERDICTS = {"delivered", "missing", "partial", "contradicted", "unverified"}
+MATRIX_CLEAN_VERDICT = "delivered"
+RISK_SOURCE_ID_RE = re.compile(r"^RISK-[A-Za-z0-9][A-Za-z0-9_-]*$")
+EVIDENCE_REF_PREFIX_RE = re.compile(r"(?:^|;\s*)(code|test|static|command|manual):")
 REQUIRED_STATE_BINDING_FIELDS = {
     "Package",
     "Package Markdown",
+    "Package Markdown Digest",
     "Proof",
     "Proof Digest",
     "Assigned Slices",
+    "Assigned Slice Digests",
+    "Matrix Source Snapshot",
     "Worktree",
     "Git Ref",
     "Commit",
@@ -265,6 +285,14 @@ def build_parser() -> argparse.ArgumentParser:
     validate_proof.add_argument("--package", required=True, help="Work package id, for example WP1.")
     validate_proof.set_defaults(func=cmd_validate_proof)
 
+    validate_package_complete = subparsers.add_parser(
+        "validate-package-complete",
+        help="Validate one package proof plus verification report and deliverable matrix before marking done.",
+    )
+    validate_package_complete.add_argument("tasks", type=Path, help="Path to .tasks/<feature>/tasks.json.")
+    validate_package_complete.add_argument("--package", required=True, help="Work package id, for example WP1.")
+    validate_package_complete.set_defaults(func=cmd_validate_package_complete)
+
     validate_final = subparsers.add_parser(
         "validate-final",
         help="Validate all packages, proof Markdown, and package verification report bindings.",
@@ -368,6 +396,30 @@ def cmd_validate_proof(args: argparse.Namespace) -> dict[str, Any]:
         "proof_path": state.package.proof_path,
         "required_slice_rows": state.package_md.must_satisfy_ids,
         "verification_expectations": state.package_md.verification_expectations,
+    }
+
+
+def cmd_validate_package_complete(args: argparse.Namespace) -> dict[str, Any]:
+    state = load_package_state(args.tasks, args.package)
+    errors = validate_proof_markdown(state.proof_path, state.package_md)
+    report_errors = validate_report_markdown(
+        state.report_path,
+        state.package,
+        state.package_md,
+        state.proof_path,
+        state.registry.root,
+        state.registry.feature,
+    )
+    errors.extend(report_errors)
+    if errors:
+        raise SliceproofError(errors)
+    return {
+        "package": state.package.package_id,
+        "package_status": state.package.status,
+        "proof_path": state.package.proof_path,
+        "report_path": state.package.report_path,
+        "required_slice_rows": state.package_md.must_satisfy_ids,
+        "verification_expectation_rows": [f"VE-{index}" for index in range(1, len(state.package_md.verification_expectations) + 1)],
     }
 
 
@@ -1162,17 +1214,28 @@ def validate_report_markdown(
 
     source_h3 = split_h3_sections(sections[source_section])
     source_h3_names = h3_order(sections[source_section])
-    canonical_h3_order = ["Verdict", "Slice Closure Review", "Code Review Findings", "Blocking Findings", "Repair Guidance"]
+    canonical_h3_order = [
+        "Verdict",
+        "Deliverable Completeness Matrix",
+        "Triggered Risk Selection Notes",
+        "Slice Closure Review",
+        "Code Review Findings",
+        "Blocking Findings",
+        "Repair Guidance",
+    ]
     present_canonical_h3 = [name for name in source_h3_names if name in canonical_h3_order]
     expected_h3_order = [name for name in canonical_h3_order if name in source_h3]
     if present_canonical_h3 != expected_h3_order:
         errors.append(
             f"{report_path}: source report sections must appear in order: "
-            "### Verdict, ### Slice Closure Review, ### Code Review Findings, ### Blocking Findings, ### Repair Guidance"
+            "### Verdict, ### Deliverable Completeness Matrix, ### Triggered Risk Selection Notes, "
+            "### Slice Closure Review, ### Code Review Findings, ### Blocking Findings, ### Repair Guidance"
         )
     for section in sorted(REQUIRED_SOURCE_REPORT_H3):
         if section not in source_h3:
             errors.append(f"{report_path}: missing required source section ### {section}")
+
+    evidence_root = evidence_root_from_state_binding(root, sections["State Binding"])
 
     verdict = ""
     if "Verdict" in source_h3:
@@ -1186,6 +1249,19 @@ def validate_report_markdown(
                 if section not in source_h3:
                     errors.append(f"{report_path}: FAIL report missing required source section ### {section}")
 
+    if "Deliverable Completeness Matrix" in source_h3:
+        errors.extend(
+            validate_deliverable_completeness_matrix(
+                report_path,
+                root,
+                evidence_root,
+                proof_path,
+                package_md,
+                source_h3["Deliverable Completeness Matrix"],
+            )
+        )
+    if "Triggered Risk Selection Notes" in source_h3:
+        errors.extend(validate_triggered_risk_selection_notes(report_path, source_h3["Triggered Risk Selection Notes"]))
     if "Slice Closure Review" in source_h3:
         errors.extend(validate_report_slice_closure_review(report_path, package_md, source_h3["Slice Closure Review"]))
     if "Code Review Findings" in source_h3:
@@ -1199,7 +1275,7 @@ def validate_report_markdown(
         if not is_empty_gaps_deviations_section(open_findings):
             errors.append(f"{report_path}: ## Open Findings must be '- None.' for final validation")
 
-    errors.extend(validate_report_state_binding(report_path, package, package_md, proof_path, sections["State Binding"]))
+    errors.extend(validate_report_state_binding(report_path, root, package, package_md, proof_path, sections["State Binding"]))
     if "Semgrep Evidence" in sections:
         errors.extend(validate_semgrep_evidence_binding(report_path, root, feature, package, sections["Semgrep Evidence"]))
     return errors
@@ -1213,6 +1289,303 @@ def source_report_verdict(body: str) -> str:
         line = re.sub(r"^(?:[-*]|\d+\.)\s+", "", line)
         return clean_cell_id(line).upper()
     return ""
+
+
+def evidence_root_from_state_binding(root: Path, body: str) -> Path:
+    worktree = clean_cell_id(parse_key_values(body).get("Worktree", ""))
+    if not worktree:
+        return root
+    worktree_path = Path(worktree)
+    if worktree_path.is_absolute() and worktree_path.is_dir():
+        return worktree_path.resolve(strict=False)
+    return root
+
+
+def validate_deliverable_completeness_matrix(
+    report_path: Path,
+    root: Path,
+    evidence_root: Path,
+    proof_path: Path,
+    package_md: PackageMarkdown,
+    body: str,
+) -> list[str]:
+    errors: list[str] = []
+    if is_report_section_placeholder_body(body):
+        return [f"{report_path}: ### Deliverable Completeness Matrix must contain a non-placeholder matrix"]
+
+    headers = extract_first_table_headers(body)
+    if headers != MATRIX_COLUMNS:
+        errors.append(f"{report_path}: ### Deliverable Completeness Matrix columns must be exactly {MATRIX_COLUMNS}")
+    rows = parse_table(body)
+    if not rows:
+        errors.append(f"{report_path}: ### Deliverable Completeness Matrix must include deliverable rows")
+        return errors
+
+    try:
+        proof_sections = split_h2_sections(read_text_file(proof_path, f"proof {proof_path}"))
+    except SliceproofError as exc:
+        errors.extend(exc.errors)
+        proof_commands = ""
+    else:
+        proof_commands = proof_sections.get("Commands Run", "")
+
+    required_sources: dict[str, str] = {slice_id: "slice" for slice_id in package_md.must_satisfy_ids}
+    for index, _expectation in enumerate(package_md.verification_expectations, start=1):
+        required_sources[f"VE-{index}"] = "verification-expectation"
+    interface_ids = interface_bearing_slice_ids(root, package_md)
+
+    rows_by_source: dict[str, ProofRow] = {}
+    for index, row in enumerate(rows, start=1):
+        source_id = clean_cell_id(row.cells.get("Source ID", ""))
+        row_type = clean_cell_id(row.cells.get("Row Type", "")).lower()
+        evidence_type = clean_cell_id(row.cells.get("Evidence Type", "")).lower()
+        verdict = clean_cell_id(row.cells.get("Verdict", "")).lower()
+        row_label = source_id or f"Deliverable Completeness Matrix row {index}"
+
+        for column in MATRIX_COLUMNS:
+            if is_report_section_placeholder_body(row.cells.get(column, "")):
+                errors.append(f"{report_path}: {row_label} {column} must be non-placeholder")
+
+        if source_id:
+            if source_id in rows_by_source:
+                errors.append(f"{report_path}: duplicate Deliverable Completeness Matrix row for {source_id}")
+            else:
+                rows_by_source[source_id] = row
+
+        if row_type not in MATRIX_ROW_TYPES:
+            errors.append(f"{report_path}: {row_label} Row Type {row_type!r} is not supported")
+        if evidence_type not in MATRIX_EVIDENCE_TYPES:
+            errors.append(f"{report_path}: {row_label} Evidence Type {evidence_type!r} is not supported")
+        if verdict not in MATRIX_VERDICTS:
+            errors.append(f"{report_path}: {row_label} Verdict {verdict!r} is not supported")
+        elif verdict != MATRIX_CLEAN_VERDICT:
+            errors.append(f"{report_path}: {row_label} Verdict must be delivered for package completion")
+
+        expected_type = required_sources.get(source_id)
+        if expected_type is not None and row_type and row_type != expected_type:
+            errors.append(f"{report_path}: {source_id} Row Type must be {expected_type}")
+        elif expected_type is None and row_type == "slice":
+            errors.append(f"{report_path}: unexpected Deliverable Completeness Matrix slice row for {source_id}")
+        elif expected_type is None and row_type == "verification-expectation":
+            errors.append(f"{report_path}: unexpected Deliverable Completeness Matrix verification expectation row for {source_id}")
+        elif row_type == "triggered-risk" and (not source_id or not RISK_SOURCE_ID_RE.fullmatch(source_id)):
+            errors.append(f"{report_path}: {row_label} triggered-risk Source ID must match RISK-<slug-or-n>")
+
+        errors.extend(
+            validate_matrix_evidence_refs(
+                report_path,
+                root,
+                evidence_root,
+                proof_commands,
+                row_label,
+                evidence_type,
+                row.cells.get("Evidence Refs", ""),
+            )
+        )
+        if source_id in interface_ids and row_type == "slice":
+            errors.extend(validate_interface_matrix_row(report_path, row_label, row.cells.get("Exactness / Risk Disposition", "")))
+        if row_type == "triggered-risk":
+            errors.extend(validate_triggered_risk_matrix_row(report_path, row_label, row.cells.get("Exactness / Risk Disposition", "")))
+
+    for source_id, row_type in required_sources.items():
+        if source_id not in rows_by_source:
+            errors.append(f"{report_path}: ### Deliverable Completeness Matrix missing required {row_type} row for {source_id}")
+    return errors
+
+
+def extract_first_table_headers(body: str) -> list[str]:
+    for raw_line in body.splitlines():
+        cells = split_markdown_table_row(raw_line.strip())
+        if cells is not None:
+            return cells
+    return []
+
+
+def validate_triggered_risk_selection_notes(report_path: Path, body: str) -> list[str]:
+    if is_report_section_placeholder_body(body):
+        return [f"{report_path}: ### Triggered Risk Selection Notes must contain non-placeholder risk selection notes"]
+    if BLOCKING_MARKER_RE.search(body):
+        return [f"{report_path}: ### Triggered Risk Selection Notes contains unresolved TODO/OPEN/GAP marker"]
+    return []
+
+
+def validate_matrix_evidence_refs(
+    report_path: Path,
+    root: Path,
+    evidence_root: Path,
+    proof_commands: str,
+    row_label: str,
+    evidence_type: str,
+    refs_text: str,
+) -> list[str]:
+    errors: list[str] = []
+    refs = split_evidence_refs(refs_text)
+    if not refs:
+        return [f"{report_path}: {row_label} Evidence Refs must use typed evidence anchors"]
+    for ref in refs:
+        ref_type, _separator, payload = ref.partition(":")
+        ref_type = ref_type.strip().lower()
+        if ref_type not in MATRIX_EVIDENCE_TYPES - {"mixed"}:
+            errors.append(f"{report_path}: {row_label} Evidence Refs anchor {ref!r} has unsupported evidence type")
+            continue
+        if evidence_type in MATRIX_EVIDENCE_TYPES - {"mixed"} and ref_type != evidence_type:
+            errors.append(f"{report_path}: {row_label} Evidence Type {evidence_type!r} does not match {ref_type!r} anchor")
+        if is_report_section_placeholder_body(payload):
+            errors.append(f"{report_path}: {row_label} Evidence Refs anchor {ref!r} must be non-placeholder")
+            continue
+        if ref_type in {"code", "test", "static"}:
+            errors.extend(validate_path_evidence_ref(report_path, evidence_root, row_label, ref_type, payload))
+        elif ref_type == "command":
+            errors.extend(validate_command_evidence_ref(report_path, root, proof_commands, row_label, payload))
+        elif ref_type == "manual":
+            errors.extend(validate_manual_evidence_ref(report_path, row_label, payload))
+    return errors
+
+
+def split_evidence_refs(value: str) -> list[str]:
+    cleaned = value.replace("`", "").strip()
+    matches = list(EVIDENCE_REF_PREFIX_RE.finditer(cleaned))
+    refs: list[str] = []
+    for index, match in enumerate(matches):
+        start = match.start()
+        if cleaned[start] == ";":
+            start += 1
+        end = matches[index + 1].start() if index + 1 < len(matches) else len(cleaned)
+        ref = cleaned[start:end].strip().rstrip(";").strip()
+        if ref:
+            refs.append(ref)
+    return refs
+
+
+def validate_path_evidence_ref(report_path: Path, root: Path, row_label: str, ref_type: str, payload: str) -> list[str]:
+    errors: list[str] = []
+    path_value = payload
+    anchor = ""
+    if ref_type == "test" and "::" in payload:
+        path_value, anchor = payload.split("::", 1)
+    elif "#" in payload:
+        path_value, anchor = payload.split("#", 1)
+    if not path_value or is_report_section_placeholder_body(path_value):
+        return [f"{report_path}: {row_label} {ref_type} evidence path must be non-placeholder"]
+    if ref_type in {"code", "test", "static"} and not anchor:
+        errors.append(f"{report_path}: {row_label} {ref_type} evidence ref must include a concrete anchor")
+    elif is_report_section_placeholder_body(anchor):
+        errors.append(f"{report_path}: {row_label} {ref_type} evidence anchor must be non-placeholder")
+    try:
+        resolve_safe_path(root, path_value, f"{report_path}: {row_label} {ref_type} evidence path", must_exist_file=True)
+    except SliceproofError as exc:
+        errors.extend(exc.errors)
+    return errors
+
+
+def validate_command_evidence_ref(
+    report_path: Path,
+    root: Path,
+    proof_commands: str,
+    row_label: str,
+    payload: str,
+) -> list[str]:
+    if payload.startswith("proof#Commands Run:"):
+        label = payload.removeprefix("proof#Commands Run:").strip()
+        if is_report_section_placeholder_body(label):
+            return [f"{report_path}: {row_label} command proof label must be non-placeholder"]
+        normalized_label = normalize_command_ref_text(label)
+        normalized_commands = normalize_command_ref_text(proof_commands)
+        if normalized_label not in normalized_commands:
+            return [f"{report_path}: {row_label} command proof label {label!r} was not found in proof ## Commands Run"]
+        return []
+    if payload.startswith("verification-output:"):
+        target = payload.removeprefix("verification-output:").strip()
+        if "#" not in target:
+            return [f"{report_path}: {row_label} verification-output command ref must include #<label>"]
+        path_value, label = target.split("#", 1)
+        errors: list[str] = []
+        if is_report_section_placeholder_body(label):
+            errors.append(f"{report_path}: {row_label} verification-output label must be non-placeholder")
+        try:
+            resolve_safe_path(root, path_value, f"{report_path}: {row_label} verification-output evidence path", must_exist_file=True)
+        except SliceproofError as exc:
+            errors.extend(exc.errors)
+        return errors
+    return [f"{report_path}: {row_label} command evidence must reference proof#Commands Run or verification-output"]
+
+
+def validate_manual_evidence_ref(report_path: Path, row_label: str, payload: str) -> list[str]:
+    fields: dict[str, str] = {}
+    for part in payload.split(";"):
+        if "=" not in part:
+            continue
+        key, value = part.split("=", 1)
+        fields[key.strip().lower()] = value.strip()
+    errors: list[str] = []
+    for field in ("scenario", "observed"):
+        value = fields.get(field, "")
+        if is_report_section_placeholder_body(value):
+            errors.append(f"{report_path}: {row_label} manual evidence must include non-placeholder {field}=...")
+    return errors
+
+
+def validate_interface_matrix_row(report_path: Path, row_label: str, disposition: str) -> list[str]:
+    text = normalize_text(disposition).lower()
+    errors: list[str] = []
+    if "interface" not in text or "exact" not in text:
+        errors.append(f"{report_path}: {row_label} interface row must record exact interface fulfillment")
+    dirty_exactness = {"ambiguous", "partial", "contradicted", "over-broad", "over broad", "missing", "unverified"}
+    if any(token in text for token in dirty_exactness):
+        errors.append(f"{report_path}: {row_label} interface row contains non-exact interface disposition")
+    if "forbidden" not in text or not re.search(r"\bfalsif(?:y|ied|ication)\b", text):
+        errors.append(f"{report_path}: {row_label} interface row must record forbidden-behavior falsification")
+    return errors
+
+
+def validate_triggered_risk_matrix_row(report_path: Path, row_label: str, disposition: str) -> list[str]:
+    text = normalize_text(disposition).lower()
+    if "triggered" not in text and "because" not in text:
+        return [f"{report_path}: {row_label} triggered-risk row must record rationale/disposition"]
+    return []
+
+
+def interface_bearing_slice_ids(root: Path, package_md: PackageMarkdown) -> set[str]:
+    interface_ids: set[str] = set()
+    for ref in package_md.slice_refs:
+        try:
+            slice_path = resolve_safe_path(root, ref.path, f"assigned Slice {ref.path!r}", expected_suffix=".md", must_exist_file=True)
+        except SliceproofError:
+            continue
+        blocks = extract_slice_h3_blocks(slice_path)
+        for slice_id in ref.must_satisfy:
+            if re.search(r"\bInterface contract\b", blocks.get(slice_id, ""), flags=re.IGNORECASE):
+                interface_ids.add(slice_id)
+    return interface_ids
+
+
+def extract_slice_h3_blocks(path: Path) -> dict[str, str]:
+    blocks: dict[str, list[str]] = {}
+    current_id: str | None = None
+    in_fence = False
+    in_shared_understanding = False
+    for raw_line in read_text_file(path, f"Slice {path}").splitlines():
+        line = raw_line.strip()
+        if is_fence(line):
+            in_fence = not in_fence
+            if current_id is not None:
+                blocks[current_id].append(raw_line)
+            continue
+        if not in_fence and raw_line.startswith("## ") and not raw_line.startswith("### "):
+            in_shared_understanding = raw_line[3:].strip().lower() == "shared understanding"
+            current_id = None
+            continue
+        if not in_shared_understanding:
+            continue
+        if not in_fence:
+            match = H3_ID_RE.match(raw_line)
+            if match:
+                current_id = match.group(1)
+                blocks.setdefault(current_id, [])
+                continue
+        if current_id is not None:
+            blocks[current_id].append(raw_line)
+    return {slice_id: "\n".join(lines).strip() for slice_id, lines in blocks.items()}
 
 
 def validate_report_slice_closure_review(report_path: Path, package_md: PackageMarkdown, body: str) -> list[str]:
@@ -1423,6 +1796,7 @@ def digest_semgrep_summary(summary: dict[str, Any]) -> str:
 
 def validate_report_state_binding(
     report_path: Path,
+    root: Path,
     package: RegistryPackage,
     package_md: PackageMarkdown,
     proof_path: Path,
@@ -1436,9 +1810,12 @@ def validate_report_state_binding(
         return errors
 
     expected_assigned_slices = assigned_slices_binding(package_md)
+    expected_slice_digests = assigned_slice_digests_binding(root, package_md)
     for field in sorted(REQUIRED_STATE_BINDING_FIELDS):
         value = clean_cell_id(binding[field])
         if field == "Assigned Slices" and expected_assigned_slices == "none" and value == "none":
+            continue
+        if field == "Assigned Slice Digests" and expected_slice_digests == "none" and value == "none":
             continue
         if is_report_binding_placeholder_text(value):
             errors.append(f"{report_path}: State Binding {field} must be non-placeholder")
@@ -1447,6 +1824,10 @@ def validate_report_state_binding(
         errors.append(f"{report_path}: State Binding Package must be {package.package_id}")
     if normalize_path_value(binding["Package Markdown"]) != package.path:
         errors.append(f"{report_path}: State Binding Package Markdown must be {package.path}")
+    package_path = resolve_safe_path(root, package.path, f"work_packages[{package.package_id}].path", expected_suffix=".md", must_exist_file=True)
+    actual_package_digest = digest_text(read_text_file(package_path, f"package Markdown {package_path}"))
+    if clean_cell_id(binding["Package Markdown Digest"]) != actual_package_digest:
+        errors.append(f"{report_path}: State Binding Package Markdown Digest does not match current package Markdown content")
     if normalize_path_value(binding["Proof"]) != package.proof_path:
         errors.append(f"{report_path}: State Binding Proof must be {package.proof_path}")
     actual_digest = digest_text(read_text_file(proof_path, f"proof {proof_path}"))
@@ -1454,6 +1835,11 @@ def validate_report_state_binding(
         errors.append(f"{report_path}: State Binding Proof Digest does not match current proof content")
     if clean_cell_id(binding["Assigned Slices"]) != expected_assigned_slices:
         errors.append(f"{report_path}: State Binding Assigned Slices must be {expected_assigned_slices}")
+    if clean_cell_id(binding["Assigned Slice Digests"]) != expected_slice_digests:
+        errors.append(f"{report_path}: State Binding Assigned Slice Digests do not match current assigned Slice content")
+    expected_snapshot = matrix_source_snapshot_binding(root, package, package_md)
+    if clean_cell_id(binding["Matrix Source Snapshot"]) != expected_snapshot:
+        errors.append(f"{report_path}: State Binding Matrix Source Snapshot does not match current package/Slice source content")
     worktree = clean_cell_id(binding["Worktree"])
     if not Path(worktree).is_absolute():
         errors.append(f"{report_path}: State Binding Worktree must be an absolute reviewed worktree path")
@@ -1473,6 +1859,29 @@ def assigned_slices_binding(package_md: PackageMarkdown) -> str:
     if not package_md.slice_refs:
         return "none"
     return ", ".join(sorted(ref.path for ref in package_md.slice_refs))
+
+
+def assigned_slice_digests_binding(root: Path, package_md: PackageMarkdown) -> str:
+    if not package_md.slice_refs:
+        return "none"
+    entries: list[str] = []
+    for path_value in sorted({ref.path for ref in package_md.slice_refs}):
+        slice_path = resolve_safe_path(root, path_value, f"assigned Slice {path_value!r}", expected_suffix=".md", must_exist_file=True)
+        entries.append(f"{path_value}={digest_text(read_text_file(slice_path, f'Slice {slice_path}'))}")
+    return "; ".join(entries)
+
+
+def matrix_source_snapshot_binding(root: Path, package: RegistryPackage, package_md: PackageMarkdown) -> str:
+    package_path = resolve_safe_path(root, package.path, f"work_packages[{package.package_id}].path", expected_suffix=".md", must_exist_file=True)
+    parts = [snapshot_part(package.path, read_text_file(package_path, f"package Markdown {package_path}"))]
+    for path_value in sorted({ref.path for ref in package_md.slice_refs}):
+        slice_path = resolve_safe_path(root, path_value, f"assigned Slice {path_value!r}", expected_suffix=".md", must_exist_file=True)
+        parts.append(snapshot_part(path_value, read_text_file(slice_path, f"Slice {slice_path}")))
+    return digest_text("".join(parts))
+
+
+def snapshot_part(path_value: str, content: str) -> str:
+    return f"{path_value}\0{content}\0"
 
 
 def parse_key_values(body: str) -> dict[str, str]:
@@ -1735,6 +2144,10 @@ def normalize_status(value: str) -> str:
 
 def normalize_text(value: str) -> str:
     return re.sub(r"\s+", " ", value.strip().strip("`"))
+
+
+def normalize_command_ref_text(value: str) -> str:
+    return normalize_text(value).replace("`", "").lower()
 
 
 def is_placeholder_text(value: str) -> bool:

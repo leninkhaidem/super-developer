@@ -66,6 +66,14 @@ class SliceproofFixture:
         self.reports_dir.mkdir()
         self.semgrep_dir.mkdir()
         self.slice_dir.mkdir(parents=True)
+        self.evidence_asset = self.repo / "plugins" / "super-developer" / "assets" / "sliceproof.py"
+        self.evidence_test = self.repo / "plugins" / "super-developer" / "assets" / "tests" / "test_sliceproof.py"
+        self.evidence_ref = self.repo / "plugins" / "super-developer" / "references" / "tool-usage.md"
+        self.evidence_test.parent.mkdir(parents=True)
+        self.evidence_ref.parent.mkdir(parents=True)
+        self.evidence_asset.write_text("def validate_plan():\n    pass\n\ndef validate_proof():\n    pass\n", encoding="utf-8")
+        self.evidence_test.write_text("def test_validate_plan_accepts_valid_registry_package_slice_fixture():\n    pass\n", encoding="utf-8")
+        self.evidence_ref.write_text("# Tool Usage\n\n## sliceproof.py\n", encoding="utf-8")
         (self.feature_dir / "SPEC.md").write_text("# Fixture Spec\n", encoding="utf-8")
         self.slice_path.write_text(self.slice_text(), encoding="utf-8")
         self.package_path.write_text(self.package_text(), encoding="utf-8")
@@ -152,6 +160,16 @@ class SliceproofFixture:
 
             ### HELPER-PIPE-004 — Proof rows preserve A | B table content
             Escaped pipe characters in generated proof table cells must round-trip through validation.
+
+            ### HELPER-INTERFACE-005 — Interface-bearing rows require exactness
+            Fixture report validation must identify interface-bearing Slice rows.
+
+            **Interface contract**
+            - Must exist: a stable fixture command interface.
+            - Consumer: helper tests.
+            - Exact interface: `validate-package-complete` returns JSON.
+            - Forbidden behaviors: missing matrix rows or dirty evidence must not pass.
+            - Expected evidence: code/test/static evidence anchors plus forbidden-behavior falsification.
             """
         ).lstrip()
 
@@ -253,6 +271,45 @@ class SliceproofFixture:
             """
         ).lstrip()
 
+    def digest_text(self, text: str) -> str:
+        return "sha256:" + hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+    def package_markdown_digest(self) -> str:
+        return self.digest_text(self.package_path.read_text(encoding="utf-8"))
+
+    def assigned_slice_digests(self, assigned_slices: str = ".planning/fixture/slices/helper.md") -> str:
+        if assigned_slices == "none":
+            return "none"
+        return f"{assigned_slices}={self.digest_text(self.slice_path.read_text(encoding='utf-8'))}"
+
+    def matrix_source_snapshot(self, assigned_slices: str = ".planning/fixture/slices/helper.md") -> str:
+        package_content = self.package_path.read_text(encoding="utf-8")
+        parts = [f".tasks/fixture/packages/WP1.md\0{package_content}\0"]
+        if assigned_slices != "none":
+            slice_content = self.slice_path.read_text(encoding="utf-8")
+            parts.append(f"{assigned_slices}\0{slice_content}\0")
+        return self.digest_text("".join(parts))
+
+    def deliverable_matrix(self, *, assigned_slices: str = ".planning/fixture/slices/helper.md") -> str:
+        rows = [
+            "| Source ID | Row Type | Deliverable | Evidence Type | Evidence Refs | Exactness / Risk Disposition | Verdict |",
+            "|---|---|---|---|---|---|---|",
+        ]
+        if assigned_slices != "none":
+            rows.extend(
+                [
+                    "| HELPER-PLAN-001 | slice | Registry and package references validate mechanically. | mixed | static:plugins/super-developer/assets/sliceproof.py#validate_plan; test:plugins/super-developer/assets/tests/test_sliceproof.py::test_validate_plan_accepts_valid_registry_package_slice_fixture | no interface; fixture plan behavior covered | delivered |",
+                    "| HELPER-PROOF-002 | slice | Proof placeholders and proof closure validate mechanically. | static | static:plugins/super-developer/assets/sliceproof.py#validate_proof | no interface; fixture proof behavior covered | delivered |",
+                ]
+            )
+        rows.extend(
+            [
+                "| VE-1 | verification-expectation | `sliceproof.py validate-plan` succeeds for the valid fixture. | test | test:plugins/super-developer/assets/tests/test_sliceproof.py::test_validate_plan_accepts_valid_registry_package_slice_fixture | expectation covered; no interface | delivered |",
+                "| VE-2 | verification-expectation | `sliceproof.py validate-proof` fails placeholders and passes completed proof. | static | static:plugins/super-developer/assets/sliceproof.py#validate_proof | expectation covered; no interface | delivered |",
+            ]
+        )
+        return "\n".join(rows)
+
     def report_text(
         self,
         proof_text: str | None = None,
@@ -263,6 +320,8 @@ class SliceproofFixture:
         worktree: str | None = None,
         git_ref: str | None = None,
         commit: str | None = None,
+        deliverable_matrix: str | None = None,
+        triggered_risk_selection_notes: str = "- Not applicable: fixture helper report has no triggered runtime risk probes.",
         slice_closure_review: str | None = None,
         code_review_findings: str = "- None.",
         blocking_findings: str | None = "- None.",
@@ -271,10 +330,12 @@ class SliceproofFixture:
     ) -> str:
         if proof_text is None:
             proof_text = self.proof_path.read_text(encoding="utf-8")
-        digest = "sha256:" + hashlib.sha256(proof_text.encode("utf-8")).hexdigest()
+        digest = self.digest_text(proof_text)
         worktree = str(self.repo.resolve(strict=False)) if worktree is None else worktree
         git_ref = "wp/fixture/WP1" if git_ref is None else git_ref
         commit = REPORT_COMMIT if commit is None else commit
+        if deliverable_matrix is None:
+            deliverable_matrix = self.deliverable_matrix(assigned_slices=assigned_slices)
         if slice_closure_review is None:
             if assigned_slices == "none":
                 slice_closure_review = "- None."
@@ -293,6 +354,12 @@ class SliceproofFixture:
             "### Verdict",
             verdict,
             "",
+            "### Deliverable Completeness Matrix",
+            deliverable_matrix,
+            "",
+            "### Triggered Risk Selection Notes",
+            triggered_risk_selection_notes,
+            "",
             "### Slice Closure Review",
             slice_closure_review,
             "",
@@ -310,9 +377,12 @@ class SliceproofFixture:
                 "Helper/package-lifecycle metadata; the source report body above remains canonical.",
                 f"- Package: `WP1`",
                 f"- Package Markdown: `{package_markdown}`",
+                f"- Package Markdown Digest: `{self.package_markdown_digest()}`",
                 "- Proof: `.tasks/fixture/proofs/WP1.proof.md`",
                 f"- Proof Digest: `{digest}`",
                 f"- Assigned Slices: `{assigned_slices}`",
+                f"- Assigned Slice Digests: `{self.assigned_slice_digests(assigned_slices)}`",
+                f"- Matrix Source Snapshot: `{self.matrix_source_snapshot(assigned_slices)}`",
                 f"- Worktree: `{worktree}`",
                 f"- Git Ref: `{git_ref}`",
                 f"- Commit: `{commit}`",
@@ -1056,6 +1126,219 @@ class SliceproofTests(unittest.TestCase):
         stale_report = self.fixture.run("validate-final", str(self.fixture.tasks_path))
         self.assertNotEqual(0, stale_report.returncode)
         self.assertIn("Proof Digest does not match current proof content", "\n".join(json.loads(stale_report.stderr)["errors"]))
+
+    def test_validate_package_complete_accepts_pre_done_package_without_git(self) -> None:
+        self.fixture.write_completed_proof_and_report()
+        fake_bin = self.fixture.repo / "fake-bin"
+        fake_bin.mkdir()
+        marker = self.fixture.repo / "git-was-called"
+        fake_git = fake_bin / "git"
+        fake_git.write_text(
+            "#!/bin/sh\n"
+            "echo invoked > \"$SLICEPROOF_FAKE_GIT_MARKER\"\n"
+            "exit 99\n",
+            encoding="utf-8",
+        )
+        fake_git.chmod(0o700)
+        env = os.environ.copy()
+        env["PATH"] = f"{fake_bin}{os.pathsep}{env.get('PATH', '')}"
+        env["SLICEPROOF_FAKE_GIT_MARKER"] = str(marker)
+
+        result = self.fixture.run("validate-package-complete", str(self.fixture.tasks_path), "--package", "WP1", env=env)
+
+        self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+        data = json.loads(result.stdout)
+        self.assertTrue(data["ok"])
+        self.assertEqual("pending", data["package_status"])
+        self.assertEqual(["VE-1", "VE-2"], data["verification_expectation_rows"])
+        self.assertFalse(marker.exists(), "validate-package-complete unexpectedly invoked git")
+
+        unknown = self.fixture.run("validate-package-complete", str(self.fixture.tasks_path), "--package", "WP9")
+        self.assertNotEqual(0, unknown.returncode)
+        self.assertIn("unknown package id WP9", "\n".join(json.loads(unknown.stderr)["errors"]))
+
+    def test_validate_package_complete_rejects_dirty_or_stale_matrices(self) -> None:
+        first_matrix_row = (
+            "| HELPER-PLAN-001 | slice | Registry and package references validate mechanically. | mixed | "
+            "static:plugins/super-developer/assets/sliceproof.py#validate_plan; "
+            "test:plugins/super-developer/assets/tests/test_sliceproof.py::test_validate_plan_accepts_valid_registry_package_slice_fixture | "
+            "no interface; fixture plan behavior covered | delivered |"
+        )
+        second_slice_row = (
+            "| HELPER-PROOF-002 | slice | Proof placeholders and proof closure validate mechanically. | static | "
+            "static:plugins/super-developer/assets/sliceproof.py#validate_proof | no interface; fixture proof behavior covered | delivered |"
+        )
+        ve2_row = (
+            "| VE-2 | verification-expectation | `sliceproof.py validate-proof` fails placeholders and passes completed proof. | static | "
+            "static:plugins/super-developer/assets/sliceproof.py#validate_proof | expectation covered; no interface | delivered |"
+        )
+        valid_proof = self.fixture.completed_proof()
+        valid_report = self.fixture.report_text(valid_proof)
+        cases = [
+            (
+                "old report shape without matrix",
+                lambda fixture, report: remove_h3_section(report, "Deliverable Completeness Matrix"),
+                "missing required source section ### Deliverable Completeness Matrix",
+            ),
+            (
+                "missing H3 row",
+                lambda fixture, report: report.replace("\n" + second_slice_row, "", 1),
+                "missing required slice row for HELPER-PROOF-002",
+            ),
+            (
+                "missing VE row",
+                lambda fixture, report: report.replace("\n" + ve2_row, "", 1),
+                "missing required verification-expectation row for VE-2",
+            ),
+            (
+                "duplicate rows",
+                lambda fixture, report: report.replace(first_matrix_row, first_matrix_row + "\n" + first_matrix_row, 1),
+                "duplicate Deliverable Completeness Matrix row for HELPER-PLAN-001",
+            ),
+            (
+                "dirty verdict",
+                lambda fixture, report: report.replace("| delivered |", "| partial |", 1),
+                "Verdict must be delivered for package completion",
+            ),
+            (
+                "unsupported verdict",
+                lambda fixture, report: report.replace("| delivered |", "| complete |", 1),
+                "Verdict 'complete' is not supported",
+            ),
+            (
+                "unsupported evidence type",
+                lambda fixture, report: report.replace("| mixed |", "| screenshot |", 1),
+                "Evidence Type 'screenshot' is not supported",
+            ),
+            (
+                "placeholder evidence refs",
+                lambda fixture, report: report.replace(
+                    "static:plugins/super-developer/assets/sliceproof.py#validate_plan; test:plugins/super-developer/assets/tests/test_sliceproof.py::test_validate_plan_accepts_valid_registry_package_slice_fixture",
+                    "TODO",
+                    1,
+                ),
+                "Evidence Refs must be non-placeholder",
+            ),
+            (
+                "nonexistent evidence path",
+                lambda fixture, report: report.replace("plugins/super-developer/assets/sliceproof.py#validate_plan", "plugins/super-developer/assets/missing.py#validate_plan", 1),
+                "file not found",
+            ),
+            (
+                "unsafe evidence path",
+                lambda fixture, report: report.replace("plugins/super-developer/assets/sliceproof.py#validate_plan", "../escape.py#validate_plan", 1),
+                "path must not contain",
+            ),
+            (
+                "vague evidence ref",
+                lambda fixture, report: report.replace("static:plugins/super-developer/assets/sliceproof.py#validate_plan", "static:plugins/super-developer/assets/sliceproof.py", 1),
+                "static evidence ref must include a concrete anchor",
+            ),
+            (
+                "command ref not tied to proof",
+                lambda fixture, report: report.replace(
+                    first_matrix_row,
+                    "| HELPER-PLAN-001 | slice | Registry and package references validate mechanically. | command | command:proof#Commands Run:not-run | no interface; fixture plan behavior covered | delivered |",
+                    1,
+                ),
+                "command proof label 'not-run' was not found in proof ## Commands Run",
+            ),
+            (
+                "manual ref missing observed field",
+                lambda fixture, report: report.replace(
+                    first_matrix_row,
+                    "| HELPER-PLAN-001 | slice | Registry and package references validate mechanically. | manual | manual:scenario=operator checked fixture | no interface; fixture plan behavior covered | delivered |",
+                    1,
+                ),
+                "manual evidence must include non-placeholder observed=...",
+            ),
+            (
+                "stale package digest",
+                lambda fixture, report: (fixture.package_path.write_text(fixture.package_path.read_text(encoding="utf-8") + "\n<!-- stale -->\n", encoding="utf-8"), report)[1],
+                "Package Markdown Digest does not match current package Markdown content",
+            ),
+            (
+                "stale slice digest",
+                lambda fixture, report: (fixture.slice_path.write_text(fixture.slice_path.read_text(encoding="utf-8") + "\n<!-- stale -->\n", encoding="utf-8"), report)[1],
+                "Assigned Slice Digests do not match current assigned Slice content",
+            ),
+            (
+                "triggered risk without rationale",
+                lambda fixture, report: report.replace(
+                    "| VE-1 |",
+                    "| RISK-fixture | triggered-risk | Fixture risk checked. | static | static:plugins/super-developer/assets/sliceproof.py#validate_plan | checked | delivered |\n| VE-1 |",
+                    1,
+                ),
+                "triggered-risk row must record rationale/disposition",
+            ),
+        ]
+        for name, mutate, expected_error in cases:
+            with self.subTest(name=name):
+                fixture = SliceproofFixture()
+                try:
+                    proof = fixture.completed_proof()
+                    fixture.proof_path.write_text(proof, encoding="utf-8")
+                    report = fixture.report_text(proof)
+                    fixture.report_path.write_text(mutate(fixture, report), encoding="utf-8")
+                    result = fixture.run("validate-package-complete", str(fixture.tasks_path), "--package", "WP1")
+                    self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+                    self.assertIn(expected_error, "\n".join(json.loads(result.stderr)["errors"]))
+                finally:
+                    fixture.cleanup()
+
+    def test_validate_package_complete_rejects_interface_rows_without_exactness(self) -> None:
+        self.fixture.package_path.write_text(self.fixture.package_text(must_id="HELPER-INTERFACE-005"), encoding="utf-8")
+        proof = self.fixture.completed_proof().replace("HELPER-PLAN-001", "HELPER-INTERFACE-005")
+        self.fixture.proof_path.write_text(proof, encoding="utf-8")
+        matrix = self.fixture.deliverable_matrix().replace("HELPER-PLAN-001", "HELPER-INTERFACE-005").replace(
+            "no interface; fixture plan behavior covered",
+            "interface checked",
+            1,
+        )
+        report = self.fixture.report_text(proof, deliverable_matrix=matrix).replace("HELPER-PLAN-001", "HELPER-INTERFACE-005")
+        self.fixture.report_path.write_text(report, encoding="utf-8")
+
+        result = self.fixture.run("validate-package-complete", str(self.fixture.tasks_path), "--package", "WP1")
+
+        self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+        errors = "\n".join(json.loads(result.stderr)["errors"])
+        self.assertIn("interface row must record exact interface fulfillment", errors)
+        self.assertIn("interface row must record forbidden-behavior falsification", errors)
+
+    def test_validate_final_reuses_deliverable_matrix_validation(self) -> None:
+        proof = self.fixture.completed_proof()
+        self.fixture.proof_path.write_text(proof, encoding="utf-8")
+        plan = self.fixture.plan()
+        plan["work_packages"][0]["status"] = "done"
+        self.fixture.write_plan(plan)
+        valid_report = self.fixture.report_text(proof)
+        final_cases = [
+            ("old shape", remove_h3_section(valid_report, "Deliverable Completeness Matrix"), "missing required source section ### Deliverable Completeness Matrix"),
+            ("dirty verdict", valid_report.replace("| delivered |", "| unverified |", 1), "Verdict must be delivered for package completion"),
+            ("stale source", valid_report, "Package Markdown Digest does not match current package Markdown content"),
+        ]
+        for name, report, expected_error in final_cases:
+            with self.subTest(name=name):
+                fixture = SliceproofFixture()
+                try:
+                    proof_text = fixture.completed_proof()
+                    fixture.proof_path.write_text(proof_text, encoding="utf-8")
+                    plan = fixture.plan()
+                    plan["work_packages"][0]["status"] = "done"
+                    fixture.write_plan(plan)
+                    report_text = fixture.report_text(proof_text)
+                    if name == "old shape":
+                        report_text = remove_h3_section(report_text, "Deliverable Completeness Matrix")
+                    elif name == "dirty verdict":
+                        report_text = report_text.replace("| delivered |", "| unverified |", 1)
+                    else:
+                        fixture.package_path.write_text(fixture.package_path.read_text(encoding="utf-8") + "\n<!-- stale -->\n", encoding="utf-8")
+                    fixture.report_path.write_text(report_text, encoding="utf-8")
+                    result = fixture.run("validate-final", str(fixture.tasks_path))
+                    self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+                    self.assertIn(expected_error, "\n".join(json.loads(result.stderr)["errors"]))
+                finally:
+                    fixture.cleanup()
 
     def test_validate_final_validates_optional_semgrep_evidence_binding(self) -> None:
         proof = self.fixture.completed_proof()
