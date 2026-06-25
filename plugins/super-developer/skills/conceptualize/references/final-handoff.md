@@ -18,7 +18,7 @@
 4. Check each Slice for stable H3 IDs, stale contradictions, hidden unresolved questions,
    deferrals/out-of-scope items lacking a user decision, useful source references, relevant
    implementation surfaces, and verification expectations.
-5. Run a completeness challenge across the full Slice set: hunt for observable behaviors, edge cases,
+5. Run the canonical completeness challenge across the full Slice set: hunt for observable behaviors, edge cases,
    failure modes, defaults, or obligations a reasonable implementer would expect that no Slice covers.
    Treat plausible gaps as discovery to resolve with the user, not as handoff line items.
 6. Complete faithful additive Slice fixes as routine capture. Pause for user input only when a fix

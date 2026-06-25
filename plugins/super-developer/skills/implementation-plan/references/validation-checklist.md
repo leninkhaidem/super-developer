@@ -10,7 +10,7 @@ Do not create or overwrite `.tasks/<feature-name>/` artifacts until all applicab
 
 - Feature slug is safe and any existing feature directory conflict is resolved by the user.
 - Only references needed by the active path have been read: Conceptualize inputs when a handoff applies; SPEC/artifact/package guidance while drafting those surfaces; tool usage only for command syntax or safety ambiguity; Semgrep reference only at preference/evidence action points; design preflight only when triggered.
-- Design preflight trigger decision is made; if it ran, unresolved `MUST_DECIDE` and `BLOCKERS` findings are resolved.
+- Design preflight trigger decision is made; if it ran, unresolved `COVERAGE_GAPS`, `MUST_DECIDE`, and `BLOCKERS` findings are resolved.
 - Conditional spike decision is made; if a spike was required, evidence is accepted and no exploratory code will be persisted.
 - Any decision that changes user-visible semantics, risk acceptance, scope, or Slice commitments has user approval.
 - Conceptualize input state is one of: no workspace applies, Index-only/no-Slice, or full safe Slice inventory.
