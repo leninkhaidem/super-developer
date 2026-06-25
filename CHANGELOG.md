@@ -6,6 +6,19 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [v1.33.0] - 2026-06-25
+
+### Added
+- Added package deliverable-completeness matrices and a `validate-package-complete` helper so package verification binds Slice and verification-expectation obligations to concrete evidence before packages are marked complete.
+- Added upstream requirement-completeness challenges in Conceptualize, implementation planning, and plan review so agents explicitly ask what expected requirements, edge cases, defaults, or failure modes are missing before work packages are written.
+
+### Changed
+- Changed package lifecycle, implementation, review-code, and audit guidance so package verification is the primary semantic deliverable gate and final audit reconciles matrix completeness and freshness as a skeptic backstop.
+- Changed planning and verification guidance to apply proportional post-gate refresh decisions based on impacted surfaces instead of file-type assumptions.
+
+### Fixed
+- Fixed matrix validation gaps so report-controlled worktree paths, non-exact interface dispositions, and unlabeled verification-output anchors cannot falsely pass package completion.
+
 ## [v1.32.1] - 2026-06-24
 
 ### Changed
