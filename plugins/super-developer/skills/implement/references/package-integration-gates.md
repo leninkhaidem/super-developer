@@ -27,12 +27,19 @@ For each returned package:
 5. Prefer committing/stabilizing the package branch before holistic package verification so a `PASS` report binds directly to an exact commit/ref. Do not commit ignored `.tasks` proof/report artifacts.
 6. Run one holistic package verifier for every returned package. Use `plugins/super-developer/skills/implement/references/package-verification.md` as the verifier contract; dispatch through the verifier packet in `plugins/super-developer/skills/implement/references/package-dispatch.md`.
 7. Store the verifier PASS/FAIL report at `.tasks/<feature>/reports/<WP-ID>.package-verification.md` or the declared durable report path. The report must bind to reviewed package state and proof evidence.
-8. Reject missing, failed, stale, old-shape, placeholder, or pre-repair package verification reports.
-9. Confirm package branches did not force-add or commit ignored `.tasks` proof/report artifacts. If they did, preserve artifacts in the shared task store, repair the branch to code/doc changes only, and keep the package incomplete.
-10. Merge each accepted package branch at most once through the integration worktree using the `worktree` skill.
-11. After merge, verify package branch ancestry, integration worktree cleanliness, proof/report task-store handoff, and post-merge freshness. If merge resolution or integration changes affect evidence, proof rows, verification output, assignment, or package claims, rerun affected proof validation and package verification before completion.
+8. Reject missing, failed, stale, old-shape, placeholder, dirty-matrix, or pre-repair package verification reports.
+9. Run the pre-done completion helper after the report exists and before accepting/merging as complete, marking `done`, unlocking dependents, or final readiness handoff:
 
-Mark a package `done` only after proof validation, verification expectations, package verification PASS, ignored `.tasks` handling, post-merge freshness, repair/delta closure, and Slice plan-defect gates all pass.
+   ```bash
+   python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-package-complete ".tasks/<feature>/tasks.json" --package <WP-ID>
+   ```
+
+10. Treat helper success as a mechanical signal only; semantic truthfulness remains with package verification and final audit.
+11. Confirm package branches did not force-add or commit ignored `.tasks` proof/report artifacts. If they did, preserve artifacts in the shared task store, repair the branch to code/doc changes only, and keep the package incomplete.
+12. Merge each accepted package branch at most once through the integration worktree using the `worktree` skill.
+13. After merge, verify package branch ancestry, integration worktree cleanliness, proof/report task-store handoff, and post-merge freshness. If merge resolution or integration changes affect evidence, proof rows, verification output, assignment, source bindings, matrix rows/anchors, or package claims, rerun affected proof validation, package verification, and `validate-package-complete` before completion.
+
+Mark a package `done` only after proof validation, verification expectations, package verification PASS, clean `validate-package-complete`, ignored `.tasks` handling, post-merge freshness, repair/delta closure, and Slice plan-defect gates all pass.
 
 ## Slice Plan-Defect Gate
 
@@ -47,11 +54,11 @@ Slice plan defects are blockers, not advisory notes. Resolve by projecting the r
 
 ## Report Shape and Freshness
 
-Package verification reports use the source-aligned shape from `plugins/super-developer/skills/implement/references/package-verification.md`: `## Package Verification: <WP-ID>` with H3 `Verdict`, `Slice Closure Review`, `Code Review Findings`, and failure-only `Blocking Findings` / `Repair Guidance`. If lifecycle metadata is kept, add it separately as `## State Binding` after the source report body.
+Package verification reports use the source-aligned shape from `plugins/super-developer/skills/implement/references/package-verification.md`: `## Package Verification: <WP-ID>` with H3 `Verdict`, `Deliverable Completeness Matrix`, `Triggered Risk Selection Notes`, `Slice Closure Review`, `Code Review Findings`, and failure-only `Blocking Findings` / `Repair Guidance`. If lifecycle metadata is kept, add it separately as `## State Binding` after the source report body.
 
-A package verification report is stale when later mutation can affect reviewed package state, proof evidence, verification output, assigned Slice closure, package Markdown, or serious finding closure. State-changing repairs, merge-resolution edits, proof refreshes, changed verification commands, changed assignments, or changed Slice scope/approval metadata require focused or full package re-verification.
+A package verification report is stale when later mutation can affect reviewed package state, proof evidence, verification output, deliverable matrix rows/evidence anchors, assigned Slice closure/source digest, package Markdown/digest, matrix-source snapshot, or serious finding closure. State-changing repairs, merge-resolution edits, proof refreshes, changed verification commands, changed assignments, changed package Markdown verification expectations, or changed Slice scope/approval metadata require focused or full package re-verification.
 
-Binding-only refresh carve-out: if a verifier already semantically reviewed identical code tree/diff, proof content/digest, package Markdown, assigned Slice set, implementer report/`SELF_REVIEW`, and verification output, and the only change is `## State Binding` metadata moving from uncommitted/moving state to exact commit/ref metadata, update only the binding/report metadata without rerunning semantic package verification. The source report body must remain unchanged. Any uncertainty, repair, merge-resolution edit, proof-evidence change, package/Slice/output change, implementer-report change, or reviewed-code change fails closed and requires focused or full package verification.
+Binding-only refresh carve-out: if a verifier already semantically reviewed identical code tree/diff, proof content/digest, package Markdown/digest, assigned Slice set/digests or snapshot, implementer report/`SELF_REVIEW`, verification output, deliverable matrix, and evidence anchors, and the only change is `## State Binding` metadata moving from uncommitted/moving state to exact commit/ref metadata, update only the binding/report metadata without rerunning semantic package verification. The source report body must remain unchanged. Any uncertainty, repair, merge-resolution edit, proof-evidence change, package/Slice/output change, matrix/evidence-anchor change, implementer-report change, or reviewed-code change fails closed and requires focused or full package verification.
 
 ## Rejection and Repair
 
@@ -60,10 +67,11 @@ Reject a package when code, proof evidence, verification, Slice plan-defect hand
 For confirmed in-scope findings:
 
 1. keep the package incomplete;
-2. delegate a fresh repair agent using the repair packet in `plugins/super-developer/skills/implement/references/package-dispatch.md`;
-3. refresh affected proof rows, command/file evidence, and report state;
-4. rerun `sliceproof.py validate-proof`;
-5. rerun package verification focused on failed findings and changed surfaces, or full verification when scope widened, package contracts changed, safety/mock/test coverage changed, or repeated repairs failed to close.
+2. record a generic affected-surface impact classification before selecting reruns: packages, Slice H3s, verification expectations, matrix rows/evidence anchors, proof/report claims, commands, implementation state, contracts, integration seams, safety/security/privacy/data surfaces, and whether impact is bounded;
+3. delegate a fresh repair agent using the repair packet in `plugins/super-developer/skills/implement/references/package-dispatch.md`;
+4. refresh affected proof rows, command/file evidence, matrix/report state, and source bindings;
+5. rerun `sliceproof.py validate-proof` and `validate-package-complete`;
+6. rerun targeted package verification when impact is narrow and bounded, or full verification when impact touches delivered behavior, evidence bindings, proof/report/matrix claims, contracts, integration, safety/security/privacy/data surfaces, source bindings, or cannot be bounded.
 
 Stop for the user when repair requires product/design authority, unapproved dependency/service changes, scope expansion, unsafe commands, external facts, credentials, risk acceptance, or package/Slice assignment changes.
 
@@ -77,7 +85,8 @@ Before moving to final `review-code` and `audit`, every package must have:
 
 - valid proof Markdown with no unresolved `GAP`, `OPEN`, `TODO`, unapproved `DEFERRED`, or unsupported `N/A`;
 - required command/manual evidence recorded in proof Markdown;
-- fresh PASS package verification report bound to current proof/package state;
+- fresh PASS package verification report with clean matrix bound to current proof/package/Slice state;
+- clean `validate-package-complete` for the current package state;
 - no unresolved Slice plan defects;
 - integration worktree clean for the intended final state;
 - package branches merged once and retained until cleanup gates pass.
@@ -100,4 +109,4 @@ Run final `review-code` and final `audit` as sibling checks against the same int
 
 ## Status Output
 
-Status summaries should include package ID/title, proof path and validation result, package verification report path and PASS/freshness status, package branch/worktree, integration state, Slice plan-defect status, repair/follow-up state, next gate, and any blockers.
+Status summaries should include package ID/title, proof path and validation result, package verification report path, matrix cleanliness, `validate-package-complete` result as mechanical signals only, package branch/worktree, integration state, Slice plan-defect status, repair/follow-up state, next gate, and any blockers.

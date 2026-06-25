@@ -37,6 +37,7 @@ Load these only as their step requires:
 2. If a Conceptualize workspace applies, follow the Slice inventory/Index-only rules before writing artifacts.
 3. Ask/stop rather than inventing behavior, accepting risk, narrowing scope, or deferring material obligations.
 4. Draft `SPEC.md`, package split, `tasks.json`, and package Markdown using the references above.
+   Preserve exact interface/forbidden-behavior obligations; seed obvious package-specific risk expectations as deliverable-matrix `VE-<n>` row sources (interactive UI, retry/fail-closed, trigger precedence, lifecycle/restart/reaper, cache invalidation, model/default precedence, generated defaults, state pollution when applicable); and state that planner seeds do not limit verifier discovery.
    If Semgrep is disabled, do not require helper setup, scans, or evidence. If enabled, detect
    impacted stacks from normal repo/package analysis, use helper `index`/`retrieve` for local config
    paths/profile refresh, never inspect `index.json` manually or hard-code curated rule mappings, and

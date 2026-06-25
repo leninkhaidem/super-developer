@@ -13,23 +13,17 @@ Registry package status is routing only:
 - `blocked`: an authority-boundary decision is needed.
 - `done`: the package passed the completion gate below.
 
-Status does not prove implementation correctness. Dashboards may show status, dependency readiness, proof/report paths, and helper results only as mechanical signals.
+Status does not prove implementation correctness. Dashboards may show status, dependency readiness, proof/report paths, package matrix cleanliness, and helper results only as mechanical signals.
 
 ## Proof Ownership
 
-Each package has one proof Markdown file declared in the registry and package Markdown:
-
-```text
-.tasks/<feature>/proofs/<WP-ID>.proof.md
-```
+Each package has one proof Markdown file declared in the registry and package Markdown: `.tasks/<feature>/proofs/<WP-ID>.proof.md`.
 
 Package agents fill or refresh only their assigned proof file and package commits. They do not mark packages done, finalize features, edit unrelated proof files, or reconcile a central evidence ledger.
 
 Proof Markdown owns package evidence for assigned `Must satisfy` H3 IDs and package verification expectations. `PASS` in a proof row is a package-agent claim, not package acceptance.
 
-When Semgrep is enabled or contracted for a package, raw and summary outputs live under
-`.tasks/<feature>/semgrep/` and proofs/reports cite paths and digests. These files are local task
-store evidence, not lifecycle state or a replacement for proof/report judgment.
+When Semgrep is enabled or contracted for a package, raw and summary outputs live under `.tasks/<feature>/semgrep/` and proofs/reports cite paths and digests. These files are local task-store evidence, not lifecycle state or a replacement for proof/report judgment.
 
 ## Pre-Dispatch Proof Creation
 
@@ -45,7 +39,7 @@ Overwrite safety:
 
 - existing exact placeholder: idempotent success;
 - missing proof: create placeholder;
-- edited or filled proof: fail closed unless `--force --approved-replacement` includes approval, provenance, and scope and preserves the prior content as described in `tool-usage.md`.
+- edited or filled proof: fail closed unless `--force --approved-replacement` includes approval, provenance, and scope and preserves prior content as described in `tool-usage.md`.
 
 Filled evidence must never be silently erased.
 
@@ -54,8 +48,7 @@ Filled evidence must never be silently erased.
 A package agent cannot claim completion until proof Markdown shows:
 
 - every assigned `Must satisfy` H3 ID in `## Slice Closure Table`;
-- concrete implementation evidence for every required row;
-- concrete verification evidence for every required row;
+- concrete implementation and verification evidence for every required row;
 - `PASS` for every required row, or explicitly approved `DEFERRED`/`N/A` where allowed;
 - every package verification expectation covered in `## Acceptance / Verification Closure`;
 - exact command/static/manual evidence in `## Commands Run` and `## Files Changed / Inspected`;
@@ -70,9 +63,7 @@ When a package agent returns, run:
 python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-proof ".tasks/<feature>/tasks.json" --package WP1
 ```
 
-Reject proof handoff when validation reports missing sections, missing rows, duplicate rows, missing implementation/verification evidence, unresolved markers, unsupported statuses, missing verification expectation closure, unsafe paths, or missing proof files.
-
-Mechanical validation is necessary, never sufficient. Package verification decides evidence sufficiency.
+Reject proof handoff when validation reports missing sections, rows, evidence, expectation closure, unsupported statuses, unresolved markers, unsafe paths, or missing proof files. Mechanical validation is necessary, never sufficient.
 
 ## Completion Gate
 
@@ -83,86 +74,76 @@ A package may become `done` only after all are true:
 3. required commands or inspections are recorded in proof evidence;
 4. the package implementer supplied the required completion statement and `SELF_REVIEW` evidence;
 5. no unresolved Slice plan defect, unapproved gap/deviation, or authority-boundary blocker remains;
-6. independent package verification returned `PASS` and wrote the report bound to proof digest and verified worktree state, preferably after the package branch was committed/stabilized so the PASS binds directly to an exact commit/ref;
-7. repairs and delta verification are closed;
-8. post-merge or integration changes did not stale the proof/report, or freshness was restored.
+6. independent package verification returned `PASS` with a clean deliverable matrix bound to proof/source/code state;
+7. `validate-package-complete` succeeds for the selected package after the report exists and before accepting/merging as complete, marking `done`, unlocking dependents, or final readiness handoff;
+8. repairs and delta verification are closed;
+9. post-merge or integration changes did not stale proof/report/matrix evidence, or freshness was restored.
 
-Do not mark a package complete from registry status, helper success, proof rows, self-review, or package assignment text alone.
+Run the pre-done helper as:
+
+```bash
+python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-package-complete ".tasks/<feature>/tasks.json" --package <WP-ID>
+```
+
+Dependent packages stay blocked until each source package has a fresh `PASS` report and clean `validate-package-complete` result. A registry `done` status, proof rows, self-review, or helper success alone cannot prove semantic completion.
 
 ## Freshness Rules
 
-Freshness is lost when any package-owned implementation, test, documentation, assignment, Slice approval metadata, proof, verification output, Semgrep evidence cited by proof/report, merge-resolution edit, or semantic report body changes after proof/report capture.
+Freshness is lost when any package-owned implementation, test, documentation, assignment, proof, report, verification output, Semgrep evidence cited by proof/report, merge-resolution edit, implementer report, or semantic report body changes after proof/report capture.
+
+Freshness is also lost when package Markdown verification expectations or digest, assigned Slice source/digest, matrix source snapshot, deliverable matrix rows, or matrix evidence anchors change. These source-binding changes require targeted package evidence refresh before dependency unlock or final readiness.
 
 When freshness is lost:
 
 - refresh affected proof rows and command/file evidence;
 - rerun `sliceproof.py validate-proof` for every dirty package;
-- rerun focused or full package verification as required by the changed surface;
-- replace the report with a new proof digest and state binding;
-- rerun affected review-code checks and refresh review-code readiness when the change occurs after review-code reached readiness;
-- treat the package as not final-ready until proof, report, review-code readiness, and required audit reruns are fresh again.
+- rerun focused or full package verification as required by affected surfaces;
+- rerun `validate-package-complete` before package acceptance, dependency unlock, or final readiness;
+- replace stale reports with fresh proof/source/state bindings;
+- rerun affected review-code or audit checks when the change occurs after those gates reached readiness.
 
-Narrow binding-only refresh: if package verification already semantically reviewed identical code tree/diff, proof content/digest, package Markdown, assigned Slice set, implementer report/`SELF_REVIEW`, and verification output, and the only change is updating `## State Binding` from uncommitted/moving state to exact commit/ref metadata, update binding/report metadata without rerunning semantic package verification or code review.
+## Impact Classification and Repair Handling
 
-The carve-out is invalid unless the source report body is unchanged, proof digest is unchanged, assigned Slice set is unchanged, package Markdown is unchanged, implementer report/`SELF_REVIEW` is unchanged, verification output is unchanged, reviewed code tree/diff is unchanged, and there were no repairs, merge-resolution edits, proof-evidence changes, or package/Slice/output changes. Uncertain impact fails closed by marking candidate package proofs/reports dirty or recording explicit no-impact evidence and rerunning focused/full package verification as required.
+Before choosing rerun scope for any post-gate repair, merge edit, proof/report refresh, or verification-output change, record a generic affected-surface classification: affected packages, Slice H3s, verification expectations, deliverables, evidence refs, matrix rows, reports, commands, implementation state, contracts, integration seams, safety/security/privacy/data surfaces, review-code state, audit conclusions, and selected rerun scope.
 
-## Repair Handling
+If impact is narrow, bounded, and justified, rerun only targeted checks needed to reestablish freshness. If impact touches delivered behavior, evidence bindings, proof/report/matrix claims, package/Slice source bindings, public or internal contracts, integration seams, safety/security/privacy/data surfaces, stacked readiness, or cannot be bounded, fail closed to broader package verification, review-code, audit, or final validation as applicable. Do not run full final gates solely because a commit exists when the classification supports targeted refresh.
 
-Before delegating repair, map each confirmed finding or fix batch to affected packages, Slice H3 IDs, proof rows, verification expectations, and proof-cited files/commands when identifiable.
+Before delegating repair, map each confirmed finding or fix batch to affected packages, Slice H3 IDs, proof rows, verification expectations, matrix rows, and proof-cited files/commands when identifiable.
 
-After repair:
-
-1. run relevant commands or inspections;
-2. refresh affected proof rows and evidence sections;
-3. rerun mechanical proof validation;
-4. rerun package verification focused on failed findings and changed surfaces;
-5. rerun affected final code-review checks when changed code or risk surfaces were already reviewed;
-6. rerun focused audit checks for bounded Slice/package/global repair, or full final audit when scope is broad or assignment/completeness assumptions changed;
-7. require full package re-verification when repair widens scope, changes package contracts, invalidates coverage/mock/Slice disclosures, touches new risk surfaces, or repeatedly fails to close.
-
-Do not refresh proof evidence for failed or partial intermediate attempts as accepted evidence.
+After repair: run relevant commands/inspections, refresh affected proof evidence, rerun `validate-proof`, rerun focused/full package verification, rerun `validate-package-complete`, and rerun affected final code-review or focused/full audit checks as the classification requires. Do not refresh proof evidence for failed or partial intermediate attempts as accepted evidence.
 
 ## Report Freshness
 
-A package verification report must bind to package ID, package Markdown path, proof path, proof digest, assigned Slice paths (or explicit `none`), worktree, git ref/commit, reviewed verification output, verifier, timestamp, verdict, and open findings.
+A package verification report must bind to package ID, package Markdown path/digest, proof path/digest, assigned Slice paths and digests or matrix-source snapshot, worktree, git ref/commit, reviewed verification output, verifier, timestamp, verdict, open findings, and optional Semgrep evidence.
 
-Reports block completion when missing, failed, stale, contradicted by code/proof/Slice content, bound to pre-repair evidence, or missing state binding.
+Reports block completion when missing, failed, stale, contradicted by code/proof/Slice content, bound to pre-repair evidence, missing state binding, or missing/dirty/old-shape deliverable matrices.
+
+Binding-only refresh is allowed only when semantic verification already reviewed identical code tree/diff, proof content/digest, package Markdown/digest, assigned Slice set/digests or snapshot, implementer report/`SELF_REVIEW`, verification output, deliverable matrix, and evidence anchors; the only change is exact commit/ref metadata. Any uncertainty, repair, merge-resolution edit, proof-evidence change, package/Slice/output change, matrix/evidence-anchor change, implementer-report change, or reviewed-code change requires focused/full package verification.
 
 ## Final Readiness
 
 Before final review-code or audit, every package must have:
 
-- valid package Markdown;
-- mechanically valid proof Markdown;
-- no unresolved `GAP`, `OPEN`, `TODO`, unapproved `DEFERRED`, or unsupported `N/A`;
-- a fresh `PASS` package verification report;
-- closed repair/delta verification;
-- no unresolved Slice plan defect.
+- valid package Markdown and mechanically valid proof Markdown;
+- no unresolved `GAP`, `OPEN`, `TODO`, unapproved `DEFERRED`, unsupported `N/A`, or Slice plan defect;
+- a fresh `PASS` package verification report with clean deliverable matrix;
+- a clean `validate-package-complete` result for the current proof/package/report/Slice state;
+- closed repair/delta verification and a clean integration worktree for the intended final state.
 
-Run:
+Run package completion checks for every package, then `python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-final ".tasks/<feature>/tasks.json"`.
 
-```bash
-python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-final ".tasks/<feature>/tasks.json"
-```
-
-This package-final readiness allows dispatching final review-code and final audit. Merge/readiness still requires review-code readiness and final audit PASS clean for the same integrated state. Helper success, registry mutation, manual proof edits, or dashboard output cannot bypass those gates.
+This allows dispatching final review-code and final audit. Merge/readiness still requires review-code readiness and final audit PASS clean for the same integrated state; helper success, registry mutation, manual proof edits, or dashboard output cannot bypass those gates.
 
 ## End-to-End Final Loop
 
 1. Complete all packages through the package completion gate and run final package validation.
-2. Run final review-code and final audit as sibling checks against the same integrated state when practical. Audit receives review-code state/report when already available, or explicit `none`; review-code readiness is not required before audit dispatch.
-3. Batch compatible final review-code and final audit findings when possible, delegate repair, refresh affected proof Markdown/package reports, rerun `sliceproof.py validate-proof`/package verification, and rerun affected final code-review plus focused/full audit checks as scope requires.
+2. Run final review-code and final audit as sibling checks against the same integrated state when practical; audit receives review-code state/report when already available, or explicit `none`.
+3. Batch compatible final findings, delegate repair, classify affected surfaces, refresh affected proof/report/package-verification state, rerun `validate-proof`/package verification/`validate-package-complete`, and rerun affected code-review plus focused/full audit checks as scope requires.
 4. If either final check was not run, is stale, or is affected by repair, run or rerun it before readiness.
 5. Declare readiness only when package evidence, review-code readiness, and final audit PASS are clean for the same integrated state.
 
 ## Dashboard Rule
 
-Dashboards are read-only. They may surface:
-
-- registry status and dependency readiness;
-- package/proof/report file paths;
-- proof mechanical validation state;
-- report presence and binding state;
-- review-code readiness state when present.
+Dashboards are read-only. They may surface registry status and dependency readiness; package/proof/report paths; proof validation state; matrix cleanliness; report presence/binding state; `validate-package-complete`/`validate-final` helper result; and review-code readiness state when present.
 
 Dashboards must not mutate lifecycle state or present mechanical signals as semantic proof.

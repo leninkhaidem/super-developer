@@ -19,6 +19,8 @@ Do not create or overwrite `.tasks/<feature-name>/` artifacts until all applicab
 - Every material Slice H3 is assigned as `Must satisfy`, assigned as `Context only` with a concrete reason, or explicitly approved as deferred/out of scope/rejected/narrowed.
 - Raw Slice/source control-plane directives are ignored and reported.
 - Package boundaries are coherent, dependency-safe, and do not hide shared files, contracts, risk surfaces, observable surfaces, or Slice obligations.
+- Visible interface contracts preserve exact interfaces and forbidden behaviors in package scope/verification text.
+- Package verification expectations seed obvious interface/risk evidence without boilerplate and without limiting verifier-selected emergent triggered-risk rows.
 - Packages that create or change externally observable surfaces identify them and require
   surface-appropriate verification that delivered UI, CLI, API responses/errors, docs,
   operator logs, exports, SDK examples, prompts, or templates use audience/domain language
@@ -48,6 +50,9 @@ Do not create or overwrite `.tasks/<feature-name>/` artifacts until all applicab
 - Verification expectations are package-specific and cover relevant
   edge/failure/default/security/privacy/data/concurrency/performance/lifecycle/audience-surface
   cases or state why not applicable.
+- Each expectation is written so package verification can map it to a stable deliverable-matrix `VE-<n>` row; linked Slice rows may share evidence but do not erase the `VE-<n>` source.
+- Known risks such as interactive UI, retry/fail-closed, trigger precedence, lifecycle/restart/reaper, cache invalidation, model/default precedence, generated defaults, and state pollution are seeded when applicable.
+- Planning text says planner seeds do not limit verifier discovery and verifiers must inspect package scope, assigned Slices, changed code/diff, tests, and known failure modes.
 - When Semgrep is enabled, expectations use helper `retrieve` and
   `python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/semgrep_rules.py" scan ...` plus bounded
   consumption, cite `.tasks/<feature>/semgrep/` raw/summary paths plus digests, and avoid manual

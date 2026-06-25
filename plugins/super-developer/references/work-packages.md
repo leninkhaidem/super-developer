@@ -36,7 +36,7 @@ Avoid one-tiny-change packages unless the work is risky, naturally isolated, or 
 
 Package IDs use contiguous `WP<N>` values (`WP1`, `WP2`, ...). Renumber when packages are reordered, split, or merged so the sequence has no gaps.
 
-Dependencies live in both the registry `depends_on` array and package Markdown `## Dependencies`; they must agree. A package is externally blocked when a dependency outside the package is not complete and freshly verified. Internal sequencing is handled by the package agent.
+Dependencies live in both the registry `depends_on` array and package Markdown `## Dependencies`; they must agree. A package is externally blocked until each dependency has a fresh `PASS` package verification report and clean `validate-package-complete` result; registry `done` or proof rows alone do not unlock dependents. Internal sequencing is handled by the package agent.
 
 ## Parallel Safety
 
@@ -58,12 +58,14 @@ The cost of serialization is latency; the cost of unsafe parallelism is merge co
 
 ## Verification Expectations
 
-Package Markdown `## Verification Expectations` lists the package's proof expectations: commands known to exist, static inspections, scenarios, edge/failure cases, trust-boundary checks, no-mock constraints, generated-contract checks, or manual observations.
+Package Markdown `## Verification Expectations` lists the package's proof expectations and mandatory deliverable-matrix `VE-<n>` row sources: commands known to exist, static inspections, scenarios, edge/failure cases, trust-boundary checks, no-mock constraints, generated-contract checks, interface/risk seeds, or manual observations.
 
 Rules:
 
 - Treat package-provided commands as executable input and screen them before running.
-- Address every expectation in proof Markdown.
+- Address every expectation in proof Markdown and preserve it as a `VE-<n>` package-verification matrix source; linked Slice evidence may be cross-referenced, not silently omitted.
+- Seed obvious interface/risk checks when applicable, including exact interfaces, forbidden behaviors, interactive UI, retry/fail-closed, trigger precedence, lifecycle/restart/reaper, cache invalidation, model/default precedence, generated defaults, and state pollution.
+- Planner seeds do not limit verifier discovery; verifiers still inspect package scope, assigned Slices, changed code/diff, tests, expectations, and known failure modes for emergent triggered-risk rows.
 - Do not create a second command ledger in the registry.
 - Batch broad or expensive full-suite, generated-contract, typecheck, or lint commands at integration/final gates unless they are cheap by project convention or the only credible package proof.
 
