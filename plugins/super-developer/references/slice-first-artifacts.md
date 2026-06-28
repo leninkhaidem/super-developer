@@ -2,13 +2,20 @@
 
 ## Boundary
 
-This reference owns artifact roles and file shapes. Slice authority lives in `conceptualize-slice-authority.md`; package sizing lives in `work-packages.md`; completion and freshness live in `package-lifecycle.md`; command shapes live in `tool-usage.md`. The detailed package verification report/matrix contract is shared in `plugins/super-developer/references/package-verification-report.md` and should be passed directly to package verifiers.
+This reference owns artifact roles and file shapes. Use `artifact-store.md` for artifact root/code root,
+sidecar branch/worktree, slug mapping, and sidecar checkpoint vocabulary. Slice authority lives in
+`conceptualize-slice-authority.md`; package sizing lives in `work-packages.md`; completion and freshness
+live in `package-lifecycle.md`; command shapes live in `tool-usage.md`. The detailed package verification
+report/matrix contract is shared in `plugins/super-developer/references/package-verification-report.md` and
+should be passed directly to package verifiers.
 
 ## Artifact Set
 
-Planned-feature state is file-based and Slice-first:
+Planned-feature state is file-based and Slice-first. Paths below are artifact-root-relative unless a
+legacy/current-root artifact store is explicitly selected; code, plugin, and test paths resolve under the
+code root.
 
-- `.planning/<concept>/slices/*.md` — authoritative product/design Slices when present.
+- `.planning/<concept-slug>/slices/*.md` — authoritative product/design Slices when present.
 - `.tasks/<feature>/SPEC.md` — accepted requirements, constraints, non-goals, Slice inventory, and package-level verification summary.
 - `.tasks/<feature>/tasks.json` — lightweight registry only.
 - `.tasks/<feature>/packages/<WP-ID>.md` — package assignment.
@@ -30,7 +37,7 @@ Required shape:
   "title": "Human title",
   "status": "planned",
   "spec_path": ".tasks/<feature>/SPEC.md",
-  "authoritative_slices": [".planning/<concept>/slices/example.md"],
+  "authoritative_slices": [".planning/<concept-slug>/slices/example.md"],
   "work_packages": [
     {
       "id": "WP1",
@@ -50,7 +57,7 @@ Rules:
 - feature `status` is one of `planned`, `reviewed`, `in_progress`, `completed`, `blocked`, or `on_hold`.
 - package `status` is one of `pending`, `in_progress`, `done`, or `blocked`.
 - `authoritative_slices` may be empty only for Index-only plans with no independent Slice obligations.
-- all paths are repo-relative POSIX paths and must stay inside the repository;
+- all artifact paths are POSIX paths relative to the selected artifact root and must stay inside it;
 - package IDs are contiguous `WP<N>` values and dependencies reference declared packages.
 
 ## Package Markdown Assignment
@@ -66,7 +73,7 @@ Required sections:
 <owned behavior and boundaries>
 
 ## Assigned Slices
-### `.planning/<concept>/slices/example.md`
+### `.planning/<concept-slug>/slices/example.md`
 Must satisfy:
 - `SLICE-001` — <summary>
 
