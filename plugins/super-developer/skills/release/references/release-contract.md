@@ -7,14 +7,15 @@ Owns the one approval packet for a release attempt. Load before the first releas
 - Present the contract every time. Skip only the approval prompt when the current turn already
   unambiguously approves the full listed lifecycle.
 - The contract must list every side effect: file edits, merge, commits, base push, post-push base
-  sync verification, tag creation/push, GitHub release, and local/remote cleanup.
+  sync verification, tag creation/push, GitHub release, artifact-sidecar actions, and local/remote cleanup.
 - Keep release checks to validation commands. List changelog, docs, and version edits as planned file changes, not checks.
 - If state changes, changelog format choice is missing, or a new action is needed, stop for a revised contract.
-- Remote feature branch deletion requires the exact `origin/<branch>` ref to be listed in the contract and approved with the contract.
+- Remote feature or sidecar branch deletion requires the exact `origin/<branch>` ref to be listed in the contract and approved with the contract.
 - `prepare-only` integrates the feature into the base branch, updates `Unreleased`, pushes the base branch,
   and cleans up exact feature refs/worktrees after verification.
 - `prepare-only` never bumps versions, creates/pushes/moves tags, or creates/updates a GitHub release.
 - Local and remote cleanup requires the target/base push to be complete; otherwise keep the safety-net refs/worktrees.
+- Sidecar cleanup is optional, exact, and separate from deliverable feature cleanup; never merge `artifacts/<feature>` into the base branch.
 
 ## Required Fields
 
@@ -60,14 +61,23 @@ Remote actions:
 - Push tag vX.Y.Z to origin, if publishing
 - Create GitHub release for vX.Y.Z, if publishing
 - Delete remote feature branch: <origin/<feature-branch> after pushed-base inclusion verification, or none>
+- Delete remote artifact sidecar: <origin/artifacts/<feature> after exact approval and target push sync, or none>
 
 Resume state:
 - Existing prepare/release commit, tag, or GitHub release: <none or exact matching state>
 
+Artifact sidecar:
+- Ref/worktree: <artifacts/<feature> at .worktrees/<feature>/artifacts, or none>
+- Final checkpoint: <pushed to origin artifacts/<feature> before target merge, not applicable, or blocker>
+- Cleanup approval: <remove local worktree | delete local ref | delete remote ref | keep; exact list>
+
 Cleanup candidates:
 - Delete local feature branch: <feature-branch or none>
 - Delete remote feature branch: <origin/<feature-branch> or none>
-- Remove local worktree(s): <exact paths or none>
+- Remove local code worktree(s): <exact paths or none>
+- Remove local artifact worktree: <.worktrees/<feature>/artifacts or none>
+- Delete local artifact ref: <artifacts/<feature> or none>
+- Delete remote artifact ref: <origin/artifacts/<feature> or none>
 
 Stop conditions:
 - <specific blocker>
@@ -114,3 +124,17 @@ If no remote feature branch exists:
 Remote feature branch cleanup:
 - No remote feature branch candidate found.
 ```
+
+## Artifact Sidecar Cleanup Rules
+
+Offer sidecar cleanup only after the target/base push and sync verification complete:
+
+```md
+Artifact sidecar cleanup:
+- Remove local artifact worktree `.worktrees/<feature>/artifacts`: <approve | keep>
+- Delete local sidecar branch `artifacts/<feature>`: <approve | keep>
+- Delete remote sidecar branch `origin/artifacts/<feature>`: <approve | keep>
+```
+
+If any sidecar action is not exact-approved, list it as kept. If exact-approved cleanup fails, stop and
+report the remaining blocker instead of leaving the sidecar silently stale.

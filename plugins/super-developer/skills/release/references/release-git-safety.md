@@ -1,6 +1,6 @@
 # Release Git Safety
 
-Owns release-specific remote freshness, resume validation, merge worktree, tag/release checks, and cleanup safety.
+Owns release-specific remote freshness, resume validation, merge worktree, tag/release checks, sidecar state, and cleanup safety.
 
 ## Remote Freshness
 
@@ -11,7 +11,7 @@ git fetch --prune --tags origin
 git ls-remote --heads --tags origin
 ```
 
-Stop if remote state cannot be refreshed or verified for a push/delete/publish contract. Re-fetch before remote feature-branch deletion.
+Stop if remote state cannot be refreshed or verified for a push/delete/publish contract. Re-fetch before remote feature or sidecar deletion.
 Use remote-tracking refs only after refresh. Never infer deletion safety from stale `origin/*` refs.
 
 For `publish`, preflight GitHub state:
@@ -34,6 +34,7 @@ If any release step already exists, verify exact identity before resuming:
 - Remote tag exists: `git ls-remote --tags origin refs/tags/vX.Y.Z` target or peeled target equals the intended publish commit.
 - GitHub release exists: tag, target commitish/tag target, draft/prerelease state, and notes match the contract.
 - Base branch already pushed: `origin/<base>` contains the intended prepare/publish commit.
+- Artifact sidecar cleanup exists: final checkpoint, approved exact cleanup list, and target/base push sync match the contract.
 
 Stop on any mismatch. Do not move tags, overwrite releases, force-push, or force-delete unless a new explicit contract names that destructive action.
 
@@ -65,7 +66,8 @@ Before pushing the base branch, verify:
 - intended prepare/publish commit is `HEAD` or otherwise exactly named in the contract;
 - final diff, changelog, docs, and publish-only version files/release notes match the contract;
 - `prepare-only` made no version bump, tag, or GitHub release change;
-- local/remote tags and GitHub release are absent for a new publish, or existing state passes the resume matrix.
+- local/remote tags and GitHub release are absent for a new publish, or existing state passes the resume matrix;
+- any sidecar cleanup candidate is listed as exact-approved or explicitly kept.
 
 After any successful base push, refresh refs and verify local/remote base sync before tag/release creation or cleanup:
 
@@ -87,6 +89,7 @@ If any push, sync verification, publish, or cleanup step fails, stop and report 
 
 Cleanup can run only for exact candidates named in the approved Release Contract.
 Local feature branch/worktree cleanup requires the feature branch to be included in the target/base ref and the required target/base push to be complete.
+Artifact sidecar cleanup requires final target/base push sync, exact approval, and no active package/integration/review/audit work needing the sidecar.
 Keep a target/base worktree available until local branch deletion finishes.
 
 For local cleanup:
@@ -103,6 +106,19 @@ git worktree remove <exact-temporary-target-worktree>
 Stop on dirty worktrees, checked-out branches without removable worktrees, failed ancestry, or branch deletion refusal. Do not force-remove by default.
 Never delete unrelated branches/worktrees or sweep by namespace.
 
+For approved artifact sidecar cleanup, run only the approved subset:
+
+```bash
+git status --short  # in .worktrees/<feature>/artifacts before local removal
+git worktree remove .worktrees/<feature>/artifacts
+git branch -D artifacts/<feature>
+git push origin --delete artifacts/<feature>
+```
+
+`artifacts/<feature>` is an orphan branch, so local `-D` is allowed only when that exact sidecar ref
+was approved after final target/base push. Remote sidecar deletion is not ancestry-based; prove fresh
+remote state and exact approval instead. Never merge `artifacts/<feature>` into the base branch.
+
 Remote feature branch deletion is allowed in `prepare-only` or `publish` only when the exact `origin/<feature-branch>` ref is named in the contract.
 After base push and fresh fetch, prove inclusion before deleting:
 
@@ -111,4 +127,5 @@ git merge-base --is-ancestor origin/<feature-branch> origin/<base-branch>
 git push origin --delete <feature-branch>
 ```
 
-If remote deletion verification fails, keep the remote branch and report it as remaining manual follow-up.
+If remote feature deletion verification fails, keep the remote branch and report it as remaining manual follow-up.
+If approved sidecar deletion fails, keep the remaining sidecar ref/worktree and report the blocker.

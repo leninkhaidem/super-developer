@@ -51,9 +51,16 @@ the workflow or helper reference that owns that action.
 ## Shared Lifecycle Vocabulary
 
 - Sidecar checkpoint: an artifact-root commit/push to `origin artifacts/<feature>` at an accepted lifecycle
-  gate. Gate-specific timing and commands belong to the owning workflow package.
+  gate. Checkpoint commands run from `.worktrees/<feature>/artifacts`, not a code worktree.
+- Accepted checkpoint gates: after Conceptualize before planning, after accepted review-plan before
+  implementation, after each package delivery/WP merge-push boundary, and after final integrated
+  review/audit acceptance before target merge/cleanup.
+- Do not checkpoint after every incidental edit, and do not push `main`, `feature/<feature>`, or
+  `wp/<feature>/<WP-ID>` as an artifact side effect.
 - Package-delivery checkpoint: the sidecar checkpoint associated with a work-package delivery boundary after
   package proof/report artifacts are written.
+- Active sidecar: any feature package, integration, review, audit, target-merge, or release work still needs
+  the artifact root, or final target merge/push is incomplete.
 - Cleanup eligibility: after final target merge/push only; local or remote sidecar deletion still requires the
   user's exact approved cleanup action.
 
