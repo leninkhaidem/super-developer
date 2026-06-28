@@ -4,7 +4,7 @@
 
 - A Slice covers one independently useful concern, vertical, subsystem, risk, or touchpoint.
 - Do not create Slices for simple conversation, tentative branches, abandoned options, chronology, reasoning, or recommendations the user has not accepted.
-- Store Slices only under the real repo-local selected workspace `slices/` directory after path and symlink checks.
+- Store Slices only under the selected artifact-root workspace `slices/` directory after path and symlink checks.
 - Keep Slices concise and agent-oriented: bullets, tables, sketches, paths, symbols, compact examples, constraints, and verification notes are preferred over long prose.
 - Concise does not mean minimal. Preserve enough implementation-shaping detail for a future agent with no chat context: decisions, examples/sketches, implementation-relevant rationale/tradeoffs, important rejected alternatives/non-goals, edge cases, verification expectations, and no hidden unresolved questions.
 - Use Heading 2 sections for the Slice shape. Material shared understandings live as stable ID-bearing Heading 3 blocks under `## Shared Understanding`.
@@ -35,7 +35,7 @@ Update Slices as normal durable memory when the capture is additive, faithful to
 After a material branch settles, capture applicable items from the Capture Completeness Rubric. Then briefly report what changed:
 
 ```markdown
-Captured in `.planning/<concept-slug>/slices/<name>.md`:
+Captured in artifact-root path `.planning/<concept-slug>/slices/<name>.md`:
 - `<H3-ID>` — <short capture summary>
 ```
 
@@ -82,7 +82,7 @@ Create separate H3 blocks only when separate planning, delegation, proof, review
 
 ## Fail Closed When
 
-- A Slice path is unsafe or outside the selected workspace.
+- A Slice path is unsafe or outside the selected artifact-root workspace.
 - A material decision is invented, ambiguity is resolved, or scope is narrowed/deferred/removed without a user decision.
 - A H3 block leaves a planning-relevant question unresolved at handoff instead of resolving it or recording explicit non-goal/deferred-scope treatment.
 - Source references become conversational provenance instead of durable evidence.
