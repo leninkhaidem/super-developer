@@ -136,6 +136,10 @@ cd "$PROJECT_ROOT"
 git worktree remove .worktrees/hotfix-<name>
 cd "<worktree-on-base-branch>"
 git branch -d hotfix/<name>
+cd "$PROJECT_ROOT"
+if [ -d .worktrees/hotfix-merge-<name> ]; then
+  git worktree remove .worktrees/hotfix-merge-<name>
+fi
 ```
 Spike branches are disposable only after evidence and durable changes have been captured elsewhere:
 ```bash
