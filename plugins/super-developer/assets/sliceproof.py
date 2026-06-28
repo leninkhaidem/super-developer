@@ -13,7 +13,6 @@ import hashlib
 import json
 import os
 import re
-import subprocess
 import sys
 import tempfile
 from dataclasses import dataclass
@@ -249,6 +248,7 @@ class RegistryPackage:
 class Registry:
     path: Path
     root: Path
+    code_root: Path
     data: dict[str, Any]
     feature: str
     authoritative_slices: list[str]
@@ -298,20 +298,24 @@ def build_parser() -> argparse.ArgumentParser:
             "create-proof only writes the declared package proof Markdown placeholder."
         )
     )
+    root_options = argparse.ArgumentParser(add_help=False)
+    add_root_options(root_options)
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     validate_plan = subparsers.add_parser(
         "validate-plan",
+        parents=[root_options],
         help="Validate a lightweight registry plus package Markdown and Slice H3 references.",
     )
-    validate_plan.add_argument("tasks", type=Path, help="Path to .tasks/<feature>/tasks.json.")
+    validate_plan.add_argument("tasks", type=Path, help="Path to .tasks/<feature>/tasks.json under the artifact root.")
     validate_plan.set_defaults(func=cmd_validate_plan)
 
     create_proof = subparsers.add_parser(
         "create-proof",
+        parents=[root_options],
         help="Create a package proof Markdown placeholder from work-package Markdown.",
     )
-    create_proof.add_argument("tasks", type=Path, help="Path to .tasks/<feature>/tasks.json.")
+    create_proof.add_argument("tasks", type=Path, help="Path to .tasks/<feature>/tasks.json under the artifact root.")
     create_proof.add_argument("--package", required=True, help="Work package id, for example WP1.")
     create_proof.add_argument(
         "--force",
@@ -326,33 +330,51 @@ def build_parser() -> argparse.ArgumentParser:
 
     validate_proof = subparsers.add_parser(
         "validate-proof",
+        parents=[root_options],
         help="Validate one package proof Markdown file mechanically.",
     )
-    validate_proof.add_argument("tasks", type=Path, help="Path to .tasks/<feature>/tasks.json.")
+    validate_proof.add_argument("tasks", type=Path, help="Path to .tasks/<feature>/tasks.json under the artifact root.")
     validate_proof.add_argument("--package", required=True, help="Work package id, for example WP1.")
     validate_proof.set_defaults(func=cmd_validate_proof)
 
     validate_package_complete = subparsers.add_parser(
         "validate-package-complete",
+        parents=[root_options],
         help="Validate one package proof plus verification report and deliverable matrix before marking done.",
     )
-    validate_package_complete.add_argument("tasks", type=Path, help="Path to .tasks/<feature>/tasks.json.")
+    validate_package_complete.add_argument("tasks", type=Path, help="Path to .tasks/<feature>/tasks.json under the artifact root.")
     validate_package_complete.add_argument("--package", required=True, help="Work package id, for example WP1.")
     validate_package_complete.set_defaults(func=cmd_validate_package_complete)
 
     validate_final = subparsers.add_parser(
         "validate-final",
+        parents=[root_options],
         help="Validate all packages, proof Markdown, and package verification report bindings.",
     )
-    validate_final.add_argument("tasks", type=Path, help="Path to .tasks/<feature>/tasks.json.")
+    validate_final.add_argument("tasks", type=Path, help="Path to .tasks/<feature>/tasks.json under the artifact root.")
     validate_final.set_defaults(func=cmd_validate_final)
     return parser
 
 
+def add_root_options(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "--artifact-root",
+        type=Path,
+        help="Root for .planning/.tasks artifacts; defaults to the current directory.",
+    )
+    parser.add_argument(
+        "--code-root",
+        type=Path,
+        help="Root for source, test, and static evidence paths; defaults to the current directory.",
+    )
+
+
 def cmd_validate_plan(args: argparse.Namespace) -> dict[str, Any]:
-    registry, packages = load_and_validate_plan(args.tasks)
+    registry, packages = load_and_validate_plan(args.tasks, artifact_root=args.artifact_root, code_root=args.code_root)
     return {
         "tasks": str(args.tasks),
+        "artifact_root": str(registry.root),
+        "code_root": str(registry.code_root),
         "feature": registry.feature,
         "packages": [package.package_id for package in registry.packages],
         "validated_package_markdown": sorted(packages),
@@ -368,7 +390,7 @@ def cmd_create_proof(args: argparse.Namespace) -> dict[str, Any]:
             ["create-proof: --approved-replacement must include positive approval, provenance, and scope"]
         )
 
-    preflight_registry = load_registry(args.tasks)
+    preflight_registry = load_registry(args.tasks, artifact_root=args.artifact_root, code_root=args.code_root)
     preflight_package = preflight_registry.package(args.package)
     if preflight_package is not None and preflight_package.proof_path:
         reject_existing_symlink_at_unresolved_path(
@@ -379,7 +401,7 @@ def cmd_create_proof(args: argparse.Namespace) -> dict[str, Any]:
             error_message=f"create-proof: refusing to write through symlink proof path: {preflight_package.proof_path}",
         )
 
-    registry, packages = load_and_validate_plan(args.tasks)
+    registry, packages = load_and_validate_plan(args.tasks, artifact_root=args.artifact_root, code_root=args.code_root)
     package = require_package(registry, args.package)
     package_md = packages[package.package_id]
     proof_path = resolve_safe_path(
@@ -387,6 +409,7 @@ def cmd_create_proof(args: argparse.Namespace) -> dict[str, Any]:
         package.proof_path,
         f"work_packages[{package.package_id}].proof_path",
         expected_suffix=".proof.md",
+        root_label="artifact root",
     )
     proof_text = render_proof_template(registry, package_md)
     backup_path: Path | None = None
@@ -434,7 +457,7 @@ def cmd_create_proof(args: argparse.Namespace) -> dict[str, Any]:
 
 
 def cmd_validate_proof(args: argparse.Namespace) -> dict[str, Any]:
-    state = load_package_state(args.tasks, args.package)
+    state = load_package_state(args.tasks, args.package, artifact_root=args.artifact_root, code_root=args.code_root)
     errors = validate_proof_markdown(state.proof_path, state.package_md)
     if errors:
         raise SliceproofError(errors)
@@ -447,7 +470,7 @@ def cmd_validate_proof(args: argparse.Namespace) -> dict[str, Any]:
 
 
 def cmd_validate_package_complete(args: argparse.Namespace) -> dict[str, Any]:
-    state = load_package_state(args.tasks, args.package)
+    state = load_package_state(args.tasks, args.package, artifact_root=args.artifact_root, code_root=args.code_root)
     errors = validate_proof_markdown(state.proof_path, state.package_md)
     report_errors = validate_report_markdown(
         state.report_path,
@@ -455,6 +478,7 @@ def cmd_validate_package_complete(args: argparse.Namespace) -> dict[str, Any]:
         state.package_md,
         state.proof_path,
         state.registry.root,
+        state.registry.code_root,
         state.registry.feature,
     )
     errors.extend(report_errors)
@@ -471,7 +495,7 @@ def cmd_validate_package_complete(args: argparse.Namespace) -> dict[str, Any]:
 
 
 def cmd_validate_final(args: argparse.Namespace) -> dict[str, Any]:
-    registry, packages = load_and_validate_plan(args.tasks)
+    registry, packages = load_and_validate_plan(args.tasks, artifact_root=args.artifact_root, code_root=args.code_root)
     errors: list[str] = []
     validated_reports: list[str] = []
     for package in registry.packages:
@@ -483,15 +507,25 @@ def cmd_validate_final(args: argparse.Namespace) -> dict[str, Any]:
             package.proof_path,
             f"work_packages[{package.package_id}].proof_path",
             expected_suffix=".proof.md",
+            root_label="artifact root",
         )
         report_path = resolve_safe_path(
             registry.root,
             package.report_path,
             f"work_packages[{package.package_id}].report_path",
             expected_suffix=".package-verification.md",
+            root_label="artifact root",
         )
         errors.extend(validate_proof_markdown(proof_path, package_md))
-        report_errors = validate_report_markdown(report_path, package, package_md, proof_path, registry.root, registry.feature)
+        report_errors = validate_report_markdown(
+            report_path,
+            package,
+            package_md,
+            proof_path,
+            registry.root,
+            registry.code_root,
+            registry.feature,
+        )
         if not report_errors:
             validated_reports.append(package.report_path)
         errors.extend(report_errors)
@@ -505,8 +539,14 @@ def cmd_validate_final(args: argparse.Namespace) -> dict[str, Any]:
     }
 
 
-def load_package_state(tasks_path: Path, package_id: str) -> PackageState:
-    registry, packages = load_and_validate_plan(tasks_path)
+def load_package_state(
+    tasks_path: Path,
+    package_id: str,
+    *,
+    artifact_root: Path | None = None,
+    code_root: Path | None = None,
+) -> PackageState:
+    registry, packages = load_and_validate_plan(tasks_path, artifact_root=artifact_root, code_root=code_root)
     package = require_package(registry, package_id)
     package_md = packages[package.package_id]
     proof_path = resolve_safe_path(
@@ -514,18 +554,25 @@ def load_package_state(tasks_path: Path, package_id: str) -> PackageState:
         package.proof_path,
         f"work_packages[{package.package_id}].proof_path",
         expected_suffix=".proof.md",
+        root_label="artifact root",
     )
     report_path = resolve_safe_path(
         registry.root,
         package.report_path,
         f"work_packages[{package.package_id}].report_path",
         expected_suffix=".package-verification.md",
+        root_label="artifact root",
     )
     return PackageState(registry, package, package_md, proof_path, report_path)
 
 
-def load_and_validate_plan(tasks_path: Path) -> tuple[Registry, dict[str, PackageMarkdown]]:
-    registry = load_registry(tasks_path)
+def load_and_validate_plan(
+    tasks_path: Path,
+    *,
+    artifact_root: Path | None = None,
+    code_root: Path | None = None,
+) -> tuple[Registry, dict[str, PackageMarkdown]]:
+    registry = load_registry(tasks_path, artifact_root=artifact_root, code_root=code_root)
     errors = validate_registry(registry)
     packages: dict[str, PackageMarkdown] = {}
     if not errors:
@@ -536,6 +583,7 @@ def load_and_validate_plan(tasks_path: Path) -> tuple[Registry, dict[str, Packag
                 f"work_packages[{package.package_id}].path",
                 expected_suffix=".md",
                 must_exist_file=True,
+                root_label="artifact root",
             )
             try:
                 package_md = parse_package_markdown(package_path, package.package_id)
@@ -549,9 +597,16 @@ def load_and_validate_plan(tasks_path: Path) -> tuple[Registry, dict[str, Packag
     return registry, packages
 
 
-def load_registry(tasks_path: Path) -> Registry:
-    root = Path.cwd().resolve(strict=False)
-    tasks_resolved = resolve_tasks_argument(root, tasks_path)
+def load_registry(
+    tasks_path: Path,
+    *,
+    artifact_root: Path | None = None,
+    code_root: Path | None = None,
+) -> Registry:
+    cwd = Path.cwd().resolve(strict=False)
+    root = resolve_cli_root(artifact_root, cwd, "--artifact-root")
+    source_root = resolve_cli_root(code_root, cwd, "--code-root")
+    tasks_resolved = resolve_tasks_argument(root, tasks_path, root_label="artifact root")
     try:
         data = json.loads(read_text_file(tasks_resolved, "tasks.json"))
     except json.JSONDecodeError as exc:
@@ -579,6 +634,7 @@ def load_registry(tasks_path: Path) -> Registry:
     return Registry(
         path=tasks_resolved,
         root=root,
+        code_root=source_root,
         data=data,
         feature=feature,
         authoritative_slices=[path for path in authoritative_slices if isinstance(path, str)],
@@ -612,7 +668,7 @@ def validate_registry(registry: Registry) -> list[str]:
         errors.append("spec_path: expected non-empty string")
     else:
         try:
-            resolve_safe_path(registry.root, spec_path, "spec_path", expected_suffix=".md", must_exist_file=True)
+            resolve_safe_path(registry.root, spec_path, "spec_path", expected_suffix=".md", must_exist_file=True, root_label="artifact root")
         except SliceproofError as exc:
             errors.extend(exc.errors)
 
@@ -629,7 +685,7 @@ def validate_registry(registry: Registry) -> list[str]:
                 errors.append(f"authoritative_slices[{index}]: duplicate path {path!r}")
             seen_slices.add(path)
             try:
-                resolve_safe_path(registry.root, path, f"authoritative_slices[{index}]", expected_suffix=".md", must_exist_file=True)
+                resolve_safe_path(registry.root, path, f"authoritative_slices[{index}]", expected_suffix=".md", must_exist_file=True, root_label="artifact root")
             except SliceproofError as exc:
                 errors.extend(exc.errors)
 
@@ -668,6 +724,7 @@ def validate_registry(registry: Registry) -> list[str]:
                     f"{prefix}.{key}",
                     expected_suffix=suffix,
                     must_exist_file=key == "path",
+                    root_label="artifact root",
                 )
             except SliceproofError as exc:
                 errors.extend(exc.errors)
@@ -803,12 +860,12 @@ def validate_package_markdown(registry: Registry, package: RegistryPackage, pack
         ("report path", package_md.report_path, ".package-verification.md"),
     ):
         try:
-            resolve_safe_path(registry.root, value, f"{package.path}: {key}", expected_suffix=suffix)
+            resolve_safe_path(registry.root, value, f"{package.path}: {key}", expected_suffix=suffix, root_label="artifact root")
         except SliceproofError as exc:
             errors.extend(exc.errors)
     for path in package_md.primary_paths:
         try:
-            resolve_safe_path(registry.root, path, f"{package.path}: primary path {path!r}")
+            resolve_safe_path(registry.code_root, path, f"{package.path}: primary path {path!r}", root_label="code root")
         except SliceproofError as exc:
             errors.extend(exc.errors)
 
@@ -816,7 +873,14 @@ def validate_package_markdown(registry: Registry, package: RegistryPackage, pack
     seen_required_ids: set[str] = set()
     for ref in package_md.slice_refs:
         try:
-            resolved = resolve_safe_path(registry.root, ref.path, f"{package.path}: assigned Slice {ref.path!r}", expected_suffix=".md", must_exist_file=True)
+            resolved = resolve_safe_path(
+                registry.root,
+                ref.path,
+                f"{package.path}: assigned Slice {ref.path!r}",
+                expected_suffix=".md",
+                must_exist_file=True,
+                root_label="artifact root",
+            )
         except SliceproofError as exc:
             errors.extend(exc.errors)
             continue
@@ -1232,6 +1296,7 @@ def validate_report_markdown(
     package_md: PackageMarkdown,
     proof_path: Path,
     root: Path,
+    code_root: Path,
     feature: str,
 ) -> list[str]:
     if not report_path.is_file():
@@ -1282,7 +1347,7 @@ def validate_report_markdown(
         if section not in source_h3:
             errors.append(f"{report_path}: missing required source section ### {section}")
 
-    evidence_root = evidence_root_from_state_binding(root, sections["State Binding"])
+    evidence_root = code_root.resolve(strict=False)
 
     verdict = ""
     if "Verdict" in source_h3:
@@ -1336,74 +1401,6 @@ def source_report_verdict(body: str) -> str:
         line = re.sub(r"^(?:[-*]|\d+\.)\s+", "", line)
         return clean_cell_id(line).upper()
     return ""
-
-
-def evidence_root_from_state_binding(root: Path, body: str) -> Path:
-    """Return the trusted root for matrix file evidence.
-
-    State Binding Worktree is report-controlled metadata. It may redirect
-    code/test/static evidence only when the current repository independently
-    lists that path as one of its git worktrees at the bound commit.
-    """
-    trusted_root = root.resolve(strict=False)
-    binding = parse_key_values(body)
-    worktree = clean_cell_id(binding.get("Worktree", ""))
-    if not worktree:
-        return trusted_root
-    worktree_path = Path(worktree)
-    if not worktree_path.is_absolute():
-        return trusted_root
-    trusted_worktree = worktree_path.resolve(strict=False)
-    if trusted_worktree == trusted_root:
-        return trusted_root
-    commit = clean_cell_id(binding.get("Commit", ""))
-    if is_registered_git_worktree_at_commit(trusted_root, trusted_worktree, commit):
-        return trusted_worktree
-    return trusted_root
-
-
-def is_registered_git_worktree_at_commit(root: Path, worktree: Path, commit: str) -> bool:
-    if not COMMIT_RE.fullmatch(commit):
-        return False
-    commit = commit.lower()
-    for listed_worktree, listed_head in git_worktree_list(root):
-        if listed_worktree == worktree and listed_head.lower().startswith(commit):
-            return True
-    return False
-
-
-def git_worktree_list(root: Path) -> list[tuple[Path, str]]:
-    try:
-        result = subprocess.run(
-            ["git", "-C", str(root), "worktree", "list", "--porcelain"],
-            check=False,
-            text=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.DEVNULL,
-            timeout=5,
-        )
-    except (OSError, subprocess.TimeoutExpired):
-        return []
-    if result.returncode != 0:
-        return []
-
-    worktrees: list[tuple[Path, str]] = []
-    current_path: Path | None = None
-    current_head = ""
-    for raw_line in [*result.stdout.splitlines(), ""]:
-        line = raw_line.strip()
-        if not line:
-            if current_path is not None and current_head:
-                worktrees.append((current_path, current_head))
-            current_path = None
-            current_head = ""
-            continue
-        key, _separator, value = line.partition(" ")
-        if key == "worktree":
-            current_path = Path(value).resolve(strict=False)
-        elif key == "HEAD":
-            current_head = value.strip()
-    return worktrees
 
 
 def validate_deliverable_completeness_matrix(
@@ -1577,7 +1574,13 @@ def validate_path_evidence_ref(report_path: Path, root: Path, row_label: str, re
     elif is_report_section_placeholder_body(anchor):
         errors.append(f"{report_path}: {row_label} {ref_type} evidence anchor must be non-placeholder")
     try:
-        resolve_safe_path(root, path_value, f"{report_path}: {row_label} {ref_type} evidence path", must_exist_file=True)
+        resolve_safe_path(
+            root,
+            path_value,
+            f"{report_path}: {row_label} {ref_type} evidence path",
+            must_exist_file=True,
+            root_label="code root",
+        )
     except SliceproofError as exc:
         errors.extend(exc.errors)
     return errors
@@ -1609,7 +1612,13 @@ def validate_command_evidence_ref(
             errors.append(f"{report_path}: {row_label} verification-output label must be non-placeholder")
         evidence_path: Path | None = None
         try:
-            evidence_path = resolve_safe_path(root, path_value, f"{report_path}: {row_label} verification-output evidence path", must_exist_file=True)
+            evidence_path = resolve_safe_path(
+                root,
+                path_value,
+                f"{report_path}: {row_label} verification-output evidence path",
+                must_exist_file=True,
+                root_label="artifact root",
+            )
         except SliceproofError as exc:
             errors.extend(exc.errors)
         if evidence_path is not None and not is_report_section_placeholder_body(label):
@@ -1972,7 +1981,7 @@ def resolve_semgrep_evidence_path(root: Path, feature: str, value: str, label: s
     try:
         resolved.relative_to(root)
     except ValueError:
-        raise SliceproofError([f"{label}: path escapes repository root"])
+        raise SliceproofError([f"{label}: path escapes artifact root"])
     semgrep_root = (root / ".tasks" / feature / "semgrep").resolve(strict=False)
     try:
         resolved.relative_to(semgrep_root)
@@ -2177,13 +2186,22 @@ def split_markdown_table_row(line: str) -> list[str] | None:
     return cells
 
 
-def resolve_tasks_argument(root: Path, value: Path) -> Path:
+def resolve_cli_root(value: Path | None, cwd: Path, label: str) -> Path:
+    candidate = cwd if value is None else value if value.is_absolute() else cwd / value
+    resolved = candidate.resolve(strict=False)
+    if not resolved.is_dir():
+        display = str(value) if value is not None else str(cwd)
+        raise SliceproofError([f"{label}: directory not found: {display}"])
+    return resolved
+
+
+def resolve_tasks_argument(root: Path, value: Path, *, root_label: str = "root") -> Path:
     candidate = value if value.is_absolute() else root / value
     resolved = candidate.resolve(strict=False)
     try:
         resolved.relative_to(root)
     except ValueError:
-        raise SliceproofError([f"tasks.json: path escapes repository root: {value}"])
+        raise SliceproofError([f"tasks.json: path escapes {root_label}: {value}"])
     return resolved
 
 
@@ -2230,13 +2248,14 @@ def resolve_safe_path(
     *,
     expected_suffix: str | None = None,
     must_exist_file: bool = False,
+    root_label: str = "root",
 ) -> Path:
     path = repo_relative_path(value, label, expected_suffix=expected_suffix)
     resolved = (root / path).resolve(strict=False)
     try:
         resolved.relative_to(root)
     except ValueError:
-        raise SliceproofError([f"{label}: path escapes repository root"])
+        raise SliceproofError([f"{label}: path escapes {root_label}"])
     if must_exist_file and not resolved.is_file():
         raise SliceproofError([f"{label}: file not found: {value}"])
     return resolved

@@ -19,22 +19,33 @@ wholesale, or perform hidden rule clone/pull/network sync; routine scans are loc
 
 ## `sliceproof.py`
 
-`sliceproof.py` is the planned-feature mechanical helper. Run it from the repository root or package
-worktree with explicit artifact paths.
+`sliceproof.py` is the planned-feature mechanical helper. Run it from the code root or package
+worktree and pass the artifact store explicitly when artifacts live in a sidecar worktree.
+If root flags are omitted, both roots default to the current directory for current-root artifact stores.
 
 Read-only checks:
 
 ```bash
-python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-plan ".tasks/<feature>/tasks.json"
-python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-proof ".tasks/<feature>/tasks.json" --package WP1
-python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-package-complete ".tasks/<feature>/tasks.json" --package WP1
-python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-final ".tasks/<feature>/tasks.json"
+python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-plan \
+  --artifact-root ".worktrees/<feature>/artifacts" --code-root "." \
+  ".tasks/<feature>/tasks.json"
+python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-proof \
+  --artifact-root ".worktrees/<feature>/artifacts" --code-root "." \
+  ".tasks/<feature>/tasks.json" --package WP1
+python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-package-complete \
+  --artifact-root ".worktrees/<feature>/artifacts" --code-root "." \
+  ".tasks/<feature>/tasks.json" --package WP1
+python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-final \
+  --artifact-root ".worktrees/<feature>/artifacts" --code-root "." \
+  ".tasks/<feature>/tasks.json"
 ```
 
 Write command:
 
 ```bash
-python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" create-proof ".tasks/<feature>/tasks.json" --package WP1
+python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" create-proof \
+  --artifact-root ".worktrees/<feature>/artifacts" --code-root "." \
+  ".tasks/<feature>/tasks.json" --package WP1
 ```
 
 ## Mechanical Boundaries
@@ -85,8 +96,9 @@ Default behavior:
 Replacement of edited or filled proof content requires:
 
 ```bash
-python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" create-proof ".tasks/<feature>/tasks.json" \
-  --package WP1 --force \
+python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" create-proof \
+  --artifact-root ".worktrees/<feature>/artifacts" --code-root "." \
+  ".tasks/<feature>/tasks.json" --package WP1 --force \
   --approved-replacement "approved by <source>; provenance: <why replacement is valid>; scope: <exact evidence being replaced>"
 ```
 

@@ -44,6 +44,8 @@ the workflow or helper reference that owns that action.
   root. Never infer artifact locations only from `Path.cwd()` or the current code checkout.
 - Pass helper/plugin paths from the code root when a validator or script needs plugin files; the artifact
   worktree must not be treated as the plugin source.
+- Invoke `sliceproof.py` with `--artifact-root <artifact-root>` and `--code-root <code-root>` when the
+  roots differ; omitted flags select the current directory for both roots.
 - Forbidden behavior checks must falsify: artifacts written only to the current code checkout, a required full
   code checkout in the artifact worktree, sidecar merges into `main`, `artifacts/<feature>` treated as
   deliverable code, silent slug divergence, and chat-only artifact-root assumptions.
