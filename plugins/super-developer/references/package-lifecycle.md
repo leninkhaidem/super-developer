@@ -6,42 +6,39 @@ This reference owns package completion, proof creation/refresh, verification rep
 
 ## Status Signals
 
-Registry package status is routing only:
-
-- `pending`: package has not started.
-- `in_progress`: package work or repair is underway.
-- `blocked`: an authority-boundary decision is needed.
-- `done`: the package passed the completion gate below.
-
-Status does not prove implementation correctness. Dashboards may show status, dependency readiness, proof/report paths, package matrix cleanliness, and helper results only as mechanical signals.
+Registry package status is routing only: `pending`, `in_progress`, `blocked`, or `done`. Status does not
+prove implementation correctness. Dashboards may show status, dependency readiness, proof/report paths,
+package matrix cleanliness, and helper results only as mechanical signals.
 
 ## Proof Ownership
 
-Each package has one proof Markdown file declared in the registry and package Markdown: `.tasks/<feature>/proofs/<WP-ID>.proof.md`.
+Each package has one artifact-root proof Markdown file declared in the registry and package Markdown:
+`.tasks/<feature>/proofs/<WP-ID>.proof.md`.
 
 Package agents fill or refresh only their assigned proof file and package commits. They do not mark packages done, finalize features, edit unrelated proof files, or reconcile a central evidence ledger.
 
 Proof Markdown owns package evidence for assigned `Must satisfy` H3 IDs and package verification expectations. `PASS` in a proof row is a package-agent claim, not package acceptance.
 
-When Semgrep is enabled or contracted for a package, raw and summary outputs live under `.tasks/<feature>/semgrep/` and proofs/reports cite paths and digests. These files are local task-store evidence, not lifecycle state or a replacement for proof/report judgment.
+When Semgrep is enabled or contracted for a package, raw and summary outputs live under the artifact-root
+`.tasks/<feature>/semgrep/` and proofs/reports cite paths and digests. These files do not replace
+proof/report judgment.
 
 ## Pre-Dispatch Proof Creation
 
 Before dispatching a package, create the declared proof placeholder:
 
 ```bash
-python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" create-proof ".tasks/<feature>/tasks.json" --package WP1
+python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" create-proof \
+  --artifact-root ".worktrees/<feature>/artifacts" --code-root "." \
+  ".tasks/<feature>/tasks.json" --package WP1
 ```
 
-`create-proof` generates closure rows for assigned `Must satisfy` H3 IDs and records `Context only` IDs as scope context without closure rows.
+`create-proof` writes the declared proof under the artifact root, generates closure rows for assigned
+`Must satisfy` H3 IDs, and records `Context only` IDs as scope context without closure rows.
 
-Overwrite safety:
-
-- existing exact placeholder: idempotent success;
-- missing proof: create placeholder;
-- edited or filled proof: fail closed unless `--force --approved-replacement` includes approval, provenance, and scope and preserves prior content as described in `tool-usage.md`.
-
-Filled evidence must never be silently erased.
+Overwrite safety: missing proof creates a placeholder; an existing exact placeholder is idempotent;
+edited or filled proof fails closed unless `--force --approved-replacement` includes approval, provenance,
+and scope and preserves prior content as described in `tool-usage.md`. Filled evidence must never be silently erased.
 
 ## Package Agent Closure
 
@@ -60,7 +57,9 @@ A package agent cannot claim completion until proof Markdown shows:
 When a package agent returns, run:
 
 ```bash
-python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-proof ".tasks/<feature>/tasks.json" --package WP1
+python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-proof \
+  --artifact-root ".worktrees/<feature>/artifacts" --code-root "." \
+  ".tasks/<feature>/tasks.json" --package WP1
 ```
 
 Reject proof handoff when validation reports missing sections, rows, evidence, expectation closure, unsupported statuses, unresolved markers, unsafe paths, or missing proof files. Mechanical validation is necessary, never sufficient.
@@ -82,7 +81,9 @@ A package may become `done` only after all are true:
 Run the pre-done helper as:
 
 ```bash
-python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-package-complete ".tasks/<feature>/tasks.json" --package <WP-ID>
+python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-package-complete \
+  --artifact-root ".worktrees/<feature>/artifacts" --code-root "." \
+  ".tasks/<feature>/tasks.json" --package <WP-ID>
 ```
 
 Dependent packages stay blocked until each source package has a fresh `PASS` report and clean `validate-package-complete` result. A registry `done` status, proof rows, self-review, or helper success alone cannot prove semantic completion.
@@ -93,14 +94,10 @@ Freshness is lost when any package-owned implementation, test, documentation, as
 
 Freshness is also lost when package Markdown verification expectations or digest, assigned Slice source/digest, matrix source snapshot, deliverable matrix rows, or matrix evidence anchors change. These source-binding changes require targeted package evidence refresh before dependency unlock or final readiness.
 
-When freshness is lost:
-
-- refresh affected proof rows and command/file evidence;
-- rerun `sliceproof.py validate-proof` for every dirty package;
-- rerun focused or full package verification as required by affected surfaces;
-- rerun `validate-package-complete` before package acceptance, dependency unlock, or final readiness;
-- replace stale reports with fresh proof/source/state bindings;
-- rerun affected review-code or audit checks when the change occurs after those gates reached readiness.
+When freshness is lost, refresh affected proof rows and command/file evidence, rerun `validate-proof` for
+every dirty package, rerun focused/full package verification as affected surfaces require, rerun
+`validate-package-complete` before acceptance/unlock/final readiness, replace stale reports, and rerun
+affected review-code or audit checks when the change occurs after those gates reached readiness.
 
 ## Impact Classification and Repair Handling
 
@@ -116,7 +113,8 @@ After repair: run relevant commands/inspections, refresh affected proof evidence
 
 A package verification report must bind to package ID, package Markdown path/digest, proof path/digest, assigned Slice paths and digests or matrix-source snapshot, worktree, git ref/commit, reviewed verification output, verifier, timestamp, verdict, open findings, and optional Semgrep evidence.
 
-Reports block completion when missing, failed, stale, contradicted by code/proof/Slice content, bound to pre-repair evidence, missing state binding, or missing/dirty/old-shape deliverable matrices.
+Reports block completion when missing, failed, stale, root-ambiguous, contradicted by code/proof/Slice
+content, bound to pre-repair evidence, missing state binding, or missing/dirty/old-shape deliverable matrices.
 
 Binding-only refresh is allowed only when semantic verification already reviewed identical code tree/diff, proof content/digest, package Markdown/digest, assigned Slice set/digests or snapshot, implementer report/`SELF_REVIEW`, verification output, deliverable matrix, and evidence anchors; the only change is exact commit/ref metadata. Any uncertainty, repair, merge-resolution edit, proof-evidence change, package/Slice/output change, matrix/evidence-anchor change, implementer-report change, or reviewed-code change requires focused/full package verification.
 
@@ -130,7 +128,9 @@ Before final review-code or audit, every package in every included task set must
 - a clean `validate-package-complete` result for the current proof/package/report/Slice state;
 - closed repair/delta verification and a clean integration worktree for the intended final state.
 
-Run package completion checks for every package, then `python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-final ".tasks/<feature>/tasks.json"` for each included task set. For bounded stacked readiness, the packet must identify the top integrated worktree/code state and all relevant task/Slice artifact sets; do not audit only a follow-up set when the top branch includes base feature deliverables, and stop if included sets are unknown.
+Run package completion checks for every package, then run root-aware `sliceproof.py validate-final` for each
+included artifact root/task set. For bounded stacked readiness, the packet must identify the top integrated
+worktree/code state and all relevant task/Slice artifact sets; stop if included sets are unknown or omit base deliverables.
 
 This allows dispatching final review-code and final audit against the same top state. Merge/readiness still requires review-code readiness and final audit PASS clean for that state; helper success, registry mutation, manual proof edits, or dashboard output cannot bypass those gates.
 

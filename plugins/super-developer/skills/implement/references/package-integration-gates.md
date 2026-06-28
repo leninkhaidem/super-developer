@@ -2,17 +2,22 @@
 
 Load after package agents return and before accepting, merging, marking `done`, dispatching downstream packages, or final readiness. This reference owns package return acceptance, proof validation, holistic package verification, merge/freshness gates, repair routing, and final handoff.
 
-The `worktree` skill owns git command runbooks, root-worktree safety, branch/ref invariants, cleanup, feature push, and target-merge boundaries. This reference owns when those operations are allowed.
+The `worktree` skill owns git command runbooks, root-worktree safety, branch/ref invariants, sidecar
+checkpoints, cleanup, feature push, and target-merge boundaries. This reference owns when those operations
+are allowed. Artifact checks read/write the artifact root; source validation runs in package or integration
+code worktrees.
 
 ## Package Return Checkpoint
 
 For each returned package:
 
 1. Validate the package-agent report, required `SELF_REVIEW`, targeted verification evidence, proof Markdown updates, mock/stub disclosures, and Slice authority/plan-defect assessment.
-2. Run mechanical proof validation:
+2. Run mechanical proof validation from the code root with explicit roots:
 
    ```bash
-   python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-proof ".tasks/<feature>/tasks.json" --package <WP-ID>
+   python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-proof \
+     --artifact-root ".worktrees/<feature>/artifacts" --code-root "." \
+     ".tasks/<feature>/tasks.json" --package <WP-ID>
    ```
 
 3. Reject proof handoff if proof Markdown is missing, mechanically invalid, lacks implementation/verification evidence, has unresolved required markers, has unsupported statuses, misses package verification expectation closure, or names an unresolved Slice plan defect.
@@ -26,20 +31,34 @@ For each returned package:
    verifier/reviewer/skeptic authority marks a material package risk.
 5. Prefer committing/stabilizing the package branch before holistic package verification so a `PASS` report binds directly to an exact commit/ref. Do not commit ignored `.tasks` proof/report artifacts.
 6. Run one holistic package verifier for every returned package. Use `plugins/super-developer/skills/implement/references/package-verification.md` as the verifier contract; dispatch through the verifier packet in `plugins/super-developer/skills/implement/references/package-dispatch.md`.
-7. Store the verifier PASS/FAIL report at `.tasks/<feature>/reports/<WP-ID>.package-verification.md` or the declared durable report path. The report must bind to reviewed package state and proof evidence.
+7. Store the verifier PASS/FAIL report at the declared artifact-root report path such as
+   `.tasks/<feature>/reports/<WP-ID>.package-verification.md`. The report must bind artifact evidence to
+   the reviewed package code state.
 8. Reject missing, failed, stale, old-shape, placeholder, dirty-matrix, or pre-repair package verification reports.
-9. Run the pre-done completion helper after the report exists and before accepting/merging as complete, marking `done`, unlocking dependents, or final readiness handoff:
+9. Run the pre-done completion helper after the report exists and before accepting/merging as complete,
+   marking `done`, unlocking dependents, or final readiness handoff:
 
    ```bash
-   python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-package-complete ".tasks/<feature>/tasks.json" --package <WP-ID>
+   python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-package-complete \
+     --artifact-root ".worktrees/<feature>/artifacts" --code-root "." \
+     ".tasks/<feature>/tasks.json" --package <WP-ID>
    ```
 
 10. Treat helper success as a mechanical signal only; semantic truthfulness remains with package verification and final audit.
-11. Confirm package branches did not force-add or commit ignored `.tasks` proof/report artifacts. If they did, preserve artifacts in the shared task store, repair the branch to code/doc changes only, and keep the package incomplete.
+11. Confirm package branches did not force-add or commit ignored `.tasks` proof/report artifacts. If they did,
+    preserve artifacts in the artifact root, repair the branch to code/doc changes only, and keep the package incomplete.
 12. Merge each accepted package branch at most once through the integration worktree using the `worktree` skill.
-13. After merge, verify package branch ancestry, integration worktree cleanliness, proof/report task-store handoff, and post-merge freshness. If merge resolution or integration changes affect evidence, proof rows, verification output, assignment, source bindings, matrix rows/anchors, or package claims, rerun affected proof validation, package verification, and `validate-package-complete` before completion.
+13. After merge, verify package branch ancestry, integration worktree cleanliness, artifact-root proof/report
+    handoff, and post-merge freshness. If merge resolution or integration changes affect evidence, proof rows,
+    verification output, assignment, source bindings, matrix rows/anchors, or package claims, rerun affected
+    proof validation, package verification, and `validate-package-complete` before completion.
+14. Before the package-delivery boundary completes, checkpoint sidecar artifacts after proof/report/review
+    updates are written. Push only `origin artifacts/<feature>` from `.worktrees/<feature>/artifacts`; do not
+    push `feature/<feature>` or `wp/<feature>/<WP-ID>` as an artifact side effect.
 
-Mark a package `done` only after proof validation, verification expectations, package verification PASS, clean `validate-package-complete`, ignored `.tasks` handling, post-merge freshness, repair/delta closure, and Slice plan-defect gates all pass.
+Mark a package `done` only after proof validation, verification expectations, package verification PASS, clean
+`validate-package-complete`, ignored `.tasks` handling, post-merge freshness, sidecar checkpoint eligibility,
+repair/delta closure, and Slice plan-defect gates all pass.
 
 ## Slice Plan-Defect Gate
 
@@ -101,13 +120,27 @@ verifier/reviewer names concrete cross-package/shared-surface risk. Write
 start widen/fix/rescan cycles without a newly named affected surface. Raw direct `semgrep` scans are
 not valid evidence.
 
-Then run for each included task set:
+Then run from the code root for each included artifact root/task set:
 
 ```bash
-python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-final ".tasks/<feature>/tasks.json"
+python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-final \
+  --artifact-root ".worktrees/<feature>/artifacts" --code-root "." \
+  ".tasks/<feature>/tasks.json"
 ```
 
-Run final `review-code` and final `audit` as sibling checks against the same integrated state when practical. For any post-gate change or final finding, record an affected-surface impact classification before selecting targeted versus broad reruns. Batch compatible final findings, delegate repairs, refresh affected proof/report/package-verification state, rerun affected package proof validation, package verification, and `validate-package-complete`, then rerun affected code-review checks and focused/full audit checks as required. Declare readiness only when package evidence, review-code readiness, and final audit PASS are clean for the same integrated state.
+Run final `review-code` and final `audit` as sibling checks against the same integrated state when practical.
+For any post-gate change or final finding, record an affected-surface impact classification before selecting
+reruns. Batch compatible final findings, delegate repairs, refresh affected proof/report/package-verification
+state, rerun affected package proof validation, package verification, and `validate-package-complete`, then
+rerun affected code-review checks and focused/full audit checks as required.
+
+After review-code readiness and final audit PASS are recorded in the artifact root, run the final sidecar
+checkpoint through the `worktree` skill before target merge/cleanup eligibility. This checkpoint pushes only
+`origin artifacts/<feature>` and never merges the sidecar branch. Sidecar cleanup is routed to the
+`worktree`/`release` boundary after final target merge/push and exact user approval.
+
+Declare readiness only when package evidence, review-code readiness, and final audit PASS are clean for the
+same integrated state.
 
 ## Status Output
 

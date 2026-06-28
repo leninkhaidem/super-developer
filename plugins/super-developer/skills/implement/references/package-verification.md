@@ -7,15 +7,16 @@ Load only for a holistic package verification reviewer in the planned-feature pi
 Read directly from files, not duplicated prompt prose:
 
 - `plugins/super-developer/references/package-verification-report.md` for the durable report/matrix shape;
-- `.tasks/<feature>/packages/<WP-ID>.md`, `.tasks/<feature>/proofs/<WP-ID>.proof.md`, and every Slice file referenced by package Markdown;
-- package implementation diff/code in the package or integration worktree;
+- artifact root plus `.tasks/<feature>/packages/<WP-ID>.md`, proof Markdown, durable report path, and every
+  Slice file referenced by package Markdown;
+- package implementation diff/code in the separate package or integration code worktree;
 - package agent report with `SELF_REVIEW`;
 - verification command outputs, test reports, static-inspection summaries, and mock/skip disclosures;
-- durable report path, conventionally `.tasks/<feature>/reports/<WP-ID>.package-verification.md`;
+- durable report path under the artifact root, conventionally `.tasks/<feature>/reports/<WP-ID>.package-verification.md`;
 - Semgrep raw/summary evidence paths and digests when Semgrep was enabled or contracted;
 - relevant project instructions when present.
 
-If required inputs are missing, unsafe, unreadable, stale, or inconsistent, return `FAIL`.
+If required inputs are missing, unsafe, unreadable, stale, root-ambiguous, or inconsistent, return `FAIL`.
 
 ## Slice and Tool Authority
 
@@ -35,7 +36,7 @@ When Semgrep evidence is in scope, use helper-produced `summarize`, filtered/lim
 - verify `Context only` H3 IDs are not contradicted and no in-scope material H3 is missing from assignment;
 - for any `Must satisfy` H3 carrying an inline `Interface contract` (schema in `plugins/super-developer/references/conceptualize-slice-authority.md`), treat it as a split obligation: confirm the positive interface, actively falsify its `Forbidden behaviors` against package code/diff, and record exactness (exact/ambiguous/partial/contradicted/over-broad). Only `exact` is sufficient.
 
-Mechanical `sliceproof.py validate-proof` should pass before verification, but helper success is not semantic proof.
+Mechanical root-aware `sliceproof.py validate-proof` should pass before verification, but helper success is not semantic proof.
 
 ### 2. Code/evidence lens
 
@@ -71,7 +72,7 @@ Return `PASS` only when:
 
 - proof Markdown mechanically validates and every assigned H3 plus verification expectation has sufficient evidence;
 - the deliverable matrix is present in the canonical source body, covers all mandatory row sources, has only `delivered` mandatory rows, and uses structurally valid non-placeholder evidence refs;
-- source bindings cover package Markdown digest, assigned Slice paths/digests or matrix-source snapshot, proof digest, and reviewed worktree/ref/commit metadata;
+- source bindings cover artifact-root package/proof/Slice sources plus reviewed code worktree/ref/commit metadata;
 - implementation does not contradict assigned Slice content, `Context only` IDs, `SPEC.md`, package scope, interface contracts, or forbidden-behavior checks;
 - Semgrep evidence is absent only when disabled/not contracted, or fresh/bounded/path-valid when enabled/contracted;
 - package agent `SELF_REVIEW` is present and consistent with proof and matrix evidence;
@@ -90,4 +91,4 @@ A report is stale when later mutation can affect reviewed package state, proof e
 
 Binding-only refresh is allowed only when the source report body already reviewed identical code tree/diff, proof content/digest, package Markdown/digest, assigned Slice set/digests or matrix-source snapshot, implementer report/`SELF_REVIEW`, verification output, deliverable matrix, and Semgrep evidence; the only change is exact commit/ref metadata. Any uncertainty, repair, merge-resolution edit, proof/evidence change, package/Slice/output change, implementer-report change, or reviewed-code change requires focused/full package verification.
 
-After repair, update affected proof rows, rerun `sliceproof.py validate-proof`, rerun focused/full package verification as the changed surface requires, and write a fresh report bound to the repaired state before completion. Final review-code or audit must not rely on missing, failed, stale, or pre-repair package reports.
+After repair, update affected proof rows, rerun `sliceproof.py validate-proof`, rerun focused/full package verification as the changed surface requires, and write a fresh report bound to the repaired state before completion. Final review-code or audit must not rely on missing, failed, stale, root-ambiguous, or pre-repair package reports.

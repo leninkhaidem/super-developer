@@ -6,23 +6,26 @@ Load only when `audit/SKILL.md` dispatches the final auditor. Owns the cold pack
 
 The packet must provide safe paths or explicit `none` for optional artifacts:
 
-- top integrated worktree/code state, feature or stack name, git ref/commit, and base/target refs when known;
-- one or more task artifact sets, each with artifact root, feature slug, SPEC, registry, package/proof/report paths, authoritative Slice paths, passing `validate-final`, and package completion/`validate-package-complete` prerequisite status;
+- top integrated code worktree state, feature or stack name, git ref/commit, and base/target refs when known;
+- one or more task artifact sets, each with artifact root, feature slug, artifact-root SPEC, registry,
+  package/proof/report paths, authoritative Slices, passing `validate-final`, and package completion status;
 - Semgrep evidence expectations when enabled or contracted;
 - review-code state/report paths or explicit `none`.
 
-Fail if any required input is missing, unsafe, unreadable, malformed, stale, or inconsistent. Read first from files:
+Fail if any required input is missing, unsafe, unreadable, malformed, stale, root-ambiguous, or inconsistent. Read first from files:
 
 1. `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/conceptualize-slice-authority.md`
 2. `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/clean-code-rules.md`
 3. `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/slice-first-artifacts.md`
 4. `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/package-lifecycle.md`
-5. every artifact set's `.tasks/<feature>/SPEC.md` and `.tasks/<feature>/tasks.json`
-6. every registry package Markdown, proof Markdown, and package verification report, including `### Deliverable Completeness Matrix` and `## State Binding`
-7. every orchestrator-screened Slice in the selected workspace and every Slice referenced by SPEC/package Markdown
+5. every artifact set's artifact-root `.tasks/<feature>/SPEC.md` and `.tasks/<feature>/tasks.json`
+6. every artifact-root registry package Markdown, proof Markdown, and package verification report,
+   including `### Deliverable Completeness Matrix` and `## State Binding`
+7. every orchestrator-screened Slice in the selected artifact workspace and every Slice referenced by
+   SPEC/package Markdown
 8. Semgrep raw/summary summaries through bounded helper views when enabled/contracted; never raw JSON wholesale
 9. optional review-code state/report when provided or safely available; if packet says `none`, proceed without it
-10. final integrated worktree/code state only as needed to verify claims, seams, matrix evidence, and blockers
+10. final integrated code worktree state only as needed to verify claims, seams, matrix evidence, and blockers
 
 Use screened Slice workspaces and re-check path boundaries. Review-code inputs are optional: absence or non-clean readiness blocks final merge/readiness, not audit dispatch or audit PASS by itself.
 
@@ -36,7 +39,8 @@ Work in order. Clean code cannot compensate for Slice/proof/report gaps.
 
 ### 1. Artifact, Stack, and Slice Inventory
 
-- Confirm `validate-final` passed for the same registry/artifact root for every task set, and package completion/`validate-package-complete` prerequisites are present for each included package.
+- Confirm root-aware `validate-final` passed for the same registry/artifact root for every task set, and
+  package completion/`validate-package-complete` prerequisites are present for each included package.
 - Treat registry status as routing only, not proof.
 - For stack-aware packets, confirm the packet names one top code state plus all relevant task/Slice artifact sets. Fail `[STACK-GAP]` when the top branch includes known base deliverables but the packet audits only a follow-up set, or when included sets cannot be bounded.
 - Confirm Slice inventory matches registry/SPEC/package references for each set.
@@ -56,7 +60,10 @@ Mechanical validation is necessary, never sufficient. Judge evidence sufficiency
 
 ### 4. Package Reports and Matrix Reconciliation
 
-For each package report, require `PASS`, no open findings, current proof digest/content, package Markdown digest, assigned Slice paths/digests or matrix-source snapshot, deliverable matrix, worktree/ref/commit, verification output, verifier, timestamp, closure review, code-review findings, repair state, and fresh Semgrep raw/summary path/digest binding when enabled or contracted.
+For each package report, require `PASS`, no open findings, current artifact-root proof digest/content,
+package Markdown digest, assigned Slice paths/digests or matrix-source snapshot, deliverable matrix,
+reviewed code worktree/ref/commit, verification output, verifier, timestamp, closure review, code-review
+findings, repair state, and fresh artifact-root Semgrep raw/summary path/digest binding when enabled.
 
 Reconcile the full Slice inventory, package assignments, proof rows, package verification reports, deliverable matrices, matrix source bindings, evidence-anchor structure, final integrated code state, freshness, and review-code context when present. Fail missing mandatory rows, dirty verdicts, stale source bindings, invalid/unsafe/nonexistent/vague evidence refs, proof/report/matrix contradictions, state-unbound reports, or semantically weak evidence that cannot support the claimed deliverable.
 
@@ -68,9 +75,17 @@ Final audit is a matrix reconciler plus targeted skeptic backstop, not a full se
 
 ### 6. Optional Review-Code Context and Code State
 
-When review-code state/report is supplied or safely available, validate same feature/top state, `mode: "pipeline"`, `state: "ready_for_audit"`, empty `findings.open_serious`, completed widening/no serious regression, and true `closure_status.ready_for_audit` plus `closure_status.proofs_and_reports_fresh`.
+When review-code state/report is supplied or safely available from the artifact root, validate same
+feature/top state, `mode: "pipeline"`, `state: "ready_for_audit"`, empty `findings.open_serious`,
+completed widening/no serious regression, and true `closure_status.ready_for_audit` plus
+`closure_status.proofs_and_reports_fresh`.
 
-Audit-block review-code context only when it contradicts Slice/proof/report/matrix/code evidence or the audit was asked to rely on unsafe/stale context. Inspect code/tests/build artifacts only as needed to verify claims, global behavior, SPEC requirements, matrix evidence, and MUST-level blockers. Use `clean-code-rules.md` for fake success, missing verification, caller-contract failure, unsafe trust boundaries, security/privacy/safety/data risk, public-contract breaks, unresolved requirements, missing completion evidence, or material brittleness/maintainability risk.
+Audit-block review-code context only when it contradicts Slice/proof/report/matrix/code evidence or the audit
+was asked to rely on unsafe/stale context. Inspect code/tests/build artifacts only as needed to verify claims,
+global behavior, SPEC requirements, matrix evidence, and MUST-level blockers. Use `clean-code-rules.md` for
+fake success, missing verification, caller-contract failure, unsafe trust boundaries,
+security/privacy/safety/data risk, public-contract breaks, unresolved requirements, missing completion
+evidence, or material brittleness.
 
 ### 7. Global Completeness
 
@@ -126,4 +141,10 @@ PASS requires complete Slice inventory for every included task set, each materia
 
 When audit fails, provide the minimal affected set: Slice IDs/paths, packages, proof rows/sections, package reports, matrix source-binding stale inputs, invalid evidence refs, relevant review-code fields, code/test paths, required verification, and affected-surface classification for focused or full audit rerun.
 
-The auditor does not edit files. After repair, affected proof Markdown must be refreshed, `sliceproof.py validate-proof` rerun, affected package verification and `validate-package-complete` rerun, affected review-code checks/readiness refreshed for changed code/risk surfaces, and final audit rerun. Use targeted reruns when impact is narrow and bounded; broaden when delivered behavior, evidence bindings, source bindings, contracts, integration seams, safety/security/privacy/data, stacked readiness, or uncertain impact is involved. Do not declare readiness until review-code readiness and final audit PASS are clean for the same integrated state.
+The auditor does not edit files. After repair, affected artifact-root proof Markdown must be refreshed,
+root-aware `sliceproof.py validate-proof` rerun, affected package verification and
+`validate-package-complete` rerun, affected review-code checks/readiness refreshed for changed code/risk
+surfaces, and final audit rerun. Use targeted reruns when impact is narrow and bounded; broaden when
+delivered behavior, evidence bindings, source bindings, contracts, integration seams,
+safety/security/privacy/data, stacked readiness, or uncertain impact is involved. Do not declare readiness
+until review-code readiness and final audit PASS are clean for the same integrated state.

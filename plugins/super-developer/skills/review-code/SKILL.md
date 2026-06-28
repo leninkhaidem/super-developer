@@ -15,7 +15,9 @@ Run bounded review; route report/actions by mode.
 
 - Select exactly one mode: PR, local, or planned-feature pipeline.
 - Keep PR/local review separate from Slice/proof/report/audit obligations unless pipeline artifacts are in scope.
-- Pipeline review is the integrated code/evidence-risk gate; deliverable matrices are context only for freshness, seams, contradictions, and proof/report invalidation, not a third deliverable-completeness gate.
+- Pipeline review binds artifact-root evidence to the integrated code worktree; deliverable matrices are
+  context only for freshness, seams, contradictions, and proof/report invalidation, not a third
+  deliverable-completeness gate.
 - `CLEAN` means no confirmed serious review-code findings remain for the reviewed state; it is not audit PASS, proof acceptance, or merge readiness.
 - Main agent owns orchestration, state gates, reports, and action routing; semantic review/role work happen through dispatched sub-agents. No mutation until the active mode allows it.
 - Revalidate reviewed-state metadata before posting, fixing, committing, evidence refresh, or audit-context handoff.
@@ -24,8 +26,10 @@ Run bounded review; route report/actions by mode.
 
 1. PR mode: PR URL, `owner/repo#N`, or `#N` in repo context → load `references/pr-workflow.md`. PR mode is review-only for code changes.
 2. Local mode: no pipeline context and no PR identifier → load `references/local-workflow.md`.
-3. Pipeline mode: feature context plus SPEC, registry, package/proof/report artifacts, and integrated worktree state → load `references/pipeline-report.md`.
-4. Before reviewer dispatch, capture immutable refs/SHAs, worktree or PR identity, diff checksum or saved diff, file list/status, and mode artifact context.
+3. Pipeline mode: feature context plus artifact root, SPEC, registry, package/proof/report artifacts, and
+   integrated code worktree state → load `references/pipeline-report.md`.
+4. Before reviewer dispatch, capture immutable refs/SHAs, worktree or PR identity, diff checksum or saved
+   diff, file list/status, artifact root, code root, and mode artifact context.
 
 ## Review Engine and Big Diffs
 
@@ -44,7 +48,9 @@ Run bounded review; route report/actions by mode.
 - Resolve reviewer model only when local policy matters: `../../references/model-preferences.md`.
   Pass `../../references/clean-code-rules.md`; do not load it in the orchestrator.
 - For changed tests, declare deep, sampled, or not-reviewed scope with rationale; deep-review proof-critical or sensitive tests.
-- In pipeline mode, add Slice-first context: package IDs, proof/report paths, deliverable-matrix source IDs/evidence anchors/source bindings, Slice/H3 IDs, verification results, Semgrep evidence/freshness when enabled or contracted, risks, deferred concerns, ownership.
+- In pipeline mode, add Slice-first context from the artifact root: package IDs, proof/report paths,
+  matrix source IDs/evidence anchors/source bindings, Slice/H3 IDs, verification results, Semgrep evidence
+  when enabled or contracted, risks, deferred concerns, ownership, and the separate integrated code state.
 - Pipeline final review is integration-first. Do not deep-rereview package-local code unless a seam, gap, contradiction, stale report, invalidated matrix, or serious risk triggers it.
 
 ## Coverage Gate
@@ -118,7 +124,11 @@ constraints, target paths, relevant proof/report context, and enough code to ver
 
 Return per dedupe key: `dedupe_key`, `verdict: closed|partially_closed|not_closed|reopened`, evidence, remaining risk, and `next_action: none|same_scope_fix|widened_verification|full_rereview|authority_boundary`. Also include generic affected-surface impact classification, triggers, and readiness: `ready_for_audit`, `needs_fix`, `needs_widened_review`, or `needs_user_authority`.
 
-Classify packages, Slice H3s, proof/report/matrix rows, source bindings, evidence anchors, contracts, integration seams, safety/security/privacy/data surfaces, and whether impact is bounded. Named triggers: `scope_expansion`, `public_api_or_schema_change`, `sensitive_risk_surface`, `cross_package_impact`, `proof_invalidation`, `large_delta`, `non_closed_verdict`. Report new issues only when they are fix-introduced serious regressions or explain a concrete trigger.
+Classify packages, Slice H3s, artifact-root proof/report/matrix rows, source bindings, evidence anchors,
+contracts, integration seams, safety/security/privacy/data surfaces, and whether impact is bounded. Named
+triggers: `scope_expansion`, `public_api_or_schema_change`, `sensitive_risk_surface`,
+`cross_package_impact`, `proof_invalidation`, `large_delta`, `non_closed_verdict`. Report new issues only
+when they are fix-introduced serious regressions or explain a concrete trigger.
 
 Non-closed findings, serious regressions, unresolved triggers, stale state, or dirty pipeline proof/report/matrix evidence block readiness. Do not run full rereview solely because any new commit exists; rerun targeted checks when impact is narrow/bounded and broaden only when affected surfaces cannot be isolated. Do not repeat the same prompt with more tokens; change agent strength, scope split, evidence requirement, specialist lens, or verification seam.
 
@@ -130,8 +140,8 @@ Non-closed findings, serious regressions, unresolved triggers, stale state, or d
 - A serious finding lacks Skeptic verdict or required lens coverage is weak.
 - A fix requires product/design choice, scope expansion, new dependency/service, unsafe command, credentials, external facts, destructive action, or risk
   acceptance.
-- Pipeline proof/report/Semgrep-evidence freshness, review-code state, package verification rerun
-  need, or widened verification is missing/stale/contradictory/uncertain.
+- Pipeline artifact-root proof/report/Semgrep-evidence freshness, review-code state, package verification
+  rerun need, or widened verification is missing/stale/contradictory/uncertain.
 
 ## Output
 
