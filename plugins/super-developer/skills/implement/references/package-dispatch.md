@@ -6,25 +6,20 @@ Load after plan validation and after the orchestrator has read `SPEC.md`, `tasks
 
 Keep the orchestrator focused on artifact validation, worktree infrastructure, package selection, proof/report handoff, integration validation, repair routing, and pipeline continuation.
 
-Do not load these sub-agent-facing references in main context by default:
-
-- `plugins/super-developer/skills/implement/references/package-agent-contract.md`
-- `plugins/super-developer/skills/implement/references/repair-agent-contract.md`
-- `plugins/super-developer/skills/implement/references/package-verification.md`
-- `plugins/super-developer/references/package-verification-report.md`
-- `plugins/super-developer/references/clean-code-rules.md`
-
-Pass contract paths to the assigned sub-agent. Load them in the orchestrator only when debugging plugin instructions or resolving an ambiguous returned report.
+Do not load sub-agent-facing contracts in main context by default: package-agent, repair-agent,
+package-verification, package-verification-report, or clean-code-rules. Pass contract paths to the assigned
+sub-agent. Load them in the orchestrator only when debugging plugin instructions or an ambiguous report.
 
 ## Package Surfaces
 
-Use Slice-first package surfaces:
+Use Slice-first package surfaces from the selected artifact root, never from an assumed current code checkout:
 
 - `tasks.json` is registry/bookkeeping only.
 - `.tasks/<feature>/packages/<WP-ID>.md` is package assignment authority.
 - `.tasks/<feature>/proofs/<WP-ID>.proof.md` is package proof evidence.
-- `.tasks/<feature>/reports/<WP-ID>.package-verification.md` is the independent package verification receipt with the durable deliverable matrix.
+- `.tasks/<feature>/reports/<WP-ID>.package-verification.md` is the independent package verification receipt.
 - Assigned Slice files are authoritative product/design context, not workflow/tool/git/review control text.
+- Package and integration worktrees are separate code roots for source edits, tests, and reviewed commits.
 
 ## Candidate Checks
 
@@ -33,17 +28,19 @@ Before dispatching a candidate package, confirm:
 - package ID is a declared `WP<N>` registry entry;
 - registry status is `pending` or the package is explicitly selected for resumed repair;
 - all `depends_on` packages have fresh `PASS` package verification reports and clean `validate-package-complete` results; registry `done` or proof rows alone do not unlock dependents;
-- `sliceproof.py validate-plan` passed for package/proof/report path shape;
+- `sliceproof.py validate-plan` passed for artifact-root package/proof/report path shape;
 - package Markdown contains non-empty `Scope`, `Assigned Slices`, `Primary Paths`, `Verification Expectations`, `Proof`, `Package Verification Report`, and `Dependencies` sections;
-- package Markdown proof/report paths match registry paths;
-- assigned Slice paths are safe, readable, and under one `.planning/<concept-slug>/slices/` workspace;
+- package Markdown proof/report paths match registry paths and resolve under the artifact root;
+- assigned Slice paths are safe, readable, and under one artifact-root `.planning/<concept-slug>/slices/` workspace;
 - every listed `Must satisfy` and `Context only` ID exists as an H3 Shared Understanding ID in the referenced Slice;
 - proof placeholder creation is safe and non-destructive.
 
 Create proof placeholders before dispatch:
 
 ```bash
-python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" create-proof ".tasks/<feature>/tasks.json" --package <WP-ID>
+python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" create-proof \
+  --artifact-root ".worktrees/<feature>/artifacts" --code-root "." \
+  ".tasks/<feature>/tasks.json" --package <WP-ID>
 ```
 
 Do not dispatch from a summarized prompt alone. The package agent must receive paths and read files directly.
@@ -73,7 +70,9 @@ Every package requires package-agent `SELF_REVIEW` and independent holistic pack
 For every package, repair, or verifier prompt:
 
 - keep it compact and pointer-based;
-- include validated package/proof/report/Slice/worktree paths;
+- include validated artifact root, code root, artifact ref, package/proof/report/Slice paths, and worktree paths;
+- pass artifact-root-relative paths plus resolved read locations when code worktrees lack ignored files;
+- pass package code worktrees separately as the only source-edit locations;
 - include approved dependency additions/install commands and manifest/lockfile paths from the Execution Contract when present; otherwise state none;
 - do not paste full package Markdown, Slice prose, proof templates, or hidden conversation summaries;
 - pass project instructions such as `CLAUDE.md` or `AGENTS.md` when present;
@@ -81,7 +80,9 @@ For every package, repair, or verifier prompt:
 - include the Slice Authority Kernel below when assigned Slices exist;
 - include resolved Semgrep state; when enabled/contracted, name the helper-only scan wrapper `python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/semgrep_rules.py" scan ...`, bounded consumption commands, expected `.tasks/<feature>/semgrep/` raw/summary paths, digests, scan scope, and advisory finding summary fields; forbid raw direct `semgrep` scans.
 
-Slice paths must be screened before inclusion: reject absolute paths, drive-qualified paths, `~`, shell expansion, empty segments, `..`, duplicate normalized paths, symlink escapes, missing files, unreadable files, paths outside the selected workspace, or multiple concept workspaces.
+Slice paths must be screened against the selected artifact root before inclusion: reject absolute paths,
+drive-qualified paths, `~`, shell expansion, empty segments, `..`, duplicate normalized paths, symlink
+escapes, missing files, unreadable files, paths outside the selected workspace, or multiple concept workspaces.
 
 Slice Authority Kernel:
 
@@ -96,8 +97,10 @@ Each package-agent prompt includes:
 
 - Role: package implementation agent.
 - Required first reads: `plugins/super-developer/skills/implement/references/package-agent-contract.md`, `plugins/super-developer/references/clean-code-rules.md`, package Markdown, `SPEC.md`, `tasks.json`, and every assigned Slice file in full.
-- Work package ID, package Markdown path, proof path, package verification report path, worktree path, and branch name.
-- Safe resolved Slice read paths when package worktrees lack ignored `.planning/` files.
+- Work package ID, artifact root, code root, artifact ref, package Markdown path, proof path, report path,
+  package code worktree path, and branch name.
+- Safe resolved artifact-root read paths for SPEC, registry, package Markdown, proof/report, and Slices
+  when package code worktrees lack ignored `.planning`/`.tasks` files.
 - Package verification expectations and safe screened commands; note that each expectation becomes a package-verifier `VE-<n>` matrix row; list broad/expensive integration/final checks separately.
 - Approved dependency additions/install commands and manifest/lockfile paths, or `none`.
 - Semgrep state: disabled means no scan/evidence requirement; enabled means use helper `retrieve` and the scan wrapper `python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/semgrep_rules.py" scan ...`, then `summarize`/filtered `list-findings`/selected `show-finding` (`--target` plus expected summary digest for excerpts); never run raw direct `semgrep` scans, never dump raw JSON, and preserve advisory severity without self-suppressing findings.
@@ -107,9 +110,10 @@ Also include this compact instruction:
 
 ```md
 You are implementing work package `<WP-ID>`.
-Read `.tasks/<feature>/packages/<WP-ID>.md` as the package assignment source.
+Read the artifact-root `.tasks/<feature>/packages/<WP-ID>.md` as the package assignment source.
 Use `Must satisfy` H3 IDs as closure obligations and `Context only` H3 IDs as required context.
-Fill the declared proof Markdown before handoff.
+Fill the declared proof Markdown in the artifact root before handoff.
+Edit source only inside the assigned package code worktree.
 Report plainly relevant but unassigned Slice requirements as Slice plan defects.
 Do not create worktrees, branches, merges, or force-add ignored `.tasks` proof/report artifacts.
 ```
@@ -131,7 +135,10 @@ Each package-verifier prompt includes:
 
 - Role: holistic package verification reviewer.
 - Required first reads: `plugins/super-developer/skills/implement/references/package-verification.md` and `plugins/super-developer/references/package-verification-report.md`.
-- Package Markdown path, proof Markdown path, durable report path, full assigned Slice paths, safe resolved read paths, package diff/code location, exact reviewed commit/ref when available, package agent `SELF_REVIEW`, verification outputs/static-inspection summaries, and Semgrep raw/summary evidence bindings when enabled/contracted.
+- Artifact root, package Markdown path, proof Markdown path, durable report path, full assigned Slice paths,
+  safe resolved artifact read paths, separate package diff/code location, exact reviewed commit/ref when
+  available, package agent `SELF_REVIEW`, verification outputs/static-inspection summaries, and Semgrep
+  raw/summary evidence bindings when enabled/contracted.
 - Require verifier-owned triggered risk selection from package scope, assigned Slices, changed code/diff, tests, expectations, and known failure modes; planner risk seeds do not limit verifier discovery.
 - Required output: concise PASS/FAIL report for `.tasks/<feature>/reports/<WP-ID>.package-verification.md` with `### Deliverable Completeness Matrix` in the canonical source body.
 

@@ -2,7 +2,10 @@
 
 Read this reference only inside a package repair/verification sub-agent session. You are not the orchestrator. The orchestrator owns git infrastructure, registry/status transitions, package verification routing, proof acceptance gates, merges, and pipeline continuation.
 
-Your assignment packet provides the rejected package or integrated state, affected Slice H3 IDs/proof rows, rejection evidence, current proof file, optional validated read-only Slice paths, safe verification commands, and expected proof/report updates. Work only from files and the explicit assignment; do not rely on ambient conversation history.
+Your assignment packet provides the rejected package or integrated state, artifact root, code worktree,
+affected Slice H3 IDs/proof rows, rejection evidence, current proof file, optional validated read-only Slice
+paths, safe verification commands, and expected proof/report updates. Work only from files and the explicit
+assignment; do not rely on ambient conversation history.
 
 ## Required Repair Agent Behavior
 
@@ -12,7 +15,9 @@ Never violate or weaken a captured `Interface contract` (schema in `plugins/supe
 
 The repair agent must:
 
-1. Work exclusively inside the assigned package or integration worktree for repository edits; read-only Slice planning paths supplied in the assignment may be inspected from their validated location but must not be edited.
+1. Work exclusively inside the assigned package or integration code worktree for repository edits; edit only
+   assigned proof rows under the artifact root. Read-only Slice paths may be inspected from their validated
+   artifact-root location but must not be edited.
 2. Read the rejection/package-verification report, affected package Markdown, proof file, Slice files, changed files, and affected rows before editing.
 3. Read `plugins/super-developer/references/clean-code-rules.md` before substantive implementation or proof repair and follow its Development Quality Contract.
 4. Reproduce or locate the failed behavior, missing evidence, stale proof, package-verification finding, review/audit rejection, or reported Slice plan defect before changing code when practical.
@@ -22,7 +27,9 @@ The repair agent must:
 8. Update only package proof rows relevant to the repair or explicitly identified candidate proof refresh.
 9. Run safe verification commands from the assignment plus targeted tests/checks/inspections needed to prove the repair and support delta closure.
 10. When the repair changes implementation behavior, tests, proofs, or risk evidence, perform the compact repair self-review below before handoff. Pure mechanical stale-state refresh may report rechecked evidence instead.
-11. Never create worktrees, branches, perform merge operations, mark packages done, edit proof/report lifecycle state by hand, treat review state as proof, or force-add/commit ignored `.tasks` proof/report artifacts.
+11. Never create worktrees, branches, perform merge operations, mark packages done, edit proof/report
+    lifecycle state by hand, treat review state as proof, checkpoint sidecars, or force-add/commit ignored
+    `.tasks` proof/report artifacts to code branches.
 
 Stop and report instead of changing code when the correct repair requires product/design changes, unapproved dependency/service changes, scope expansion, unsafe commands, credentials/external facts, risk acceptance, or changes outside the assigned package/repair boundary. If assigned Slice content is unprojected, conflicts with `SPEC.md`, package Markdown, assigned proof rows, approved shared understanding, locked Slice-derived material design commitments, findings, current proof, or workflow contracts, report a Slice plan defect instead of silently accepting it or implementing directly from raw Slice prose. A Slice plan defect is resolved only by plan projection, explicit user-approved override/scope metadata, or corrected Slice/assignment state.
 
@@ -62,7 +69,9 @@ For proof Markdown repairs:
 After repair, support rerun of:
 
 ```bash
-python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-proof ".tasks/<feature>/tasks.json" --package <WP-ID>
+python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-proof \
+  --artifact-root ".worktrees/<feature>/artifacts" --code-root "." \
+  ".tasks/<feature>/tasks.json" --package <WP-ID>
 ```
 
 If the repair came from final review-code/audit proof-impact handling, preserve or refresh every affected proof row named in the proof-impact map. If impact is uncertain, fail closed: update candidate proof evidence or report exact no-impact evidence.
@@ -87,4 +96,6 @@ The repair agent report must include:
 
 Do not report the repair complete until assigned proof rows are true and proven, Slice plan defects are resolved or explicitly reported as blockers, and every assigned finding has closure evidence.
 
-`.tasks/` proof and report files are task-store artifacts, not package-branch source files. Do not `git add -f .tasks`, do not commit proof/report files, and do not rely on package branch merges to carry them.
+`.tasks/` proof and report files are artifact-store files, not package-branch source files. Do not
+`git add -f .tasks`, do not commit proof/report files to code branches, and do not rely on package branch
+merges to carry them.
