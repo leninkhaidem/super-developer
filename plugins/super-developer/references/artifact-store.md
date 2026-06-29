@@ -59,6 +59,43 @@ the workflow or helper reference that owns that action.
   code checkout in the artifact worktree, sidecar merges into `main`, `artifacts/<feature>` treated as
   deliverable code, silent slug divergence, and chat-only artifact-root assumptions.
 
+## Worked Example
+
+Feature slug `auth` with packages `WP1`/`WP2`. Everything lives under `$PROJECT_ROOT/.worktrees/auth/`:
+
+```text
+.worktrees/auth/
+  artifacts/   branch artifacts/auth    <- THE artifact root: one, fixed for the whole feature.
+               holds .planning/<slug>/ and .tasks/auth/{SPEC.md,tasks.json,packages,proofs,reports,reviews}
+  wp-WP1/      branch wp/auth/WP1        <- code root while implementing/verifying WP1
+  wp-WP2/      branch wp/auth/WP2        <- code root while implementing/verifying WP2
+  merge/       branch feature/auth       <- code root for validate-final and audit (integrated state)
+```
+
+The artifact root never changes. The code root is whichever worktree holds the code under check, so it
+differs per task: a package worktree for package work, `merge/` for integrated/final checks.
+
+WP1's package agent edits source only in `.worktrees/auth/wp-WP1/`, but reads/writes its proof at
+`.worktrees/auth/artifacts/.tasks/auth/proofs/WP1.proof.md` — a different worktree, reached by the absolute
+artifact-root path the orchestrator supplies (the proof is not present in the WP1 worktree).
+
+Resolved helper calls — `$ARTIFACT_ROOT` is constant, `$CODE_ROOT` is per task, `tasks.json` is
+artifact-root-relative:
+
+```bash
+# WP1 proof check: code root is WP1's worktree
+python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-proof \
+  --artifact-root "$PROJECT_ROOT/.worktrees/auth/artifacts" \
+  --code-root "$PROJECT_ROOT/.worktrees/auth/wp-WP1" \
+  ".tasks/auth/tasks.json" --package WP1
+
+# Final gate: same artifact root, code root is the integrated worktree
+python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-final \
+  --artifact-root "$PROJECT_ROOT/.worktrees/auth/artifacts" \
+  --code-root "$PROJECT_ROOT/.worktrees/auth/merge" \
+  ".tasks/auth/tasks.json"
+```
+
 ## Shared Lifecycle Vocabulary
 
 - Sidecar checkpoint: an artifact-root commit/push to `origin artifacts/<feature>` at an accepted lifecycle
