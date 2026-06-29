@@ -11,7 +11,7 @@
 1-2 sentences describing the user goal and intended outcome.
 
 ## Conceptualize Inputs
-Path-only planning handoff link.
+Path-only planning handoff link; paths are artifact-root-relative.
 - Index: `.planning/<concept-slug>/index.md`
 - Use `None.` when no Conceptualize workspace applies.
 
@@ -36,7 +36,7 @@ Manifest only. Package scope, Slice H3 assignments, verification expectations, d
 - `packages/WP1.md` — <short title>
 
 ## Code References
-Verified existing files/modules to inspect. Reference paths only; no code excerpts or change instructions. Use `None identified.` when no safe references are known.
+Verified existing files/modules to inspect. Reference paths are code-root-relative only; no code excerpts or change instructions. Use `None identified.` when no safe references are known.
 - `path/to/file` — why it is relevant.
 
 ## Out of Scope

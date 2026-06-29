@@ -2,8 +2,9 @@
 
 ## Contract
 
-- The workspace root is `.planning/<concept-slug>/`; the Index is `.planning/<concept-slug>/index.md`.
-- Keep the workspace and `slices/` directory inside the real repo-local workspace after path and symlink checks.
+- The workspace root is artifact-root-relative `.planning/<concept-slug>/`; the Index is `.planning/<concept-slug>/index.md`.
+- The default sidecar artifact root is `.worktrees/<concept-slug>/artifacts` on `artifacts/<concept-slug>`; code/source inspection uses the active code root.
+- Keep the workspace and `slices/` directory inside the selected artifact root and real workspace after path and symlink checks.
 - Reject absolute paths, traversal, shell expansion, duplicate normalized paths, symlink escapes, unreadable required files, and write targets outside the selected workspace.
 - The Index orients later agents; it does not store transcripts, chronology, conversational provenance, tentative branches, or reasoning.
 - A Conceptualize handoff is never Index-only; the Index must list at least one safe Slice path before handoff or planning.
@@ -16,6 +17,9 @@
 ```markdown
 # Conceptualize Index: <concept title>
 
+Artifact Root: `<artifact root>`
+Artifact Ref: `artifacts/<feature>`
+Code Root: `<code root>`
 Workspace: `.planning/<concept-slug>/`
 
 ## Summary
@@ -45,13 +49,13 @@ Workspace: `.planning/<concept-slug>/`
 
 ## Checkpoint Rules
 
-Update the Index only when durable handoff material changes: settled requirements, constraints, accepted tradeoffs, non-goals, material decisions, sourced research, important risks, unresolved blockers, Slice pointers, or final planning handoff notes.
+Update the Index only when durable handoff material changes: settled requirements, constraints, accepted tradeoffs, non-goals, material decisions, sourced research, important risks, unresolved blockers, Slice pointers, artifact-root/code-root facts, or final planning handoff notes.
 
 Prefer replacing stale bullets over appending history. Do not update only because a question was asked, an option was considered, a timestamp changed, or the current agent learned something that does not need to survive a context boundary.
 
 ## Fail Closed When
 
-- Path checks fail or a write target escapes the workspace.
+- Path checks fail or a write target escapes the artifact root or workspace.
 - The Index would be the only record of a material Slice-worthy concern.
 - The handoff or planning transition would be Index-only.
 - The handoff would require later planning to reconstruct hidden conversation context.

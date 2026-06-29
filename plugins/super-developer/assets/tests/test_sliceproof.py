@@ -46,17 +46,25 @@ PLACEHOLDER_APPROVAL_VARIANTS = [
 
 
 class SliceproofFixture:
-    def __init__(self) -> None:
+    def __init__(self, *, separate_roots: bool = False) -> None:
         self.tmp = tempfile.TemporaryDirectory()
         self.external_tmp = tempfile.TemporaryDirectory()
-        self.repo = Path(self.tmp.name)
+        self.workspace = Path(self.tmp.name)
+        if separate_roots:
+            self.repo = self.workspace / "code"
+            self.artifact_root = self.workspace / "artifacts"
+            self.repo.mkdir()
+            self.artifact_root.mkdir()
+        else:
+            self.repo = self.workspace
+            self.artifact_root = self.workspace
         self.external_worktree = Path(self.external_tmp.name)
-        self.feature_dir = self.repo / ".tasks" / "fixture"
+        self.feature_dir = self.artifact_root / ".tasks" / "fixture"
         self.package_dir = self.feature_dir / "packages"
         self.proofs_dir = self.feature_dir / "proofs"
         self.reports_dir = self.feature_dir / "reports"
         self.semgrep_dir = self.feature_dir / "semgrep"
-        self.slice_dir = self.repo / ".planning" / "fixture" / "slices"
+        self.slice_dir = self.artifact_root / ".planning" / "fixture" / "slices"
         self.package_path = self.package_dir / "WP1.md"
         self.proof_path = self.proofs_dir / "WP1.proof.md"
         self.report_path = self.reports_dir / "WP1.package-verification.md"
@@ -85,16 +93,24 @@ class SliceproofFixture:
         self.tmp.cleanup()
         self.external_tmp.cleanup()
 
-    def run(self, *args: str, env: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:
+    def run(
+        self,
+        *args: str,
+        env: dict[str, str] | None = None,
+        cwd: Path | None = None,
+    ) -> subprocess.CompletedProcess[str]:
         return subprocess.run(
             [sys.executable, str(SLICEPROOF_PATH), *args],
-            cwd=self.repo,
+            cwd=cwd or self.repo,
             check=False,
             text=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             env=env,
         )
+
+    def root_args(self) -> tuple[str, str, str, str]:
+        return ("--artifact-root", str(self.artifact_root), "--code-root", str(self.repo))
 
     def git_checked(self, *args: str) -> str:
         result = subprocess.run(
@@ -182,6 +198,7 @@ class SliceproofFixture:
         missing_section: str | None = None,
         must_id: str | None = "HELPER-PLAN-001",
         context_id: str | None = "HELPER-CONTEXT-003",
+        primary_paths: list[str] | None = None,
     ) -> str:
         must_line = (
             "- Registry and package references validate mechanically"
@@ -193,6 +210,7 @@ class SliceproofFixture:
             if context_id is None
             else f"- `{context_id}` — Context-only IDs stay required reading"
         )
+        primary_paths = primary_paths or ["plugins/super-developer/assets/sliceproof.py"]
         sections = {
             "Scope": "Validate the Slice-first helper behavior with deterministic fixtures.",
             "Assigned Slices": textwrap.dedent(
@@ -206,7 +224,7 @@ class SliceproofFixture:
                 {context_line}
                 """
             ).strip(),
-            "Primary Paths": "- `plugins/super-developer/assets/sliceproof.py`",
+            "Primary Paths": "\n".join(f"- `{path}`" for path in primary_paths),
             "Verification Expectations": textwrap.dedent(
                 """
                 - `sliceproof.py validate-plan` succeeds for the valid fixture.
@@ -454,6 +472,120 @@ class SliceproofTests(unittest.TestCase):
         self.assertTrue(data["ok"])
         self.assertEqual(["WP1"], data["packages"])
         self.assertEqual(["WP1"], data["validated_package_markdown"])
+
+    def test_validate_plan_supports_explicit_sidecar_artifact_and_code_roots(self) -> None:
+        fixture = SliceproofFixture(separate_roots=True)
+        try:
+            self.assertFalse((fixture.artifact_root / "plugins").exists())
+            self.assertTrue((fixture.repo / "plugins" / "super-developer" / "assets" / "sliceproof.py").is_file())
+
+            result = fixture.run("validate-plan", *fixture.root_args(), ".tasks/fixture/tasks.json")
+
+            self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+            data = json.loads(result.stdout)
+            self.assertEqual(str(fixture.artifact_root.resolve(strict=False)), data["artifact_root"])
+            self.assertEqual(str(fixture.repo.resolve(strict=False)), data["code_root"])
+
+            legacy_default = fixture.run("validate-plan", ".tasks/fixture/tasks.json")
+            self.assertNotEqual(0, legacy_default.returncode, legacy_default.stdout + legacy_default.stderr)
+            self.assertIn("file not found", "\n".join(json.loads(legacy_default.stderr)["errors"]))
+
+            swapped_roots = fixture.run(
+                "validate-plan",
+                "--artifact-root",
+                str(fixture.repo),
+                "--code-root",
+                str(fixture.artifact_root),
+                ".tasks/fixture/tasks.json",
+            )
+            self.assertNotEqual(0, swapped_roots.returncode, swapped_roots.stdout + swapped_roots.stderr)
+            self.assertIn("file not found", "\n".join(json.loads(swapped_roots.stderr)["errors"]))
+        finally:
+            fixture.cleanup()
+
+    def test_explicit_roots_apply_to_all_helper_commands(self) -> None:
+        fixture = SliceproofFixture(separate_roots=True)
+        try:
+            created = fixture.run("create-proof", *fixture.root_args(), ".tasks/fixture/tasks.json", "--package", "WP1")
+            self.assertEqual(0, created.returncode, created.stdout + created.stderr)
+            self.assertTrue(fixture.proof_path.is_file())
+            self.assertFalse((fixture.repo / ".tasks" / "fixture" / "proofs" / "WP1.proof.md").exists())
+
+            proof = fixture.completed_proof()
+            fixture.proof_path.write_text(proof, encoding="utf-8")
+            fixture.report_path.write_text(fixture.report_text(proof), encoding="utf-8")
+
+            proof_check = fixture.run("validate-proof", *fixture.root_args(), ".tasks/fixture/tasks.json", "--package", "WP1")
+            self.assertEqual(0, proof_check.returncode, proof_check.stdout + proof_check.stderr)
+
+            package_check = fixture.run("validate-package-complete", *fixture.root_args(), ".tasks/fixture/tasks.json", "--package", "WP1")
+            self.assertEqual(0, package_check.returncode, package_check.stdout + package_check.stderr)
+
+            plan = fixture.plan()
+            plan["work_packages"][0]["status"] = "done"
+            fixture.write_plan(plan)
+            final_check = fixture.run("validate-final", *fixture.root_args(), ".tasks/fixture/tasks.json")
+            self.assertEqual(0, final_check.returncode, final_check.stdout + final_check.stderr)
+        finally:
+            fixture.cleanup()
+
+    def test_explicit_roots_reject_artifact_and_code_path_escape_masking(self) -> None:
+        if not hasattr(os, "symlink"):
+            self.skipTest("symlink not available on this platform")
+        cases = []
+
+        def artifact_symlink_mask(fixture: SliceproofFixture) -> None:
+            fixture.package_path.unlink()
+            outside = fixture.external_worktree / "WP1.md"
+            outside.write_text(fixture.package_text(), encoding="utf-8")
+            fixture.package_path.symlink_to(outside)
+            code_package = fixture.repo / ".tasks" / "fixture" / "packages" / "WP1.md"
+            code_package.parent.mkdir(parents=True)
+            code_package.write_text(fixture.package_text(), encoding="utf-8")
+
+        cases.append(("artifact symlink escape masked by code root", artifact_symlink_mask, "path escapes artifact root"))
+
+        def missing_artifact_mask(fixture: SliceproofFixture) -> None:
+            fixture.package_path.unlink()
+            code_package = fixture.repo / ".tasks" / "fixture" / "packages" / "WP1.md"
+            code_package.parent.mkdir(parents=True)
+            code_package.write_text(fixture.package_text(), encoding="utf-8")
+
+        cases.append(("missing artifact file masked by code root", missing_artifact_mask, "file not found"))
+
+        def code_symlink_mask(fixture: SliceproofFixture) -> None:
+            fixture.package_path.write_text(fixture.package_text(primary_paths=["src/escape.py"]), encoding="utf-8")
+            artifact_source = fixture.artifact_root / "src" / "escape.py"
+            artifact_source.parent.mkdir()
+            artifact_source.write_text("# artifact-only source must not mask code-root escape\n", encoding="utf-8")
+            outside = fixture.external_worktree / "escape.py"
+            outside.write_text("# outside code root\n", encoding="utf-8")
+            (fixture.repo / "src").symlink_to(fixture.external_worktree)
+
+        cases.append(("code symlink escape masked by artifact root", code_symlink_mask, "path escapes code root"))
+
+        def absolute_code_primary(fixture: SliceproofFixture) -> None:
+            fixture.package_path.write_text(fixture.package_text(primary_paths=[str(fixture.repo / "absolute.py")]), encoding="utf-8")
+
+        cases.append(("absolute code primary", absolute_code_primary, "not absolute/home/drive-qualified"))
+
+        def parent_artifact_path(fixture: SliceproofFixture) -> None:
+            plan = fixture.plan()
+            plan["spec_path"] = "../SPEC.md"
+            fixture.write_plan(plan)
+
+        cases.append(("parent artifact path", parent_artifact_path, "path must not contain"))
+
+        for name, mutate, expected_error in cases:
+            with self.subTest(name=name):
+                fixture = SliceproofFixture(separate_roots=True)
+                try:
+                    mutate(fixture)
+                    result = fixture.run("validate-plan", *fixture.root_args(), ".tasks/fixture/tasks.json")
+                    self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+                    self.assertIn(expected_error, "\n".join(json.loads(result.stderr)["errors"]))
+                finally:
+                    fixture.cleanup()
 
     def test_validate_plan_rejects_registry_path_package_report_and_h3_failures(self) -> None:
         cases = []

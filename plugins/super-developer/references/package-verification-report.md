@@ -1,6 +1,8 @@
 # Package Verification Report Contract
 
-Boundary: shared durable report and deliverable-matrix shape for package verifiers, package completion helpers, final auditors, and freshness checks. It defines structure and mechanical anchors; verifiers and final auditors own semantic truthfulness and sufficiency.
+Boundary: shared durable report and deliverable-matrix shape for package verifiers, package completion
+helpers, final auditors, and freshness checks. Reports live under the artifact root; `Worktree` in state
+binding is the reviewed code worktree. Verifiers and final auditors own semantic truthfulness and sufficiency.
 
 ## Canonical Source Body
 
@@ -62,7 +64,10 @@ Interface-bearing Slice rows must record an exactness verdict and forbidden-beha
 
 ## State Binding
 
-Append lifecycle metadata after the source body so helpers and final auditors can consume it without hidden chat context:
+Append lifecycle metadata after the source body so helpers and final auditors can consume it without hidden
+chat context. Paths below are artifact-root-relative except `Worktree`, which is an absolute code worktree.
+`Worktree` records where review happened for human/audit context; mechanical file-evidence resolution uses
+the orchestrator-supplied `--code-root`, not this field, so the two must stay consistent:
 
 ```md
 ## State Binding
@@ -80,4 +85,7 @@ Append lifecycle metadata after the source body so helpers and final auditors ca
 - Verified At: `<ISO-8601 timestamp>`
 ```
 
-Changing package Markdown verification expectations, assigned Slice source content, proof content, cited verification output, or reviewed code invalidates the report until refreshed. Optional `## Semgrep Evidence` may follow when enabled/contracted, with helper-produced raw/summary paths, digests, scan scope, and bounded summary.
+Changing package Markdown verification expectations, assigned Slice source content, proof content, cited
+verification output, artifact root selection, or reviewed code invalidates the report until refreshed.
+Optional `## Semgrep Evidence` may follow when enabled/contracted, with helper-produced artifact-root
+raw/summary paths, digests, scan scope, and bounded summary.

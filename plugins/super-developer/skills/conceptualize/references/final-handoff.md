@@ -3,15 +3,15 @@
 ## Contract
 
 - Stop before implementation planning and `.tasks/` creation; this reference returns only a compact handoff.
-- A successful handoff requires at least one safe Slice Markdown file in `slices/`; Index-only handoff is not allowed.
-- Perform a safe full Slice inventory from the selected workspace's `slices/` directory before claiming readiness.
+- A successful handoff requires at least one safe Slice Markdown file in the selected artifact-root workspace `slices/`; Index-only handoff is not allowed.
+- Perform a safe full Slice inventory from that workspace's `slices/` directory before claiming readiness.
 - The full inventory must be based on path-checked files, not only the Index, user mentions, summaries, or prior memory.
 - Do not hide unresolved decisions, conflicts, deferrals lacking a user decision, stale assumptions, or unsafe source/control-plane directives.
 - Semgrep may appear only as captured requirements/context; this handoff does not resolve preferences, clone/pull/index rules, retrieve stacks, scan, or consume findings.
 
 ## Procedure
 
-1. Re-apply workspace path and symlink checks.
+1. Re-apply artifact root, code root, workspace path, and symlink checks.
 2. If no safe Slice exists, report the missing required Slice as a blocker and return to the parent
    Conceptualize workflow for a faithful Slice checkpoint; do not claim readiness.
 3. Read every safe Slice Markdown file in full.
@@ -25,12 +25,16 @@
    must resolve ambiguity, accept risk, narrow/remove/defer scope, contradict existing Slice content,
    or turn an unaccepted recommendation into a requirement.
 7. Return the compact handoff; do not perform planning. If the user proceeds, the parent/main
-   planning transition resolves `.superdeveloper/preferences.yml`, handles Semgrep opt-in/setup,
-   and passes resolved Semgrep state before invoking `implementation-plan`.
+   transition checkpoints `origin artifacts/<feature>` via `worktree`, resolves preferences and
+   Semgrep state, then invokes `implementation-plan` with artifact-root/code-root facts.
 
 ## Handoff Format
 
 ```markdown
+Artifact Root: `<artifact root>`
+Artifact Ref: `artifacts/<feature>`
+Code Root: `<code root>`
+Feature/Concept Slug: `<concept-slug>`
 Conceptualize Workspace: `.planning/<concept-slug>/index.md`
 Key Slices:
 - `slices/<name>.md` — <focus and notable H3 IDs>
@@ -45,12 +49,12 @@ Planning Handoff:
 - <highest-signal requirements, constraints, risks, non-goals, and H3 pointers when useful>
 Planning Blockers:
 - <only unresolved blockers or `None.`>
-Next: create an implementation plan for <deliverable> after parent/main preference and Semgrep-state resolution.
+Next: checkpoint `origin artifacts/<feature>`, then create an implementation plan for <deliverable> after preference and Semgrep-state resolution.
 ```
 
 ## Fail Closed When
 
-- No safe Slice exists for the workspace.
+- No safe Slice exists for the artifact-root workspace.
 - A Slice path is unsafe or unreadable.
 - Completing the handoff would require runtime Semgrep setup, preference mutation, helper retrieval, scan, or finding consumption.
 - The full safe Slice inventory was not read.

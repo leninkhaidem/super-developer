@@ -10,7 +10,7 @@ description: >
 # Release
 
 Prepare feature work for a future release or publish an actual release through one explicit Release Contract,
-with exact state, side effects, and cleanup candidates named before action.
+with exact state, side effects, artifact-sidecar handling, and cleanup candidates named before action.
 
 ## Arguments
 
@@ -21,7 +21,7 @@ with exact state, side effects, and cleanup candidates named before action.
 - Use one approval gate per release attempt: **Release Contract Approval**.
 - Always present the exact Release Contract before the first side effect.
 - Skip only the approval prompt when the current turn unambiguously approves the full normal lifecycle and all release targets are known.
-- Current-turn approval never implies remote feature-branch deletion unless the exact remote ref deletion was explicitly approved.
+- Current-turn approval never implies remote feature-branch or sidecar deletion unless the exact remote ref deletion was explicitly approved.
 - The approved contract covers only listed file edits, feature merge, commits, pushes, tag/GitHub release actions, and cleanup candidates.
 - `prepare-only` is feature integration: merge to the base branch, update `CHANGELOG.md` under `Unreleased`,
   push the base branch, and clean up exact feature refs/worktrees named in the contract.
@@ -29,7 +29,8 @@ with exact state, side effects, and cleanup candidates named before action.
 - Do not ask for staged re-approvals after approval; report checkpoints unless observed state invalidates the contract.
 - Use `--no-ff` when merging a feature branch into the base branch.
 - Never switch the user-owned root worktree to make a release merge or cleanup possible.
-- Clean up only exact feature branches, remote refs, and worktrees named in the approved contract and proven merged.
+- Clean up only exact feature branches, remote refs, artifact sidecar refs/worktrees, and worktrees named in the approved contract.
+- Sidecar cleanup is eligible only after final base/target push sync; never merge `artifacts/<feature>` into the base branch.
 - After any contracted base push, refresh remote refs and verify local base, remote-tracking base,
   and the intended prepare/publish commit match; never force-reset or switch root to repair mismatch.
 - If partially complete, resume only from observed state that matches the intended prepare/publish commit,
@@ -47,10 +48,10 @@ with exact state, side effects, and cleanup candidates named before action.
    - base branch/upstream freshness and divergence;
    - current working tree cleanliness and unrelated changes;
    - version sources when publishing, and latest `vX.Y.Z` tag for changelog/source-range context;
-   - feature branch merge status and candidate cleanup refs/worktrees;
+   - feature branch merge status and candidate cleanup refs/worktrees, including any `artifacts/<feature>` sidecar;
    - `CHANGELOG.md` presence, most recent release format, and whether the proposed lightweight format needs user choice;
    - GitHub CLI auth/repo/release state when publishing.
-4. Load `references/release-git-safety.md` before relying on remote refs, existing tags/releases, feature merge, publish, or cleanup.
+4. Load `references/release-git-safety.md` before relying on remote refs, existing tags/releases, feature merge, publish, sidecar state, or cleanup.
 5. Stop before contract approval if base is behind/diverged, publish version sources disagree, working tree has unrelated changes,
    base push target is ambiguous, GitHub publish target is ambiguous when publishing, remote state cannot be verified for
    push/delete/publish, or an existing tag/release would conflict with the intended publish commit.
@@ -65,7 +66,8 @@ with exact state, side effects, and cleanup candidates named before action.
    - revalidate clean state, final diff, and publish-only tag/release absence or resume match;
    - after any base branch push, fetch remote refs and verify local base, `origin/<base>`, and the
      intended commit all match before tag/release creation or cleanup;
-   - for `prepare-only`, push the base branch, run post-push sync verification, and clean up exact local/remote feature refs/worktrees after merge verification;
+   - for `prepare-only`, push the base branch, run post-push sync verification, and clean up exact
+     local/remote feature and sidecar refs/worktrees after verification;
    - for `publish`, push the base branch, run post-push sync verification, create/push annotated tag, create GitHub release, and report URL;
    - load `references/release-git-safety.md` before exact contracted cleanup.
 8. If any push, publish, or cleanup step fails, stop, report completed side effects, and do not continue cleanup automatically.
@@ -74,7 +76,7 @@ with exact state, side effects, and cleanup candidates named before action.
 
 - Release Contract template and approval choices → `references/release-contract.md`.
 - Changelog updates or GitHub release-note drafting → `references/changelog-and-release-notes.md`.
-- Remote freshness, resume checks, merge worktree, tag/release, or cleanup safety → `references/release-git-safety.md`.
+- Remote freshness, resume checks, merge worktree, tag/release, sidecar state, or cleanup safety → `references/release-git-safety.md`.
 - Broad feature-branch worktree strategy is unclear or outside release scope → invoke `worktree` by name.
 
 ## Stop if
@@ -85,7 +87,7 @@ with exact state, side effects, and cleanup candidates named before action.
 - Base/upstream/remote branch state is stale, unverifiable, behind, diverged, or mismatched; publish tag/release state is stale or mismatched.
 - Existing local/remote tag or GitHub release points anywhere other than the intended publish commit.
 - Merge conflict, failing release check, publish version-source disagreement, unrelated dirty files, missing credentials, or changed publish target appears.
-- Cleanup would touch an unnamed branch/ref/worktree, a dirty worktree, an unmerged branch, or remote feature branch without explicit delete approval.
+- Cleanup would touch an unnamed branch/ref/worktree, a dirty worktree, an unmerged branch, active sidecar, or remote ref without explicit delete approval.
 - A new dependency/service/account, destructive action, force push/delete, credential need, or external side effect is required but uncontracted.
 
 ## Output
@@ -97,5 +99,5 @@ Return:
 - base branch and commit SHA;
 - post-push local/remote base sync verification status;
 - tag/GitHub release status;
-- cleanup performed or intentionally skipped;
+- cleanup performed or intentionally skipped, including sidecar artifact cleanup;
 - completed side effects and remaining manual follow-up.

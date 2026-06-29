@@ -8,12 +8,14 @@ do not rely on hidden chat context.
 
 The packet should provide:
 
-- artifact root and feature slug;
+- artifact root, code root, artifact ref, resolved feature/artifact slug, and any approved slug
+  rename/migration metadata;
 - approved requirements or selected Conceptualize workspace/index;
-- safe Slice paths when known;
-- overwrite approval state for `.tasks/<feature>/`;
+- safe Conceptualize workspace, Index, and Slice paths relative to the artifact root when known;
+- overwrite approval state for `.tasks/<feature>/` under the artifact root;
 - resolved Semgrep state from the orchestrator (`disabled`, or `enabled` with privacy-mode, local cache/index/profile facts, approved setup side effects, and helper availability);
-- paths to the implementation-plan references and shared references listed below;
+- paths to the implementation-plan references and shared references listed below, resolved from the
+  code root/plugin tree;
 - expected output fields and stop conditions.
 
 Stop and report the missing field if the packet is too incomplete to plan safely.
@@ -22,6 +24,7 @@ Stop and report the missing field if the packet is too incomplete to plan safely
 
 Load these only as their step requires:
 
+- `../../references/artifact-store.md` when artifact-root/code-root semantics or slug mapping matter;
 - `references/conceptualize-inputs.md` when Conceptualize material applies;
 - `references/design-preflight.md` when uncertainty blocks planning;
 - `references/spec-template.md` before drafting `SPEC.md`;
@@ -33,8 +36,10 @@ Load these only as their step requires:
 
 ## Workflow
 
-1. Validate the feature slug, artifact paths, source paths, and Slice paths.
-2. If a Conceptualize workspace applies, follow the Slice inventory/Index-only rules before writing artifacts.
+1. Validate the feature slug, artifact root/ref, code root, artifact paths, source paths, and Slice paths.
+2. If a Conceptualize workspace applies, follow the Slice inventory/Index-only rules before writing
+   artifacts. Treat the Conceptualize slug as the default feature/artifact slug; stop before writing
+   `.tasks/<different-feature>` unless approved migration metadata is in the packet.
 3. Ask/stop rather than inventing behavior, accepting risk, narrowing scope, or deferring material obligations.
 4. Draft `SPEC.md`, package split, `tasks.json`, and package Markdown using the references above.
    Preserve exact interface/forbidden-behavior obligations; seed obvious package-specific risk expectations as deliverable-matrix `VE-<n>` row sources (interactive UI, retry/fail-closed, trigger precedence, lifecycle/restart/reaper, cache invalidation, model/default precedence, generated defaults, state pollution when applicable); and state that planner seeds do not limit verifier discovery.
@@ -47,13 +52,14 @@ Load these only as their step requires:
    not run broad scans or raw direct `semgrep` scans while authoring.
 5. Keep `tasks.json` lightweight; package Markdown owns scope, Slice/H3 assignment, primary paths,
    verification expectations, dependencies, proof path, and report path.
-6. Write files only after validation-checklist gates pass.
-7. Re-open files from disk, run `sliceproof.py validate-plan`, and repair until it passes or report
-   the exact blocker.
+6. Write files under the artifact root only after validation-checklist gates pass; code references stay
+   code-root-relative and the artifact worktree need not contain plugin/source files.
+7. Re-open files from disk, then from the code root run `sliceproof.py validate-plan` with explicit
+   `--artifact-root <artifact-root> --code-root <code-root>`; repair until it passes or report the blocker.
 8. Create proof placeholders only when implementation dispatch is already approved.
 
 ## Output
 
-Return the feature path, SPEC/registry/package/proof/report paths, package list with dependencies,
-authoritative Slice inventory or Index-only/no-Slice note, resolved Semgrep state, approved deferrals,
-assumptions, validation command result, and next gate.
+Return artifact root/ref, code root, feature path, SPEC/registry/package/proof/report paths, package
+list with dependencies, authoritative Slice inventory or Index-only/no-Slice note, resolved Semgrep
+state, approved deferrals, assumptions, validation command result, and next gate.

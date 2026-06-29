@@ -10,9 +10,9 @@ description: >
 
 # Implementation Plan
 
-Orchestrate creation of a greenfield planned-feature file set: `SPEC.md`, lightweight
-`tasks.json` registry, package Markdown, declared proof/report paths, and proof placeholders when
-dispatch is next.
+Orchestrate creation of a greenfield planned-feature file set under the selected artifact root:
+`SPEC.md`, lightweight `tasks.json` registry, package Markdown, declared proof/report paths, and
+proof placeholders when dispatch is next. Source inspection and helper execution use the code root.
 
 Important boundary: this skill is the orchestration surface. When artifact writing is needed, hand a
 fresh planner agent a compact packet and `references/planner-agent-contract.md`; do not draft
@@ -40,6 +40,11 @@ rules are required; do not preload references merely because they are named.
   `../../references/clean-code-rules.md` during package shaping, projects only material implications
   into existing SPEC/package fields, and never creates standalone clean-code proof/report artifacts.
 - Validate returned artifacts before presenting success.
+- Carry explicit artifact root, code root, artifact ref, and resolved feature/artifact slug facts in
+  planner packets, validation commands, and summaries; do not rely on chat-only path defaults.
+- If a Conceptualize workspace is the source, the concept slug is the default feature/artifact slug.
+  Stop before writing `.tasks/<different-feature>` or sidecar paths unless explicit user-approved
+  rename/migration metadata covers `.planning/`, `.tasks/`, artifact ref, and artifact worktree.
 - Semgrep opt-in is a user-facing planning-orchestrator boundary: use parent-resolved state when
   supplied and do not reopen opt-in. Only when no resolved Semgrep state is supplied, treat this as
   direct invocation and resolve `.superdeveloper/preferences.yml` before planner-agent dispatch.
@@ -49,9 +54,13 @@ rules are required; do not preload references merely because they are named.
 
 ## Do
 
-1. Resolve the feature slug and source material. Use direct user requirements, repo evidence, spike
+1. Load `../../references/artifact-store.md`. Resolve artifact root, code root, artifact ref,
+   feature/artifact slug, and source material. Use direct user requirements, repo evidence, spike
    evidence, or one selected Conceptualize workspace; ask one focused question if the source is
-   ambiguous.
+   ambiguous. When planning from Conceptualize, verify the post-Conceptualize sidecar checkpoint
+   happened or invoke `worktree` for that checkpoint before writing `.tasks/`. When no sidecar exists
+   yet (direct planning without Conceptualize), create it through `worktree` before writing `.tasks/`,
+   since `git worktree add` refuses a non-empty path.
 2. Check orchestration blockers before delegation: unsafe paths, unresolved product/design decisions,
    unapproved overwrite of `.tasks/<feature>/`, or a required spike/risk acceptance. For nontrivial or
    risky plans, run the design-preflight challenge in `references/design-preflight.md`—including its
@@ -66,29 +75,35 @@ rules are required; do not preload references merely because they are named.
    opt-in/setup choice, name any clone or fast-forward pull side effect before it runs, and
    continue with Semgrep disabled when declined. Do not run Semgrep scans during artifact authoring.
 5. Dispatch a fresh planner agent with a compact packet containing:
-   - feature slug and artifact root;
+   - artifact root, code root, artifact ref, resolved feature/artifact slug, and any approved
+     slug migration metadata;
    - approved requirements and selected source material;
-   - Conceptualize workspace/index and Slice paths when applicable;
+   - Conceptualize workspace/index and Slice paths relative to the artifact root when applicable;
    - path to `references/planner-agent-contract.md`;
    - paths to required implementation-plan references and shared references;
-   - resolved Semgrep state: disabled, or enabled with privacy-mode, local cache/index/profile facts, approved setup side effects, and helper availability;
+   - resolved Semgrep state: disabled, or enabled with privacy-mode, local cache/index/profile facts,
+     approved setup side effects, and helper availability;
    - overwrite approval state, stop conditions, and expected output fields.
-6. After the planner returns, re-open `SPEC.md`, `tasks.json`, and package Markdown from disk.
-7. Run `python3 plugins/super-developer/assets/sliceproof.py validate-plan \
-   .tasks/<feature>/tasks.json` from the artifact root and route any non-mechanical repair back
-   through a planner packet instead of patching artifacts inline.
-8. Report the feature path, SPEC/registry/package/proof/report paths, package list with dependencies,
-   parallel/serial rationale, authoritative Slice inventory or Index-only/no-Slice state, approved
-   deferrals, assumptions, validation command result, and next gate.
+6. After the planner returns, re-open `SPEC.md`, `tasks.json`, and package Markdown from the
+   artifact root.
+7. From the code root, run `python3 plugins/super-developer/assets/sliceproof.py validate-plan \
+   --artifact-root <artifact-root> --code-root <code-root> .tasks/<feature>/tasks.json` and route
+   any non-mechanical repair back through a planner packet instead of patching artifacts inline.
+8. Report artifact root/ref, code root, feature path, SPEC/registry/package/proof/report paths,
+   package list with dependencies, parallel/serial rationale, authoritative Slice inventory or
+   Index-only/no-Slice state, approved deferrals, assumptions, validation result, and next gate.
 
 ## Load if needed
 
+- Artifact-root/code-root details exceed the workflow summary → `../../references/artifact-store.md`
 - Helper command syntax or command safety is unclear → `../../references/tool-usage.md`
 - Semgrep preference/cache/policy/evidence boundaries are in scope → `../../references/semgrep.md`
 
 ## Stop if
 
-- Feature slug or artifact path is unsafe.
+- Feature slug, artifact root/ref, code root, artifact path, or source path is unsafe.
+- A requested feature slug diverges from the Conceptualize slug without explicit user-approved
+  rename/migration metadata.
 - Existing `.tasks/<feature>/` state would be overwritten without explicit approval.
 - A material requirement, Slice obligation, risk acceptance, approved deferral, or package boundary
   needs a user decision.
@@ -100,6 +115,7 @@ rules are required; do not preload references merely because they are named.
 
 ## Output
 
-Return the feature path, SPEC/registry/package/proof/report paths, package list with dependencies,
-authoritative Slice inventory or Index-only/no-Slice note, approved deferrals, assumptions, validation
-command result, and next step (`review-plan` after user confirmation unless already authorized).
+Return artifact root/ref, code root, feature path, SPEC/registry/package/proof/report paths, package
+list with dependencies, authoritative Slice inventory or Index-only/no-Slice note, approved deferrals,
+assumptions, validation command result, and next step (`review-plan` after user confirmation unless
+authorized).

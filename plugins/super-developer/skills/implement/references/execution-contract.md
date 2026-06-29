@@ -8,8 +8,12 @@ This reference owns the user-facing implement approval template and its approval
 
 - Derive the contract only from approved plan artifacts, package Markdown, safe assigned Slice content, current git state, and explicit user instructions.
 - Approval covers only the exact actions listed in the contract.
+- The contract must name artifact root, code root, sidecar ref `artifacts/<feature>`, artifact worktree
+  `.worktrees/<feature>/artifacts`, and package/integration code worktrees.
 - Feature-branch push is covered by default when listed as `git push -u origin feature/<feature>`
   for review/testing; the user may explicitly exclude it.
+- Sidecar checkpoint pushes are covered only when listed as `git push -u origin artifacts/<feature>`
+  from the artifact worktree at package-delivery or final review/audit gates.
 - Target branch merge, target push, force push, tag, release, branch delete, destructive command,
   service install/start, credentialed action, or external side effect always needs separate explicit approval.
 - Dependency installs/additions are covered only when exact commands and manifest/lockfile paths are
@@ -23,15 +27,16 @@ This reference owns the user-facing implement approval template and its approval
 
 1. Validate `.tasks/<feature>/`, package Markdown, declared proof/report paths, assigned Slice paths/H3 IDs,
    and current git refs before presenting the contract.
-2. Name the exact base ref, feature ref, target ref, package refs/worktrees, proof paths, report paths,
+2. Name the exact artifact root, code root, artifact ref/worktree, base ref, feature ref, target ref,
+   package refs/worktrees, proof/report paths under the artifact root, sidecar checkpoint command,
    and default-covered feature-push command.
 3. For each package, summarize assigned Slice obligations, primary paths, package dependencies, approved
    dependency install/addition commands, verification expectations, package verification depth, Semgrep evidence
    expectations when enabled/contracted, and known blockers.
 4. Disclose resolved Semgrep state, privacy/local rule source, helper checks, evidence paths/digests, bounded consumption order, advisory finding policy, and unapproved side effects.
 5. List command-safety boundaries and all actions that are not authorized by this contract.
-5. Offer exactly three choices: `approve auto-resolve`, `step-by-step`, or `abort`.
-6. Stop unless the user approves one choice or prior explicit instruction already selected one.
+6. Offer exactly three choices: `approve auto-resolve`, `step-by-step`, or `abort`.
+7. Stop unless the user approves one choice or prior explicit instruction already selected one.
 
 ## Template
 
@@ -41,15 +46,22 @@ Execution Contract for <feature>
 Git refs:
   base ref: <base-ref>
   feature ref: feature/<feature>
+  artifact ref: artifacts/<feature>
   target ref: <target-ref>
+
+Roots:
+  artifact root: .worktrees/<feature>/artifacts (owns .planning/.tasks, proofs, reports, reviews)
+  code root: <root or integration/package worktree used for source validation>
 
 Remote actions:
   feature branch push: git push -u origin feature/<feature> for review/testing (covered by this contract by default; non-force only)
+  sidecar checkpoints: git push -u origin artifacts/<feature> from .worktrees/<feature>/artifacts at package/final gates only
   target merge/push: not authorized; requires separate explicit approval for <target-ref>
   force/delete/tag/release actions: not authorized
 
 Worktrees:
-  integration: .worktrees/<feature>/merge on feature/<feature>
+  artifact sidecar: .worktrees/<feature>/artifacts on artifacts/<feature>
+  integration code: .worktrees/<feature>/merge on feature/<feature>
   packages:
     - <WP-ID>: .worktrees/<feature>/wp-<WP-ID> on wp/<feature>/<WP-ID>
 
@@ -64,9 +76,9 @@ Semgrep:
 
 Packages:
 - <WP-ID>: <title>
-  package: .tasks/<feature>/packages/<WP-ID>.md
-  proof: .tasks/<feature>/proofs/<WP-ID>.proof.md
-  report: .tasks/<feature>/reports/<WP-ID>.package-verification.md
+  package: <artifact-root>/.tasks/<feature>/packages/<WP-ID>.md
+  proof: <artifact-root>/.tasks/<feature>/proofs/<WP-ID>.proof.md
+  report: <artifact-root>/.tasks/<feature>/reports/<WP-ID>.package-verification.md
   primary paths: <paths or none>
   assigned Slices/H3 IDs: <slice paths + H3 IDs or none>
   context-only Slices/H3 IDs: <slice paths + H3 IDs or none>
@@ -77,20 +89,24 @@ Packages:
   known blockers/deferrals: <none or approved details>
 
 Pipeline:
-1. create integration and package worktrees through the `worktree` skill
-2. dispatch package agents with package Markdown, assigned Slice paths, proof path, and verification expectations
-3. require package-agent SELF_REVIEW and proof Markdown evidence
-4. run `sliceproof.py validate-proof` and package verification; require fresh PASS report
-5. merge accepted package branches into the integration worktree after gates pass
-6. refresh proof/report evidence after repairs, merge-impact changes, or verifier findings
-7. run final validation and safe integrated checks
-8. push the feature branch using the exact feature push above unless the user explicitly excluded it
-9. hand off to `review-code` and `audit` through fresh Skill-tool/sub-agent invocations when readiness rules allow
+1. create/resume artifact sidecar plus integration and package code worktrees through the `worktree` skill
+2. create proof placeholders in the artifact root with explicit `--artifact-root`/`--code-root` helper flags
+3. dispatch package agents with artifact-root package/Slice/proof/report paths and package code worktrees
+4. require package-agent SELF_REVIEW and artifact-root proof Markdown evidence
+5. run root-aware `sliceproof.py validate-proof` and package verification; require fresh PASS report
+6. merge accepted source-only package branches into the integration worktree after gates pass
+7. refresh artifact-root proof/report evidence after repairs, merge-impact changes, or verifier findings
+8. checkpoint sidecar artifacts after package delivery, pushing only `origin artifacts/<feature>`
+9. run root-aware final validation and safe integrated checks
+10. after final review-code/audit acceptance, checkpoint sidecar artifacts before target merge/cleanup
+11. push the feature branch using the exact feature push above unless the user explicitly excluded it
+12. hand off to `review-code` and `audit` through fresh Skill-tool/sub-agent invocations when readiness rules allow
 
 Stop conditions:
-- unsafe, missing, stale, contradictory, or out-of-scope plan/package/proof/report/Slice/worktree path
+- unsafe, missing, stale, contradictory, or out-of-scope artifact root, code root, package/proof/report/Slice/worktree path
 - unassigned material Slice obligation, unresolved plan defect, unapproved deferral, or weak proof evidence
-- failed verification, stale package report, or ignored proof/report artifact committed to git
+- failed verification, stale package report, artifact-root ambiguity, or ignored proof/report artifact committed to code git
+- sidecar checkpoint would push anything except `origin artifacts/<feature>` or merge sidecar artifacts into deliverable code
 - product/design change, scope expansion, existing-feature contract change, or risk acceptance needed
 - unsafe/destructive/external/credentialed command, service install/start, or unlisted dependency install needed
 - feature push remote/ref differs from this contract, remote diverges/non-fast-forwards unexpectedly, or credentials fail

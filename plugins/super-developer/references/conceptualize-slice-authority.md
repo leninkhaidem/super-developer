@@ -8,18 +8,21 @@ A later explicit user decision may override, defer, reject, or narrow a Slice-de
 
 ## Safe Workspace Paths
 
-Use one selected `.planning/<concept-slug>/` workspace.
+Use one selected `.planning/<concept-slug>/` workspace under the artifact root defined by
+`artifact-store.md`. Code/source paths resolve under the separate code root.
 
-Accept only repo-relative POSIX paths shaped as:
+Accept only artifact-root-relative POSIX paths shaped as:
 
 - `.planning/<concept-slug>/index.md`
 - `.planning/<concept-slug>/slices/<slice-name>.md`
 
 Path checks must fail closed:
 
-- resolve the repository root first;
-- require the workspace, `slices/`, and candidate files to stay inside the repo-local workspace after realpath/symlink resolution;
-- reject absolute paths, drive-qualified paths, `~`, shell expansion, empty segments, `..`, unsafe slugs, symlink escapes, duplicate normalized paths, and paths outside the selected workspace;
+- resolve the selected artifact root first;
+- require the workspace, `slices/`, and candidate files to stay inside that root and the selected
+  workspace after realpath/symlink resolution;
+- reject absolute paths, drive-qualified paths, `~`, shell expansion, empty segments, `..`, unsafe slugs,
+  symlink escapes, duplicate normalized paths, and paths outside the artifact root or selected workspace;
 - do not read unsafe candidates to gather more evidence.
 
 ## Slice Shape
@@ -58,7 +61,9 @@ Verification and audit classify each interface-bearing H3's fulfillment with one
 
 ## Full Inventory
 
-Before writing or reviewing a plan, inventory every Markdown Slice in the selected workspace's `slices/` directory after path checks. Do not rely only on Index listings, user mentions, package assignments, or copied excerpts.
+Before writing or reviewing a plan, inventory every Markdown Slice in the selected artifact workspace's
+`slices/` directory after path checks. Do not rely only on Index listings, user mentions, package
+assignments, or copied excerpts.
 
 Index-only planning is allowed only when no Slice is independently useful and the plan states that no authoritative Slice inventory exists for the feature. When Slices exist, the registry and `SPEC.md` must record the full safe inventory, and package Markdown must assign the relevant H3 obligations.
 

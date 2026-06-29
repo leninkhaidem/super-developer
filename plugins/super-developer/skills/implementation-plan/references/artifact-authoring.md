@@ -3,6 +3,7 @@
 ## Contract
 
 - Load `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/slice-first-artifacts.md` for the canonical artifact model.
+- Write `.tasks/`, proof/report declarations, and Slice inventory paths under the artifact root; keep source/plugin/test paths code-root-relative.
 - `tasks.json` is a lightweight registry: feature metadata, Slice inventory, package paths, proof paths, report paths, status signals, and dependencies only.
 - Package Markdown is the package assignment source of truth.
 - Proof Markdown is generated from package assignment before dispatch and filled by package agents.
@@ -37,12 +38,14 @@ Use an empty `authoritative_slices` array only for Index-only or no-Slice plans 
 
 ## Registry Rules
 
-- `feature` must match the safe feature slug and `.tasks/<feature>/` directory.
+- `feature` must match the safe feature/artifact slug and `.tasks/<feature>/` directory.
+- If Conceptualize supplied the plan, `feature` defaults to the concept slug; divergent slugs require explicit approved migration metadata.
 - `spec_path` points to the written `SPEC.md` file.
 - `authoritative_slices` lists the full safe Slice inventory when Slices exist.
 - Each package entry contains only `id`, `path`, `proof_path`, `report_path`, `status`, and `depends_on`.
 - Dependencies are package IDs and must match package Markdown.
-- Keep paths repo-relative POSIX paths; reject absolute, traversal, home, drive-qualified, empty-segment, symlink-escape, or out-of-repo paths.
+- Keep registry, package, proof, report, and Slice paths artifact-root-relative POSIX paths.
+- Reject absolute, traversal, home, drive-qualified, empty-segment, symlink-escape, or out-of-root paths.
 
 ## Package Markdown Template
 
@@ -120,7 +123,7 @@ When Semgrep is enabled, verification expectations should stay helper-owned and 
 - `Must satisfy` IDs are package closure obligations and require proof rows.
 - `Context only` IDs are required reading/context; do not use them to hide package obligations.
 - Every material H3 in the full Slice inventory must be assigned, context-only with a concrete reason, or explicitly approved as deferred/out of scope/rejected.
-- Primary paths are starting points, not hard boundaries.
+- Primary paths are code-root-relative starting points, not hard boundaries.
 - Verification expectations must be package-specific and cover relevant edge, failure,
   trust-boundary, data, security, privacy, performance, concurrency, generated-contract,
   audience-surface, and lifecycle cases or state why not applicable.
