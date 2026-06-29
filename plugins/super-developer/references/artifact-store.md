@@ -12,6 +12,10 @@ the workflow or helper reference that owns that action.
   `.worktrees/<feature>/artifacts`.
 - Artifact branch/ref: the orphan, artifacts-only sidecar branch `artifacts/<feature>` checked out at the
   artifact root.
+- Sidecar setup ordering: create the orphan worktree before the first artifact write (Conceptualize owns
+  first creation, or implementation-plan for direct plans). `git worktree add` refuses a non-empty path,
+  and `--orphan` needs git >= 2.42; on older git, stop and report the version gap. Local creation is a
+  no-push setup action, distinct from the gated checkpoint push and the gated cleanup.
 - Code root/worktree: the active source checkout used for production, reference, test, and validation code.
   It may be the main repo, an integration worktree, a package worktree, or an audit worktree.
 - Artifact paths are rooted at the artifact root: `.planning/<concept-slug>/`,
@@ -44,8 +48,13 @@ the workflow or helper reference that owns that action.
   root. Never infer artifact locations only from `Path.cwd()` or the current code checkout.
 - Pass helper/plugin paths from the code root when a validator or script needs plugin files; the artifact
   worktree must not be treated as the plugin source.
-- Invoke `sliceproof.py` with `--artifact-root <artifact-root>` and `--code-root <code-root>` when the
-  roots differ; omitted flags select the current directory for both roots.
+- Invoke `sliceproof.py` with absolute `--artifact-root <artifact-root>` and `--code-root <code-root>` when
+  the roots differ; omitted flags select the current directory for both roots. `--code-root` must point at
+  the code worktree being checked (package worktree for package checks, integration/top worktree for
+  `validate-final`), not the project root — deliverable-matrix file evidence resolves under it.
+- `--code-root` is the trust anchor for code/file evidence resolution: derive it from resolved git/worktree
+  state, never from report, Slice, or other artifact content. A report's `Worktree` field is descriptive
+  metadata, not the evidence root.
 - Forbidden behavior checks must falsify: artifacts written only to the current code checkout, a required full
   code checkout in the artifact worktree, sidecar merges into `main`, `artifacts/<feature>` treated as
   deliverable code, silent slug divergence, and chat-only artifact-root assumptions.

@@ -89,7 +89,7 @@ Run or enable the orchestrator to run:
 
 ```bash
 python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-proof \
-  --artifact-root ".worktrees/<feature>/artifacts" --code-root "." \
+  --artifact-root "$ARTIFACT_ROOT" --code-root "$CODE_ROOT" \
   ".tasks/<feature>/tasks.json" --package <WP-ID>
 ```
 

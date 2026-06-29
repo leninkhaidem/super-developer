@@ -16,7 +16,7 @@ For each returned package:
 
    ```bash
    python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-proof \
-     --artifact-root ".worktrees/<feature>/artifacts" --code-root "." \
+     --artifact-root "$ARTIFACT_ROOT" --code-root "$CODE_ROOT" \
      ".tasks/<feature>/tasks.json" --package <WP-ID>
    ```
 
@@ -40,7 +40,7 @@ For each returned package:
 
    ```bash
    python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-package-complete \
-     --artifact-root ".worktrees/<feature>/artifacts" --code-root "." \
+     --artifact-root "$ARTIFACT_ROOT" --code-root "$CODE_ROOT" \
      ".tasks/<feature>/tasks.json" --package <WP-ID>
    ```
 
@@ -124,7 +124,7 @@ Then run from the code root for each included artifact root/task set:
 
 ```bash
 python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-final \
-  --artifact-root ".worktrees/<feature>/artifacts" --code-root "." \
+  --artifact-root "$ARTIFACT_ROOT" --code-root "$CODE_ROOT" \
   ".tasks/<feature>/tasks.json"
 ```
 

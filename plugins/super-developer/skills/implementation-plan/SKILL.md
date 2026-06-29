@@ -58,7 +58,9 @@ rules are required; do not preload references merely because they are named.
    feature/artifact slug, and source material. Use direct user requirements, repo evidence, spike
    evidence, or one selected Conceptualize workspace; ask one focused question if the source is
    ambiguous. When planning from Conceptualize, verify the post-Conceptualize sidecar checkpoint
-   happened or invoke `worktree` for that checkpoint before writing `.tasks/`.
+   happened or invoke `worktree` for that checkpoint before writing `.tasks/`. When no sidecar exists
+   yet (direct planning without Conceptualize), create it through `worktree` before writing `.tasks/`,
+   since `git worktree add` refuses a non-empty path.
 2. Check orchestration blockers before delegation: unsafe paths, unresolved product/design decisions,
    unapproved overwrite of `.tasks/<feature>/`, or a required spike/risk acceptance. For nontrivial or
    risky plans, run the design-preflight challenge in `references/design-preflight.md`—including its

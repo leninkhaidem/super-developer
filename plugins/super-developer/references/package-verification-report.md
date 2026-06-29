@@ -65,7 +65,9 @@ Interface-bearing Slice rows must record an exactness verdict and forbidden-beha
 ## State Binding
 
 Append lifecycle metadata after the source body so helpers and final auditors can consume it without hidden
-chat context. Paths below are artifact-root-relative except `Worktree`, which is an absolute code worktree:
+chat context. Paths below are artifact-root-relative except `Worktree`, which is an absolute code worktree.
+`Worktree` records where review happened for human/audit context; mechanical file-evidence resolution uses
+the orchestrator-supplied `--code-root`, not this field, so the two must stay consistent:
 
 ```md
 ## State Binding
