@@ -6,6 +6,16 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [v1.34.0] - 2026-06-29
+
+### Added
+- Added per-feature orphan artifact sidecar branches/worktrees so `.planning/` and `.tasks/` artifacts can stay durable without entering code branch history.
+- Added root-aware `sliceproof.py` artifact-root/code-root handling for sidecar stores and deliverable-matrix file evidence.
+
+### Changed
+- Changed Conceptualize, implementation planning, implementation, review, audit, worktree, and release guidance to carry explicit artifact-root/code-root semantics.
+- Changed sidecar lifecycle guidance to require checkpoint-only pushes and exact post-merge cleanup approval without merging artifact refs into deliverable branches.
+
 ## [v1.33.1] - 2026-06-25
 
 ### Added
