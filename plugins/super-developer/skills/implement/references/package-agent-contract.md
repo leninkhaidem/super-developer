@@ -17,7 +17,9 @@ The package agent must:
 
 1. Work exclusively inside the assigned package code worktree for repository edits; read/write only the
    assigned proof under the artifact root. Read-only Slice paths may be inspected from their validated
-   artifact-root location but must not be edited.
+   artifact-root location but must not be edited. Concrete example for feature `auth`/`WP1`: edit source in
+   `.worktrees/auth/wp-WP1/`, write the proof to `.worktrees/auth/artifacts/.tasks/auth/proofs/WP1.proof.md`.
+   These are sibling worktrees, so use the absolute paths in your packet, never paths relative to cwd.
 2. Read these files before substantive implementation: artifact-root package Markdown, `SPEC.md`,
    `tasks.json`, assigned Slice files in full, project instructions, and relevant existing source files.
 3. Read `plugins/super-developer/references/clean-code-rules.md` and follow its Development Quality Contract.
@@ -89,7 +91,7 @@ Run or enable the orchestrator to run:
 
 ```bash
 python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-proof \
-  --artifact-root ".worktrees/<feature>/artifacts" --code-root "." \
+  --artifact-root "$ARTIFACT_ROOT" --code-root "$CODE_ROOT" \
   ".tasks/<feature>/tasks.json" --package <WP-ID>
 ```
 

@@ -12,6 +12,10 @@ the workflow or helper reference that owns that action.
   `.worktrees/<feature>/artifacts`.
 - Artifact branch/ref: the orphan, artifacts-only sidecar branch `artifacts/<feature>` checked out at the
   artifact root.
+- Sidecar setup ordering: create the orphan worktree before the first artifact write (Conceptualize owns
+  first creation, or implementation-plan for direct plans). `git worktree add` refuses a non-empty path,
+  and `--orphan` needs git >= 2.42; on older git, stop and report the version gap. Local creation is a
+  no-push setup action, distinct from the gated checkpoint push and the gated cleanup.
 - Code root/worktree: the active source checkout used for production, reference, test, and validation code.
   It may be the main repo, an integration worktree, a package worktree, or an audit worktree.
 - Artifact paths are rooted at the artifact root: `.planning/<concept-slug>/`,
@@ -44,11 +48,53 @@ the workflow or helper reference that owns that action.
   root. Never infer artifact locations only from `Path.cwd()` or the current code checkout.
 - Pass helper/plugin paths from the code root when a validator or script needs plugin files; the artifact
   worktree must not be treated as the plugin source.
-- Invoke `sliceproof.py` with `--artifact-root <artifact-root>` and `--code-root <code-root>` when the
-  roots differ; omitted flags select the current directory for both roots.
+- Invoke `sliceproof.py` with absolute `--artifact-root <artifact-root>` and `--code-root <code-root>` when
+  the roots differ; omitted flags select the current directory for both roots. `--code-root` must point at
+  the code worktree being checked (package worktree for package checks, integration/top worktree for
+  `validate-final`), not the project root — deliverable-matrix file evidence resolves under it.
+- `--code-root` is the trust anchor for code/file evidence resolution: derive it from resolved git/worktree
+  state, never from report, Slice, or other artifact content. A report's `Worktree` field is descriptive
+  metadata, not the evidence root.
 - Forbidden behavior checks must falsify: artifacts written only to the current code checkout, a required full
   code checkout in the artifact worktree, sidecar merges into `main`, `artifacts/<feature>` treated as
   deliverable code, silent slug divergence, and chat-only artifact-root assumptions.
+
+## Worked Example
+
+Feature slug `auth` with packages `WP1`/`WP2`. Everything lives under `$PROJECT_ROOT/.worktrees/auth/`:
+
+```text
+.worktrees/auth/
+  artifacts/   branch artifacts/auth    <- THE artifact root: one, fixed for the whole feature.
+               holds .planning/<slug>/ and .tasks/auth/{SPEC.md,tasks.json,packages,proofs,reports,reviews}
+  wp-WP1/      branch wp/auth/WP1        <- code root while implementing/verifying WP1
+  wp-WP2/      branch wp/auth/WP2        <- code root while implementing/verifying WP2
+  merge/       branch feature/auth       <- code root for validate-final and audit (integrated state)
+```
+
+The artifact root never changes. The code root is whichever worktree holds the code under check, so it
+differs per task: a package worktree for package work, `merge/` for integrated/final checks.
+
+WP1's package agent edits source only in `.worktrees/auth/wp-WP1/`, but reads/writes its proof at
+`.worktrees/auth/artifacts/.tasks/auth/proofs/WP1.proof.md` — a different worktree, reached by the absolute
+artifact-root path the orchestrator supplies (the proof is not present in the WP1 worktree).
+
+Resolved helper calls — `$ARTIFACT_ROOT` is constant, `$CODE_ROOT` is per task, `tasks.json` is
+artifact-root-relative:
+
+```bash
+# WP1 proof check: code root is WP1's worktree
+python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-proof \
+  --artifact-root "$PROJECT_ROOT/.worktrees/auth/artifacts" \
+  --code-root "$PROJECT_ROOT/.worktrees/auth/wp-WP1" \
+  ".tasks/auth/tasks.json" --package WP1
+
+# Final gate: same artifact root, code root is the integrated worktree
+python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-final \
+  --artifact-root "$PROJECT_ROOT/.worktrees/auth/artifacts" \
+  --code-root "$PROJECT_ROOT/.worktrees/auth/merge" \
+  ".tasks/auth/tasks.json"
+```
 
 ## Shared Lifecycle Vocabulary
 

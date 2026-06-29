@@ -75,7 +75,7 @@ Only remove a package worktree/branch when this check succeeds for that package 
 
 ## Approval Boundaries
 
-- Creating local package/feature/artifact worktrees requires the approved worktree action or implementation Execution Contract.
+- Creating local package/feature/artifact worktrees requires the approved worktree action, the implementation Execution Contract, or the planned-feature setup step that owns it (Conceptualize or implementation-plan artifact-sidecar setup). Local creation has no remote side effect; the sidecar checkpoint push and sidecar cleanup stay separately gated.
 - Sidecar checkpoints push only `origin artifacts/<feature>` from `.worktrees/<feature>/artifacts` at accepted gates.
 - Pushing `origin feature/<feature>` is covered by the approved Execution Contract by default when that exact push is named.
 - Target merge and target push require explicit approval for the exact `<target-ref>`.

@@ -42,18 +42,21 @@ remap `.planning/`, `.tasks/`, sidecar branch, or worktree paths. `<WP-ID>` is a
 later merge destination after explicit approval and defaults to `main`.
 
 ## Artifact Sidecar Setup
-Create or resume the sidecar before creating planned-feature artifacts:
+Create the sidecar before the first artifact write; `git worktree add` refuses a non-empty path, so it
+cannot be added after `.planning/` exists. `--orphan` needs git >= 2.42; on older git, stop and report
+the version gap rather than improvising an orphan checkout.
 ```bash
 cd "$PROJECT_ROOT"
 mkdir -p .worktrees/<feature>
 git worktree add --orphan -b artifacts/<feature> .worktrees/<feature>/artifacts
 ```
-If local `artifacts/<feature>` already exists, use it instead of creating a new orphan branch:
+Resume an existing sidecar instead of creating a new orphan branch:
 ```bash
 cd "$PROJECT_ROOT"
-git worktree add .worktrees/<feature>/artifacts artifacts/<feature>
+git worktree add .worktrees/<feature>/artifacts artifacts/<feature>   # when the local branch exists
+git fetch origin artifacts/<feature> && \
+  git worktree add -b artifacts/<feature> .worktrees/<feature>/artifacts origin/artifacts/<feature>  # remote-only
 ```
-When resuming a remote-only sidecar, fetch only the exact artifact ref before adding the worktree.
 Create `.planning/<concept-slug>/` and `.tasks/<feature>/` inside the artifact worktree/root. Do not
 expect plugin files, source files, dependencies, or source validation to exist there.
 
@@ -112,17 +115,14 @@ git push -u origin feature/<feature>
 This publishes only `feature/<feature>`. It does not authorize target merge/push or sidecar cleanup.
 
 ## Sidecar Checkpoints
-Checkpoint artifacts at these lifecycle gates, not after every incidental edit:
-- after Conceptualize completes and before implementation planning;
-- after accepted review-plan and before implementation;
-- after each package delivery, as part of the WP merge/push boundary after proof/report updates;
-- after final integrated review/audit acceptance and before target merge/cleanup.
+Checkpoint at the accepted gates owned by `../../references/artifact-store.md` (post-Conceptualize,
+post-review-plan, each package delivery, final review/audit), never after every incidental edit.
 
 From the artifact worktree only:
 ```bash
 cd "$PROJECT_ROOT/.worktrees/<feature>/artifacts"
 git status --short
-git add -A
+git add -A   # artifact worktree is a dedicated orphan checkout: only .planning/.tasks live here
 if ! git diff --cached --quiet; then git commit -m "artifacts: <feature> <gate>"; fi
 git push -u origin artifacts/<feature>
 ```

@@ -29,7 +29,7 @@ Before dispatching a package, create the declared proof placeholder:
 
 ```bash
 python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" create-proof \
-  --artifact-root ".worktrees/<feature>/artifacts" --code-root "." \
+  --artifact-root "$ARTIFACT_ROOT" --code-root "$CODE_ROOT" \
   ".tasks/<feature>/tasks.json" --package WP1
 ```
 
@@ -58,7 +58,7 @@ When a package agent returns, run:
 
 ```bash
 python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-proof \
-  --artifact-root ".worktrees/<feature>/artifacts" --code-root "." \
+  --artifact-root "$ARTIFACT_ROOT" --code-root "$CODE_ROOT" \
   ".tasks/<feature>/tasks.json" --package WP1
 ```
 
@@ -82,7 +82,7 @@ Run the pre-done helper as:
 
 ```bash
 python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-package-complete \
-  --artifact-root ".worktrees/<feature>/artifacts" --code-root "." \
+  --artifact-root "$ARTIFACT_ROOT" --code-root "$CODE_ROOT" \
   ".tasks/<feature>/tasks.json" --package <WP-ID>
 ```
 
