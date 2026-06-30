@@ -95,9 +95,11 @@ python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" emit-state-binding
 ```
 
 `Assigned Slice Digests` is one parser-safe line of `path|tier|H3-ID=sha256:<64-hex>` entries separated
-by `; `, sorted by Slice path, then `must_satisfy` before `context_only`, then H3 ID. `Matrix Source
-Snapshot` covers package Markdown plus `must_satisfy` section blocks only; `context_only` sections live
-only in `Assigned Slice Digests`. Missing, extra, duplicate, malformed, unknown-path/H3, invalid-tier,
+by `; `, sorted by Slice path, then `must_satisfy` before `context_only`, then H3 ID. Assigned Slice paths
+used in this grammar must not contain `|`, `=`, or the delimiter sequence `; `; helper validation fails
+closed before emitting or accepting a binding when an assigned path contains those grammar delimiters.
+`Matrix Source Snapshot` covers package Markdown plus `must_satisfy` section blocks only; `context_only`
+sections live only in `Assigned Slice Digests`. Missing, extra, duplicate, malformed, unknown-path/H3, invalid-tier,
 invalid-digest, or encoded-tier-mismatch entries fail closed before drift classification. Valid
 `context_only` digest drift emits a non-blocking `context_only_slice_drift` advisory; `must_satisfy`
 drift remains a hard freshness error.

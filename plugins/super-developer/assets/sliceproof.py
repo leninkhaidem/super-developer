@@ -136,6 +136,7 @@ REQUIRED_STATE_BINDING_FIELDS = set(STATE_BINDING_FIELD_ORDER)
 SLICE_DIGEST_TIERS = ("must_satisfy", "context_only")
 SLICE_DIGEST_TIER_ORDER = {tier: index for index, tier in enumerate(SLICE_DIGEST_TIERS)}
 SLICE_DIGEST_ADVISORY_TYPE = "context_only_slice_drift"
+STATE_BINDING_ASSIGNED_SLICE_PATH_DELIMITERS = ("|", "=", "; ")
 SEMGREP_EVIDENCE_FIELDS = {"Status", "Raw Path", "Raw Digest", "Summary Path", "Summary Digest", "Scan Scope", "Bounded Summary"}
 SEMGREP_ENABLED_STATUSES = {"enabled", "contracted"}
 SEMGREP_DISABLED_STATUSES = {"disabled", "not-contracted", "not contracted"}
@@ -948,6 +949,9 @@ def validate_package_markdown(registry: Registry, package: RegistryPackage, pack
     slice_titles_cache: dict[str, dict[str, str]] = {}
     seen_required_ids: set[str] = set()
     for ref in package_md.slice_refs:
+        delimiter_error = state_binding_assigned_slice_path_error(ref.path, f"{package.path}: assigned Slice {ref.path!r}")
+        if delimiter_error:
+            errors.append(delimiter_error)
         try:
             resolved = resolve_safe_path(
                 registry.root,
@@ -2240,9 +2244,29 @@ def is_report_section_placeholder_body(body: str) -> bool:
     return not body.strip() or is_placeholder_text(body)
 
 
+def state_binding_assigned_slice_path_error(path_value: str, label: str) -> str | None:
+    if any(delimiter in path_value for delimiter in STATE_BINDING_ASSIGNED_SLICE_PATH_DELIMITERS):
+        return (
+            f"{label}: State Binding Assigned Slice path must not contain '|', '=', or '; ' because "
+            "Assigned Slice Digests uses path|tier|H3-ID=sha256:<64-hex> entries separated by '; '"
+        )
+    return None
+
+
+def enforce_state_binding_assigned_slice_paths(package_md: PackageMarkdown) -> None:
+    errors = [
+        error
+        for ref in package_md.slice_refs
+        if (error := state_binding_assigned_slice_path_error(ref.path, f"assigned Slice {ref.path!r}"))
+    ]
+    if errors:
+        raise SliceproofError(errors)
+
+
 def assigned_slices_binding(package_md: PackageMarkdown) -> str:
     if not package_md.slice_refs:
         return "none"
+    enforce_state_binding_assigned_slice_paths(package_md)
     return ", ".join(sorted(ref.path for ref in package_md.slice_refs))
 
 
@@ -2262,6 +2286,7 @@ def assigned_slice_digest_entries(
     *,
     tiers: tuple[str, ...] = SLICE_DIGEST_TIERS,
 ) -> list[SliceDigestEntry]:
+    enforce_state_binding_assigned_slice_paths(package_md)
     assignments = assigned_slice_h3_assignments(package_md)
     if not assignments:
         return []

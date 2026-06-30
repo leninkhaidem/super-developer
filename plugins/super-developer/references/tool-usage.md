@@ -76,6 +76,7 @@ python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" create-proof \
 
 - lightweight registry shape;
 - safe repo-relative SPEC, Slice, package, proof, and report paths;
+- State Binding grammar delimiter rejection (`|`, `=`, `; `) for assigned Slice paths;
 - package dependency references and cycles;
 - package Markdown required sections;
 - package Markdown proof/report/dependency references;

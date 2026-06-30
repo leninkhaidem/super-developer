@@ -404,6 +404,8 @@ class SkillPromptSurfaceTests(unittest.TestCase):
             "--verified-at",
             "path|tier|H3-ID=sha256:<64-hex>",
             "entries separated by `; `",
+            "must not contain `|`, `=`, or the delimiter sequence `; `",
+            "grammar delimiters",
             "must_satisfy section blocks only",
             "context_only_slice_drift",
             "fail closed before drift classification",
@@ -415,6 +417,7 @@ class SkillPromptSurfaceTests(unittest.TestCase):
             "return JSON on stdout",
             "return JSON on stderr with `errors` and a top-level `advisories` array",
             "`validate-final` aggregates advisories across packages",
+            "State Binding grammar delimiter rejection",
             "the verifier computes no digests",
         ]:
             self.assertIn(token, tool_compact)

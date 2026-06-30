@@ -1521,6 +1521,58 @@ class SliceproofTests(unittest.TestCase):
             "\n".join(json.loads(result.stderr)["errors"]),
         )
 
+    def test_assigned_slice_paths_with_state_binding_delimiters_fail_before_emit(self) -> None:
+        cases = [
+            ("pipe", ".planning/fixture/slices/helper|pipe.md", "|"),
+            ("equals", ".planning/fixture/slices/helper=equals.md", "="),
+            ("entry delimiter", ".planning/fixture/slices/helper; delimiter.md", "; "),
+        ]
+        for name, slice_rel, delimiter in cases:
+            with self.subTest(name=name):
+                fixture = SliceproofFixture()
+                try:
+                    new_slice = fixture.artifact_root / slice_rel
+                    new_slice.parent.mkdir(parents=True, exist_ok=True)
+                    new_slice.write_text(fixture.slice_text(), encoding="utf-8")
+                    plan = fixture.plan()
+                    plan["authoritative_slices"] = [slice_rel]
+                    fixture.write_plan(plan)
+                    fixture.package_path.write_text(
+                        fixture.package_text().replace(".planning/fixture/slices/helper.md", slice_rel),
+                        encoding="utf-8",
+                    )
+                    fixture.proof_path.write_text(fixture.completed_proof(), encoding="utf-8")
+
+                    plan_result = fixture.run("validate-plan", str(fixture.tasks_path))
+                    self.assertNotEqual(0, plan_result.returncode, plan_result.stdout + plan_result.stderr)
+                    plan_errors = "\n".join(json.loads(plan_result.stderr)["errors"])
+                    self.assertIn("State Binding Assigned Slice path must not contain", plan_errors)
+                    self.assertIn("path|tier|H3-ID=sha256:<64-hex>", plan_errors)
+                    self.assertIn(delimiter, plan_errors)
+
+                    emit = fixture.run(
+                        "emit-state-binding",
+                        str(fixture.tasks_path),
+                        "--package",
+                        "WP1",
+                        "--worktree",
+                        str(fixture.repo.resolve(strict=False)),
+                        "--git-ref",
+                        "wp/fixture/WP1",
+                        "--commit",
+                        REPORT_COMMIT,
+                        "--verified-at",
+                        "2026-06-04T00:00:00Z",
+                    )
+                    self.assertNotEqual(0, emit.returncode, emit.stdout + emit.stderr)
+                    self.assertEqual("", emit.stdout)
+                    self.assertIn(
+                        "State Binding Assigned Slice path must not contain",
+                        "\n".join(json.loads(emit.stderr)["errors"]),
+                    )
+                finally:
+                    fixture.cleanup()
+
     def test_two_tier_gate_emits_context_advisories_and_blocks_must_satisfy_drift(self) -> None:
         proof = self.fixture.completed_proof()
         self.fixture.proof_path.write_text(proof, encoding="utf-8")
