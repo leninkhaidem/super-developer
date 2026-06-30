@@ -12,8 +12,7 @@ should be passed directly to package verifiers.
 ## Artifact Set
 
 Planned-feature state is file-based and Slice-first. Paths below are artifact-root-relative unless a
-legacy/current-root artifact store is explicitly selected; code, plugin, and test paths resolve under the
-code root.
+current-root artifact store is explicitly selected; code, plugin, and test paths resolve under the code root.
 
 - `.planning/<concept-slug>/slices/*.md` — authoritative product/design Slices when present.
 - `.tasks/<feature>/SPEC.md` — accepted requirements, constraints, non-goals, Slice inventory, and package-level verification summary.
@@ -126,7 +125,7 @@ Canonical source body starts with `## Package Verification: <WP-ID>` and include
 
 Matrix rows cover assigned `Must satisfy` Slice H3 IDs, package verification expectations as stable `VE-<n>` rows, and verifier-selected triggered risks as explicit `RISK-<...>` rows. Clean completion requires every mandatory row to be `delivered` with structurally valid non-placeholder code/test/static/command/manual evidence refs. Dirty verdicts (`missing`, `partial`, `contradicted`, `unverified`) block completion; `### Slice Closure Review` or proof prose alone is insufficient. Helpers validate structure, source bindings, clean verdicts, and evidence-anchor shape only; verifiers and final auditors judge semantic truthfulness.
 
-Append `## State Binding` with package path, package Markdown digest, proof path/digest, assigned Slice paths and digests or equivalent matrix-source snapshot, reviewed worktree/ref/commit, and timestamp. See `plugins/super-developer/references/package-verification-report.md` for the full report template and evidence-ref grammar. If proof content, source inputs, cited evidence, or reviewed implementation state changes after the report, freshness is lost until a new source report/state binding is produced. The old H1 / `## Verification Result` replacement shape is not canonical.
+Append `## State Binding` from `emit-state-binding` with package path, package Markdown digest, proof path/digest, assigned Slice paths, section-scoped tier-aware `Assigned Slice Digests` (`path|tier|H3-ID=sha256:<64-hex>` entries separated by `; `, or `none`), `Matrix Source Snapshot` over package Markdown plus `must_satisfy` section blocks only, reviewed worktree/ref/commit, and timestamp. See `plugins/super-developer/references/package-verification-report.md` for the full report template, evidence-ref grammar, malformed-binding fail-closed rules, and `context_only_slice_drift` advisory disposition. If proof content, hard-tier source inputs, cited evidence, or reviewed implementation state changes after the report, freshness is lost until a new source report/state binding is produced; advisory-only `context_only` drift is non-blocking by default and routed through affected-surface classification.
 
 ## Review-Code Governance State
 

@@ -6,6 +6,19 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [v1.34.1] - 2026-06-30
+
+### Added
+- Added section-scoped Slice freshness so package verification reports bind only to referenced Slice H3 sections instead of whole Slice files, reducing unnecessary re-verification when unrelated sections change.
+- Added `emit-state-binding` to generate canonical package report State Binding metadata for verifiers to paste without hand-computing digests.
+
+### Changed
+- Changed State Binding validation to distinguish `must_satisfy` section drift as a hard failure from `context_only` section drift as a non-blocking advisory surfaced through helper JSON output.
+- Changed package verification, lifecycle, tool usage, review-code, and audit guidance to describe the section-scoped binding format and advisory routing.
+
+### Fixed
+- Fixed State Binding grammar handling so assigned Slice paths containing binding delimiters fail closed before the helper can emit an unparseable report binding.
+
 ## [v1.34.0] - 2026-06-29
 
 ### Added

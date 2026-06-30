@@ -118,7 +118,7 @@ TRIGGERED_RISK_GENERIC_TOKENS = {
     "with",
 }
 EVIDENCE_REF_PREFIX_RE = re.compile(r"(?:^|;\s*)(code|test|static|command|manual):")
-REQUIRED_STATE_BINDING_FIELDS = {
+STATE_BINDING_FIELD_ORDER = [
     "Package",
     "Package Markdown",
     "Package Markdown Digest",
@@ -131,7 +131,12 @@ REQUIRED_STATE_BINDING_FIELDS = {
     "Git Ref",
     "Commit",
     "Verified At",
-}
+]
+REQUIRED_STATE_BINDING_FIELDS = set(STATE_BINDING_FIELD_ORDER)
+SLICE_DIGEST_TIERS = ("must_satisfy", "context_only")
+SLICE_DIGEST_TIER_ORDER = {tier: index for index, tier in enumerate(SLICE_DIGEST_TIERS)}
+SLICE_DIGEST_ADVISORY_TYPE = "context_only_slice_drift"
+STATE_BINDING_ASSIGNED_SLICE_PATH_DELIMITERS = ("|", "=", "; ")
 SEMGREP_EVIDENCE_FIELDS = {"Status", "Raw Path", "Raw Digest", "Summary Path", "Summary Digest", "Scan Scope", "Bounded Summary"}
 SEMGREP_ENABLED_STATUSES = {"enabled", "contracted"}
 SEMGREP_DISABLED_STATUSES = {"disabled", "not-contracted", "not contracted"}
@@ -202,9 +207,29 @@ FORBIDDEN_REGISTRY_KEYS = {
 
 
 class SliceproofError(Exception):
-    def __init__(self, errors: list[str]) -> None:
+    def __init__(self, errors: list[str], advisories: list[dict[str, Any]] | None = None) -> None:
         super().__init__("\n".join(errors))
         self.errors = errors
+        self.advisories = advisories or []
+
+
+@dataclass(frozen=True)
+class RawText:
+    text: str
+
+
+@dataclass(frozen=True)
+class ReportValidationResult:
+    errors: list[str]
+    advisories: list[dict[str, Any]]
+
+
+@dataclass(frozen=True)
+class SliceDigestEntry:
+    path: str
+    tier: str
+    h3_id: str
+    digest: str
 
 
 @dataclass(frozen=True)
@@ -282,11 +307,22 @@ def main(argv: list[str] | None = None) -> int:
     try:
         result = args.func(args)
     except SliceproofError as exc:
-        write_json(sys.stderr, {"ok": False, "command": args.command, "errors": exc.errors})
+        payload: dict[str, Any] = {"ok": False, "command": args.command, "errors": exc.errors}
+        if args.command in {"validate-package-complete", "validate-final"} or exc.advisories:
+            payload["advisories"] = exc.advisories
+        write_json(sys.stderr, payload)
         return 1
     except (OSError, UnicodeError) as exc:
-        write_json(sys.stderr, {"ok": False, "command": args.command, "errors": [f"{args.command}: I/O error: {exc}"]})
+        payload = {"ok": False, "command": args.command, "errors": [f"{args.command}: I/O error: {exc}"]}
+        if args.command in {"validate-package-complete", "validate-final"}:
+            payload["advisories"] = []
+        write_json(sys.stderr, payload)
         return 1
+    if isinstance(result, RawText):
+        sys.stdout.write(result.text)
+        if not result.text.endswith("\n"):
+            sys.stdout.write("\n")
+        return 0
     write_json(sys.stdout, {"ok": True, "command": args.command, **result})
     return 0
 
@@ -353,6 +389,19 @@ def build_parser() -> argparse.ArgumentParser:
     )
     validate_final.add_argument("tasks", type=Path, help="Path to .tasks/<feature>/tasks.json under the artifact root.")
     validate_final.set_defaults(func=cmd_validate_final)
+
+    emit_state_binding = subparsers.add_parser(
+        "emit-state-binding",
+        parents=[root_options],
+        help="Emit the canonical State Binding block for a package verification report.",
+    )
+    emit_state_binding.add_argument("tasks", type=Path, help="Path to .tasks/<feature>/tasks.json under the artifact root.")
+    emit_state_binding.add_argument("--package", required=True, help="Work package id, for example WP1.")
+    emit_state_binding.add_argument("--worktree", required=True, help="Absolute reviewed worktree path to write into the binding.")
+    emit_state_binding.add_argument("--git-ref", required=True, help="Reviewed git ref to write into the binding.")
+    emit_state_binding.add_argument("--commit", required=True, help="Reviewed commit SHA to write into the binding.")
+    emit_state_binding.add_argument("--verified-at", required=True, help="ISO-8601 verification timestamp to write into the binding.")
+    emit_state_binding.set_defaults(func=cmd_emit_state_binding)
     return parser
 
 
@@ -472,7 +521,7 @@ def cmd_validate_proof(args: argparse.Namespace) -> dict[str, Any]:
 def cmd_validate_package_complete(args: argparse.Namespace) -> dict[str, Any]:
     state = load_package_state(args.tasks, args.package, artifact_root=args.artifact_root, code_root=args.code_root)
     errors = validate_proof_markdown(state.proof_path, state.package_md)
-    report_errors = validate_report_markdown(
+    report_result = validate_report_markdown(
         state.report_path,
         state.package,
         state.package_md,
@@ -481,9 +530,9 @@ def cmd_validate_package_complete(args: argparse.Namespace) -> dict[str, Any]:
         state.registry.code_root,
         state.registry.feature,
     )
-    errors.extend(report_errors)
+    errors.extend(report_result.errors)
     if errors:
-        raise SliceproofError(errors)
+        raise SliceproofError(errors, report_result.advisories)
     return {
         "package": state.package.package_id,
         "package_status": state.package.status,
@@ -491,12 +540,38 @@ def cmd_validate_package_complete(args: argparse.Namespace) -> dict[str, Any]:
         "report_path": state.package.report_path,
         "required_slice_rows": state.package_md.must_satisfy_ids,
         "verification_expectation_rows": [f"VE-{index}" for index in range(1, len(state.package_md.verification_expectations) + 1)],
+        "advisories": report_result.advisories,
     }
+
+
+def cmd_emit_state_binding(args: argparse.Namespace) -> RawText:
+    state = load_package_state(args.tasks, args.package, artifact_root=args.artifact_root, code_root=args.code_root)
+    runtime_errors = validate_state_binding_runtime_metadata(
+        "emit-state-binding",
+        args.worktree,
+        args.git_ref,
+        args.commit,
+        args.verified_at,
+    )
+    if runtime_errors:
+        raise SliceproofError(runtime_errors)
+    values = state_binding_values(
+        state.registry.root,
+        state.package,
+        state.package_md,
+        state.proof_path,
+        worktree=args.worktree,
+        git_ref=args.git_ref,
+        commit=args.commit,
+        verified_at=args.verified_at,
+    )
+    return RawText(render_state_binding_block(values))
 
 
 def cmd_validate_final(args: argparse.Namespace) -> dict[str, Any]:
     registry, packages = load_and_validate_plan(args.tasks, artifact_root=args.artifact_root, code_root=args.code_root)
     errors: list[str] = []
+    advisories: list[dict[str, Any]] = []
     validated_reports: list[str] = []
     for package in registry.packages:
         package_md = packages[package.package_id]
@@ -517,7 +592,7 @@ def cmd_validate_final(args: argparse.Namespace) -> dict[str, Any]:
             root_label="artifact root",
         )
         errors.extend(validate_proof_markdown(proof_path, package_md))
-        report_errors = validate_report_markdown(
+        report_result = validate_report_markdown(
             report_path,
             package,
             package_md,
@@ -526,16 +601,18 @@ def cmd_validate_final(args: argparse.Namespace) -> dict[str, Any]:
             registry.code_root,
             registry.feature,
         )
-        if not report_errors:
+        advisories.extend(report_result.advisories)
+        if not report_result.errors:
             validated_reports.append(package.report_path)
-        errors.extend(report_errors)
+        errors.extend(report_result.errors)
     if errors:
-        raise SliceproofError(errors)
+        raise SliceproofError(errors, advisories)
     return {
         "feature": registry.feature,
         "packages": [package.package_id for package in registry.packages],
         "proofs_validated": [package.proof_path for package in registry.packages],
         "reports_validated": validated_reports,
+        "advisories": advisories,
     }
 
 
@@ -872,6 +949,9 @@ def validate_package_markdown(registry: Registry, package: RegistryPackage, pack
     slice_titles_cache: dict[str, dict[str, str]] = {}
     seen_required_ids: set[str] = set()
     for ref in package_md.slice_refs:
+        delimiter_error = state_binding_assigned_slice_path_error(ref.path, f"{package.path}: assigned Slice {ref.path!r}")
+        if delimiter_error:
+            errors.append(delimiter_error)
         try:
             resolved = resolve_safe_path(
                 registry.root,
@@ -906,7 +986,9 @@ def validate_package_markdown(registry: Registry, package: RegistryPackage, pack
                         errors.append(f"{package.path}: duplicate required Slice ID {slice_id!r} across assignment")
                     seen_required_ids.add(slice_id)
                 if slice_id not in slice_titles_cache[ref.path]:
-                    errors.append(f"{package.path}: {kind} ID {slice_id!r} not found as H3 in {ref.path}")
+                    errors.append(
+                        f"{package.path}: {kind} assigned H3 '{slice_id}' not found in Slice '{ref.path}' (not found as H3)"
+                    )
     return errors
 
 
@@ -1298,9 +1380,9 @@ def validate_report_markdown(
     root: Path,
     code_root: Path,
     feature: str,
-) -> list[str]:
+) -> ReportValidationResult:
     if not report_path.is_file():
-        return [f"report: file not found: {report_path}"]
+        return ReportValidationResult([f"report: file not found: {report_path}"], [])
     text = read_text_file(report_path, f"package verification report {report_path}")
     errors: list[str] = []
     sections = split_h2_sections(text)
@@ -1321,8 +1403,8 @@ def validate_report_markdown(
             errors.append(f"{report_path}: missing required section ## {source_section}")
     if "State Binding" not in sections:
         errors.append(f"{report_path}: missing required section ## State Binding")
-    if errors:
-        return errors
+    if source_section not in sections or "State Binding" not in sections:
+        return ReportValidationResult(errors, [])
 
     source_h3 = split_h3_sections(sections[source_section])
     source_h3_names = h3_order(sections[source_section])
@@ -1387,10 +1469,11 @@ def validate_report_markdown(
         if not is_empty_gaps_deviations_section(open_findings):
             errors.append(f"{report_path}: ## Open Findings must be '- None.' for final validation")
 
-    errors.extend(validate_report_state_binding(report_path, root, package, package_md, proof_path, sections["State Binding"]))
+    state_result = validate_report_state_binding(report_path, root, package, package_md, proof_path, sections["State Binding"])
+    errors.extend(state_result.errors)
     if "Semgrep Evidence" in sections:
         errors.extend(validate_semgrep_evidence_binding(report_path, root, feature, package, sections["Semgrep Evidence"]))
-    return errors
+    return ReportValidationResult(errors, state_result.advisories)
 
 
 def source_report_verdict(body: str) -> str:
@@ -2036,44 +2119,56 @@ def validate_report_state_binding(
     package_md: PackageMarkdown,
     proof_path: Path,
     body: str,
-) -> list[str]:
+) -> ReportValidationResult:
     errors: list[str] = []
+    advisories: list[dict[str, Any]] = []
     binding = parse_key_values(body)
     for field in sorted(REQUIRED_STATE_BINDING_FIELDS - set(binding)):
         errors.append(f"{report_path}: ## State Binding missing {field!r}")
     if errors:
-        return errors
+        return ReportValidationResult(errors, advisories)
 
-    expected_assigned_slices = assigned_slices_binding(package_md)
-    expected_slice_digests = assigned_slice_digests_binding(root, package_md)
-    for field in sorted(REQUIRED_STATE_BINDING_FIELDS):
+    expected_values = state_binding_values(
+        root,
+        package,
+        package_md,
+        proof_path,
+        worktree=clean_cell_id(binding["Worktree"]),
+        git_ref=clean_cell_id(binding["Git Ref"]),
+        commit=clean_cell_id(binding["Commit"]),
+        verified_at=clean_cell_id(binding["Verified At"]),
+    )
+    for field in STATE_BINDING_FIELD_ORDER:
         value = clean_cell_id(binding[field])
-        if field == "Assigned Slices" and expected_assigned_slices == "none" and value == "none":
-            continue
-        if field == "Assigned Slice Digests" and expected_slice_digests == "none" and value == "none":
+        if field in {"Assigned Slices", "Assigned Slice Digests"} and expected_values[field] == "none" and value == "none":
             continue
         if is_report_binding_placeholder_text(value):
             errors.append(f"{report_path}: State Binding {field} must be non-placeholder")
 
-    if clean_cell_id(binding["Package"]) != package.package_id:
+    if clean_cell_id(binding["Package"]) != expected_values["Package"]:
         errors.append(f"{report_path}: State Binding Package must be {package.package_id}")
-    if normalize_path_value(binding["Package Markdown"]) != package.path:
+    if normalize_path_value(binding["Package Markdown"]) != expected_values["Package Markdown"]:
         errors.append(f"{report_path}: State Binding Package Markdown must be {package.path}")
-    package_path = resolve_safe_path(root, package.path, f"work_packages[{package.package_id}].path", expected_suffix=".md", must_exist_file=True)
-    actual_package_digest = digest_text(read_text_file(package_path, f"package Markdown {package_path}"))
-    if clean_cell_id(binding["Package Markdown Digest"]) != actual_package_digest:
+    if clean_cell_id(binding["Package Markdown Digest"]) != expected_values["Package Markdown Digest"]:
         errors.append(f"{report_path}: State Binding Package Markdown Digest does not match current package Markdown content")
-    if normalize_path_value(binding["Proof"]) != package.proof_path:
+    if normalize_path_value(binding["Proof"]) != expected_values["Proof"]:
         errors.append(f"{report_path}: State Binding Proof must be {package.proof_path}")
-    actual_digest = digest_text(read_text_file(proof_path, f"proof {proof_path}"))
-    if clean_cell_id(binding["Proof Digest"]) != actual_digest:
+    if clean_cell_id(binding["Proof Digest"]) != expected_values["Proof Digest"]:
         errors.append(f"{report_path}: State Binding Proof Digest does not match current proof content")
-    if clean_cell_id(binding["Assigned Slices"]) != expected_assigned_slices:
-        errors.append(f"{report_path}: State Binding Assigned Slices must be {expected_assigned_slices}")
-    if clean_cell_id(binding["Assigned Slice Digests"]) != expected_slice_digests:
-        errors.append(f"{report_path}: State Binding Assigned Slice Digests do not match current assigned Slice content")
-    expected_snapshot = matrix_source_snapshot_binding(root, package, package_md)
-    if clean_cell_id(binding["Matrix Source Snapshot"]) != expected_snapshot:
+    if clean_cell_id(binding["Assigned Slices"]) != expected_values["Assigned Slices"]:
+        errors.append(f"{report_path}: State Binding Assigned Slices must be {expected_values['Assigned Slices']}")
+
+    digest_result = validate_assigned_slice_digest_binding(
+        report_path,
+        package.package_id,
+        clean_cell_id(binding["Assigned Slice Digests"]),
+        root,
+        package_md,
+    )
+    errors.extend(digest_result.errors)
+    advisories.extend(digest_result.advisories)
+
+    if clean_cell_id(binding["Matrix Source Snapshot"]) != expected_values["Matrix Source Snapshot"]:
         errors.append(f"{report_path}: State Binding Matrix Source Snapshot does not match current package/Slice source content")
     worktree = clean_cell_id(binding["Worktree"])
     if not Path(worktree).is_absolute():
@@ -2083,6 +2178,65 @@ def validate_report_state_binding(
         errors.append(f"{report_path}: State Binding Commit must look like a git commit")
     if not is_iso8601(clean_cell_id(binding["Verified At"])):
         errors.append(f"{report_path}: State Binding Verified At must be ISO-8601")
+    return ReportValidationResult(errors, advisories)
+
+
+def state_binding_values(
+    root: Path,
+    package: RegistryPackage,
+    package_md: PackageMarkdown,
+    proof_path: Path,
+    *,
+    worktree: str,
+    git_ref: str,
+    commit: str,
+    verified_at: str,
+) -> dict[str, str]:
+    package_path = resolve_safe_path(root, package.path, f"work_packages[{package.package_id}].path", expected_suffix=".md", must_exist_file=True)
+    package_text = read_text_file(package_path, f"package Markdown {package_path}")
+    proof_text = read_text_file(proof_path, f"proof {proof_path}")
+    return {
+        "Package": package.package_id,
+        "Package Markdown": package.path,
+        "Package Markdown Digest": digest_text(package_text),
+        "Proof": package.proof_path,
+        "Proof Digest": digest_text(proof_text),
+        "Assigned Slices": assigned_slices_binding(package_md),
+        "Assigned Slice Digests": assigned_slice_digests_binding(root, package_md),
+        "Matrix Source Snapshot": matrix_source_snapshot_binding(root, package, package_md),
+        "Worktree": worktree,
+        "Git Ref": git_ref,
+        "Commit": commit,
+        "Verified At": verified_at,
+    }
+
+
+def render_state_binding_block(values: dict[str, str]) -> str:
+    lines = [
+        "## State Binding",
+        "Helper/package-lifecycle metadata; the source report body above remains canonical.",
+    ]
+    for field in STATE_BINDING_FIELD_ORDER:
+        lines.append(f"- {field}: `{values[field]}`")
+    return "\n".join(lines) + "\n"
+
+
+def validate_state_binding_runtime_metadata(
+    command: str,
+    worktree: str,
+    git_ref: str,
+    commit: str,
+    verified_at: str,
+) -> list[str]:
+    errors: list[str] = []
+    if not Path(worktree).is_absolute():
+        errors.append(f"{command}: --worktree must be an absolute reviewed worktree path")
+    if is_report_binding_placeholder_text(git_ref):
+        errors.append(f"{command}: --git-ref must be non-placeholder")
+    if not COMMIT_RE.fullmatch(commit):
+        errors.append(f"{command}: --commit must look like a git commit")
+    if not is_iso8601(verified_at):
+        errors.append(f"{command}: --verified-at must be ISO-8601")
     return errors
 
 
@@ -2090,28 +2244,213 @@ def is_report_section_placeholder_body(body: str) -> bool:
     return not body.strip() or is_placeholder_text(body)
 
 
+def state_binding_assigned_slice_path_error(path_value: str, label: str) -> str | None:
+    if any(delimiter in path_value for delimiter in STATE_BINDING_ASSIGNED_SLICE_PATH_DELIMITERS):
+        return (
+            f"{label}: State Binding Assigned Slice path must not contain '|', '=', or '; ' because "
+            "Assigned Slice Digests uses path|tier|H3-ID=sha256:<64-hex> entries separated by '; '"
+        )
+    return None
+
+
+def enforce_state_binding_assigned_slice_paths(package_md: PackageMarkdown) -> None:
+    errors = [
+        error
+        for ref in package_md.slice_refs
+        if (error := state_binding_assigned_slice_path_error(ref.path, f"assigned Slice {ref.path!r}"))
+    ]
+    if errors:
+        raise SliceproofError(errors)
+
+
 def assigned_slices_binding(package_md: PackageMarkdown) -> str:
     if not package_md.slice_refs:
         return "none"
+    enforce_state_binding_assigned_slice_paths(package_md)
     return ", ".join(sorted(ref.path for ref in package_md.slice_refs))
 
 
 def assigned_slice_digests_binding(root: Path, package_md: PackageMarkdown) -> str:
-    if not package_md.slice_refs:
+    return format_assigned_slice_digest_entries(assigned_slice_digest_entries(root, package_md))
+
+
+def format_assigned_slice_digest_entries(entries: list[SliceDigestEntry]) -> str:
+    if not entries:
         return "none"
-    entries: list[str] = []
-    for path_value in sorted({ref.path for ref in package_md.slice_refs}):
+    return "; ".join(f"{entry.path}|{entry.tier}|{entry.h3_id}={entry.digest}" for entry in entries)
+
+
+def assigned_slice_digest_entries(
+    root: Path,
+    package_md: PackageMarkdown,
+    *,
+    tiers: tuple[str, ...] = SLICE_DIGEST_TIERS,
+) -> list[SliceDigestEntry]:
+    enforce_state_binding_assigned_slice_paths(package_md)
+    assignments = assigned_slice_h3_assignments(package_md)
+    if not assignments:
+        return []
+    entries: list[SliceDigestEntry] = []
+    errors: list[str] = []
+    for path_value in sorted(assignments):
         slice_path = resolve_safe_path(root, path_value, f"assigned Slice {path_value!r}", expected_suffix=".md", must_exist_file=True)
-        entries.append(f"{path_value}={digest_text(read_text_file(slice_path, f'Slice {slice_path}'))}")
-    return "; ".join(entries)
+        blocks = extract_slice_h3_blocks(slice_path)
+        for tier in tiers:
+            for h3_id in sorted(assignments[path_value][tier]):
+                block = blocks.get(h3_id)
+                if block is None:
+                    errors.append(f"assigned H3 '{h3_id}' not found in Slice '{path_value}'")
+                    continue
+                entries.append(SliceDigestEntry(path_value, tier, h3_id, digest_text(block)))
+    if errors:
+        raise SliceproofError(errors)
+    return entries
+
+
+def assigned_slice_h3_assignments(package_md: PackageMarkdown) -> dict[str, dict[str, set[str]]]:
+    assignments: dict[str, dict[str, set[str]]] = {}
+    for ref in package_md.slice_refs:
+        path_assignments = assignments.setdefault(ref.path, {tier: set() for tier in SLICE_DIGEST_TIERS})
+        path_assignments["must_satisfy"].update(ref.must_satisfy)
+        path_assignments["context_only"].update(ref.context_only)
+    return assignments
+
+
+def validate_assigned_slice_digest_binding(
+    report_path: Path,
+    package_id: str,
+    actual_value: str,
+    root: Path,
+    package_md: PackageMarkdown,
+) -> ReportValidationResult:
+    expected_entries = assigned_slice_digest_entries(root, package_md)
+    if not expected_entries:
+        if actual_value == "none":
+            return ReportValidationResult([], [])
+        return ReportValidationResult([f"{report_path}: State Binding Assigned Slice Digests must be none"], [])
+
+    expected_by_key = {(entry.path, entry.tier, entry.h3_id): entry.digest for entry in expected_entries}
+    expected_keys = set(expected_by_key)
+    parsed_entries, structural_errors = parse_assigned_slice_digest_entries(report_path, actual_value, package_md)
+    if structural_errors:
+        return ReportValidationResult(structural_errors, [])
+
+    actual_keys = [(entry.path, entry.tier, entry.h3_id) for entry in parsed_entries]
+    missing = sorted(expected_keys - set(actual_keys), key=slice_digest_key_sort)
+    extra = sorted(set(actual_keys) - expected_keys, key=slice_digest_key_sort)
+    for path_value, tier, h3_id in missing:
+        structural_errors.append(f"{report_path}: State Binding Assigned Slice Digests missing entry for {path_value}|{tier}|{h3_id}")
+    for path_value, tier, h3_id in extra:
+        structural_errors.append(f"{report_path}: State Binding Assigned Slice Digests extra entry for {path_value}|{tier}|{h3_id}")
+    if actual_keys != sorted(actual_keys, key=slice_digest_key_sort):
+        structural_errors.append(f"{report_path}: State Binding Assigned Slice Digests entries must be sorted by Slice path, tier, and H3 ID")
+    if structural_errors:
+        return ReportValidationResult(structural_errors, [])
+
+    errors: list[str] = []
+    drifted_context: dict[str, list[str]] = {}
+    for entry in parsed_entries:
+        expected_digest = expected_by_key[(entry.path, entry.tier, entry.h3_id)]
+        if entry.digest == expected_digest:
+            continue
+        if entry.tier == "must_satisfy":
+            errors.append(
+                f"{report_path}: State Binding must_satisfy Slice section drift for {entry.h3_id} in {entry.path}"
+            )
+        else:
+            drifted_context.setdefault(entry.path, []).append(entry.h3_id)
+    advisories = [
+        context_only_slice_drift_advisory(package_id, path_value, sorted(h3_ids))
+        for path_value, h3_ids in sorted(drifted_context.items())
+    ]
+    return ReportValidationResult(errors, advisories)
+
+
+def parse_assigned_slice_digest_entries(
+    report_path: Path,
+    value: str,
+    package_md: PackageMarkdown,
+) -> tuple[list[SliceDigestEntry], list[str]]:
+    assignments = assigned_slice_h3_assignments(package_md)
+    assigned_paths = set(assignments)
+    h3_tier_by_path: dict[str, dict[str, str]] = {}
+    for path_value, tiers in assignments.items():
+        h3_tier_by_path[path_value] = {}
+        for tier in SLICE_DIGEST_TIERS:
+            for h3_id in tiers[tier]:
+                h3_tier_by_path[path_value][h3_id] = tier
+
+    entries: list[SliceDigestEntry] = []
+    errors: list[str] = []
+    seen: set[tuple[str, str, str]] = set()
+    if value == "none":
+        return entries, [f"{report_path}: State Binding Assigned Slice Digests missing section-scoped entries"]
+    for raw_entry in value.split("; "):
+        if not raw_entry:
+            errors.append(f"{report_path}: State Binding Assigned Slice Digests contains an empty entry")
+            continue
+        if "=" not in raw_entry:
+            errors.append(f"{report_path}: State Binding Assigned Slice Digests malformed entry {raw_entry!r}")
+            continue
+        left, digest = raw_entry.split("=", 1)
+        parts = left.split("|")
+        if len(parts) != 3 or not all(parts):
+            errors.append(f"{report_path}: State Binding Assigned Slice Digests malformed entry {raw_entry!r}")
+            continue
+        path_value, tier, h3_id = parts
+        digest_valid = bool(re.fullmatch(r"sha256:[0-9a-f]{64}", digest))
+        if not digest_valid:
+            errors.append(f"{report_path}: State Binding Assigned Slice Digests invalid digest for {path_value}|{tier}|{h3_id}")
+        if path_value not in assigned_paths:
+            errors.append(f"{report_path}: State Binding Assigned Slice Digests unknown path {path_value!r}")
+        if tier not in SLICE_DIGEST_TIERS:
+            errors.append(f"{report_path}: State Binding Assigned Slice Digests invalid tier {tier!r} for {path_value}|{h3_id}")
+        elif path_value in assigned_paths:
+            expected_tier = h3_tier_by_path[path_value].get(h3_id)
+            if expected_tier is None:
+                errors.append(f"{report_path}: State Binding Assigned Slice Digests unknown H3 {h3_id!r} for {path_value}")
+            elif expected_tier != tier:
+                errors.append(
+                    f"{report_path}: State Binding Assigned Slice Digests encoded tier mismatch for {path_value}|{h3_id}: "
+                    f"binding uses {tier}, package Markdown assigns {expected_tier}"
+                )
+        key = (path_value, tier, h3_id)
+        if key in seen:
+            errors.append(f"{report_path}: State Binding Assigned Slice Digests duplicate entry for {path_value}|{tier}|{h3_id}")
+        seen.add(key)
+        if digest_valid:
+            entries.append(SliceDigestEntry(path_value, tier, h3_id, digest))
+    return entries, errors
+
+
+def slice_digest_key_sort(key: tuple[str, str, str]) -> tuple[str, int, str]:
+    path_value, tier, h3_id = key
+    return (path_value, SLICE_DIGEST_TIER_ORDER.get(tier, len(SLICE_DIGEST_TIER_ORDER)), h3_id)
+
+
+def context_only_slice_drift_advisory(package_id: str, path_value: str, h3_ids: list[str]) -> dict[str, Any]:
+    joined_ids = ", ".join(h3_ids)
+    return {
+        "type": SLICE_DIGEST_ADVISORY_TYPE,
+        "severity": "advisory",
+        "package": package_id,
+        "slice_path": path_value,
+        "tier": "context_only",
+        "h3_ids": h3_ids,
+        "message": f"context_only Slice section drift detected for {joined_ids} in {path_value}; review whether package evidence still applies.",
+    }
 
 
 def matrix_source_snapshot_binding(root: Path, package: RegistryPackage, package_md: PackageMarkdown) -> str:
     package_path = resolve_safe_path(root, package.path, f"work_packages[{package.package_id}].path", expected_suffix=".md", must_exist_file=True)
     parts = [snapshot_part(package.path, read_text_file(package_path, f"package Markdown {package_path}"))]
-    for path_value in sorted({ref.path for ref in package_md.slice_refs}):
-        slice_path = resolve_safe_path(root, path_value, f"assigned Slice {path_value!r}", expected_suffix=".md", must_exist_file=True)
-        parts.append(snapshot_part(path_value, read_text_file(slice_path, f"Slice {slice_path}")))
+    for entry in assigned_slice_digest_entries(root, package_md, tiers=("must_satisfy",)):
+        slice_path = resolve_safe_path(root, entry.path, f"assigned Slice {entry.path!r}", expected_suffix=".md", must_exist_file=True)
+        blocks = extract_slice_h3_blocks(slice_path)
+        block = blocks.get(entry.h3_id)
+        if block is None:
+            raise SliceproofError([f"assigned H3 '{entry.h3_id}' not found in Slice '{entry.path}'"])
+        parts.append(snapshot_part(f"{entry.path}|{entry.tier}|{entry.h3_id}", block))
     return digest_text("".join(parts))
 
 

@@ -65,9 +65,18 @@ Interface-bearing Slice rows must record an exactness verdict and forbidden-beha
 ## State Binding
 
 Append lifecycle metadata after the source body so helpers and final auditors can consume it without hidden
-chat context. Paths below are artifact-root-relative except `Worktree`, which is an absolute code worktree.
+chat context. Generate the block with `emit-state-binding`, paste it verbatim, and do not hand-compute
+digests. Paths below are artifact-root-relative except `Worktree`, which is an absolute code worktree.
 `Worktree` records where review happened for human/audit context; mechanical file-evidence resolution uses
-the orchestrator-supplied `--code-root`, not this field, so the two must stay consistent:
+the orchestrator-supplied `--code-root`, not this field, so the two must stay consistent.
+
+```bash
+python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" emit-state-binding \
+  --artifact-root "$ARTIFACT_ROOT" --code-root "$CODE_ROOT" \
+  ".tasks/<feature>/tasks.json" --package <WP-ID> \
+  --worktree "<absolute reviewed worktree root>" --git-ref "<reviewed branch/ref/commit>" \
+  --commit "<reviewed commit hash>" --verified-at "<ISO-8601 timestamp>"
+```
 
 ```md
 ## State Binding
@@ -77,15 +86,27 @@ the orchestrator-supplied `--code-root`, not this field, so the two must stay co
 - Proof: `.tasks/<feature>/proofs/<WP-ID>.proof.md`
 - Proof Digest: `sha256:<digest>`
 - Assigned Slices: `<comma-separated repo-relative Slice paths in lexicographic order, or none>`
-- Assigned Slice Digests: `<path>=sha256:<digest>; ...` or `none`
-- Matrix Source Snapshot: `sha256:<digest over package Markdown plus assigned Slice source content>`
+- Assigned Slice Digests: `path|tier|H3-ID=sha256:<64-hex>; ...` or `none`
+- Matrix Source Snapshot: `sha256:<digest over package Markdown plus must_satisfy section blocks only>`
 - Worktree: `<absolute reviewed worktree root>`
 - Git Ref: `<reviewed branch/ref/commit>`
 - Commit: `<reviewed commit hash>`
 - Verified At: `<ISO-8601 timestamp>`
 ```
 
-Changing package Markdown verification expectations, assigned Slice source content, proof content, cited
-verification output, artifact root selection, or reviewed code invalidates the report until refreshed.
-Optional `## Semgrep Evidence` may follow when enabled/contracted, with helper-produced artifact-root
-raw/summary paths, digests, scan scope, and bounded summary.
+`Assigned Slice Digests` is one parser-safe line of `path|tier|H3-ID=sha256:<64-hex>` entries separated
+by `; `, sorted by Slice path, then `must_satisfy` before `context_only`, then H3 ID. Assigned Slice paths
+used in this grammar must not contain `|`, `=`, or the delimiter sequence `; `; helper validation fails
+closed before emitting or accepting a binding when an assigned path contains those grammar delimiters.
+`Matrix Source Snapshot` covers package Markdown plus `must_satisfy` section blocks only; `context_only`
+sections live only in `Assigned Slice Digests`. Missing, extra, duplicate, malformed, unknown-path/H3, invalid-tier,
+invalid-digest, or encoded-tier-mismatch entries fail closed before drift classification. Valid
+`context_only` digest drift emits a non-blocking `context_only_slice_drift` advisory; `must_satisfy`
+drift remains a hard freshness error.
+
+Changing package Markdown verification expectations, assigned `must_satisfy` section content, proof
+content, cited verification output, artifact root selection, or reviewed code invalidates the report until
+refreshed. `context_only` section drift is routed as an advisory for affected-surface classification unless
+reviewer/auditor judgment escalates material risk. Optional `## Semgrep Evidence` may follow when
+enabled/contracted, with helper-produced artifact-root raw/summary paths, digests, scan scope, and bounded
+summary.

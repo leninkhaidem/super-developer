@@ -47,9 +47,10 @@ state, including bounded stack-aware artifact sets when supplied.
      --artifact-root "$ARTIFACT_ROOT" --code-root "$CODE_ROOT" \
      ".tasks/<feature>/tasks.json"
    ```
+   Capture top-level advisories from success or failure JSON; `context_only_slice_drift` is non-blocking by default, must be surfaced to affected-surface classification, and may be escalated when auditor judgment finds material risk.
 
 5. Confirm every declared package proof and package verification report is present, mechanically valid, and has a clean deliverable matrix before dispatch.
-6. Confirm package reports bind to the reviewed package or resolved worktree/ref/commit, proof digest/content, package/Slice source bindings or matrix-source snapshot, evidence anchors, verification output, Semgrep raw/summary evidence when enabled or contracted, and `PASS` verdict. Exact package commit/ref bindings are acceptable for the audited integrated state only with ancestry/content-equivalence and post-merge freshness evidence.
+6. Confirm package reports bind to the reviewed package or resolved worktree/ref/commit, proof digest/content, section-scoped package/Slice source bindings or matrix-source snapshot, evidence anchors, verification output, Semgrep raw/summary evidence when enabled or contracted, and `PASS` verdict. Exact package commit/ref bindings are acceptable for the audited integrated state only with ancestry/content-equivalence and post-merge freshness evidence.
 7. Treat stale, pre-repair, state-unbound, failed, contradicted, dirty-matrix, invalid-evidence-anchor, open-finding, or uncertain package reports as dispatch blockers.
 8. Resolve optional review-code context:
    - use supplied safe artifact-root state/report paths, or safe canonical
@@ -59,7 +60,7 @@ state, including bounded stack-aware artifact sets when supplied.
 9. Load `references/audit-subagent-contract.md` and dispatch a cold read-only auditor through a fresh
    sub-agent/role invocation with an explicit packet: top code worktree state, artifact root set list, git
    metadata, SPEC/registry/package/proof/report/Slice paths, package-completion and `validate-final`
-   results per set, review-code paths or `none`, and Semgrep expectations.
+   results/advisories per set, review-code paths or `none`, and Semgrep expectations.
 10. Preserve the auditor's structured report and return a concise PASS/FAIL summary with review-code context status and repair targets.
 
 ## Load if needed

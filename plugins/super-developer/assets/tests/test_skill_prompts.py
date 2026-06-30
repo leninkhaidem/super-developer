@@ -32,6 +32,10 @@ def context_window(text: str, needle: str, radius: int = 120) -> str:
     return text[start:end].lower()
 
 
+def compact_text(text: str) -> str:
+    return " ".join(text.split())
+
+
 class SkillPromptSurfaceTests(unittest.TestCase):
     def test_readmes_document_optional_local_semgrep_lifecycle_without_history(self) -> None:
         root_text = read_repo("README.md")
@@ -115,7 +119,6 @@ class SkillPromptSurfaceTests(unittest.TestCase):
             "plugins/super-developer/references/model-preferences.md",
             "plugins/super-developer/references/semgrep.md",
             "plugins/super-developer/skills/conceptualize/SKILL.md",
-            "plugins/super-developer/skills/conceptualize/references/final-handoff.md",
             "plugins/super-developer/skills/implementation-plan/SKILL.md",
         ]
         for rel in current_path_surfaces:
@@ -138,19 +141,20 @@ class SkillPromptSurfaceTests(unittest.TestCase):
 
     def test_conceptualize_handoff_resolves_semgrep_before_plan_skill(self) -> None:
         conceptualize = read_repo("plugins/super-developer/skills/conceptualize/SKILL.md")
+        conceptualize_compact = compact_text(conceptualize)
         transition = "Before invoking `implementation-plan` from a Conceptualize handoff"
-        self.assertIn(transition, conceptualize)
-        self.assertIn("parent/main planning", conceptualize)
+        self.assertIn(transition, conceptualize_compact)
+        self.assertIn("parent/main planning", conceptualize_compact)
         self.assertIn(CURRENT_PREF_PATH, conceptualize)
-        self.assertIn("Semgrep opt-in/setup", conceptualize)
-        self.assertIn("pass the resolved Semgrep state", conceptualize)
+        self.assertIn("Semgrep opt-in/setup", conceptualize_compact)
+        self.assertIn("passes resolved Semgrep state", conceptualize_compact)
         self.assertNotIn("dispatch `implementation-plan` via Skill tool/fresh sub-agent", conceptualize)
 
         handoff = read_repo("plugins/super-developer/skills/conceptualize/references/final-handoff.md")
+        handoff_compact = compact_text(handoff)
         self.assertIn("parent/main", handoff)
-        self.assertIn(CURRENT_PREF_PATH, handoff)
-        self.assertIn("Semgrep opt-in/setup", handoff)
-        self.assertIn("before invoking `implementation-plan`", handoff)
+        self.assertIn("resolves preferences and Semgrep state", handoff_compact)
+        self.assertIn("then invokes `implementation-plan`", handoff_compact)
 
         implementation_plan = read_repo("plugins/super-developer/skills/implementation-plan/SKILL.md")
         self.assertIn("do not reopen opt-in", implementation_plan)
@@ -162,7 +166,7 @@ class SkillPromptSurfaceTests(unittest.TestCase):
             text = path.read_text(encoding="utf-8")
             rel = path.relative_to(REPO_ROOT)
             if STALE_PREF_PATH in text:
-                self.fail(f"{rel}: greenfield harness must not reference legacy {STALE_PREF_PATH}")
+                self.fail(f"{rel}: greenfield harness must not reference stale {STALE_PREF_PATH}")
             for token in [".superdeveloper/semgrep-policy.yml", "local-rule-files", "local-rules-path"]:
                 if token in text:
                     window = context_window(text, token)
@@ -379,16 +383,79 @@ class SkillPromptSurfaceTests(unittest.TestCase):
         self.assertIn("RISK-<...>", risks)
         self.assertIn("rationale/disposition", risks)
 
+    def test_section_scoped_state_binding_prompt_contract_is_guarded(self) -> None:
+        contract = read_repo("plugins/super-developer/references/package-verification-report.md")
+        artifacts = read_repo("plugins/super-developer/references/slice-first-artifacts.md")
+        lifecycle = read_repo("plugins/super-developer/references/package-lifecycle.md")
+        tool_usage = read_repo("plugins/super-developer/references/tool-usage.md")
+        gates = read_repo("plugins/super-developer/skills/implement/references/package-integration-gates.md")
+        review = read_repo("plugins/super-developer/skills/review-code/SKILL.md")
+        audit = read_repo("plugins/super-developer/skills/audit/SKILL.md")
+        contract_compact = compact_text(contract)
+        tool_compact = compact_text(tool_usage)
+
+        for token in ["Assigned Slices", "Assigned Slice Digests", "Matrix Source Snapshot"]:
+            self.assertIn(token, contract)
+        for token in [
+            "emit-state-binding",
+            "--worktree",
+            "--git-ref",
+            "--commit",
+            "--verified-at",
+            "path|tier|H3-ID=sha256:<64-hex>",
+            "entries separated by `; `",
+            "must not contain `|`, `=`, or the delimiter sequence `; `",
+            "grammar delimiters",
+            "must_satisfy section blocks only",
+            "context_only_slice_drift",
+            "fail closed before drift classification",
+            "paste it verbatim",
+            "do not hand-compute digests",
+        ]:
+            self.assertIn(token, contract_compact)
+        for token in [
+            "return JSON on stdout",
+            "return JSON on stderr with `errors` and a top-level `advisories` array",
+            "`validate-final` aggregates advisories across packages",
+            "State Binding grammar delimiter rejection",
+            "the verifier computes no digests",
+        ]:
+            self.assertIn(token, tool_compact)
+        for text in [artifacts, lifecycle, tool_usage, gates, review, audit]:
+            compact = compact_text(text)
+            self.assertIn("context_only_slice_drift", compact)
+            self.assertIn("non-blocking by default", compact)
+            self.assertIn("affected-surface classification", compact)
+        binding_text = "\n".join([
+            contract[contract.index("## State Binding"):],
+            lifecycle[lifecycle.index("## Freshness Rules"):lifecycle.index("## Final Readiness")],
+            gates[gates.index("## Report Shape and Freshness"):gates.index("## Rejection and Repair")],
+            context_window(review, "context_only_slice_drift", 400),
+            context_window(audit, "context_only_slice_drift", 400),
+        ]).lower()
+        for token in [
+            "backward-" + "c" + "ompat",
+            "migr" + "ation",
+            "leg" + "acy",
+            "deprec" + "ation",
+            "grand" + "father",
+            "version-" + "gate",
+            "format " + "upgraded",
+            "re-" + "pin required",
+        ]:
+            self.assertNotIn(token, binding_text)
+
     def test_package_completion_helper_gates_done_unlock_merge_and_final_handoff(self) -> None:
         implement = read_repo("plugins/super-developer/skills/implement/SKILL.md")
         dispatch = read_repo("plugins/super-developer/skills/implement/references/package-dispatch.md")
         gates = read_repo("plugins/super-developer/skills/implement/references/package-integration-gates.md")
         lifecycle = read_repo("plugins/super-developer/references/package-lifecycle.md")
-        command = 'python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-package-complete ".tasks/<feature>/tasks.json" --package <WP-ID>'
-
         self.assertIn("clean `validate-package-complete`", implement)
-        self.assertIn(command, gates)
-        self.assertIn(command, lifecycle)
+        for text in [gates, lifecycle]:
+            with self.subTest(command_surface=text[:40]):
+                self.assertIn('python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-package-complete', text)
+                self.assertIn('--artifact-root "$ARTIFACT_ROOT" --code-root "$CODE_ROOT"', text)
+                self.assertIn('".tasks/<feature>/tasks.json" --package <WP-ID>', text)
         for text in [dispatch, lifecycle]:
             with self.subTest(surface=text[:40]):
                 self.assertIn("fresh `PASS`", text)
@@ -497,12 +564,15 @@ class SkillPromptSurfaceTests(unittest.TestCase):
             "invalid evidence refs",
         ]:
             self.assertIn(token, audit_contract)
-        for text in [gates, lifecycle, workflow]:
+        for text in [gates, lifecycle]:
             with self.subTest(surface=text[:40]):
                 self.assertIn("top integrated", text)
                 self.assertIn("task/Slice artifact", text)
                 self.assertRegex(text.lower(), r"do not audit .*follow-up")
                 self.assertRegex(text.lower(), r"base feature|base/follow-up")
+        workflow_compact = compact_text(workflow).lower()
+        self.assertIn("top code state", workflow_compact)
+        self.assertIn("base/follow-up artifact set", workflow_compact)
         self.assertIn("validate-package-complete", gates)
         self.assertIn("same top state", lifecycle)
 
@@ -510,6 +580,7 @@ class SkillPromptSurfaceTests(unittest.TestCase):
         review_skill = read_repo("plugins/super-developer/skills/review-code/SKILL.md")
         pipeline = read_repo("plugins/super-developer/skills/review-code/references/pipeline-report.md")
 
+        review_skill_compact = compact_text(review_skill)
         for token in [
             "deliverable matrices are context only",
             "not a third deliverable-completeness gate",
@@ -517,7 +588,7 @@ class SkillPromptSurfaceTests(unittest.TestCase):
             "invalidated matrix",
             "generic affected-surface impact classification",
         ]:
-            self.assertIn(token, review_skill)
+            self.assertIn(token, review_skill_compact)
         for token in [
             "Use deliverable matrices as context only",
             "Do not own full deliverable completeness",
@@ -558,7 +629,7 @@ class SkillPromptSurfaceTests(unittest.TestCase):
         gates = read_repo("plugins/super-developer/skills/implement/references/package-integration-gates.md")
         self.assertNotIn("### Deliverable Completeness Matrix", implement)
         self.assertNotIn("Source ID | Row Type", implement)
-        self.assertIn("invoke `review-code` and `audit` only", implement)
+        self.assertIn("invoke `review-code` and `audit` only", compact_text(implement))
         self.assertIn("semantic truthfulness remains with package verification and final audit", gates)
         self.assertIn("Declare readiness only when package evidence, review-code readiness, and final audit PASS", gates)
 

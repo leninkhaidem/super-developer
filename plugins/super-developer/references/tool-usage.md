@@ -23,10 +23,11 @@ wholesale, or perform hidden rule clone/pull/network sync; routine scans are loc
 paths so the command is location-independent: `$ARTIFACT_ROOT` is the artifact worktree
 (`.worktrees/<feature>/artifacts`) and `$CODE_ROOT` is the code worktree being checked — a package
 worktree for package checks, the integration/top worktree for `validate-final` and any deliverable-matrix
-file evidence. Do not pass `--code-root "."` from the project root for integrated checks: the feature's
-files live in a worktree, not the root, so file-evidence existence checks would resolve against the wrong
-tree. The `.tasks/<feature>/tasks.json` argument is always artifact-root-relative. Omit both flags only
-for current-root stores, where both default to the current directory.
+file evidence. Treat `--artifact-root` and `--code-root` as the trust anchors; a report's `Worktree` field
+is runtime metadata for humans/auditors, not evidence-root authority. Do not pass `--code-root "."` from
+the project root for integrated checks: the feature's files live in a worktree, not the root, so file-evidence
+existence checks would resolve against the wrong tree. The `.tasks/<feature>/tasks.json` argument is always
+artifact-root-relative. Omit both flags only for current-root stores, where both default to the current directory.
 
 Read-only checks:
 
@@ -43,7 +44,23 @@ python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-package-c
 python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-final \
   --artifact-root "$ARTIFACT_ROOT" --code-root "$CODE_ROOT" \
   ".tasks/<feature>/tasks.json"
+python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" emit-state-binding \
+  --artifact-root "$ARTIFACT_ROOT" --code-root "$CODE_ROOT" \
+  ".tasks/<feature>/tasks.json" --package WP1 \
+  --worktree "$REVIEWED_WORKTREE" --git-ref "$REVIEWED_GIT_REF" \
+  --commit "$REVIEWED_COMMIT" --verified-at "$VERIFIED_AT"
 ```
+
+`validate-package-complete` and `validate-final` return JSON on stdout when successful. On failure, they
+return JSON on stderr with `errors` and a top-level `advisories` array. `context_only_slice_drift`
+advisories are non-blocking by default and must still be routed to affected-surface classification;
+`validate-final` aggregates advisories across packages and includes them even when hard errors also exist.
+
+Read-only emit command:
+
+`emit-state-binding` writes the canonical Markdown `## State Binding` block to stdout for verifiers to
+paste verbatim. It requires `--package` plus runtime metadata flags `--worktree`, `--git-ref`, `--commit`,
+and `--verified-at`; it uses the same formatter as validation, and the verifier computes no digests.
 
 Write command:
 
@@ -59,6 +76,7 @@ python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" create-proof \
 
 - lightweight registry shape;
 - safe repo-relative SPEC, Slice, package, proof, and report paths;
+- State Binding grammar delimiter rejection (`|`, `=`, `; `) for assigned Slice paths;
 - package dependency references and cycles;
 - package Markdown required sections;
 - package Markdown proof/report/dependency references;
@@ -77,14 +95,14 @@ edited, or drifted proof content is never overwritten silently.
 
 `validate-package-complete` checks one selected package before done-status bookkeeping: plan/package
 shape, closed proof rows, package-verification report binding, deliverable-matrix shape/coverage/clean
-verdicts, current package/Slice source bindings, and typed non-placeholder evidence-anchor structure. It
-is read-only, does not require the selected package status to already be `done`, and does not prove
-cited evidence is semantically sufficient.
+verdicts, current package/section-scoped Slice source bindings, and typed non-placeholder evidence-anchor
+structure. It is read-only, does not require the selected package status to already be `done`, reports
+`context_only` drift as advisories, and does not prove cited evidence is semantically sufficient.
 
 `validate-final` runs plan and proof checks for every package, requires every package to be `done`,
 applies the same package report/deliverable-matrix checks, requires each report to bind to the current
-proof/package/Slice source digests, and validates optional enabled Semgrep Evidence raw/summary
-path/digest bindings when present.
+proof/package/section-scoped Slice source state, aggregates advisories across packages, and validates
+optional enabled Semgrep Evidence raw/summary path/digest bindings when present.
 
 The helper does not run tests, inspect implementation semantics, judge proof or matrix
 truthfulness/sufficiency, mutate registry status, write review-code readiness, perform package
