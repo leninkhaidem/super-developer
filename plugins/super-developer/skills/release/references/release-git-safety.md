@@ -34,7 +34,7 @@ If any release step already exists, verify exact identity before resuming:
 - Remote tag exists: `git ls-remote --tags origin refs/tags/vX.Y.Z` target or peeled target equals the intended publish commit.
 - GitHub release exists: tag, target commitish/tag target, draft/prerelease state, and notes match the contract.
 - Base branch already pushed: `origin/<base>` contains the intended prepare/publish commit.
-- Artifact sidecar cleanup exists: final checkpoint, approved exact cleanup list, and target/base push sync match the contract.
+- Artifact sidecar cleanup exists: final checkpoint, contracted exact cleanup/default-keep list, and target/base push sync match the contract.
 
 Stop on any mismatch. Do not move tags, overwrite releases, force-push, or force-delete unless a new explicit contract names that destructive action.
 
@@ -67,7 +67,7 @@ Before pushing the base branch, verify:
 - final diff, changelog, docs, and publish-only version files/release notes match the contract;
 - `prepare-only` made no version bump, tag, or GitHub release change;
 - local/remote tags and GitHub release are absent for a new publish, or existing state passes the resume matrix;
-- any sidecar cleanup candidate is listed as exact-approved or explicitly kept.
+- any sidecar cleanup candidate is listed for default delete/remove or kept with an explicit reason.
 
 After any successful base push, refresh refs and verify local/remote base sync before tag/release creation or cleanup:
 
@@ -82,14 +82,16 @@ The local base ref, `origin/<base>`, and intended prepare/publish commit must ma
 Do not force-reset, force-push, switch the user-owned root worktree, or silently repair the local branch to make verification pass.
 
 For `prepare-only`, push the base branch, run post-push sync verification, then run contracted cleanup. Do not create or update tags or GitHub releases.
-For `publish`, push base first, run post-push sync verification, then create/push the annotated tag and create the GitHub release.
+For `publish`, push base first, run post-push sync verification, create/push the annotated tag,
+create the GitHub release, then run contracted cleanup for exact feature/sidecar candidates when applicable.
 If any push, sync verification, publish, or cleanup step fails, stop and report completed side effects. Do not continue cleanup automatically.
 
 ## Cleanup Safety
 
 Cleanup can run only for exact candidates named in the approved Release Contract.
+The contract should delete/remove eligible feature code and artifact sidecar candidates by default; keep only with a named blocker or explicit user request.
 Local feature branch/worktree cleanup requires the feature branch to be included in the target/base ref and the required target/base push to be complete.
-Artifact sidecar cleanup requires final target/base push sync, exact approval, and no active package/integration/review/audit work needing the sidecar.
+Artifact sidecar cleanup requires final target/base push sync, exact contract listing, and no active package/integration/review/audit work needing the sidecar.
 Keep a target/base worktree available until local branch deletion finishes.
 
 For local cleanup:
@@ -106,7 +108,7 @@ git worktree remove <exact-temporary-target-worktree>
 Stop on dirty worktrees, checked-out branches without removable worktrees, failed ancestry, or branch deletion refusal. Do not force-remove by default.
 Never delete unrelated branches/worktrees or sweep by namespace.
 
-For approved artifact sidecar cleanup, run only the approved subset:
+For contracted artifact sidecar cleanup, run only the contract-listed subset:
 
 ```bash
 git status --short  # in .worktrees/<feature>/artifacts before local removal
@@ -116,10 +118,11 @@ git push origin --delete artifacts/<feature>
 ```
 
 `artifacts/<feature>` is an orphan branch, so local `-D` is allowed only when that exact sidecar ref
-was approved after final target/base push. Remote sidecar deletion is not ancestry-based; prove fresh
-remote state and exact approval instead. Never merge `artifacts/<feature>` into the base branch.
+was listed in the approved Release Contract after final target/base push. Remote sidecar deletion is not
+ancestry-based; prove fresh remote state and exact contract listing instead. Never merge `artifacts/<feature>` into the base branch.
 
-Remote feature branch deletion is allowed in `prepare-only` or `publish` only when the exact `origin/<feature-branch>` ref is named in the contract.
+Remote feature branch deletion is the default for feature releases, but allowed only when the exact
+`origin/<feature-branch>` ref is named in the contract.
 After base push and fresh fetch, prove inclusion before deleting:
 
 ```bash

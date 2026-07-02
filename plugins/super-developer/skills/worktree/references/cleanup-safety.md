@@ -102,8 +102,8 @@ Rules:
 - Remote feature branch deletion is separate and must be named exactly in an approved contract.
 
 ## Artifact Sidecar Cleanup
-Offer sidecar cleanup only after final target merge/push is complete. Ask the user to approve the exact
-actions, either separately or as one explicit list:
+Release may default exact sidecar cleanup inside its approved Release Contract. Otherwise offer cleanup only after
+final target merge/push is complete and ask the user to approve the exact actions, either separately or as one explicit list:
 - remove local artifact worktree `.worktrees/<feature>/artifacts`;
 - delete local sidecar branch `artifacts/<feature>`;
 - delete remote sidecar branch `origin/artifacts/<feature>`.
@@ -120,9 +120,9 @@ cd "<worktree-not-on-artifacts-ref>"
 git branch -D artifacts/<feature>
 git push origin --delete artifacts/<feature>
 ```
-Run only the approved subset. Local `-D` is permitted only for the exact sidecar ref after final target
-merge/push approval because the orphan branch is intentionally not merged. If approved cleanup fails, stop
-and report the remaining blocker; do not silently leave an approved sidecar ref/worktree behind.
+Run only the exact approved or Release Contract-listed subset. Local `-D` is permitted only for the exact
+sidecar ref after final target merge/push approval because the orphan branch is intentionally not merged.
+If approved cleanup fails, stop and report the remaining blocker; do not silently leave an approved sidecar ref/worktree behind.
 
 ## Bugfix, Hotfix, and Spike Cleanup
 Feature bugfix branches should be merged into `feature/<feature>` and checked before removal:
