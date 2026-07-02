@@ -10,12 +10,15 @@ Owns the one approval packet for a release attempt. Load before the first releas
   sync verification, tag creation/push, GitHub release, artifact-sidecar actions, and local/remote cleanup.
 - Keep release checks to validation commands. List changelog, docs, and version edits as planned file changes, not checks.
 - If state changes, changelog format choice is missing, or a new action is needed, stop for a revised contract.
-- Remote feature or sidecar branch deletion requires the exact `origin/<branch>` ref to be listed in the contract and approved with the contract.
+- Remote feature or sidecar branch deletion requires the exact `origin/<branch>` ref to be listed
+  in the contract; approving that contract approves the listed deletion.
 - `prepare-only` integrates the feature into the base branch, updates `Unreleased`, pushes the base branch,
-  and cleans up exact feature refs/worktrees after verification.
+  and deletes/removes exact eligible feature refs/worktrees and artifact sidecar candidates after verification.
 - `prepare-only` never bumps versions, creates/pushes/moves tags, or creates/updates a GitHub release.
-- Local and remote cleanup requires the target/base push to be complete; otherwise keep the safety-net refs/worktrees.
-- Sidecar cleanup is optional, exact, and separate from deliverable feature cleanup; never merge `artifacts/<feature>` into the base branch.
+- Local, remote, and sidecar cleanup require the target/base push to be complete; otherwise keep the safety-net refs/worktrees.
+- Default cleanup is delete/remove. List `keep` only for a hard blocker or explicit user keep request.
+- Sidecar cleanup is separate from deliverable feature cleanup but defaults to exact
+  removal/deletion when eligible; never merge `artifacts/<feature>` into the base branch.
 
 ## Required Fields
 
@@ -31,6 +34,10 @@ Base branch:
 
 Feature branch:
 - <feature-branch or none>
+
+Default cleanup policy:
+- Delete/remove all eligible exact feature branch/worktree and artifact sidecar candidates after post-push sync.
+- Keep only: <hard blockers or explicit user keep request; otherwise none>
 
 Version action:
 - prepare-only: no version bump, no tag, no GitHub release
@@ -60,8 +67,8 @@ Remote actions:
   root branch switching
 - Push tag vX.Y.Z to origin, if publishing
 - Create GitHub release for vX.Y.Z, if publishing
-- Delete remote feature branch: <origin/<feature-branch> after pushed-base inclusion verification, or none>
-- Delete remote artifact sidecar: <origin/artifacts/<feature> after exact approval and target push sync, or none>
+- Delete remote feature branch: <origin/<feature-branch> after pushed-base inclusion verification, or keep because ... / no candidate found>
+- Delete remote artifact sidecar: <origin/artifacts/<feature> after exact contract listing and target push sync, or keep because ... / no candidate found>
 
 Resume state:
 - Existing prepare/release commit, tag, or GitHub release: <none or exact matching state>
@@ -69,15 +76,15 @@ Resume state:
 Artifact sidecar:
 - Ref/worktree: <artifacts/<feature> at .worktrees/<feature>/artifacts, or none>
 - Final checkpoint: <pushed to origin artifacts/<feature> before target merge, not applicable, or blocker>
-- Cleanup approval: <remove local worktree | delete local ref | delete remote ref | keep; exact list>
+- Cleanup disposition: <default remove local worktree | delete local ref | delete remote ref | keep because ...; exact list>
 
 Cleanup candidates:
-- Delete local feature branch: <feature-branch or none>
-- Delete remote feature branch: <origin/<feature-branch> or none>
-- Remove local code worktree(s): <exact paths or none>
-- Remove local artifact worktree: <.worktrees/<feature>/artifacts or none>
-- Delete local artifact ref: <artifacts/<feature> or none>
-- Delete remote artifact ref: <origin/artifacts/<feature> or none>
+- Delete local feature branch: <feature-branch by default after ancestry proof, or keep because ...>
+- Delete remote feature branch: <origin/<feature-branch> by default after remote inclusion proof, or keep because ...>
+- Remove local code worktree(s): <exact clean paths by default, or keep because ...>
+- Remove local artifact worktree: <.worktrees/<feature>/artifacts by default when clean, or keep because ...>
+- Delete local artifact ref: <artifacts/<feature> by default, or keep because ...>
+- Delete remote artifact ref: <origin/artifacts/<feature> by default after fresh remote verification, or keep because ...>
 
 Stop conditions:
 - <specific blocker>
@@ -103,7 +110,7 @@ Do not rewrite historical release sections unless the contract explicitly names 
 
 ## Remote Cleanup Rules
 
-When a remote feature branch exists and cleanup is desired by normal release/prepare flow:
+When a remote feature branch exists and is not hard-blocked or explicitly kept:
 
 ```md
 Remote feature branch cleanup:
@@ -111,11 +118,11 @@ Remote feature branch cleanup:
 - If verification fails, keep `origin/<feature-branch>` and stop cleanup.
 ```
 
-If the user explicitly asks to keep the remote feature branch, list it as intentionally skipped:
+If the user explicitly asks to keep the remote feature branch or a hard blocker prevents deletion, list it as intentionally skipped:
 
 ```md
 Remote feature branch cleanup:
-- Keep `origin/<feature-branch>` by explicit user request.
+- Keep `origin/<feature-branch>` because <explicit user request | named blocker>.
 ```
 
 If no remote feature branch exists:
@@ -127,14 +134,14 @@ Remote feature branch cleanup:
 
 ## Artifact Sidecar Cleanup Rules
 
-Offer sidecar cleanup only after the target/base push and sync verification complete:
+Default sidecar cleanup runs only after the target/base push and sync verification complete:
 
 ```md
 Artifact sidecar cleanup:
-- Remove local artifact worktree `.worktrees/<feature>/artifacts`: <approve | keep>
-- Delete local sidecar branch `artifacts/<feature>`: <approve | keep>
-- Delete remote sidecar branch `origin/artifacts/<feature>`: <approve | keep>
+- Remove local artifact worktree `.worktrees/<feature>/artifacts`: <default delete | keep because ...>
+- Delete local sidecar branch `artifacts/<feature>`: <default delete | keep because ...>
+- Delete remote sidecar branch `origin/artifacts/<feature>`: <default delete | keep because ...>
 ```
 
-If any sidecar action is not exact-approved, list it as kept. If exact-approved cleanup fails, stop and
-report the remaining blocker instead of leaving the sidecar silently stale.
+List a sidecar action as kept only for an explicit user keep request or hard blocker. If contracted
+cleanup fails, stop and report the remaining blocker instead of leaving the sidecar silently stale.

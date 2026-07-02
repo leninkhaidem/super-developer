@@ -6,6 +6,10 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+### Changed
+- Changed release cleanup guidance to default eligible local/remote feature branch, code worktree, and artifact sidecar cleanup in the Release Contract, keeping
+  candidates only for hard blockers or explicit user requests.
+
 ## [v1.34.1] - 2026-06-30
 
 ### Added
