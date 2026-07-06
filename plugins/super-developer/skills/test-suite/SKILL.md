@@ -75,11 +75,12 @@ portable receipts and never patches product code to make tests pass.
 
 ## Load if needed
 
-- Category selection, mobile exclusion, required evidence by category, or proof receipt contents are
-  needed → `references/taxonomy-evidence-proof.md`
-- Browser/web acceptance flows are planned or discovered → `references/browser-web-evidence.md`
+- Scouting detail, category selection, taxonomy, optional categories, or mobile exclusion are needed →
+  `references/test-plan-and-taxonomy.md`
+- Proof receipt contents, category evidence, dashboards, red tests, or browser/web artifacts are needed →
+  `references/evidence-and-proof.md`
 - Dependency, environment, secret, persistence, artifact, dashboard, teardown, or idempotency details
-  are needed → `references/run-contract.md`
+  are needed → `references/run-contract-and-environment.md`
 - Setup, authoring, or run/report worker packet details are needed → `references/worker-contracts.md`
 
 ## Stop if
