@@ -642,6 +642,123 @@ class SkillPromptSurfaceTests(unittest.TestCase):
             self.assertNotIn("plugins/super-developer/skills/", text, rel)
         self.assertIn("Do not deep-link another skill's private references", read_repo("plugins/super-developer/skills/skill-authoring/SKILL.md"))
 
+    def test_test_suite_skill_links_generic_taxonomy_and_proof_contracts(self) -> None:
+        skill_dir = PLUGIN_ROOT / "skills" / "test-suite"
+        skill = read_repo("plugins/super-developer/skills/test-suite/SKILL.md")
+        taxonomy = read_repo("plugins/super-developer/skills/test-suite/references/test-plan-and-taxonomy.md")
+        evidence = read_repo("plugins/super-developer/skills/test-suite/references/evidence-and-proof.md")
+        run_contract = read_repo("plugins/super-developer/skills/test-suite/references/run-contract-and-environment.md")
+        worker = read_repo("plugins/super-developer/skills/test-suite/references/worker-contracts.md")
+
+        for rel in [
+            "references/test-plan-and-taxonomy.md",
+            "references/evidence-and-proof.md",
+            "references/run-contract-and-environment.md",
+            "references/worker-contracts.md",
+        ]:
+            with self.subTest(reference=rel):
+                self.assertIn(f"`{rel}`", skill)
+                self.assertTrue((skill_dir / rel).exists())
+                ref_text = (skill_dir / rel).read_text(encoding="utf-8")
+                self.assertLessEqual(len(ref_text.splitlines()), 150, rel)
+                self.assertGreaterEqual(len(ref_text.split()), 300, rel)
+                self.assertLessEqual(len(ref_text.split()), 900, rel)
+
+        self.assertLessEqual(len(skill.splitlines()), 150)
+        for needle in [
+            "Do not assume a language, framework, runner, app shape, CI, tag scheme, or test directory",
+            "stack, manifests, lockfiles, package/build tools",
+            "public APIs, UI flows, CLI commands, library entrypoints",
+        ]:
+            self.assertIn(needle, skill + taxonomy)
+        for category in [
+            "Static/type/lint checks",
+            "Unit tests",
+            "Component/integration tests",
+            "API/contract tests",
+            "CLI tests",
+            "Browser/web end-to-end tests",
+            "Smoke/regression tests",
+        ]:
+            self.assertIn(category, taxonomy)
+        for text in [skill, taxonomy]:
+            self.assertIn("mobile", text.lower())
+            self.assertIn("unsupported", text.lower())
+        self.assertIn("video artifact path", evidence)
+        self.assertIn("screenshot or image artifact path", evidence)
+        self.assertIn("tested feature/head branch or ref, tested commit SHA, target/base ref", evidence)
+        self.assertIn("Run Contract", run_contract)
+        self.assertIn("product-code defects", skill.lower() + evidence.lower() + worker.lower())
+        self.assertIn("run-specific artifact directory", evidence + worker)
+
+    def test_test_suite_worker_contract_requires_explicit_packets_and_safe_boundaries(self) -> None:
+        worker = read_repo("plugins/super-developer/skills/test-suite/references/worker-contracts.md")
+        compact = compact_text(worker).lower()
+        for needle in [
+            "task goal",
+            "contract path",
+            "source materials",
+            "allowed write scope",
+            "feature/head ref and commit",
+            "target/base ref",
+            "branch/worktree paths",
+            "approved commands/checks",
+            "expected outputs",
+            "stop conditions",
+            "completion-report requirements",
+            "hidden chat context",
+        ]:
+            self.assertIn(needle, compact)
+        for needle in [
+            "setup workers prepare only approved shared test configuration",
+            "install only dependencies named in the run contract",
+            "authoring workers write tests only for assigned non-overlapping plan items and paths",
+            "run/report workers execute only the approved plan commands",
+            "portable proof receipt",
+        ]:
+            self.assertIn(needle, compact)
+        for forbidden_boundary in [
+            "must not create worktrees or branches",
+            "switch the root worktree",
+            "merge",
+            "push",
+            "install unapproved dependencies",
+            "start unapproved services",
+            "write tracked secrets",
+            "change product code",
+            "weaken/delete/skip planned tests",
+            "dashboards as a replacement",
+        ]:
+            self.assertIn(forbidden_boundary, compact)
+        for report_field in [
+            "item-to-test-file or shared-config maps",
+            "exact commands/checks and results",
+            "artifact paths",
+            "environment/setup/reset/teardown results",
+            "red-test evidence",
+            "self-review",
+        ]:
+            self.assertIn(report_field, compact)
+
+    def test_test_suite_readmes_advertise_skill_without_overpromising(self) -> None:
+        root_text = read_repo("README.md")
+        plugin_text = read_repo("plugins/super-developer/README.md")
+        skill_count = len(list((PLUGIN_ROOT / "skills").glob("*/SKILL.md")))
+        self.assertEqual(skill_count, 15)
+
+        for text in [root_text, plugin_text]:
+            compact = compact_text(text).lower()
+            self.assertIn(f"{skill_count} skills", text)
+            self.assertIn("test-suite", text)
+            self.assertIn("technology-agnostic", compact)
+            self.assertIn("portable proof", compact)
+            self.assertIn("mobile app testing excluded", compact)
+            self.assertNotIn("mobile support", compact)
+            self.assertNotIn("dashboard-only proof", compact)
+            self.assertNotIn("inline product fixes", compact)
+        self.assertIn("**test-suite**", plugin_text)
+        self.assertIn("**readme-polish**", plugin_text)
+
 
 if __name__ == "__main__":
     unittest.main()

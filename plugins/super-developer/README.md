@@ -2,7 +2,7 @@
 
 Super Developer is a portable coding-assistant workflow, packaged as a Claude Code plugin, for moving from exploration to Slice-first planning, isolated implementation, bounded code review, final audit, documentation, and release preparation.
 
-One plugin. 13 skills. No manual git juggling.
+One plugin. 15 skills. No manual git juggling.
 
 ---
 
@@ -153,7 +153,9 @@ Semgrep findings preserve Semgrep severity but are advisory by default. They do 
 | **diagnose-and-fix** | Diagnoses issues evidence-first, reports findings for approval, then routes approved fixes through worktree or implementation-plan. | Standalone |
 | **perspectives** | Explores architecture or design options from multiple angles with a final skeptic synthesis. | Standalone |
 | **worktree** | Provides git worktree runbooks for planned features, bugfixes, hotfixes, spikes, cleanup, and target-merge safety. | Internal + standalone |
+| **test-suite** | Orchestrates technology-agnostic feature test authoring/execution with portable proof, strict Run Contract approvals, red-test handoff, and mobile app testing excluded. | Standalone |
 | **code-doc** | Generates or updates codebase documentation through scout, analysis, synthesis, review, and handoff stages. | Standalone |
+| **readme-polish** | Polishes a repository README and optional GitHub/GHE metadata without broad documentation rewrites. | Standalone |
 | **release** | Prepares and publishes releases behind a single release contract covering checks, pushes, tags, notes, and cleanup. | Standalone |
 
 ---
@@ -239,8 +241,10 @@ Useful standalone prompts:
 > Review my code
 > Audit the auth-system feature
 > Spike and fix this regression
+> Write and run tests for the delivered feature with portable proof
 > Prepare a release
 > Document this codebase
+> Polish this README
 ```
 
 ---
@@ -316,6 +320,13 @@ plugins/super-developer/
 |   +-- perspectives/SKILL.md
 |   +-- diagnose-and-fix/SKILL.md
 |   +-- spike-to-plan/SKILL.md
+|   +-- test-suite/
+|   |   +-- SKILL.md
+|   |   +-- references/evidence-and-proof.md
+|   |   +-- references/run-contract-and-environment.md
+|   |   +-- references/test-plan-and-taxonomy.md
+|   |   +-- references/worker-contracts.md
+|   +-- readme-polish/SKILL.md
 |   +-- release/SKILL.md
 ```
 
