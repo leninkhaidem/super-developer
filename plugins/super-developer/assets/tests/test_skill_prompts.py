@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import re
 import unittest
 from pathlib import Path
@@ -219,14 +220,16 @@ class SkillPromptSurfaceTests(unittest.TestCase):
         for workflow_word in ["proof", "package verification", "Slice", "planning", "staging"]:
             self.assertNotIn(workflow_word, summary_region)
 
-    def test_testing_skill_core_contract_is_standalone_and_safe(self) -> None:
+    def test_testing_skill_core_contract_is_standalone_safe_and_web_aware(self) -> None:
         skill = read_repo("plugins/super-developer/skills/testing/SKILL.md")
         generic = read_repo("plugins/super-developer/skills/testing/references/generic-testing.md")
+        web = read_repo("plugins/super-developer/skills/testing/references/web-application-testing.md")
         skill_compact = compact_text(skill)
-        combined = compact_text(f"{skill}\n{generic}")
+        combined = compact_text(f"{skill}\n{generic}\n{web}")
 
         self.assertLessEqual(len(skill.splitlines()), 150)
         self.assertLessEqual(len(generic.splitlines()), 150)
+        self.assertLessEqual(len(web.splitlines()), 150)
         for needle in [
             "Use when asked for testing help",
             "Do not use for bug fixing, feature implementation, code review, audit, or release work.",
@@ -234,6 +237,8 @@ class SkillPromptSurfaceTests(unittest.TestCase):
             "Discover repository conventions before proposing commands",
             "unit, local integration, live-stack integration, frontend unit/component/integration, and browser E2E",
             "explicit current-task approval",
+            "frontend, backend web/API, full-stack, browser, UX, or live dev-stack",
+            "references/web-application-testing.md",
         ]:
             self.assertIn(needle, skill_compact)
         for needle in [
@@ -245,8 +250,37 @@ class SkillPromptSurfaceTests(unittest.TestCase):
             "Production/application/runtime fixes are out of scope",
             "Direct writes: tests, fixtures, test helpers, safe snapshots/golden data",
             "Redact secrets, credentials, tokens, PII",
+            "Discover Before Decisions",
+            "Do not invent a framework, package manager, Playwright, Allure",
+            "controlled non-production dev stack",
+            "positive, negative, boundary, and conditional cases",
+            "`human-review` mode requires itemized evidence per scenario/test: video artifacts",
+            "screenshots/checkpoints, dashboard/report locations",
+            "`regression` mode may deliberately reduce heavy artifacts",
+            "Plan privacy/redaction before producing, linking, or reporting screenshots, videos, logs, dashboard",
+            "propose Playwright + Allure as a preferred baseline only as an approval-gated plan",
         ]:
             self.assertIn(needle, combined)
+        for forbidden in ["Semgrep", "staging", "Slice"]:
+            self.assertNotIn(forbidden, combined)
+
+    def test_testing_skill_is_discoverable_in_docs_and_metadata(self) -> None:
+        skill_names = sorted(path.name for path in (PLUGIN_ROOT / "skills").iterdir() if path.is_dir())
+        self.assertEqual(15, len(skill_names))
+        self.assertIn("testing", skill_names)
+        self.assertIn("readme-polish", skill_names)
+
+        root = read_repo("README.md")
+        plugin = read_repo("plugins/super-developer/README.md")
+        metadata = json.loads(read_repo("plugins/super-developer/.claude-plugin/plugin.json"))
+        for text in [root, plugin]:
+            self.assertIn("15 skills", text)
+            self.assertIn("testing", text)
+            self.assertIn("readme-polish", text)
+            for stale in ["12 skills", "13 skills", "14 skills"]:
+                self.assertNotIn(stale, text)
+        self.assertIn("testing", metadata["keywords"])
+        self.assertIn("readme", metadata["keywords"])
 
     def test_diagnose_and_fix_recommends_one_route_and_reviewed_delivery(self) -> None:
         text = read_repo("plugins/super-developer/skills/diagnose-and-fix/SKILL.md")

@@ -2,7 +2,7 @@
 
 Super Developer is a portable coding-assistant workflow, packaged as a Claude Code plugin, for moving from exploration to Slice-first planning, isolated implementation, bounded code review, final audit, documentation, and release preparation.
 
-One plugin. 13 skills. No manual git juggling.
+One plugin. 15 skills. No manual git juggling.
 
 ---
 
@@ -151,9 +151,11 @@ Semgrep findings preserve Semgrep severity but are advisory by default. They do 
 | **audit** | Final read-only planned-feature completeness gate over accepted artifacts, proof Markdown, package reports, optional review-code context, and integrated code state. | Final gate + standalone |
 | **spike-to-plan** | Runs empirical feasibility spikes before planning and routes accepted evidence into durable planning artifacts. | Planning hook |
 | **diagnose-and-fix** | Diagnoses issues evidence-first, reports findings for approval, then routes approved fixes through worktree or implementation-plan. | Standalone |
+| **testing** | Authors test cases, writes safe test-only artifacts, and runs repo-discovered safe local test commands with structured evidence. | Standalone |
 | **perspectives** | Explores architecture or design options from multiple angles with a final skeptic synthesis. | Standalone |
 | **worktree** | Provides git worktree runbooks for planned features, bugfixes, hotfixes, spikes, cleanup, and target-merge safety. | Internal + standalone |
 | **code-doc** | Generates or updates codebase documentation through scout, analysis, synthesis, review, and handoff stages. | Standalone |
+| **readme-polish** | Authors or polishes a repository README and optional repository metadata without expanding into whole-codebase docs. | Standalone |
 | **release** | Prepares and publishes releases behind a single release contract covering checks, pushes, tags, notes, and cleanup. | Standalone |
 
 ---
@@ -239,6 +241,8 @@ Useful standalone prompts:
 > Review my code
 > Audit the auth-system feature
 > Spike and fix this regression
+> Add test coverage for this behavior
+> Polish this repository README
 > Prepare a release
 > Document this codebase
 ```
@@ -308,6 +312,10 @@ plugins/super-developer/
 |   |   +-- references/plan-review-rubrics.md
 |   +-- skill-authoring/
 |   |   +-- SKILL.md
+|   +-- testing/
+|   |   +-- SKILL.md
+|   |   +-- references/generic-testing.md
+|   |   +-- references/web-application-testing.md
 |   +-- worktree/
 |   |   +-- SKILL.md
 |   |   +-- references/bugfix-hotfix-workflow.md
@@ -315,6 +323,9 @@ plugins/super-developer/
 |   |   +-- references/feature-package-workflow.md
 |   +-- perspectives/SKILL.md
 |   +-- diagnose-and-fix/SKILL.md
+|   +-- readme-polish/
+|   |   +-- SKILL.md
+|   |   +-- references/banner-examples.md
 |   +-- spike-to-plan/SKILL.md
 |   +-- release/SKILL.md
 ```

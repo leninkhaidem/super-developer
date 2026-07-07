@@ -48,7 +48,9 @@ workflow artifact store.
    assertions, and evidence.
 4. For detailed test-case structure, command classification, durable plan/report schema, or
    nontrivial/high-risk work, load `references/generic-testing.md` before drafting artifacts or
-   executing commands.
+   executing commands. For frontend, backend web/API, full-stack, browser, UX, or live dev-stack
+   testing, also load `references/web-application-testing.md` after generic safety and convention
+   discovery.
 5. If work is nontrivial/high-risk, first create an approval-ready Markdown plan using the repo's
    convention or fallback `docs/testing/<topic>.test-plan.md`; present it and wait for explicit
    current-task approval before covered test writes or execution. After execution, write the paired
@@ -68,10 +70,12 @@ workflow artifact store.
 
 - Detailed mode taxonomy, test-case structure, command classifier, durable Markdown plan/report
   schema, report outcomes, write boundaries, and redaction checklist → `references/generic-testing.md`
+- Framework-agnostic web application coverage for frontend, backend web/API, full-stack, browser,
+  UX, or live dev-stack testing → `references/web-application-testing.md`
 - The request is actually bug diagnosis/fixing, feature implementation, code review, audit,
   release, or README/docs polish → use the owning skill instead of this one.
-- A future stack-specific reference exists and the repo/user context needs it → load that reference
-  only after generic safety and convention discovery.
+- Another future stack-specific reference exists and the repo/user context needs it → load that
+  reference only after generic safety and convention discovery.
 
 ## Stop if
 
