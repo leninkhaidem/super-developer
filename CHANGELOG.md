@@ -6,6 +6,16 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [v1.35.0] - 2026-07-07
+
+### Added
+- Added the standalone `testing` skill for stack-agnostic test planning, test authoring, safe local test execution, and durable test evidence reporting.
+- Added generic and web testing references, including browser E2E guidance for live-stack coverage, human-review artifacts, reproducible setup conventions, and approval-gated Playwright + Allure proposals.
+
+### Changed
+- Changed skill-authoring validation so nested skill reference folders are audited recursively, allowing testing guidance to scale under `core/`, `web/`, and future stack-specific parent folders.
+- Updated Super Developer documentation and marketplace metadata to reflect the current 15-skill inventory, including `testing` and `readme-polish`.
+
 ## [v1.34.2] - 2026-07-02
 
 ### Changed
