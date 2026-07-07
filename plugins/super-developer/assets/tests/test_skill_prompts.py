@@ -219,6 +219,35 @@ class SkillPromptSurfaceTests(unittest.TestCase):
         for workflow_word in ["proof", "package verification", "Slice", "planning", "staging"]:
             self.assertNotIn(workflow_word, summary_region)
 
+    def test_testing_skill_core_contract_is_standalone_and_safe(self) -> None:
+        skill = read_repo("plugins/super-developer/skills/testing/SKILL.md")
+        generic = read_repo("plugins/super-developer/skills/testing/references/generic-testing.md")
+        skill_compact = compact_text(skill)
+        combined = compact_text(f"{skill}\n{generic}")
+
+        self.assertLessEqual(len(skill.splitlines()), 150)
+        self.assertLessEqual(len(generic.splitlines()), 150)
+        for needle in [
+            "Use when asked for testing help",
+            "Do not use for bug fixing, feature implementation, code review, audit, or release work.",
+            "Standalone-first",
+            "Discover repository conventions before proposing commands",
+            "unit, local integration, live-stack integration, frontend unit/component/integration, and browser E2E",
+            "explicit current-task approval",
+        ]:
+            self.assertIn(needle, skill_compact)
+        for needle in [
+            "repo-discovered, deterministic, non-destructive, non-network, non-credentialed, non-watch, non-interactive, bounded",
+            "docs/testing/<topic>.test-plan.md",
+            "docs/testing/<topic>.test-report.md",
+            "`passed`, `failed`, `blocked-precondition`, `unsafe-needs-approval`",
+            "`inconclusive/flaky`, and `skipped/not-run`",
+            "Production/application/runtime fixes are out of scope",
+            "Direct writes: tests, fixtures, test helpers, safe snapshots/golden data",
+            "Redact secrets, credentials, tokens, PII",
+        ]:
+            self.assertIn(needle, combined)
+
     def test_diagnose_and_fix_recommends_one_route_and_reviewed_delivery(self) -> None:
         text = read_repo("plugins/super-developer/skills/diagnose-and-fix/SKILL.md")
         compact = " ".join(text.split())
