@@ -222,8 +222,8 @@ class SkillPromptSurfaceTests(unittest.TestCase):
 
     def test_testing_skill_core_contract_is_standalone_safe_and_web_aware(self) -> None:
         skill = read_repo("plugins/super-developer/skills/testing/SKILL.md")
-        generic = read_repo("plugins/super-developer/skills/testing/references/generic-testing.md")
-        web = read_repo("plugins/super-developer/skills/testing/references/web-application-testing.md")
+        generic = read_repo("plugins/super-developer/skills/testing/references/core/generic-testing.md")
+        web = read_repo("plugins/super-developer/skills/testing/references/web/application-testing.md")
         skill_compact = compact_text(skill)
         combined = compact_text(f"{skill}\n{generic}\n{web}")
 
@@ -238,7 +238,7 @@ class SkillPromptSurfaceTests(unittest.TestCase):
             "unit, local integration, live-stack integration, frontend unit/component/integration, and browser E2E",
             "explicit current-task approval",
             "frontend, backend web/API, full-stack, browser, UX, or live dev-stack",
-            "references/web-application-testing.md",
+            "references/web/application-testing.md",
         ]:
             self.assertIn(needle, skill_compact)
         for needle in [

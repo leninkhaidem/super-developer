@@ -314,8 +314,9 @@ plugins/super-developer/
 |   |   +-- SKILL.md
 |   +-- testing/
 |   |   +-- SKILL.md
-|   |   +-- references/generic-testing.md
-|   |   +-- references/web-application-testing.md
+|   |   +-- references/core/generic-testing.md
+|   |   +-- references/web/application-testing.md
+|   |   +-- references/web/browser-e2e-stack-setup.md
 |   +-- worktree/
 |   |   +-- SKILL.md
 |   |   +-- references/bugfix-hotfix-workflow.md

@@ -47,11 +47,11 @@ workflow artifact store.
    mode, name target surface, required environment, command or discovery blocker, data/cleanup,
    assertions, and evidence.
 4. For detailed test-case structure, command classification, durable plan/report schema, or
-   nontrivial/high-risk work, load `references/generic-testing.md` before drafting artifacts or
+   nontrivial/high-risk work, load `references/core/generic-testing.md` before drafting artifacts or
    executing commands. For frontend, backend web/API, full-stack, browser, UX, or live dev-stack
-   testing, also load `references/web-application-testing.md` after generic safety and convention
+   testing, also load `references/web/application-testing.md` after generic safety and convention
    discovery. For browser E2E stack setup, evidence toggles, reporting, or Playwright + Allure
-   proposals, load `references/browser-e2e-stack-setup.md` before proposing setup or config.
+   proposals, load `references/web/browser-e2e-stack-setup.md` before proposing setup or config.
 5. If work is nontrivial/high-risk, first create an approval-ready Markdown plan using the repo's
    convention or fallback `docs/testing/<topic>.test-plan.md`; present it and wait for explicit
    current-task approval before covered test writes or execution. After execution, write the paired
@@ -70,11 +70,11 @@ workflow artifact store.
 ## Load if needed
 
 - Detailed mode taxonomy, test-case structure, command classifier, durable Markdown plan/report
-  schema, report outcomes, write boundaries, and redaction checklist → `references/generic-testing.md`
+  schema, report outcomes, write boundaries, and redaction checklist → `references/core/generic-testing.md`
 - Framework-agnostic web application coverage for frontend, backend web/API, full-stack, browser,
-  UX, or live dev-stack testing → `references/web-application-testing.md`
+  UX, or live dev-stack testing → `references/web/application-testing.md`
 - Browser E2E stack setup, env/artifact toggles, report dashboards, Playwright + Allure baseline,
-  or missing inadequate browser/reporting conventions → `references/browser-e2e-stack-setup.md`
+  or missing inadequate browser/reporting conventions → `references/web/browser-e2e-stack-setup.md`
 - The request is actually bug diagnosis/fixing, feature implementation, code review, audit,
   release, or README/docs polish → use the owning skill instead of this one.
 - Another future stack-specific reference exists and the repo/user context needs it → load that
