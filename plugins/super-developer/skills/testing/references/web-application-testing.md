@@ -12,8 +12,8 @@ or blocker for:
 
 - frontend, backend/API, full-stack, routing, service, and browser surfaces affected by the work;
 - existing test directories, naming patterns, fixtures, helpers, seed data, snapshots, and reports;
-- package/script, task runner, documented command, browser harness, dashboard/report, and artifact
-  conventions;
+- package/script, task runner, documented command, browser harness, dashboard/report, artifact,
+  video/screenshot/env-toggle conventions;
 - live-stack conventions such as dev URLs, local services, containers, databases, tenants, ports,
   credentials, health checks, and cleanup tools.
 
@@ -72,13 +72,20 @@ Each browser scenario should map delivered behavior to a user-visible journey an
 
 `human-review` mode requires itemized evidence per scenario/test: video artifacts,
 screenshots/checkpoints, dashboard/report locations, command outcome, sanitized snippets, and cleanup
-status. Missing or unmapped artifacts make UX evidence partial or inconclusive unless explicitly
-justified in the report.
+status. Missing/unmapped artifacts make UX evidence partial unless explicitly justified.
 
 `regression` mode may deliberately reduce heavy artifacts such as always-on videos or extra
 screenshots when the repo convention or user-approved plan allows it. It must still preserve
 per-scenario status, failure evidence when available, command provenance, cleanup status, and a
 report/dashboard location or sanitized local report output.
+
+## Browser Stack Setup Boundary
+
+When the task asks for browser E2E stack setup, env/artifact toggles, report dashboards, Playwright +
+Allure, or a reusable convention where none exists, load the browser E2E stack setup reference named
+by `SKILL.md` before proposing setup. The web plan should still name project equivalents for base
+URL, evidence mode, video/screenshots, report output, artifact directories, commands, and every
+approval-gated config or manifest change.
 
 ## Privacy and Tooling Fallback
 
@@ -86,16 +93,16 @@ Plan privacy/redaction before producing, linking, or reporting screenshots, vide
 links, traces, or local paths. Mask or exclude credentials, tokens, PII, proprietary content,
 customer data, and sensitive local environment details; do not paste secret-bearing URLs or logs.
 
-Use an existing browser E2E/reporting stack when it can meet the required scenario evidence and
-review dashboard expectations. If the existing stack is incomplete, propose approval-gated
-enhancements to that stack first. If no adequate E2E/reporting stack exists, propose Playwright +
-Allure as a preferred baseline only as an approval-gated plan before any installation or config,
-manifest, lockfile, package-manager, CI, or orchestration change. For an existing stack, fall back to
-Playwright + Allure only when current tools cannot reasonably meet the evidence/dashboard needs and
-the user approves replacing or supplementing the stack.
+Use an existing browser E2E/reporting stack when it meets scenario evidence and dashboard needs. If
+it is incomplete, propose approval-gated enhancements first. If no adequate stack exists, propose
+Playwright + Allure as a preferred baseline only as an approval-gated plan before installation,
+config, manifest, lockfile, package-manager, CI, or orchestration changes. For an existing stack,
+fall back to Playwright + Allure only when current tools cannot reasonably meet evidence/dashboard
+needs and user approval exists.
 
 ## Output Checklist
 
 Return discovered web conventions, selected test levels, approval plan/report paths, scenario-to-test
-mapping, command provenance/blockers, data and cleanup plan/status, artifact mode, itemized evidence
-or missing-artifact reason, redaction handling, outcomes, exclusions, and follow-up routes.
+mapping, command provenance/blockers, data and cleanup plan/status, stack/env toggle convention,
+artifact mode, itemized evidence or missing-artifact reason, redaction handling, outcomes,
+exclusions, and follow-up routes.

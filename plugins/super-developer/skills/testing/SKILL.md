@@ -50,7 +50,8 @@ workflow artifact store.
    nontrivial/high-risk work, load `references/generic-testing.md` before drafting artifacts or
    executing commands. For frontend, backend web/API, full-stack, browser, UX, or live dev-stack
    testing, also load `references/web-application-testing.md` after generic safety and convention
-   discovery.
+   discovery. For browser E2E stack setup, evidence toggles, reporting, or Playwright + Allure
+   proposals, load `references/browser-e2e-stack-setup.md` before proposing setup or config.
 5. If work is nontrivial/high-risk, first create an approval-ready Markdown plan using the repo's
    convention or fallback `docs/testing/<topic>.test-plan.md`; present it and wait for explicit
    current-task approval before covered test writes or execution. After execution, write the paired
@@ -72,6 +73,8 @@ workflow artifact store.
   schema, report outcomes, write boundaries, and redaction checklist → `references/generic-testing.md`
 - Framework-agnostic web application coverage for frontend, backend web/API, full-stack, browser,
   UX, or live dev-stack testing → `references/web-application-testing.md`
+- Browser E2E stack setup, env/artifact toggles, report dashboards, Playwright + Allure baseline,
+  or missing inadequate browser/reporting conventions → `references/browser-e2e-stack-setup.md`
 - The request is actually bug diagnosis/fixing, feature implementation, code review, audit,
   release, or README/docs polish → use the owning skill instead of this one.
 - Another future stack-specific reference exists and the repo/user context needs it → load that
