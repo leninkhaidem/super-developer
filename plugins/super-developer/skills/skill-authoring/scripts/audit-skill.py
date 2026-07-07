@@ -141,7 +141,7 @@ def audit(skill_dir: Path, *, strict: bool = False) -> int:
     skill_file = skill_dir / "SKILL.md"
     ref_dir = skill_dir / "references"
     script_dir = skill_dir / "scripts"
-    refs = sorted(ref_dir.glob("*.md")) if ref_dir.exists() else []
+    refs = sorted(ref_dir.rglob("*.md")) if ref_dir.exists() else []
     scripts = sorted(p for p in script_dir.glob("*") if p.is_file()) if script_dir.exists() else []
     files = [skill_file, *refs]
 

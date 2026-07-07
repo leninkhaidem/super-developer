@@ -14,6 +14,8 @@
     "git-worktree",
     "multi-agent",
     "documentation",
+    "readme",
+    "testing",
     "release",
     "bugfix",
     "troubleshooting",
