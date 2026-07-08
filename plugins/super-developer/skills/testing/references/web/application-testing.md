@@ -4,8 +4,9 @@ Use this reference only as an optional proposal/adaptation aid after the project
 or while drafting a workflow update. Approved project workflow docs (`docs/testing/workflow.md` and
 linked companions) govern repository-specific web testing behavior. This reference adds web-specific
 coverage planning for frontend, backend web/API, full-stack, browser, UX, or live development-stack
-surfaces, but does not authorize browser, live-stack, network, dependency, tooling, configuration,
-CI, orchestration, or standalone test side effects by itself.
+surfaces when repo evidence, user scope, or confidence goals make them active; it does not authorize
+browser, live-stack, network, dependency, tooling, configuration, CI, orchestration, or standalone
+test side effects by itself.
 
 ## Discover Before Decisions
 
@@ -61,6 +62,11 @@ explicit current-task approval before writing browser E2E, backend live integrat
 multi-scenario web tests. Simple low-risk unit tests may proceed only when the approved workflow and
 delegation allow them, but unit tests are not a substitute for required web integration or UX
 evidence.
+
+Browser/web subcoverage is conditional. During an active browser/web strategy interview or plan,
+evaluate material accessibility cues, responsive/viewport behavior, cross-browser needs, screenshots
+or video, user journeys, browser state, and UI-backed persistence from repo evidence and confidence
+goals; do not impose them universally or ignore them when relevant.
 
 Each browser scenario should map delivered behavior to a user-visible journey and itemize:
 
