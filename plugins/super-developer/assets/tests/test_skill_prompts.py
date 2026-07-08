@@ -429,7 +429,7 @@ class SkillPromptSurfaceTests(unittest.TestCase):
             "Use confidence examples only as optional explanation, not as a mandatory visible profile menu",
             "Continue until every mandatory core domain is answered, marked not applicable from evidence, or explicitly deferred by the user with the risk recorded in the draft",
             "tech stack, product/test surfaces, and risk boundaries the workflow must cover",
-            "folder structure for new test plans, authored tests, fixtures/helpers, evidence, and reports",
+            "folder structure for new test plans, authored tests, fixtures/helpers, evidence, reports, and whether a central feature test index or coverage-index is used or deliberately not used",
             "feature/domain test plan policy, including when a plan gates authoring or execution",
             "user-friendly execution choices, current-task approvals, stop conditions, and command categories",
             "evidence/reporting expectations, redaction rules, and durable report locations",
@@ -455,9 +455,9 @@ class SkillPromptSurfaceTests(unittest.TestCase):
             self.assertIn(heading, strategy)
 
         for needle in [
-            "folder/taxonomy decisions for new plans, tests, evidence, reports, and legacy stay-put or migration stance",
+            "folder/taxonomy and central feature test index or coverage-index stance (used, linked, or not used) for new plans, tests, evidence, reports, plus legacy stay-put or migration stance",
             "feature/domain plan policy, approved plan path/version expectations, and plan-before-work gates",
-            "The workflow draft should name: confidence goals; mandatory and active conditional domains; plan, test, evidence, and report paths; execution choices and approvals; reliability/cleanup semantics; legacy stance; companion docs; redaction; and the update procedure",
+            "The workflow draft should name: confidence goals; mandatory and active conditional domains; plan, test, evidence, report, and central feature test index stance; execution choices and approvals; reliability/cleanup semantics; legacy stance; companion docs; redaction; and the update procedure",
             "Recommend a clean structure for new plans/tests going forward, but leave legacy tests where they are unless the user explicitly asks for migration",
             "Keep plans high-level and reviewable. They are scenario/deliverable contracts, not command recipes",
             "Feature/domain plan starter (high-level scenario contract, not a command recipe)",

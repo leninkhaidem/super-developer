@@ -23,7 +23,7 @@ configuration changes, CI changes, or accepted workflow-doc writes without the n
 Resolve these for initialize/update mode before accepted workflow-doc writes:
 
 - tech stack, product/test surfaces, and risk boundaries the workflow must cover;
-- folder structure for new test plans, authored tests, fixtures/helpers, evidence, and reports;
+- folder structure for new test plans, authored tests, fixtures/helpers, evidence, reports, and whether a central feature test index or coverage-index is used or deliberately not used;
 - feature/domain test plan policy, including when a plan gates authoring or execution;
 - user-friendly execution choices, current-task approvals, stop conditions, and command categories;
 - evidence/reporting expectations, redaction rules, and durable report locations;
@@ -50,8 +50,8 @@ strategy decisions, then ask for explicit current-task approval before writing t
 checklist or decision record is optional for large or high-risk strategy updates, not the default.
 
 The workflow draft should name: confidence goals; mandatory and active conditional domains; plan,
-test, evidence, and report paths; execution choices and approvals; reliability/cleanup semantics;
-legacy stance; companion docs; redaction; and the update procedure.
+test, evidence, report, and central feature test index stance; execution choices and approvals;
+reliability/cleanup semantics; legacy stance; companion docs; redaction; and the update procedure.
 
 ## Starter Feature or Domain Test Plan
 

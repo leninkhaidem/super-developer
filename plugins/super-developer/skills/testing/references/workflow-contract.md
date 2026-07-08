@@ -119,8 +119,8 @@ file changes. The approval request should name:
 - `docs/testing/workflow.md` sections to create/update;
 - companion docs under `docs/testing/` to create/update/link;
 - methodology decisions and unresolved choices that will be persisted;
-- accepted interview decisions for confidence goals, plan/test/report paths, execution choices,
-  active conditional domains, reliability/cleanup, legacy stance, and explicit deferrals;
+- accepted interview decisions for confidence goals, plan/test/report paths, coverage-index stance,
+  execution choices, active conditional domains, reliability/cleanup, legacy stance, and explicit deferrals;
 - approval-gated actions that remain outside the documentation update;
 - redaction/privacy handling and stale/conflict update procedure.
 
@@ -138,8 +138,8 @@ A project workflow entry point should be concise and reusable:
 - confidence goals, strategy summary by relevant test levels, risk boundaries, and active conditional domains;
 - links to companion docs and when to load them;
 - safe discovery/update process for missing or stale conventions;
-- folder/taxonomy decisions for new plans, tests, evidence, reports, and legacy stay-put or
-  migration stance;
+- folder/taxonomy and central feature test index or coverage-index stance (used, linked, or
+  not used) for new plans, tests, evidence, reports, plus legacy stay-put or migration stance;
 - feature/domain plan policy, approved plan path/version expectations, and plan-before-work gates;
 - delegation rules for authoring, alteration, and execution;
 - user-friendly execution choices, selected-choice reporting, and current-task approval gates for
