@@ -1,20 +1,26 @@
 # Browser E2E Stack Setup Reference
 
-Use this only after generic command safety and web discovery when the task asks to propose or set up
-a reusable browser E2E stack, evidence toggles, reporting, Playwright, Allure, or when no adequate
-browser/reporting convention exists. This reference helps draft an approval plan; it does not
-authorize installs, manifest edits, lockfile changes, browser config, CI, or service orchestration.
+Use this only as optional proposal/adaptation material after workflow-state discovery, generic
+command safety, and web discovery when the task asks to establish, propose, or update a reusable
+browser E2E strategy, evidence toggles, reporting, Playwright, Allure, or when no adequate
+browser/reporting convention exists. Approved project workflow docs (`docs/testing/workflow.md` and
+linked companions) govern repository-specific behavior. This reference helps draft a recommendation
+or approval plan; it does not authorize installs, manifest edits, lockfile changes, browser config,
+CI, service orchestration, browser runs, recordings, network access, live services, or direct test
+writing/execution.
 
 ## Setup Decision
 
 1. Reuse existing project tools if they can provide repeatable browser runs, scenario status,
    screenshots/video when needed, and a reviewable report.
 2. If tools exist but lack evidence/reporting, propose the smallest enhancement to that stack.
-3. If no adequate stack exists, propose Playwright + Allure as the preferred baseline. If the repo
-   has no Node package manager, explicitly ask whether adding a Node-based browser test toolchain is
-   acceptable before planning file edits.
-4. Keep the approval plan concrete: files to change, packages to add, commands to expose, env vars,
-   artifact directories, cleanup behavior, and redaction risks.
+3. If no adequate stack exists, recommend Playwright + Allure as the preferred baseline only when
+   repo evidence fits. If the repo has no Node package manager, ask a focused approval question about
+   whether a Node-based browser test toolchain is acceptable before planning file edits.
+4. Keep the recommendation concrete: files to change later, packages to add only after approval,
+   commands to expose, env vars, artifact directories, cleanup behavior, and redaction risks.
+5. During strategy establishment, stop at the workflow-documentation proposal. Do not install tools,
+   write tests, run browsers, start services, access live targets, record artifacts, or change config.
 
 ## Recommended Convention
 
@@ -93,7 +99,9 @@ journeys into separate tests so each has focused artifacts.
 
 ## Documentation to Add
 
-A setup plan should propose docs such as `e2e/README.md` or `docs/testing/browser-e2e.md` covering:
+A setup plan or workflow draft should prefer canonical companions such as `docs/testing/browser-e2e.md`
+when the project accepts them, while preserving any existing curated docs through links when useful.
+Cover:
 
 - required env vars, safe defaults, and how to avoid sourcing secret-bearing env files;
 - normal, human-review, regression, report, and codegen commands;
@@ -104,7 +112,8 @@ A setup plan should propose docs such as `e2e/README.md` or `docs/testing/browse
 
 ## Approval Boundary
 
-Before approval, only write the plan. After approval, limit edits to agreed test surfaces: E2E test
-directory, test helpers, browser test config, test docs, ignore rules for generated artifacts, and
-manifest/lockfile changes explicitly named in the plan. Never use this setup to target production,
-record secrets, mutate shared unsafe data, or weaken product behavior.
+Before approval, only present the recommendation, workflow draft, or plan. After approval, limit
+edits to explicitly agreed workflow docs or delegated test surfaces: E2E test directory, test
+helpers, browser test config, test docs, ignore rules for generated artifacts, and manifest/lockfile
+changes explicitly named in the plan. Never use this setup to target production, record secrets,
+mutate shared unsafe data, bypass the approved project workflow, or weaken product behavior.

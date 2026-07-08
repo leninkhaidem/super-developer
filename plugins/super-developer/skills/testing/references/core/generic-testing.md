@@ -1,8 +1,11 @@
 # Generic Testing Reference
 
-Use this reference for stack-agnostic test design, command safety, durable planning/reporting, and
-write boundaries. It does not authorize stack-specific, live, browser, network, credentialed, or
-configuration side effects by itself.
+Use this reference only as an optional proposal/adaptation aid for stack-agnostic test design,
+command safety, durable planning/reporting, and write boundaries. Approved project workflow docs
+(`docs/testing/workflow.md` and linked companions) govern repository-specific testing behavior; this
+reference must not override them or authorize standalone test edits/runs. It does not authorize
+stack-specific, live, browser, network, credentialed, dependency, tooling, configuration, CI, or
+orchestration side effects by itself.
 
 ## Test Modes
 
@@ -42,13 +45,14 @@ to make a product failure disappear.
 
 ## Command Safety Classifier
 
-Record every proposed/run command as: command, cwd, provenance (repo file/script/doc or explicit user
-instruction), mode, timeout, expected writes, environment assumptions without secrets, classification,
-and approval/blocker reason.
+For workflow-approved or delegated commands, record every proposed/run command as: command, cwd,
+provenance (repo file/script/doc or explicit user instruction), mode, timeout, expected writes,
+environment assumptions without secrets, classification, and approval/blocker reason.
 
-Default-run only when all are true: repo-discovered, deterministic, non-destructive, non-network,
-non-credentialed, non-watch, non-interactive, bounded, local to the repo, and no live/browser/service
-or shared-data mutation risk. Use bounded timeouts and report spawned-process termination/cleanup.
+Default-run within a delegated execution task only when all are true: repo-discovered, deterministic,
+non-destructive, non-network, non-credentialed, non-watch, non-interactive, bounded, local to the repo,
+and no live/browser/service or shared-data mutation risk. Use bounded timeouts and report
+spawned-process termination/cleanup.
 
 Stop for explicit current-task approval before live-stack, browser E2E, network, credentialed,
 destructive, production, data-mutating, dependency/tooling/config, CI, orchestration,
@@ -57,11 +61,13 @@ Script names such as `test` or `e2e` are not sufficient provenance; inspect what
 
 ## Durable Plan/Report Gate
 
-Nontrivial/high-risk work includes live integration, browser E2E, cross-stack behavior, multi-scenario
-coverage, risky data/setup, or approval-gated tooling/config changes. Before covered writes or
-execution, create a Markdown plan, present it, and wait for explicit approval in the current task.
-Reuse a repo convention; otherwise write collision-safe fallback paths:
-`docs/testing/<topic>.test-plan.md` and `docs/testing/<topic>.test-report.md`.
+Use this schema when the approved project workflow calls for a plan/report or when drafting a
+workflow proposal. Nontrivial/high-risk work includes live integration, browser E2E, cross-stack
+behavior, multi-scenario coverage, risky data/setup, or approval-gated tooling/config changes. Before
+covered writes or execution, create a Markdown plan, present it, and wait for explicit approval in
+the current task. Reuse a repo convention; otherwise propose collision-safe fallback paths:
+`docs/testing/<topic>.test-plan.md` and `docs/testing/<topic>.test-report.md`. These plan/report
+paths are not substitutes for the canonical workflow entry point.
 
 Plan schema:
 
@@ -98,6 +104,8 @@ product repair to the appropriate existing workflow with evidence.
 
 ## Write Boundary
 
-Direct writes: tests, fixtures, test helpers, safe snapshots/golden data, and testing docs/plans/reports.
-Approval required: dependencies, manifests, lockfiles, package-manager config, test tooling, browser
-or reporting config, CI, orchestration, project-wide test config, and any production/runtime surface.
+Within an approved workflow and delegated scope, test-surface writes may include tests, fixtures,
+test helpers, safe snapshots/golden data, and testing docs/plans/reports. Approval is required for
+workflow documentation writes, dependencies, manifests, lockfiles, package-manager config, test
+tooling, browser or reporting config, CI, orchestration, project-wide test config, test writes when
+the project workflow requires approval, and any production/runtime surface.
