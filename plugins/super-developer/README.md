@@ -160,7 +160,7 @@ Semgrep findings preserve Semgrep severity but are advisory by default. They do 
 | **audit** | Final read-only planned-feature completeness gate over accepted artifacts, proof Markdown, package reports, optional review-code context, and integrated code state. | Final gate + standalone |
 | **spike-to-plan** | Runs empirical feasibility spikes before planning and routes accepted evidence into durable planning artifacts. | Planning hook |
 | **diagnose-and-fix** | Diagnoses issues evidence-first, reports findings for approval, then routes approved fixes through worktree or implementation-plan. | Standalone |
-| **testing** | Authors test cases, writes safe test-only artifacts, and runs repo-discovered safe local test commands with structured evidence. | Standalone |
+| **testing** | Establishes or updates reusable project testing workflow docs, then routes test authoring, alteration, and execution through the approved workflow. | Standalone |
 | **perspectives** | Explores architecture or design options from multiple angles with a final skeptic synthesis. | Standalone |
 | **worktree** | Provides git worktree runbooks for planned features, bugfixes, hotfixes, spikes, cleanup, and target-merge safety. | Internal + standalone |
 | **code-doc** | Generates or updates codebase documentation through scout, analysis, synthesis, review, and handoff stages. | Standalone |
@@ -250,7 +250,8 @@ Useful standalone prompts:
 > Review my code
 > Audit the auth-system feature
 > Spike and fix this regression
-> Add test coverage for this behavior
+> Establish this project's testing workflow for browser E2E
+> Add test coverage for this behavior using the approved testing workflow
 > Polish this repository README
 > Prepare a release
 > Document this codebase
@@ -323,6 +324,8 @@ plugins/super-developer/
 |   |   +-- SKILL.md
 |   +-- testing/
 |   |   +-- SKILL.md
+|   |   +-- references/workflow-contract.md
+|   |   +-- references/delegation-packets.md
 |   |   +-- references/core/generic-testing.md
 |   |   +-- references/web/application-testing.md
 |   |   +-- references/web/browser-e2e-stack-setup.md

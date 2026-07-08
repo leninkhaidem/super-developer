@@ -238,49 +238,198 @@ class SkillPromptSurfaceTests(unittest.TestCase):
         for workflow_word in ["proof", "package verification", "Slice", "planning", "staging"]:
             self.assertNotIn(workflow_word, summary_region)
 
-    def test_testing_skill_core_contract_is_standalone_safe_and_web_aware(self) -> None:
+    def test_testing_skill_core_contract_is_workflow_meta_and_progressive(self) -> None:
         skill = read_repo("plugins/super-developer/skills/testing/SKILL.md")
+        workflow = read_repo("plugins/super-developer/skills/testing/references/workflow-contract.md")
+        delegation = read_repo("plugins/super-developer/skills/testing/references/delegation-packets.md")
         generic = read_repo("plugins/super-developer/skills/testing/references/core/generic-testing.md")
         web = read_repo("plugins/super-developer/skills/testing/references/web/application-testing.md")
+        browser = read_repo("plugins/super-developer/skills/testing/references/web/browser-e2e-stack-setup.md")
         skill_compact = compact_text(skill)
-        combined = compact_text(f"{skill}\n{generic}\n{web}")
+        combined = compact_text("\n".join([skill, workflow, delegation, generic, web, browser]))
 
-        self.assertLessEqual(len(skill.splitlines()), 150)
-        self.assertLessEqual(len(generic.splitlines()), 150)
-        self.assertLessEqual(len(web.splitlines()), 150)
+        for rel in [
+            "plugins/super-developer/skills/testing/SKILL.md",
+            "plugins/super-developer/skills/testing/references/workflow-contract.md",
+            "plugins/super-developer/skills/testing/references/delegation-packets.md",
+            "plugins/super-developer/skills/testing/references/core/generic-testing.md",
+            "plugins/super-developer/skills/testing/references/web/application-testing.md",
+            "plugins/super-developer/skills/testing/references/web/browser-e2e-stack-setup.md",
+        ]:
+            self.assertLessEqual(len(read_repo(rel).splitlines()), 150, rel)
+
         for needle in [
-            "Use when asked for testing help",
-            "Do not use for bug fixing, feature implementation, code review, audit, or release work.",
+            "Establish, document, and apply project-specific testing workflows",
+            "Operate as a testing workflow meta-skill",
+            "first establish or load the repository's approved testing workflow",
+            "Do not default to standalone test edits or commands",
+            "Choose an explicit mode before acting: initialize/update workflow, author/alter tests using an existing or user-curated workflow, or delegate execution-oriented work",
+            "Keep this eager prompt meta-level",
+            "project methodology in `docs/testing/workflow.md` or linked companion docs",
+            "use skill references only as optional proposal/adaptation aids",
+        ]:
+            self.assertIn(" ".join(needle.split()), skill_compact)
+
+        for needle in [
+            "It is not a stack methodology and does not authorize test writes, test runs, installs, browser use, network access, live services, or config/CI changes",
+            "Use this reference only as an optional proposal/adaptation aid",
+            "Approved project workflow docs (`docs/testing/workflow.md` and linked companions) govern repository-specific testing behavior",
+            "this reference must not override them or authorize standalone test edits/runs",
+        ]:
+            self.assertIn(" ".join(needle.split()), combined)
+
+        for obsolete in [
             "Standalone-first",
-            "Discover repository conventions before proposing commands",
-            "unit, local integration, live-stack integration, frontend unit/component/integration, and browser E2E",
-            "explicit current-task approval",
-            "frontend, backend web/API, full-stack, browser, UX, or live dev-stack",
-            "references/web/application-testing.md",
+            "Use when asked for testing help, test plans/cases, or safe local test execution",
+            "Authors test cases, writes safe test-only artifacts, and runs repo-discovered safe local test commands",
         ]:
-            self.assertIn(needle, skill_compact)
-        for needle in [
-            "repo-discovered, deterministic, non-destructive, non-network, non-credentialed, non-watch, non-interactive, bounded",
+            self.assertNotIn(obsolete, skill)
+        for eager_detail in [
+            "Playwright + Allure",
+            "human-review mode requires itemized evidence",
+            "test:e2e:review",
+            "E2E_BASE_URL",
             "docs/testing/<topic>.test-plan.md",
-            "docs/testing/<topic>.test-report.md",
-            "`passed`, `failed`, `blocked-precondition`, `unsafe-needs-approval`",
-            "`inconclusive/flaky`, and `skipped/not-run`",
-            "Production/application/runtime fixes are out of scope",
-            "Direct writes: tests, fixtures, test helpers, safe snapshots/golden data",
-            "Redact secrets, credentials, tokens, PII",
-            "Discover Before Decisions",
-            "Do not invent a framework, package manager, Playwright, Allure",
-            "controlled non-production dev stack",
-            "positive, negative, boundary, and conditional cases",
-            "`human-review` mode requires itemized evidence per scenario/test: video artifacts",
-            "screenshots/checkpoints, dashboard/report locations",
-            "`regression` mode may deliberately reduce heavy artifacts",
-            "Plan privacy/redaction before producing, linking, or reporting screenshots, videos, logs, dashboard",
-            "propose Playwright + Allure as a preferred baseline only as an approval-gated plan",
         ]:
-            self.assertIn(needle, combined)
+            self.assertNotIn(eager_detail, skill)
         for forbidden in ["Semgrep", "staging", "Slice"]:
             self.assertNotIn(forbidden, combined)
+
+    def test_testing_workflow_canonical_paths_and_lazy_discovery_are_static_contract(self) -> None:
+        skill = read_repo("plugins/super-developer/skills/testing/SKILL.md")
+        workflow = read_repo("plugins/super-developer/skills/testing/references/workflow-contract.md")
+        combined = compact_text(f"{skill}\n{workflow}")
+
+        for needle in [
+            "root `AGENTS.md` should contain only a concise lazy pointer for testing work",
+            "root-relative `docs/testing/workflow.md` is the reusable workflow entry point",
+            "Companion docs live under `docs/testing/` and are loaded only when the workflow points to them",
+            "`AGENTS.md`: a short lazy-loading pointer for testing work",
+            "preserve unrelated content and add/update only the testing pointer",
+            "`docs/testing/workflow.md`: the reusable testing workflow entry point",
+            "`docs/testing/*`: optional companion docs loaded lazily when the entry point links them",
+            "Do not silently choose alternate canonical paths",
+            "Lowercase `agents.md` and existing testing docs may be candidates",
+        ]:
+            self.assertIn(" ".join(needle.split()), combined)
+
+        self.assertFalse((REPO_ROOT / "AGENTS.md").exists(), "repo must not add a real root AGENTS.md fixture")
+        self.assertFalse((REPO_ROOT / "docs" / "testing" / "workflow.md").exists())
+        self.assertFalse((REPO_ROOT / "docs" / "testing").exists(), "repo must not add real workflow docs")
+
+    def test_testing_missing_canonical_workflow_candidate_gate_fails_closed(self) -> None:
+        skill = read_repo("plugins/super-developer/skills/testing/SKILL.md")
+        workflow = read_repo("plugins/super-developer/skills/testing/references/workflow-contract.md")
+        combined = compact_text(f"{skill}\n{workflow}")
+
+        for needle in [
+            "Check `docs/testing/workflow.md` before test edits or commands",
+            "If it is missing, stale, ambiguous, conflicting, unsafe, or refused, stop for a workflow decision",
+            "`missing`: no canonical entry point exists",
+            "Run candidate discovery and ask the user whether to adopt, migrate, link, or initialize before test edits/runs",
+            "`stale/ambiguous/conflicting`: a workflow exists but its commands, paths, stack assumptions, approval gates, or safety stance conflict",
+            "`unsafe/refused`: the workflow or user decision would require unsafe, secret-bearing, production, or unapproved side effects",
+            "Discovery is bounded, read-only, path-safe, symlink-safe, and secret-aware",
+            "Inspect only project-owned candidate locations",
+            "`docs/testing/`, `docs/tests/`, and `docs/qa/`",
+            "`README*` files under test, tests, spec, specs, e2e, integration, or similar test directories",
+            "Avoid vendor/generated/dump/cache/build/dependency directories",
+            "Do not follow symlinks outside the repository root",
+            "Summarize only relevant, sanitized facts",
+            "candidate path, why it looks like testing workflow material, scope/stack signals, known commands without secrets, and gaps/risks",
+            "**adopt** an existing canonical-quality doc",
+            "**migrate** useful content",
+            "**link** from the canonical entry point",
+            "**initialize** a new workflow from repo evidence and focused recommendations",
+            "If the user refuses all options, stop",
+            "Do not perform one-off test edits or command execution",
+        ]:
+            self.assertIn(" ".join(needle.split()), combined)
+
+    def test_testing_initialization_update_is_recommendation_led_and_approval_gated(self) -> None:
+        skill = read_repo("plugins/super-developer/skills/testing/SKILL.md")
+        workflow = read_repo("plugins/super-developer/skills/testing/references/workflow-contract.md")
+        browser = read_repo("plugins/super-developer/skills/testing/references/web/browser-e2e-stack-setup.md")
+        combined = compact_text(f"{skill}\n{workflow}\n{browser}")
+
+        for needle in [
+            "Initialization/update is recommendation-led: inspect repo evidence before broad questions",
+            "propose the best project-fit strategy",
+            "ask focused confirmation questions",
+            "present a draft summary and proposed file changes before writing workflow docs",
+            "Start with repo evidence, not a broad questionnaire",
+            "Then present a recommendation",
+            "name the recommended strategy and why repo evidence supports it",
+            "ask one focused confirmation or risk-boundary question when evidence is insufficient",
+            "For missing browser E2E strategy, inspect the web stack, existing scripts/tests, app entry points, dev-server assumptions, auth/data risks, and docs",
+            "strategy establishment still stops at a documentation proposal",
+            "does not install dependencies, create browser config, write tests, run browsers, start services, use recordings, touch secrets, access the network, edit config/CI/orchestration, or execute tests",
+            "Before writing root `AGENTS.md` or any `docs/testing/*` file, present a draft summary and proposed file changes",
+            "Write workflow docs only after explicit current-task approval",
+            "If approval is not granted, continue focused discovery or stop with the draft",
+            "After explicit approval, the main agent may create or surgically update root `AGENTS.md` and `docs/testing/*`",
+            "Without approval, continue discovery or stop with the draft; leave no partial workflow docs as accepted",
+        ]:
+            self.assertIn(" ".join(needle.split()), combined)
+
+    def test_testing_delegation_packets_and_no_executor_fallback_are_workflow_aware(self) -> None:
+        skill = read_repo("plugins/super-developer/skills/testing/SKILL.md")
+        delegation = read_repo("plugins/super-developer/skills/testing/references/delegation-packets.md")
+        combined = compact_text(f"{skill}\n{delegation}")
+
+        for needle in [
+            "Authoring, alteration, and execution are delegated after workflow consultation",
+            "If no executor or sub-agent is available, return a workflow-aware instruction packet and stop",
+            "The main agent remains an orchestrator",
+            "workflow state: `docs/testing/workflow.md` exists or the user has explicitly chosen an adopted, migrated, or linked candidate",
+            "Testing delegation packet",
+            "User goal: <requested testing outcome>",
+            "Workflow entry: docs/testing/workflow.md",
+            "Companion docs to consult: <paths or none>",
+            "Required first step: read the workflow entry and companions; receipt/report must cite them",
+            "Allowed scope: <test files/fixtures/helpers/docs/commands/evidence surfaces>",
+            "Disallowed scope: <production/runtime code, unapproved config/dependencies/CI/orchestration, etc.>",
+            "Current-task approvals already granted: <exact approvals or none>",
+            "Approval-gated actions to stop for: <commands/writes/browser/live/network/etc.>",
+            "Command safety: classify commands, use bounded timeouts, no unsafe/default live side effects",
+            "Evidence/reporting: sanitized commands, outputs, artifacts, outcomes, cleanup, blocked reasons",
+            "Product-failure routing: do not edit product code; report reproduction and route to owner",
+            "The executor's first reportable fact should prove workflow consultation",
+            "Final executor reports should include",
+            "No-Executor Fallback",
+            "Do not run commands or edit tests directly as a substitute for missing delegation",
+        ]:
+            self.assertIn(" ".join(needle.split()), combined)
+
+    def test_testing_optional_reference_precedence_and_browser_strategy_are_retained(self) -> None:
+        skill = read_repo("plugins/super-developer/skills/testing/SKILL.md")
+        workflow = read_repo("plugins/super-developer/skills/testing/references/workflow-contract.md")
+        generic = read_repo("plugins/super-developer/skills/testing/references/core/generic-testing.md")
+        web = read_repo("plugins/super-developer/skills/testing/references/web/application-testing.md")
+        browser = read_repo("plugins/super-developer/skills/testing/references/web/browser-e2e-stack-setup.md")
+        combined = compact_text("\n".join([skill, workflow, generic, web, browser]))
+
+        for rel in [
+            "plugins/super-developer/skills/testing/references/core/generic-testing.md",
+            "plugins/super-developer/skills/testing/references/web/application-testing.md",
+            "plugins/super-developer/skills/testing/references/web/browser-e2e-stack-setup.md",
+        ]:
+            self.assertTrue((REPO_ROOT / rel).is_file(), rel)
+
+        for needle in [
+            "Authority precedence: system/developer/current user/current skill safety rules outrank project workflow docs; approved project workflow docs outrank optional skill-local references",
+            "Optional skill-local references, used only as proposal/adaptation aids",
+            "If optional generic, web, or browser references are useful, load them only after workflow state is resolved or while drafting an initialization/update proposal; never let them override approved project workflow docs",
+            "Optional stack-agnostic test design, command safety, outcomes, durable plan/report schema, and write boundaries",
+            "Optional web/frontend/backend/API/live/browser coverage planning and evidence concerns",
+            "Optional browser E2E stack/evidence/reporting setup proposal material, including Playwright/Allure conventions",
+            "Use this only as optional proposal/adaptation material after workflow-state discovery",
+            "Approved project workflow docs (`docs/testing/workflow.md` and linked companions) govern repository-specific behavior",
+            "During strategy establishment, stop at the workflow-documentation proposal",
+            "Do not install tools, write tests, run browsers, start services, access live targets, record artifacts, or change config",
+            "Never use this setup to target production, record secrets, mutate shared unsafe data, bypass the approved project workflow, or weaken product behavior",
+        ]:
+            self.assertIn(" ".join(needle.split()), combined)
 
     def test_testing_skill_is_discoverable_in_docs_and_metadata(self) -> None:
         skill_names = sorted(path.name for path in (PLUGIN_ROOT / "skills").iterdir() if path.is_dir())
@@ -297,8 +446,28 @@ class SkillPromptSurfaceTests(unittest.TestCase):
             self.assertIn("readme-polish", text)
             for stale in ["12 skills", "13 skills", "14 skills"]:
                 self.assertNotIn(stale, text)
+        for needle in [
+            "testing workflow strategy and delegated test work",
+            "**testing** (establishes/updates reusable project testing workflows and routes authoring/execution through approved workflow docs)",
+        ]:
+            self.assertIn(needle, root)
+        for needle in [
+            "| **testing** | Establishes or updates reusable project testing workflow docs, then routes test authoring, alteration, and execution through the approved workflow. | Standalone |",
+            "> Establish this project's testing workflow for browser E2E",
+            "> Add test coverage for this behavior using the approved testing workflow",
+            "|   |   +-- references/workflow-contract.md",
+            "|   |   +-- references/delegation-packets.md",
+        ]:
+            self.assertIn(needle, plugin)
+        for stale in [
+            "test authoring/execution, parallel implementation",
+            "**testing** (author test cases and run safe local test commands)",
+            "| **testing** | Authors test cases, writes safe test-only artifacts, and runs repo-discovered safe local test commands with structured evidence. | Standalone |",
+        ]:
+            self.assertNotIn(stale, root + "\n" + plugin)
         self.assertIn("testing", metadata["keywords"])
         self.assertIn("readme", metadata["keywords"])
+        self.assertNotIn("test authoring/execution", metadata["description"])
 
     def test_diagnose_and_fix_recommends_one_route_and_reviewed_delivery(self) -> None:
         text = read_repo("plugins/super-developer/skills/diagnose-and-fix/SKILL.md")
