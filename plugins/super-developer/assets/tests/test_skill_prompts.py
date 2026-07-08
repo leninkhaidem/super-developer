@@ -24,6 +24,10 @@ def prompt_surface_paths() -> list[Path]:
     return paths
 
 
+def testing_prompt_surface_paths() -> list[Path]:
+    return sorted((PLUGIN_ROOT / "skills" / "testing").glob("**/*.md"))
+
+
 def context_window(text: str, needle: str, radius: int = 120) -> str:
     index = text.find(needle)
     if index < 0:
@@ -242,16 +246,18 @@ class SkillPromptSurfaceTests(unittest.TestCase):
         skill = read_repo("plugins/super-developer/skills/testing/SKILL.md")
         workflow = read_repo("plugins/super-developer/skills/testing/references/workflow-contract.md")
         delegation = read_repo("plugins/super-developer/skills/testing/references/delegation-packets.md")
+        strategy = read_repo("plugins/super-developer/skills/testing/references/strategy-interview.md")
         generic = read_repo("plugins/super-developer/skills/testing/references/core/generic-testing.md")
         web = read_repo("plugins/super-developer/skills/testing/references/web/application-testing.md")
         browser = read_repo("plugins/super-developer/skills/testing/references/web/browser-e2e-stack-setup.md")
         skill_compact = compact_text(skill)
-        combined = compact_text("\n".join([skill, workflow, delegation, generic, web, browser]))
+        combined = compact_text("\n".join([skill, workflow, delegation, strategy, generic, web, browser]))
 
         for rel in [
             "plugins/super-developer/skills/testing/SKILL.md",
             "plugins/super-developer/skills/testing/references/workflow-contract.md",
             "plugins/super-developer/skills/testing/references/delegation-packets.md",
+            "plugins/super-developer/skills/testing/references/strategy-interview.md",
             "plugins/super-developer/skills/testing/references/core/generic-testing.md",
             "plugins/super-developer/skills/testing/references/web/application-testing.md",
             "plugins/super-developer/skills/testing/references/web/browser-e2e-stack-setup.md",
@@ -376,6 +382,181 @@ class SkillPromptSurfaceTests(unittest.TestCase):
             "Without approval, continue discovery or stop with the draft; leave no partial workflow docs as accepted",
         ]:
             self.assertIn(" ".join(needle.split()), combined)
+
+    def test_testing_strategy_interview_lifecycle_and_candidate_paths_are_static_contract(self) -> None:
+        skill = read_repo("plugins/super-developer/skills/testing/SKILL.md")
+        workflow = read_repo("plugins/super-developer/skills/testing/references/workflow-contract.md")
+        strategy = read_repo("plugins/super-developer/skills/testing/references/strategy-interview.md")
+        delegation = read_repo("plugins/super-developer/skills/testing/references/delegation-packets.md")
+        combined = compact_text("\n".join([skill, workflow, strategy, delegation]))
+
+        for needle in [
+            "Explicit testing-workflow lifecycle requests include initialize, update, adopt, migrate, link, and revise",
+            "run the strategy interview even when workflow docs already exist; existing docs are source material, not a skip condition",
+            "Ordinary authoring, alteration, or execution may use an accepted/current workflow without the full interview when it adequately answers the task",
+            "missing, stale, ambiguous, conflicting, unsafe, or insufficient workflows fail closed to establish/update mode",
+            "Explicit initialize, update, adopt, migrate, link, or revise requests still route to the strategy interview; existing docs are source material",
+            "For explicit initialize, update, adopt, migrate, link, or revise requests, load `references/strategy-interview.md` and run the strategy interview before accepted workflow-doc writes",
+            "Existing workflows, candidates, and companion docs inform the recommendation but do not skip the interview",
+            "`missing`: no canonical entry point exists",
+            "Run candidate discovery and ask the user whether to adopt, migrate, link, or initialize through `docs/testing/workflow.md` before test edits, command runs, or delegation",
+            "candidates are source material only: they govern test work only after `docs/testing/workflow.md` exists, is accepted/current, and incorporates or references them through an approved adopt, migrate, link, or initialize decision",
+            "Candidate choice alone is not enough to proceed",
+            "First write or update `docs/testing/workflow.md` so it incorporates or references the approved candidate",
+            "candidate handling: any adopted, migrated, or linked candidate is incorporated or referenced by the canonical workflow entry before it can govern delegated work",
+            "In adopt/migrate/link discussions, ask which existing docs or tests remain authoritative source material",
+        ]:
+            self.assertIn(" ".join(needle.split()), combined)
+
+    def test_testing_strategy_interview_domains_and_confidence_order_are_static_contract(self) -> None:
+        workflow = read_repo("plugins/super-developer/skills/testing/references/workflow-contract.md")
+        strategy = read_repo("plugins/super-developer/skills/testing/references/strategy-interview.md")
+        strategy_compact = compact_text(strategy)
+        combined = compact_text(f"{workflow}\n{strategy}")
+
+        for earlier, later in [
+            ("Inspect repo evidence first", "Summarize the evidence"),
+            ("Summarize the evidence", "Start the user-facing strategy branch with the confidence outcome"),
+            ("confidence outcome the user wants", "test levels, folders, templates, commands, approval gates, or tools"),
+        ]:
+            self.assertLess(strategy_compact.index(earlier), strategy_compact.index(later))
+
+        for needle in [
+            "Inspect repo evidence first: stack manifests, scripts, test directories, fixtures, existing docs, CI/config, app surfaces, report locations, data/auth boundaries, and stale/conflict signals",
+            "Summarize the evidence, then ask one focused strategy question at a time",
+            "do not dump a broad questionnaire",
+            "Start the user-facing strategy branch with the confidence outcome the user wants before choosing test levels, folders, templates, commands, approval gates, or tools",
+            "Use confidence examples only as optional explanation, not as a mandatory visible profile menu",
+            "Continue until every mandatory core domain is answered, marked not applicable from evidence, or explicitly deferred by the user with the risk recorded in the draft",
+            "tech stack, product/test surfaces, and risk boundaries the workflow must cover",
+            "folder structure for new test plans, authored tests, fixtures/helpers, evidence, and reports",
+            "feature/domain test plan policy, including when a plan gates authoring or execution",
+            "user-friendly execution choices, current-task approvals, stop conditions, and command categories",
+            "evidence/reporting expectations, redaction rules, and durable report locations",
+            "data/setup/cleanup policy for local, integration, live, browser, or mutating tests",
+            "legacy tests/docs handling: stay put by default, plus adopt/migrate/link choices when requested",
+            "stale, ambiguous, conflicting, or unsafe workflow update procedure",
+            "Activate browser/web domains only when repo evidence, user scope, or selected strategy makes them material",
+        ]:
+            self.assertIn(" ".join(needle.split()), combined)
+
+    def test_testing_strategy_interview_structure_plan_templates_and_output_are_static_contract(self) -> None:
+        workflow = read_repo("plugins/super-developer/skills/testing/references/workflow-contract.md")
+        strategy = read_repo("plugins/super-developer/skills/testing/references/strategy-interview.md")
+        generic = read_repo("plugins/super-developer/skills/testing/references/core/generic-testing.md")
+        combined = compact_text("\n".join([workflow, strategy, generic]))
+
+        for heading in [
+            "## Starter Feature or Domain Test Plan",
+            "## Starter Plan-to-Result Report",
+            "## Starter Execution Choices",
+            "## Legacy and Migration Prompts",
+        ]:
+            self.assertIn(heading, strategy)
+
+        for needle in [
+            "folder/taxonomy decisions for new plans, tests, evidence, reports, and legacy stay-put or migration stance",
+            "feature/domain plan policy, approved plan path/version expectations, and plan-before-work gates",
+            "The workflow draft should name: confidence goals; mandatory and active conditional domains; plan, test, evidence, and report paths; execution choices and approvals; reliability/cleanup semantics; legacy stance; companion docs; redaction; and the update procedure",
+            "Recommend a clean structure for new plans/tests going forward, but leave legacy tests where they are unless the user explicitly asks for migration",
+            "Keep plans high-level and reviewable. They are scenario/deliverable contracts, not command recipes",
+            "Feature/domain plan starter (high-level scenario contract, not a command recipe)",
+            "Nontrivial/high-risk work includes live integration, browser E2E, cross-stack behavior, multi-scenario coverage, risky data/setup, or approval-gated tooling/config changes",
+            "Before covered writes or execution, create a Markdown plan, present it, and wait for explicit approval in the current task",
+            "Interview decisions feed the repository testing workflow, not a default standalone questionnaire",
+            "Draft or revise `docs/testing/workflow.md` and linked `docs/testing/*` companions with the accepted strategy decisions",
+            "A separate checklist or decision record is optional for large or high-risk strategy updates, not the default",
+            "These plan/report paths are not substitutes for the canonical workflow entry point",
+        ]:
+            self.assertIn(" ".join(needle.split()), combined)
+
+    def test_testing_strategy_interview_browser_web_conditionals_are_static_contract(self) -> None:
+        strategy = read_repo("plugins/super-developer/skills/testing/references/strategy-interview.md")
+        web = read_repo("plugins/super-developer/skills/testing/references/web/application-testing.md")
+        browser = read_repo("plugins/super-developer/skills/testing/references/web/browser-e2e-stack-setup.md")
+        combined = compact_text("\n".join([strategy, web, browser]))
+        combined_lower = combined.lower()
+
+        for needle in [
+            "Activate browser/web questions only when repo evidence, user scope, or selected confidence goals show browser, frontend, web UX, UI-backed persistence, live web/API, or browser tooling relevance",
+            "When active, evaluate material subcoverage such as accessibility cues, responsive/viewport behavior, cross-browser needs, screenshots/video, user journeys, browser state, and UI-backed persistence",
+            "If inactive, record why browser/web coverage is not part of the current workflow instead of imposing it",
+            "Browser/web subcoverage is conditional. During an active browser/web strategy interview or plan, evaluate material accessibility cues, responsive/viewport behavior, cross-browser needs, screenshots or video, user journeys, browser state, and UI-backed persistence from repo evidence and confidence goals",
+            "do not impose them universally or ignore them when relevant",
+            "Browser setup is an active conditional domain, not a universal requirement",
+            "recommend Playwright + Allure as the preferred baseline only when repo evidence fits",
+            "fall back to Playwright + Allure only when current tools cannot reasonably meet evidence/dashboard needs and user approval exists",
+            "Do not invent a framework, package manager, Playwright, Allure, browser command, report command, file layout, or live target when repo evidence is absent",
+        ]:
+            self.assertIn(" ".join(needle.split()), combined)
+
+        for forbidden in [
+            "must use playwright",
+            "require playwright for every",
+            "browser e2e is mandatory",
+            "always ask browser",
+            "accessibility for every repository",
+            "responsive for every repository",
+            "cross-browser for every repository",
+            "always-on screenshots are required",
+            "always-on videos are required",
+        ]:
+            self.assertNotIn(forbidden, combined_lower)
+
+    def test_testing_strategy_interview_execution_reporting_and_reliability_are_static_contract(self) -> None:
+        workflow = read_repo("plugins/super-developer/skills/testing/references/workflow-contract.md")
+        strategy = read_repo("plugins/super-developer/skills/testing/references/strategy-interview.md")
+        delegation = read_repo("plugins/super-developer/skills/testing/references/delegation-packets.md")
+        generic = read_repo("plugins/super-developer/skills/testing/references/core/generic-testing.md")
+        combined = compact_text("\n".join([workflow, strategy, delegation, generic]))
+
+        for needle in [
+            "Starter execution choices may be renamed by the accepted workflow, but should stay user-facing: focused check, feature confidence, active browser review, broad regression, or do not run yet",
+            "The final workflow may rename these, but it should keep plain user-facing choices and approval gates",
+            "Each choice should document what it proves, required approvals, command/evidence expectations, stop conditions, cleanup duties, and how results map back to the approved plan",
+            "Each choice needs what it proves, approvals, stop conditions, evidence, and cleanup/reporting expectations",
+            "Selected execution choice(s): <focused check/feature confidence/browser review/broad regression/do not run yet/etc.>",
+            "Approved plan path/version: <path+version, or workflow-approved no-plan reason>",
+            "Current-task approvals already granted: <exact approvals or none>",
+            "Approval-gated actions to stop for: <commands/writes/browser/live/network/etc.>",
+            "Plan-to-result report: map plan scenarios to authored tests/results, selected choices, evidence, skipped/not-run items, redaction, cleanup status, and follow-up risks",
+            "approved plan path/version and scenario-to-test/result mapping, or workflow-approved no-plan reason",
+            "selected execution choice(s), current approvals used, and choices skipped/not run with reasons",
+            "sanitized evidence, artifacts, summaries, blocked approvals/preconditions, and redaction actions",
+            "cleanup-failed/uncertain follow-up",
+            "flaky or inconclusive is not pass",
+            "Use strict outcome language: passed, failed, blocked-precondition, unsafe-needs-approval, inconclusive/flaky, and skipped/not-run or the project-approved equivalents",
+            "Flaky, timed-out, ambiguous, or cleanup-uncertain results are not passes",
+            "Live, integration, browser, or data-mutating tests require owned or isolated data, idempotent setup or equivalent isolation",
+            "explicit follow-up when cleanup fails or is uncertain",
+            "Do not default to uncontrolled shared-data mutation or hide cleanup failures in raw logs",
+        ]:
+            self.assertIn(" ".join(needle.split()), combined)
+
+    def test_testing_strategy_interview_reference_stays_progressive_and_semgrep_free(self) -> None:
+        expected_surfaces = {
+            "plugins/super-developer/skills/testing/SKILL.md",
+            "plugins/super-developer/skills/testing/references/core/generic-testing.md",
+            "plugins/super-developer/skills/testing/references/delegation-packets.md",
+            "plugins/super-developer/skills/testing/references/strategy-interview.md",
+            "plugins/super-developer/skills/testing/references/web/application-testing.md",
+            "plugins/super-developer/skills/testing/references/web/browser-e2e-stack-setup.md",
+            "plugins/super-developer/skills/testing/references/workflow-contract.md",
+        }
+        actual_surfaces = {path.relative_to(REPO_ROOT).as_posix() for path in testing_prompt_surface_paths()}
+        self.assertEqual(expected_surfaces, actual_surfaces)
+
+        for path in testing_prompt_surface_paths():
+            text = path.read_text(encoding="utf-8")
+            rel = path.relative_to(REPO_ROOT)
+            lowered = text.lower()
+            self.assertLessEqual(len(text.splitlines()), 150, rel)
+            self.assertNotIn("semgrep", lowered, rel)
+            self.assertNotIn(CANONICAL_SCAN.lower(), lowered, rel)
+            self.assertNotIn("semgrep_rules.py", lowered, rel)
+            self.assertNotIn("internet", lowered, rel)
+            for forbidden in ["semgrep setup", "semgrep scan", "semgrep helper", "semgrep evidence"]:
+                self.assertNotIn(forbidden, lowered, rel)
 
     def test_testing_delegation_packets_and_no_executor_fallback_are_workflow_aware(self) -> None:
         skill = read_repo("plugins/super-developer/skills/testing/SKILL.md")
