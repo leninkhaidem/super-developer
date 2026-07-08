@@ -6,9 +6,19 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
-### Changed
+## [v1.36.0] - 2026-07-08
+
+### Added
 - Added a dedicated `models.design-preflight` local preference for Design Preflight challenger dispatch.
-- Clarified Semgrep guidance so the Semgrep reference reads only the `semgrep:` preference section.
+- Added a canonical testing workflow contract and delegation packet guidance so test-authoring and test-execution agents always start from `docs/testing/workflow.md`.
+
+### Changed
+- Changed Semgrep guidance so the Semgrep reference reads only the `semgrep:` preference section.
+- Changed the `testing` skill into a recommendation-led meta-skill that establishes, adopts, or migrates a project-specific testing strategy before delegating test work.
+- Changed testing guidance to treat candidate testing docs and browser E2E references as optional strategy material until they are incorporated into the canonical workflow.
+
+### Fixed
+- Fixed testing delegation safeguards so agents cannot proceed to author or run tests when the canonical `docs/testing/workflow.md` entry point is missing or not accepted/current.
 
 ## [v1.35.0] - 2026-07-07
 
