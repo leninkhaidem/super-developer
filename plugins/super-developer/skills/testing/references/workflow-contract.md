@@ -25,22 +25,26 @@ The canonical project interface is root-relative:
   stack details, fixture/data rules, live-service rules, browser E2E strategy, or reporting formats.
 
 Do not silently choose alternate canonical paths. Lowercase `agents.md` and existing testing docs may
-be candidates, but they become governing workflow only after the user chooses adopt, migrate, link,
-or initialize through the canonical entry point.
+be candidates, but candidates are source material only: they govern test work only after
+`docs/testing/workflow.md` exists, is accepted/current, and incorporates or references them through an
+approved adopt, migrate, link, or initialize decision.
 
 ## Workflow State Routing
 
 Classify workflow state before edits or commands:
 
-- `approved`: `docs/testing/workflow.md` exists, is relevant to the task, and does not conflict with
-  higher-priority instructions or clear repo evidence. Load linked companion docs as needed.
+- `approved/current`: `docs/testing/workflow.md` exists, has been accepted for the repository, is
+  relevant to the task, and does not conflict with higher-priority instructions or clear repo
+  evidence. Load linked companion docs as needed.
 - `missing`: no canonical entry point exists. Run candidate discovery and ask the user whether to
-  adopt, migrate, link, or initialize before test edits/runs.
+  adopt, migrate, link, or initialize through `docs/testing/workflow.md` before test edits, command
+  runs, or delegation.
 - `stale/ambiguous/conflicting`: a workflow exists but its commands, paths, stack assumptions,
-  approval gates, or safety stance conflict with repo evidence or the request. Recommend an update
-  path and ask for approval before proceeding.
+  approval gates, safety stance, or acceptance/currentness conflict with repo evidence or the
+  request. Recommend an update to the canonical entry and ask for approval before proceeding.
 - `unsafe/refused`: the workflow or user decision would require unsafe, secret-bearing, production,
-  or unapproved side effects. Stop or offer a safer documentation/update path.
+  or unapproved side effects, or the user refuses canonical workflow creation/update/adoption/linking.
+  Stop or offer a safer documentation/update path.
 
 ## Missing-Workflow Candidate Discovery
 
@@ -59,13 +63,16 @@ Discovery is bounded, read-only, path-safe, symlink-safe, and secret-aware:
 5. Summarize only relevant, sanitized facts: candidate path, why it looks like testing workflow
    material, scope/stack signals, known commands without secrets, and gaps/risks. Do not paste raw
    secrets, env files, tokens, proprietary data, screenshots, or large logs.
-6. Present candidates and ask the user to choose one of:
+6. Present candidates as source material and ask the user to choose one canonical-file outcome:
    - **adopt** an existing canonical-quality doc as the basis for `docs/testing/workflow.md`;
    - **migrate** useful content into the canonical workflow entry point;
-   - **link** from the canonical entry point to an existing curated companion doc;
+   - **link** from `docs/testing/workflow.md` to an existing curated companion doc;
    - **initialize** a new workflow from repo evidence and focused recommendations.
 
-If the user refuses all options, stop. Do not perform one-off test edits or command execution.
+Candidate choice alone is not enough to proceed. First write or update `docs/testing/workflow.md` so
+it incorporates or references the approved candidate and is accepted/current for the task. If the user
+refuses all canonical-file options, stop. Do not perform one-off test edits, command execution, or
+delegation.
 
 ## Recommendation-Led Initialization or Update
 
@@ -101,8 +108,10 @@ file changes. The approval request should name:
 - approval-gated actions that remain outside the documentation update;
 - redaction/privacy handling and stale/conflict update procedure.
 
-Write workflow docs only after explicit current-task approval. If approval is not granted, continue
-focused discovery or stop with the draft. Do not leave partial docs as accepted workflow.
+Write workflow docs only after explicit current-task approval, including adopt/migrate/link updates
+that create or change `docs/testing/workflow.md`. If approval is not granted, continue focused
+discovery or stop with the draft. Do not leave partial docs or candidate-only choices as accepted
+workflow.
 
 ## Minimal Workflow Entry Template
 

@@ -23,17 +23,17 @@ instructions. Do not default to standalone test edits or commands.
 - Keep this eager prompt meta-level. Put project methodology in `docs/testing/workflow.md` or linked
   companion docs; use skill references only as optional proposal/adaptation aids.
 - Choose an explicit mode before acting: initialize/update workflow, author/alter tests using an
-  existing or user-curated workflow, or delegate execution-oriented work.
-- Check `docs/testing/workflow.md` before test edits or commands. If it is missing, stale,
-  ambiguous, conflicting, unsafe, or refused, stop for a workflow decision or switch to
-  initialization/update; do not invent one-off conventions.
+  accepted/current canonical workflow, or delegate execution-oriented work.
+- Check `docs/testing/workflow.md` before test edits, commands, or delegation. If it is missing,
+  stale, ambiguous, conflicting, unsafe, refused, or not accepted/current, establish, update,
+  adopt, migrate, or link through that canonical file first; do not invent one-off conventions.
 - Initialization/update is recommendation-led: inspect repo evidence before broad questions, propose
   the best project-fit strategy, ask focused confirmation questions, then present a draft summary and
   proposed file changes before writing workflow docs.
 - Workflow documentation writes to root `AGENTS.md` or `docs/testing/*` require explicit current-task
   approval after the draft. Preserve unrelated existing `AGENTS.md` content surgically.
-- Authoring, alteration, and execution are delegated after workflow consultation. If no executor or
-  sub-agent is available, return a workflow-aware instruction packet and stop.
+- Authoring, alteration, and execution are delegated only after canonical workflow consultation. If
+  no executor or sub-agent is available, return a workflow-aware instruction packet and stop.
 - Current-task approval is required for workflow doc writes, test writes when the approved workflow
   requires approval, browser/live/network/dependency/config/CI/orchestration actions, unsafe
   commands, and any other gated side effect.
@@ -48,9 +48,11 @@ instructions. Do not default to standalone test edits or commands.
 1. Resolve the user's testing goal, target repo/worktree, requested mode, allowed scope, risk
    boundaries, and whether they are asking to establish/update strategy, change tests, execute tests,
    or receive a reusable packet.
-2. Load or establish the workflow state. Check `docs/testing/workflow.md` first; if missing, load
-   `references/workflow-contract.md` and perform bounded read-only candidate discovery before any
-   test edit or run.
+2. Load or establish the workflow state. Check `docs/testing/workflow.md` first; if missing, stale,
+   ambiguous, conflicting, unsafe, refused, or not accepted/current, load
+   `references/workflow-contract.md` and use bounded read-only candidate discovery only as source
+   material before establishing or updating the canonical entry. Do not edit tests, run commands, or
+   delegate until `docs/testing/workflow.md` exists and is accepted/current for the task.
 3. For initialization/update, inspect relevant repo evidence, optionally load proposal references,
    recommend the project-fit workflow, ask focused confirmation/approval questions, and present a
    draft covering the `AGENTS.md` lazy pointer, `docs/testing/workflow.md`, companion docs, approval
@@ -58,16 +60,16 @@ instructions. Do not default to standalone test edits or commands.
 4. After explicit approval, the main agent may create or surgically update root `AGENTS.md` and
    `docs/testing/*` in the target repo. Without approval, continue discovery or stop with the draft;
    leave no partial workflow docs as accepted.
-5. For author/alter or execution requests with an approved workflow, load
-   `references/delegation-packets.md`, build an instruction packet naming the workflow entry point
+5. For author/alter or execution requests with an accepted/current canonical workflow, load
+   `references/delegation-packets.md`, build an instruction packet naming `docs/testing/workflow.md`
    and relevant companions, then delegate. The executor must report that it consulted the workflow
    before edits or commands.
 6. Treat executor output as evidence, not authority. Verify the report includes workflow paths,
    commands/files changed, command classifications, sanitized evidence, cleanup/timeout status,
    product-failure routing, blocked approvals, and unresolved risks.
-7. If optional generic, web, or browser references are useful, load them only after workflow state is
-   resolved or while drafting an initialization/update proposal; never let them override approved
-   project workflow docs.
+7. If optional generic, web, or browser references are useful, load them only after canonical
+   workflow state is resolved or while drafting an initialization/update proposal; never let them
+   override approved project workflow docs.
 
 ## Load if needed
 
@@ -87,10 +89,11 @@ instructions. Do not default to standalone test edits or commands.
 
 ## Stop if
 
-- No approved or user-curated workflow governs an authoring, alteration, or execution request, and
-  the user has not chosen adopt, migrate, link, or initialize.
-- The user refuses workflow adoption/initialization/update or does not approve proposed workflow doc
-  writes needed for the next step.
+- `docs/testing/workflow.md` does not exist, is stale, ambiguous, conflicting, unsafe, refused, or is
+  not accepted/current for an authoring, alteration, execution, or delegation request, and the user has
+  not approved establishing, updating, adopting, migrating, or linking through that canonical file.
+- The user refuses canonical workflow creation, adoption, migration, linking, or update, or does not
+  approve proposed workflow doc writes needed for the next step.
 - No executor/sub-agent is available for downstream test authoring, alteration, or execution; return
   the prepared packet instead of doing the work directly.
 - The next action crosses an approval-gated category without explicit current-task approval.
@@ -103,7 +106,7 @@ instructions. Do not default to standalone test edits or commands.
 
 ## Output
 
-Return workflow state, consulted paths/candidates, recommendation or adoption decision, approval
-status, docs changed or proposed, delegation packet or executor receipt/report, files changed by
+Return canonical workflow status, consulted paths/candidates, recommendation or adoption decision,
+approval status, docs changed or proposed, delegation packet or executor receipt/report, files changed by
 allowed category, commands proposed/run with classification/timeout/outcome, sanitized evidence,
 cleanup status, blocked approvals, product-failure routing, and unresolved risks.

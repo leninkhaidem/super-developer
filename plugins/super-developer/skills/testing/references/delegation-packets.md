@@ -1,18 +1,22 @@
 # Testing Delegation Packets Reference
 
-Use this reference after the project testing workflow has been approved or user-curated. The main
-agent remains an orchestrator: it documents/updates workflow docs after approval, but delegates test
-authoring, alteration, and execution. If no executor or sub-agent mechanism is available, return the
-packet to the user and stop instead of doing the work directly.
+Use this reference only after the canonical project testing workflow at `docs/testing/workflow.md`
+exists, is accepted/current, and governs the task. Candidate docs are source or companion material
+only after the canonical entry incorporates or references them. The main agent remains an
+orchestrator: it documents/updates workflow docs after approval, but delegates test authoring,
+alteration, and execution. If no executor or sub-agent mechanism is available, return the packet to
+the user and stop instead of doing the work directly.
 
 ## Delegation Preconditions
 
 Before delegation, the orchestrator must establish:
 
-- workflow state: `docs/testing/workflow.md` exists or the user has explicitly chosen an adopted,
-  migrated, or linked candidate for the current task;
-- companion docs: relevant `docs/testing/*` paths named by the workflow, or an explicit statement
-  that none are needed;
+- workflow state: `docs/testing/workflow.md` exists, is accepted/current for the task, and has been
+  read by the orchestrator before delegation;
+- candidate handling: any adopted, migrated, or linked candidate is incorporated or referenced by the
+  canonical workflow entry before it can govern delegated work;
+- companion docs: relevant `docs/testing/*` or approved source/companion paths named by the
+  canonical workflow, or an explicit statement that none are needed;
 - allowed scope: files, test surfaces, commands, and evidence boundaries the executor may touch;
 - approval boundaries: workflow doc writes, test writes when the workflow requires approval,
   browser/live/network/dependency/config/CI/orchestration actions, unsafe commands, and other gated
@@ -28,9 +32,10 @@ A workflow-aware packet should include:
 Testing delegation packet
 - User goal: <requested testing outcome>
 - Target repo/worktree: <path or explicit repo context>
+- Precondition: docs/testing/workflow.md exists, is accepted/current, and governs this task.
 - Workflow entry: docs/testing/workflow.md
 - Companion docs to consult: <paths or none>
-- Required first step: read the workflow entry and companions; receipt/report must cite them.
+- Required first step: read the canonical workflow entry and companions; receipt/report must cite them.
 - Allowed scope: <test files/fixtures/helpers/docs/commands/evidence surfaces>
 - Disallowed scope: <production/runtime code, unapproved config/dependencies/CI/orchestration, etc.>
 - Current-task approvals already granted: <exact approvals or none>
@@ -41,8 +46,8 @@ Testing delegation packet
 - Stop if: <workflow missing/stale/conflicting, unsafe, product fix required, no precondition, etc.>
 ```
 
-The packet may include optional reference paths as aids, but must state that approved project workflow
-docs govern conflicting guidance.
+The packet may include optional reference paths or approved source/companion docs as aids, but must
+state that `docs/testing/workflow.md` and its linked companions govern conflicting guidance.
 
 ## Executor Receipt and Report
 

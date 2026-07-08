@@ -263,7 +263,7 @@ class SkillPromptSurfaceTests(unittest.TestCase):
             "Operate as a testing workflow meta-skill",
             "first establish or load the repository's approved testing workflow",
             "Do not default to standalone test edits or commands",
-            "Choose an explicit mode before acting: initialize/update workflow, author/alter tests using an existing or user-curated workflow, or delegate execution-oriented work",
+            "Choose an explicit mode before acting: initialize/update workflow, author/alter tests using an accepted/current canonical workflow, or delegate execution-oriented work",
             "Keep this eager prompt meta-level",
             "project methodology in `docs/testing/workflow.md` or linked companion docs",
             "use skill references only as optional proposal/adaptation aids",
@@ -282,6 +282,7 @@ class SkillPromptSurfaceTests(unittest.TestCase):
             "Standalone-first",
             "Use when asked for testing help, test plans/cases, or safe local test execution",
             "Authors test cases, writes safe test-only artifacts, and runs repo-discovered safe local test commands",
+            "user-curated workflow",
         ]:
             self.assertNotIn(obsolete, skill)
         for eager_detail in [
@@ -310,6 +311,8 @@ class SkillPromptSurfaceTests(unittest.TestCase):
             "`docs/testing/*`: optional companion docs loaded lazily when the entry point links them",
             "Do not silently choose alternate canonical paths",
             "Lowercase `agents.md` and existing testing docs may be candidates",
+            "candidates are source material only",
+            "`docs/testing/workflow.md` exists, is accepted/current, and incorporates or references them",
         ]:
             self.assertIn(" ".join(needle.split()), combined)
 
@@ -323,12 +326,12 @@ class SkillPromptSurfaceTests(unittest.TestCase):
         combined = compact_text(f"{skill}\n{workflow}")
 
         for needle in [
-            "Check `docs/testing/workflow.md` before test edits or commands",
-            "If it is missing, stale, ambiguous, conflicting, unsafe, or refused, stop for a workflow decision",
+            "Check `docs/testing/workflow.md` before test edits, commands, or delegation",
+            "If it is missing, stale, ambiguous, conflicting, unsafe, refused, or not accepted/current, establish, update, adopt, migrate, or link through that canonical file first",
             "`missing`: no canonical entry point exists",
-            "Run candidate discovery and ask the user whether to adopt, migrate, link, or initialize before test edits/runs",
-            "`stale/ambiguous/conflicting`: a workflow exists but its commands, paths, stack assumptions, approval gates, or safety stance conflict",
-            "`unsafe/refused`: the workflow or user decision would require unsafe, secret-bearing, production, or unapproved side effects",
+            "Run candidate discovery and ask the user whether to adopt, migrate, link, or initialize through `docs/testing/workflow.md` before test edits, command runs, or delegation",
+            "`stale/ambiguous/conflicting`: a workflow exists but its commands, paths, stack assumptions, approval gates, safety stance, or acceptance/currentness conflict",
+            "`unsafe/refused`: the workflow or user decision would require unsafe, secret-bearing, production, or unapproved side effects, or the user refuses canonical workflow creation/update/adoption/linking",
             "Discovery is bounded, read-only, path-safe, symlink-safe, and secret-aware",
             "Inspect only project-owned candidate locations",
             "`docs/testing/`, `docs/tests/`, and `docs/qa/`",
@@ -339,10 +342,12 @@ class SkillPromptSurfaceTests(unittest.TestCase):
             "candidate path, why it looks like testing workflow material, scope/stack signals, known commands without secrets, and gaps/risks",
             "**adopt** an existing canonical-quality doc",
             "**migrate** useful content",
-            "**link** from the canonical entry point",
+            "**link** from `docs/testing/workflow.md` to an existing curated companion doc",
             "**initialize** a new workflow from repo evidence and focused recommendations",
-            "If the user refuses all options, stop",
-            "Do not perform one-off test edits or command execution",
+            "Candidate choice alone is not enough to proceed",
+            "First write or update `docs/testing/workflow.md` so it incorporates or references the approved candidate",
+            "If the user refuses all canonical-file options, stop",
+            "Do not perform one-off test edits, command execution, or delegation",
         ]:
             self.assertIn(" ".join(needle.split()), combined)
 
@@ -378,15 +383,17 @@ class SkillPromptSurfaceTests(unittest.TestCase):
         combined = compact_text(f"{skill}\n{delegation}")
 
         for needle in [
-            "Authoring, alteration, and execution are delegated after workflow consultation",
+            "Authoring, alteration, and execution are delegated only after canonical workflow consultation",
             "If no executor or sub-agent is available, return a workflow-aware instruction packet and stop",
             "The main agent remains an orchestrator",
-            "workflow state: `docs/testing/workflow.md` exists or the user has explicitly chosen an adopted, migrated, or linked candidate",
+            "workflow state: `docs/testing/workflow.md` exists, is accepted/current for the task, and has been read by the orchestrator before delegation",
+            "candidate handling: any adopted, migrated, or linked candidate is incorporated or referenced by the canonical workflow entry before it can govern delegated work",
             "Testing delegation packet",
             "User goal: <requested testing outcome>",
+            "Precondition: docs/testing/workflow.md exists, is accepted/current, and governs this task",
             "Workflow entry: docs/testing/workflow.md",
             "Companion docs to consult: <paths or none>",
-            "Required first step: read the workflow entry and companions; receipt/report must cite them",
+            "Required first step: read the canonical workflow entry and companions; receipt/report must cite them",
             "Allowed scope: <test files/fixtures/helpers/docs/commands/evidence surfaces>",
             "Disallowed scope: <production/runtime code, unapproved config/dependencies/CI/orchestration, etc.>",
             "Current-task approvals already granted: <exact approvals or none>",
@@ -400,6 +407,7 @@ class SkillPromptSurfaceTests(unittest.TestCase):
             "Do not run commands or edit tests directly as a substitute for missing delegation",
         ]:
             self.assertIn(" ".join(needle.split()), combined)
+        self.assertNotIn("user has explicitly chosen an adopted, migrated, or linked candidate for the current task", delegation)
 
     def test_testing_optional_reference_precedence_and_browser_strategy_are_retained(self) -> None:
         skill = read_repo("plugins/super-developer/skills/testing/SKILL.md")
@@ -419,7 +427,7 @@ class SkillPromptSurfaceTests(unittest.TestCase):
         for needle in [
             "Authority precedence: system/developer/current user/current skill safety rules outrank project workflow docs; approved project workflow docs outrank optional skill-local references",
             "Optional skill-local references, used only as proposal/adaptation aids",
-            "If optional generic, web, or browser references are useful, load them only after workflow state is resolved or while drafting an initialization/update proposal; never let them override approved project workflow docs",
+            "If optional generic, web, or browser references are useful, load them only after canonical workflow state is resolved or while drafting an initialization/update proposal; never let them override approved project workflow docs",
             "Optional stack-agnostic test design, command safety, outcomes, durable plan/report schema, and write boundaries",
             "Optional web/frontend/backend/API/live/browser coverage planning and evidence concerns",
             "Optional browser E2E stack/evidence/reporting setup proposal material, including Playwright/Allure conventions",
