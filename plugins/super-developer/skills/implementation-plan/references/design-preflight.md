@@ -29,15 +29,15 @@ Sub-agent output is advisory. The main agent may accept, reject, combine, or ref
 
 ## Model Preferences
 
-Before spawning challengers, resolve `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/model-preferences.md`:
+Before spawning challengers, resolve `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/model-preferences.md`
+for the `design-preflight` role:
 
-- standard planning/design challengers use the `review-plan` key;
-- adversarial/security/privacy/safety/failure-mode challengers use `skeptic-agent`;
+- resolve `models.design-preflight` → `models.default-model` → hardcoded `inherit`;
 - `inherit` omits the model parameter;
-- `adaptive` uses the same role interpretation as plan review;
+- `adaptive` uses planning/challenge-aware selection, stronger for high-risk adversarial lenses;
 - explicit model names are passed directly.
 
-Do not add a Design Preflight-specific model key.
+Use this one resolved Preflight policy for all challengers; lenses vary by risk, not by model key.
 
 ## Timing and Persistence
 

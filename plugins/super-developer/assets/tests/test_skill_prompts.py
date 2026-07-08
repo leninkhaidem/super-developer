@@ -138,6 +138,24 @@ class SkillPromptSurfaceTests(unittest.TestCase):
 
         model_preferences = read_repo("plugins/super-developer/references/model-preferences.md")
         self.assertNotIn(STALE_PREF_PATH, model_preferences)
+        for needle in [
+            "design-preflight: adaptive",
+            "`design-preflight` — Design Preflight challenger sub-agents.",
+            "`models.design-preflight`",
+        ]:
+            self.assertIn(needle, model_preferences)
+
+        design_preflight = read_repo("plugins/super-developer/skills/implementation-plan/references/design-preflight.md")
+        for needle in ["`design-preflight` role", "`models.design-preflight`", "`models.default-model`"]:
+            self.assertIn(needle, design_preflight)
+        self.assertNotIn("Do not add a Design Preflight-specific model key", design_preflight)
+        self.assertNotIn("standard planning/design challengers use the `review-plan` key", design_preflight)
+
+        semgrep_reference = read_repo("plugins/super-developer/references/semgrep.md")
+        self.assertIn("Semgrep reads only the `semgrep:` section", semgrep_reference)
+        self.assertNotIn("models:", semgrep_reference)
+        self.assertNotIn("default-model", semgrep_reference)
+
         self.assertNotIn("resolve/create", read_repo("plugins/super-developer/skills/implementation-plan/SKILL.md"))
 
     def test_conceptualize_handoff_resolves_semgrep_before_plan_skill(self) -> None:

@@ -6,6 +6,10 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+### Changed
+- Added a dedicated `models.design-preflight` local preference for Design Preflight challenger dispatch.
+- Clarified Semgrep guidance so the Semgrep reference reads only the `semgrep:` preference section.
+
 ## [v1.35.0] - 2026-07-07
 
 ### Added

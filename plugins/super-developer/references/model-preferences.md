@@ -16,6 +16,7 @@ Create the parent directory and file when missing with the full first-run defaul
 models:
   default-model: inherit
   implementation-plan: inherit
+  design-preflight: adaptive
   implement: adaptive
   review-plan: adaptive
   review-code: inherit
@@ -37,6 +38,7 @@ Model preferences live under `models:`:
 
 - `default-model` — fallback for every role.
 - `implementation-plan` — delegated planning artifact writer.
+- `design-preflight` — Design Preflight challenger sub-agents.
 - `implement` — package implementation agents.
 - `review-plan` — plan-review standard reviewers.
 - `review-code` — code and specialist reviewers.
@@ -51,6 +53,7 @@ Model preferences live under `models:`:
 Adaptive defaults:
 
 - `implementation-plan`: inherit unless local policy overrides.
+- `design-preflight`: planning/challenge-aware selection, stronger for high-risk challenger lenses.
 - `implement`: stronger model for complex/ambiguous packages; standard model for simple, patterned packages.
 - `review-plan`: standard model.
 - `review-code`: standard model.
@@ -59,7 +62,7 @@ Adaptive defaults:
 ## Resolution
 
 1. Read `.superdeveloper/preferences.yml`; create it with the full defaults above when missing.
-2. Resolve role value from `models.<role>` → `models.default-model` → hardcoded `inherit`.
+2. Resolve role value from `models.<role>` (including `models.design-preflight`) → `models.default-model` → hardcoded `inherit`.
 3. Interpret value: `inherit` omits model, `adaptive` applies role behavior, any other value is
    passed directly.
 

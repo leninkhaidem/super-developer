@@ -7,17 +7,10 @@ bundle. Load it only when resolving Semgrep state, preparing helper commands, or
 evidence/policy surfaces.
 
 ## Preferences
-The only supported local preferences file is `$PROJECT_ROOT/.superdeveloper/preferences.yml`:
+The only supported local preferences file is `$PROJECT_ROOT/.superdeveloper/preferences.yml`.
+Semgrep reads only the `semgrep:` section:
 
 ```yaml
-models:
-  default-model: inherit
-  implementation-plan: inherit
-  implement: adaptive
-  review-plan: adaptive
-  review-code: inherit
-  skeptic-agent: adaptive
-
 semgrep:
   enabled: false
   privacy-mode: true
@@ -31,12 +24,13 @@ semgrep:
 - `rules-provider: plugin-community-cache` derives rules from the installed plugin cache only.
 - `project-policy-gate: skeptic` gates local policy/rule writes through independent authority.
 
-Unsupported preference files are ignored. Do not add `local-rules-path`, `local-rule-files`, a
-project-local community clone path, or persistent network-sync preferences.
+Unsupported preference files are ignored. Other preference sections are out of scope for this
+reference. Do not add `local-rules-path`, `local-rule-files`, a project-local community clone path,
+or persistent network-sync preferences.
 
 ## Local Files and Roles
 Project-local files are developer-local/gitignored by default:
-- `.superdeveloper/preferences.yml` — model preferences plus Semgrep kill switch/provider/gate.
+- `.superdeveloper/preferences.yml` — Semgrep kill switch/provider/gate.
 - `.superdeveloper/semgrep/excluded-rules.yml` — compact command policy for excluding community
   rule IDs.
 - `.superdeveloper/semgrep/local-rules.yml` — actual project-local Semgrep rules, included

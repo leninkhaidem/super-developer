@@ -70,31 +70,40 @@ See [`references/tool-usage.md`](references/tool-usage.md), [`references/slice-f
 
 ---
 
-## Optional Local Semgrep Validation
+## Local Model Preferences
 
-Semgrep validation is optional, local-first, and disabled by default. Ordinary planning, implementation, review, and audit continue without helper setup, scan evidence, or internet access when `semgrep.enabled: false`.
-
-### Local preferences and policy files
-
-The only supported preferences file is `.superdeveloper/preferences.yml`. It is developer-local/gitignored and stores both model preferences and Semgrep defaults:
+The only supported preferences file is `.superdeveloper/preferences.yml`. It is developer-local/gitignored. Model values are `inherit`, `adaptive`, or an exact model name:
 
 ```yaml
 models:
   default-model: inherit
   implementation-plan: inherit
+  design-preflight: adaptive
   implement: adaptive
   review-plan: adaptive
   review-code: inherit
   skeptic-agent: adaptive
+```
 
+Unsupported local preference files are ignored; `.superdeveloper/preferences.yml` is the current contract.
+
+---
+
+## Optional Local Semgrep Validation
+
+Semgrep validation is optional, local-first, and disabled by default. Ordinary planning, implementation, review, and audit continue without helper setup, scan evidence, or internet access when `semgrep.enabled: false`.
+
+### Local Semgrep preferences and policy files
+
+Semgrep reads only the `semgrep:` section of `.superdeveloper/preferences.yml`:
+
+```yaml
 semgrep:
   enabled: false
   privacy-mode: true
   rules-provider: plugin-community-cache
   project-policy-gate: skeptic
 ```
-
-Unsupported local preference files are ignored; `.superdeveloper/preferences.yml` is the current contract.
 
 Project-local Semgrep files are also developer-local/gitignored:
 
