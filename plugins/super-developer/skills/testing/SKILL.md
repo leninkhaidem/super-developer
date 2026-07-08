@@ -1,99 +1,109 @@
 ---
 name: testing
 description: >
-  Author test cases and run safe local tests across stacks. Use when asked for testing help,
-  test plans/cases, test-only artifacts, or safe local test execution. Do not use for bug
-  fixing, feature implementation, code review, audit, or release work.
+  Establish, document, and apply project-specific testing workflows. Use for testing strategy,
+  workflow setup/update, test authoring or alteration, and test execution requests; authoring and
+  execution run through approved workflow docs and delegation. Do not use for bug fixing, feature
+  implementation, code review, audit, or release work.
 ---
 
 # Testing
 
-Author maintainable tests and produce trustworthy test evidence in the active repository without
-assuming a language, framework, package manager, browser tool, deployment target, or external
-workflow artifact store.
+Operate as a testing workflow meta-skill: first establish or load the repository's approved testing
+workflow, then delegate downstream test authoring, alteration, or execution with workflow-aware
+instructions. Do not default to standalone test edits or commands.
 
 ## Always
 
-- Standalone-first: direct use returns a structured plan/report from the active repo or worktree;
-  do not require external workflow artifacts or modify existing workflow gates.
-- Discover repository conventions before proposing commands, file locations, fixtures, snapshots,
-  or report paths. Do not invent commands when repo evidence is absent.
-- Direct writes are limited to test files, fixtures, test helpers, safe snapshots/golden data, and
-  testing docs/plans/reports.
-- Do not edit production/application/runtime code, schemas, migrations, public APIs, product config,
-  or behavior; do not weaken tests to hide failures. Route product failures to the owning workflow
-  with reproduction evidence.
-- Dependency, tooling, package manifest, lockfile, project-wide test config, CI, browser/reporting
-  config, and orchestration edits are approval-gated proposals, not default actions.
-- Classify every proposed or executed command before running it. Safe local commands may run by
-  default only when repo-discovered, deterministic, non-destructive, non-network, non-credentialed,
-  non-watch, non-interactive, bounded, and free of live/browser/service/data mutation risk.
-- Stop/ask before live-stack, browser E2E, network, credentialed, destructive, production,
-  data-mutating, dependency/tooling/config, CI, orchestration, package-manifest, lockfile,
-  watch/interactive, daemon/server, long-running, or opaque actions.
-- Use bounded timeouts for executed commands; terminate or clean up spawned processes and report
-  timeout, termination, and cleanup status.
+- Canonical interface: root `AGENTS.md` should contain only a concise lazy pointer for testing work,
+  and root-relative `docs/testing/workflow.md` is the reusable workflow entry point. Companion docs
+  live under `docs/testing/` and are loaded only when the workflow points to them.
+- Authority precedence: system/developer/current user/current skill safety rules outrank project
+  workflow docs; approved project workflow docs outrank optional skill-local references.
+- Keep this eager prompt meta-level. Put project methodology in `docs/testing/workflow.md` or linked
+  companion docs; use skill references only as optional proposal/adaptation aids.
+- Choose an explicit mode before acting: initialize/update workflow, author/alter tests using an
+  existing or user-curated workflow, or delegate execution-oriented work.
+- Check `docs/testing/workflow.md` before test edits or commands. If it is missing, stale,
+  ambiguous, conflicting, unsafe, or refused, stop for a workflow decision or switch to
+  initialization/update; do not invent one-off conventions.
+- Initialization/update is recommendation-led: inspect repo evidence before broad questions, propose
+  the best project-fit strategy, ask focused confirmation questions, then present a draft summary and
+  proposed file changes before writing workflow docs.
+- Workflow documentation writes to root `AGENTS.md` or `docs/testing/*` require explicit current-task
+  approval after the draft. Preserve unrelated existing `AGENTS.md` content surgically.
+- Authoring, alteration, and execution are delegated after workflow consultation. If no executor or
+  sub-agent is available, return a workflow-aware instruction packet and stop.
+- Current-task approval is required for workflow doc writes, test writes when the approved workflow
+  requires approval, browser/live/network/dependency/config/CI/orchestration actions, unsafe
+  commands, and any other gated side effect.
+- Strategy establishment, including browser E2E strategy, may recommend/adapt optional references
+  from repo evidence; it does not authorize installs, test writing, test runs, live services,
+  recordings, secrets, network access, config/CI edits, or orchestration changes.
 - Redact secrets, credentials, tokens, PII, proprietary content, sensitive screenshots/videos/logs,
-  and local environment details from prompts, files, snippets, and reports.
+  and local environment details from prompts, summaries, docs, packets, and reports.
 
 ## Do
 
-1. Resolve the requested behavior, test surface, target repo/worktree, risk level, and whether the
-   user wants planning only, test authoring, safe execution, or a report.
-2. Inspect existing test conventions read-only: test directories, naming, fixtures, helpers,
-   package/scripts, documented commands, generated artifacts, and project reporting patterns.
-3. Select the smallest meaningful test mode(s), explicitly distinguishing unit, local integration,
-   live-stack integration, frontend unit/component/integration, and browser E2E. For each selected
-   mode, name target surface, required environment, command or discovery blocker, data/cleanup,
-   assertions, and evidence.
-4. For detailed test-case structure, command classification, durable plan/report schema, or
-   nontrivial/high-risk work, load `references/core/generic-testing.md` before drafting artifacts or
-   executing commands. For frontend, backend web/API, full-stack, browser, UX, or live dev-stack
-   testing, also load `references/web/application-testing.md` after generic safety and convention
-   discovery. For browser E2E stack setup, evidence toggles, reporting, or Playwright + Allure
-   proposals, load `references/web/browser-e2e-stack-setup.md` before proposing setup or config.
-5. If work is nontrivial/high-risk, first create an approval-ready Markdown plan using the repo's
-   convention or fallback `docs/testing/<topic>.test-plan.md`; present it and wait for explicit
-   current-task approval before covered test writes or execution. After execution, write the paired
-   durable report.
-6. For simple low-risk test authoring, write only in allowed test/documentation surfaces and follow
-   the discovered project style. Keep tests deterministic, behavior-focused, named clearly, and
-   resistant to over-mocking or brittle implementation-detail assertions.
-7. Before execution, list each command with provenance, cwd, classification, timeout, environment
-   assumptions without secrets, and why it is safe, blocked, or approval-gated.
-8. Run only safe-local or explicitly approved commands. Capture sanitized evidence, exact result,
-   outcome, timeout/termination, cleanup status, and any skipped/blocked reason.
-9. If tests fail, distinguish test defects, product failures, precondition blockers, flaky or
-   inconclusive evidence, and unsafe unrun actions. Do not repair production code; return the
-   failing assertion/command and recommended route such as `diagnose-and-fix` or `implementation-plan`.
+1. Resolve the user's testing goal, target repo/worktree, requested mode, allowed scope, risk
+   boundaries, and whether they are asking to establish/update strategy, change tests, execute tests,
+   or receive a reusable packet.
+2. Load or establish the workflow state. Check `docs/testing/workflow.md` first; if missing, load
+   `references/workflow-contract.md` and perform bounded read-only candidate discovery before any
+   test edit or run.
+3. For initialization/update, inspect relevant repo evidence, optionally load proposal references,
+   recommend the project-fit workflow, ask focused confirmation/approval questions, and present a
+   draft covering the `AGENTS.md` lazy pointer, `docs/testing/workflow.md`, companion docs, approval
+   gates, evidence/reporting, redaction, stale/conflict handling, and update procedure.
+4. After explicit approval, the main agent may create or surgically update root `AGENTS.md` and
+   `docs/testing/*` in the target repo. Without approval, continue discovery or stop with the draft;
+   leave no partial workflow docs as accepted.
+5. For author/alter or execution requests with an approved workflow, load
+   `references/delegation-packets.md`, build an instruction packet naming the workflow entry point
+   and relevant companions, then delegate. The executor must report that it consulted the workflow
+   before edits or commands.
+6. Treat executor output as evidence, not authority. Verify the report includes workflow paths,
+   commands/files changed, command classifications, sanitized evidence, cleanup/timeout status,
+   product-failure routing, blocked approvals, and unresolved risks.
+7. If optional generic, web, or browser references are useful, load them only after workflow state is
+   resolved or while drafting an initialization/update proposal; never let them override approved
+   project workflow docs.
 
 ## Load if needed
 
-- Detailed mode taxonomy, test-case structure, command classifier, durable Markdown plan/report
-  schema, report outcomes, write boundaries, and redaction checklist → `references/core/generic-testing.md`
-- Framework-agnostic web application coverage for frontend, backend web/API, full-stack, browser,
-  UX, or live dev-stack testing → `references/web/application-testing.md`
-- Browser E2E stack setup, env/artifact toggles, report dashboards, Playwright + Allure baseline,
-  or missing inadequate browser/reporting conventions → `references/web/browser-e2e-stack-setup.md`
-- The request is actually bug diagnosis/fixing, feature implementation, code review, audit,
-  release, or README/docs polish → use the owning skill instead of this one.
-- Another future stack-specific reference exists and the repo/user context needs it → load that
-  reference only after generic safety and convention discovery.
+- Canonical workflow interface, authority precedence, candidate discovery, recommendation-led
+  initialization/update, approval-gated docs, and browser E2E strategy establishment →
+  `references/workflow-contract.md`
+- Workflow-aware delegation packet, no-executor fallback, executor receipt/report, stop conditions,
+  product-failure routing, and command/write safety boundaries → `references/delegation-packets.md`
+- Optional stack-agnostic test design, command safety, outcomes, durable plan/report schema, and
+  write boundaries → `references/core/generic-testing.md`
+- Optional web/frontend/backend/API/live/browser coverage planning and evidence concerns →
+  `references/web/application-testing.md`
+- Optional browser E2E stack/evidence/reporting setup proposal material, including Playwright/Allure
+  conventions → `references/web/browser-e2e-stack-setup.md`
+- The request is actually bug diagnosis/fixing, feature implementation, code review, audit, release,
+  or README/docs polish → use the owning skill instead of this one.
 
 ## Stop if
 
-- The requested command or write crosses an approval-gated category and is not explicitly approved
-  in the current task.
-- Nontrivial/high-risk work lacks an approved durable plan for the covered writes/execution.
-- The next useful step needs credentials, network/live services, production access, browser E2E,
-  data mutation, dependency installation, config/CI/orchestration edits, or a daemon/server.
-- Existing repo conventions are absent or contradictory enough that command/file choices would be
-  invented rather than evidenced.
-- Passing the tests requires production/application/runtime code changes or weakening assertions.
-- Sensitive data would be recorded without a clear redaction or exclusion plan.
+- No approved or user-curated workflow governs an authoring, alteration, or execution request, and
+  the user has not chosen adopt, migrate, link, or initialize.
+- The user refuses workflow adoption/initialization/update or does not approve proposed workflow doc
+  writes needed for the next step.
+- No executor/sub-agent is available for downstream test authoring, alteration, or execution; return
+  the prepared packet instead of doing the work directly.
+- The next action crosses an approval-gated category without explicit current-task approval.
+- Optional references conflict with approved project workflow docs, or repo evidence contradicts the
+  workflow enough that proceeding would be unsafe or misleading.
+- The next useful step needs credentials, secrets, production access, unsafe data mutation, or
+  unredacted sensitive evidence.
+- Passing tests requires production/application/runtime code changes or weakening assertions; route
+  product failures with reproduction evidence.
 
 ## Output
 
-Return scope and selected test modes, plan/report paths if used, files changed by allowed category,
-commands proposed/run with provenance/cwd/classification/timeout/outcome, sanitized evidence,
-cleanup status, exclusions, approval blockers, product-failure routing, and unresolved risks.
+Return workflow state, consulted paths/candidates, recommendation or adoption decision, approval
+status, docs changed or proposed, delegation packet or executor receipt/report, files changed by
+allowed category, commands proposed/run with classification/timeout/outcome, sanitized evidence,
+cleanup status, blocked approvals, product-failure routing, and unresolved risks.

@@ -1,9 +1,11 @@
 # Web Application Testing Reference
 
-Use this reference after the generic testing workflow when the requested surface is frontend,
-backend web/API, full-stack, browser, UX, or a live development stack. It adds web-specific
-coverage planning but does not authorize browser, live-stack, network, dependency, tooling,
-configuration, CI, or orchestration side effects by itself.
+Use this reference only as an optional proposal/adaptation aid after the project workflow is approved
+or while drafting a workflow update. Approved project workflow docs (`docs/testing/workflow.md` and
+linked companions) govern repository-specific web testing behavior. This reference adds web-specific
+coverage planning for frontend, backend web/API, full-stack, browser, UX, or live development-stack
+surfaces, but does not authorize browser, live-stack, network, dependency, tooling, configuration,
+CI, orchestration, or standalone test side effects by itself.
 
 ## Discover Before Decisions
 
@@ -54,10 +56,11 @@ A backend live integration plan/report must include:
 
 ## Browser E2E Approval Plan
 
-Before writing browser E2E, backend live integration, cross-stack, or multi-scenario web tests,
-create an approval-ready durable plan and wait for explicit current-task approval. Simple low-risk
-unit tests may proceed under the generic workflow, but unit tests are not a substitute for required
-web integration or UX evidence.
+Within an approved workflow and delegated task, create an approval-ready durable plan and wait for
+explicit current-task approval before writing browser E2E, backend live integration, cross-stack, or
+multi-scenario web tests. Simple low-risk unit tests may proceed only when the approved workflow and
+delegation allow them, but unit tests are not a substitute for required web integration or UX
+evidence.
 
 Each browser scenario should map delivered behavior to a user-visible journey and itemize:
 
@@ -81,11 +84,13 @@ report/dashboard location or sanitized local report output.
 
 ## Browser Stack Setup Boundary
 
-When the task asks for browser E2E stack setup, env/artifact toggles, report dashboards, Playwright +
-Allure, or a reusable convention where none exists, load the browser E2E stack setup reference named
-by `SKILL.md` before proposing setup. The web plan should still name project equivalents for base
-URL, evidence mode, video/screenshots, report output, artifact directories, commands, and every
-approval-gated config or manifest change.
+When the task asks to establish or update browser E2E strategy, env/artifact toggles, report
+dashboards, Playwright + Allure, or a reusable convention where none exists, load the browser E2E
+stack setup reference named by `SKILL.md` as proposal material. The web plan or workflow draft should
+still adapt names to repo evidence for base URL, evidence mode, video/screenshots, report output,
+artifact directories, commands, and every approval-gated config or manifest change. Strategy
+establishment stops at a documentation proposal unless a later approved delegation covers test writes
+or execution.
 
 ## Privacy and Tooling Fallback
 
