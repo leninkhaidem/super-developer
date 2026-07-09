@@ -25,9 +25,9 @@ instructions. Do not default to standalone test edits or commands.
 - Choose an explicit mode before acting: initialize/update workflow, author/alter tests using an
   accepted/current canonical workflow, or delegate execution-oriented work.
 - Explicit testing-workflow lifecycle requests include initialize, update, adopt, migrate, link,
-  and revise. For these, inspect repo evidence, load `references/strategy-interview.md`, and run
-  the strategy interview even when workflow docs already exist; existing docs are source material,
-  not a skip condition.
+  and revise, including greenfield repositories with no/minimal tests, no strategy, or no canonical
+  workflow. For these, inspect repo evidence, load `references/strategy-interview.md`, and run the
+  strategy interview; existing docs are source material, not a skip condition.
 - Ordinary authoring, alteration, or execution may use an accepted/current workflow without the
   full interview when it adequately answers the task; missing, stale, ambiguous, conflicting,
   unsafe, or insufficient workflows fail closed to establish/update mode.
@@ -59,9 +59,10 @@ instructions. Do not default to standalone test edits or commands.
 2. Load or establish the workflow state. Check `docs/testing/workflow.md` first; if missing, stale,
    ambiguous, conflicting, unsafe, refused, or not accepted/current, load
    `references/workflow-contract.md` and use bounded read-only candidate discovery only as source
-   material before establishing or updating the canonical entry. For explicit initialize, update,
-   adopt, migrate, link, or revise requests, load `references/strategy-interview.md` and do not use
-   an existing workflow to skip the interview. Do not edit tests, run commands, or delegate until
+   material before establishing or updating the canonical entry. For greenfield/no-strategy repos or
+   explicit initialize, update, adopt, migrate, link, or revise requests, load
+   `references/strategy-interview.md` and do not use existing or absent workflow state to skip the
+   interview. Do not edit tests, run commands, or delegate until
    `docs/testing/workflow.md` exists and is accepted/current for the task.
 3. For initialization/update, inspect relevant repo evidence, load `references/strategy-interview.md`,
    optionally load proposal references, recommend the project-fit workflow, ask focused

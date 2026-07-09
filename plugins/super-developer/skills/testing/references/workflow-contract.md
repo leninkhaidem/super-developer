@@ -37,9 +37,8 @@ Classify workflow state before edits or commands:
   relevant to the task, and does not conflict with higher-priority instructions or clear repo
   evidence. Load linked companion docs as needed. Explicit initialize, update, adopt, migrate,
   link, or revise requests still route to the strategy interview; existing docs are source material.
-- `missing`: no canonical entry point exists. Run candidate discovery and ask the user whether to
-  adopt, migrate, link, or initialize through `docs/testing/workflow.md` before test edits, command
-  runs, or delegation.
+- `missing`: no canonical entry point exists, including greenfield repositories with no/minimal tests or no documented testing strategy. Run candidate discovery and ask the user whether to adopt,
+  migrate, link, or initialize through `docs/testing/workflow.md` before test edits, command runs, or delegation.
 - `stale/ambiguous/conflicting`: a workflow exists but its commands, paths, stack assumptions,
   approval gates, safety stance, or acceptance/currentness conflict with repo evidence or the
   request. Recommend an update to the canonical entry and ask for approval before proceeding.
@@ -82,11 +81,8 @@ as manifests, scripts, test directories, fixtures, existing docs, app entry poin
 CI/config files, known report/artifact locations, and risk-sensitive data/auth boundaries. Use the
 smallest useful evidence set; avoid large generated or secret-bearing files.
 
-For explicit initialize, update, adopt, migrate, link, or revise requests, load
-`references/strategy-interview.md` and run the strategy interview before accepted workflow-doc
-writes. Existing workflows, candidates, and companion docs inform the recommendation but do not
-skip the interview. For ordinary authoring, alteration, or execution, an accepted/current workflow
-may govern without the full interview only when adequate; missing, stale, ambiguous, conflicting,
+For greenfield/no-strategy repositories and explicit initialize, update, adopt, migrate, link, or revise requests, load `references/strategy-interview.md` and run the strategy interview before
+accepted workflow-doc writes. Existing workflows, absent/minimal tests, candidates, and companion docs inform the recommendation but do not skip the interview. Ordinary author/alter/execute may use an accepted/current workflow only when adequate; missing, stale, ambiguous, conflicting,
 unsafe, or insufficient workflows fail closed to this update path.
 
 Interview one focused question at a time after the evidence summary. Start the user-facing strategy

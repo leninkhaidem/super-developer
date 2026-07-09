@@ -1,7 +1,8 @@
 # Testing Strategy Interview Reference
 
 Use this reference for explicit requests to initialize, update, adopt, migrate, link, or revise a
-repository testing workflow. It supplies interview coverage and starter contracts for project docs;
+repository testing workflow, including greenfield repositories with no/minimal tests, no strategy, or
+no canonical workflow. It supplies interview coverage and starter contracts for project docs;
 it does not authorize test writes, command execution, installs, browser/live/network actions,
 configuration changes, CI changes, or accepted workflow-doc writes without the normal approvals.
 
@@ -9,7 +10,8 @@ configuration changes, CI changes, or accepted workflow-doc writes without the n
 
 1. Inspect repo evidence first: stack manifests, scripts, test directories, fixtures, existing docs,
    CI/config, app surfaces, report locations, data/auth boundaries, and stale/conflict signals.
-2. Treat existing testing docs as source material, not a reason to skip the interview.
+2. Treat absent/minimal tests, no documented strategy, and existing testing docs as source evidence,
+   not a reason to skip the interview.
 3. Summarize the evidence, then ask one focused strategy question at a time. Include a
    recommendation and short options when useful; do not dump a broad questionnaire.
 4. Start the user-facing strategy branch with the confidence outcome the user wants before choosing

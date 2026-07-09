@@ -391,14 +391,16 @@ class SkillPromptSurfaceTests(unittest.TestCase):
         combined = compact_text("\n".join([skill, workflow, strategy, delegation]))
 
         for needle in [
-            "Explicit testing-workflow lifecycle requests include initialize, update, adopt, migrate, link, and revise",
-            "run the strategy interview even when workflow docs already exist; existing docs are source material, not a skip condition",
+            "Explicit testing-workflow lifecycle requests include initialize, update, adopt, migrate, link, and revise, including greenfield repositories with no/minimal tests, no strategy, or no canonical workflow",
+            "For greenfield/no-strategy repos or explicit initialize, update, adopt, migrate, link, or revise requests, load `references/strategy-interview.md`",
+            "Treat absent/minimal tests, no documented strategy, and existing testing docs as source evidence, not a reason to skip the interview",
+            "run the strategy interview; existing docs are source material, not a skip condition",
             "Ordinary authoring, alteration, or execution may use an accepted/current workflow without the full interview when it adequately answers the task",
             "missing, stale, ambiguous, conflicting, unsafe, or insufficient workflows fail closed to establish/update mode",
             "Explicit initialize, update, adopt, migrate, link, or revise requests still route to the strategy interview; existing docs are source material",
-            "For explicit initialize, update, adopt, migrate, link, or revise requests, load `references/strategy-interview.md` and run the strategy interview before accepted workflow-doc writes",
-            "Existing workflows, candidates, and companion docs inform the recommendation but do not skip the interview",
-            "`missing`: no canonical entry point exists",
+            "For greenfield/no-strategy repositories and explicit initialize, update, adopt, migrate, link, or revise requests, load `references/strategy-interview.md` and run the strategy interview before accepted workflow-doc writes",
+            "Existing workflows, absent/minimal tests, candidates, and companion docs inform the recommendation but do not skip the interview",
+            "`missing`: no canonical entry point exists, including greenfield repositories with no/minimal tests or no documented testing strategy",
             "Run candidate discovery and ask the user whether to adopt, migrate, link, or initialize through `docs/testing/workflow.md` before test edits, command runs, or delegation",
             "candidates are source material only: they govern test work only after `docs/testing/workflow.md` exists, is accepted/current, and incorporates or references them through an approved adopt, migrate, link, or initialize decision",
             "Candidate choice alone is not enough to proceed",
