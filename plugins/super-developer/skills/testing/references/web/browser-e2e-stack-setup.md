@@ -3,11 +3,11 @@
 Use this only as optional proposal/adaptation material after workflow-state discovery, generic
 command safety, and web discovery when the task asks to establish, propose, or update a reusable
 browser E2E strategy, evidence toggles, reporting, Playwright, Allure, or when no adequate
-browser/reporting convention exists. Approved project workflow docs (`docs/testing/workflow.md` and
-linked companions) govern repository-specific behavior. This reference helps draft a recommendation
-or approval plan; it does not authorize installs, manifest edits, lockfile changes, browser config,
-CI, service orchestration, browser runs, recordings, network access, live services, or direct test
-writing/execution.
+browser/reporting convention exists. Browser setup is an active conditional domain, not a universal
+requirement. Approved project workflow docs (`docs/testing/workflow.md` and linked companions) govern
+repository-specific behavior. This reference helps draft a recommendation or approval plan; it does
+not authorize installs, manifest edits, lockfile changes, browser config, CI, service orchestration,
+browser runs, recordings, network access, live services, or direct test writing/execution.
 
 ## Setup Decision
 

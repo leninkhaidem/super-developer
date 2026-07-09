@@ -69,20 +69,22 @@ the current task. Reuse a repo convention; otherwise propose collision-safe fall
 `docs/testing/<topic>.test-plan.md` and `docs/testing/<topic>.test-report.md`. These plan/report
 paths are not substitutes for the canonical workflow entry point.
 
-Plan schema:
+Feature/domain plan starter (high-level scenario contract, not a command recipe):
 
-- Topic, scope, risk level, requester goal, and exclusions.
-- Scenario-to-test mapping with mode, files/artifacts to change, commands, data/preconditions,
-  cleanup, evidence, and redaction notes per scenario.
-- Approval-gated actions not yet authorized, plus blockers and alternatives.
+- Plan path/version, topic, scope, risk level, confidence goal, requester goal, and exclusions.
+- Scenario-to-deliverable mapping with selected surface/mode, files or artifacts expected, evidence
+  needed, data/preconditions, cleanup, redaction, and approval gates per scenario.
+- Selected execution choice(s) under consideration, choices intentionally not run, blockers, and
+  alternatives.
 
-Report schema:
+Concise plan-to-result report starter:
 
-- Approved plan path/version and report date.
+- Approved plan path/version, report date, selected execution choice(s), and approvals used.
 - Changed test artifacts by category.
-- Scenario-to-test-to-evidence matrix with outcome, command, cwd, provenance, timeout,
-  termination/cleanup status, sanitized snippets, artifact links, exclusions, and follow-up route.
-- Redaction decisions for secrets, credentials, tokens, PII, proprietary content, screenshots,
+- Scenario-to-test-to-evidence matrix with outcome, command or not-run reason, cwd, provenance,
+  timeout, termination/cleanup status, sanitized snippets, artifact links, exclusions, and route.
+- Skipped/not-run items, blocked approvals/preconditions, cleanup-failed/uncertain follow-up, and
+  redaction decisions for secrets, credentials, tokens, PII, proprietary content, screenshots,
   videos, logs, and local environment details.
 
 ## Outcomes and Follow-up
@@ -96,11 +98,15 @@ Use only these outcomes: `passed`, `failed`, `blocked-precondition`, `unsafe-nee
   unavailable and no unsafe action was taken.
 - `unsafe-needs-approval`: a command/write was correctly not run because it needs approval.
 - `inconclusive/flaky`: result is ambiguous, flaky, timed out without deterministic signal, or cleanup
-  is uncertain; do not report it as a deterministic regression.
+  is uncertain; do not count it as passed or report it as a deterministic regression.
 - `skipped/not-run`: out of scope or intentionally omitted, with reason.
 
 Production/application/runtime fixes are out of scope. Report failing commands/assertions and route
 product repair to the appropriate existing workflow with evidence.
+
+Starter execution choices may be renamed by the accepted workflow, but should stay user-facing: focused
+check, feature confidence, active browser review, broad regression, or do not run yet. Each choice
+needs what it proves, approvals, stop conditions, evidence, and cleanup/reporting expectations.
 
 ## Write Boundary
 

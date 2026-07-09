@@ -18,6 +18,10 @@ Before delegation, the orchestrator must establish:
 - companion docs: relevant `docs/testing/*` or approved source/companion paths named by the
   canonical workflow, or an explicit statement that none are needed;
 - allowed scope: files, test surfaces, commands, and evidence boundaries the executor may touch;
+- approved plan path/version when the workflow requires a feature/domain plan, or an explicit
+  no-plan-needed statement from the accepted workflow;
+- selected execution choice(s), what each choice is intended to prove, and choices intentionally
+  skipped or not run;
 - approval boundaries: workflow doc writes, test writes when the workflow requires approval,
   browser/live/network/dependency/config/CI/orchestration actions, unsafe commands, and other gated
   side effects are blocked unless explicitly approved in the current task;
@@ -35,12 +39,16 @@ Testing delegation packet
 - Precondition: docs/testing/workflow.md exists, is accepted/current, and governs this task.
 - Workflow entry: docs/testing/workflow.md
 - Companion docs to consult: <paths or none>
+- Approved plan path/version: <path+version, or workflow-approved no-plan reason>
+- Selected execution choice(s): <focused check/feature confidence/browser review/broad regression/do not run yet/etc.>
 - Required first step: read the canonical workflow entry and companions; receipt/report must cite them.
 - Allowed scope: <test files/fixtures/helpers/docs/commands/evidence surfaces>
 - Disallowed scope: <production/runtime code, unapproved config/dependencies/CI/orchestration, etc.>
 - Current-task approvals already granted: <exact approvals or none>
 - Approval-gated actions to stop for: <commands/writes/browser/live/network/etc.>
 - Command safety: classify commands, use bounded timeouts, no unsafe/default live side effects.
+- Plan-to-result report: map plan scenarios to authored tests/results, selected choices, evidence,
+  skipped/not-run items, redaction, cleanup status, and follow-up risks.
 - Evidence/reporting: sanitized commands, outputs, artifacts, outcomes, cleanup, blocked reasons.
 - Product-failure routing: do not edit product code; report reproduction and route to owner.
 - Stop if: <workflow missing/stale/conflicting, unsafe, product fix required, no precondition, etc.>
@@ -60,13 +68,15 @@ The executor's first reportable fact should prove workflow consultation:
 Final executor reports should include:
 
 - files changed by allowed category, or no-write explanation;
+- approved plan path/version and scenario-to-test/result mapping, or workflow-approved no-plan reason;
+- selected execution choice(s), current approvals used, and choices skipped/not run with reasons;
 - commands proposed/run with cwd, provenance, classification, timeout, result, and cleanup status;
-- sanitized evidence, artifacts, summaries, skipped items, and blocked approvals;
+- sanitized evidence, artifacts, summaries, blocked approvals/preconditions, and redaction actions;
 - outcomes such as passed, failed, blocked-precondition, unsafe-needs-approval, inconclusive/flaky,
-  or skipped/not-run when the project workflow uses these terms;
+  or skipped/not-run when the project workflow uses these terms; flaky or inconclusive is not pass;
 - product-failure routing with reproduction evidence, without modifying product/runtime code;
 - privacy/redaction actions for secrets, credentials, tokens, PII, proprietary content, screenshots,
-  videos, logs, local paths, and environment details.
+  videos, logs, local paths, and environment details, plus cleanup-failed/uncertain follow-up.
 
 ## No-Executor Fallback
 
@@ -76,6 +86,8 @@ tests directly as a substitute for missing delegation.
 
 ## Orchestrator Follow-up
 
-Review executor output for workflow consultation, scope compliance, approval violations, evidence
-quality, cleanup/timeout status, and product-failure routing. If the workflow appears stale or
-conflicting, stop and shift to workflow update mode before further test work.
+Review executor output for workflow consultation, approved plan/report linkage, selected execution
+choices, scope compliance, approval violations, evidence quality, skipped/not-run handling,
+redaction, cleanup/timeout status, non-pass treatment for flaky or inconclusive results, and
+product-failure routing. If the workflow appears stale or conflicting, stop and shift to workflow
+update mode before further test work.

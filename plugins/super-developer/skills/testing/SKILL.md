@@ -24,12 +24,20 @@ instructions. Do not default to standalone test edits or commands.
   companion docs; use skill references only as optional proposal/adaptation aids.
 - Choose an explicit mode before acting: initialize/update workflow, author/alter tests using an
   accepted/current canonical workflow, or delegate execution-oriented work.
+- Explicit testing-workflow lifecycle requests include initialize, update, adopt, migrate, link,
+  and revise, including greenfield repositories with no/minimal tests, no strategy, or no canonical
+  workflow. For these, inspect repo evidence, load `references/strategy-interview.md`, and run the
+  strategy interview; existing docs are source material, not a skip condition.
+- Ordinary authoring, alteration, or execution may use an accepted/current workflow without the
+  full interview when it adequately answers the task; missing, stale, ambiguous, conflicting,
+  unsafe, or insufficient workflows fail closed to establish/update mode.
 - Check `docs/testing/workflow.md` before test edits, commands, or delegation. If it is missing,
   stale, ambiguous, conflicting, unsafe, refused, or not accepted/current, establish, update,
   adopt, migrate, or link through that canonical file first; do not invent one-off conventions.
 - Initialization/update is recommendation-led: inspect repo evidence before broad questions, propose
-  the best project-fit strategy, ask focused confirmation questions, then present a draft summary and
-  proposed file changes before writing workflow docs.
+  the best project-fit strategy, ask focused confirmation questions one at a time, starting with
+  confidence goals, resolve mandatory strategy domains or user deferrals, then present a draft
+  summary and proposed file changes before writing workflow docs.
 - Workflow documentation writes to root `AGENTS.md` or `docs/testing/*` require explicit current-task
   approval after the draft. Preserve unrelated existing `AGENTS.md` content surgically.
 - Authoring, alteration, and execution are delegated only after canonical workflow consultation. If
@@ -51,12 +59,17 @@ instructions. Do not default to standalone test edits or commands.
 2. Load or establish the workflow state. Check `docs/testing/workflow.md` first; if missing, stale,
    ambiguous, conflicting, unsafe, refused, or not accepted/current, load
    `references/workflow-contract.md` and use bounded read-only candidate discovery only as source
-   material before establishing or updating the canonical entry. Do not edit tests, run commands, or
-   delegate until `docs/testing/workflow.md` exists and is accepted/current for the task.
-3. For initialization/update, inspect relevant repo evidence, optionally load proposal references,
-   recommend the project-fit workflow, ask focused confirmation/approval questions, and present a
-   draft covering the `AGENTS.md` lazy pointer, `docs/testing/workflow.md`, companion docs, approval
-   gates, evidence/reporting, redaction, stale/conflict handling, and update procedure.
+   material before establishing or updating the canonical entry. For greenfield/no-strategy repos or
+   explicit initialize, update, adopt, migrate, link, or revise requests, load
+   `references/strategy-interview.md` and do not use existing or absent workflow state to skip the
+   interview. Do not edit tests, run commands, or delegate until
+   `docs/testing/workflow.md` exists and is accepted/current for the task.
+3. For initialization/update, inspect relevant repo evidence, load `references/strategy-interview.md`,
+   optionally load proposal references, recommend the project-fit workflow, ask focused
+   confidence-first confirmation/approval questions, and present a draft covering the `AGENTS.md`
+   lazy pointer, `docs/testing/workflow.md`, companion docs, plan/report paths, execution choices,
+   approval gates, evidence/reporting, reliability/cleanup, redaction, stale/conflict handling, and
+   update procedure.
 4. After explicit approval, the main agent may create or surgically update root `AGENTS.md` and
    `docs/testing/*` in the target repo. Without approval, continue discovery or stop with the draft;
    leave no partial workflow docs as accepted.
@@ -76,6 +89,9 @@ instructions. Do not default to standalone test edits or commands.
 - Canonical workflow interface, authority precedence, candidate discovery, recommendation-led
   initialization/update, approval-gated docs, and browser E2E strategy establishment →
   `references/workflow-contract.md`
+- Explicit initialize/update/adopt/migrate/link/revise strategy interview domains, confidence-first
+  sequencing, starter plan/report/execution contracts, conditional browser/web prompts, legacy
+  handling, and reliability/cleanup defaults → `references/strategy-interview.md`
 - Workflow-aware delegation packet, no-executor fallback, executor receipt/report, stop conditions,
   product-failure routing, and command/write safety boundaries → `references/delegation-packets.md`
 - Optional stack-agnostic test design, command safety, outcomes, durable plan/report schema, and
@@ -107,6 +123,7 @@ instructions. Do not default to standalone test edits or commands.
 ## Output
 
 Return canonical workflow status, consulted paths/candidates, recommendation or adoption decision,
-approval status, docs changed or proposed, delegation packet or executor receipt/report, files changed by
-allowed category, commands proposed/run with classification/timeout/outcome, sanitized evidence,
-cleanup status, blocked approvals, product-failure routing, and unresolved risks.
+approval status, docs changed or proposed, approved plan/report linkage, selected execution choices,
+delegation packet or executor receipt/report, files changed by allowed category, commands proposed/run
+with classification/timeout/outcome, sanitized evidence, skipped/not-run items, redaction and cleanup
+status, blocked approvals, product-failure routing, and unresolved risks.

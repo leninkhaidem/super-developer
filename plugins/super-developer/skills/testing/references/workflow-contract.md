@@ -35,10 +35,10 @@ Classify workflow state before edits or commands:
 
 - `approved/current`: `docs/testing/workflow.md` exists, has been accepted for the repository, is
   relevant to the task, and does not conflict with higher-priority instructions or clear repo
-  evidence. Load linked companion docs as needed.
-- `missing`: no canonical entry point exists. Run candidate discovery and ask the user whether to
-  adopt, migrate, link, or initialize through `docs/testing/workflow.md` before test edits, command
-  runs, or delegation.
+  evidence. Load linked companion docs as needed. Explicit initialize, update, adopt, migrate,
+  link, or revise requests still route to the strategy interview; existing docs are source material.
+- `missing`: no canonical entry point exists, including greenfield repositories with no/minimal tests or no documented testing strategy. Run candidate discovery and ask the user whether to adopt,
+  migrate, link, or initialize through `docs/testing/workflow.md` before test edits, command runs, or delegation.
 - `stale/ambiguous/conflicting`: a workflow exists but its commands, paths, stack assumptions,
   approval gates, safety stance, or acceptance/currentness conflict with repo evidence or the
   request. Recommend an update to the canonical entry and ask for approval before proceeding.
@@ -81,6 +81,16 @@ as manifests, scripts, test directories, fixtures, existing docs, app entry poin
 CI/config files, known report/artifact locations, and risk-sensitive data/auth boundaries. Use the
 smallest useful evidence set; avoid large generated or secret-bearing files.
 
+For greenfield/no-strategy repositories and explicit initialize, update, adopt, migrate, link, or revise requests, load `references/strategy-interview.md` and run the strategy interview before
+accepted workflow-doc writes. Existing workflows, absent/minimal tests, candidates, and companion docs inform the recommendation but do not skip the interview. Ordinary author/alter/execute may use an accepted/current workflow only when adequate; missing, stale, ambiguous, conflicting,
+unsafe, or insufficient workflows fail closed to this update path.
+
+Interview one focused question at a time after the evidence summary. Start the user-facing strategy
+branch with confidence goals, using optional examples only when helpful rather than a mandatory visible
+menu. Resolve core domains or user deferrals: stack/surfaces, folders, plan policy, execution choices
+and approvals, evidence/reporting, data/setup/cleanup, legacy stance, and stale/conflict updates.
+Activate browser/web domains only when repo evidence, user scope, or selected strategy makes them material.
+
 Then present a recommendation:
 
 - name the recommended strategy and why repo evidence supports it;
@@ -105,24 +115,32 @@ file changes. The approval request should name:
 - `docs/testing/workflow.md` sections to create/update;
 - companion docs under `docs/testing/` to create/update/link;
 - methodology decisions and unresolved choices that will be persisted;
+- accepted interview decisions for confidence goals, plan/test/report paths, coverage-index stance,
+  execution choices, active conditional domains, reliability/cleanup, legacy stance, and explicit deferrals;
 - approval-gated actions that remain outside the documentation update;
 - redaction/privacy handling and stale/conflict update procedure.
 
 Write workflow docs only after explicit current-task approval, including adopt/migrate/link updates
-that create or change `docs/testing/workflow.md`. If approval is not granted, continue focused
-discovery or stop with the draft. Do not leave partial docs or candidate-only choices as accepted
-workflow.
+that create or change `docs/testing/workflow.md`. Persist accepted interview decisions in
+`docs/testing/workflow.md` or linked `docs/testing/*` companions; a standalone questionnaire or
+checklist is optional, not the default. If approval is not granted, continue focused discovery or
+stop with the draft. Do not leave partial docs or candidate-only choices as accepted workflow.
 
 ## Minimal Workflow Entry Template
 
 A project workflow entry point should be concise and reusable:
 
 - purpose, authority, scope, and how this doc relates to `AGENTS.md`;
-- strategy summary by relevant test levels and risk boundaries;
+- confidence goals, strategy summary by relevant test levels, risk boundaries, and active conditional domains;
 - links to companion docs and when to load them;
 - safe discovery/update process for missing or stale conventions;
+- folder/taxonomy and central feature test index or coverage-index stance (used, linked, or
+  not used) for new plans, tests, evidence, reports, plus legacy stay-put or migration stance;
+- feature/domain plan policy, approved plan path/version expectations, and plan-before-work gates;
 - delegation rules for authoring, alteration, and execution;
-- current-task approval gates for writes, commands, browser/live/network/dependency/config/CI/
-  orchestration actions, and other side effects;
-- evidence/reporting expectations, outcomes, cleanup, product-failure routing, and redaction rules;
+- user-friendly execution choices, selected-choice reporting, and current-task approval gates for
+  writes, commands, browser/live/network/dependency/config/CI/orchestration actions, and other side
+  effects;
+- evidence/reporting expectations, outcomes, skipped/not-run handling, cleanup, product-failure
+  routing, redaction rules, and strict non-pass treatment for flaky or inconclusive results;
 - procedure for updating the workflow when repo evidence changes.
