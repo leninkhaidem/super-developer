@@ -6,6 +6,16 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [v1.36.1] - 2026-07-09
+
+### Added
+- Added a dedicated testing strategy interview contract with confidence-first discovery, mandatory core domains, conditional browser/web prompts, and lightweight starters for test plans, plan-to-result reports, execution choices, and reliability/cleanup policy.
+- Added prompt regression coverage for greenfield/no-strategy setup, candidate adoption and migration, plan/report contracts, conditional browser scope, and strict reliability defaults.
+
+### Changed
+- Changed testing workflow setup so explicit initialize, update, adopt, migrate, link, or revise requests interview users for both greenfield repositories and existing workflows before accepted workflow docs are written.
+- Clarified new-test structure guidance so agents propose clean forward-looking plan/test/report locations, decide whether a coverage index is used, and leave legacy tests in place unless migration is requested.
+
 ## [v1.36.0] - 2026-07-08
 
 ### Added
