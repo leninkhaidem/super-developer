@@ -1,31 +1,44 @@
 #!/usr/bin/env python3
-"""Audit skill prompt structure, budgets, and local reference links.
+"""Audit skill prompt structure, hard line caps, and local reference links.
 
 Usage:
   audit-skill.py path/to/skills/<skill-name>
   audit-skill.py --strict path/to/skills/<skill-name>/SKILL.md
 
-The script is intentionally mechanical. It fails on invalid frontmatter and broken local links.
-Use --strict to fail on budget caps while authoring or revising a skill.
+The audit always fails invalid frontmatter, broken local links, hidden Markdown-reference hops,
+and hard line-cap violations. Word-count targets remain warnings. ``--strict`` is accepted as a
+backward-compatible no-op because line caps are always enforced.
 """
 
 from __future__ import annotations
 
 import argparse
+import json
 import re
+import shlex
 import sys
 from dataclasses import dataclass
 from pathlib import Path
+from urllib.parse import unquote
 
-LONG_LINE_LIMIT = 160
+LONG_LINE_LIMIT = 120
 SKILL_LINE_MAX = 150
 REF_LINE_MAX = 150
 SKILL_WORD_TARGET = (600, 1200)
 REF_WORD_TARGET = (300, 900)
+DESCRIPTION_CHAR_MAX = 280
+DESCRIPTION_CONTENT_LINE_TARGET = 3
 
-LOCAL_LINK_RE = re.compile(r"`((?:references|scripts)/[^`\s]+)`")
+FRONTMATTER_START_RE = re.compile(r"\A---[ \t]*\r?\n")
+FRONTMATTER_END_RE = re.compile(r"^---[ \t]*(?:\r?\n|\Z)", re.MULTILINE)
+KEY_RE = re.compile(r"^([A-Za-z_][A-Za-z0-9_-]*)\s*:(.*)$")
+BLOCK_SCALAR_RE = re.compile(r"^([>|])([+-])?$")
+KEBAB_CASE_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+BACKTICK_RE = re.compile(r"(?<!`)`([^`\n]+)`(?!`)")
+MARKDOWN_LINK_RE = re.compile(r"!?\[[^\]\n]*\]\(([^)\n]+)\)")
 PRIVATE_REF_RE = re.compile(r"skills/([^/\s`]+)/references/")
-KEY_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_-]*\s*:")
+URL_SCHEME_RE = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*:")
+NUMBER_RE = re.compile(r"[-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?$")
 
 
 @dataclass
@@ -38,8 +51,27 @@ class Metrics:
     long_lines: list[tuple[int, int]]
 
 
+@dataclass(frozen=True)
+class LocalPathReference:
+    source: Path
+    display: str
+    target: Path
+    is_markdown: bool
+    kind: str
+
+
+@dataclass
+class FrontmatterValidation:
+    errors: list[str]
+    warnings: list[str]
+
+
+def read_text(path: Path) -> str:
+    return path.read_text(encoding="utf-8")
+
+
 def metrics(path: Path) -> Metrics:
-    text = path.read_text()
+    text = read_text(path)
     lines = text.splitlines()
     return Metrics(
         path=path,
@@ -61,67 +93,261 @@ def find_skill_dir(path: Path) -> Path:
 
 
 def extract_frontmatter(skill_file: Path) -> tuple[str, int]:
-    text = skill_file.read_text()
-    if not text.startswith("---\n"):
+    text = read_text(skill_file)
+    opening = FRONTMATTER_START_RE.match(text)
+    if opening is None:
         raise ValueError("missing opening frontmatter marker")
-    end = text.find("\n---\n", 4)
-    if end == -1:
+    closing = FRONTMATTER_END_RE.search(text, opening.end())
+    if closing is None:
         raise ValueError("missing closing frontmatter marker")
-    return text[4:end], end + 5
+    return text[opening.end() : closing.start()], closing.end()
 
 
-def validate_frontmatter(skill_file: Path) -> list[str]:
+def strip_inline_comment(value: str) -> str:
+    """Remove a simple YAML comment while preserving hashes inside quoted scalars."""
+    quote: str | None = None
+    escaped = False
+    for index, char in enumerate(value):
+        if quote == '"' and char == "\\" and not escaped:
+            escaped = True
+            continue
+        if char in {"'", '"'} and not escaped:
+            if quote is None:
+                quote = char
+            elif quote == char:
+                quote = None
+        if char == "#" and quote is None and (index == 0 or value[index - 1].isspace()):
+            return value[:index].rstrip()
+        escaped = False
+    return value.strip()
+
+
+def parse_inline_string(value: str) -> tuple[str | None, str | None]:
+    """Parse the small scalar subset needed by skill frontmatter."""
+    value = strip_inline_comment(value).strip()
+    if not value:
+        return None, None
+    if value.startswith("'"):
+        if len(value) < 2 or not value.endswith("'"):
+            return None, "unterminated single-quoted string"
+        return value[1:-1].replace("''", "'"), None
+    if value.startswith('"'):
+        try:
+            parsed = json.loads(value)
+        except (json.JSONDecodeError, TypeError):
+            return None, "invalid double-quoted string"
+        return (parsed, None) if isinstance(parsed, str) else (None, "value must be a string")
+
+    lowered = value.lower()
+    non_strings = {"null", "~", "true", "false", "yes", "no", "on", "off"}
+    if lowered in non_strings or NUMBER_RE.fullmatch(value) or value.startswith(("[", "{", "&", "*", "!")):
+        return None, "value must be a string"
+    return value, None
+
+
+def parse_block_string(lines: list[str], style: str) -> tuple[str, int, list[str]]:
     errors: list[str] = []
-    try:
-        fm, _ = extract_frontmatter(skill_file)
-    except ValueError as exc:
-        return [str(exc)]
+    nonblank = [line for line in lines if line.strip()]
+    if any("\t" in line[: len(line) - len(line.lstrip())] for line in nonblank):
+        errors.append("block scalar indentation must use spaces")
+    if any(not line.startswith(" ") for line in nonblank):
+        errors.append("block scalar content must be indented")
 
-    seen: set[str] = set()
-    block_key = False
-    for lineno, line in enumerate(fm.splitlines(), 2):
+    indents = [len(line) - len(line.lstrip(" ")) for line in nonblank if line.startswith(" ")]
+    indent = min(indents, default=0)
+    content = [line[indent:] if line.strip() else "" for line in lines]
+    content_lines = sum(bool(line.strip()) for line in content)
+
+    if style == "|":
+        return "\n".join(content).strip(), content_lines, errors
+
+    folded: list[str] = []
+    blank_lines = 0
+    for line in content:
+        if not line.strip():
+            blank_lines += 1
+            continue
+        if blank_lines:
+            folded.append("\n" * blank_lines)
+            blank_lines = 0
+        elif folded:
+            folded.append(" ")
+        folded.append(line.strip())
+    return "".join(folded).strip(), content_lines, errors
+
+
+def validate_frontmatter(skill_file: Path) -> FrontmatterValidation:
+    errors: list[str] = []
+    warnings: list[str] = []
+    try:
+        frontmatter, _ = extract_frontmatter(skill_file)
+    except ValueError as exc:
+        return FrontmatterValidation([str(exc)], [])
+
+    entries: dict[str, tuple[str | None, int]] = {}
+    description_content_lines: int | None = None
+    lines = frontmatter.splitlines()
+    index = 0
+    while index < len(lines):
+        line = lines[index]
+        lineno = index + 2
         if not line.strip() or line.lstrip().startswith("#"):
+            index += 1
             continue
         if line.startswith((" ", "\t")):
-            if not seen:
-                errors.append(f"frontmatter line {lineno}: indented content before any key")
+            errors.append(f"frontmatter line {lineno}: unexpected indented content")
+            index += 1
             continue
-        if not KEY_RE.match(line):
+
+        match = KEY_RE.match(line)
+        if match is None:
             errors.append(f"frontmatter line {lineno}: unindented line is not a key/value pair")
+            index += 1
             continue
-        key, value = line.split(":", 1)
-        key = key.strip()
-        seen.add(key)
-        block_key = value.strip() in {">", "|", ">-", "|-", ">+", "|+"}
-        _ = block_key
+        key, raw_value = match.groups()
+        duplicate = key in entries
+        if duplicate:
+            errors.append(f"frontmatter line {lineno}: duplicate key: {key}")
+
+        cleaned_value = strip_inline_comment(raw_value).strip()
+        block_match = BLOCK_SCALAR_RE.fullmatch(cleaned_value)
+        if block_match:
+            block_lines: list[str] = []
+            next_index = index + 1
+            while next_index < len(lines) and (
+                not lines[next_index].strip() or lines[next_index].startswith((" ", "\t"))
+            ):
+                block_lines.append(lines[next_index])
+                next_index += 1
+            value, content_line_count, block_errors = parse_block_string(block_lines, block_match.group(1))
+            errors.extend(f"frontmatter line {lineno}: {message}" for message in block_errors)
+            if key == "description" and not duplicate:
+                description_content_lines = content_line_count
+            index = next_index
+        else:
+            value, scalar_error = parse_inline_string(raw_value)
+            if scalar_error:
+                errors.append(f"frontmatter line {lineno}: {key} {scalar_error}")
+            index += 1
+
+        if not duplicate:
+            entries[key] = (value, lineno)
 
     for required in ("name", "description"):
-        if required not in seen:
+        if required not in entries:
             errors.append(f"frontmatter missing required key: {required}")
-    return errors
+            continue
+        value, lineno = entries[required]
+        if not isinstance(value, str):
+            errors.append(f"frontmatter line {lineno}: {required} must be a non-empty string")
+        elif not value.strip():
+            errors.append(f"frontmatter line {lineno}: {required} must be a non-empty string")
+
+    name_entry = entries.get("name")
+    if name_entry and isinstance(name_entry[0], str) and name_entry[0].strip():
+        name = name_entry[0].strip()
+        if KEBAB_CASE_RE.fullmatch(name) is None:
+            errors.append(f"frontmatter line {name_entry[1]}: name must be kebab-case")
+        if name != skill_file.parent.name:
+            errors.append(
+                f"frontmatter line {name_entry[1]}: name `{name}` does not match "
+                f"skill directory `{skill_file.parent.name}`"
+            )
+
+    description_entry = entries.get("description")
+    if description_entry and isinstance(description_entry[0], str):
+        description = description_entry[0].strip()
+        if len(description) > DESCRIPTION_CHAR_MAX:
+            errors.append(
+                f"frontmatter line {description_entry[1]}: folded description exceeds "
+                f"{DESCRIPTION_CHAR_MAX} characters ({len(description)})"
+            )
+    if description_content_lines is not None and description_content_lines > DESCRIPTION_CONTENT_LINE_TARGET:
+        warnings.append(
+            f"frontmatter description uses {description_content_lines} content lines; "
+            f"target is at most {DESCRIPTION_CONTENT_LINE_TARGET}"
+        )
+
+    return FrontmatterValidation(errors, warnings)
 
 
-def referenced_local_files(skill_dir: Path, files: list[Path]) -> tuple[list[Path], list[tuple[Path, str]]]:
-    found: list[Path] = []
-    missing: list[tuple[Path, str]] = []
-    for path in files:
-        for rel in LOCAL_LINK_RE.findall(path.read_text()):
-            if "<" in rel or ">" in rel:
+def markdown_destination(raw: str) -> str:
+    raw = raw.strip()
+    if raw.startswith("<"):
+        closing = raw.find(">")
+        if closing != -1:
+            return raw[1:closing].strip()
+    return raw.split(maxsplit=1)[0] if raw else ""
+
+
+def is_placeholder_path(value: str) -> bool:
+    return bool(
+        not value
+        or "$" in value
+        or re.search(r"<[^>]+>|\{[^}]+\}|\[[^]]+\]|(?:^|/)\.\.\.(?:/|$)|[*?]", value)
+    )
+
+
+def normalize_local_path(value: str) -> str | None:
+    value = unquote(value.strip()).replace("\\ ", " ")
+    if not value or value.startswith(("#", "//", "/")) or URL_SCHEME_RE.match(value):
+        return None
+    value = value.split("#", 1)[0].split("?", 1)[0].rstrip(".,;:")
+    if is_placeholder_path(value):
+        return None
+    return value or None
+
+
+def looks_like_backticked_path(value: str) -> bool:
+    return value == "SKILL.md" or value.startswith(("./", "../", "references/", "scripts/"))
+
+
+def local_path_references(skill_dir: Path, files: list[Path]) -> list[LocalPathReference]:
+    links: list[LocalPathReference] = []
+    for source in files:
+        text = read_text(source)
+        for raw in BACKTICK_RE.findall(text):
+            try:
+                tokens = shlex.split(raw)
+            except ValueError:
+                tokens = raw.split()
+            for display in tokens:
+                rel = normalize_local_path(display)
+                if rel is None or not looks_like_backticked_path(rel):
+                    continue
+                base = skill_dir if rel == "SKILL.md" or rel.startswith(("references/", "scripts/")) else source.parent
+                target = (base / rel).resolve()
+                links.append(
+                    LocalPathReference(source, display, target, Path(rel).suffix.lower() == ".md", "backtick")
+                )
+
+        for raw in MARKDOWN_LINK_RE.findall(text):
+            display = markdown_destination(raw)
+            rel = normalize_local_path(display)
+            if rel is None:
                 continue
-            target = skill_dir / rel
-            if target.exists():
-                found.append(target)
-            else:
-                missing.append((path, rel))
-    return sorted(set(found)), missing
+            target = (source.parent / rel).resolve()
+            links.append(
+                LocalPathReference(source, display, target, Path(rel).suffix.lower() == ".md", "Markdown link")
+            )
+
+    return list(dict.fromkeys(links))
+
+
+def referenced_local_files(
+    links: list[LocalPathReference],
+) -> tuple[list[Path], list[LocalPathReference]]:
+    found = sorted({link.target for link in links if link.target.exists()})
+    missing = [link for link in links if not link.target.exists()]
+    return found, missing
 
 
 def private_reference_links(skill_dir: Path, files: list[Path]) -> list[tuple[Path, str]]:
     skill_name = skill_dir.name
     hits: list[tuple[Path, str]] = []
     for path in files:
-        for linked_skill in PRIVATE_REF_RE.findall(path.read_text()):
-            if linked_skill != skill_name:
+        for linked_skill in PRIVATE_REF_RE.findall(read_text(path)):
+            if linked_skill != skill_name and "<" not in linked_skill and ">" not in linked_skill:
                 hits.append((path, linked_skill))
     return hits
 
@@ -136,26 +362,32 @@ def print_metric(prefix: str, item: Metrics) -> None:
 
 
 def audit(skill_dir: Path, *, strict: bool = False) -> int:
-    # Keep the public signature/CLI stable, but always enforce strict checks internally.
-    strict = True
+    # Retain the argument for callers that used the old opt-in mode. It intentionally changes nothing.
+    _ = strict
     skill_file = skill_dir / "SKILL.md"
     ref_dir = skill_dir / "references"
     script_dir = skill_dir / "scripts"
     refs = sorted(ref_dir.rglob("*.md")) if ref_dir.exists() else []
-    scripts = sorted(p for p in script_dir.glob("*") if p.is_file()) if script_dir.exists() else []
+    scripts = (
+        sorted(p for p in script_dir.rglob("*") if p.is_file() and "__pycache__" not in p.parts)
+        if script_dir.exists()
+        else []
+    )
     files = [skill_file, *refs]
 
     errors: list[str] = []
     warnings: list[str] = []
-    budget_errors: list[str] = []
+    line_cap_errors: list[str] = []
 
-    errors.extend(f"{skill_file}: {msg}" for msg in validate_frontmatter(skill_file))
+    frontmatter = validate_frontmatter(skill_file)
+    errors.extend(f"{skill_file}: {message}" for message in frontmatter.errors)
+    warnings.extend(f"{skill_file}: {message}" for message in frontmatter.warnings)
 
     skill_metrics = metrics(skill_file)
     ref_metrics = [metrics(path) for path in refs]
     print_metric("SKILL", skill_metrics)
     if skill_metrics.lines > SKILL_LINE_MAX:
-        budget_errors.append(f"{skill_file}: SKILL.md exceeds {SKILL_LINE_MAX} lines")
+        line_cap_errors.append(f"{skill_file}: SKILL.md exceeds hard cap of {SKILL_LINE_MAX} lines")
     if not (SKILL_WORD_TARGET[0] <= skill_metrics.words <= SKILL_WORD_TARGET[1]):
         warnings.append(f"{skill_file}: words outside target {SKILL_WORD_TARGET[0]}-{SKILL_WORD_TARGET[1]}")
     if skill_metrics.long_lines:
@@ -168,27 +400,39 @@ def audit(skill_dir: Path, *, strict: bool = False) -> int:
         total_ref_words += item.words
         total_ref_chars += item.chars
         if item.lines > REF_LINE_MAX:
-            budget_errors.append(f"{item.path}: reference exceeds {REF_LINE_MAX} lines")
+            line_cap_errors.append(f"{item.path}: reference exceeds hard cap of {REF_LINE_MAX} lines")
         if not (REF_WORD_TARGET[0] <= item.words <= REF_WORD_TARGET[1]):
             warnings.append(f"{item.path}: words outside target {REF_WORD_TARGET[0]}-{REF_WORD_TARGET[1]}")
         if item.long_lines:
             warnings.append(f"{item.path}: has lines over {LONG_LINE_LIMIT} chars")
 
-    linked, missing = referenced_local_files(skill_dir, files)
-    for path, rel in missing:
-        errors.append(f"{path}: missing local linked file `{rel}`")
+    local_links = local_path_references(skill_dir, files)
+    linked, missing = referenced_local_files(local_links)
+    for link in missing:
+        errors.append(f"{link.source}: missing local {link.kind} `{link.display}`")
     for path, linked_skill in private_reference_links(skill_dir, files):
         errors.append(f"{path}: deep-links private references for skill `{linked_skill}`")
 
-    hidden_second_hops = []
+    parent_targets = {link.target for link in local_links if link.source == skill_file}
     for ref in refs:
-        for rel in LOCAL_LINK_RE.findall(ref.read_text()):
-            if "<" in rel or ">" in rel:
-                continue
-            hidden_second_hops.append((ref, rel))
-    for ref, rel in hidden_second_hops:
-        warnings.append(f"{ref}: reference mentions local link `{rel}`; ensure parent skill owns load condition")
+        if ref.resolve() not in parent_targets:
+            errors.append(f"{ref}: orphan reference has no parent SKILL.md load condition")
+    for script in scripts:
+        if script.resolve() not in parent_targets:
+            warnings.append(f"{script}: orphan script is not linked from parent SKILL.md")
 
+    ref_set = set(refs)
+    for link in local_links:
+        if link.source not in ref_set:
+            continue
+        if link.is_markdown and link.target != skill_file.resolve():
+            errors.append(f"{link.source}: hidden second-hop Markdown reference `{link.display}`")
+        elif link.target != skill_file.resolve():
+            warnings.append(
+                f"{link.source}: reference mentions local link `{link.display}`; keep script loading parent-owned"
+            )
+
+    errors.extend(line_cap_errors)
     print(
         f"REFERENCES: count={len(refs)} total_lines={total_ref_lines} "
         f"total_words={total_ref_words} total_chars={total_ref_chars}"
@@ -196,13 +440,10 @@ def audit(skill_dir: Path, *, strict: bool = False) -> int:
     print(f"LOCAL LINKS: resolved={len(linked)} missing={len(missing)}")
     print(f"SCRIPTS: count={len(scripts)}")
 
-    if budget_errors:
-        heading = "STRICT BUDGET ERRORS" if strict else "BUDGET WARNINGS"
-        print(f"\n{heading}:")
-        for warning in budget_errors:
-            print(f"- {warning}")
-        if strict:
-            errors.extend(budget_errors)
+    if line_cap_errors:
+        print("\nHARD LINE CAP ERRORS:")
+        for error in line_cap_errors:
+            print(f"- {error}")
     if warnings:
         print("\nWARNINGS:")
         for warning in warnings:
@@ -220,7 +461,11 @@ def audit(skill_dir: Path, *, strict: bool = False) -> int:
 def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("path", type=Path, help="skill directory or SKILL.md to audit")
-    parser.add_argument("--strict", action="store_true", help="fail on line/word/reference budget cap violations")
+    parser.add_argument(
+        "--strict",
+        action="store_true",
+        help="backward-compatible no-op; hard line caps are always enforced and word targets only warn",
+    )
     args = parser.parse_args(argv)
     return audit(find_skill_dir(args.path), strict=args.strict)
 
