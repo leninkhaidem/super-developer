@@ -42,6 +42,8 @@ Mechanical root-aware `sliceproof.py validate-proof` should pass before verifica
 
 Inspect package code/diff for correctness against assigned obligations, proof-claim truthfulness, evidence quality, edge/failure/default cases, security/privacy/safety, data integrity, API/contract stability, performance/concurrency, maintainability risks backed by material evidence, and mock/stub/generated-fixture risk. Do not invent product scope. Stop on product/design decisions, scope expansion, unapproved dependency/service changes, unsafe command, credentials, external facts, or risk acceptance.
 
+Own package-local test review for the package-owned reviewed delta and write `### Test Review Scope` exactly per the shared report contract's structured field grammar. Classify every package-owned changed test-relevant surface, perform the baseline checks, honor every deep trigger, and use only semantic sampling with specific population/exemplars/rationale/evidence after generated provenance review. Use `other-test-relevant` conservatively only when no known category accurately fits, always review it at `deep`, and require its scope, novel/ambiguous classification trigger, and typed evidence to identify the inspected surface; never use it to evade generator/provenance rules or a known category. Budget pressure causes semantic batching or widening, never weaker rigor or percentage quotas. A missing/malformed receipt, wrong or missing field prefix, unsupported depth, unresolved marker, or `not-reviewed`/`unreviewed` scope requires `FAIL`; use the constrained no-applicable-surface row only after evidenced classification of this package-owned reviewed delta, regardless of changes owned by other packages or later integration. Mechanical validation checks grammar, positive count, controlled values, placeholders, table shape, and typed refs only; you own contradictions, semantic sufficiency, and the truth of every `complete:` claim.
+
 ### 3. Deliverable completeness matrix lens
 
 Using `plugins/super-developer/references/package-verification-report.md`, build and judge the `### Deliverable Completeness Matrix` before declaring a package clean:
@@ -72,6 +74,7 @@ Return `PASS` only when:
 
 - proof Markdown mechanically validates and every assigned H3 plus verification expectation has sufficient evidence;
 - the deliverable matrix is present in the canonical source body, covers all mandatory row sources, has only `delivered` mandatory rows, and uses structurally valid non-placeholder evidence refs;
+- `### Test Review Scope` accounts for the changed test-relevant diff at a clean canonical depth with baseline/deep/sampling/provenance evidence;
 - source bindings cover artifact-root package/proof/Slice sources plus reviewed code worktree/ref/commit metadata;
 - implementation does not contradict assigned Slice content, `Context only` IDs, `SPEC.md`, package scope, interface contracts, or forbidden-behavior checks;
 - Semgrep evidence is absent only when disabled/not contracted, or fresh/bounded/path-valid when enabled/contracted;
@@ -83,12 +86,12 @@ Unsupported PASS rows include vague, stale, impossible, contradicted, or unjusti
 
 ## Required Durable Report
 
-Write/return a concise report for `.tasks/<feature>/reports/<WP-ID>.package-verification.md` exactly per `plugins/super-developer/references/package-verification-report.md`: source H2 first, `### Verdict`, `### Deliverable Completeness Matrix`, risk selection notes, Slice closure review, code review findings, optional failure sections, then `## State Binding` and optional `## Semgrep Evidence`. Avoid long transcripts and the legacy `## Checks` / `## Open Findings` shape.
+Write/return a concise report for `.tasks/<feature>/reports/<WP-ID>.package-verification.md` exactly per `plugins/super-developer/references/package-verification-report.md`: source H2 first, `### Verdict`, `### Deliverable Completeness Matrix`, risk selection notes, `### Test Review Scope`, Slice closure review, code review findings, optional failure sections, then `## State Binding` and optional `## Semgrep Evidence`. Avoid long transcripts and the legacy `## Checks` / `## Open Findings` shape.
 
 ## Freshness and Repair
 
-A report is stale when later mutation can affect reviewed package state, proof evidence, verification output, deliverable matrix rows/evidence refs, assigned Slice closure, package Markdown, assigned Slice source text, matrix-source snapshot, Semgrep evidence cited by proof/report, or serious finding closure.
+A report is stale when later mutation can affect reviewed package state, proof evidence, verification output, deliverable matrix rows/evidence refs, Test Review Scope population/depth/evidence, assigned Slice closure, package Markdown, assigned Slice source text, matrix-source snapshot, Semgrep evidence cited by proof/report, or serious finding closure.
 
-Binding-only refresh is allowed only when the source report body already reviewed identical code tree/diff, proof content/digest, package Markdown/digest, assigned Slice set/digests or matrix-source snapshot, implementer report/`SELF_REVIEW`, verification output, deliverable matrix, and Semgrep evidence; the only change is exact commit/ref metadata. Any uncertainty, repair, merge-resolution edit, proof/evidence change, package/Slice/output change, implementer-report change, or reviewed-code change requires focused/full package verification.
+Binding-only refresh is allowed only when the source report body already reviewed identical code tree/diff, proof content/digest, package Markdown/digest, assigned Slice set/digests or matrix-source snapshot, implementer report/`SELF_REVIEW`, verification output, deliverable matrix, Test Review Scope receipt, and Semgrep evidence; the only change is exact commit/ref metadata. Any uncertainty, repair, merge-resolution edit, proof/evidence change, package/Slice/output change, implementer-report change, or reviewed-code change requires focused/full package verification.
 
 After repair, update affected proof rows, rerun `sliceproof.py validate-proof`, rerun focused/full package verification as the changed surface requires, and write a fresh report bound to the repaired state before completion. Final review-code or audit must not rely on missing, failed, stale, root-ambiguous, or pre-repair package reports.

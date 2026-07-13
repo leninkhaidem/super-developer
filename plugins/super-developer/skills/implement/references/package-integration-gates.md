@@ -33,8 +33,8 @@ For each returned package:
 6. Run one holistic package verifier for every returned package. Use `plugins/super-developer/skills/implement/references/package-verification.md` as the verifier contract; dispatch through the verifier packet in `plugins/super-developer/skills/implement/references/package-dispatch.md`.
 7. Store the verifier PASS/FAIL report at the declared artifact-root report path such as
    `.tasks/<feature>/reports/<WP-ID>.package-verification.md`. The report must bind artifact evidence to
-   the reviewed package code state.
-8. Reject missing, failed, stale, schema-mismatched, placeholder, dirty-matrix, or pre-repair package verification reports.
+   the reviewed package code state and contain the verifier-owned canonical `### Test Review Scope` receipt for that package-owned reviewed delta.
+8. Reject missing, failed, stale, schema-mismatched, placeholder, dirty-matrix, test-scope-omitting, or pre-repair package verification reports; reports without the required receipt must be refreshed with no bypass.
 9. Run the pre-done completion helper after the report exists and before accepting/merging as complete,
    marking `done`, unlocking dependents, or final readiness handoff:
 
@@ -73,11 +73,11 @@ Slice plan defects are blockers, not advisory notes. Resolve by projecting the r
 
 ## Report Shape and Freshness
 
-Package verification reports use the source-aligned shape from `plugins/super-developer/skills/implement/references/package-verification.md`: `## Package Verification: <WP-ID>` with H3 `Verdict`, `Deliverable Completeness Matrix`, `Triggered Risk Selection Notes`, `Slice Closure Review`, `Code Review Findings`, and failure-only `Blocking Findings` / `Repair Guidance`. If lifecycle metadata is kept, add it separately as `## State Binding` after the source report body.
+Package verification reports use the source-aligned shape from `plugins/super-developer/skills/implement/references/package-verification.md`: `## Package Verification: <WP-ID>` with H3 `Verdict`, `Deliverable Completeness Matrix`, `Triggered Risk Selection Notes`, `Test Review Scope`, `Slice Closure Review`, `Code Review Findings`, and failure-only `Blocking Findings` / `Repair Guidance`. If lifecycle metadata is kept, add it separately as `## State Binding` after the source report body.
 
-A package verification report is stale when later mutation can affect reviewed package state, proof evidence, verification output, deliverable matrix rows/evidence anchors, assigned Slice H3 source binding, package Markdown/digest, matrix-source snapshot, or serious finding closure. `must_satisfy` drift and malformed bindings are hard blockers; `context_only_slice_drift` is advisory input for affected-surface classification unless material risk is escalated. State-changing repairs, merge-resolution edits, proof refreshes, changed verification commands, changed assignments, changed package Markdown verification expectations, or changed Slice scope/approval metadata require focused or full package re-verification.
+A package verification report is stale when later mutation can affect reviewed package state, proof evidence, verification output, deliverable matrix rows/evidence anchors, test-review population/depth/evidence, assigned Slice H3 source binding, package Markdown/digest, matrix-source snapshot, or serious finding closure. `must_satisfy` drift and malformed bindings are hard blockers; `context_only_slice_drift` is advisory input for affected-surface classification unless material risk is escalated. State-changing repairs, merge-resolution edits, proof refreshes, changed verification commands, changed assignments, changed package Markdown verification expectations, or changed Slice scope/approval metadata require focused or full package re-verification.
 
-Binding-only refresh carve-out: if a verifier already semantically reviewed identical code tree/diff, proof content/digest, package Markdown/digest, assigned Slice set and `must_satisfy` section digests/snapshot, implementer report/`SELF_REVIEW`, verification output, deliverable matrix, and evidence anchors, and the only change is `## State Binding` metadata or advisory-only `context_only` drift classified as non-material, update only the binding/report metadata without rerunning semantic package verification. The source report body must remain unchanged. Any uncertainty, repair, merge-resolution edit, proof-evidence change, hard-tier package/Slice/output change, matrix/evidence-anchor change, implementer-report change, or reviewed-code change fails closed and requires focused or full package verification.
+Binding-only refresh carve-out: if a verifier already semantically reviewed identical code tree/diff, proof content/digest, package Markdown/digest, assigned Slice set and `must_satisfy` section digests/snapshot, implementer report/`SELF_REVIEW`, verification output, deliverable matrix/evidence anchors, and Test Review Scope receipt, and the only change is `## State Binding` metadata or advisory-only `context_only` drift classified as non-material, update only the binding/report metadata without rerunning semantic package verification. The source report body must remain unchanged. Any uncertainty, repair, merge-resolution edit, proof-evidence change, hard-tier package/Slice/output change, matrix/evidence-anchor or test-scope change, implementer-report change, or reviewed-code change fails closed and requires focused or full package verification.
 
 ## Rejection and Repair
 
@@ -104,7 +104,7 @@ Before moving to final `review-code` and `audit`, every package must have:
 
 - valid proof Markdown with no unresolved `GAP`, `OPEN`, `TODO`, unapproved `DEFERRED`, or unsupported `N/A`;
 - required command/manual evidence recorded in proof Markdown;
-- fresh PASS package verification report with clean matrix bound to current proof/package/Slice state;
+- fresh PASS package verification report with clean matrix and canonical Test Review Scope receipt for the package-owned reviewed delta, bound to current proof/package/Slice/code state;
 - clean `validate-package-complete` for the current package state;
 - no unresolved Slice plan defects;
 - integration worktree clean for the intended final state;

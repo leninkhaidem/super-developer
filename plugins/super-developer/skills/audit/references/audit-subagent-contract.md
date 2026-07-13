@@ -20,7 +20,7 @@ Fail if any required input is missing, unsafe, unreadable, malformed, stale, roo
 4. `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/package-lifecycle.md`
 5. every artifact set's artifact-root `.tasks/<feature>/SPEC.md` and `.tasks/<feature>/tasks.json`
 6. every artifact-root registry package Markdown, proof Markdown, and package verification report,
-   including `### Deliverable Completeness Matrix` and `## State Binding`
+   including `### Deliverable Completeness Matrix`, `### Test Review Scope`, and `## State Binding`
 7. every orchestrator-screened Slice in the selected artifact workspace and every Slice referenced by
    SPEC/package Markdown
 8. Semgrep raw/summary summaries through bounded helper views when enabled/contracted; never raw JSON wholesale
@@ -60,18 +60,18 @@ Mechanical validation is necessary, never sufficient. Judge evidence sufficiency
 
 ### 4. Package Reports and Matrix Reconciliation
 
-For each package report, require `PASS`, no open findings, current artifact-root proof digest/content,
-package Markdown digest, assigned Slice paths/digests or matrix-source snapshot, deliverable matrix,
-reviewed code worktree/ref/commit, verification output, verifier, timestamp, closure review, code-review
-findings, repair state, and fresh artifact-root Semgrep raw/summary path/digest binding when enabled.
+For each package report, require `PASS`, no open findings, current artifact-root proof digest/content, package Markdown digest,
+assigned Slice paths/digests or matrix-source snapshot, deliverable matrix, canonical Test Review Scope receipt for the
+package-owned reviewed delta, reviewed code worktree/ref/commit, verification output, verifier, timestamp, closure review,
+code-review findings, repair state, and fresh Semgrep binding when enabled.
 
-Reconcile the full Slice inventory, package assignments, proof rows, package verification reports, deliverable matrices, matrix source bindings, evidence-anchor structure, final integrated code state, freshness, and review-code context when present. Fail missing mandatory rows, dirty verdicts, stale source bindings, invalid/unsafe/nonexistent/vague evidence refs, proof/report/matrix contradictions, state-unbound reports, or semantically weak evidence that cannot support the claimed deliverable.
+Reconcile the full Slice inventory, package assignments, proof rows, reports, matrices, test-review receipts, matrix source bindings, evidence-anchor structure, final integrated code state, freshness, and review-code context when present. Fail missing mandatory rows, dirty verdicts, omitted/malformed receipts, stale source bindings, invalid evidence refs (unsafe/nonexistent/vague), contradictions, state-unbound reports, or semantically weak evidence that cannot support the claim.
 
 Confirm matrices are bound to the final integrated state or to an exact package commit/ref with ancestry/content-equivalence and post-merge freshness evidence. Missing, failed, stale, pre-repair, forged, path-escaped, mismatched, unbounded Semgrep evidence, or uncertain reports fail audit; advisory findings block only when normal authority confirms material risk.
 
 ### 5. Targeted Skeptical Backstop
 
-Final audit is a matrix reconciler plus targeted skeptic backstop, not a full second package verifier for every clean low-risk row. Apply skeptical falsification to interface-bearing rows, verifier-selected triggered risk rows, global/cross-package seams, stacked-feature obligations, weak/vague evidence, stale reports, high-value behavior, and claims cheaply disprovable from code/tests. Flag missed applicable risk rows when package scope, Slices, changed code, or known failure modes make them material.
+Final audit is a matrix/receipt reconciler plus targeted skeptic backstop, not a full second package verifier or test rereview for every clean low-risk row. Validate and selectively falsify each Test Review Scope receipt against its package-owned reviewed delta, then reconcile the union of fresh package receipts against the integrated diff. A mechanical receipt pass proves only grammar/count/value/placeholder/table/ref validity; auditor judgment owns contradictions, dishonest `complete:` claims, and semantic sufficiency. Explicitly inspect and escalate every `other-test-relevant` row under this same targeted reconciliation boundary, verify that no known category or generator/provenance rule was bypassed, decide whether the known taxonomy should be extended, and never treat the catch-all as proof that all future test-relevant paths were discovered. Separately classify and review integration-only or merge-resolution test-relevant changes under the same depth invariants; widen on canonical deep triggers, omissions, contradictions, or stale evidence. Also probe interface-bearing rows, verifier-selected triggered risk rows, global/cross-package seams, stacked-feature obligations, weak evidence, stale reports, high-value behavior, and claims cheaply disprovable from code/tests; flag missed material risk rows.
 
 ### 6. Optional Review-Code Context and Code State
 
@@ -93,7 +93,7 @@ Cross-check all task sets, Slices, SPECs, packages, proof Markdown, reports, mat
 
 ## Blocking Categories
 
-Use concise categories: `[SLICE-GAP]`, `[UNASSIGNED-SLICE]`, `[PROOF-GAP]`, `[PROOF-CONTRADICTION]`, `[PACKAGE-VERIFY]`, `[MATRIX-GAP]`, `[MATRIX-STALE]`, `[MATRIX-EVIDENCE]`, `[STACK-GAP]`, `[SEMGREP-EVIDENCE]`, `[REVIEW-CONTEXT]`, `[IMPLEMENTATION-GAP]`, `[INTEGRATION-GAP]`, `[INTERFACE-EXACTNESS]`, `[UNAPPROVED-DEFERRAL]`, `[UNRESOLVED-QUESTION]`, `[QUALITY-BLOCKER]`, `[CONTROL-PLANE]`, `[ADVISORY]`. Advisory items block only when they expose a real completion or safety issue.
+Use concise categories: `[SLICE-GAP]`, `[UNASSIGNED-SLICE]`, `[PROOF-GAP]`, `[PROOF-CONTRADICTION]`, `[PACKAGE-VERIFY]`, `[TEST-REVIEW-SCOPE]`, `[MATRIX-GAP]`, `[MATRIX-STALE]`, `[MATRIX-EVIDENCE]`, `[STACK-GAP]`, `[SEMGREP-EVIDENCE]`, `[REVIEW-CONTEXT]`, `[IMPLEMENTATION-GAP]`, `[INTEGRATION-GAP]`, `[INTERFACE-EXACTNESS]`, `[UNAPPROVED-DEFERRAL]`, `[UNRESOLVED-QUESTION]`, `[QUALITY-BLOCKER]`, `[CONTROL-PLANE]`, `[ADVISORY]`. Advisory items block only when they expose a real completion or safety issue.
 
 ## Report Format
 
@@ -118,8 +118,8 @@ PASS | FAIL
 |---|---|---|---|---|---|
 
 ### Package Verification Reports
-| Artifact set | Package | Report file | Verdict/freshness | Notes |
-|---|---|---|---|---|
+| Artifact set | Package | Report file | Verdict/freshness | Test scope | Notes |
+|---|---|---|---|---|---|
 
 ### Review-Code Context (Optional)
 | State/report | Supplied | Same-state | Clean readiness | Notes |
@@ -135,7 +135,7 @@ PASS | FAIL
 - <affected Slice IDs, packages, matrix rows, stale source bindings, invalid evidence refs, proof rows, reports, review-code fields, code/test paths, required verification/rerun, or `None`>
 ```
 
-PASS requires complete Slice inventory for every included task set, each material H3 assigned/proven or approved out of scope, sufficient proof rows, fresh state-bound PASS package reports with clean reconciled matrices, compliant final code, and no blocker. Exact package commit/ref bindings are acceptable only when ancestry/content-equivalence and post-merge freshness show the reviewed package state was not changed by merge/integration. Audit PASS is not merge/readiness unless review-code readiness is clean for the same state.
+PASS requires complete Slice inventory for every included task set, each material H3 assigned/proven or approved out of scope, sufficient proof rows, fresh state-bound PASS package reports with clean reconciled matrices and Test Review Scope receipts, compliant final code, and no blocker. Exact package commit/ref bindings are acceptable only when ancestry/content-equivalence and post-merge freshness show the reviewed package state was not changed by merge/integration. Audit PASS is not merge/readiness unless review-code readiness is clean for the same state.
 
 ## Repair Handoff
 

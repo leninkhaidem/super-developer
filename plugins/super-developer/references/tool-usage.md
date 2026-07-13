@@ -51,9 +51,10 @@ python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" emit-state-binding
   --commit "$REVIEWED_COMMIT" --verified-at "$VERIFIED_AT"
 ```
 
-`validate-package-complete` and `validate-final` return JSON on stdout when successful. On failure, they
-return JSON on stderr with `errors` and a top-level `advisories` array. `context_only_slice_drift`
-advisories are non-blocking by default and must still be routed to affected-surface classification;
+`validate-package-complete` and `validate-final` require the canonical package report, including a structurally
+valid `### Test Review Scope`; reports without it are invalid and must be refreshed rather than bypassed. They
+return JSON on stdout when successful. On failure, they return JSON on stderr with `errors` and a top-level
+`advisories` array. `context_only_slice_drift` advisories are non-blocking by default and must still be routed to affected-surface classification;
 `validate-final` aggregates advisories across packages and includes them even when hard errors also exist.
 
 Read-only emit command:

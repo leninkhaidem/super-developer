@@ -1,7 +1,7 @@
 # Package Verification Report Contract
 
-Boundary: shared durable report and deliverable-matrix shape for package verifiers, package completion
-helpers, final auditors, and freshness checks. Reports live under the artifact root; `Worktree` in state
+Boundary: shared durable report, test-review receipt, and deliverable-matrix shape for package verifiers,
+package completion helpers, final auditors, and freshness checks. Reports live under the artifact root; `Worktree` in state
 binding is the reviewed code worktree. Verifiers and final auditors own semantic truthfulness and sufficiency.
 
 ## Canonical Source Body
@@ -25,6 +25,11 @@ PASS | FAIL
 - Applied: `<RISK-ID>` because <scope/slice/diff/expectation/failure-mode rationale>.
 - Not applicable: <nearby high-signal probe> because <concise rationale>.
 
+### Test Review Scope
+| Surface | Changed Population | Review Depth | Baseline Review | Deep Triggers | Selected Exemplars | Sampling Rationale | Generator / Input / Provenance | Evidence Refs |
+|---|---|---|---|---|---|---|---|---|
+| `tests` | `count: 12; scope: parser success and malformed-receipt cases` | `sampled` | `complete: assertions, paths, state effects, and fresh commands checked; no skip changes found` | `none: package-local parser cases are not sensitive or sole evidence` | `selected: valid, malformed, and unsupported receipt cases` | `strategy: semantic behavior and oracle-shape strata` | `not-applicable: hand-authored tests contain no generated output` | `test:plugins/tests/test_x.py::test_y` |
+
 ### Slice Closure Review
 | Slice ID | Proof status | Evidence sufficient? | Notes |
 |---|---|---|---|
@@ -34,7 +39,7 @@ PASS | FAIL
 - None.
 ```
 
-For failures, add `### Blocking Findings` and `### Repair Guidance` under the same H2. A `PASS` requires a present, clean `### Deliverable Completeness Matrix`; `### Slice Closure Review` and proof prose alone are insufficient.
+For failures, add `### Blocking Findings` and `### Repair Guidance` under the same H2. A `PASS` requires a present, clean `### Deliverable Completeness Matrix` and valid `### Test Review Scope`; `### Slice Closure Review` and proof prose alone are insufficient.
 
 ## Matrix Row Contract
 
@@ -47,6 +52,38 @@ Mandatory rows come from:
 1. Assigned package `Must satisfy` Slice H3 IDs, using each exact H3 ID as `Source ID` and row type `slice`.
 2. Package Markdown `## Verification Expectations`, using stable `VE-<n>` IDs in listed order and row type `verification-expectation`. If an expectation is materially proven by a Slice row, keep the `VE-<n>` row and cross-reference that evidence rather than omitting it.
 3. Triggered risk rows are verifier-selected, using explicit `RISK-<slug-or-n>` IDs and row type `triggered-risk` with rationale/disposition. Selection comes from package scope, assigned Slices, changed code/diff/tests, verification expectations, and known failure modes; planner seeds do not limit discovery, and non-applicable probes must not become checklist noise.
+
+## Test Review Scope Receipt
+
+The package verifier records one row per changed category in the package-owned reviewed delta: `tests`, `harnesses/helpers`, `mocks/fixtures`, `generators/snapshots`, `test-discovery/CI/coverage/build-config`, or the controlled catch-all `other-test-relevant`.
+Group by semantic population and account for every package-owned changed path. Clean depths are only `baseline-only`, `sampled`, and `deep`; `not-reviewed` and `unreviewed` are invalid.
+Use `other-test-relevant` only when no existing surface category accurately fits. It is valid only at `deep`: its `scope:` must name exact paths or a precise path group, its `triggered:` value must explain why classification is novel or ambiguous, and its typed evidence must anchor the inspected surface. It cannot avoid generator/provenance rules or stand in for another known category. This catch-all improves representability; it does not provide a mechanical exhaustive-discovery guarantee for current or future test-relevant paths.
+
+Every ordinary row uses this exact field grammar (whitespace and harmless punctuation normalization may vary; prefixes and semantics may not):
+
+- `Changed Population`: `count: <positive integer>; scope: <specific non-placeholder description>`.
+- `Baseline Review`: `complete: <specific non-placeholder checks/results>`.
+- `Deep Triggers`: for `deep`, `triggered: <specific non-placeholder trigger>`; for `baseline-only` or `sampled`, `none: <specific reason>`.
+- `Selected Exemplars`: for `sampled`, `selected: <specific exemplars>`; otherwise, `not-applicable: <specific reason>`.
+- `Sampling Rationale`: for `sampled`, `strategy: <specific semantic selection rationale>`; otherwise, `not-applicable: <specific reason>`.
+- `Generator / Input / Provenance`: `generators/snapshots` requires `generator: <specific>; inputs: <specific>; provenance: <specific>`; other surfaces allow that triple or `not-applicable: <specific reason>`.
+- `Evidence Refs`: one or more typed anchors from the evidence-reference grammar below.
+
+Baseline checks/results cover assertion weakening/deletion, skip/focus/xfail changes, broad tolerances or matchers, path execution/discrimination, mock/fixture/global-state effects, fresh commands/evidence, and generated provenance where applicable.
+`deep` is required for proof-critical or sole evidence; security/privacy/safety/data/migration/concurrency/public-contract seams; shared harness/helper/config; weakened assertions or skips; missing provenance; contradictions or stale evidence; cross-package seams; and tests-as-deliverable.
+
+Sampling is semantic, never percentage-based: partition by behavior/contract, oracle shape, helper/mock stack, and generator provenance/risk.
+Generated output is sampleable only after its generator, inputs, and provenance are reviewed. Budget exhaustion causes semantic batching or
+widening, never reduced rigor or fixed-percentage quotas.
+
+Only the constrained whole-receipt absence is allowed. For no applicable surface, use exactly one row with `Surface`, `Changed Population`, and `Selected Exemplars` set to `none`, `Review Depth` set to `no-applicable-surface`, every other narrative field set to `not-applicable: <specific reason>`, and typed classification evidence.
+It cannot coexist with another row. Explicit `not-reviewed`/`unreviewed` and unresolved marker forms anywhere in the section are invalid.
+
+Mechanical validation owns the exact grammar, positive count, controlled surface/depth values, non-placeholder payloads, strict table shape (exactly one unfenced contiguous Markdown table with a matching-width delimiter, exact-arity rows, and no extra pipe fragments/tables), and typed-reference safety.
+It does not infer semantic truth from arbitrary prose or decide whether a claim is honest, contradictory, or sufficient. Thus `Review status: baseline review was not performed` fails the required `complete:` grammar, while a syntactically valid but dishonest `complete:` claim is for the verifier/reviewer/auditor to reject; legitimate negative results inside `complete:` remain valid.
+
+Final pipeline review validates each fresh receipt against its package-owned reviewed delta and reconciles the union of fresh package receipts against the integrated diff. It separately reviews integration-only or merge-resolution test-relevant changes at a canonical depth, then widens for triggers/anomalies. It must explicitly inspect and escalate every `other-test-relevant` row, decide whether the known taxonomy should be extended, and never treat a catch-all row as proof that all future test-relevant paths were discovered.
+Audit applies the same targeted reconciliation and catch-all escalation boundary while selectively falsifying rather than rereviewing every test. Reports without the receipt are invalid and must be refreshed; there is no silent format bypass.
 
 ## Evidence Reference Rules
 
@@ -105,8 +142,9 @@ invalid-digest, or encoded-tier-mismatch entries fail closed before drift classi
 drift remains a hard freshness error.
 
 Changing package Markdown verification expectations, assigned `must_satisfy` section content, proof
-content, cited verification output, artifact root selection, or reviewed code invalidates the report until
-refreshed. `context_only` section drift is routed as an advisory for affected-surface classification unless
+content, cited verification output, Test Review Scope inputs/receipt, artifact root selection, or reviewed
+code invalidates the report until refreshed. `context_only` section drift is routed as an advisory for
+affected-surface classification unless
 reviewer/auditor judgment escalates material risk. Optional `## Semgrep Evidence` may follow when
 enabled/contracted, with helper-produced artifact-root raw/summary paths, digests, scan scope, and bounded
 summary.

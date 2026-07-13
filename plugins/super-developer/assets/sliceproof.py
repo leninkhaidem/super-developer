@@ -53,6 +53,7 @@ REQUIRED_SOURCE_REPORT_H3 = {
     "Verdict",
     "Deliverable Completeness Matrix",
     "Triggered Risk Selection Notes",
+    "Test Review Scope",
     "Slice Closure Review",
     "Code Review Findings",
 }
@@ -70,6 +71,35 @@ MATRIX_ROW_TYPES = {"slice", "verification-expectation", "triggered-risk"}
 MATRIX_EVIDENCE_TYPES = {"code", "test", "static", "command", "manual", "mixed"}
 MATRIX_VERDICTS = {"delivered", "missing", "partial", "contradicted", "unverified"}
 MATRIX_CLEAN_VERDICT = "delivered"
+TEST_REVIEW_SCOPE_COLUMNS = [
+    "Surface",
+    "Changed Population",
+    "Review Depth",
+    "Baseline Review",
+    "Deep Triggers",
+    "Selected Exemplars",
+    "Sampling Rationale",
+    "Generator / Input / Provenance",
+    "Evidence Refs",
+]
+TEST_REVIEW_SURFACES = {
+    "tests",
+    "harnesses/helpers",
+    "mocks/fixtures",
+    "generators/snapshots",
+    "test-discovery/ci/coverage/build-config",
+    "other-test-relevant",
+}
+TEST_REVIEW_DEPTHS = {"baseline-only", "sampled", "deep"}
+NO_APPLICABLE_TEST_SURFACE_DEPTH = "no-applicable-surface"
+TEST_REVIEW_UNRESOLVED_MARKER_RE = re.compile(
+    r"(?i:\btodo\b)|\b(?:OPEN|GAP)\b|"
+    r"(?i:(?:^|[|;(\[])\s*(?:open|gap)\s*(?=[:;,\])|]|$)|"
+    r"\b(?:open|gap)\s+(?:marker|item|remains?|pending|unresolved)\b|"
+    r"\b(?:unresolved|pending)\s+(?:open|gap)\b)",
+    re.MULTILINE,
+)
+TEST_REVIEW_FORBIDDEN_STATUS_RE = re.compile(r"\b(?:not[- ]reviewed|unreviewed)\b", re.IGNORECASE)
 RISK_SOURCE_ID_RE = re.compile(r"^RISK-[A-Za-z0-9][A-Za-z0-9_-]*$")
 FALSIFICATION_TERM = r"falsif(?:y|ies|ied|ication|ications)"
 FORBIDDEN_BEHAVIOR_TERM = r"forbidden[-\s]+behaviou?rs?"
@@ -1412,6 +1442,7 @@ def validate_report_markdown(
         "Verdict",
         "Deliverable Completeness Matrix",
         "Triggered Risk Selection Notes",
+        "Test Review Scope",
         "Slice Closure Review",
         "Code Review Findings",
         "Blocking Findings",
@@ -1423,7 +1454,8 @@ def validate_report_markdown(
         errors.append(
             f"{report_path}: source report sections must appear in order: "
             "### Verdict, ### Deliverable Completeness Matrix, ### Triggered Risk Selection Notes, "
-            "### Slice Closure Review, ### Code Review Findings, ### Blocking Findings, ### Repair Guidance"
+            "### Test Review Scope, ### Slice Closure Review, ### Code Review Findings, "
+            "### Blocking Findings, ### Repair Guidance"
         )
     for section in sorted(REQUIRED_SOURCE_REPORT_H3):
         if section not in source_h3:
@@ -1456,6 +1488,16 @@ def validate_report_markdown(
         )
     if "Triggered Risk Selection Notes" in source_h3:
         errors.extend(validate_triggered_risk_selection_notes(report_path, source_h3["Triggered Risk Selection Notes"]))
+    if "Test Review Scope" in source_h3:
+        errors.extend(
+            validate_test_review_scope(
+                report_path,
+                root,
+                evidence_root,
+                proof_path,
+                source_h3["Test Review Scope"],
+            )
+        )
     if "Slice Closure Review" in source_h3:
         errors.extend(validate_report_slice_closure_review(report_path, package_md, source_h3["Slice Closure Review"]))
     if "Code Review Findings" in source_h3:
@@ -1586,12 +1628,273 @@ def extract_first_table_headers(body: str) -> list[str]:
     return []
 
 
+def parse_test_review_scope_table(report_path: Path, body: str) -> tuple[list[ProofRow], list[str]]:
+    label = f"{report_path}: ### Test Review Scope"
+    numbered_lines = [
+        (line_number, raw_line.strip())
+        for line_number, raw_line in enumerate(body.splitlines(), start=1)
+        if raw_line.strip()
+    ]
+    if any(is_fence(line) for _line_number, line in numbered_lines):
+        return [], [f"{label} must not contain fenced content"]
+    if not numbered_lines:
+        return [], [f"{label} must include at least one surface row"]
+
+    table_lines: list[tuple[int, list[str], str]] = []
+    for line_number, line in numbered_lines:
+        cells = split_markdown_table_row(line)
+        if cells is None:
+            return [], [
+                f"{label} must contain exactly one contiguous Markdown table with no prose or ignored pipe fragments"
+            ]
+        table_lines.append((line_number, cells, line))
+
+    line_numbers = [line_number for line_number, _cells, _line in table_lines]
+    if line_numbers != list(range(line_numbers[0], line_numbers[0] + len(line_numbers))):
+        return [], [
+            f"{label} must contain exactly one contiguous Markdown table with no prose or ignored pipe fragments"
+        ]
+
+    headers = table_lines[0][1]
+    errors: list[str] = []
+    if headers != TEST_REVIEW_SCOPE_COLUMNS:
+        errors.append(f"{label} columns must be exactly {TEST_REVIEW_SCOPE_COLUMNS}")
+    expected_width = len(TEST_REVIEW_SCOPE_COLUMNS)
+    if len(table_lines) < 2 or not is_markdown_table_delimiter(table_lines[1][1], expected_width):
+        errors.append(
+            f"{label} must place a matching-width Markdown delimiter immediately after the header"
+        )
+    if len(table_lines) < 3:
+        errors.append(f"{label} must include at least one surface row")
+
+    proof_rows: list[ProofRow] = []
+    for table_index, (_line_number, cells, raw_line) in enumerate(table_lines[2:], start=3):
+        if is_markdown_table_delimiter(cells, len(cells)):
+            errors.append(f"{label} must contain exactly one contiguous Markdown table")
+            continue
+        if len(cells) != expected_width:
+            errors.append(
+                f"{report_path}: Test Review Scope table row {table_index} must contain exactly "
+                f"{expected_width} cells"
+            )
+            continue
+        proof_rows.append(ProofRow(dict(zip(TEST_REVIEW_SCOPE_COLUMNS, cells)), raw_line))
+
+    if errors:
+        return [], errors
+    return proof_rows, []
+
+
+def is_markdown_table_delimiter(cells: list[str], expected_width: int) -> bool:
+    return len(cells) == expected_width and all(
+        re.fullmatch(r":?-{3,}:?", cell.replace(" ", "")) is not None for cell in cells
+    )
+
+
 def validate_triggered_risk_selection_notes(report_path: Path, body: str) -> list[str]:
     if is_report_section_placeholder_body(body):
         return [f"{report_path}: ### Triggered Risk Selection Notes must contain non-placeholder risk selection notes"]
     if BLOCKING_MARKER_RE.search(body):
         return [f"{report_path}: ### Triggered Risk Selection Notes contains unresolved TODO/OPEN/GAP marker"]
     return []
+
+
+def validate_test_review_scope(
+    report_path: Path,
+    root: Path,
+    evidence_root: Path,
+    proof_path: Path,
+    body: str,
+) -> list[str]:
+    errors: list[str] = []
+    if is_report_section_placeholder_body(body):
+        return [f"{report_path}: ### Test Review Scope must contain a non-placeholder receipt"]
+    if TEST_REVIEW_UNRESOLVED_MARKER_RE.search(body):
+        errors.append(f"{report_path}: ### Test Review Scope contains unresolved TODO/OPEN/GAP marker")
+    if TEST_REVIEW_FORBIDDEN_STATUS_RE.search(body):
+        errors.append(f"{report_path}: ### Test Review Scope contains forbidden not-reviewed/unreviewed status")
+
+    rows, table_errors = parse_test_review_scope_table(report_path, body)
+    errors.extend(table_errors)
+    if table_errors:
+        return errors
+
+    try:
+        proof_sections = split_h2_sections(read_text_file(proof_path, f"proof {proof_path}"))
+    except SliceproofError as exc:
+        errors.extend(exc.errors)
+        proof_commands = ""
+    else:
+        proof_commands = proof_sections.get("Commands Run", "")
+
+    no_applicable_rows = [
+        row
+        for row in rows
+        if normalize_test_review_value(row.cells.get("Review Depth", "")) == NO_APPLICABLE_TEST_SURFACE_DEPTH
+    ]
+    if no_applicable_rows:
+        if len(rows) != 1 or not is_canonical_no_applicable_test_surface_row(no_applicable_rows[0]):
+            errors.append(
+                f"{report_path}: no-applicable-surface receipt must contain exactly one canonical none row"
+            )
+        errors.extend(
+            validate_matrix_evidence_refs(
+                report_path,
+                root,
+                evidence_root,
+                proof_commands,
+                "Test Review Scope no-applicable-surface row",
+                "mixed",
+                no_applicable_rows[0].cells.get("Evidence Refs", ""),
+            )
+        )
+        return errors
+
+    seen_surfaces: set[str] = set()
+    for index, row in enumerate(rows, start=1):
+        surface = normalize_test_review_value(row.cells.get("Surface", ""))
+        depth = normalize_test_review_value(row.cells.get("Review Depth", ""))
+        row_label = f"Test Review Scope {surface or f'row {index}'}"
+
+        if surface not in TEST_REVIEW_SURFACES:
+            errors.append(f"{report_path}: {row_label} Surface {surface!r} is not supported")
+        elif surface in seen_surfaces:
+            errors.append(f"{report_path}: duplicate Test Review Scope row for {surface}")
+        else:
+            seen_surfaces.add(surface)
+
+        population = parse_test_review_components(row.cells.get("Changed Population", ""), ("count", "scope"))
+        if population is None:
+            errors.append(
+                f"{report_path}: {row_label} Changed Population must use "
+                "'count: <positive integer>; scope: <specific non-placeholder description>'"
+            )
+        else:
+            count, scope = population
+            if not count.isascii() or not count.isdecimal() or int(count) < 1:
+                errors.append(f"{report_path}: {row_label} Changed Population count must be a positive integer")
+            if not is_specific_test_review_payload(scope):
+                errors.append(f"{report_path}: {row_label} Changed Population scope must be non-placeholder")
+
+        if not has_test_review_grammar(row.cells.get("Baseline Review", ""), ("complete",)):
+            errors.append(
+                f"{report_path}: {row_label} Baseline Review must use "
+                "'complete: <specific non-placeholder checks/results>'"
+            )
+
+        if surface == "other-test-relevant" and depth in TEST_REVIEW_DEPTHS and depth != "deep":
+            errors.append(
+                f"{report_path}: {row_label} Review Depth must be deep for other-test-relevant"
+            )
+
+        if depth not in TEST_REVIEW_DEPTHS:
+            errors.append(f"{report_path}: {row_label} Review Depth {depth!r} is not supported")
+        elif depth == "sampled":
+            if not has_test_review_grammar(row.cells.get("Selected Exemplars", ""), ("selected",)):
+                errors.append(
+                    f"{report_path}: {row_label} sampled Selected Exemplars must use "
+                    "'selected: <specific exemplars>'"
+                )
+            if not has_test_review_grammar(row.cells.get("Sampling Rationale", ""), ("strategy",)):
+                errors.append(
+                    f"{report_path}: {row_label} sampled Sampling Rationale must use "
+                    "'strategy: <specific semantic selection rationale>'"
+                )
+        else:
+            for column in ("Selected Exemplars", "Sampling Rationale"):
+                if not has_test_review_grammar(row.cells.get(column, ""), ("not-applicable",)):
+                    errors.append(
+                        f"{report_path}: {row_label} {column} must use "
+                        f"'not-applicable: <specific reason>' when depth is {depth}"
+                    )
+
+        if depth == "deep":
+            if not has_test_review_grammar(row.cells.get("Deep Triggers", ""), ("triggered",)):
+                errors.append(
+                    f"{report_path}: {row_label} deep Deep Triggers must use "
+                    "'triggered: <specific non-placeholder trigger>'"
+                )
+        elif depth in {"baseline-only", "sampled"} and not has_test_review_grammar(
+            row.cells.get("Deep Triggers", ""), ("none",)
+        ):
+            errors.append(
+                f"{report_path}: {row_label} {depth} Deep Triggers must use 'none: <specific reason>'"
+            )
+
+        provenance = row.cells.get("Generator / Input / Provenance", "")
+        has_provenance = has_test_review_grammar(provenance, ("generator", "inputs", "provenance"))
+        if surface == "generators/snapshots":
+            if not has_provenance:
+                errors.append(
+                    f"{report_path}: {row_label} Generator / Input / Provenance must use "
+                    "'generator: <specific>; inputs: <specific>; provenance: <specific>'"
+                )
+        elif not (has_provenance or has_test_review_grammar(provenance, ("not-applicable",))):
+            errors.append(
+                f"{report_path}: {row_label} Generator / Input / Provenance must use the structured "
+                "generator/inputs/provenance triple or 'not-applicable: <specific reason>'"
+            )
+
+        errors.extend(
+            validate_matrix_evidence_refs(
+                report_path,
+                root,
+                evidence_root,
+                proof_commands,
+                row_label,
+                "mixed",
+                row.cells.get("Evidence Refs", ""),
+            )
+        )
+    return errors
+
+
+def normalize_test_review_value(value: str) -> str:
+    return normalize_text(value).strip("`").lower()
+
+
+def parse_test_review_components(value: str, keys: tuple[str, ...]) -> tuple[str, ...] | None:
+    text = normalize_text(value).strip("`")
+    segments = [text] if len(keys) == 1 else text.split(";")
+    if len(segments) != len(keys):
+        return None
+    values: list[str] = []
+    for segment, expected_key in zip(segments, keys):
+        key, separator, payload = segment.partition(":")
+        if not separator or normalize_text(key).lower() != expected_key:
+            return None
+        values.append(payload.strip())
+    return tuple(values)
+
+
+def has_test_review_grammar(value: str, keys: tuple[str, ...]) -> bool:
+    components = parse_test_review_components(value, keys)
+    return components is not None and all(is_specific_test_review_payload(item) for item in components)
+
+
+def is_specific_test_review_payload(value: str) -> bool:
+    normalized = normalize_text(value).strip("`").strip()
+    placeholder = normalize_report_binding_placeholder_value(normalized)
+    return (
+        any(character.isalnum() for character in normalized)
+        and placeholder not in REPORT_BINDING_PLACEHOLDER_VALUES | {"not applicable"}
+        and not (normalized.startswith("<") and normalized.endswith(">"))
+    )
+
+
+def is_canonical_no_applicable_test_surface_row(row: ProofRow) -> bool:
+    exact_none_fields = ("Surface", "Changed Population", "Selected Exemplars")
+    rationale_fields = (
+        "Baseline Review",
+        "Deep Triggers",
+        "Sampling Rationale",
+        "Generator / Input / Provenance",
+    )
+    return (
+        all(normalize_test_review_value(row.cells.get(field, "")) == "none" for field in exact_none_fields)
+        and normalize_test_review_value(row.cells.get("Review Depth", "")) == NO_APPLICABLE_TEST_SURFACE_DEPTH
+        and all(has_test_review_grammar(row.cells.get(field, ""), ("not-applicable",)) for field in rationale_fields)
+    )
 
 
 def validate_matrix_evidence_refs(

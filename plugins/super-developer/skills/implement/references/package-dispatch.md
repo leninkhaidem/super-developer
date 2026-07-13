@@ -140,7 +140,7 @@ Each package-verifier prompt includes:
   available, package agent `SELF_REVIEW`, verification outputs/static-inspection summaries, and Semgrep
   raw/summary evidence bindings when enabled/contracted.
 - Require verifier-owned triggered risk selection from package scope, assigned Slices, changed code/diff, tests, expectations, and known failure modes; planner risk seeds do not limit verifier discovery.
-- Required output: concise PASS/FAIL report for `.tasks/<feature>/reports/<WP-ID>.package-verification.md` with `### Deliverable Completeness Matrix` in the canonical source body.
+- Required output: concise PASS/FAIL report for `.tasks/<feature>/reports/<WP-ID>.package-verification.md` with `### Deliverable Completeness Matrix` and verifier-owned `### Test Review Scope` for the package-owned reviewed delta in the canonical source body; missing old-shape receipts must be refreshed, not bypassed.
 
 The verifier reads files directly, audits Slice/proof obligations first, then reviews package code/evidence and writes the matrix/report contract without hidden chat context.
 
