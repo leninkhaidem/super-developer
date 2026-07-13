@@ -1,142 +1,107 @@
 # Development Quality Contract
 
-Implementation, repair, review, and audit agents MUST apply this contract during Super Developer workflow execution.
-Use RFC 2119 meanings for MUST, MUST NOT, SHOULD, SHOULD NOT, and MAY.
+This contract defines an acceptable change: code maintainers can understand, verify, and modify without
+avoidable risk or scattered edits. It is not a style guide or lint substitute. Use RFC 2119 meanings for MUST,
+MUST NOT, SHOULD, SHOULD NOT, and MAY.
 
-This language-agnostic contract combines a concise craft chapter with operational gates. It is not a style
-guide, lint surrogate, language recipe catalog, or parallel proof system. Correctness, safety, caller
-contracts, verification, trust boundaries, data behavior, and error behavior are MUST-level obligations.
-Modifiability and durability are enforced development-quality criteria, but they do not outrank those duties.
+## Scope
 
-A change is non-trivial when it touches multiple files, changes behavior/API/data/error handling, affects
-contracts or generated/docs artifacts, introduces security/privacy/reliability/concurrency/performance risk,
-refactors shared code, or requires package/repository verification. Tiny edits MAY use lighter evidence,
-but still MUST preserve correctness and avoid collateral cleanup.
+- Implementation and repair agents MUST follow this contract for changed code and behavior.
+- Review and audit agents MUST apply its evidence and severity rules; preferences are not findings.
+- Planning agents use it to expose design, risk, and verification needs only.
 
-## Principle Grounding
-This quality contract uses established software-design vocabulary as diagnostic lenses, not dogma.
-Local requirements, evidence, and risk decide severity; principle names are shorthand, not cargo-cult rules.
-- Design by Contract grounds explicit outcomes, preconditions, postconditions, failure modes, and proof truth.
-- High cohesion, low coupling, and SRP ground ownership, boundaries, and localized change.
-- DRY is balanced by anti-premature-abstraction: share real concepts, not superficial similarity.
-- KISS and YAGNI ground small surfaces, few moving parts, and no unused extension mechanisms.
-- Information hiding and encapsulation ground APIs that hide incidental state and vendor shapes.
-- Dependency inversion and ports/adapters thinking ground stable cores with replaceable volatile edges.
-- DDD ubiquitous language grounds names and artifacts in the shared domain model.
-- Testability and legacy-seam practice ground deterministic seams, observable behavior, and safe brownfield change.
-- Maintainability quality attributes ground analyzability, modifiability, testability, and change isolation.
+A change is material when it affects behavior, public contracts, data, errors, shared code, prompts or workflow
+artifacts, generated artifacts, package verification, or security/privacy/reliability/concurrency/performance risk.
+Tiny edits MAY use lighter evidence, but MUST preserve correctness and avoid collateral changes.
 
-## 1. Clean Work
-Clean work lets maintainers change safely because behavior is truthful, boundaries are visible, and the
-design carries only the concepts it needs. For non-trivial changes, agents MUST protect:
-- **Truthful outcomes:** success, failure, partial success, invalid input, and skipped work are
-  distinguishable; no fake success or silent fallback unless accepted, documented, and observable.
-- **Clear contracts:** APIs, package artifacts, proof claims, schemas, generated contracts, config, and
-  operational surfaces stay compatible unless accepted artifacts require a break.
-- **Validated boundaries:** untrusted or dynamic data is validated or narrowed before trusted use.
-- **Local changeability:** behavior has a clear owner, cohesive boundary, and smallest useful seam.
-- **Readable model:** names, domain vocabulary, flow, state transitions, and tests explain intent.
-- **Compact evidence:** cite proof rows, verification output, tests, reports, or findings; do not create
-  standalone clean-code proof/report artifacts.
+## Required Outcomes
 
-## 2. Severity and Material Evidence
-Severity follows the strongest material risk supported by evidence:
-- **BLOCKER:** MUST-level violation, unverified non-trivial behavior, broken caller contract, fake success,
-  security/privacy/safety/data/integrity risk, missing trust-boundary validation, incompatible public API,
-  unsafe migration, unresolved assigned obligation, or required proof/verification gap.
-- **CODE-QUALITY:** concrete maintainability risk: brittle seam, scattered future edits, unclear owner,
-  unjustified duplication, speculative abstraction, excess coupling, cognitive complexity, poor testability,
-  dependency/framework leakage, or domain-model inconsistency.
-- **ADVISORY:** optional improvement, local style convention, small clarity improvement, or future cleanup.
+For every material change, agents MUST ensure:
 
-Reviewers and auditors MUST NOT elevate taste, formatting preference, or personal style into serious
-findings. Maintainability concerns become serious only with evidence of brittleness, change cost,
-caller-contract risk, safety/security/data risk, completion-confidence risk, or future-modification risk.
-Material correctness, safety, maintainability, or verification risks MUST NOT remain advisory.
+- **Truthful behavior:** success, failure, partial success, invalid input, defaults, and skipped work are
+  distinguishable. Silent fallback and fake success require explicit acceptance and observability.
+- **Preserved contracts:** caller behavior, public APIs, persistence, configuration, schemas, generated artifacts,
+  and operations remain compatible unless accepted requirements authorize a break.
+- **Validated boundaries:** untrusted or dynamic input is narrowed before trusted use. Errors are explicit and do
+  not expose secrets or private data.
+- **Maintainable ownership:** changed behavior has a clear owner and cohesive boundary. Likely future changes avoid
+  scattered edits and duplicated conditionals.
+- **Justified complexity:** abstractions, dependencies, configuration, state, retries, caches, flags, and extension
+  points require a current requirement or evidenced risk.
+- **Readable behavior:** project vocabulary, control flow, state transitions, defaults, and errors reveal intent.
+- **Testable design:** important behavior is observable through deterministic seams. Isolate I/O, time, randomness,
+  globals, subprocesses, networks, tools, and framework lifecycle when they make proof brittle.
+- **Complete, focused work:** update affected callsites, tests, docs, schemas, examples, and generated artifacts;
+  avoid unrelated cleanup and speculative capability.
 
-## 3. Craft Principles
-- **Preserve contracts first.** Callers must distinguish material outcomes. Preserve success/failure,
-  partial-failure, invalid/default input, public API, persistence, generated-artifact, and operational
-  expectations unless accepted artifacts change them.
-- **Design around real seams.** A seam owns a concept, invariant, boundary, or variable behavior. Prefer
-  cohesive modules, explicit dependency direction, and replaceable edges for fallible/volatile collaborators.
-- **Reuse real concepts.** Reduce duplication for the same concept, invariant, policy, boundary behavior,
-  bug fix, or caller contract. Keep superficial similarity local when abstraction would invent knobs,
-  flags, factories, hooks, wrappers, or extension points.
-- **Prefer simplicity and small surfaces.** Add config, dependencies, indirection, caches, retries, flags,
-  or lifecycle states only when requirement or risk justifies them. Extensibility comes from clear seams.
-- **Encapsulate details.** Shared APIs SHOULD expose coherent caller operations, hide incidental state or
-  vendor/framework shapes, make defaults explicit, and be easy to use correctly and hard to misuse.
-- **Make cognitive load visible.** Watch deep nesting, long functions, scattered conditionals, hidden
-  temporal coupling, unclear ownership, implicit state transitions, misleading/generic names, and vocabulary drift.
-- **Treat testability as design feedback.** Prefer deterministic seams, observable outcomes, narrow setup,
-  and clear boundary behavior. Isolate brittle time, randomness, I/O, globals, subprocesses, network,
-  LLM/tool output, and framework lifecycle. Mocks MUST NOT replace an unverified external/library/runtime/
-  API contract under test.
-- **Keep dependencies disciplined.** Dependencies are design decisions. Avoid unnecessary packages/services,
-  preserve dependency direction, isolate vendor/framework details where practical, and check lifecycle,
-  security, operations, performance, and replacement cost.
-- **Work cleanly in brownfield code.** Messy surroundings are evidence, not permission to spread mess.
-  New and meaningfully changed code SHOULD meet this contract while minimizing unrelated disturbance.
-  Classify patterns as contract, convention, defective, or unknown; preserve real contracts, avoid copying
-  defects, isolate the smallest useful clean seam, improve touched paths when needed, and surface broader
-  cleanup as separate scope.
+Material maintainability risks MUST be fixed or explicitly accepted. Maintainability is mandatory, but formatting
+or a preferred design alone is not evidence.
 
-## 4. Operational Gates
-- **Discovery:** read requirements, package scope, assigned Slice context, and existing code; search callsites
-  before changing APIs, data models, shared behavior, generated artifacts, or workflow contracts; classify
-  patterns; identify trust boundaries, caller-visible states, config/persistence/generated implications, and
-  verification seams.
-- **Design:** identify outcome contracts, invalid/default input, cancellation/cleanup when relevant,
-  validation boundaries, module boundaries, dependency direction, public surface changes, modifiability
-  strategy, risk surfaces, and verification tied to assigned proof obligations.
-- **Implementation:** solve the in-scope behavior/risk class; preserve contracts/dependency direction unless
-  accepted artifacts change them; update affected callsites/tests/docs/generated artifacts/schemas/examples;
-  stay focused; avoid broad cleanup,
-  stale code/TODOs, and unvalidated data; stop before product/design changes, speculative features, broad
-  refactors, new services, unsafe commands, credentials, external facts, destructive actions, or risk acceptance.
-- **Verification:** run targeted checks, prefer real paths over mocks, disclose mocks/skips/manual/static scope,
-  and cover material outcomes, invalid/default input, trust-boundary validation, public contracts,
-  persistence/data, security/privacy/safety, resource bounds, concurrency, generated artifacts, and brownfield
-  contracts where relevant.
-- **Review/audit:** confirm evidence truthfulness before polish; serious quality findings need concrete
-  material risk; downgrade or omit taste/style/optional cleanup; treat missing verification, fake success,
-  invalid proof claims, unvalidated boundaries, public-contract breaks, and unresolved obligations as blockers.
+## Maintainability Ground Rules
 
-## 5. Common Risk Surfaces
-Use these language-neutral surfaces instead of per-language adapters:
-- External input/dynamic data: user input, JSON/YAML, requests, messages, LLM/tool output, and data payloads.
-- Public/shared APIs: exports, commands, prompts, schemas, artifacts, config keys, file formats, defaults,
-  generated contracts, and misuse resistance.
-- Files/env/config: missing, malformed, partial, secret-bearing, or environment-specific values.
-- Persistence/migrations: compatibility, rollback/backfill, idempotency, integrity, partial failure, recovery.
-- Network/subprocess/services: validation, bounded timeouts/retries/fanout, distinguishable failure.
-- Errors/partial success: context without secrets/private data; observable, compensated, or fail-closed work.
-- Async/concurrency/lifecycle: ownership, locking/atomicity, idempotency, races, cancellation, cleanup, release.
-- Performance/resources: expected complexity, worst case, and bounded loops, memory, retries, queues, I/O, fanout.
-- Framework/vendor boundaries: isolate lifecycle, ORM/request objects, SDK shapes, and vendor types from domain logic.
-- Security/privacy: no hardcoded/logged/committed secrets; minimize, validate, access-control, and exclude sensitive data.
+Use these defaults unless repository evidence justifies otherwise:
 
-## 6. Compact Quality Contract Evidence
-For non-trivial implementation or repair work, completion reports MUST include:
+- Give each concept, invariant, policy, boundary, and caller contract one clear owner.
+- Keep changes local; when behavior requires scattered edits, introduce the smallest useful seam.
+- Reuse the same concept or policy, not merely similar code. Avoid speculative extension mechanisms.
+- Prefer simple data flow and explicit state over deep nesting, temporal coupling, or action at a distance.
+- Hide incidental framework, vendor, storage, and transport shapes behind coherent operations.
+- Direct dependencies toward stable behavior; isolate volatile collaborators where useful.
+- Treat difficult setup, nondeterminism, and excessive mocking as design feedback.
+- In brownfield code, preserve contracts without copying defects; improve the touched path and report broader
+  cleanup separately.
+
+Linters and pattern names do not prove maintainability. Record non-obvious, material tradeoffs.
+
+## Operational Gates
+
+1. **Discover:** read requirements and relevant code; search callsites before changing shared behavior, contracts,
+   data, or generated artifacts; identify outcomes, trust boundaries, conventions, and likely change paths.
+2. **Design:** state the caller contract, behavior owner, failure strategy, boundaries, dependency direction,
+   material risks, future-change path, and verification approach.
+3. **Implement:** make the smallest complete change for the required behavior and risk class. Preserve contracts and
+   update affected artifacts; do not add stale code, broad cleanup, or speculative features.
+4. **Verify:** exercise real behavior where practical. Cover material success, failure, invalid/default input,
+   boundaries, and affected contracts. Inspect relevant data, migration, security, privacy, concurrency, lifecycle,
+   network, subprocess, performance, and resource risks. Bound timeouts, retries, fanout, queues, and cleanup when
+   used. Disclose mocks, skips, manual checks, and static inspection. Mocks MUST NOT replace an otherwise unverified
+   external, library, runtime, or API contract.
+5. **Review or audit:** establish correctness and evidence truthfulness before polish. Every serious finding MUST
+   identify the affected caller, future change, verification claim, or material risk.
+
+## Stop and Escalate
+
+Stop rather than invent requirements or accept risk when the correct change needs an unapproved product/API
+decision, scope expansion, broad refactor, new service or dependency, destructive action, credentials, unavailable
+external facts, unsafe command, migration risk, or security/privacy/reliability tradeoff.
+
+## Finding Severity
+
+Use the strongest severity supported by material evidence:
+
+- **BLOCKER:** correctness, safety, security, privacy, data integrity, caller-contract, trust-boundary, migration, or
+  required-verification failure; fake success; or an unresolved assigned obligation.
+- **CODE-QUALITY:** concrete maintainability risk such as unclear ownership, scattered future edits, unjustified
+  duplication or abstraction, excess coupling, dependency leakage, cognitive complexity, or poor testability.
+- **ADVISORY:** optional improvement, local convention, minor clarity suggestion, or preference without material risk.
+
+A ground-rule deviation is not automatically a finding. A maintainability concern becomes CODE-QUALITY only when
+its brittleness, change cost, test burden, misuse risk, or likely defect surface is explained. Promote it to BLOCKER
+only when that evidence also creates a blocker-class risk.
+
+## Quality Contract Evidence
+
+Material implementation or repair completion reports MUST include:
+
 ```markdown
 Quality Contract Evidence:
-- Inspection outcome: <contracts/conventions/defective patterns/unknowns found>
-- Boundary/design choice: <caller contract, seam, trust boundary, and error strategy>
-- Behavior/risk class covered: <edge/failure/security/privacy/data/performance/concurrency cases or why not applicable>
-- Affected artifacts: <files, public contracts/APIs, callsites, tests, docs, generated artifacts>
-- Verification run: <commands/tests/static inspections/manual observations; cite proof rows or reports>
-- Rule exceptions: <MUST/SHOULD exception and justification, or none>
+- Inspection: <relevant contracts, conventions, defects, and unknowns>
+- Design: <behavior owner, caller contract, trust boundary, error strategy, and change-locality choice>
+- Risks: <material success, failure, edge, safety, data, maintainability, or resource cases>
+- Affected artifacts: <code, callsites, tests, docs, schemas, and generated artifacts>
+- Verification: <checks and disclosed limits>
+- Rule exceptions: <MUST or ground-rule exception and justification, or none>
 ```
-For planned-feature package work, this evidence complements existing SPEC/package/proof/report/review/audit
-artifacts. It MUST NOT introduce a standalone clean-code proof file, report file, registry field,
-lifecycle state, or command ledger, and it should not duplicate package proof rows beyond concise citations.
 
-## 7. Lightweight Audit Cues
-Ask whether callers can distinguish outcomes; untrusted data is validated; future changes stay localized;
-reuse, duplication, dependencies, and extension points are justified by current concepts; tests/proofs
-verify stable behavior and risk cases without replacing real contracts with mocks; brownfield new/touched
-code is cleaner without unrelated disturbance; and serious findings have material evidence rather than taste.
-Treat correctness, safety, caller-contract, verification, trust-boundary, data, security, or privacy risk
-as blocker; material brittleness or maintainability risk as code-quality; and preference as advisory or
-unreported.
+In planned-package workflows, cite existing proof rows and reports instead of restating them. Do not create a
+standalone clean-code report, proof file, registry field, lifecycle state, or command ledger.

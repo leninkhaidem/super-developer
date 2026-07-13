@@ -1081,7 +1081,59 @@ class SkillPromptSurfaceTests(unittest.TestCase):
             text = read_repo(rel)
             self.assertNotIn("Source ID | Row Type", text, rel)
             self.assertNotIn("plugins/super-developer/skills/", text, rel)
-        self.assertIn("Do not deep-link another skill's private references", read_repo("plugins/super-developer/skills/skill-authoring/SKILL.md"))
+        self.assertIn("Never deep-link its private references", read_repo("plugins/super-developer/skills/skill-authoring/SKILL.md"))
+
+    def test_skill_authoring_enforces_mid_tier_consumer_followability(self) -> None:
+        skill = read_repo("plugins/super-developer/skills/skill-authoring/SKILL.md")
+        worker_contract = read_repo(
+            "plugins/super-developer/skills/skill-authoring/references/orchestrator-worker-contracts.md"
+        )
+        skill_compact = compact_text(skill)
+        worker_contract_compact = compact_text(worker_contract)
+        do_start = skill.rindex("\n## Do\n")
+        stop_start = skill.index("\n## Stop if\n", do_start)
+        do_section = skill[do_start:stop_start]
+
+        for token in [
+            "competent mid-tier target agent",
+            "Consumer Followability Gate",
+            "one representative normal task",
+            "ambiguous, failure, or high-risk task",
+            "must guess a material action",
+            "a vague quality instruction is insufficient",
+            "one focused clarification",
+            "inspect and report findings without modifying files",
+            "Inspect repository instructions",
+            "load `references/orchestrator-worker-contracts.md` before evaluating or drafting it",
+        ]:
+            self.assertIn(token, skill_compact)
+
+        self.assertLess(do_section.index("Inspect repository instructions"), do_section.index("Decide whether"))
+        review_start = do_section.index("If the mode is **review**")
+        create_start = do_section.index("For **create or revise** mode only")
+        self.assertLess(review_start, create_start)
+        review_branch = do_section[review_start:create_start]
+        create_branch = do_section[create_start:]
+        self.assertIn("stop; do not draft, add, update, or edit files", review_branch)
+
+        contract_path = "references/orchestrator-worker-contracts.md"
+        audit_command = "scripts/audit-skill.py <skill-dir-or-SKILL.md>"
+        self.assertEqual(skill.count(contract_path), 1)
+        self.assertEqual(skill.count(contract_path), do_section.count(contract_path))
+        self.assertEqual(skill.count(audit_command), 2)
+        self.assertEqual(skill.count(audit_command), do_section.count(audit_command))
+        self.assertIn(audit_command, review_branch)
+        self.assertIn(audit_command, create_branch)
+
+        for token in [
+            "competent mid-tier worker",
+            "missing or conflicting authority",
+            "one normal packet and one missing-input or high-risk packet",
+            "read its packet and worker contract before any write, command, or external side effect",
+            "perform no action and return `BLOCKED`",
+            "Only the orchestrator may clarify with the user or expand worker authority",
+        ]:
+            self.assertIn(token, worker_contract_compact)
 
 
 if __name__ == "__main__":
