@@ -6,6 +6,20 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [v1.36.2] - 2026-07-13
+
+### Added
+- Added a Consumer Followability Gate for authored skills, including explicit inputs, decisions, safe defaults, action-point reference loads, and normal/risky dry runs for competent mid-tier agents.
+- Added deterministic skill-audit regression coverage for frontmatter, local paths, reference ownership, progressive disclosure, and hard prompt-size limits.
+
+### Changed
+- Changed the development quality contract into a concise operational standard that mandates maintainable ownership, justified complexity, readable behavior, testable design, and evidence-based severity.
+- Changed skill authoring to discover existing capabilities and governing contracts before drafting, separate read-only review from authorized edits, and preserve progressive disclosure without relying on inferred best practices.
+- Strengthened orchestrator/worker guidance so workers read their packet and contract before acting and return `BLOCKED` rather than inventing missing authority.
+
+### Fixed
+- Fixed skill audits that could pass empty or duplicate frontmatter, mismatched skill names, broken Markdown or command paths, orphan references, hidden reference hops, and over-limit eager prompts.
+
 ## [v1.36.1] - 2026-07-09
 
 ### Added
