@@ -49,9 +49,9 @@ state, including bounded stack-aware artifact sets when supplied.
    ```
    Capture top-level advisories from success or failure JSON; `context_only_slice_drift` is non-blocking by default, must be surfaced to affected-surface classification, and may be escalated when auditor judgment finds material risk.
 
-5. Confirm every declared package proof and package verification report is present, mechanically valid, and has a clean deliverable matrix before dispatch.
-6. Confirm package reports bind to the reviewed package or resolved worktree/ref/commit, proof digest/content, section-scoped package/Slice source bindings or matrix-source snapshot, evidence anchors, verification output, Semgrep raw/summary evidence when enabled or contracted, and `PASS` verdict. Exact package commit/ref bindings are acceptable for the audited integrated state only with ancestry/content-equivalence and post-merge freshness evidence.
-7. Treat stale, pre-repair, state-unbound, failed, contradicted, dirty-matrix, invalid-evidence-anchor, open-finding, or uncertain package reports as dispatch blockers.
+5. Confirm every declared package proof and package verification report is present, mechanically valid, and has a clean deliverable matrix plus canonical `### Test Review Scope` receipt before dispatch.
+6. Confirm package reports bind to the reviewed package or resolved worktree/ref/commit, proof digest/content, section-scoped package/Slice source bindings or matrix-source snapshot, package-owned test-review population/depth/evidence, evidence anchors, verification output, Semgrep raw/summary evidence when enabled or contracted, and `PASS` verdict. Validate each receipt against its package-owned reviewed delta; reconcile the union of fresh package receipts against the integrated diff and separately classify integration-only or merge-resolution test-relevant changes. Exact package commit/ref bindings are acceptable for the audited integrated state only with ancestry/content-equivalence and post-merge freshness evidence.
+7. Treat stale, pre-repair, state-unbound, failed, contradicted, dirty-matrix, test-scope-omitting, unclassified integration-test delta, invalid-evidence-anchor, open-finding, or uncertain package reports as dispatch blockers; missing receipts require refresh without bypass.
 8. Resolve optional review-code context:
    - use supplied safe artifact-root state/report paths, or safe canonical
      `.tasks/<feature>/reviews/review-code-state.json` when available;

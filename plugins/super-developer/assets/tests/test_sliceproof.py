@@ -356,6 +356,27 @@ class SliceproofFixture:
         )
         return "\n".join(rows)
 
+    def test_review_scope(
+        self,
+        *,
+        surface: str = "tests",
+        changed_population: str = "count: 12; scope: sliceproof report-contract tests in test_sliceproof.py",
+        depth: str = "deep",
+        baseline_review: str = "complete: assertions, skip/focus/xfail, paths, state effects, fresh commands, and provenance checked",
+        deep_triggers: str = "triggered: proof-critical contract tests are sole evidence for report validation",
+        selected_exemplars: str = "not-applicable: deep review covered every changed test case",
+        sampling_rationale: str = "not-applicable: deep review covered the full changed population",
+        generated_provenance: str = "not-applicable: hand-authored tests contain no generated output",
+        evidence_refs: str = "test:plugins/super-developer/assets/tests/test_sliceproof.py::test_validate_plan_accepts_valid_registry_package_slice_fixture",
+    ) -> str:
+        return "\n".join(
+            [
+                "| Surface | Changed Population | Review Depth | Baseline Review | Deep Triggers | Selected Exemplars | Sampling Rationale | Generator / Input / Provenance | Evidence Refs |",
+                "|---|---|---|---|---|---|---|---|---|",
+                f"| {surface} | {changed_population} | {depth} | {baseline_review} | {deep_triggers} | {selected_exemplars} | {sampling_rationale} | {generated_provenance} | {evidence_refs} |",
+            ]
+        )
+
     def report_text(
         self,
         proof_text: str | None = None,
@@ -368,6 +389,7 @@ class SliceproofFixture:
         commit: str | None = None,
         deliverable_matrix: str | None = None,
         triggered_risk_selection_notes: str = "- Not applicable: fixture helper report has no triggered runtime risk probes.",
+        test_review_scope: str | None = None,
         slice_closure_review: str | None = None,
         code_review_findings: str = "- None.",
         blocking_findings: str | None = "- None.",
@@ -382,6 +404,8 @@ class SliceproofFixture:
         commit = REPORT_COMMIT if commit is None else commit
         if deliverable_matrix is None:
             deliverable_matrix = self.deliverable_matrix(assigned_slices=assigned_slices)
+        if test_review_scope is None:
+            test_review_scope = self.test_review_scope()
         if slice_closure_review is None:
             if assigned_slices == "none":
                 slice_closure_review = "- None."
@@ -405,6 +429,9 @@ class SliceproofFixture:
             "",
             "### Triggered Risk Selection Notes",
             triggered_risk_selection_notes,
+            "",
+            "### Test Review Scope",
+            test_review_scope,
             "",
             "### Slice Closure Review",
             slice_closure_review,
@@ -630,6 +657,9 @@ class SliceproofFixture:
             "",
             "### Triggered Risk Selection Notes",
             "- Not applicable: fixture helper report has no triggered runtime risk probes.",
+            "",
+            "### Test Review Scope",
+            self.test_review_scope(),
             "",
             "### Slice Closure Review",
             *slice_review_rows,
@@ -1321,6 +1351,11 @@ class SliceproofTests(unittest.TestCase):
                 "missing required source section ### Verdict",
             ),
             (
+                "missing test review scope",
+                remove_h3_section(valid_report, "Test Review Scope"),
+                "missing required source section ### Test Review Scope",
+            ),
+            (
                 "missing slice closure review",
                 remove_h3_section(valid_report, "Slice Closure Review"),
                 "missing required source section ### Slice Closure Review",
@@ -1879,6 +1914,290 @@ class SliceproofTests(unittest.TestCase):
         unknown = self.fixture.run("validate-package-complete", str(self.fixture.tasks_path), "--package", "WP9")
         self.assertNotEqual(0, unknown.returncode)
         self.assertIn("unknown package id WP9", "\n".join(json.loads(unknown.stderr)["errors"]))
+
+    def _package_and_final_commands(self) -> list[tuple[str, tuple[str, ...]]]:
+        plan = self.fixture.plan()
+        plan["work_packages"][0]["status"] = "done"
+        self.fixture.write_plan(plan)
+        return [
+            (
+                "package-complete",
+                ("validate-package-complete", str(self.fixture.tasks_path), "--package", "WP1"),
+            ),
+            ("final", ("validate-final", str(self.fixture.tasks_path))),
+        ]
+
+    def test_test_review_scope_grammar_accepts_each_depth_and_provenance_form(self) -> None:
+        proof = self.fixture.completed_proof()
+        self.fixture.proof_path.write_text(proof, encoding="utf-8")
+        commands = self._package_and_final_commands()
+        scopes = [
+            (
+                "baseline-only with negative results",
+                self.fixture.test_review_scope(
+                    depth="baseline-only",
+                    baseline_review=(
+                        "complete: assertions and open-source paths checked; no skip/focus/xfail changes "
+                        "or coverage gaps found; fresh commands passed"
+                    ),
+                    deep_triggers="none: package-local fixture edits have no canonical deep trigger",
+                    selected_exemplars="not-applicable: baseline review covered every changed test",
+                    sampling_rationale="not-applicable: baseline-only depth does not select a sample",
+                ),
+            ),
+            (
+                "sampled with ordinary structured provenance",
+                self.fixture.test_review_scope(
+                    depth="sampled",
+                    deep_triggers="none: parser cases are neither sensitive nor sole proof evidence",
+                    selected_exemplars="selected: valid, malformed, and unsupported receipt cases",
+                    sampling_rationale="strategy: semantic behavior, oracle, and fixture-stack strata",
+                    generated_provenance=(
+                        "generator: fixture helper; inputs: package report parameters; "
+                        "provenance: current test source"
+                    ),
+                ),
+            ),
+            (
+                "deep generated surface",
+                self.fixture.test_review_scope(
+                    surface="generators/snapshots",
+                    generated_provenance=(
+                        "generator: snapshot_builder.py; inputs: parser-cases.json; "
+                        "provenance: sha256 abc123 source digest"
+                    ),
+                ),
+            ),
+        ]
+        for scope_name, scope in scopes:
+            for command_name, command in commands:
+                with self.subTest(scope=scope_name, command=command_name):
+                    self.fixture.report_path.write_text(
+                        self.fixture.report_text(proof, test_review_scope=scope), encoding="utf-8"
+                    )
+                    result = self.fixture.run(*command)
+                    self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+
+    def test_test_review_scope_grammar_rejects_bad_fields_in_package_and_final(self) -> None:
+        proof = self.fixture.completed_proof()
+        self.fixture.proof_path.write_text(proof, encoding="utf-8")
+        commands = self._package_and_final_commands()
+        sampled = {
+            "depth": "sampled",
+            "deep_triggers": "none: package-local cases have no canonical deep trigger",
+            "selected_exemplars": "selected: valid and malformed receipt cases",
+            "sampling_rationale": "strategy: semantic behavior and oracle-shape strata",
+        }
+        valid_scope = self.fixture.test_review_scope()
+        evidence_ref = (
+            "test:plugins/super-developer/assets/tests/test_sliceproof.py::"
+            "test_validate_plan_accepts_valid_registry_package_slice_fixture"
+        )
+        cases = [
+            (
+                "missing population prefix",
+                self.fixture.test_review_scope(changed_population="twelve parser contract tests"),
+                "Changed Population must use 'count:",
+            ),
+            (
+                "wrong population prefix",
+                self.fixture.test_review_scope(changed_population="total: 12; scope: parser contract tests"),
+                "Changed Population must use 'count:",
+            ),
+            (
+                "zero count",
+                self.fixture.test_review_scope(changed_population="count: 0; scope: parser contract tests"),
+                "count must be a positive integer",
+            ),
+            (
+                "non-numeric count",
+                self.fixture.test_review_scope(changed_population="count: twelve; scope: parser contract tests"),
+                "count must be a positive integer",
+            ),
+            (
+                "prefixed omission bypass",
+                self.fixture.test_review_scope(
+                    baseline_review="Review status: baseline review was not performed"
+                ),
+                "Baseline Review must use 'complete:",
+            ),
+            (
+                "wrong deep prefix",
+                self.fixture.test_review_scope(
+                    deep_triggers="none: package appeared to have no deep trigger"
+                ),
+                "deep Deep Triggers must use 'triggered:",
+            ),
+            (
+                "missing sampled selection prefix",
+                self.fixture.test_review_scope(**(sampled | {"selected_exemplars": "valid receipt case"})),
+                "sampled Selected Exemplars must use 'selected:",
+            ),
+            (
+                "wrong sampled strategy prefix",
+                self.fixture.test_review_scope(**(sampled | {"sampling_rationale": "reason: behavior strata"})),
+                "sampled Sampling Rationale must use 'strategy:",
+            ),
+            (
+                "generated triple missing inputs",
+                self.fixture.test_review_scope(
+                    surface="generators/snapshots",
+                    generated_provenance="generator: snapshot_builder.py; provenance: sha256 abc123",
+                ),
+                "must use 'generator: <specific>; inputs: <specific>; provenance: <specific>'",
+            ),
+            (
+                "ordinary provenance prose lacks grammar",
+                self.fixture.test_review_scope(generated_provenance="hand-authored test source"),
+                "must use the structured generator/inputs/provenance triple",
+            ),
+            (
+                "placeholder baseline payload",
+                self.fixture.test_review_scope(baseline_review="complete: none"),
+                "Baseline Review must use 'complete:",
+            ),
+            (
+                "unsupported surface",
+                valid_scope.replace("| tests |", "| documentation |", 1),
+                "Surface 'documentation' is not supported",
+            ),
+            (
+                "unsupported depth",
+                valid_scope.replace("| deep |", "| shallow |", 1),
+                "Review Depth 'shallow' is not supported",
+            ),
+            (
+                "forbidden not-reviewed",
+                valid_scope.replace("| deep |", "| not-reviewed |", 1),
+                "contains forbidden not-reviewed/unreviewed status",
+            ),
+            (
+                "forbidden unreviewed",
+                valid_scope.replace("| deep |", "| unreviewed |", 1),
+                "contains forbidden not-reviewed/unreviewed status",
+            ),
+            (
+                "unresolved marker",
+                self.fixture.test_review_scope(
+                    baseline_review="complete: assertions checked; TODO rerun remains"
+                ),
+                "contains unresolved TODO/OPEN/GAP marker",
+            ),
+            (
+                "missing typed evidence",
+                valid_scope.replace(evidence_ref, "none", 1),
+                "Evidence Refs must use typed evidence anchors",
+            ),
+        ]
+        for case_name, scope, expected_error in cases:
+            for command_name, command in commands:
+                with self.subTest(case=case_name, command=command_name):
+                    self.fixture.report_path.write_text(
+                        self.fixture.report_text(proof, test_review_scope=scope), encoding="utf-8"
+                    )
+                    result = self.fixture.run(*command)
+                    self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+                    self.assertIn(expected_error, "\n".join(json.loads(result.stderr)["errors"]))
+
+        old_report = remove_h3_section(self.fixture.report_text(proof), "Test Review Scope")
+        for command_name, command in commands:
+            with self.subTest(case="intentional old report", command=command_name):
+                self.fixture.report_path.write_text(old_report, encoding="utf-8")
+                result = self.fixture.run(*command)
+                self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+                self.assertIn(
+                    "missing required source section ### Test Review Scope",
+                    "\n".join(json.loads(result.stderr)["errors"]),
+                )
+
+    def test_test_review_scope_table_shape_is_strict_in_package_and_final(self) -> None:
+        proof = self.fixture.completed_proof()
+        self.fixture.proof_path.write_text(proof, encoding="utf-8")
+        commands = self._package_and_final_commands()
+        valid_scope = self.fixture.test_review_scope()
+        lines = valid_scope.splitlines()
+        malformed_scopes = [
+            (
+                "fenced",
+                "```markdown\n" + valid_scope + "\n```",
+                "### Test Review Scope must not contain fenced content",
+            ),
+            (
+                "missing delimiter",
+                "\n".join([lines[0], lines[2]]),
+                "must place a matching-width Markdown delimiter immediately after the header",
+            ),
+            (
+                "interleaved prose",
+                "\n".join([lines[0], lines[1], "ignored prose", lines[2]]),
+                "must contain exactly one contiguous Markdown table",
+            ),
+            (
+                "extra cell",
+                "\n".join([lines[0], lines[1], lines[2][:-1] + "| extra |"]),
+                "table row 3 must contain exactly 9 cells",
+            ),
+            (
+                "second table",
+                valid_scope + "\n\n" + valid_scope,
+                "must contain exactly one contiguous Markdown table",
+            ),
+        ]
+        for form, scope, expected_error in malformed_scopes:
+            for command_name, command in commands:
+                with self.subTest(form=form, command=command_name):
+                    self.fixture.report_path.write_text(
+                        self.fixture.report_text(proof, test_review_scope=scope), encoding="utf-8"
+                    )
+                    result = self.fixture.run(*command)
+                    self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+                    self.assertIn(expected_error, "\n".join(json.loads(result.stderr)["errors"]))
+
+    def test_test_review_scope_allows_only_canonical_no_applicable_receipt(self) -> None:
+        proof = self.fixture.completed_proof()
+        self.fixture.proof_path.write_text(proof, encoding="utf-8")
+        commands = self._package_and_final_commands()
+        no_applicable_scope = self.fixture.test_review_scope(
+            surface="none",
+            changed_population="none",
+            depth="no-applicable-surface",
+            baseline_review=(
+                "not-applicable: package-owned delta has no changed test-relevant surface"
+            ),
+            deep_triggers="not-applicable: no applicable surface can trigger widening",
+            selected_exemplars="none",
+            sampling_rationale="not-applicable: no changed population exists to sample",
+            generated_provenance="not-applicable: no generated test output changed",
+            evidence_refs="static:plugins/super-developer/assets/sliceproof.py#validate_plan",
+        )
+        invalid_scopes = [
+            no_applicable_scope.replace(
+                "| none | none | no-applicable-surface |",
+                "| none | count: 1; scope: fixture | no-applicable-surface |",
+                1,
+            ),
+            no_applicable_scope + "\n" + self.fixture.test_review_scope().splitlines()[-1],
+        ]
+        for command_name, command in commands:
+            with self.subTest(disposition="canonical", command=command_name):
+                self.fixture.report_path.write_text(
+                    self.fixture.report_text(proof, test_review_scope=no_applicable_scope),
+                    encoding="utf-8",
+                )
+                result = self.fixture.run(*command)
+                self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+            for invalid_scope in invalid_scopes:
+                with self.subTest(disposition="invalid", command=command_name):
+                    self.fixture.report_path.write_text(
+                        self.fixture.report_text(proof, test_review_scope=invalid_scope),
+                        encoding="utf-8",
+                    )
+                    result = self.fixture.run(*command)
+                    self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+                    self.assertIn(
+                        "no-applicable-surface receipt must contain exactly one canonical none row",
+                        "\n".join(json.loads(result.stderr)["errors"]),
+                    )
 
     def test_validate_package_complete_rejects_dirty_or_stale_matrices(self) -> None:
         first_matrix_row = (

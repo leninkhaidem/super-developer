@@ -824,6 +824,122 @@ class SkillPromptSurfaceTests(unittest.TestCase):
         self.assertIn("RISK-<...>", risks)
         self.assertIn("rationale/disposition", risks)
 
+    def test_test_review_scope_receipt_is_fail_closed_and_pipeline_owned(self) -> None:
+        contract = read_repo("plugins/super-developer/references/package-verification-report.md")
+        verifier = read_repo("plugins/super-developer/skills/implement/references/package-verification.md")
+        artifacts = read_repo("plugins/super-developer/references/slice-first-artifacts.md")
+        dispatch = read_repo("plugins/super-developer/skills/implement/references/package-dispatch.md")
+        gates = read_repo("plugins/super-developer/skills/implement/references/package-integration-gates.md")
+        lifecycle = read_repo("plugins/super-developer/references/package-lifecycle.md")
+        tool_usage = read_repo("plugins/super-developer/references/tool-usage.md")
+        review_skill = read_repo("plugins/super-developer/skills/review-code/SKILL.md")
+        pipeline = read_repo("plugins/super-developer/skills/review-code/references/pipeline-report.md")
+        audit_skill = read_repo("plugins/super-developer/skills/audit/SKILL.md")
+        audit_contract = read_repo("plugins/super-developer/skills/audit/references/audit-subagent-contract.md")
+        contract_compact = compact_text(contract)
+        pipeline_compact = compact_text(pipeline)
+        audit_contract_compact = compact_text(audit_contract)
+
+        for token in [
+            "### Test Review Scope",
+            "Changed Population",
+            "Review Depth",
+            "Baseline Review",
+            "Deep Triggers",
+            "Selected Exemplars",
+            "Sampling Rationale",
+            "Generator / Input / Provenance",
+            "harnesses/helpers",
+            "mocks/fixtures",
+            "generators/snapshots",
+            "test-discovery/CI/coverage/build-config",
+            "`baseline-only`, `sampled`, and `deep`",
+            "`not-reviewed` and `unreviewed` are invalid",
+            "`count: <positive integer>; scope: <specific non-placeholder description>`",
+            "`complete: <specific non-placeholder checks/results>`",
+            "`triggered: <specific non-placeholder trigger>`",
+            "`none: <specific reason>`",
+            "`selected: <specific exemplars>`",
+            "`strategy: <specific semantic selection rationale>`",
+            "`generator: <specific>; inputs: <specific>; provenance: <specific>`",
+            "assertion weakening/deletion",
+            "skip/focus/xfail",
+            "path execution/discrimination",
+            "mock/fixture/global-state effects",
+            "security/privacy/safety/data/migration/concurrency/public-contract seams",
+            "shared harness/helper/config",
+            "tests-as-deliverable",
+            "behavior/contract, oracle shape, helper/mock stack",
+            "Generated output is sampleable only after its generator, inputs, and provenance are reviewed",
+            "package-owned reviewed delta",
+            "Only the constrained whole-receipt absence is allowed",
+            "no-applicable-surface",
+            "exactly one unfenced contiguous Markdown table",
+            "matching-width delimiter",
+            "exact-arity rows",
+            "no extra pipe fragments/tables",
+            "union of fresh package receipts",
+            "integration-only or merge-resolution test-relevant changes",
+            "semantic batching or widening",
+            "never reduced rigor or fixed-percentage quotas",
+            "Mechanical validation owns the exact grammar, positive count, controlled surface/depth values",
+            "does not infer semantic truth from arbitrary prose",
+            "Review status: baseline review was not performed",
+            "dishonest `complete:` claim is for the verifier/reviewer/auditor to reject",
+            "legitimate negative results inside `complete:` remain valid",
+            "Reports without the receipt are invalid and must be refreshed",
+            "no silent format bypass",
+        ]:
+            self.assertIn(token, contract_compact)
+
+        for text in [verifier, artifacts, dispatch, gates, lifecycle, tool_usage]:
+            with self.subTest(package_owner=text[:40]):
+                self.assertIn("Test Review Scope", text)
+        self.assertIn("Own package-local test review for the package-owned reviewed delta", verifier)
+        self.assertIn("Mechanical validation checks grammar, positive count, controlled values", verifier)
+        self.assertIn("you own contradictions, semantic sufficiency, and the truth of every `complete:` claim", verifier)
+        self.assertIn("regardless of changes owned by other packages or later integration", verifier)
+        self.assertIn("missing old-shape receipts must be refreshed, not bypassed", dispatch)
+        self.assertIn("reports without the required receipt must be refreshed with no bypass", gates)
+        self.assertIn("Existing reports without the receipt must be refreshed; no silent bypass applies", lifecycle)
+
+        self.assertIn("baseline-only, sampled, or deep", review_skill)
+        self.assertIn("`not-reviewed`/`unreviewed` cannot support clean", review_skill)
+        self.assertIn("each fresh package `### Test Review Scope` receipt against its package-owned reviewed delta", review_skill)
+        self.assertIn("union of fresh package receipts against the integrated diff", review_skill)
+        self.assertIn("integration-only or merge-resolution test-relevant changes", review_skill)
+        for token in [
+            "each fresh `### Test Review Scope` against its package-owned reviewed delta",
+            "Reconcile the union of fresh package receipts against the integrated diff",
+            "integration-only or merge-resolution test-relevant changes",
+            "Mechanical receipt validation proves grammar, counts, controlled values, placeholders, table shape, and typed refs only",
+            "reviewers own semantic contradictions, dishonest `complete:` claims, and evidence sufficiency",
+            "Trust coherent package-local depth; widen only for canonical deep triggers",
+            "semantic batching/widening",
+            "Reports lacking the required receipt must be refreshed without a bypass",
+        ]:
+            self.assertIn(token, pipeline_compact)
+
+        self.assertIn("canonical `### Test Review Scope` receipt", audit_skill)
+        self.assertIn("test-scope-omitting", audit_skill)
+        self.assertIn("each receipt against its package-owned reviewed delta", audit_skill)
+        self.assertIn("union of fresh package receipts against the integrated diff", audit_skill)
+        for token in [
+            "Test Review Scope receipt against its package-owned reviewed delta",
+            "not a full second package verifier or test rereview",
+            "union of fresh package receipts against the integrated diff",
+            "mechanical receipt pass proves only grammar/count/value/placeholder/table/ref validity",
+            "auditor judgment owns contradictions, dishonest `complete:` claims, and semantic sufficiency",
+            "integration-only or merge-resolution test-relevant changes",
+            "[TEST-REVIEW-SCOPE]",
+        ]:
+            self.assertIn(token, audit_contract_compact)
+
+        self.assertNotIn("When the integrated diff has no applicable surface", contract)
+        self.assertNotIn("Validate each `### Test Review Scope` against the integrated diff", pipeline)
+        self.assertNotIn("receipt against the integrated diff", review_skill)
+        self.assertNotIn("falsify Test Review Scope against the integrated diff", audit_contract)
+
     def test_section_scoped_state_binding_prompt_contract_is_guarded(self) -> None:
         contract = read_repo("plugins/super-developer/references/package-verification-report.md")
         artifacts = read_repo("plugins/super-developer/references/slice-first-artifacts.md")

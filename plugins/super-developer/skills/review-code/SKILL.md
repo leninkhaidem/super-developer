@@ -46,7 +46,7 @@ Run bounded review; route report/actions by mode.
 - Add Skeptic only for serious findings, risky-clean coverage, cross-batch serious conflicts, or required mode gates. Caps include Skeptic: normal 2, risky 3.
 - Resolve reviewer model only when local policy matters: `../../references/model-preferences.md`.
   Pass `../../references/clean-code-rules.md`; do not load it in the orchestrator.
-- For changed tests, declare deep, sampled, or not-reviewed scope with rationale; deep-review proof-critical or sensitive tests.
+- For changed test-relevant surfaces, use only baseline-only, sampled, or deep scope with rationale and typed evidence; `not-reviewed`/`unreviewed` cannot support clean. Pipeline mode validates each fresh package `### Test Review Scope` receipt against its package-owned reviewed delta, reconciles the union of fresh package receipts against the integrated diff, and separately classifies/reviews integration-only or merge-resolution test-relevant changes. Widen only for canonical triggers/anomalies rather than rereviewing clean package-local tests.
 - In pipeline mode, add Slice-first context from the artifact root: package IDs, proof/report paths,
   matrix source IDs/evidence anchors/source bindings, Slice/H3 IDs, verification results/advisories,
   Semgrep evidence when enabled or contracted, risks, deferred concerns, ownership, and the separate integrated code state. Route `context_only_slice_drift` through affected-surface classification as non-blocking by default unless reviewer judgment escalates material risk.

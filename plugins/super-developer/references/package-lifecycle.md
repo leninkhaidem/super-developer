@@ -73,7 +73,7 @@ A package may become `done` only after all are true:
 3. required commands or inspections are recorded in proof evidence;
 4. the package implementer supplied the required completion statement and `SELF_REVIEW` evidence;
 5. no unresolved Slice plan defect, unapproved gap/deviation, or authority-boundary blocker remains;
-6. independent package verification returned `PASS` with a clean deliverable matrix bound to proof/source/code state;
+6. independent package verification returned `PASS` with a clean deliverable matrix and canonical Test Review Scope receipt bound to proof/source/code state;
 7. `validate-package-complete` succeeds for the selected package after the report exists and before accepting/merging as complete, marking `done`, unlocking dependents, or final readiness handoff;
 8. repairs and delta verification are closed;
 9. post-merge or integration changes did not stale proof/report/matrix evidence, or freshness was restored.
@@ -90,9 +90,9 @@ Dependent packages stay blocked until each source package has a fresh `PASS` rep
 
 ## Freshness Rules
 
-Freshness is lost when any package-owned implementation, test, documentation, assignment, proof, report, verification output, Semgrep evidence cited by proof/report, merge-resolution edit, implementer report, or semantic report body changes after proof/report capture.
+Freshness is lost when any package-owned implementation, test-relevant surface, documentation, assignment, proof, report, verification output, Semgrep evidence cited by proof/report, merge-resolution edit, implementer report, or semantic report body changes after proof/report capture.
 
-Freshness is also lost when package Markdown verification expectations/digest, assigned Slice source/digest (`must_satisfy` section digest), assigned Slice set, matrix source snapshot, deliverable matrix rows, or matrix evidence anchors change. `context_only` section-digest drift emits a validation advisory and is non-blocking by default; route it through affected-surface classification before deciding whether evidence refresh is needed.
+Freshness is also lost when package Markdown verification expectations/digest, assigned Slice source/digest (`must_satisfy` section digest), assigned Slice set, matrix source snapshot, deliverable matrix rows, matrix evidence anchors, or Test Review Scope population/depth/evidence changes. `context_only` section-digest drift emits a validation advisory and is non-blocking by default; route it through affected-surface classification before deciding whether evidence refresh is needed.
 
 When freshness is lost, refresh affected proof rows and command/file evidence, rerun `validate-proof` for
 every dirty package, rerun focused/full package verification as affected surfaces require, rerun
@@ -111,11 +111,11 @@ After repair: run relevant commands/inspections, refresh affected proof evidence
 
 ## Report Freshness
 
-A package verification report must bind to package ID, package Markdown path/digest, proof path/digest, assigned Slice paths, section-scoped tier-aware assigned Slice digests, `Matrix Source Snapshot` over package Markdown plus `must_satisfy` section blocks only, worktree, git ref/commit, reviewed verification output, verifier, timestamp, verdict, open findings, and optional Semgrep evidence.
+A package verification report must bind to package ID, package Markdown path/digest, proof path/digest, assigned Slice paths, section-scoped tier-aware assigned Slice digests, `Matrix Source Snapshot` over package Markdown plus `must_satisfy` section blocks only, worktree, git ref/commit, reviewed verification output, verifier, timestamp, verdict, open findings, a canonical Test Review Scope receipt for the package-owned reviewed delta, and optional Semgrep evidence.
 
-Reports block completion when missing, failed, stale, root-ambiguous, contradicted by code/proof/Slice content, bound to pre-repair evidence, missing state binding, malformed binding, hard-tier section drift, or missing/dirty deliverable matrices. A `context_only_slice_drift` advisory is surfaced for classification and does not block completion by default unless reviewer/auditor judgment finds material risk.
+Reports block completion when missing, failed, stale, root-ambiguous, contradicted by code/proof/Slice content, bound to pre-repair evidence, missing state binding, malformed binding, hard-tier section drift, missing/dirty deliverable matrices, or missing/malformed test-review receipts. Existing reports without the receipt must be refreshed; no silent bypass applies. A `context_only_slice_drift` advisory is surfaced for classification and does not block completion by default unless reviewer/auditor judgment finds material risk.
 
-Binding-only refresh is allowed only when semantic verification already reviewed identical code tree/diff, proof content/digest, package Markdown/digest, assigned Slice set and `must_satisfy` section digests/snapshot, implementer report/`SELF_REVIEW`, verification output, deliverable matrix, and evidence anchors. Section changes outside the package's assigned H3s are irrelevant; advisory-only `context_only` drift may be refreshed through State Binding after affected-surface classification finds no material risk. Any uncertainty, repair, merge-resolution edit, proof-evidence change, hard-tier package/Slice/output change, matrix/evidence-anchor change, implementer-report change, or reviewed-code change requires focused/full package verification.
+Binding-only refresh is allowed only when semantic verification already reviewed identical code tree/diff, proof content/digest, package Markdown/digest, assigned Slice set and `must_satisfy` section digests/snapshot, implementer report/`SELF_REVIEW`, verification output, deliverable matrix/evidence anchors, and Test Review Scope receipt. Section changes outside the package's assigned H3s are irrelevant; advisory-only `context_only` drift may be refreshed through State Binding after affected-surface classification finds no material risk. Any uncertainty, repair, merge-resolution edit, proof-evidence change, hard-tier package/Slice/output change, matrix/evidence-anchor or test-scope change, implementer-report change, or reviewed-code change requires focused/full package verification.
 
 ## Final Readiness
 
@@ -123,13 +123,15 @@ Before final review-code or audit, every package in every included task set must
 
 - valid package Markdown and mechanically valid proof Markdown;
 - no unresolved `GAP`, `OPEN`, `TODO`, unapproved `DEFERRED`, unsupported `N/A`, or Slice plan defect;
-- a fresh `PASS` package verification report with clean deliverable matrix;
+- a fresh `PASS` package verification report with clean deliverable matrix and canonical Test Review Scope receipt;
 - a clean `validate-package-complete` result for the current proof/package/report/Slice state;
 - closed repair/delta verification and a clean integration worktree for the intended final state.
 
 Run package completion checks for every package, then run root-aware `sliceproof.py validate-final` for each
 included artifact root/task set. For bounded stacked readiness, the packet must identify the top integrated
 worktree/code state and all relevant task/Slice artifact sets; do not audit only a follow-up task set when the top state includes base feature deliverables; stop if included sets are unknown or omit base deliverables.
+
+Final review-code and audit validate each fresh receipt against its package-owned reviewed delta, reconcile the union of fresh package receipts against the integrated diff, and separately classify/review any integration-only or merge-resolution test-relevant changes. A package no-applicable receipt remains valid when its own delta has no such surface even if another package or integration changes tests.
 
 This allows dispatching final review-code and final audit against the same top state. Merge/readiness still requires review-code readiness and final audit PASS clean for that state; helper success, registry mutation, manual proof edits, or dashboard output cannot bypass those gates.
 

@@ -24,12 +24,24 @@ results, deferred concerns, ownership, and the bound reviewed code worktree/ref/
 
 Trust a report only when it records `PASS`, has a clean matrix, binds to current package/proof/Slice/worktree/ref/commit/verification output/source snapshot, is newer than repairs or merge/proof/assignment/source-binding/evidence-anchor changes, and matches proof Markdown, ownership, risks, and final diff.
 
+Validate each fresh `### Test Review Scope` against its package-owned reviewed delta and the canonical
+`../../../references/package-verification-report.md`: all package-owned changed test-relevant categories
+must be accounted for at a clean depth with baseline, trigger, sampling/provenance, and typed evidence
+fields. Reconcile the union of fresh package receipts against the integrated diff. Separately classify and
+review integration-only or merge-resolution test-relevant changes at `baseline-only`, `sampled`, or `deep`
+with the same invariants and typed evidence; these changes cannot be assigned retroactively to an unrelated
+package receipt. Mechanical receipt validation proves grammar, counts, controlled values, placeholders, table
+shape, and typed refs only; reviewers own semantic contradictions, dishonest `complete:` claims, and evidence
+sufficiency. Trust coherent package-local depth; widen only for canonical deep triggers, seams, omissions, or
+anomalies. Budget pressure uses semantic batching/widening, never reduced rigor or percentage quotas; audit
+receives the package-receipt union plus the separately reviewed integration delta.
+
 Missing, failed, stale, pre-repair, artifact-root ambiguous, dirty-matrix, risk-incomplete,
-test-scope-omitting, invalidated evidence anchors, or contradictory reports are blockers. When Semgrep was
-enabled/contracted, missing/stale/mismatched artifact-root raw-plus-summary evidence is an evidence blocker;
-Semgrep findings themselves remain advisory unless reviewer/skeptic authority confirms material risk. Route
-to narrow follow-up, proof refresh, focused package verification, or bounded widening. Do not defer blockers
-to audit while claiming ready.
+test-scope-omitting, invalidated evidence anchors, or contradictory reports are blockers. Reports lacking the
+required receipt must be refreshed without a bypass. When Semgrep was enabled/contracted,
+missing/stale/mismatched artifact-root raw-plus-summary evidence is an evidence blocker; Semgrep findings
+remain advisory unless reviewer/skeptic authority confirms material risk. Route to narrow follow-up, proof
+refresh, focused package verification, or bounded widening. Do not defer blockers to audit while claiming ready.
 
 If Semgrep evidence must be refreshed, scan only through
 `python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/semgrep_rules.py" scan ...`; raw direct `semgrep`
@@ -87,7 +99,7 @@ prerequisite.
 
 Before `CLEAN`, fix delegation, proof/report refresh, package verification rerun, widened review, or audit
 handoff, revalidate feature head, base/target refs, diff checksum, file list, artifact root, code worktree
-metadata, package/proof/report files, matrix source bindings/evidence anchors, verification outputs, and bindings.
+metadata, package/proof/report files, matrix source bindings/evidence anchors, Test Review Scope receipts, verification outputs, and bindings.
 
 Reject stale, broadened, ambiguous, or missing state. Use generic affected-surface impact classification and rerun the narrowest affected review/evidence refresh instead of inferring readiness; do not run full final gates solely because any new commit exists.
 
