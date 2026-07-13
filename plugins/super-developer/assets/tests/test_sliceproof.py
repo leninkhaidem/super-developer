@@ -1978,6 +1978,69 @@ class SliceproofTests(unittest.TestCase):
                     result = self.fixture.run(*command)
                     self.assertEqual(0, result.returncode, result.stdout + result.stderr)
 
+    def test_other_test_relevant_is_deep_only_in_package_and_final(self) -> None:
+        proof = self.fixture.completed_proof()
+        self.fixture.proof_path.write_text(proof, encoding="utf-8")
+        commands = self._package_and_final_commands()
+        population = (
+            "count: 1; scope: plugins/super-developer/assets/tests/test_sliceproof.py "
+            "catch-all depth cases"
+        )
+        valid_deep = self.fixture.test_review_scope(
+            surface="other-test-relevant",
+            changed_population=population,
+            deep_triggers=(
+                "triggered: changed test-relevant contract check has a novel ambiguous classification"
+            ),
+        )
+        invalid_depths = [
+            (
+                "baseline-only",
+                self.fixture.test_review_scope(
+                    surface="other-test-relevant",
+                    changed_population=population,
+                    depth="baseline-only",
+                    deep_triggers="none: no trigger recorded at baseline depth",
+                    selected_exemplars="not-applicable: baseline review covered the changed path",
+                    sampling_rationale="not-applicable: baseline-only depth does not sample",
+                ),
+            ),
+            (
+                "sampled",
+                self.fixture.test_review_scope(
+                    surface="other-test-relevant",
+                    changed_population=population,
+                    depth="sampled",
+                    deep_triggers="none: no trigger recorded at sampled depth",
+                    selected_exemplars="selected: catch-all depth contract case",
+                    sampling_rationale="strategy: semantic depth and classification behavior",
+                ),
+            ),
+        ]
+
+        for command_name, command in commands:
+            with self.subTest(depth="deep", command=command_name):
+                self.fixture.report_path.write_text(
+                    self.fixture.report_text(proof, test_review_scope=valid_deep), encoding="utf-8"
+                )
+                accepted = self.fixture.run(*command)
+                self.assertEqual(0, accepted.returncode, accepted.stdout + accepted.stderr)
+
+            for depth, scope in invalid_depths:
+                with self.subTest(depth=depth, command=command_name):
+                    self.fixture.report_path.write_text(
+                        self.fixture.report_text(proof, test_review_scope=scope), encoding="utf-8"
+                    )
+                    rejected = self.fixture.run(*command)
+                    self.assertNotEqual(0, rejected.returncode, rejected.stdout + rejected.stderr)
+                    self.assertEqual(
+                        [
+                            f"{self.fixture.report_path}: Test Review Scope other-test-relevant "
+                            "Review Depth must be deep for other-test-relevant"
+                        ],
+                        json.loads(rejected.stderr)["errors"],
+                    )
+
     def test_test_review_scope_grammar_rejects_bad_fields_in_package_and_final(self) -> None:
         proof = self.fixture.completed_proof()
         self.fixture.proof_path.write_text(proof, encoding="utf-8")

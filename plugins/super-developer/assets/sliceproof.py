@@ -88,6 +88,7 @@ TEST_REVIEW_SURFACES = {
     "mocks/fixtures",
     "generators/snapshots",
     "test-discovery/ci/coverage/build-config",
+    "other-test-relevant",
 }
 TEST_REVIEW_DEPTHS = {"baseline-only", "sampled", "deep"}
 NO_APPLICABLE_TEST_SURFACE_DEPTH = "no-applicable-surface"
@@ -1779,6 +1780,11 @@ def validate_test_review_scope(
             errors.append(
                 f"{report_path}: {row_label} Baseline Review must use "
                 "'complete: <specific non-placeholder checks/results>'"
+            )
+
+        if surface == "other-test-relevant" and depth in TEST_REVIEW_DEPTHS and depth != "deep":
+            errors.append(
+                f"{report_path}: {row_label} Review Depth must be deep for other-test-relevant"
             )
 
         if depth not in TEST_REVIEW_DEPTHS:

@@ -853,6 +853,15 @@ class SkillPromptSurfaceTests(unittest.TestCase):
             "mocks/fixtures",
             "generators/snapshots",
             "test-discovery/CI/coverage/build-config",
+            "`other-test-relevant`",
+            "only when no existing surface category accurately fits",
+            "valid only at `deep`",
+            "`scope:` must name exact paths or a precise path group",
+            "`triggered:` value must explain why classification is novel or ambiguous",
+            "typed evidence must anchor the inspected surface",
+            "cannot avoid generator/provenance rules or stand in for another known category",
+            "improves representability",
+            "does not provide a mechanical exhaustive-discovery guarantee",
             "`baseline-only`, `sampled`, and `deep`",
             "`not-reviewed` and `unreviewed` are invalid",
             "`count: <positive integer>; scope: <specific non-placeholder description>`",
@@ -899,6 +908,9 @@ class SkillPromptSurfaceTests(unittest.TestCase):
         self.assertIn("Mechanical validation checks grammar, positive count, controlled values", verifier)
         self.assertIn("you own contradictions, semantic sufficiency, and the truth of every `complete:` claim", verifier)
         self.assertIn("regardless of changes owned by other packages or later integration", verifier)
+        self.assertIn("Use `other-test-relevant` conservatively only when no known category accurately fits", verifier)
+        self.assertIn("always review it at `deep`", verifier)
+        self.assertIn("never use it to evade generator/provenance rules or a known category", verifier)
         self.assertIn("missing old-shape receipts must be refreshed, not bypassed", dispatch)
         self.assertIn("reports without the required receipt must be refreshed with no bypass", gates)
         self.assertIn("Existing reports without the receipt must be refreshed; no silent bypass applies", lifecycle)
@@ -914,6 +926,9 @@ class SkillPromptSurfaceTests(unittest.TestCase):
             "integration-only or merge-resolution test-relevant changes",
             "Mechanical receipt validation proves grammar, counts, controlled values, placeholders, table shape, and typed refs only",
             "reviewers own semantic contradictions, dishonest `complete:` claims, and evidence sufficiency",
+            "Explicitly inspect and escalate every `other-test-relevant` row",
+            "decide whether the known taxonomy should be extended",
+            "never treat the catch-all as proof that all future test-relevant paths were discovered",
             "Trust coherent package-local depth; widen only for canonical deep triggers",
             "semantic batching/widening",
             "Reports lacking the required receipt must be refreshed without a bypass",
@@ -930,6 +945,10 @@ class SkillPromptSurfaceTests(unittest.TestCase):
             "union of fresh package receipts against the integrated diff",
             "mechanical receipt pass proves only grammar/count/value/placeholder/table/ref validity",
             "auditor judgment owns contradictions, dishonest `complete:` claims, and semantic sufficiency",
+            "Explicitly inspect and escalate every `other-test-relevant` row under this same targeted reconciliation boundary",
+            "verify that no known category or generator/provenance rule was bypassed",
+            "decide whether the known taxonomy should be extended",
+            "never treat the catch-all as proof that all future test-relevant paths were discovered",
             "integration-only or merge-resolution test-relevant changes",
             "[TEST-REVIEW-SCOPE]",
         ]:

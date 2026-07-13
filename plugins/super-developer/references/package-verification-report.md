@@ -55,8 +55,9 @@ Mandatory rows come from:
 
 ## Test Review Scope Receipt
 
-The package verifier records one row per changed category in the package-owned reviewed delta: `tests`, `harnesses/helpers`, `mocks/fixtures`, `generators/snapshots`, or `test-discovery/CI/coverage/build-config`.
+The package verifier records one row per changed category in the package-owned reviewed delta: `tests`, `harnesses/helpers`, `mocks/fixtures`, `generators/snapshots`, `test-discovery/CI/coverage/build-config`, or the controlled catch-all `other-test-relevant`.
 Group by semantic population and account for every package-owned changed path. Clean depths are only `baseline-only`, `sampled`, and `deep`; `not-reviewed` and `unreviewed` are invalid.
+Use `other-test-relevant` only when no existing surface category accurately fits. It is valid only at `deep`: its `scope:` must name exact paths or a precise path group, its `triggered:` value must explain why classification is novel or ambiguous, and its typed evidence must anchor the inspected surface. It cannot avoid generator/provenance rules or stand in for another known category. This catch-all improves representability; it does not provide a mechanical exhaustive-discovery guarantee for current or future test-relevant paths.
 
 Every ordinary row uses this exact field grammar (whitespace and harmless punctuation normalization may vary; prefixes and semantics may not):
 
@@ -81,8 +82,8 @@ It cannot coexist with another row. Explicit `not-reviewed`/`unreviewed` and unr
 Mechanical validation owns the exact grammar, positive count, controlled surface/depth values, non-placeholder payloads, strict table shape (exactly one unfenced contiguous Markdown table with a matching-width delimiter, exact-arity rows, and no extra pipe fragments/tables), and typed-reference safety.
 It does not infer semantic truth from arbitrary prose or decide whether a claim is honest, contradictory, or sufficient. Thus `Review status: baseline review was not performed` fails the required `complete:` grammar, while a syntactically valid but dishonest `complete:` claim is for the verifier/reviewer/auditor to reject; legitimate negative results inside `complete:` remain valid.
 
-Final pipeline review validates each fresh receipt against its package-owned reviewed delta and reconciles the union of fresh package receipts against the integrated diff. It separately reviews integration-only or merge-resolution test-relevant changes at a canonical depth, then widens for triggers/anomalies.
-Audit follows the same partition and selectively falsifies rather than rereviewing every test. Reports without the receipt are invalid and must be refreshed; there is no silent format bypass.
+Final pipeline review validates each fresh receipt against its package-owned reviewed delta and reconciles the union of fresh package receipts against the integrated diff. It separately reviews integration-only or merge-resolution test-relevant changes at a canonical depth, then widens for triggers/anomalies. It must explicitly inspect and escalate every `other-test-relevant` row, decide whether the known taxonomy should be extended, and never treat a catch-all row as proof that all future test-relevant paths were discovered.
+Audit applies the same targeted reconciliation and catch-all escalation boundary while selectively falsifying rather than rereviewing every test. Reports without the receipt are invalid and must be refreshed; there is no silent format bypass.
 
 ## Evidence Reference Rules
 

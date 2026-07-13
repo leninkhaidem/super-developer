@@ -32,9 +32,9 @@ review integration-only or merge-resolution test-relevant changes at `baseline-o
 with the same invariants and typed evidence; these changes cannot be assigned retroactively to an unrelated
 package receipt. Mechanical receipt validation proves grammar, counts, controlled values, placeholders, table
 shape, and typed refs only; reviewers own semantic contradictions, dishonest `complete:` claims, and evidence
-sufficiency. Trust coherent package-local depth; widen only for canonical deep triggers, seams, omissions, or
-anomalies. Budget pressure uses semantic batching/widening, never reduced rigor or percentage quotas; audit
-receives the package-receipt union plus the separately reviewed integration delta.
+sufficiency. Explicitly inspect and escalate every `other-test-relevant` row, verify that no known category fits, decide whether the known taxonomy should be extended, and never treat the catch-all as proof that all future test-relevant paths were discovered. Trust coherent package-local depth; widen only for canonical deep triggers,
+seams, omissions, or anomalies. Budget pressure uses semantic batching/widening, never reduced rigor or
+percentage quotas; audit receives the package-receipt union plus the separately reviewed integration delta.
 
 Missing, failed, stale, pre-repair, artifact-root ambiguous, dirty-matrix, risk-incomplete,
 test-scope-omitting, invalidated evidence anchors, or contradictory reports are blockers. Reports lacking the
