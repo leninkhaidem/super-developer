@@ -6,6 +6,19 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [v1.36.3] - 2026-07-13
+
+### Added
+- Added verifier-owned Test Review Scope receipts that record changed test populations as baseline-only, semantically sampled, or deeply reviewed with structured evidence.
+- Added a deep-only `other-test-relevant` catch-all for novel test surfaces, with mandatory final-review and audit escalation rather than silent classification gaps.
+
+### Changed
+- Changed final planned-feature review to reconcile fresh package-local test receipts plus integration-only changes, avoiding routine deep rereview of already verified repetitive tests.
+- Changed package completion and final validation to reject missing, malformed, stale, or explicitly unreviewed test scope; existing reports using the old shape must be refreshed.
+
+### Fixed
+- Fixed the package-report contract gap that treated omitted test scope as a blocker without providing a durable, mechanically enforceable way to record it.
+
 ## [v1.36.2] - 2026-07-13
 
 ### Added
