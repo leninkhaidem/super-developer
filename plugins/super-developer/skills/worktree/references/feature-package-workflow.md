@@ -2,7 +2,7 @@
 
 Use this reference for planned-feature execution. Boundary: artifact sidecar setup/checkpoints,
 package/integration worktree setup, package merge order, dependency examples, and feature-push handoff.
-Use `../../references/artifact-store.md` for artifact-root/code-root terms.
+Use the parent-supplied artifact-store contract for root terms.
 
 ## Contract
 - One artifact sidecar per feature slug: orphan ref `artifacts/<feature>` at `.worktrees/<feature>/artifacts`.
@@ -115,8 +115,8 @@ git push -u origin feature/<feature>
 This publishes only `feature/<feature>`. It does not authorize target merge/push or sidecar cleanup.
 
 ## Sidecar Checkpoints
-Checkpoint at the accepted gates owned by `../../references/artifact-store.md` (post-Conceptualize,
-post-review-plan, each package delivery, final review/audit), never after every incidental edit.
+Checkpoint at parent-supplied artifact-store gates (post-Conceptualize, post-review-plan, each package delivery,
+final review/audit), never after every incidental edit.
 
 From the artifact worktree only:
 ```bash

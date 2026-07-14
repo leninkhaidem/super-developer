@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import json
 import re
+import subprocess
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -659,62 +661,359 @@ class SkillPromptSurfaceTests(unittest.TestCase):
         self.assertIn("readme", metadata["keywords"])
         self.assertNotIn("test authoring/execution", metadata["description"])
 
-    def test_diagnose_and_fix_recommends_one_route_and_reviewed_delivery(self) -> None:
+    def test_diagnose_and_fix_separates_human_authorization_from_internal_receipts(self) -> None:
         text = read_repo("plugins/super-developer/skills/diagnose-and-fix/SKILL.md")
-        compact = " ".join(text.split())
+        compact = compact_text(text)
         for needle in [
             "exactly one recommended route",
             "stop/missing-info",
-            "localized `worktree` fix",
-            "`implementation-plan`",
-            "named diagnostic spike",
-            "approve the recommended route",
-            "shared `../../references/model-preferences.md`",
-            "resolved model/policy",
-            "After any delivered localized fix, invoke `review-code`",
-            "push `origin bugfix/<name>`",
-            "unless the user explicitly excluded remote side effects",
+            "localized isolated fix",
+            "may plan approved changes to existing systems",
+            "Ask for one compact, human-readable Fix Authorization",
+            "approved paths and behavior goal, with explicit non-goals",
+            "isolated route plus human branch/base names",
+            "`local only`, `commit reviewed fix`, or `commit and push reviewed branch`",
+            "One response may authorize the displayed localized route through the selected branch delivery",
+            "Target merge/push and cleanup stay at their existing owning boundaries",
+            "Users never need to understand or approve raw SHAs, checksums, leases, or state receipts",
+            "derives mandatory internal receipts at action time from the `worktree` and review contracts",
+            "authorized paths, non-root worktree/base/ref identity, reviewed state",
+            "Revalidate every binding immediately before its action",
+            "Orchestrator-owned progress within the authorized semantic action may bind/rebind",
+            "unexpected/external drift, conflict, scope/risk change, or failed preconditions stop",
+            "Existing exact leases, ancestry checks, and separate target-merge/target-push bindings remain mandatory",
+            "Keep receipts internal unless requested, needed for audit/debug, or required to explain",
+            "repair_owner=diagnose-and-fix",
+            "repair_contract_path=references/fix-implementer-contract.md",
+            "Review findings use review-code’s action gate. On explicit `fix`",
+            "Initial approval never repairs",
+            "capture its result SHA before deriving `target_push`",
+            "merge never pushes by itself",
+            "This skill never executes live incident containment or production mutation",
+            "hand off to that procedure; without both, stop",
+            "Never execute it within this skill",
+            "`../../references/tool-usage.md`",
+            "accepted/current `docs/testing/workflow.md`",
+            "From the approved target worktree, resolve `implement`",
+            "If `.superdeveloper/preferences.yml` is missing",
+            "never create it in root or silently",
+            "Include the internal receipt only on request",
         ]:
-            self.assertIn(" ".join(needle.split()), compact)
-        self.assertNotIn("Ask for one explicit approval choice", text)
+            self.assertIn(compact_text(needle), compact)
+        for stale in [
+            "## Approval Record",
+            "proposed Approval Record values",
+            "requires new approval",
+            "Any live containment/production mutation lacks both",
+            "target merge and target push are one safety boundary",
+        ]:
+            self.assertNotIn(stale, text)
 
-    def test_worktree_bugfix_push_and_target_merge_skip_are_explicit(self) -> None:
+    def test_fix_implementer_contract_recaptures_complete_starting_state(self) -> None:
+        skill = read_repo("plugins/super-developer/skills/diagnose-and-fix/SKILL.md")
+        contract_rel = (
+            "plugins/super-developer/skills/diagnose-and-fix/references/fix-implementer-contract.md"
+        )
+        contract = read_repo(contract_rel)
+        combined = compact_text(f"{skill}\n{contract}")
+        self.assertIn("references/fix-implementer-contract.md", skill)
+        self.assertIn("references/fix-implementer-contract.md", read_repo("plugins/super-developer/README.md"))
+        self.assertLessEqual(len(contract.splitlines()), 150)
+        for needle in [
+            "Authority comes only from the complete packet plus this contract",
+            "perform no repository action and return `BLOCKED`",
+            "complete starting binding: HEAD and all category manifests/checksums, normally clean",
+            "file type, Git/index-compatible mode, symlink target, and content digest or binary provenance",
+            "recapture and compare the complete starting binding before action and immediately before its first write",
+            "Any drift is `BLOCKED`",
+            "Recapture HEAD and all four state categories",
+            "compare every manifest/checksum to the packet",
+            "immediately before the first write, recapture the complete starting binding again",
+            "Never create/remove worktrees or branches",
+            "stage; commit; merge; rebase; push/fetch/pull; reset",
+            "Do not run destructive commands",
+            "`BLOCKED: scope_expansion`",
+            "The parent must compare this report and actual repository state",
+        ]:
+            self.assertIn(compact_text(needle), combined)
+
+    def test_worktree_delivery_uses_atomic_cas_fail_fast_and_bound_cleanup(self) -> None:
+        skill = read_repo("plugins/super-developer/skills/worktree/SKILL.md")
         bugfix = read_repo("plugins/super-developer/skills/worktree/references/bugfix-hotfix-workflow.md")
-        for forbidden in [
-            "fix, commit, verify",
-            "fix, commit, verify the focused bug scenario",
-            "fix, commit, verify the production failure path",
-        ]:
-            self.assertNotIn(forbidden, bugfix.lower())
-        for needle in [
-            "git push -u origin bugfix/<name>",
-            "after verification and clean `review-code`",
-            "Commit bugfix changes only after verification and CLEAN `review-code`/approved delivery",
-            "Commit hotfix branch changes only after verification, CLEAN `review-code`, and approved delivery",
-            "not approval to merge into or push `<base-branch>`, `feature/<feature>`, or",
-            "git worktree add .worktrees/hotfix-<name> -b hotfix/<name> <base-branch>",
-            "git worktree add .worktrees/hotfix-merge-<name> <base-branch>",
-            "git push origin <base-branch>",
-            "git merge <base-branch> --no-edit",
-            "`main` may be an example value for `<base-branch>`",
-            "remote side effects",
-        ]:
-            self.assertIn(needle, bugfix)
-        for line in bugfix.splitlines():
-            if re.search(r"\bmain\b", line):
-                self.assertIn("`main` may be an example value for `<base-branch>`", line)
-
         cleanup = read_repo("plugins/super-developer/skills/worktree/references/cleanup-safety.md")
+        combined = compact_text(f"{skill}\n{bugfix}\n{cleanup}")
         for needle in [
-            "git merge-base --is-ancestor feature/<feature> <target-ref>",
-            "already merged; skip the target merge",
-            "git merge --no-ff feature/<feature>",
-            "Production hotfix worktrees stay until the hotfix merge to `<base-branch>`",
-            "<worktree-on-base-branch>",
+            "expected_remote_destination_sha=<sha|absent>",
+            "expected_remote_ref_sha=<sha|absent>",
+            "worktree_path=<path>; worktree_head=<sha>; worktree_state=<checksum>",
+            "local_ref=<full refs/heads/...>; local_ref_kind=direct; local_ref_sha=<sha>",
+            "landing_worktree=<path|not_applicable>; landing_head=<sha|not_applicable>",
+            "REMOTE_LINE=\"$(git ls-remote --heads origin \"$DEST_REF\")\"",
+            "if [[ \"$REMOTE_SHA\" == \"$SOURCE_SHA\" ]]",
+            "remote already at source; no-op",
+            "git push --force-with-lease=\"$DEST_REF:\" origin",
+            "git merge-base --is-ancestor \"$EXPECTED\" \"$SOURCE_SHA\"",
+            "git push --force-with-lease=\"$DEST_REF:$EXPECTED\" origin",
+            "git merge-base --is-ancestor \"$EXPECTED\" \"$RESULT_SHA\"",
+            "git push --force-with-lease=\"$TARGET_REF:$EXPECTED\" <remote>",
+            "exact qualified lease is server-side CAS",
+            "A command error cannot mean absent",
+            "Every block is fresh Bash with `set -euo pipefail`",
+            "git merge-base --is-ancestor <source-sha> <pre-merge-target-sha>",
+            "Status 1 alone means merge needed",
+            "LANDING_HEAD=\"$(git -C \"$LANDING\" rev-parse HEAD)\"",
+            "test \"$LANDING_HEAD\" = \"<approved-integration-head>\"",
+            "test \"$LANDING_HEAD\" = \"<approved-delivery-result-sha>\"",
+            "git -C \"$LANDING\" merge-base --is-ancestor <approved-local-ref-sha> \"$LANDING_HEAD\"",
+            "local_ref_kind=direct",
+            "if git symbolic-ref -q \"$REF\"; then exit 1; fi",
+            "git update-ref --no-deref -d \"$REF\" <approved-local-ref-sha>",
+            "REF=refs/heads/wp/<feature>/<WP-ID>",
+            "REF=refs/heads/feature/<feature>",
+            "REF=refs/heads/artifacts/<feature>",
+            "REF=refs/heads/spike/<name>",
+            "concurrent movement fails CAS",
+            "printf 'RESULT_SHA=%s\\n' \"$RESULT_SHA\"",
+            "INTEGRATION_WORKTREE=<approved-integration-worktree>",
+            "cd \"$INTEGRATION_WORKTREE\"",
+            "an existing approved non-root integration path substitutes exactly",
+            "Locked local target stays unchanged",
+            "never claim local target was merged",
+            "Orchestration may run at `$PROJECT_ROOT`",
+            "Root files/index are user-owned: never switch, edit, merge, or deliver there",
+            "Planned feature/sidecar pushes remain governed by their existing approved Execution Contract/checkpoint gates",
+            "do not claim those contracts contain user-known SHA/snapshot fields",
+            "Remote deletion never follows failed local cleanup",
+            "test \"$RECAPTURED_WORKTREE_STATE_CHECKSUM\" = \"<approved-worktree-state-checksum>\"",
+            "Bugfix/hotfix additionally recapture current landing HEAD/state",
+            "Sidecar/spike require exact HEAD/state/status proof and direct-ref CAS",
         ]:
-            self.assertIn(needle, cleanup)
-        self.assertNotIn("hotfix merge to `main`", cleanup)
-        self.assertNotIn("<worktree-on-main>", cleanup)
+            self.assertIn(compact_text(needle), combined)
+
+        for text in [bugfix, cleanup]:
+            blocks = re.findall(r"```bash\n(.*?)```", text, flags=re.DOTALL)
+            self.assertTrue(blocks)
+            for block in blocks:
+                self.assertEqual("set -euo pipefail", block.strip().splitlines()[0])
+
+        push_lines = [
+            line.strip()
+            for line in f"{bugfix}\n{cleanup}".splitlines()
+            if line.strip().startswith("git push")
+        ]
+        self.assertFalse(any(re.search(r"git push\s+--force(?:\s|$)", line) for line in push_lines))
+        self.assertFalse(
+            any("--force-with-lease" in line and "--force-with-lease=" not in line for line in push_lines)
+        )
+        self.assertNotIn("race or remote advance after validation is rejected by normal", combined.lower())
+        self.assertNotIn("git push <remote> <result-sha>:refs/heads/<target-ref>", combined)
+        self.assertNotIn("git merge-base --is-ancestor feature/<feature> <target-ref>", combined)
+        self.assertNotIn("Default both to `main`", combined)
+        self.assertNotRegex(combined, r"git branch -(?:d|D)\s")
+        for line in cleanup.splitlines():
+            if "git update-ref" in line and " -d " in line:
+                self.assertIn("--no-deref", line)
+        self.assertGreaterEqual(f"{bugfix}\n{cleanup}".count("printf 'RESULT_SHA=%s\\n'"), 2)
+
+        disposable_block = next(
+            block for block in re.findall(r"```bash\n(.*?)```", cleanup, re.DOTALL)
+            if "refs/heads/artifacts/<feature>" in block
+        )
+        self.assertLess(
+            disposable_block.index("git worktree remove"),
+            disposable_block.index("git update-ref --no-deref -d"),
+        )
+
+    def test_primary_root_resolver_and_no_deref_delete_are_race_safe(self) -> None:
+        skill = read_repo("plugins/super-developer/skills/worktree/SKILL.md")
+        match = re.search(r"## Primary Root Resolver.*?```bash\n(.*?)```", skill, flags=re.DOTALL)
+        self.assertIsNotNone(match)
+        resolver = match.group(1)
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "primary"
+            linked = Path(tmp) / "linked"
+            root.mkdir()
+
+            def git(*args: str, cwd: Path = root, check: bool = True) -> subprocess.CompletedProcess[str]:
+                return subprocess.run(
+                    ["git", *args], cwd=cwd, check=check, text=True, capture_output=True
+                )
+
+            git("init", "-b", "main")
+            git("config", "user.name", "Prompt Tests")
+            git("config", "user.email", "prompt-tests@example.invalid")
+            (root / "tracked.txt").write_text("one\n", encoding="utf-8")
+            git("add", "tracked.txt")
+            git("commit", "-m", "initial")
+            git("worktree", "add", "-b", "linked-test", str(linked), "HEAD")
+
+            self.assertEqual(str(linked.resolve()), git("rev-parse", "--show-toplevel", cwd=linked).stdout.strip())
+            resolved = subprocess.run(
+                ["bash", "-c", resolver], cwd=linked, check=True, text=True, capture_output=True
+            )
+            self.assertIn(f"PROJECT_ROOT={root.resolve()}", resolved.stdout)
+            self.assertFalse((linked / ".worktrees").exists())
+
+            old_sha = git("rev-parse", "HEAD").stdout.strip()
+            git("branch", "cleanup-race", old_sha)
+            (root / "tracked.txt").write_text("two\n", encoding="utf-8")
+            git("commit", "-am", "advance")
+            new_sha = git("rev-parse", "HEAD").stdout.strip()
+            git("update-ref", "refs/heads/cleanup-race", new_sha, old_sha)
+
+            stale_delete = git(
+                "update-ref", "--no-deref", "-d", "refs/heads/cleanup-race", old_sha, check=False
+            )
+            self.assertNotEqual(0, stale_delete.returncode)
+            self.assertEqual(new_sha, git("rev-parse", "refs/heads/cleanup-race").stdout.strip())
+            git("update-ref", "--no-deref", "-d", "refs/heads/cleanup-race", new_sha)
+            self.assertNotEqual(
+                0, git("show-ref", "--verify", "refs/heads/cleanup-race", check=False).returncode
+            )
+
+            git("symbolic-ref", "refs/heads/cleanup-alias", "refs/heads/main")
+            self.assertEqual(
+                "refs/heads/main",
+                git("symbolic-ref", "-q", "refs/heads/cleanup-alias").stdout.strip(),
+            )
+            symbolic_delete = git(
+                "update-ref", "--no-deref", "-d", "refs/heads/cleanup-alias", new_sha,
+                check=False,
+            )
+            self.assertEqual(0, symbolic_delete.returncode)
+            self.assertEqual(new_sha, git("rev-parse", "refs/heads/main").stdout.strip())
+            self.assertNotEqual(
+                0, git("symbolic-ref", "-q", "refs/heads/cleanup-alias", check=False).returncode
+            )
+
+    def test_local_review_resolves_base_and_returns_parent_owned_repairs(self) -> None:
+        local = read_repo("plugins/super-developer/skills/review-code/references/local-workflow.md")
+        compact = compact_text(local)
+        for needle in [
+            "exact worktree, branch/ref, HEAD SHA, base ref and resolved base SHA",
+            "separate category manifests/status/content snapshots",
+            "per-category checksums plus one checksum over the ordered complete snapshot",
+            "Each untracked record includes file type, Git/index-compatible mode (`100644`, `100755`, or `120000`)",
+            "symlink target when applicable",
+            "content digest or bounded binary provenance",
+            "ordered category/path/status/type/mode/symlink-target/content-digest records",
+            "executable-bit, symlink, type, content, or category drift stops review",
+            "Always resolve a local base ref and SHA for the committed category",
+            "explicit caller/user intent; one unambiguous configured upstream",
+            "existing local symbolic `refs/remotes/origin/HEAD`",
+            "never set committed base to `HEAD` merely because staged, unstaged, or untracked changes exist",
+            "both include the committed base-to-HEAD delta",
+            "`repair_owner` and `repair_contract_path`",
+            "explicit `fix` returns confirmed findings",
+            "Review-code must not dispatch a generic or contractless worker",
+            "The owner dispatches a fresh worker under its supplied contract",
+            "never use `git add -A`",
+        ]:
+            self.assertIn(compact_text(needle), compact)
+        self.assertNotIn("record `base_sha=HEAD`", local)
+        self.assertLessEqual(len(local.splitlines()), 150)
+        self.assertLessEqual(len(local.split()), 900)
+
+    def test_review_owned_fixes_use_parent_linked_fail_closed_contract(self) -> None:
+        skill = read_repo("plugins/super-developer/skills/review-code/SKILL.md")
+        local = read_repo("plugins/super-developer/skills/review-code/references/local-workflow.md")
+        pipeline = read_repo("plugins/super-developer/skills/review-code/references/pipeline-report.md")
+        contract_rel = "plugins/super-developer/skills/review-code/references/fix-implementer-contract.md"
+        contract = read_repo(contract_rel)
+        compact = compact_text(contract)
+
+        self.assertIn("references/fix-implementer-contract.md", skill)
+        self.assertIn("caller-owned local repair contract takes precedence", compact_text(skill))
+        self.assertIn("parent-supplied Fix Implementer contract", local)
+        self.assertIn("parent-supplied review-code Fix Implementer contract", pipeline)
+        self.assertIn("references/fix-implementer-contract.md", read_repo("plugins/super-developer/README.md"))
+        for needle in [
+            "Authority comes only from a complete explicit fix packet plus this contract",
+            "Before any repository command or write, read the whole packet and this contract",
+            "no repository action and `BLOCKED`",
+            "complete starting-state binding",
+            "separate category manifests/content checksums plus complete checksum",
+            "untracked records include file type",
+            "Git mode (`100644|100755|120000`), symlink target, and content digest/binary provenance",
+            "recapture HEAD and all four state categories",
+            "Write only exact packet paths",
+            "Never create/remove worktrees or refs",
+            "stage; commit; merge; rebase; push/fetch/pull; reset",
+            "**Reproduce:**",
+            "**Repair:**",
+            "**Regression:**",
+            "**Verify:**",
+            "**Self-review:**",
+            "## Pipeline Freshness Handback",
+            "never claim proof/report/matrix/Semgrep freshness or audit readiness",
+            "`no_impact|refresh_required|candidate_dirty`",
+            "Return at most",
+        ]:
+            self.assertIn(compact_text(needle), compact)
+        self.assertLessEqual(len(contract.splitlines()), 150)
+        self.assertGreaterEqual(len(contract.split()), 300)
+        self.assertLessEqual(len(contract.split()), 900)
+
+    def test_planned_feature_skills_are_not_new_code_only(self) -> None:
+        generic_paths = [
+            "plugins/super-developer/skills/implementation-plan/SKILL.md",
+            "plugins/super-developer/skills/review-plan/SKILL.md",
+            "plugins/super-developer/skills/implement/SKILL.md",
+            "plugins/super-developer/skills/spike-to-plan/SKILL.md",
+            "plugins/super-developer/README.md",
+        ]
+        combined = compact_text("\n".join(read_repo(rel) for rel in generic_paths))
+        for rel in generic_paths:
+            self.assertNotIn("greenfield", read_repo(rel).lower(), rel)
+        for needle in [
+            "fresh Slice-first planned-feature",
+            "approved change may target a new or existing system",
+            "supports approved changes to new or existing systems",
+            "New and existing-system changes",
+        ]:
+            self.assertIn(compact_text(needle), combined)
+
+        implement = read_repo("plugins/super-developer/skills/implement/SKILL.md")
+        execution = read_repo("plugins/super-developer/skills/implement/references/execution-contract.md")
+        for text in [implement, execution]:
+            self.assertIn(
+                "existing-system contract change not explicitly approved",
+                compact_text(text),
+            )
+            self.assertNotIn("existing-feature contract change", text)
+        self.assertIn("greenfield/no-strategy repositories", read_repo("plugins/super-developer/skills/testing/SKILL.md"))
+
+    def test_parent_owned_shared_contracts_avoid_reference_second_hops(self) -> None:
+        review = read_repo("plugins/super-developer/skills/review-code/SKILL.md")
+        pipeline = read_repo("plugins/super-developer/skills/review-code/references/pipeline-report.md")
+        worktree = read_repo("plugins/super-developer/skills/worktree/SKILL.md")
+        feature = read_repo("plugins/super-developer/skills/worktree/references/feature-package-workflow.md")
+
+        for path in [
+            "../../references/package-verification-report.md",
+            "../../references/package-lifecycle.md",
+        ]:
+            self.assertIn(path, review)
+        review_compact = compact_text(review)
+        self.assertIn("Load and pass `../../references/package-verification-report.md`", review_compact)
+        self.assertIn("Pass `../../references/package-lifecycle.md` as a labeled path", review_compact)
+        self.assertIn("load it only when proof/report freshness or non-bypass routing is disputed", review_compact)
+        pipeline_compact = compact_text(pipeline)
+        self.assertIn("parent-supplied package-verification-report contract", pipeline_compact)
+        self.assertIn("parent-supplied package-lifecycle contract only when", pipeline_compact)
+        self.assertNotIn("../../../references/package-", pipeline)
+        self.assertIn("../../references/artifact-store.md", worktree)
+        self.assertIn("parent-supplied artifact-store", compact_text(feature))
+        self.assertNotIn("../../references/artifact-store.md", feature)
+
+        plugin = read_repo("plugins/super-developer/README.md")
+        for needle in [
+            "complete caller-bound or locally captured state",
+            "committed base-to-HEAD plus staged, unstaged, and untracked files together",
+            "owning repair contract when supplied",
+        ]:
+            self.assertIn(needle, plugin)
 
     def test_interface_contract_thread_is_present_and_consistent(self) -> None:
         authority = read_repo("plugins/super-developer/references/conceptualize-slice-authority.md")

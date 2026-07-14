@@ -13,26 +13,56 @@ package, bugfix, hotfix, spike, integration, target-merge, and artifact-sidecar 
 
 ## Always
 
-- Treat the root worktree as user-owned. Never switch its branch or assume it is on `main`.
-- Resolve `PROJECT_ROOT=$(git rev-parse --show-toplevel)` before creating or removing worktrees.
+- Root files/index are user-owned: never switch, edit, merge, or deliver there. Commands may run from
+  `$PROJECT_ROOT` to create/remove approved non-root worktrees/refs.
+- Resolve the primary root with the NUL-safe common-directory procedure below; `--show-toplevel` alone may be a
+  linked worktree and must not anchor nested `.worktrees/`.
 - Keep agent-managed checkouts under `$PROJECT_ROOT/.worktrees/`; ensure `.worktrees/` is ignored.
 - Feature branches are refs, not root checkouts. Create `feature/<feature>` from an explicit `<base-ref>`.
 - Use `.worktrees/<feature>/merge` as the only checkout of `feature/<feature>` for integration.
 - Planned-feature package branches use `wp/<feature>/<WP-ID>` with worktrees at `.worktrees/<feature>/wp-<WP-ID>`.
 - Artifact sidecars use orphan ref `artifacts/<feature>` at `.worktrees/<feature>/artifacts`; they are not source checkouts or deliverable refs.
 - Package agents never create worktrees, branches, merges, target pushes, or cleanup operations.
-- Base and target refs are explicit. Default both to `main`; stacked features may use another feature branch.
+- Planned-feature setup may visibly propose `main` only when its owning contract allows. Bugfix, hotfix, and spike
+  base/target refs must be explicit and are never inferred.
 - A branch checked out in one worktree is locked for other worktrees; create separate refs instead of reusing checkouts.
 - Remove package branches only after `git merge-base --is-ancestor` proves they are included in integration `HEAD`.
-- Feature-branch push, sidecar checkpoint push, target merge/push, and cleanup are separate boundaries.
+- Feature push, sidecar push, target merge, target push, and cleanup are separate boundaries.
 - Never merge or push `<target-ref>`/`main` without explicit approval for that exact target.
 - Keep integration, target-merge, and active artifact sidecar worktrees until the authorized lifecycle boundary is complete.
 - Clean up only the named feature namespace; never remove another active feature's worktrees or refs.
 
+## Primary Root Resolver
+
+Run from any primary or linked worktree. Select the first NUL-delimited `worktree` record from the common Git
+directory, canonicalize it, and prove its Git directory is the common directory:
+
+```bash
+set -euo pipefail
+COMMON_GIT_DIR="$(git rev-parse --path-format=absolute --git-common-dir)"
+COMMON_GIT_DIR="$(cd "$COMMON_GIT_DIR" && pwd -P)"
+PROJECT_ROOT=""
+while IFS= read -r -d '' FIELD; do
+  case "$FIELD" in
+    "worktree "*) PROJECT_ROOT="${FIELD#worktree }"; break ;;
+  esac
+done < <(git --git-dir="$COMMON_GIT_DIR" worktree list --porcelain -z)
+test -n "$PROJECT_ROOT"
+PROJECT_ROOT="$(cd "$PROJECT_ROOT" && pwd -P)"
+PRIMARY_GIT_DIR="$(git -C "$PROJECT_ROOT" rev-parse --path-format=absolute --git-dir)"
+PRIMARY_GIT_DIR="$(cd "$PRIMARY_GIT_DIR" && pwd -P)"
+test "$PRIMARY_GIT_DIR" = "$COMMON_GIT_DIR"
+export PROJECT_ROOT
+printf 'PROJECT_ROOT=%s\n' "$PROJECT_ROOT"
+```
+
+Stop on any failure. All managed paths are then rooted at `$PROJECT_ROOT/.worktrees/`, even when invocation began
+inside a linked worktree.
+
 ## Do
 
 1. Identify the active workflow: planned-feature package, bugfix, hotfix, diagnostic spike, cleanup, feature push, or target merge.
-2. Resolve project root, current branch/worktree state, base ref, feature ref, target ref, artifact ref, and candidate paths.
+2. Resolve project root, state, refs, and paths. For bugfix/hotfix/spike, require explicit base/target refs.
 3. For planned-feature artifact sidecars, load `../../references/artifact-store.md` before setup, checkpoint, or cleanup.
 4. Load `references/feature-package-workflow.md` for planned-feature package, integration, sidecar setup, and checkpoint commands.
 5. Load `references/bugfix-hotfix-workflow.md` for diagnostic spikes, feature bugfixes, production hotfixes, or hotfix propagation.
@@ -77,9 +107,13 @@ Only remove a package worktree/branch when this check succeeds for that package 
 
 - Creating local package/feature/artifact worktrees requires the approved worktree action, the implementation Execution Contract, or the planned-feature setup step that owns it (Conceptualize or implementation-plan artifact-sidecar setup). Local creation has no remote side effect; the sidecar checkpoint push and sidecar cleanup stay separately gated.
 - Sidecar checkpoints push only `origin artifacts/<feature>` from `.worktrees/<feature>/artifacts` at accepted gates.
-- Pushing `origin feature/<feature>` is covered by the approved Execution Contract by default when that exact push is named.
-- Target merge and target push require explicit approval for the exact `<target-ref>`.
-- Sidecar cleanup after final target merge/push requires exact user-approved local worktree, local ref, and remote ref actions.
+- Diagnose bugfix/hotfix branch publication binds remote/ref, source SHA, snapshot, and expected remote SHA/absence.
+- Planned feature/sidecar pushes remain governed by their existing approved Execution Contract/checkpoint gates;
+  do not claim those contracts contain user-known SHA/snapshot fields.
+- Target merge binds source/pre-target SHAs, snapshot, strategy, and non-root worktree. Target push separately binds
+  result and expected remote SHA; exact lease plus ancestry enforces compare-and-swap without non-FF rewrite.
+- Cleanup binds worktree path/HEAD/state, `local_ref_kind=direct` plus ref/SHA, current landing
+  worktree/HEAD/state when ancestry is required, remote expected state, and each action; revalidate all.
 - Remote branch deletion is never implied by local cleanup, target merge, feature push, or sidecar push;
   release preparation may delete only exact remote refs named in its approved Release Contract.
 - Force deletion/removal is allowed only for disposable spikes, exact approved sidecar ref deletion after
@@ -87,14 +121,14 @@ Only remove a package worktree/branch when this check succeeds for that package 
 
 ## Stop if
 
-- The root worktree would need a branch switch.
+- Root checkout files/index would be switched, written, merged, or used as the delivery checkout.
 - `.worktrees/` is not ignored and cannot be safely ignored.
 - Base ref, feature ref, target ref, artifact ref, package branch, worktree path, or cleanup namespace is ambiguous.
 - A branch is already checked out elsewhere and the playbook does not provide a safe alternative.
 - Merge-base proof fails for package branch cleanup.
 - A sidecar checkpoint would push anything except `origin artifacts/<feature>` from the artifact worktree.
 - A feature push was not named in the approved Execution Contract.
-- A target merge/push lacks exact explicit approval for the named target.
+- A target merge or target push lacks its separate exact ref/SHA approval.
 - Cleanup would remove another active feature namespace, dirty worktree, unmerged branch, active sidecar, or safety-net checkout.
 - A force push/delete, tag/release action, remote branch deletion, or external side effect is requested but not explicitly approved.
 

@@ -1,127 +1,104 @@
 # Local Code Review Workflow
 
-Local mode owns offline diff setup, report, local fix, commit, details, and abort gates. It does not impose planned-feature Slice/proof/report/audit obligations
-or refresh package evidence; switch to pipeline mode for governed planned-feature fixes.
+Local mode owns offline state capture, report, explicit actions, and commit gates. It does not inherit
+planned-feature proof/report/audit duties. Review the complete relevant state, including mixed categories.
 
-Requirement: `git` installed and inside a Git repository. If the user provides intent, constraints, known tradeoffs, or focus areas, pass them to reviewers and
-fix agents to reduce false positives.
+## Scope and Complete-State Setup
 
-## Scope and Setup
+A caller-bound binding must name:
 
-Detect review scope in priority order:
+- exact worktree, branch/ref, HEAD SHA, base ref and resolved base SHA;
+- separate category manifests/status/content snapshots, including path type and Git/index-compatible mode;
+- per-category checksums plus one checksum over the ordered complete snapshot; and
+- caller constraints and, when repairs remain parent-owned, `repair_owner` and `repair_contract_path`.
 
-```bash
-STAGED=$(git diff --cached --stat)
-UNSTAGED=$(git diff --stat)
+Record empty categories. Each untracked record includes file type, Git/index-compatible mode (`100644`, `100755`,
+or `120000`), symlink target when applicable, and content digest or bounded binary provenance. Validate before
+dispatch; executable-bit, symlink, type, content, or category drift stops review.
 
-if [ -n "$STAGED" ]; then
-  SCOPE="staged"
-  DIFF_CMD="git diff --cached"
-elif [ -n "$UNSTAGED" ]; then
-  SCOPE="uncommitted"
-  DIFF_CMD="git diff HEAD"
-else
-  DEFAULT_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@' || echo "main")
-  SCOPE="branch"
-  DIFF_CMD="git diff origin/${DEFAULT_BRANCH}...HEAD"
-fi
-```
-
-Preflight:
+Without caller binding, capture read-only identity and all local categories:
 
 ```bash
 git rev-parse --is-inside-work-tree
-$DIFF_CMD
-$DIFF_CMD --stat
 git branch --show-current
-git log --oneline -10
+git rev-parse HEAD
+git status --porcelain=v2 --branch -z
+git diff --cached --binary
+git diff --binary
+git ls-files --others --exclude-standard -z
 ```
 
-Hard stops: not a Git repo or empty diff.
+Always resolve a local base ref and SHA for the committed category, even when uncommitted changes exist. Resolve in
+this order: explicit caller/user intent; one unambiguous configured upstream; existing local symbolic
+`refs/remotes/origin/HEAD`. Do not fetch. Stop if none resolves or plausible sources conflict; never set committed
+base to `HEAD` merely because staged, unstaged, or untracked changes exist.
 
-Capture reviewed-state metadata: current branch, `HEAD` SHA, base ref/SHA for branch diff, scope, reviewed file list/status, diff checksum or saved diff, and
-staged checksum when reviewing staged changes.
+Build NUL-safe manifests and saved snapshots outside reviewed state:
 
-Report scope before reviewer dispatch:
+- committed: `git diff --name-status -z <base-sha>...HEAD` and binary diff;
+- staged: `git diff --cached --name-status -z` and binary diff;
+- unstaged: `git diff --name-status -z` and binary diff;
+- untracked: `git ls-files --others --exclude-standard -z`, then type, Git/index-compatible mode, symlink target,
+  and content digest/reviewable binary provenance for each path;
+- complete: ordered category/path/status/type/mode/symlink-target/content-digest records and one checksum.
+
+Use a recorded local checksum tool; preserve path boundaries and avoid newline-splitting pipelines. Reviewers get
+all categories together and inspect final effective content when a path appears in several. Use `complete mixed`
+scope when any uncommitted category exists and `branch` otherwise; both include the committed base-to-HEAD delta.
+Hard stops: unsafe path, empty complete state, ambiguous base, or identity/snapshot mismatch.
 
 ```text
-Review Scope: <staged | uncommitted | branch diff against origin/<branch>>
-Files changed: <count>
-Insertions: +<count>  Deletions: -<count>
+Review Scope: <caller-bound | complete mixed | branch>
+State: worktree=<path> ref=<ref> base=<ref/SHA> HEAD=<SHA> snapshot=<checksum>
+Files: committed=<n> staged=<n> unstaged=<n> untracked=<n> unique=<n>
+Repair owner/contract: <values or review-code local default>
 ```
 
-After setup, return to the main skill for reviewer dispatch.
+Return to the main skill for reviewer dispatch.
 
-## Review Report
+## Report and Explicit Action Gate
 
-Mode values for the main report template:
-
-- Header: `Local Code Review`.
-- Metadata: `**Branch:** <current branch> | **Scope:** <scope> | **Files:** <count> changed`.
-- Verdict line: none in the body; state the verdict after the report.
-- Footer: none.
-
-Verdicts: `CLEAN` when no confirmed 🔴/🟠 findings exist; `ISSUES FOUND` when one or more confirmed 🔴/🟠 findings exist.
-
-Full stop after report. Await one explicit action keyword.
-
-## Action Keywords
+Use `Local Code Review` with exact binding metadata. `CLEAN` means no confirmed 🔴/🟠 finding for that state;
+`ISSUES FOUND` means at least one. Stop after the report for one keyword:
 
 | Keyword | Action |
 |---|---|
-| `fix` | Delegate confirmed 🔴/🟠 fixes, then run the main skill's Fix Verification Gate. |
-| `commit` | Stage/commit reviewed state as-is only when no confirmed 🔴/🟠 issues remain and Local State Gate passes. |
-| `details <N>` | Expand finding N without mutating state. |
-| `abort` | No action. |
+| `fix` | Authorize only the confirmed repair packet through the ownership rule below. |
+| `commit` | Commit unchanged reviewed uncommitted files only when CLEAN and separately authorized. |
+| `details <N>` | Expand finding N without mutation. |
+| `abort` | End without mutation. |
 
-Any other response requires clarification. Never treat ambiguity, silence, or partial confirmation as approval.
+Silence, initial diagnosis/fix approval, delivery approval, or partial confirmation authorizes nothing. Suggestions
+remain report-only.
 
-## Local State Gate
+## Complete State Gate
 
-Before mutating files, staging, committing, or claiming post-fix readiness, revalidate captured metadata:
+Before fixing, staging, committing, or readiness claims, recapture and compare worktree/ref, HEAD, base ref/SHA,
+every category and type/mode/symlink/content record, complete checksum/file set, and constraints. Reject stale,
+broadened, narrowed, recategorized, or newly untracked state. A repair requires Fix Verification, a new complete
+binding, and focused re-review; never reuse prior CLEAN.
 
-- branch and `HEAD` SHA still match, except approved local fix commits from this flow;
-- reviewed file list and diff checksum still match unchanged findings;
-- staged content still matches when `SCOPE="staged"`;
-- no new unreviewed files or broadened diff appeared;
-- base ref/SHA still match for branch-diff reviews.
+## Fix Ownership and Action
 
-Reject stale or broadened state and instruct the user to rerun review.
+When caller binding names `repair_owner` and `repair_contract_path`, explicit `fix` returns confirmed findings,
+evidence, Skeptic verdicts, decision outcomes, exact binding, target paths, constraints, and the fix action to that
+owner. Review-code must not dispatch a generic or contractless worker. The owner dispatches a fresh worker under
+its supplied contract, validates the result, and returns a newly bound state for Fix Verification/re-review.
 
-## Fix Action
+Without caller-owned repair fields, use the review-code parent-supplied Fix Implementer contract. Pass it with the
+findings, explicit fix action, complete binding, permitted paths, and constraints; never dispatch contractless.
+The worker follows that contract and returns changed/untracked files, checks, and blockers.
 
-The main agent does not implement substantive code/test/docs fixes inline. Delegate a Fix Implementer with:
-
-- confirmed findings with dedupe keys, Skeptic verdicts, evidence, recommendations, approved decision-card outcomes, and only eligible bundled suggestions
-  allowed by the main skill;
-- reviewed-state metadata, target paths, exact local scope, user/repo/mode constraints;
-- instruction to avoid unrelated cleanup, broad rewrites, or files outside target paths unless required to close the finding.
-
-The Fix Implementer must reproduce or locate each finding, state the bug class/equivalence class, add or adjust targeted regression evidence when applicable,
-run targeted checks, avoid separate suggestion cleanup, and report unresolved blockers.
-
-After fixes, run the main skill's Fix Verification Gate. Local post-fix commit/readiness requires all assigned findings closed, regression sniff pass, no
-unresolved widening trigger, and Local State Gate pass. After one widened verification pass, stop instead of widening recursively if more scope is still needed
-or no bounded seam remains.
+Readiness requires closed findings, no fix-introduced serious regression or widening trigger, fresh state, and the
+main skill's Fix Verification Gate. After one widened pass, stop if no bounded seam remains.
 
 ## Commit, Details, Abort, Blanket Mode
 
-`commit` is allowed only when no confirmed 🔴/🟠 issues remain and Local State Gate passes:
+`commit` requires CLEAN unchanged snapshot, Complete State Gate, and separate commit authority. Stage only exact
+reviewed staged/unstaged/deleted/untracked manifest files; never use `git add -A`, directory staging, or newline
+splitting. Verify index paths, modes, symlinks, types, and content; refuse unreviewed staged paths or drift.
+Committed-category history is context, not content to recommit.
 
-```bash
-if [ "$SCOPE" != "staged" ]; then
-  $DIFF_CMD --name-only | xargs git add --
-fi
-git commit -m "<concise summary of changes>"
-```
-
-Do not use `git add -A`. If serious issues exist, refuse and offer `fix` or rerun after manual repairs.
-
-`details <N>` expands finding N with code snippet, evidence, Skeptic summary for serious findings, and recommendation. Do not expose internal coverage rows, raw
-tags, dedupe keys, or state/fix metadata unless requested for diagnostics.
-
-`abort` closes cleanly without mutating files, staging area, commits, proof/report files, or review metadata.
-
-Blanket mode may delegate unambiguous serious fixes and eligible suggestion bundles after Local State Gate passes. Product/architecture choices still require
-the main skill's decision-card rule. Blanket mode never bypasses security/privacy/safety sniff, Skeptic verification, Local State Gate, Fix Verification Gate,
-blocker commit refusal, or repeated-widening stop.
+`details <N>` expands evidence/recommendation without internal tracking metadata. `abort` mutates nothing. Blanket
+mode never bypasses repair ownership, explicit action, product decisions, safety checks, Skeptic, state binding,
+Fix Verification, blocker refusal, or repeated-widening stop.

@@ -1,130 +1,131 @@
 # Bugfix and Hotfix Workflow
 
-Use this reference for diagnostic spikes, feature bugfixes, production hotfixes, and hotfix
-propagation. Boundary: isolated bug/hotfix worktrees and non-root merge paths.
+Use for diagnostic spikes, active-feature bugfixes, maintenance bugfixes, production hotfixes, and propagation.
+Boundary: isolated non-root worktrees and immutable diagnose delivery gates.
 
 ## Contract
-- The root worktree is user-owned and must not be switched.
-- Diagnostic spikes are temporary evidence-gathering branches, not final delivery branches.
-- Feature bugfixes land back in `feature/<feature>`.
-- Production hotfixes land on the approved `<base-branch>` only after explicit approval.
-- For production hotfixes, `main` may be an example value for `<base-branch>`, but this workflow is not hardcoded to it.
-- Hotfix propagation updates each affected feature ref deliberately.
-- Branch/worktree removal is outside this playbook; use the parent skill's cleanup gate.
 
-## Temporary Spike Before Durable Fix
-For ambiguous bugs, create a short-lived spike worktree to reproduce, instrument, and validate
-candidate fixes without polluting final history.
+- Root files/index are user-owned: never switch, edit, merge, or deliver there. Orchestration commands may run from
+  `$PROJECT_ROOT` to create/remove approved non-root worktrees/refs.
+- Bugfix, hotfix, spike, source, and target refs/SHAs are explicit; never infer `main` or current branch.
+- Live containment/production mutation is outside this workflow; hand off to an owning incident procedure.
+- Creation, edits, commit, branch push, target merge, target push, and cleanup are separate gates.
+- Run every command block in fresh Bash with `set -euo pipefail`; failed checks/merges stop later actions.
+
+## Immutable Approval Fields
+
+```text
+worktree_creation: base_ref=<ref>; base_sha=<sha>; branch=<ref>; path=<path>
+production_edits: scope=<paths/purpose/non-goals>
+commit: worktree=<path>; reviewed_snapshot=<checksum>
+branch_push: remote=<remote>; source_ref=<ref>; destination_ref=<ref>; source_sha=<sha>;
+  reviewed_snapshot=<checksum>; expected_remote_destination_sha=<sha|absent>
+target_merge: source_ref=<ref>; source_sha=<sha>; target_ref=<ref>; pre_merge_target_sha=<sha>;
+  reviewed_snapshot=<checksum>; strategy=no-ff; integration_ref=<ref>; worktree=<non-root path>
+target_push: remote=<remote>; target_ref=<ref>; result_sha=<post-merge sha>;
+  expected_remote_target_sha=<sha>
+cleanup: worktree=<path>; worktree_head=<sha>; worktree_state=<checksum>;
+  local_ref=<full-ref>; local_ref_kind=direct; local_ref_sha=<sha>;
+  landing_worktree=<path|n/a>; landing_head/state=<value|n/a>;
+  remote_ref=<ref|none>; expected_remote_ref_sha=<sha|absent>
+```
+
+Recapture every binding immediately before action. Drift blocks and requires approval; no field implies another.
+
+## Atomic Branch Publication
+
+For standard bugfix publication, approval binds `origin`, both refs=`bugfix/<name>`, source SHA, snapshot, and
+expected remote SHA or `absent`. `ls-remote` is diagnostic; the exact qualified lease is server-side CAS. A command
+error cannot mean absent. Existing remote equal to source is a no-op; any other mismatch stops/requires reapproval.
+For an existing expected SHA, prove fast-forward ancestry before CAS. Expected-absent uses an empty exact lease:
+
 ```bash
+set -euo pipefail
+SOURCE_SHA=<source-sha>
+DEST_REF=refs/heads/bugfix/<name>
+EXPECTED=<expected_remote_destination_sha>
+test "$(git rev-parse bugfix/<name>)" = "$SOURCE_SHA"
+REMOTE_LINE="$(git ls-remote --heads origin "$DEST_REF")"
+REMOTE_SHA="${REMOTE_LINE%%$'\t'*}"
+if [[ "$REMOTE_SHA" == "$SOURCE_SHA" ]]; then printf '%s\n' 'remote already at source; no-op'; exit 0; fi
+if [[ "$EXPECTED" == "absent" ]]; then
+  test -z "$REMOTE_LINE"
+  git push --force-with-lease="$DEST_REF:" origin "$SOURCE_SHA:$DEST_REF"
+else
+  test "$REMOTE_SHA" = "$EXPECTED"
+  git merge-base --is-ancestor "$EXPECTED" "$SOURCE_SHA"
+  git push --force-with-lease="$DEST_REF:$EXPECTED" origin "$SOURCE_SHA:$DEST_REF"
+fi
+```
+
+Bare `--force`, unqualified `--force-with-lease`, and a lease without required ancestry proof are forbidden.
+
+## Isolated Worktree Creation
+
+Diagnostic spike:
+
+```bash
+set -euo pipefail
 cd "$PROJECT_ROOT"
-git worktree add .worktrees/spike-<name> -b spike/<name> <base-ref>
-cd .worktrees/spike-<name>
-# reproduce, instrument, test candidate fixes, capture evidence
+git worktree add .worktrees/spike-<name> -b spike/<name> <explicit-base-sha>
 ```
-Rules:
-- Choose `<base-ref>` from the context that exhibits the bug: `<base-branch>`, `feature/<feature>`, or another explicit ref.
-- Do not merge spike branches as final work.
-- Extract durable evidence, regression tests, fixtures, and the minimal fix strategy.
-- Remove the spike only after the durable bugfix/hotfix branch has what it needs.
 
-Cleanup for a completed spike:
+Active-feature, maintenance, and production-hotfix repairs respectively:
+
 ```bash
+set -euo pipefail
 cd "$PROJECT_ROOT"
-git worktree remove .worktrees/spike-<name>
-git branch -D spike/<name>
+git worktree add .worktrees/bugfix-<name> -b bugfix/<name> <feature-base-sha>
+# OR: git worktree add .worktrees/bugfix-<name> -b bugfix/<name> <maintenance-base-sha>
+# OR: git worktree add .worktrees/hotfix-<name> -b hotfix/<name> <production-base-sha>
 ```
 
-## Feature Bugfix
-Use this when the bug belongs to an in-progress feature and should land in `feature/<feature>` before
-that feature merges into its approved target branch.
+Verify the named base ref still equals the approved SHA. Edit/commit only under their gates after complete-state
+CLEAN review. Stage reviewed manifest files only. Spikes are evidence-only and never merge.
 
-### Create bugfix worktree from the feature ref
+## Non-Root Immutable Integration
+
+Use `--no-ff`. Revalidate source SHA, target SHA, and snapshot. Use an existing clean **non-root** target worktree
+only at `pre_merge_target_sha`; never use root. When target is root-locked or lacks a non-root checkout, create a
+temporary integration branch/worktree from exact target SHA, not a second target checkout:
+
 ```bash
+set -euo pipefail
 cd "$PROJECT_ROOT"
-git worktree add .worktrees/bugfix-<name> -b bugfix/<name> feature/<feature>
-cd .worktrees/bugfix-<name>
-# fix and verify the focused bug scenario; do not commit yet
+git worktree add -b integrate/<route>-<name> \
+  .worktrees/integrate-<route>-<name> <pre-merge-target-sha>
+cd .worktrees/integrate-<route>-<name>
+test "$(git rev-parse HEAD)" = "<pre-merge-target-sha>"
+git merge --no-ff <source-sha> -m "fix: <name> -- integrate"
+RESULT_SHA="$(git rev-parse HEAD)"
+printf 'RESULT_SHA=%s\n' "$RESULT_SHA"
 ```
-Commit bugfix changes only after verification and CLEAN `review-code`/approved delivery; preserve the
-original approval boundaries for any remote or target-ref side effects.
 
-### Publish bugfix branch after clean review
-In `diagnose-and-fix`, approved localized bugfix delivery includes this remote side effect unless
-explicitly excluded. Run only after verification and clean `review-code`; if approval excluded remote
-side effects or the remote/ref differs, stop for exact approval.
-```bash
-cd "$PROJECT_ROOT/.worktrees/bugfix-<name>"
-git push -u origin bugfix/<name>
-```
-This branch push is not approval to merge into or push `<base-branch>`, `feature/<feature>`, or
-any target ref. No other remote side effects are implied.
+`<route>` is `feature-bugfix`, `maintenance`, or `hotfix`. This creates an immutable integration result without
+moving the locked local target. Report result and unchanged local target; never claim local target was merged.
+Merge never pushes. Request separate target-push approval only after capturing `RESULT_SHA`.
 
-### Merge bugfix back into the feature ref
-Use the existing feature integration worktree when available:
-```bash
-cd "$PROJECT_ROOT/.worktrees/<feature>/merge"
-git merge bugfix/<name> --no-edit
-```
-If no integration worktree exists, create a temporary one for the feature ref:
-```bash
-cd "$PROJECT_ROOT"
-git worktree add .worktrees/merge-bugfix-<name> feature/<feature>
-cd .worktrees/merge-bugfix-<name>
-git merge bugfix/<name> --no-edit
-```
-After the merge, stop before removing the bugfix worktree or branch. Keep feature integration safety
-nets until feature merge and push completion.
+## Atomic Target Push
 
-## Production Hotfix
-Use this when production is broken and the fix must land on the approved `<base-branch>` directly.
-Hotfixes start from `<base-branch>` in their own worktree; do not switch the root worktree to the
-hotfix branch.
+Approval binds result and expected remote target SHA. `ls-remote` failure stops. Prove the expected remote SHA is
+an ancestor of result, then use exact server-enforced CAS. A concurrent remote change makes the lease fail:
 
-### Create hotfix worktree
 ```bash
-cd "$PROJECT_ROOT"
-git worktree add .worktrees/hotfix-<name> -b hotfix/<name> <base-branch>
-cd .worktrees/hotfix-<name>
-# fix and verify the production failure path; do not commit yet
+set -euo pipefail
+RESULT_SHA=<result-sha>
+EXPECTED=<expected-remote-target-sha>
+TARGET_REF=refs/heads/<target-ref>
+INTEGRATION_WORKTREE=<approved-integration-worktree>
+cd "$INTEGRATION_WORKTREE"
+test "$(git rev-parse HEAD)" = "$RESULT_SHA"
+REMOTE_LINE="$(git ls-remote --heads <remote> "$TARGET_REF")"
+test -n "$REMOTE_LINE"
+REMOTE_SHA="${REMOTE_LINE%%$'\t'*}"
+test "$REMOTE_SHA" = "$EXPECTED"
+git merge-base --is-ancestor "$EXPECTED" "$RESULT_SHA"
+git push --force-with-lease="$TARGET_REF:$EXPECTED" <remote> "$RESULT_SHA:$TARGET_REF"
 ```
-Commit hotfix branch changes only after verification, CLEAN `review-code`, and approved delivery.
 
-### Merge hotfix to `<base-branch>` after approval
-Do not merge to `<base-branch>` without explicit user approval and clean reviewed hotfix delivery.
-Once approved, merge from a worktree already on `<base-branch>`; never switch the root worktree to
-make that true. If no existing worktree is on `<base-branch>`, create a temporary hotfix-merge
-worktree:
-```bash
-cd "$PROJECT_ROOT"
-git worktree add .worktrees/hotfix-merge-<name> <base-branch>
-cd .worktrees/hotfix-merge-<name>
-git merge --squash hotfix/<name>
-git commit -m "hotfix: <name> -- <summary>"
-git push origin <base-branch>
-```
-If the root or another worktree is already on `<base-branch>`, use that existing worktree without
-switching it. Keep `.worktrees/hotfix-<name>` until merge and push complete, then stop before
-cleanup.
-
-## Hotfix Propagation
-After a hotfix lands on `<base-branch>`, propagate it to active feature refs that need the fix.
-
-Prefer the feature's existing integration worktree:
-```bash
-cd "$PROJECT_ROOT/.worktrees/<feature>/merge"
-git merge <base-branch> --no-edit
-```
-If the feature has no integration worktree, create a temporary propagation worktree:
-```bash
-cd "$PROJECT_ROOT"
-git worktree add .worktrees/merge-hotfix-propagate-<feature> feature/<feature>
-cd .worktrees/merge-hotfix-propagate-<feature>
-git merge <base-branch> --no-edit
-cd "$PROJECT_ROOT"
-git worktree remove .worktrees/merge-hotfix-propagate-<feature>
-```
-Propagation rules:
-- Resolve conflicts in the feature integration/propagation worktree, never in the root worktree.
-- Do not delete active feature package worktrees while propagating a hotfix.
-- If a feature has already been pushed for review, push the updated `feature/<feature>` ref after propagation.
-- If multiple active features exist, propagate deliberately to each affected feature.
+For the temporary example, `INTEGRATION_WORKTREE=$PROJECT_ROOT/.worktrees/integrate-<route>-<name>`; an existing
+approved non-root integration path substitutes exactly. Never use force without exact lease/ancestry. Report remote
+at result and locked local target unchanged. Keep safety nets until cleanup. Propagation uses the same gates.

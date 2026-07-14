@@ -1,150 +1,132 @@
-# Cleanup Safety
+# Cleanup and Delivery Safety
 
-Use this reference before removing worktrees, deleting branches, pushing a feature branch, merging into a
-target branch, pushing a target branch, deleting an artifact sidecar, or doing final teardown. Boundary:
-protect unmerged work and enforce approval gates for destructive or remote git actions.
+Load before removal, pushes, target merge, or teardown. Every block is fresh Bash with `set -euo pipefail`; failed
+proof stops later SHA capture, push, removal, or deletion. Root checkout files/index remain untouched.
 
-## Pre-Cleanup Merge-Base Checks
-From the integration worktree for the target feature:
-```bash
-cd "$PROJECT_ROOT/.worktrees/<feature>/merge"
-git merge-base --is-ancestor wp/<feature>/<WP-ID> HEAD
+## Cleanup Approval Binding
+Every named cleanup subset binds:
+```text
+worktree_path=<path>; worktree_head=<sha>; worktree_state=<checksum>
+local_ref=<full refs/heads/...>; local_ref_kind=direct; local_ref_sha=<sha>
+landing_worktree=<path|not_applicable>; landing_head=<sha|not_applicable>;
+  landing_state=<checksum|not_applicable>
+remote_ref=<ref|none>; expected_remote_ref_sha=<sha|absent>
 ```
-Exit 0 means that package branch may be eligible for cleanup. Non-zero means stop cleanup for that
-package branch/worktree. Check every package branch individually; do not delete a batch if any member fails.
+Recapture each binding immediately before action. A local ref must be direct: `git symbolic-ref -q <full-ref>`
+success is a blocker. Delete only with `git update-ref --no-deref -d <full-ref> <approved-old-sha>`; concurrent
+movement fails CAS. Remote deletion never follows failed local cleanup. Orchestration may run at `$PROJECT_ROOT`.
 
-Example:
+## Package Cleanup
+Bind package and integration worktrees. Recapture current integration HEAD/state immediately before ancestry:
 ```bash
-cd "$PROJECT_ROOT/.worktrees/<feature>/merge"
-git merge-base --is-ancestor wp/<feature>/WP1 HEAD
-git merge-base --is-ancestor wp/<feature>/WP2 HEAD
+set -euo pipefail
+PKG="$PROJECT_ROOT/.worktrees/<feature>/wp-<WP-ID>"
+LANDING="$PROJECT_ROOT/.worktrees/<feature>/merge"
+test "$(git -C "$PKG" rev-parse HEAD)" = "<approved-worktree-head>"
+test "$RECAPTURED_WORKTREE_STATE_CHECKSUM" = "<approved-worktree-state-checksum>"
+LANDING_HEAD="$(git -C "$LANDING" rev-parse HEAD)"
+test "$LANDING_HEAD" = "<approved-integration-head>"
+test "$RECAPTURED_LANDING_STATE_CHECKSUM" = "<approved-integration-state-checksum>"
+git -C "$LANDING" merge-base --is-ancestor <approved-local-ref-sha> "$LANDING_HEAD"
+cd "$PROJECT_ROOT"; git worktree remove "$PKG"
+REF=refs/heads/wp/<feature>/<WP-ID>
+if git symbolic-ref -q "$REF"; then exit 1; fi
+test "$(git rev-parse "$REF")" = "<approved-local-ref-sha>"
+git update-ref --no-deref -d "$REF" <approved-local-ref-sha>
 ```
+Keep integration/sidecar safety nets through delivery. Never batch-delete or force-remove dirty/unmerged state.
 
-## Package Worktree and Branch Removal
-After a package branch is proven integrated into `feature/<feature>`:
+## Planned Feature and Sidecar Pushes
+These retain existing Execution Contract/checkpoint gates; no user-known SHA/snapshot fields are implied:
 ```bash
-cd "$PROJECT_ROOT"
-git worktree remove .worktrees/<feature>/wp-<WP-ID>
-cd "$PROJECT_ROOT/.worktrees/<feature>/merge"
-git branch -d wp/<feature>/<WP-ID>
-```
-Run `git branch -d` from the feature integration worktree so Git checks merge status against
-`feature/<feature>`, not the root worktree's current branch. Do not remove the feature integration or
-artifact sidecar worktree at package-cleanup time; they stay available for verification, review, audit,
-final merge, and artifact checkpoints.
-
-## Push and Merge-to-Target Separation
-Pushing a feature branch publishes review/test state only:
-```bash
+set -euo pipefail
 cd "$PROJECT_ROOT/.worktrees/<feature>/merge"
 git push -u origin feature/<feature>
 ```
-This exact `origin feature/<feature>` push is covered by an approved implement Execution Contract only
-when named there. It does not approve target merge/push, sidecar cleanup, or any remote deletion.
-Never infer merge approval from "push it", "looks good", successful checks, remote branch creation, or
-review requested. Merge `feature/<feature>` into `<target-ref>` only when the user explicitly names or
-approves that exact target branch.
-
-Sidecar checkpoint pushes are separate and run only from the artifact worktree:
 ```bash
+set -euo pipefail
 cd "$PROJECT_ROOT/.worktrees/<feature>/artifacts"
 git push -u origin artifacts/<feature>
 ```
-They target only `origin artifacts/<feature>` at accepted gates; never push `main`, `feature/<feature>`,
-or `wp/<feature>/<WP-ID>` as an artifact side effect.
+Neither approves target delivery or cleanup; never merge artifact refs into code history.
 
-## Pre-Target-Merge Safety Checks
-Before an approved merge into `<target-ref>`:
+## Immutable Target Merge and Push
+Merge approval binds source/pre-target SHAs, snapshot, strategy, integration ref/worktree. Compare immutable SHAs:
 ```bash
-cd "$PROJECT_ROOT/.worktrees/<feature>/merge"
-git status
-git log --oneline -5
-git merge-base --is-ancestor feature/<feature> <target-ref>
+set -euo pipefail
+if git merge-base --is-ancestor <source-sha> <pre-merge-target-sha>; then exit 0
+else S=$?; test "$S" -eq 1; fi
+cd "$PROJECT_ROOT"
+git worktree add -b integrate/<delivery>-target .worktrees/<delivery>/target-merge <pre-merge-target-sha>
+cd .worktrees/<delivery>/target-merge
+test "$(git rev-parse HEAD)" = "<pre-merge-target-sha>"
+git merge --no-ff <source-sha> -m "merge: <delivery> -- <summary>"
+RESULT_SHA="$(git rev-parse HEAD)"
+printf 'RESULT_SHA=%s\n' "$RESULT_SHA"
 ```
-The integration worktree must be clean and contain the intended package merges. If the ancestry check
-exits 0, feature is already merged; skip the target merge and report the no-op. Otherwise resolve any
-uncertainty before merging.
+Status 1 alone means merge needed. A clean approved non-root target checkout may substitute. Locked local target
+stays unchanged; report only the integration result, then request target-push approval.
 
-After final integrated review/audit acceptance and before target merge/cleanup, run the final sidecar
-checkpoint from `.worktrees/<feature>/artifacts` so final evidence is durable on `origin artifacts/<feature>`.
-Do not merge `artifacts/<feature>` into `<target-ref>` or any deliverable branch.
+Target push binds remote/ref, result, and expected remote SHA. Recapture, prove FF ancestry, and exact server CAS:
+```bash
+set -euo pipefail
+RESULT_SHA=<result-sha>; EXPECTED=<expected-remote-target-sha>; TARGET_REF=refs/heads/<target-ref>
+cd "$PROJECT_ROOT/.worktrees/<delivery>/target-merge"
+test "$(git rev-parse HEAD)" = "$RESULT_SHA"
+REMOTE_LINE="$(git ls-remote --heads <remote> "$TARGET_REF")"; test -n "$REMOTE_LINE"
+REMOTE_SHA="${REMOTE_LINE%%$'\t'*}"; test "$REMOTE_SHA" = "$EXPECTED"
+git merge-base --is-ancestor "$EXPECTED" "$RESULT_SHA"
+git push --force-with-lease="$TARGET_REF:$EXPECTED" <remote> "$RESULT_SHA:$TARGET_REF"
+```
+Bare force, unqualified lease, or missing ancestry proof is forbidden. Push failure preserves safety nets.
 
-Merge from a worktree that is already on `<target-ref>`. Never switch the root worktree. If none exists,
-create a temporary target-merge worktree:
+## Feature Cleanup
+Recapture the current delivery landing state before removing feature worktree/ref; stale approved SHA is insufficient:
 ```bash
-cd "$PROJECT_ROOT"
-git worktree add .worktrees/<feature>/target-merge <target-ref>
-cd .worktrees/<feature>/target-merge
-git merge --no-ff feature/<feature> -m "feat: <feature> -- <summary>"
-git push origin <target-ref>
+set -euo pipefail
+FEATURE_WT="$PROJECT_ROOT/.worktrees/<feature>/merge"
+LANDING="$PROJECT_ROOT/.worktrees/<feature>/target-merge"
+test "$(git -C "$FEATURE_WT" rev-parse HEAD)" = "<approved-worktree-head>"
+test "$RECAPTURED_WORKTREE_STATE_CHECKSUM" = "<approved-worktree-state-checksum>"
+LANDING_HEAD="$(git -C "$LANDING" rev-parse HEAD)"
+test "$LANDING_HEAD" = "<approved-delivery-result-sha>"
+test "$RECAPTURED_LANDING_STATE_CHECKSUM" = "<approved-delivery-state-checksum>"
+git -C "$LANDING" merge-base --is-ancestor <approved-local-ref-sha> "$LANDING_HEAD"
+cd "$PROJECT_ROOT"; git worktree remove "$FEATURE_WT"
+REF=refs/heads/feature/<feature>
+if git symbolic-ref -q "$REF"; then exit 1; fi
+git update-ref --no-deref -d "$REF" <approved-local-ref-sha>
+git worktree remove "$LANDING"
 ```
-If `<target-ref>` is already checked out elsewhere, use that existing worktree without switching it.
-Target merge and target push are one safety boundary and require explicit approval for the named target.
-If target push fails, keep integration, artifact sidecar, target-merge worktree, and feature ref.
+Temporary integration refs need their own direct-ref SHA/state binding. Remote deletion is separately approved.
 
-## Final Code Cleanup Rules
-Only after the authorized merge into `<target-ref>` and push are complete:
+## Sidecar, Bugfix/Hotfix, and Spike Cleanup
+Sidecar/spike require exact HEAD/state/status proof and direct-ref CAS:
 ```bash
-cd "$PROJECT_ROOT"
-git worktree remove .worktrees/<feature>/merge
-cd "<worktree-on-target-ref>"
-git branch -d feature/<feature>
-cd "$PROJECT_ROOT"
-if [ -d .worktrees/<feature>/target-merge ]; then
-  git worktree remove .worktrees/<feature>/target-merge
-fi
+set -euo pipefail
+WT=<approved-sidecar-or-spike-worktree>
+REF=refs/heads/artifacts/<feature> # OR: REF=refs/heads/spike/<name>
+test "$(git -C "$WT" rev-parse HEAD)" = "<approved-worktree-head>"
+test "$RECAPTURED_WORKTREE_STATE_CHECKSUM" = "<approved-worktree-state-checksum>"
+test -z "$(git -C "$WT" status --porcelain)"
+cd "$PROJECT_ROOT"; git worktree remove "$WT"
+if git symbolic-ref -q "$REF"; then exit 1; fi
+git update-ref --no-deref -d "$REF" <approved-local-ref-sha>
 ```
-Rules:
-- Never remove safety-net worktrees before merge and push complete.
-- Never delete a package branch before merge-base proves it is included.
-- Never delete another active feature namespace while cleaning up the current feature.
-- If a worktree is dirty or a branch is not merged, stop; do not force-remove by default.
-- Remote feature branch deletion is separate and must be named exactly in an approved contract.
-
-## Artifact Sidecar Cleanup
-Release may default exact sidecar cleanup inside its approved Release Contract. Otherwise offer cleanup only after
-final target merge/push is complete and ask the user to approve the exact actions, either separately or as one explicit list:
-- remove local artifact worktree `.worktrees/<feature>/artifacts`;
-- delete local sidecar branch `artifacts/<feature>`;
-- delete remote sidecar branch `origin/artifacts/<feature>`.
-
-Treat the sidecar as active and keep it if package/integration/review/audit work remains, target push did
-not complete, the artifact worktree is dirty without an approved commit/checkpoint, or another feature uses
-that namespace. When cleanup is approved:
+Bugfix/hotfix additionally recapture current landing HEAD/state and prove repair SHA ancestry before removal:
 ```bash
-cd "$PROJECT_ROOT/.worktrees/<feature>/artifacts"
-git status --short
-cd "$PROJECT_ROOT"
-git worktree remove .worktrees/<feature>/artifacts
-cd "<worktree-not-on-artifacts-ref>"
-git branch -D artifacts/<feature>
-git push origin --delete artifacts/<feature>
+set -euo pipefail
+REPAIR_WT=<approved-bugfix-or-hotfix-worktree>; LANDING=<approved-landing-worktree>
+test "$(git -C "$REPAIR_WT" rev-parse HEAD)" = "<approved-worktree-head>"
+test "$RECAPTURED_WORKTREE_STATE_CHECKSUM" = "<approved-worktree-state-checksum>"
+LANDING_HEAD="$(git -C "$LANDING" rev-parse HEAD)"
+test "$LANDING_HEAD" = "<approved-landing-head>"
+test "$RECAPTURED_LANDING_STATE_CHECKSUM" = "<approved-landing-state-checksum>"
+git -C "$LANDING" merge-base --is-ancestor <approved-local-ref-sha> "$LANDING_HEAD"
+cd "$PROJECT_ROOT"; git worktree remove "$REPAIR_WT"
+REF=<approved-full-direct-ref>
+if git symbolic-ref -q "$REF"; then exit 1; fi
+git update-ref --no-deref -d "$REF" <approved-local-ref-sha>
 ```
-Run only the exact approved or Release Contract-listed subset. Local `-D` is permitted only for the exact
-sidecar ref after final target merge/push approval because the orphan branch is intentionally not merged.
-If approved cleanup fails, stop and report the remaining blocker; do not silently leave an approved sidecar ref/worktree behind.
-
-## Bugfix, Hotfix, and Spike Cleanup
-Feature bugfix branches should be merged into `feature/<feature>` and checked before removal:
-```bash
-cd "$PROJECT_ROOT/.worktrees/<feature>/merge"
-git merge-base --is-ancestor bugfix/<name> HEAD
-```
-Production hotfix worktrees stay until the hotfix merge to `<base-branch>` and push complete:
-```bash
-cd "$PROJECT_ROOT"
-git worktree remove .worktrees/hotfix-<name>
-cd "<worktree-on-base-branch>"
-git branch -d hotfix/<name>
-cd "$PROJECT_ROOT"
-if [ -d .worktrees/hotfix-merge-<name> ]; then
-  git worktree remove .worktrees/hotfix-merge-<name>
-fi
-```
-Spike branches are disposable only after evidence and durable changes have been captured elsewhere:
-```bash
-cd "$PROJECT_ROOT"
-git worktree remove .worktrees/spike-<name>
-git branch -D spike/<name>
-```
-Do not use spike cleanup rules for package, bugfix, hotfix, feature, or artifact sidecar branches.
+Remote deletion, when approved, runs its exact remote-SHA lease only after successful local CAS. Disposable rules
+never apply to package, feature, bugfix, hotfix, or integration refs.

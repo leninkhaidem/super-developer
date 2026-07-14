@@ -1,9 +1,9 @@
 ---
 name: implement
 description: >
-  Executes reviewed greenfield Slice-first planned-feature packages. Use when the user asks to
-  implement, execute, build, or continue an approved planned-feature package workflow. Do not use for
-  plan authoring, plan review, ordinary PR review, audit, or dashboard status.
+  Executes reviewed Slice-first planned-feature packages for approved changes. Use when asked to implement,
+  execute, build, or continue an approved planned-feature package workflow. Do not use for plan authoring,
+  plan review, ordinary PR review, audit, or dashboard status.
 ---
 
 # Implement
@@ -92,8 +92,9 @@ affected reruns → final readiness for the same integrated state.
 - Execution Contract is not approved, or requested git/remote action differs from the approved contract.
 - A package exposes unassigned material Slice obligations, unresolved plan defects, unapproved deferrals,
   weak proof evidence, failed verification, stale reports, or ignored proof/report artifacts committed to git.
-- Correct work requires product/design change, scope expansion, unapproved dependency/service change,
-  existing-feature contract change, unsafe command, credentials/external facts, destructive action, or risk acceptance.
+- Correct work requires product/design change, scope expansion, an existing-system contract change not explicitly
+  approved in accepted artifacts/Execution Contract, an unapproved dependency/service change, unsafe command,
+  credentials/external facts, destructive action, or risk acceptance.
 - The root worktree would need branch switching, or any target/main merge or push lacks explicit approval
   for that exact target.
 - Final review-code readiness or audit prerequisites are not fresh and closed.

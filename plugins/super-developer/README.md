@@ -8,7 +8,8 @@ One plugin. 15 skills. No manual git juggling.
 
 ## What It Does
 
-Super Developer replaces scattered prompts with a file-backed workflow. Planned-feature work uses one greenfield model:
+Super Developer replaces scattered prompts with a file-backed workflow. New and existing-system changes use one
+fresh Slice-first planned-feature artifact model:
 
 ```text
 conceptualize (optional Index + Slices)
@@ -175,7 +176,7 @@ Semgrep findings preserve Semgrep severity but are advisory by default. They do 
 |---|---|---|
 | **Planned-feature pipeline** | Explicit or inherited feature context plus `.tasks/<feature>/` artifacts and reviewed implementation state. | Consumes package proof/report signals, records audit readiness, and routes serious fixes through proof/report freshness rules. |
 | **PR** | PR URL, `owner/repo#N`, or `#N` in a repository with `gh` available. | Review-only for code changes; GitHub side effects require the PR action gate. |
-| **Local** | No planned-feature context and no PR identifier. | Reviews staged, unstaged, or branch diff; local fix actions require the local action gate and fix verification. |
+| **Local** | No planned-feature context and no PR identifier. | Reviews one complete caller-bound or locally captured state: committed base-to-HEAD plus staged, unstaged, and untracked files together. Repairs require the local action gate, owning repair contract when supplied, rebinding, and fix verification. |
 
 Ordinary PR/local review does not inherit planned-feature Slice, proof, report, or audit obligations unless planned-feature artifacts are explicitly in scope.
 
@@ -312,6 +313,7 @@ plugins/super-developer/
 |   |   +-- references/package-integration-gates.md
 |   +-- review-code/
 |   |   +-- SKILL.md
+|   |   +-- references/fix-implementer-contract.md
 |   |   +-- references/local-workflow.md
 |   |   +-- references/pipeline-report.md
 |   |   +-- references/pr-workflow.md
@@ -335,7 +337,9 @@ plugins/super-developer/
 |   |   +-- references/cleanup-safety.md
 |   |   +-- references/feature-package-workflow.md
 |   +-- perspectives/SKILL.md
-|   +-- diagnose-and-fix/SKILL.md
+|   +-- diagnose-and-fix/
+|   |   +-- SKILL.md
+|   |   +-- references/fix-implementer-contract.md
 |   +-- readme-polish/
 |   |   +-- SKILL.md
 |   |   +-- references/banner-examples.md
