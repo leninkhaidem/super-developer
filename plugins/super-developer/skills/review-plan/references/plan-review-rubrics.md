@@ -33,8 +33,17 @@ Check whether:
 - beyond internal consistency, the plan covers the requirements, edge cases, failure modes, defaults, and observable surfaces a feature of this kind is reasonably expected to deliver; flag plausible expected-but-absent obligations as findings;
 - the artifact model remains Slice-first and package-based;
 - every material Slice H3 is assigned, context-only with a valid reason, or durably approved as deferred/out of scope/rejected/narrowed;
-- package boundaries align with architecture, Slice obligations, dependency direction, proof/report surfaces, and verification expectations;
-- sequencing prevents broken intermediate states and unsafe parallel work without serializing substantial independent packages by convenience;
+- package boundaries align with architecture, Slice obligations, dependency direction, proof/report surfaces,
+  verification expectations, semantic closure complexity, and fixed per-package gate cost; numeric file,
+  scenario, or command counts are not treated as universal thresholds;
+- sequencing prevents broken intermediate states and unsafe parallel work without serializing substantial
+  independent packages by convenience;
+- packages with materially unresolved execution feasibility identify repo-backed command/harness/contract/fixture
+  sources, environment/data preconditions, isolation and cleanup, cost class, the smallest credible bounded
+  probe or broad-only justification, broad-check placement, accepted testing-workflow provenance, and a
+  spike/replan trigger; cost or breadth alone does not trigger a profile;
+- unresolved static feasibility is a plan finding; unresolved empirical behavior that must be observed before a
+  safe commitment requires spike routing rather than implementation-time guessing;
 - a simpler lower-risk approach can produce the same outcome without weakening Slice commitments;
 - user-visible tradeoffs and risk acceptance are escalated instead of silently decided;
 - foreseeable quality-contract risks are visible, actionable, and verifiable;
@@ -52,6 +61,8 @@ Check whether:
 - package Markdown proof/report paths match the registry and are usable by `sliceproof.py`;
 - package dependencies and parallel assumptions are safe, with dependency edges limited to concrete sequencing, file-impact, shared-contract, Slice/proof/report, or subsystem-safety reasons;
 - verification expectations are observable and tied to Slice/package obligations and changed behavior;
+- triggered execution-feasibility profiles are file-backed, executable under the accepted project workflow,
+  bounded, deterministic where controllable, cleanup-aware, and sufficient to close the package independently;
 - caller contracts, public API continuity, trust boundaries, invalid input handling, migration/rollback/idempotency, data integrity, performance, and concurrency concerns are represented where relevant;
 - no package relies on future agents discovering unprojected requirements from raw Slice prose.
 

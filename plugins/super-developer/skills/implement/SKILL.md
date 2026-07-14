@@ -41,22 +41,24 @@ affected reruns → final readiness for the same integrated state.
 1. Resolve the selected artifact root and code root; load `../../references/artifact-store.md` and
    `../../references/tool-usage.md`; run `sliceproof.py validate-plan`; read artifact-root `SPEC.md`,
    registry, package Markdown, and safe assigned Slices only after path validation.
-2. Load `references/execution-contract.md`; present the Execution Contract with artifact root, code root,
-   sidecar ref/worktree, base/feature/target refs, covered feature push, sidecar checkpoints,
-   package code worktrees, artifact proof/report paths, Slice obligations, verification expectations,
-   package verification depth, stop conditions, and auto-resolve vs step-by-step choice.
+2. For triggered execution-feasibility profiles, read accepted/current `docs/testing/workflow.md` and its
+   relevant companions before contract approval; import command budgets, preconditions, and cleanup policy.
+   If missing, stale, or insufficient, stop and invoke `testing` to establish/update it rather than guessing.
+   Then load `references/execution-contract.md` and present roots/refs/worktrees, pushes/checkpoints,
+   package/proof/report/Slice scope, workflow provenance, verification depth, stops, and execution mode.
 3. After approval, use the `worktree` skill for setup commands and worktree safety; create/resume the
    artifact sidecar plus integration/package code worktrees without switching the root worktree.
-4. Load `references/package-dispatch.md`; choose the largest safe useful package batch, create proof
-   placeholders in the artifact root, update registry status only as bookkeeping when used, and construct
-   compact package-agent prompts with artifact-root paths and separate code worktree paths.
+4. Load `references/package-dispatch.md`; run conditional readiness, retire shared uncertainty before affected
+   fanout, and choose the largest safe useful ready batch. If readiness exposes a plan-owned empirical blocker,
+   stop affected dispatch, invoke `spike-to-plan`, route evidence through `implementation-plan` and `review-plan`,
+   and revalidate before resuming. Otherwise create proof placeholders and compact worker packets.
 5. When package agents return, load `references/package-integration-gates.md`; validate `SELF_REVIEW`,
    artifact-root proof Markdown, commands/inspections, Slice plan-defect status, artifact-root report,
    `validate-package-complete`, post-merge freshness, source-only package branches, and ignored `.tasks`
    handling.
-6. If repair is needed, use `references/package-dispatch.md` to construct repair or verifier follow-up
-   prompts; delegate through fresh agents, classify affected surfaces, then refresh proof/report state,
-   rerun proof validation, package verification, and package-completion checks before completion.
+6. If repair is needed, use `references/package-dispatch.md` for bounded follow-up packets; classify affected
+   surfaces and attempt identity, require material progress, and open the circuit on unchanged non-closing work
+   or uncertain cleanup. After repair, refresh proof/report state and rerun the required focused/full gates.
 7. Mark packages done only after integration gates pass; merge through the integration worktree,
    checkpoint sidecar artifacts at package-delivery boundaries, keep package branches/worktrees until
    cleanup gates pass, and loop to downstream packages.
@@ -71,6 +73,9 @@ affected reruns → final readiness for the same integrated state.
 
 ## Load if needed
 
+- Dispatching a package worker → pass `references/package-agent-contract.md`; worker reads it before action
+- Dispatching a repair worker → pass `references/repair-agent-contract.md`; worker reads it before action
+- Dispatching package verification → pass `references/package-verification.md`; verifier reads it before action
 - Package sizing/dependency semantics ambiguity → `../../references/work-packages.md`
 - Proof/report freshness or non-bypass dispute beyond integration gates → `../../references/package-lifecycle.md`
 - Local model override/adaptive selection → `../../references/model-preferences.md`
@@ -94,5 +99,7 @@ affected reruns → final readiness for the same integrated state.
 
 ## Output
 
-Return package status, proof/report paths and freshness, verification commands/results, commits/branches
-merged, repairs delegated, blockers, feature push state, and next gate.
+Return package status, testing-workflow provenance, readiness decisions/probes, proof/report freshness,
+bounded command outcomes,
+non-gating stage timing when available, repair identities/progress/circuit state, verification results,
+commits/branches merged, blockers, feature push state, and next gate.

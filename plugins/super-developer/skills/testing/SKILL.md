@@ -2,9 +2,8 @@
 name: testing
 description: >
   Establish, document, and apply project-specific testing workflows. Use for testing strategy,
-  workflow setup/update, test authoring or alteration, and test execution requests; authoring and
-  execution run through approved workflow docs and delegation. Do not use for bug fixing, feature
-  implementation, code review, audit, or release work.
+  workflow setup/revision, test authoring/alteration, or execution. Do not use for bug fixes,
+  feature implementation, code review, audit, or release.
 ---
 
 # Testing
@@ -24,10 +23,8 @@ instructions. Do not default to standalone test edits or commands.
   companion docs; use skill references only as optional proposal/adaptation aids.
 - Choose an explicit mode before acting: initialize/update workflow, author/alter tests using an
   accepted/current canonical workflow, or delegate execution-oriented work.
-- Explicit testing-workflow lifecycle requests include initialize, update, adopt, migrate, link,
-  and revise, including greenfield repositories with no/minimal tests, no strategy, or no canonical
-  workflow. For these, inspect repo evidence, load `references/strategy-interview.md`, and run the
-  strategy interview; existing docs are source material, not a skip condition.
+- Explicit initialize/update/adopt/migrate/link/revise requests require a strategy interview after repository
+  inspection, including greenfield or minimal-test repositories; existing docs are source material, not a skip.
 - Ordinary authoring, alteration, or execution may use an accepted/current workflow without the
   full interview when it adequately answers the task; missing, stale, ambiguous, conflicting,
   unsafe, or insufficient workflows fail closed to establish/update mode.
@@ -59,10 +56,10 @@ instructions. Do not default to standalone test edits or commands.
 2. Load or establish the workflow state. Check `docs/testing/workflow.md` first; if missing, stale,
    ambiguous, conflicting, unsafe, refused, or not accepted/current, load
    `references/workflow-contract.md` and use bounded read-only candidate discovery only as source
-   material before establishing or updating the canonical entry. For greenfield/no-strategy repos or
-   explicit initialize, update, adopt, migrate, link, or revise requests, load
-   `references/strategy-interview.md` and do not use existing or absent workflow state to skip the
-   interview. Do not edit tests, run commands, or delegate until
+   material before establishing or updating the canonical entry. For greenfield/no-strategy repositories
+   or explicit initialize, update, adopt, migrate, link, or revise requests, load
+   `references/strategy-interview.md`, run it before accepted workflow-doc writes, and do not use existing
+   or absent workflow state to skip it. Do not edit tests, run commands, or delegate until
    `docs/testing/workflow.md` exists and is accepted/current for the task.
 3. For initialization/update, inspect relevant repo evidence, load `references/strategy-interview.md`,
    optionally load proposal references, recommend the project-fit workflow, ask focused
@@ -77,8 +74,8 @@ instructions. Do not default to standalone test edits or commands.
    `references/delegation-packets.md`, build an instruction packet naming `docs/testing/workflow.md`
    and relevant companions, then delegate. The executor must report that it consulted the workflow
    before edits or commands.
-6. Treat executor output as evidence, not authority. Verify the report includes workflow paths,
-   commands/files changed, command classifications, sanitized evidence, cleanup/timeout status,
+6. Treat executor output as evidence, not authority. Verify workflow paths, files changed, command identity/
+   classification/bounds, readiness order, sanitized evidence, progress/termination/cleanup, rerun deltas,
    product-failure routing, blocked approvals, and unresolved risks.
 7. If optional generic, web, or browser references are useful, load them only after canonical
    workflow state is resolved or while drafting an initialization/update proposal; never let them
@@ -125,5 +122,5 @@ instructions. Do not default to standalone test edits or commands.
 Return canonical workflow status, consulted paths/candidates, recommendation or adoption decision,
 approval status, docs changed or proposed, approved plan/report linkage, selected execution choices,
 delegation packet or executor receipt/report, files changed by allowed category, commands proposed/run
-with classification/timeout/outcome, sanitized evidence, skipped/not-run items, redaction and cleanup
-status, blocked approvals, product-failure routing, and unresolved risks.
+with identity/classification/bounds/outcome, readiness/rerun decisions, sanitized evidence, skipped/not-run
+items, progress/termination/redaction/cleanup status, blocked approvals, product-failure routing, and risks.

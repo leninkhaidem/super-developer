@@ -1,65 +1,76 @@
 ---
 name: spike-to-plan
 description: >
-  Runs a bounded feasibility spike before implementation planning, discards exploratory code, and
-  hands observed evidence to implementation-plan. Use when planning depends on uncertain API/library
-  behavior, integration feasibility, performance/concurrency risk, data-model/UX uncertainty, or an
-  explicit spike/prototype request. Do not use for routine implementation or code review.
+  Runs a bounded feasibility spike and hands observed evidence to implementation-plan. Use when planning depends
+  on unresolved empirical API, integration, performance, concurrency, data, or UX behavior. Do not use for
+  routine implementation or code review.
 ---
 
 # Spike to Plan
 
-Answer the smallest empirical question needed to make a reliable greenfield implementation plan.
+Answer the smallest empirical question needed for a reliable greenfield plan, discard exploratory code, and
+return observed evidence without turning the spike into implementation.
 
 ## Always
 
-- Treat spike code as disposable evidence, not production implementation.
-- Prefer repo/docs/official API evidence before writing exploratory code.
-- Keep the spike isolated, bounded, reversible, and focused on one planning assumption.
-- Preserve user work: do not stash, reset, overwrite, or discard dirty changes without approval.
-- Do not persist exploratory code as planned-feature artifacts.
-- Accepted outcomes that affect planning must remain durable through `SPEC.md` constraints/non-goals,
-  package Markdown notes/verification expectations, Slice approval/deferral notes, or registry
-  bookkeeping.
+- Treat spike code and temporary harnesses as disposable evidence, not production implementation.
+- Prefer repository, documentation, and official API evidence before exploratory code or commands.
+- Keep work isolated, bounded, reversible, and focused on one material planning assumption.
+- Preserve user work; never stash, reset, overwrite, or discard dirty changes without approval.
+- Apply the shared command runtime envelope to every command: identity, provenance, scope, timeout, progress,
+  completion, owned-process termination, cleanup, and outcome.
+- When a probe uses project tests, harnesses, live/browser services, or shared data, require the accepted/current
+  project testing workflow and relevant companions. Invoke `testing` to establish/update them when absent,
+  stale, or insufficient; do not invent project budgets or cleanup policy.
+- Timeout, uncertain termination, or uncertain cleanup is inconclusive evidence, never a successful observation.
+- Do not persist exploratory code as planned-feature artifacts. Persist accepted planning outcomes later through
+  normal specification, package, Slice approval/deferral, or registry ownership.
 
 ## Do
 
-1. State the planning assumption, success/failure evidence, constraints, and non-goals.
-2. Inspect existing code, tests, docs, and authoritative library/API docs first.
-3. Spike only if the assumption remains material and unresolved.
-4. Use an isolated temporary branch/worktree when practical; use the current tree only for small low-risk probes with a clean or user-approved state.
-5. Run the minimum commands/scenarios/measurements needed to accept or reject the assumption.
-6. Delete throwaway code, temporary harnesses, branches, and worktrees after extracting evidence.
-7. Hand concise observed evidence to `implementation-plan` through a fresh Skill-tool/sub-agent
-   invocation; do not draft planned-feature artifacts inline.
+1. State one planning assumption, the decision it blocks, success/failure evidence, constraints, and non-goals.
+2. Inspect existing code, tests, repository docs, and authoritative library/API docs before probing.
+3. Stop the spike when static evidence resolves the assumption; report that evidence directly.
+4. Before any command, load `../../references/tool-usage.md`. If project testing/harness policy applies, read
+   accepted/current `docs/testing/workflow.md` and relevant companions; invoke `testing` and stop when they are
+   missing, stale, conflicting, or insufficient.
+5. Select an isolated temporary branch/worktree for code, service, shared-data, or multi-command probes. Use the
+   current tree only for a small read-only or low-risk probe with clean or explicitly approved state.
+6. Define the probe contract: command identity/provenance, cwd/scope, expected writes and signal, explicit timeout,
+   progress/completion, termination/cleanup, approval state, and the smallest credible bounded evidence path.
+   If no narrower probe can answer the assumption, document why before an explicitly bounded broad-only probe.
+7. Run one bounded stage at a time and return control after failure. Do not repeat an unchanged command, enlarge a
+   timeout to mask missing progress, or hide iterative follow-ups inside one opaque command/tool call.
+8. Record observed results and failed/rejected approaches. Distinguish passed observation, rejected assumption,
+   blocked precondition, unsafe-needs-approval, and inconclusive/cleanup-uncertain outcomes.
+9. Delete throwaway code, harnesses, branches, and worktrees after extracting evidence. Verify owned-process and
+   data cleanup; stop with the exact residual state when cleanup fails or is uncertain.
+10. Send a concise spike brief to a fresh `implementation-plan` invocation. Do not draft planned-feature artifacts
+    inline or treat exploratory code as a head start on implementation.
 
 ## Load if needed
 
-- Official library/API docs or examples → only when repo docs/source do not resolve the assumption.
-- Worktree isolation details → invoke `worktree` only when a temporary branch/worktree is needed.
-- Durable artifact authoring → invoke `implementation-plan` through the Skill tool or a fresh
-  sub-agent only after evidence is extracted and the spike brief is ready.
-
-## Handoff to Implementation Plan
-
-Return a spike brief for a fresh `implementation-plan` Skill-tool/sub-agent invocation with:
-
-- planning question answered or still blocked;
-- evidence sources, commands, scenarios, measurements, traces, screenshots, or fixtures used;
-- observed result, including failed or rejected approaches;
-- recommended planning direction and why evidence supports it;
-- remaining risks and package verification expectations;
-- durable planning destinations: `SPEC.md`, package Markdown, Slice approval/deferral notes, or registry bookkeeping;
-- cleanup performed and any preserved fixture/repro artifact.
+- Command safety, bounds, termination, or cleanup → `../../references/tool-usage.md`
+- Official library/API evidence → only when repository evidence does not resolve the assumption
+- Project test/harness/live/browser workflow is missing or stale → invoke `testing`
+- Temporary branch/worktree isolation → invoke `worktree`
+- Durable feature artifacts after evidence is accepted → invoke `implementation-plan`
 
 ## Stop if
 
-- Evidence is insufficient to recommend a direction.
-- External access, credentials, production data, paid services, or unsafe commands are required.
-- The spike would require invasive production changes, broad refactors, dependency upgrades, or public contract changes.
-- Dirty worktree state prevents safe isolation and the user has not approved a current-tree probe.
-- A planning decision changes product behavior, risk acceptance, or scope and needs user approval.
+- The assumption is not material to a planning decision or several unrelated questions remain bundled.
+- A required command lacks authoritative provenance, an explicit bound, observable completion, termination, or
+  cleanup ownership.
+- Evidence needs external access, credentials, production data, paid services, or an unsafe/unapproved action.
+- The probe requires invasive production changes, broad refactoring, dependency upgrades, or public-contract
+  changes rather than disposable isolation.
+- Dirty state prevents safe isolation and the user has not approved the exact current-tree probe.
+- Timeout, interruption, or failed cleanup leaves process/data/environment state uncertain.
+- The resulting decision changes behavior, scope, risk acceptance, or a locked commitment without user approval.
 
 ## Output
 
-Report observed facts only, then either invoke `implementation-plan` as a fresh Skill-tool/sub-agent with the spike brief or state the exact blocker.
+Return the planning question and disposition; repository/official evidence; testing-workflow provenance when
+applicable; commands with identity, bounds, progress/termination/cleanup outcome; observed result and rejected
+approaches; broad-only justification when used; remaining risks and verification implications; cleanup status and
+residual state; and either the fresh `implementation-plan` handoff or the exact blocker.

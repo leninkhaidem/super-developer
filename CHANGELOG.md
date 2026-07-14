@@ -6,6 +6,16 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+### Added
+- Added closure-complexity package shaping and conditional execution-feasibility review/readiness so costly or uncertain evidence is resolved before broad fanout.
+- Added a shared bounded-command runtime envelope, progress-sensitive repair circuit breaking, and non-gating execution observations.
+
+### Changed
+- Changed testing delegation and workflow guidance to require contract/fixture preflight, bounded staged execution, explicit process cleanup, and evidence-backed reruns.
+
+### Fixed
+- Fixed revised skill routing and worker contracts to meet frontmatter budgets and remove hidden reference hops.
+
 ## [v1.36.4] - 2026-07-13
 
 ### Fixed

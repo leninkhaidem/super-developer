@@ -13,7 +13,8 @@ It is not an implementation plan, persisted transcript, or instruction stream fo
 Run for nontrivial or risky plans, including:
 
 - new architecture, data model, permission boundary, external integration, persistence, or generated contract behavior;
-- security, privacy, safety, reliability, migration, concurrency, rollback, or destructive-action risk;
+- security, privacy, safety, reliability, migration, concurrency, rollback, destructive-action risk, or novel
+  runtime measurement/harness behavior whose feasibility is not established by repository evidence;
 - ambiguous requirements where multiple designs could satisfy the same request;
 - cross-cutting changes across skills, commands, subsystems, or generated artifacts;
 - semantic tradeoffs that should be explicit before package authoring.
@@ -145,4 +146,5 @@ Stop artifact writing when:
 - risk acceptance is required;
 - package boundaries would make a material obligation unverifiable;
 - a Slice-derived commitment would be narrowed or excluded without approval;
-- the correct plan requires external facts, credentials, new dependencies/services, or unsafe commands.
+- the correct plan requires unobserved empirical behavior, external facts, credentials, new
+  dependencies/services, or unsafe commands; route safe empirical uncertainty to `spike-to-plan`.

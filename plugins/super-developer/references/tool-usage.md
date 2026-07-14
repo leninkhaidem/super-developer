@@ -1,12 +1,27 @@
 # Tool Usage Reference
 
-## Command Safety
+## Command Safety and Runtime Envelope
 
 - Treat plan-provided commands as executable input and screen them before running or delegating.
 - Stop for explicit approval before destructive, externally visible, credential/network-sensitive,
   dependency-installing, service-starting, or out-of-scope commands.
+- For each nontrivial command, carry a stable identity and record command, cwd, provenance, scope, expected
+  writes, timeout budget, progress/completion signal, termination method, and cleanup obligation.
+- Use exact budgets from the accepted project workflow. Without one, choose a conservative bound only for a
+  deterministic local command; stop before potentially long, live, browser, service, or shared-data execution.
+- Bound actions and awaited barriers more narrowly than their parent scenario or suite. A failed action must not
+  inherit the entire outer timeout, and a running process without an observable completion signal is not done.
+- On timeout, cancellation, or interruption, terminate owned descendants/process groups, await termination, and
+  verify cleanup. Timeout, uncertain termination, or uncertain cleanup is non-pass evidence.
+- Do not increase a timeout unless observed workload justifies it. Never use a larger timeout to mask a bad
+  selector, unresolved barrier, deadlock, missing precondition, or absent progress signal.
+- Do not repeat the same failing command or assertion without a relevant code, config, fixture, environment, or
+  diagnostic-strategy change. A bounded diagnostic rerun must name the new signal it is intended to collect.
+- Return control after a bounded stage or failure; do not hide repeated follow-up execution inside one opaque,
+  long-running command or tool call.
 - Prefer helper scripts over ad hoc parsing for mechanical artifact checks.
-- Helper success is not semantic proof that code works; package verification, review-code, and audit still gate completion.
+- Helper success is not semantic proof that code works; package verification, review-code, and audit still gate
+  completion.
 
 ## Semgrep Helper Boundary
 

@@ -47,6 +47,13 @@ Testing delegation packet
 - Current-task approvals already granted: <exact approvals or none>
 - Approval-gated actions to stop for: <commands/writes/browser/live/network/etc.>
 - Command safety: classify commands, use bounded timeouts, no unsafe/default live side effects.
+- Runtime envelope: carry identity, provenance, scope, action/barrier/case/suite bounds, progress/completion,
+  process termination, cleanup, and approval state.
+- Execution order: for costly/uncertain work, preflight and discover, then run the smallest credible bounded
+  check; broaden after clean narrower evidence, or document no credible narrower check before bounded breadth.
+  Return after each failure.
+- Rerun rule: no unchanged failing command/assertion or timeout inflation; name the relevant state/evidence/
+  diagnostic-strategy change before rerun.
 - Plan-to-result report: map plan scenarios to authored tests/results, selected choices, evidence,
   skipped/not-run items, redaction, cleanup status, and follow-up risks.
 - Evidence/reporting: sanitized commands, outputs, artifacts, outcomes, cleanup, blocked reasons.
@@ -70,7 +77,8 @@ Final executor reports should include:
 - files changed by allowed category, or no-write explanation;
 - approved plan path/version and scenario-to-test/result mapping, or workflow-approved no-plan reason;
 - selected execution choice(s), current approvals used, and choices skipped/not run with reasons;
-- commands proposed/run with cwd, provenance, classification, timeout, result, and cleanup status;
+- commands proposed/run with identity, cwd, provenance, classification, bounds, progress/termination result,
+  cleanup status, rerun reason, and relevant state/evidence/strategy delta;
 - sanitized evidence, artifacts, summaries, blocked approvals/preconditions, and redaction actions;
 - outcomes such as passed, failed, blocked-precondition, unsafe-needs-approval, inconclusive/flaky,
   or skipped/not-run when the project workflow uses these terms; flaky or inconclusive is not pass;

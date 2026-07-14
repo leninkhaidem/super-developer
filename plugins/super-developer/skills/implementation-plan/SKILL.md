@@ -1,11 +1,8 @@
 ---
 name: implementation-plan
 description: >
-  Creates greenfield Slice-first planned-feature artifacts from approved requirements,
-  Conceptualize Index/Slices, or spike evidence. Use when the user asks to plan a feature,
-  break implementation into packages, write implementation tasks, create a task breakdown,
-  or prepare package artifacts. Do not use for direct coding, code review, audit, or
-  dashboard status.
+  Creates greenfield Slice-first feature plans and package artifacts. Use for implementation planning,
+  package breakdowns, or task artifacts. Do not use for coding, code review, audit, or status.
 ---
 
 # Implementation Plan
@@ -61,11 +58,13 @@ rules are required; do not preload references merely because they are named.
    happened or invoke `worktree` for that checkpoint before writing `.tasks/`. When no sidecar exists
    yet (direct planning without Conceptualize), create it through `worktree` before writing `.tasks/`,
    since `git worktree add` refuses a non-empty path.
-2. Check orchestration blockers before delegation: unsafe paths, unresolved product/design decisions,
-   unapproved overwrite of `.tasks/<feature>/`, or a required spike/risk acceptance. For nontrivial or
-   risky plans, run the design-preflight challenge in `references/design-preflight.md`—including its
-   `models.design-preflight` resolution and requirement-completeness pass—and resolve `COVERAGE_GAPS`,
-   `MUST_DECIDE`, and `BLOCKERS` before any artifact writing; skip only for narrow, low-risk plans.
+2. Check orchestration blockers before delegation: unsafe paths, unresolved decisions, overwrite, spike, or
+   risk acceptance. When repository evidence suggests materially unresolved execution feasibility, inspect
+   accepted/current `docs/testing/workflow.md` and relevant companions. If missing, stale, or insufficient,
+   invoke `testing` to establish/update it and stop planning until accepted; cost or breadth alone is not a
+   trigger. For nontrivial/risky plans, run `references/design-preflight.md` with its
+   `models.design-preflight` resolution and requirement-completeness pass; resolve `COVERAGE_GAPS`,
+   `MUST_DECIDE`, and `BLOCKERS` before artifact writing; skip only narrow, low-risk plans.
 3. If empirical evidence is required before planning, stop artifact writing and invoke `spike-to-plan`
    via fresh Skill-tool/sub-agent packet; do not guess or run the spike workflow inline.
 4. Resolve the planner packet's Semgrep state before planner dispatch. Use supplied resolved state
@@ -78,9 +77,13 @@ rules are required; do not preload references merely because they are named.
    - artifact root, code root, artifact ref, resolved feature/artifact slug, and any approved
      slug migration metadata;
    - approved requirements and selected source material;
+   - accepted testing-workflow path/version and relevant companions only for a triggered feasibility profile;
+     omit routine non-trigger state;
    - Conceptualize workspace/index and Slice paths relative to the artifact root when applicable;
    - path to `references/planner-agent-contract.md`;
-   - paths to required implementation-plan references and shared references;
+   - labeled action-point paths for artifact-store, Slice authority, Conceptualize projection,
+     design-preflight evidence, SPEC template, clean-code, work-package, canonical artifact model,
+     artifact-authoring, validation, tool-usage, and optional Semgrep contracts;
    - resolved Semgrep state: disabled, or enabled with privacy-mode, local cache/index/profile facts,
      approved setup side effects, and helper availability;
    - overwrite approval state, stop conditions, and expected output fields.
@@ -89,13 +92,20 @@ rules are required; do not preload references merely because they are named.
 7. From the code root, run `python3 plugins/super-developer/assets/sliceproof.py validate-plan \
    --artifact-root <artifact-root> --code-root <code-root> .tasks/<feature>/tasks.json` and route
    any non-mechanical repair back through a planner packet instead of patching artifacts inline.
-8. Report artifact root/ref, code root, feature path, SPEC/registry/package/proof/report paths,
-   package list with dependencies, parallel/serial rationale, authoritative Slice inventory or
-   Index-only/no-Slice state, approved deferrals, assumptions, validation result, and next gate.
+8. Report artifact root/ref, code root, feature and artifact paths, packages/dependencies, closure-complexity
+   and parallel/serial rationale, triggered execution-feasibility profiles, Slice inventory or no-Slice state,
+   approved deferrals, assumptions, validation result, and next gate.
 
 ## Load if needed
 
 - Artifact-root/code-root details exceed the workflow summary → `../../references/artifact-store.md`
+- Conceptualize inventory/projection applies → `references/conceptualize-inputs.md` and
+  `../../references/conceptualize-slice-authority.md`
+- Shaping package boundaries → `../../references/work-packages.md`
+- Drafting `SPEC.md` → `references/spec-template.md`
+- Drafting registry/package/proof/report declarations → `references/artifact-authoring.md` and
+  `../../references/slice-first-artifacts.md`
+- Before artifact writes or completion claims → `references/validation-checklist.md`
 - Helper command syntax or command safety is unclear → `../../references/tool-usage.md`
 - Semgrep preference/cache/policy/evidence boundaries are in scope → `../../references/semgrep.md`
 
@@ -115,7 +125,6 @@ rules are required; do not preload references merely because they are named.
 
 ## Output
 
-Return artifact root/ref, code root, feature path, SPEC/registry/package/proof/report paths, package
-list with dependencies, authoritative Slice inventory or Index-only/no-Slice note, approved deferrals,
-assumptions, validation command result, and next step (`review-plan` after user confirmation unless
-authorized).
+Return artifact root/ref, code root, feature and artifact paths, packages/dependencies, closure-complexity
+rationale, triggered execution-feasibility profiles, authoritative Slice inventory or no-Slice note, approved
+deferrals, assumptions, validation result, and next step (`review-plan` after confirmation unless authorized).

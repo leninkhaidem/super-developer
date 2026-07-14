@@ -81,9 +81,11 @@ as manifests, scripts, test directories, fixtures, existing docs, app entry poin
 CI/config files, known report/artifact locations, and risk-sensitive data/auth boundaries. Use the
 smallest useful evidence set; avoid large generated or secret-bearing files.
 
-For greenfield/no-strategy repositories and explicit initialize, update, adopt, migrate, link, or revise requests, load `references/strategy-interview.md` and run the strategy interview before
-accepted workflow-doc writes. Existing workflows, absent/minimal tests, candidates, and companion docs inform the recommendation but do not skip the interview. Ordinary author/alter/execute may use an accepted/current workflow only when adequate; missing, stale, ambiguous, conflicting,
-unsafe, or insufficient workflows fail closed to this update path.
+For greenfield/no-strategy repositories and explicit initialize, update, adopt, migrate, link, or revise
+requests, follow the parent-owned strategy-interview branch before accepted workflow-doc writes. Existing
+workflows, absent/minimal tests, candidates, and companion docs inform the recommendation but do not skip the
+interview. Ordinary author/alter/execute may use an accepted/current workflow only when adequate; missing,
+stale, ambiguous, conflicting, unsafe, or insufficient workflows fail closed to this update path.
 
 Interview one focused question at a time after the evidence summary. Start the user-facing strategy
 branch with confidence goals, using optional examples only when helpful rather than a mandatory visible

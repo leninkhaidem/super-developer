@@ -81,18 +81,22 @@ Binding-only refresh carve-out: if a verifier already semantically reviewed iden
 
 ## Rejection and Repair
 
-Reject a package when code, proof evidence, verification, Slice plan-defect handling, ignored `.tasks` handling, or package verification fails. Do not mark any package `done` while assigned proof rows remain unproven, unresolved Slice plan defects exist, verification findings are open, repair verification has not closed, or proof/report freshness is lost.
-
+Reject failed code/proof/verification/plan/artifact handling; keep incomplete while proof, findings, repair, or freshness remain open.
+Before repair, record identity, prior outcome, and unresolved state. A changed diagnostic strategy may authorize
+a bounded probe with a distinct identity/signal while the circuit stays open. It is progress only if it closes or
+narrows the gate, changes ownership, or yields decisive evidence; unchanged reruns/timeout/report edits are not.
 For confirmed in-scope findings:
-
-1. keep the package incomplete;
-2. record a generic affected-surface impact classification before selecting reruns: packages, Slice H3s, validation advisories, verification expectations, matrix rows/evidence anchors, proof/report claims, commands, implementation state, contracts, integration seams, safety/security/privacy/data surfaces, and whether impact is bounded;
-3. delegate a fresh repair agent using the repair packet in `plugins/super-developer/skills/implement/references/package-dispatch.md`;
-4. refresh affected proof rows, command/file evidence, matrix/report state, and source bindings;
-5. rerun `sliceproof.py validate-proof` and `validate-package-complete`;
-6. rerun targeted package verification when impact is narrow and bounded, or full verification when impact touches delivered behavior, evidence bindings, proof/report/matrix claims, contracts, integration, safety/security/privacy/data surfaces, source bindings, or cannot be bounded.
-
-Stop for the user when repair requires product/design authority, unapproved dependency/service changes, scope expansion, unsafe commands, external facts, credentials, risk acceptance, or package/Slice assignment changes.
+1. classify packages/Slices/expectations/evidence/matrix/reports/commands, contracts/integration,
+   safety/security/privacy/data surfaces, source bindings, and whether impact cannot be bounded;
+2. batch compatible findings and delegate a fresh repair agent with identity and progress requirement;
+3. refresh proof/command evidence, invalidate stale report/matrix/bindings, run `validate-proof`; do not rewrite verifier-owned report state;
+4. run narrowly targeted package verification, or full verification for delivered behavior, evidence bindings,
+   contracts, integration, sensitive surfaces, source bindings, or unbounded impact; the verifier writes the
+   fresh report, matrix, and bindings;
+5. only after the fresh verification report, run `validate-package-complete`.
+Open the circuit before unchanged work, uncertain termination/cleanup, invalid readiness, or no progress; diagnostic probes do not close
+it. Reset only after state change or decisive evidence closes/narrows the gate or changes ownership, then run the
+smallest confirmation. While open, stop affected execution; stop for authority, scope, safety, external facts, or risk.
 
 ## Conflict Handling
 
@@ -112,9 +116,8 @@ Before moving to final `review-code` and `audit`, every package must have:
 
 For bounded stacked-feature readiness, build a packet naming the top integrated worktree/code state and every relevant task/Slice artifact set; each included set must have clean package completion and `validate-final` prerequisites before readiness claims. Do not audit only a follow-up task set when the top branch includes base feature deliverables; stop when included sets are unknown or out of scope.
 
-If Semgrep is enabled for final state, keep package scans primary. Run an integrated scan only once,
-through `python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/semgrep_rules.py" scan ...`, when a
-verifier/reviewer names concrete cross-package/shared-surface risk. Write
+If Semgrep is enabled for final state, keep package scans primary. Run one integrated scan through
+`python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/semgrep_rules.py" scan ...` only for named cross-package/shared risk. Write
 `.tasks/<feature>/semgrep/integration.semgrep.json` plus
 `.tasks/<feature>/semgrep/integration.semgrep-summary.json`, record raw/summary digests, and do not
 start widen/fix/rescan cycles without a newly named affected surface. Raw direct `semgrep` scans are
