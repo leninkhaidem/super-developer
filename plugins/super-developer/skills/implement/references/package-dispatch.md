@@ -130,8 +130,8 @@ proof rows, matrix rows/evidence anchors, findings, failed observations, and cla
 and screened commands with the runtime envelope. Define attempt identity as gate plus finding/command signature
 plus affected surface; state prior attempts, candidate delta, circuit state, and bounded scope. A changed
 strategy may authorize a bounded probe with a distinct identity/expected signal while the circuit stays open.
-Progress must close/narrow the gate, change ownership, or yield decisive evidence; otherwise it remains open. Stop for authority changes, unsafe actions,
-missing external facts, risk acceptance, or an unchanged non-closing attempt.
+Attempt identity or status/report metadata is never progress. Only a relevant material state/evidence/strategy delta that closes/narrows the gate, changes ownership, or yields decisive evidence may reset routing;
+otherwise the circuit remains open. Stop for authority changes, unsafe actions, missing external facts, risk acceptance, or unchanged work.
 
 ## Package Verifier Packet
 

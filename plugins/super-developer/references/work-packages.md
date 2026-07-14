@@ -48,7 +48,13 @@ justifies their fixed lifecycle cost.
 
 Package IDs use contiguous `WP<N>` values (`WP1`, `WP2`, ...). Renumber when packages are reordered, split, or merged so the sequence has no gaps.
 
-Dependencies live in both the registry `depends_on` array and package Markdown `## Dependencies`; they must agree. A package is externally blocked until each dependency has a fresh `PASS` package verification report and clean `validate-package-complete` result; registry `done` or proof rows alone do not unlock dependents. Internal sequencing is handled by the package agent.
+Dependencies are ID-only in both the registry `depends_on` array and package Markdown
+`## Dependencies`; they must agree. They are durable sequencing prerequisites and a lower bound on
+readiness, not an impact or staleness graph. Put non-obvious rationale in existing package `Notes`, naming
+consumed output, contract, or evidence; runtime overlap, failure, or a desired rerun alone does not create an
+edge. A package is externally blocked until each dependency has a fresh `PASS` package verification report
+and clean `validate-package-complete`; registry `done` or proof rows alone do not unlock dependents.
+Internal sequencing is handled by the package agent.
 
 ## Parallel Safety
 

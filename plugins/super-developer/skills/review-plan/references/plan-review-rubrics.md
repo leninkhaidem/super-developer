@@ -59,7 +59,7 @@ Check whether:
 - the registry contains only feature/package bookkeeping and safe paths;
 - every package Markdown file has coherent scope, assigned Slice paths/H3 IDs, context-only reasons, primary paths, verification expectations, proof path, report path, and dependencies;
 - package Markdown proof/report paths match the registry and are usable by `sliceproof.py`;
-- package dependencies and parallel assumptions are safe, with dependency edges limited to concrete sequencing, file-impact, shared-contract, Slice/proof/report, or subsystem-safety reasons;
+- package dependencies and parallel assumptions are safe, with ID-only dependency edges limited to durable prerequisites and non-obvious consumed output, contract, or evidence rationale recorded in package `Notes`;
 - verification expectations are observable and tied to Slice/package obligations and changed behavior;
 - triggered execution-feasibility profiles are file-backed, executable under the accepted project workflow,
   bounded, deterministic where controllable, cleanup-aware, and sufficient to close the package independently;

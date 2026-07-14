@@ -56,9 +56,10 @@ affected reruns → final readiness for the same integrated state.
    artifact-root proof Markdown, commands/inspections, Slice plan-defect status, artifact-root report,
    `validate-package-complete`, post-merge freshness, source-only package branches, and ignored `.tasks`
    handling.
-6. If repair is needed, use `references/package-dispatch.md` for bounded follow-up packets; classify affected
-   surfaces and attempt identity, require material progress, and open the circuit on unchanged non-closing work
-   or uncertain cleanup. After repair, refresh proof/report state and rerun the required focused/full gates.
+6. If repair is needed, load the shared lifecycle rules and use `references/package-dispatch.md` for bounded
+   follow-up packets; treat pre-repair impact as provisional, require material progress, and open the circuit on
+   unchanged work or uncertain cleanup. After repair, reclassify the actual diff/evidence to semantic closure,
+   refresh affected proof/report state, and rerun only the required focused/full gates.
 7. Mark packages done only after integration gates pass; merge through the integration worktree,
    checkpoint sidecar artifacts at package-delivery boundaries, keep package branches/worktrees until
    cleanup gates pass, and loop to downstream packages.
@@ -77,7 +78,7 @@ affected reruns → final readiness for the same integrated state.
 - Dispatching a repair worker → pass `references/repair-agent-contract.md`; worker reads it before action
 - Dispatching package verification → pass `references/package-verification.md`; verifier reads it before action
 - Package sizing/dependency semantics ambiguity → `../../references/work-packages.md`
-- Proof/report freshness or non-bypass dispute beyond integration gates → `../../references/package-lifecycle.md`
+- Selecting repair/post-gate impact, freshness, or rerun scope → `../../references/package-lifecycle.md`
 - Local model override/adaptive selection → `../../references/model-preferences.md`
 - Artifact role ambiguity → `../../references/slice-first-artifacts.md`
 - Slice authority, path, projection, or control-plane dispute → `../../references/conceptualize-slice-authority.md`

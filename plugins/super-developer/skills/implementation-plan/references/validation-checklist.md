@@ -33,7 +33,8 @@ Do not create or overwrite `.tasks/<feature-name>/` artifacts until all applicab
   surface-appropriate verification that delivered UI, CLI, API responses/errors, docs,
   operator logs, exports, SDK examples, prompts, or templates use audience/domain language
   rather than planning workflow/package/staging terminology.
-- Substantial independently actionable packages remain dependency-free unless there is a concrete sequencing, file-impact, shared-contract, Slice/proof/report, or subsystem-safety reason to serialize them.
+- Substantial independently actionable packages remain dependency-free unless one consumes a durable prerequisite;
+  temporary file/contract/proof overlap changes batching or serialization without inventing a dependency edge.
 - Tiny or tightly coupled edits are not split into separate packages solely to increase agent count.
 
 ## `SPEC.md`

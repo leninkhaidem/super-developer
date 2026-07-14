@@ -1077,26 +1077,111 @@ class SkillPromptSurfaceTests(unittest.TestCase):
                 self.assertIn("known failure modes", text)
         self.assertIn("verifier-owned triggered risk selection", dispatch)
 
-    def test_repair_freshness_uses_affected_surface_classification_and_proportional_reruns(self) -> None:
+    def test_repair_freshness_uses_semantic_closure_and_proportional_reruns(self) -> None:
+        packages = read_repo("plugins/super-developer/references/work-packages.md")
+        artifact = read_repo("plugins/super-developer/skills/implementation-plan/references/artifact-authoring.md")
+        checklist = read_repo("plugins/super-developer/skills/implementation-plan/references/validation-checklist.md")
         lifecycle = read_repo("plugins/super-developer/references/package-lifecycle.md")
         gates = read_repo("plugins/super-developer/skills/implement/references/package-integration-gates.md")
         dispatch = read_repo("plugins/super-developer/skills/implement/references/package-dispatch.md")
+        verifier = read_repo("plugins/super-developer/skills/implement/references/package-verification.md")
+        implement = read_repo("plugins/super-developer/skills/implement/SKILL.md")
 
-        for text in [lifecycle, gates]:
-            with self.subTest(surface=text[:40]):
-                self.assertIn("affected-surface", text)
-                self.assertIn("narrow", text)
-                self.assertIn("bounded", text)
-                self.assertIn("cannot be bounded", text)
-                self.assertIn("delivered behavior", text)
-                self.assertIn("evidence bindings", text)
-                self.assertIn("contracts", text)
-                self.assertIn("integration", text)
-                self.assertRegex(text, r"safety/security/privacy/data")
-                self.assertIn("source bindings", text)
-                self.assertIn("validate-package-complete", text)
-                self.assertIn("validate-proof", text)
-                self.assertIn("package verification", text)
+        packages_compact = compact_text(packages).lower()
+        artifact_compact = compact_text(artifact).lower()
+        checklist_compact = compact_text(checklist).lower()
+        lifecycle_compact = compact_text(lifecycle).lower()
+        gates_compact = compact_text(gates).lower()
+        verifier_compact = compact_text(verifier).lower()
+
+        for token in [
+            "id-only",
+            "sequencing prerequisites",
+            "lower bound on readiness",
+            "not an impact or staleness graph",
+            "existing package `notes`",
+            "consumed output, contract, or evidence",
+        ]:
+            self.assertIn(token, packages_compact)
+        for token in [
+            "dependencies are id-only durable sequencing prerequisites",
+            "rationale belongs in package `notes`",
+            "runtime impact or failure alone does not create an edge",
+        ]:
+            self.assertIn(token, artifact_compact)
+        for token in [
+            "unless one consumes a durable prerequisite",
+            "temporary file/contract/proof overlap changes batching or serialization",
+            "without inventing a dependency edge",
+        ]:
+            self.assertIn(token, checklist_compact)
+
+        for token in [
+            "provisional classification in orchestrator state and repair/verifier packets",
+            "never a registry field or standalone impact receipt",
+            "sequencing lower bound",
+            "producing prerequisites",
+            "consumers in any lifecycle state",
+            "not represented by a dependency edge",
+            "until no new affected surface appears",
+            "failure, commit existence, merge ancestry, or dependency reachability alone does not stale a package",
+            "actual code diff",
+            "final code/proof/command-evidence state",
+            "until stable",
+            "classify uncertainty as unbounded",
+            "fresh focused verification",
+        ]:
+            self.assertIn(token, lifecycle_compact)
+        for token in [
+            "treat impact as provisional",
+            "shared lifecycle semantic-closure rules",
+            "actual repair diff through semantic closure",
+            "newly affected report/matrix/bindings",
+            "final code/proof/command-evidence state to semantic closure",
+            "repeating steps 3–4 for newly affected surfaces until stable",
+            "fresh focused package verification",
+        ]:
+            self.assertIn(token, gates_compact)
+        for token in [
+            "fresh independent pass and report",
+            "carried-forward matrix row",
+            "source inputs",
+            "remain unchanged and uncontradicted",
+            "dependency reachability alone does not require full verification",
+            "repair owner to refresh affected proof rows",
+            "final impact closure before verifier dispatch",
+            "inspect but do not edit proof state",
+        ]:
+            self.assertIn(token, verifier_compact)
+        focused_start = verifier.index("Focused re-verification is")
+        focused_end = verifier.index("\n\nAfter repair", focused_start)
+        focused_rule = compact_text(verifier[focused_start:focused_end]).lower()
+        self.assertIn(
+            "widen to full verification when that confirmation fails, obligation or test-review populations "
+            "materially change, impact crosses package/contract-wide or sensitive boundaries, or scope cannot "
+            "be bounded",
+            focused_rule,
+        )
+
+        repair = gates[gates.index("## Rejection and Repair"):gates.index("## Conflict Handling")]
+        repair_compact = compact_text(repair).lower()
+        ordered = [
+            "after code repair, reclassify the actual repair diff",
+            "refresh affected proof/command evidence",
+            "run `validate-proof`",
+            "reclassify the final code/proof/command-evidence state",
+            "repeating steps 3–4 for newly affected surfaces until stable",
+            "only then run fresh focused package verification",
+            "the verifier writes the fresh report",
+            "only after the fresh verification report, run `validate-package-complete`",
+        ]
+        for earlier, later in zip(ordered, ordered[1:]):
+            self.assertLess(repair_compact.index(earlier), repair_compact.index(later))
+
+        self.assertNotIn("after repair, update affected proof rows", verifier_compact)
+        self.assertNotIn("full verification for delivered behavior", gates_compact)
+        self.assertNotIn("if impact touches delivered behavior", lifecycle_compact)
+        self.assertIn("selecting repair/post-gate impact, freshness, or rerun scope", implement.lower())
         for needle in [
             "package Markdown/digest",
             "assigned Slice source/digest",
@@ -1412,19 +1497,28 @@ class SkillPromptSurfaceTests(unittest.TestCase):
             "circuit stays open",
             "closes or narrows the gate, changes ownership, or yields decisive evidence",
             "diagnostic probes do not close it",
-            "reset only after",
+            "reset only after a relevant material state/evidence/strategy delta",
+            "attempt renaming",
+            "status/report metadata",
+            "changed commit alone is not progress",
             "uncertain termination/cleanup",
         ]:
             self.assertIn(token, gate_compact)
         self.assertIn("distinct identity/expected signal", dispatch)
+        self.assertIn("attempt identity or status/report metadata is never progress", dispatch.lower())
         self.assertIn("distinct identity/expected signal", repair_agent)
+        self.assertIn(
+            "identity, commit, status, or report metadata alone is not progress",
+            compact_text(repair_agent).lower(),
+        )
 
         repair = gates[gates.index("## Rejection and Repair"):gates.index("## Conflict Handling")]
         self.assertLess(repair.index("`validate-proof`"), repair.index("package verification"))
         self.assertLess(repair.index("package verification"), repair.index("`validate-package-complete`"))
-        self.assertIn("invalidate stale report/matrix/bindings", repair)
-        self.assertIn("do not rewrite verifier-owned report state", repair)
-        self.assertIn("the verifier writes the fresh report", compact_text(repair))
+        repair_compact = compact_text(repair)
+        self.assertIn("invalidate newly affected report/matrix/bindings", repair_compact)
+        self.assertIn("orchestrator never rewrites verifier-owned report or proof state", repair_compact)
+        self.assertIn("the verifier writes the fresh report", repair_compact.lower())
         self.assertIn("only after the fresh verification report", repair)
 
         combined = compact_text("\n".join([dispatch, gates, repair_agent, lifecycle, implement])).lower()
@@ -1560,6 +1654,7 @@ class SkillPromptSurfaceTests(unittest.TestCase):
             "plugins/super-developer/skills/implement/references/execution-contract.md",
             "plugins/super-developer/skills/implement/references/package-dispatch.md",
             "plugins/super-developer/skills/implement/references/package-integration-gates.md",
+            "plugins/super-developer/skills/implement/references/package-verification.md",
             "plugins/super-developer/skills/implement/references/package-agent-contract.md",
             "plugins/super-developer/skills/implement/references/repair-agent-contract.md",
             "plugins/super-developer/skills/testing/references/core/generic-testing.md",

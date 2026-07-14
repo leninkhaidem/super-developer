@@ -43,7 +43,7 @@ Use an empty `authoritative_slices` array only for Index-only or no-Slice plans 
 - `spec_path` points to the written `SPEC.md` file.
 - `authoritative_slices` lists the full safe Slice inventory when Slices exist.
 - Each package entry contains only `id`, `path`, `proof_path`, `report_path`, `status`, and `depends_on`.
-- Dependencies are package IDs and must match package Markdown.
+- Dependencies are ID-only durable sequencing prerequisites and must match package Markdown; rationale belongs in package `Notes`.
 - Keep registry, package, proof, report, and Slice paths artifact-root-relative POSIX paths.
 - Reject absolute, traversal, home, drive-qualified, empty-segment, symlink-escape, or out-of-root paths.
 
@@ -138,7 +138,7 @@ When Semgrep is enabled, verification expectations should stay helper-owned and 
   that delivered text, examples, errors, exports, logs, or prompts are audience-appropriate,
   actionable where needed, redacted when sensitive, and free of planning/workflow leakage.
 - Proof and report paths are declared during planning; evidence and reports are produced later.
-- Dependencies are package-level sequencing constraints and must match the registry; do not add dependency edges merely to serialize independent work.
+- Dependencies are ID-only durable sequencing prerequisites and must match the registry. Put non-obvious consumed output, contract, or evidence rationale in `Notes`; runtime impact or failure alone does not create an edge, and edges must not merely serialize independent work.
 
 ## Fail Closed When
 

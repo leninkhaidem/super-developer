@@ -28,8 +28,9 @@ The repair agent must:
 9. Run safe assigned commands plus targeted checks needed for delta closure. Apply packet command identity,
    timeout, progress/completion, termination, and cleanup rules. Timeout or uncertain cleanup is non-pass. Return
    after a failed bounded stage; do not repeat unchanged work or inflate a timeout. A changed strategy may
-   authorize a bounded probe with a distinct identity/expected signal while the circuit remains open; it counts
-   as progress only when it closes/narrows the gate, changes ownership, or yields decisive evidence.
+   authorize a bounded probe with a distinct identity/expected signal while the circuit remains open. Identity,
+   commit, status, or report metadata alone is not progress; a relevant material state/evidence/strategy delta
+   must close/narrow the gate, change ownership, or yield decisive evidence.
 10. When the repair changes implementation behavior, tests, proofs, or risk evidence, perform the compact repair self-review below before handoff. Pure mechanical stale-state refresh may report rechecked evidence instead.
 11. Never create worktrees, branches, perform merge operations, mark packages done, edit proof/report
     lifecycle state by hand, treat review state as proof, checkpoint sidecars, or force-add/commit ignored

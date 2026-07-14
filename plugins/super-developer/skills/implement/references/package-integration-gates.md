@@ -82,21 +82,21 @@ Binding-only refresh carve-out: if a verifier already semantically reviewed iden
 ## Rejection and Repair
 
 Reject failed code/proof/verification/plan/artifact handling; keep incomplete while proof, findings, repair, or freshness remain open.
-Before repair, record identity, prior outcome, and unresolved state. A changed diagnostic strategy may authorize
-a bounded probe with a distinct identity/signal while the circuit stays open. It is progress only if it closes or
-narrows the gate, changes ownership, or yields decisive evidence; unchanged reruns/timeout/report edits are not.
+Before repair, record identity, prior outcome, and unresolved state. Treat impact as provisional and apply the
+shared lifecycle semantic-closure rules; a dependency edge, failure, commit, or merge ancestry alone is not
+staleness. A changed diagnostic strategy may authorize a bounded probe while the circuit stays open.
 For confirmed in-scope findings:
-1. classify packages/Slices/expectations/evidence/matrix/reports/commands, contracts/integration,
-   safety/security/privacy/data surfaces, source bindings, and whether impact cannot be bounded;
+1. map the finding to named packages/Slices/rows/evidence/contracts and classify boundedness;
 2. batch compatible findings and delegate a fresh repair agent with identity and progress requirement;
-3. refresh proof/command evidence, invalidate stale report/matrix/bindings, run `validate-proof`; do not rewrite verifier-owned report state;
-4. run narrowly targeted package verification, or full verification for delivered behavior, evidence bindings,
-   contracts, integration, sensitive surfaces, source bindings, or unbounded impact; the verifier writes the
-   fresh report, matrix, and bindings;
-5. only after the fresh verification report, run `validate-package-complete`.
-Open the circuit before unchanged work, uncertain termination/cleanup, invalid readiness, or no progress; diagnostic probes do not close
-it. Reset only after state change or decisive evidence closes/narrows the gate or changes ownership, then run the
-smallest confirmation. While open, stop affected execution; stop for authority, scope, safety, external facts, or risk.
+3. after code repair, reclassify the actual repair diff through semantic closure and invalidate newly affected
+   report/matrix/bindings before refreshing proof/command evidence;
+4. refresh affected proof/command evidence and run `validate-proof`; reclassify the final
+   code/proof/command-evidence state to semantic closure, repeating steps 3–4 for newly affected surfaces until stable;
+5. only then run fresh focused package verification when carried inputs remain unchanged and impact is bounded;
+   widen when reuse cannot be confirmed or shared lifecycle criteria require it. The verifier writes the fresh
+   report, matrix, and bindings; the orchestrator never rewrites verifier-owned report or proof state;
+6. only after the fresh verification report, run `validate-package-complete`.
+Open the circuit before unchanged work, uncertain termination/cleanup, invalid readiness, or no progress; diagnostic probes do not close it. Reset only after a relevant material state/evidence/strategy delta closes or narrows the gate, changes ownership, or yields decisive evidence, then run the smallest confirmation. Attempt renaming, status/report metadata, or a changed commit alone is not progress. While open, stop affected execution; stop for authority, scope, safety, external facts, or risk.
 
 ## Conflict Handling
 
