@@ -661,7 +661,7 @@ class SkillPromptSurfaceTests(unittest.TestCase):
         self.assertIn("readme", metadata["keywords"])
         self.assertNotIn("test authoring/execution", metadata["description"])
 
-    def test_diagnose_and_fix_binds_repairs_incidents_and_delivery_immutably(self) -> None:
+    def test_diagnose_and_fix_separates_human_authorization_from_internal_receipts(self) -> None:
         text = read_repo("plugins/super-developer/skills/diagnose-and-fix/SKILL.md")
         compact = compact_text(text)
         for needle in [
@@ -669,20 +669,26 @@ class SkillPromptSurfaceTests(unittest.TestCase):
             "stop/missing-info",
             "localized isolated fix",
             "may plan approved changes to existing systems",
-            "`branch_push`: remote, source/destination refs, source SHA, reviewed snapshot checksum",
-            "`expected_remote_destination_sha` (exact SHA or `absent`)",
-            "`target_merge`: source ref/SHA, target ref and pre-merge SHA, reviewed snapshot checksum",
-            "`target_push`: remote/ref, exact post-merge target SHA, and expected remote target SHA",
-            "These fields govern diagnose bugfix/hotfix/spike work only",
-            "do not retrofit planned-feature Execution Contracts or sidecar checkpoint gates",
-            "`cleanup`: worktree path/HEAD/state, `local_ref_kind=direct` plus ref/SHA, required landing",
-            "Revalidate every bound SHA, snapshot, ref, remote, path, and worktree immediately before its action",
-            "bind HEAD and committed/staged/unstaged/untracked manifests/checksums",
-            "file type, Git/index-compatible mode, symlink target, and content digest or binary provenance",
+            "Ask for one compact, human-readable Fix Authorization",
+            "approved paths and behavior goal, with explicit non-goals",
+            "isolated route plus human branch/base names",
+            "`local only`, `commit reviewed fix`, or `commit and push reviewed branch`",
+            "One response may authorize the displayed localized route through the selected branch delivery",
+            "Target merge/push and cleanup stay at their existing owning boundaries",
+            "Users never need to understand or approve raw SHAs, checksums, leases, or state receipts",
+            "derives mandatory internal receipts at action time from the `worktree` and review contracts",
+            "authorized paths, non-root worktree/base/ref identity, reviewed state",
+            "Revalidate every binding immediately before its action",
+            "Orchestrator-owned progress within the authorized semantic action may bind/rebind",
+            "unexpected/external drift, conflict, scope/risk change, or failed preconditions stop",
+            "Existing exact leases, ancestry checks, and separate target-merge/target-push bindings remain mandatory",
+            "Keep receipts internal unless requested, needed for audit/debug, or required to explain",
             "repair_owner=diagnose-and-fix",
             "repair_contract_path=references/fix-implementer-contract.md",
-            "this parent dispatches a fresh worker under its contract",
-            "capture its result SHA before proposing `target_push`",
+            "Review findings use review-code’s action gate. On explicit `fix`",
+            "Initial approval never repairs",
+            "capture its result SHA before deriving `target_push`",
+            "merge never pushes by itself",
             "This skill never executes live incident containment or production mutation",
             "hand off to that procedure; without both, stop",
             "Never execute it within this skill",
@@ -690,11 +696,14 @@ class SkillPromptSurfaceTests(unittest.TestCase):
             "accepted/current `docs/testing/workflow.md`",
             "From the approved target worktree, resolve `implement`",
             "If `.superdeveloper/preferences.yml` is missing",
-            "require exact `diagnostic_actions` approval before creating it there",
             "never create it in root or silently",
+            "Include the internal receipt only on request",
         ]:
             self.assertIn(compact_text(needle), compact)
         for stale in [
+            "## Approval Record",
+            "proposed Approval Record values",
+            "requires new approval",
             "Any live containment/production mutation lacks both",
             "target merge and target push are one safety boundary",
         ]:

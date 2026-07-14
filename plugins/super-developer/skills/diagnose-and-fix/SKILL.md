@@ -1,8 +1,8 @@
 ---
 name: diagnose-and-fix
 description: >
-  Diagnoses defects evidence-first, records exact approvals, and routes repairs. Use for bugs, regressions,
-  failing tests, troubleshooting, or "fix this". Do not use for planned features, ordinary review, incident
+  Diagnoses defects evidence-first, obtains human-readable fix authorization, and routes repairs. Use for bugs,
+  failing tests, regressions, troubleshooting, or "fix this". Do not use for planned features, ordinary review,
   containment, docs, releases, or speculative cleanup.
 ---
 
@@ -30,25 +30,26 @@ a fresh Fix Implementer edits under the passed contract.
   shifting, secret rotation, or live data/config changes. With an owning incident procedure and exact approval,
   hand off to that procedure; without both, stop.
 
-## Approval Record
+## Fix Authorization and Internal Receipt
 
-These fields govern diagnose bugfix/hotfix/spike work only; they do not retrofit planned-feature Execution
-Contracts or sidecar checkpoint gates. One response may approve several exact independent fields:
+Ask for one compact, human-readable Fix Authorization:
 
-- `production_edits`: approved paths/purpose/non-goals, or `not approved`;
-- `worktree_creation`: exact base ref/SHA, local branch, and worktree path, or `not approved`;
-- `commit`: exact worktree and reviewed manifest/snapshot checksum, or `not approved`;
-- `branch_push`: remote, source/destination refs, source SHA, reviewed snapshot checksum, and
-  `expected_remote_destination_sha` (exact SHA or `absent`), or `not approved`;
-- `target_merge`: source ref/SHA, target ref and pre-merge SHA, reviewed snapshot checksum, merge strategy, and
-  non-root integration worktree/ref, or `not approved`;
-- `target_push`: remote/ref, exact post-merge target SHA, and expected remote target SHA, or `not approved`;
-- `cleanup`: worktree path/HEAD/state, `local_ref_kind=direct` plus ref/SHA, required landing
-  worktree/HEAD/state, remote ref plus expected SHA or `absent`, and each named action, or `not approved`;
-- `diagnostic_actions`: each non-read-only command, instrumentation write, network use, or credential use.
+- approved paths and behavior goal, with explicit non-goals;
+- isolated route plus human branch/base names;
+- delivery: `local only`, `commit reviewed fix`, or `commit and push reviewed branch`; and
+- exceptional side effects such as diagnostic writes, network, credentials, or service use.
 
-No field implies another. Revalidate every bound SHA, snapshot, ref, remote, path, and worktree immediately before
-its action; drift requires new approval. Never push without an exact immutable `branch_push` or `target_push` field.
+One response may authorize the displayed localized route through the selected branch delivery. Unnamed scope,
+delivery, or side effects remain unauthorized. Target merge/push and cleanup stay at their existing owning
+boundaries. Users never need to understand or approve raw SHAs, checksums, leases, or state receipts.
+
+The orchestrator derives mandatory internal receipts at action time from the `worktree` and review contracts:
+authorized paths, non-root worktree/base/ref identity, reviewed state, exact commit/push/merge bindings, expected
+remote state, cleanup proofs, and authorized diagnostic side effects. Revalidate every binding immediately before
+its action. Orchestrator-owned progress within the authorized semantic action may bind/rebind without another user
+approval; unexpected/external drift, conflict, scope/risk change, or failed preconditions stop for a human decision.
+Never silently absorb drift. Keep receipts internal unless requested, needed for audit/debug, or required to explain
+a blocker. Existing exact leases, ancestry checks, and separate target-merge/target-push bindings remain mandatory.
 
 ## Do
 
@@ -70,18 +71,18 @@ its action; drift requires new approval. Never push without an exact immutable `
    - exactly one recommended route: stop/missing-info, named diagnostic spike, localized isolated fix, or
      `implementation-plan`, with rationale;
    - minimal strategy, non-goals, regression/spec test, verification, and residual risk;
-   - proposed Approval Record values for only the next requested boundaries.
-7. Ask approval for the recommended route and named fields. Unspecified or altered fields remain `not approved`.
+   - proposed human-readable Fix Authorization for the selected route.
+7. Ask once for Fix Authorization. Unspecified or altered semantic actions remain unauthorized.
 8. For an approved localized fix, select one route and invoke `worktree` for approved setup:
    - active-feature: `bugfix/<name>` from explicit `feature/<feature>`;
-   - maintenance: `bugfix/<name>` from an explicit maintenance base ref/SHA;
-   - production hotfix: `hotfix/<name>` from an explicit production base ref/SHA, without live containment.
-   Creation, commit, branch push, target merge, target push, and cleanup remain separate fields. Never use root as
-   the repair or delivery checkout.
+   - maintenance: `bugfix/<name>` from an explicit maintenance base name;
+   - production hotfix: `hotfix/<name>` from an explicit production base name, without live containment.
+   Creation, commit, branch push, target merge, target push, and cleanup retain separate internal bindings. Never
+   use root as the repair or delivery checkout.
 9. From the approved target worktree, resolve `implement` through `../../references/model-preferences.md` before
    binding state. If `.superdeveloper/preferences.yml` is missing, display the shared contract's gitignored local
-   creation and require exact `diagnostic_actions` approval before creating it there; never create it in root or
-   silently. Then bind HEAD and committed/staged/unstaged/untracked manifests/checksums. Untracked records include
+   creation and require authorization for that exceptional write before creating it there; never create it in root
+   or silently. Then bind HEAD and committed/staged/unstaged/untracked manifests/checksums. Untracked records include
    file type, Git/index-compatible mode, symlink target, and content digest or binary provenance. Dispatch with the
    `references/fix-implementer-contract.md`, and that path. Do not implement substantive edits inline.
 10. Validate the report against packet, contract, starting binding, and actual worktree. Reject drift, out-of-scope
@@ -93,9 +94,9 @@ its action; drift requires new approval. Never push without an exact immutable `
     `repair_contract_path=references/fix-implementer-contract.md`. Review findings use review-code’s action gate.
     On explicit `fix`, accept the confirmed repair packet/action back; then this parent dispatches a fresh worker
     under its contract, validates it, rebinds the complete state, and reruns review. Initial approval never repairs.
-13. Commit only under the exact `commit` field, CLEAN unchanged snapshot, passing verification, and reviewed-only
-    staging. For each approved delivery action invoke `worktree` and revalidate immutable bindings immediately.
-    After target merge, capture its result SHA before proposing `target_push`; merge approval never authorizes push.
+13. Commit only under the exact internal `commit` receipt, CLEAN unchanged snapshot, passing verification, and
+    reviewed-only staging. For each authorized delivery action invoke `worktree` and revalidate its binding.
+    After target merge, capture its result SHA before deriving `target_push`; merge never pushes by itself.
 14. Return observed facts and next boundary. Preserve useful fixtures; clean only approved throwaway artifacts.
 
 ## Load if needed
@@ -109,7 +110,7 @@ its action; drift requires new approval. Never push without an exact immutable `
 ## Stop if
 
 - Root cause is unconfirmed and next evidence requires unavailable input or an unapproved action.
-- Approval, path, ref/SHA, remote, worktree state, testing policy, worker packet, or snapshot is missing/conflicting.
+- Authorization or an internal path/ref/SHA/remote/worktree/snapshot binding is missing or conflicting.
 - State is dirty, drifted, or ambiguous enough to mix, hide, or overwrite user changes.
 - A localized fix expands beyond approved paths or crosses a broad/risky boundary.
 - Live containment/production mutation is requested: hand off only when procedure and exact approval exist;
@@ -119,5 +120,5 @@ its action; drift requires new approval. Never push without an exact immutable `
 
 ## Output
 
-Return diagnosis, route, Approval Record, approvals consumed, worker validation, reviewed-state binding, changed
-files, command outcomes, review actions, delivery/cleanup status, immutable SHAs/snapshots, risks, and next boundary.
+Return a concise diagnosis, Fix Authorization consumed, changed files, verification/review, delivery/cleanup,
+risks, and next boundary. Include the internal receipt only on request or to explain audit/debug/drift/blockers.
