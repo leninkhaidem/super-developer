@@ -11,6 +11,8 @@ The packet should provide:
 - artifact root, code root, artifact ref, resolved feature/artifact slug, and any approved slug
   rename/migration metadata;
 - approved requirements or selected Conceptualize workspace/index;
+- accepted testing-workflow path/version and relevant companions for triggered feasibility; omit this field
+  when clearly non-triggered;
 - safe Conceptualize workspace, Index, and Slice paths relative to the artifact root when known;
 - overwrite approval state for `.tasks/<feature>/` under the artifact root;
 - resolved Semgrep state from the orchestrator (`disabled`, or `enabled` with privacy-mode, local cache/index/profile facts, approved setup side effects, and helper availability);
@@ -20,19 +22,23 @@ The packet should provide:
 
 Stop and report the missing field if the packet is too incomplete to plan safely.
 
-## References to Use
+## Packet-Supplied Supporting Contracts
 
-Load these only as their step requires:
+The orchestrator packet owns concrete paths and must label each supporting contract. Load only at its action:
 
-- `../../references/artifact-store.md` when artifact-root/code-root semantics or slug mapping matter;
-- `references/conceptualize-inputs.md` when Conceptualize material applies;
-- `references/design-preflight.md` when uncertainty blocks planning;
-- `references/spec-template.md` before drafting `SPEC.md`;
-- `../../references/clean-code-rules.md` and `../../references/work-packages.md` while shaping packages;
-- `references/artifact-authoring.md` before drafting `tasks.json` and package Markdown;
-- `references/validation-checklist.md` before writing, overwriting, or claiming success;
-- `../../references/tool-usage.md` when helper command syntax or command safety is unclear;
-- `../../references/semgrep.md` only when Semgrep is enabled or planner expectations mention Semgrep evidence/policy.
+- artifact-store semantics while validating roots, refs, paths, or slug mapping;
+- Slice-authority and Conceptualize projection rules when Conceptualize material applies;
+- design-preflight evidence when the packet says preflight ran or uncertainty remains;
+- the SPEC template before drafting the specification;
+- clean-code and work-package contracts while shaping package boundaries;
+- canonical artifact-model and artifact-authoring rules before drafting registry and package Markdown;
+- the validation checklist before any write, overwrite, or completion claim;
+- accepted testing workflow while shaping a triggered execution-feasibility profile;
+- tool usage only when helper syntax or command safety is unclear;
+- Semgrep policy only when enabled or when expectations mention Semgrep evidence.
+
+Do not discover supporting references through this worker contract. Return `BLOCKED` with the missing label when
+the packet omits a contract required by the current action.
 
 ## Workflow
 
@@ -41,7 +47,10 @@ Load these only as their step requires:
    artifacts. Treat the Conceptualize slug as the default feature/artifact slug; stop before writing
    `.tasks/<different-feature>` unless approved migration metadata is in the packet.
 3. Ask/stop rather than inventing behavior, accepting risk, narrowing scope, or deferring material obligations.
-4. Draft `SPEC.md`, package split, `tasks.json`, and package Markdown using the references above.
+4. Draft `SPEC.md`, package split, `tasks.json`, and package Markdown using packet-supplied contracts.
+   Apply semantic closure complexity rather than numeric split thresholds, including fixed per-package gate cost.
+   When material execution feasibility remains unresolved, use existing package `Notes` or verification
+   expectations for the profile and accepted testing-workflow provenance; route empirical assumptions to a spike.
    Preserve exact interface/forbidden-behavior obligations; seed obvious package-specific risk expectations as deliverable-matrix `VE-<n>` row sources (interactive UI, retry/fail-closed, trigger precedence, lifecycle/restart/reaper, cache invalidation, model/default precedence, generated defaults, state pollution when applicable); and state that planner seeds do not limit verifier discovery.
    If Semgrep is disabled, do not require helper setup, scans, or evidence. If enabled, detect
    impacted stacks from normal repo/package analysis, use helper `index`/`retrieve` for local config

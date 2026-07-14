@@ -14,6 +14,13 @@ A formatting, ID, dependency, locator, path, package/proof/report reference, H3 
 
 A defect that prevents safe finalization because requirements, package assignments, Slice obligations, approvals, dependencies, or verification expectations are missing, contradictory, unsafe, or unverifiable. Resolve before implementation.
 
+### empirical feasibility blocker
+
+A material assumption that cannot be resolved from approved artifacts, repository evidence, or an accepted
+project testing workflow and must be observed before the plan is safe. Do not defer it to implementation or
+invent commands/budgets. Return this classification to the orchestrator for `spike-to-plan`; accepted evidence
+must return through `implementation-plan` artifact repair and focused plan review before Gate 2.
+
 ### design decision
 
 A finding that requires choosing between materially different approaches. Ask the user unless explicit constraints or approved Slice/package artifacts already decide it. Persist accepted outcomes in the owning artifact:
@@ -56,11 +63,12 @@ Internal simplification may be applied without a prompt only when it preserves t
 1. Group duplicate findings by target and issue.
 2. Classify each finding.
 3. Apply mechanical fixes directly.
-4. Escalate semantic choices to the user unless already resolved by explicit constraints.
-5. Persist accepted decisions in the owning artifact.
-6. Keep `SPEC.md` requirements-focused; package assignment belongs in package Markdown.
-7. Encode implementation-time concerns durably in package Markdown or verification expectations, not chat-only summaries.
-8. From the code root, rerun mechanical validation with explicit roots and perform focused re-review only for changed content that affects semantic review scope.
+4. Route empirical feasibility blockers to the orchestrator; do not repair artifacts until observed evidence returns.
+5. Escalate semantic choices to the user unless already resolved by explicit constraints.
+6. Persist accepted decisions in the owning artifact.
+7. Keep `SPEC.md` requirements-focused; package assignment belongs in package Markdown.
+8. Encode implementation-time concerns durably in package Markdown or verification expectations, not chat-only summaries.
+9. From the code root, rerun mechanical validation with explicit roots and perform focused re-review only for changed content that affects semantic review scope.
 
 ## Re-Review
 

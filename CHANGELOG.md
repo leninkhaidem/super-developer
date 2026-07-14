@@ -6,6 +6,18 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+### Added
+- Added closure-complexity package shaping and conditional execution-feasibility review/readiness so costly or uncertain evidence is resolved before broad fanout.
+- Added a shared bounded-command runtime envelope, progress-sensitive repair circuit breaking, and non-gating execution observations.
+
+### Changed
+- Changed testing delegation and workflow guidance to require contract/fixture preflight, bounded staged execution, explicit process cleanup, and evidence-backed reruns.
+- Clarified that package dependencies are sequencing prerequisites rather than automatic impact or staleness edges.
+
+### Fixed
+- Fixed revised skill routing and worker contracts to meet frontmatter budgets and remove hidden reference hops.
+- Fixed repair impact handling to reconcile the actual delta, bound semantic cascades, preserve safe focused verification, and reject metadata-only circuit progress.
+
 ## [v1.36.4] - 2026-07-13
 
 ### Fixed

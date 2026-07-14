@@ -2,7 +2,7 @@
 
 ## Contract
 
-- Load `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/slice-first-artifacts.md` for the canonical artifact model.
+- Apply the packet-supplied canonical artifact-model contract; return `BLOCKED` if its labeled path is missing.
 - Write `.tasks/`, proof/report declarations, and Slice inventory paths under the artifact root; keep source/plugin/test paths code-root-relative.
 - `tasks.json` is a lightweight registry: feature metadata, Slice inventory, package paths, proof paths, report paths, status signals, and dependencies only.
 - Package Markdown is the package assignment source of truth.
@@ -43,7 +43,7 @@ Use an empty `authoritative_slices` array only for Index-only or no-Slice plans 
 - `spec_path` points to the written `SPEC.md` file.
 - `authoritative_slices` lists the full safe Slice inventory when Slices exist.
 - Each package entry contains only `id`, `path`, `proof_path`, `report_path`, `status`, and `depends_on`.
-- Dependencies are package IDs and must match package Markdown.
+- Dependencies are ID-only durable sequencing prerequisites and must match package Markdown; rationale belongs in package `Notes`.
 - Keep registry, package, proof, report, and Slice paths artifact-root-relative POSIX paths.
 - Reject absolute, traversal, home, drive-qualified, empty-segment, symlink-escape, or out-of-root paths.
 
@@ -74,7 +74,7 @@ Use an empty `authoritative_slices` array only for Index-only or no-Slice plans 
 - None.
 
 ## Notes
-- Optional: approved deferrals, risk/replan triggers, package-specific constraints, parallel/serialization rationale.
+- Optional: deferrals, risk/replan triggers, closure/execution profile, constraints, and sequencing rationale.
 ```
 
 `sliceproof.py` mechanically requires `Scope`, `Assigned Slices`, `Primary Paths`, `Verification Expectations`, `Proof`, `Package Verification Report`, and `Dependencies`. `Notes` is optional.
@@ -124,9 +124,13 @@ When Semgrep is enabled, verification expectations should stay helper-owned and 
 - `Context only` IDs are required reading/context; do not use them to hide package obligations.
 - Every material H3 in the full Slice inventory must be assigned, context-only with a concrete reason, or explicitly approved as deferred/out of scope/rejected.
 - Primary paths are code-root-relative starting points, not hard boundaries.
-- Verification expectations must be package-specific and cover relevant edge, failure,
-  trust-boundary, data, security, privacy, performance, concurrency, generated-contract,
-  audience-surface, and lifecycle cases or state why not applicable.
+- Apply shared closure-complexity rules; counts are warnings, not thresholds, and fixed package gates count.
+- Verification expectations must be package-specific and cover relevant edge, failure, trust-boundary, data,
+  security, privacy, performance, concurrency, generated-contract, audience-surface, and lifecycle cases or
+  state why not applicable. When material execution feasibility remains unresolved, existing `Notes` or
+  expectations identify authoritative command/harness/contract/fixture sources, preconditions/cleanup, cost, the
+  smallest credible bounded probe or broad-only justification, broad-check placement, accepted testing-workflow
+  provenance, and the spike/replan trigger; exact budgets remain project-workflow-owned.
 - Each listed expectation becomes a mandatory deliverable-matrix `VE-<n>` row in package order; if a Slice row proves it, keep the `VE-<n>` row and cross-reference the same evidence.
 - Seed visible interface/risk expectations without boilerplate: exact interfaces, forbidden behaviors, interactive UI, retry/fail-closed, trigger precedence, lifecycle/restart/reaper, cache invalidation, model/default precedence, generated defaults, and state pollution when applicable.
 - Planner seeds do not limit verifier discovery; verifier packets still require inspection of package scope, assigned Slices, changed code/diff, tests, verification expectations, and known failure modes for emergent triggered-risk rows.
@@ -134,7 +138,7 @@ When Semgrep is enabled, verification expectations should stay helper-owned and 
   that delivered text, examples, errors, exports, logs, or prompts are audience-appropriate,
   actionable where needed, redacted when sensitive, and free of planning/workflow leakage.
 - Proof and report paths are declared during planning; evidence and reports are produced later.
-- Dependencies are package-level sequencing constraints and must match the registry; do not add dependency edges merely to serialize independent work.
+- Dependencies are ID-only durable sequencing prerequisites and must match the registry. Put non-obvious consumed output, contract, or evidence rationale in `Notes`; runtime impact or failure alone does not create an edge, and edges must not merely serialize independent work.
 
 ## Fail Closed When
 

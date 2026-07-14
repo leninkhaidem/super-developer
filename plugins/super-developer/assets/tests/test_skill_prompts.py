@@ -391,14 +391,13 @@ class SkillPromptSurfaceTests(unittest.TestCase):
         combined = compact_text("\n".join([skill, workflow, strategy, delegation]))
 
         for needle in [
-            "Explicit testing-workflow lifecycle requests include initialize, update, adopt, migrate, link, and revise, including greenfield repositories with no/minimal tests, no strategy, or no canonical workflow",
-            "For greenfield/no-strategy repos or explicit initialize, update, adopt, migrate, link, or revise requests, load `references/strategy-interview.md`",
+            "Explicit initialize/update/adopt/migrate/link/revise requests require a strategy interview after repository inspection",
+            "For greenfield/no-strategy repositories or explicit initialize, update, adopt, migrate, link, or revise requests, load `references/strategy-interview.md`, run it before accepted workflow-doc writes",
             "Treat absent/minimal tests, no documented strategy, and existing testing docs as source evidence, not a reason to skip the interview",
-            "run the strategy interview; existing docs are source material, not a skip condition",
+            "existing docs are source material, not a skip",
             "Ordinary authoring, alteration, or execution may use an accepted/current workflow without the full interview when it adequately answers the task",
             "missing, stale, ambiguous, conflicting, unsafe, or insufficient workflows fail closed to establish/update mode",
             "Explicit initialize, update, adopt, migrate, link, or revise requests still route to the strategy interview; existing docs are source material",
-            "For greenfield/no-strategy repositories and explicit initialize, update, adopt, migrate, link, or revise requests, load `references/strategy-interview.md` and run the strategy interview before accepted workflow-doc writes",
             "Existing workflows, absent/minimal tests, candidates, and companion docs inform the recommendation but do not skip the interview",
             "`missing`: no canonical entry point exists, including greenfield repositories with no/minimal tests or no documented testing strategy",
             "Run candidate discovery and ask the user whether to adopt, migrate, link, or initialize through `docs/testing/workflow.md` before test edits, command runs, or delegation",
@@ -1078,26 +1077,111 @@ class SkillPromptSurfaceTests(unittest.TestCase):
                 self.assertIn("known failure modes", text)
         self.assertIn("verifier-owned triggered risk selection", dispatch)
 
-    def test_repair_freshness_uses_affected_surface_classification_and_proportional_reruns(self) -> None:
+    def test_repair_freshness_uses_semantic_closure_and_proportional_reruns(self) -> None:
+        packages = read_repo("plugins/super-developer/references/work-packages.md")
+        artifact = read_repo("plugins/super-developer/skills/implementation-plan/references/artifact-authoring.md")
+        checklist = read_repo("plugins/super-developer/skills/implementation-plan/references/validation-checklist.md")
         lifecycle = read_repo("plugins/super-developer/references/package-lifecycle.md")
         gates = read_repo("plugins/super-developer/skills/implement/references/package-integration-gates.md")
         dispatch = read_repo("plugins/super-developer/skills/implement/references/package-dispatch.md")
+        verifier = read_repo("plugins/super-developer/skills/implement/references/package-verification.md")
+        implement = read_repo("plugins/super-developer/skills/implement/SKILL.md")
 
-        for text in [lifecycle, gates]:
-            with self.subTest(surface=text[:40]):
-                self.assertIn("affected-surface", text)
-                self.assertIn("narrow", text)
-                self.assertIn("bounded", text)
-                self.assertIn("cannot be bounded", text)
-                self.assertIn("delivered behavior", text)
-                self.assertIn("evidence bindings", text)
-                self.assertIn("contracts", text)
-                self.assertIn("integration", text)
-                self.assertRegex(text, r"safety/security/privacy/data")
-                self.assertIn("source bindings", text)
-                self.assertIn("validate-package-complete", text)
-                self.assertIn("validate-proof", text)
-                self.assertIn("package verification", text)
+        packages_compact = compact_text(packages).lower()
+        artifact_compact = compact_text(artifact).lower()
+        checklist_compact = compact_text(checklist).lower()
+        lifecycle_compact = compact_text(lifecycle).lower()
+        gates_compact = compact_text(gates).lower()
+        verifier_compact = compact_text(verifier).lower()
+
+        for token in [
+            "id-only",
+            "sequencing prerequisites",
+            "lower bound on readiness",
+            "not an impact or staleness graph",
+            "existing package `notes`",
+            "consumed output, contract, or evidence",
+        ]:
+            self.assertIn(token, packages_compact)
+        for token in [
+            "dependencies are id-only durable sequencing prerequisites",
+            "rationale belongs in package `notes`",
+            "runtime impact or failure alone does not create an edge",
+        ]:
+            self.assertIn(token, artifact_compact)
+        for token in [
+            "unless one consumes a durable prerequisite",
+            "temporary file/contract/proof overlap changes batching or serialization",
+            "without inventing a dependency edge",
+        ]:
+            self.assertIn(token, checklist_compact)
+
+        for token in [
+            "provisional classification in orchestrator state and repair/verifier packets",
+            "never a registry field or standalone impact receipt",
+            "sequencing lower bound",
+            "producing prerequisites",
+            "consumers in any lifecycle state",
+            "not represented by a dependency edge",
+            "until no new affected surface appears",
+            "failure, commit existence, merge ancestry, or dependency reachability alone does not stale a package",
+            "actual code diff",
+            "final code/proof/command-evidence state",
+            "until stable",
+            "classify uncertainty as unbounded",
+            "fresh focused verification",
+        ]:
+            self.assertIn(token, lifecycle_compact)
+        for token in [
+            "treat impact as provisional",
+            "shared lifecycle semantic-closure rules",
+            "actual repair diff through semantic closure",
+            "newly affected report/matrix/bindings",
+            "final code/proof/command-evidence state to semantic closure",
+            "repeating steps 3–4 for newly affected surfaces until stable",
+            "fresh focused package verification",
+        ]:
+            self.assertIn(token, gates_compact)
+        for token in [
+            "fresh independent pass and report",
+            "carried-forward matrix row",
+            "source inputs",
+            "remain unchanged and uncontradicted",
+            "dependency reachability alone does not require full verification",
+            "repair owner to refresh affected proof rows",
+            "final impact closure before verifier dispatch",
+            "inspect but do not edit proof state",
+        ]:
+            self.assertIn(token, verifier_compact)
+        focused_start = verifier.index("Focused re-verification is")
+        focused_end = verifier.index("\n\nAfter repair", focused_start)
+        focused_rule = compact_text(verifier[focused_start:focused_end]).lower()
+        self.assertIn(
+            "widen to full verification when that confirmation fails, obligation or test-review populations "
+            "materially change, impact crosses package/contract-wide or sensitive boundaries, or scope cannot "
+            "be bounded",
+            focused_rule,
+        )
+
+        repair = gates[gates.index("## Rejection and Repair"):gates.index("## Conflict Handling")]
+        repair_compact = compact_text(repair).lower()
+        ordered = [
+            "after code repair, reclassify the actual repair diff",
+            "refresh affected proof/command evidence",
+            "run `validate-proof`",
+            "reclassify the final code/proof/command-evidence state",
+            "repeating steps 3–4 for newly affected surfaces until stable",
+            "only then run fresh focused package verification",
+            "the verifier writes the fresh report",
+            "only after the fresh verification report, run `validate-package-complete`",
+        ]
+        for earlier, later in zip(ordered, ordered[1:]):
+            self.assertLess(repair_compact.index(earlier), repair_compact.index(later))
+
+        self.assertNotIn("after repair, update affected proof rows", verifier_compact)
+        self.assertNotIn("full verification for delivered behavior", gates_compact)
+        self.assertNotIn("if impact touches delivered behavior", lifecycle_compact)
+        self.assertIn("selecting repair/post-gate impact, freshness, or rerun scope", implement.lower())
         for needle in [
             "package Markdown/digest",
             "assigned Slice source/digest",
@@ -1269,6 +1353,317 @@ class SkillPromptSurfaceTests(unittest.TestCase):
             "Only the orchestrator may clarify with the user or expand worker authority",
         ]:
             self.assertIn(token, worker_contract_compact)
+
+
+    def test_closure_complexity_and_execution_feasibility_have_single_owners(self) -> None:
+        packages = read_repo("plugins/super-developer/references/work-packages.md")
+        artifact = read_repo(
+            "plugins/super-developer/skills/implementation-plan/references/artifact-authoring.md"
+        )
+        checklist = read_repo(
+            "plugins/super-developer/skills/implementation-plan/references/validation-checklist.md"
+        )
+        planner = read_repo(
+            "plugins/super-developer/skills/implementation-plan/references/planner-agent-contract.md"
+        )
+        rubric = read_repo("plugins/super-developer/skills/review-plan/references/plan-review-rubrics.md")
+        artifact_compact = compact_text(artifact)
+        checklist_compact = compact_text(checklist)
+        planner_compact = compact_text(planner)
+        rubric_compact = compact_text(rubric).lower()
+
+        for token in [
+            "## Package Sizing and Closure Complexity",
+            "semantic closure complexity",
+            "fixed proof/report/verification cost",
+            "one coherent state/evidence boundary",
+            "runtime surfaces/environments",
+            "harness/helper/fixture populations",
+            "proof/report refresh fanout",
+            "never universal thresholds",
+            "route unresolved empirical uncertainty to a spike",
+        ]:
+            self.assertIn(token.lower(), compact_text(packages).lower())
+        for consumer in [artifact, checklist, planner, rubric]:
+            self.assertNotIn("## Package Sizing and Closure Complexity", consumer)
+
+        for token in [
+            "material execution feasibility remains unresolved",
+            "smallest credible bounded probe or broad-only justification",
+            "accepted testing-workflow provenance",
+            "project-workflow-owned",
+        ]:
+            self.assertIn(token, artifact_compact)
+        for token in [
+            "materially unresolved execution feasibility",
+            "Cost or breadth alone does not trigger a profile",
+            "accepted testing-workflow provenance",
+        ]:
+            self.assertIn(token, checklist_compact)
+        self.assertIn("route empirical assumptions to a spike", planner_compact)
+        for token in [
+            "repo-backed command/harness/contract/fixture",
+            "cost or breadth alone does not trigger a profile",
+            "bounded, deterministic where controllable, cleanup-aware",
+            "requires spike routing rather than implementation-time guessing",
+        ]:
+            self.assertIn(token, rubric_compact)
+
+        combined = compact_text("\n".join([packages, artifact, checklist, planner, rubric])).lower()
+        self.assertNotRegex(combined, r"\b(?:exactly|roughly)\s+\d+\s*(?:-|–|to)\s*\d+\s+scenarios\b")
+
+    def test_execution_readiness_and_runtime_envelope_propagate_to_workers(self) -> None:
+        tool = read_repo("plugins/super-developer/references/tool-usage.md")
+        dispatch = read_repo("plugins/super-developer/skills/implement/references/package-dispatch.md")
+        contract = read_repo("plugins/super-developer/skills/implement/references/execution-contract.md")
+        package_agent = read_repo(
+            "plugins/super-developer/skills/implement/references/package-agent-contract.md"
+        )
+        repair_agent = read_repo(
+            "plugins/super-developer/skills/implement/references/repair-agent-contract.md"
+        )
+        generic = read_repo(
+            "plugins/super-developer/skills/testing/references/core/generic-testing.md"
+        )
+        delegation = read_repo(
+            "plugins/super-developer/skills/testing/references/delegation-packets.md"
+        )
+
+        for token in [
+            "## Command Safety and Runtime Envelope",
+            "stable identity",
+            "progress/completion signal",
+            "termination method",
+            "cleanup obligation",
+            "terminate owned descendants/process groups",
+            "Do not repeat the same failing command or assertion",
+        ]:
+            self.assertIn(token, tool)
+
+        dispatch_compact = compact_text(dispatch).lower()
+        for token in [
+            "trigger readiness only when material execution feasibility remains unresolved",
+            "omit routine non-trigger bookkeeping",
+            "smallest approved bounded probe",
+            "documented broad-only branch",
+            "broad or costly execution requires a clean readiness result",
+            "classify plan, project-workflow/precondition, implementation, or orchestration ownership",
+            "triggered readiness result/blockers only when applicable",
+        ]:
+            self.assertIn(token, dispatch_compact)
+
+        contract_compact = compact_text(contract).lower()
+        for token in [
+            "accepted/current project testing workflow",
+            "testing workflow:",
+            "omit when clearly non-triggered",
+            "broad-only justification",
+        ]:
+            self.assertIn(token, contract_compact)
+        pipeline = contract[contract.index("Pipeline:"):contract.index("Stop conditions:")]
+        for earlier, later in [
+            ("run root-aware final validation", "invoke `review-code` and `audit`"),
+            ("invoke `review-code` and `audit`", "batch findings, delegate repairs"),
+            ("batch findings, delegate repairs", "after clean review-code/audit acceptance"),
+            ("after clean review-code/audit acceptance", "push the feature branch"),
+        ]:
+            self.assertLess(pipeline.index(earlier), pipeline.index(later))
+        package_agent_compact = compact_text(package_agent).lower()
+        repair_agent_compact = compact_text(repair_agent).lower()
+        self.assertIn("packet-provided command identity", package_agent_compact)
+        self.assertIn("timeout or uncertain cleanup as non-pass", package_agent_compact)
+        self.assertIn("apply packet command identity", repair_agent_compact)
+        self.assertIn("distinct identity/expected signal", repair_agent)
+
+        generic_compact = compact_text(generic).lower()
+        self.assertIn("no credible narrower check exists", generic_compact)
+        self.assertIn("uncertain termination or cleanup is not a pass", generic_compact)
+        self.assertIn("do not impose universal serialization", generic_compact)
+        self.assertIn("Return after each failure", delegation)
+        self.assertIn("relevant state/evidence/strategy delta", delegation)
+
+    def test_package_repair_circuit_is_progress_sensitive_not_count_based(self) -> None:
+        dispatch = read_repo("plugins/super-developer/skills/implement/references/package-dispatch.md")
+        gates = read_repo("plugins/super-developer/skills/implement/references/package-integration-gates.md")
+        repair_agent = read_repo(
+            "plugins/super-developer/skills/implement/references/repair-agent-contract.md"
+        )
+        lifecycle = read_repo("plugins/super-developer/references/package-lifecycle.md")
+        implement = read_repo("plugins/super-developer/skills/implement/SKILL.md")
+
+        gate_compact = compact_text(gates).lower()
+        for token in [
+            "changed diagnostic strategy may authorize a bounded probe",
+            "circuit stays open",
+            "closes or narrows the gate, changes ownership, or yields decisive evidence",
+            "diagnostic probes do not close it",
+            "reset only after a relevant material state/evidence/strategy delta",
+            "attempt renaming",
+            "status/report metadata",
+            "changed commit alone is not progress",
+            "uncertain termination/cleanup",
+        ]:
+            self.assertIn(token, gate_compact)
+        self.assertIn("distinct identity/expected signal", dispatch)
+        self.assertIn("attempt identity or status/report metadata is never progress", dispatch.lower())
+        self.assertIn("distinct identity/expected signal", repair_agent)
+        self.assertIn(
+            "identity, commit, status, or report metadata alone is not progress",
+            compact_text(repair_agent).lower(),
+        )
+
+        repair = gates[gates.index("## Rejection and Repair"):gates.index("## Conflict Handling")]
+        self.assertLess(repair.index("`validate-proof`"), repair.index("package verification"))
+        self.assertLess(repair.index("package verification"), repair.index("`validate-package-complete`"))
+        repair_compact = compact_text(repair)
+        self.assertIn("invalidate newly affected report/matrix/bindings", repair_compact)
+        self.assertIn("orchestrator never rewrites verifier-owned report or proof state", repair_compact)
+        self.assertIn("the verifier writes the fresh report", repair_compact.lower())
+        self.assertIn("only after the fresh verification report", repair)
+
+        combined = compact_text("\n".join([dispatch, gates, repair_agent, lifecycle, implement])).lower()
+        self.assertNotRegex(combined, r"\b(?:one|two|1|2)\s+(?:distinct\s+)?diagnostic probes?\b")
+        self.assertNotRegex(combined, r"\b(?:two|2)\s+(?:distinct\s+)?(?:failures|attempts)\b")
+        self.assertNotIn("one consolidated repair pass", combined)
+
+    def test_feasibility_workflow_and_spike_routes_are_followable(self) -> None:
+        planning = read_repo("plugins/super-developer/skills/implementation-plan/SKILL.md")
+        planner = read_repo(
+            "plugins/super-developer/skills/implementation-plan/references/planner-agent-contract.md"
+        )
+        review = read_repo("plugins/super-developer/skills/review-plan/SKILL.md")
+        resolution = read_repo(
+            "plugins/super-developer/skills/review-plan/references/plan-review-resolution.md"
+        )
+        implement = read_repo("plugins/super-developer/skills/implement/SKILL.md")
+        spike = read_repo("plugins/super-developer/skills/spike-to-plan/SKILL.md")
+
+        planning_compact = compact_text(planning)
+        planner_compact = compact_text(planner)
+        review_compact = compact_text(review)
+        resolution_compact = compact_text(resolution)
+        implement_compact = compact_text(implement)
+        spike_compact = compact_text(spike)
+        for token in [
+            "accepted/current `docs/testing/workflow.md`",
+            "invoke `testing` to establish/update it",
+            "accepted testing-workflow path/version and relevant companions only for a triggered",
+            "omit routine non-trigger state",
+        ]:
+            self.assertIn(token, planning_compact)
+        self.assertIn("accepted testing-workflow path/version", planner_compact)
+        self.assertIn("triggered testing-workflow/companion paths", review_compact)
+        self.assertIn("invoke `spike-to-plan`", review_compact)
+        self.assertIn("through `implementation-plan`", review_compact)
+        self.assertIn("### empirical feasibility blocker", resolution_compact)
+        self.assertIn("must return through `implementation-plan`", resolution_compact)
+        for token in [
+            "invoke `spike-to-plan`",
+            "through `implementation-plan` and `review-plan`",
+            "revalidate before resuming",
+        ]:
+            self.assertIn(token, implement_compact)
+
+        for token in [
+            "../../references/tool-usage.md",
+            "accepted/current `docs/testing/workflow.md`",
+            "invoke `testing`",
+            "explicitly bounded broad-only probe",
+            "uncertain cleanup is inconclusive evidence",
+            "Do not repeat an unchanged command",
+            "fresh `implementation-plan` invocation",
+        ]:
+            self.assertIn(token, spike_compact)
+        self.assertLessEqual(len(spike.splitlines()), 150)
+
+    def test_execution_risk_probes_and_observability_stay_non_gating(self) -> None:
+        risks = read_repo("plugins/super-developer/references/known-risk-patterns.md")
+        lifecycle = read_repo("plugins/super-developer/references/package-lifecycle.md")
+        implement = read_repo("plugins/super-developer/skills/implement/SKILL.md")
+
+        for token in [
+            "Harness discovery and readiness",
+            "Fixture-contract fidelity",
+            "Asynchronous settlement and process ownership",
+            "Timeout and fail-fast amplification",
+            "do not persist these prompts as registry fields or generic checklists",
+        ]:
+            self.assertIn(token, risks)
+
+        for token in [
+            "Non-gating traces",
+            "repair identity/progress",
+            "Neither may mutate state",
+            "required as proof",
+            "non-gating stage timing when available",
+        ]:
+            self.assertIn(token, lifecycle + implement)
+        self.assertNotIn("execution-trace", lifecycle + implement)
+
+    def test_worker_contract_supporting_references_are_parent_owned(self) -> None:
+        implementation = read_repo("plugins/super-developer/skills/implementation-plan/SKILL.md")
+        planner = read_repo(
+            "plugins/super-developer/skills/implementation-plan/references/planner-agent-contract.md"
+        )
+        artifact = read_repo(
+            "plugins/super-developer/skills/implementation-plan/references/artifact-authoring.md"
+        )
+        concept = read_repo(
+            "plugins/super-developer/skills/implementation-plan/references/conceptualize-inputs.md"
+        )
+        implement = read_repo("plugins/super-developer/skills/implement/SKILL.md")
+        workflow = read_repo("plugins/super-developer/skills/testing/references/workflow-contract.md")
+
+        for path in [
+            "../../references/conceptualize-slice-authority.md",
+            "../../references/work-packages.md",
+            "../../references/slice-first-artifacts.md",
+            "references/conceptualize-inputs.md",
+            "references/artifact-authoring.md",
+            "references/validation-checklist.md",
+        ]:
+            self.assertIn(path, implementation)
+        for path in [
+            "references/package-agent-contract.md",
+            "references/repair-agent-contract.md",
+            "references/package-verification.md",
+        ]:
+            self.assertIn(path, implement)
+
+        self.assertNotRegex(planner, r"`(?:\.\./|references/)[^`]+\.md`")
+        self.assertNotIn("`${SUPER_DEVELOPER_PLUGIN_ROOT}/references/", artifact + concept)
+        self.assertNotIn("`references/strategy-interview.md`", workflow)
+        self.assertIn("Return `BLOCKED`", planner)
+
+    def test_execution_reliability_prompt_changes_respect_skill_authoring_caps(self) -> None:
+        capped = [
+            "plugins/super-developer/skills/implementation-plan/SKILL.md",
+            "plugins/super-developer/skills/review-plan/SKILL.md",
+            "plugins/super-developer/skills/implement/SKILL.md",
+            "plugins/super-developer/skills/testing/SKILL.md",
+            "plugins/super-developer/skills/spike-to-plan/SKILL.md",
+            "plugins/super-developer/references/work-packages.md",
+            "plugins/super-developer/references/tool-usage.md",
+            "plugins/super-developer/references/known-risk-patterns.md",
+            "plugins/super-developer/references/package-lifecycle.md",
+            "plugins/super-developer/skills/implementation-plan/references/design-preflight.md",
+            "plugins/super-developer/skills/implementation-plan/references/artifact-authoring.md",
+            "plugins/super-developer/skills/implementation-plan/references/validation-checklist.md",
+            "plugins/super-developer/skills/implementation-plan/references/planner-agent-contract.md",
+            "plugins/super-developer/skills/review-plan/references/plan-review-rubrics.md",
+            "plugins/super-developer/skills/implement/references/execution-contract.md",
+            "plugins/super-developer/skills/implement/references/package-dispatch.md",
+            "plugins/super-developer/skills/implement/references/package-integration-gates.md",
+            "plugins/super-developer/skills/implement/references/package-verification.md",
+            "plugins/super-developer/skills/implement/references/package-agent-contract.md",
+            "plugins/super-developer/skills/implement/references/repair-agent-contract.md",
+            "plugins/super-developer/skills/testing/references/core/generic-testing.md",
+            "plugins/super-developer/skills/testing/references/strategy-interview.md",
+            "plugins/super-developer/skills/testing/references/delegation-packets.md",
+        ]
+        for rel in capped:
+            with self.subTest(path=rel):
+                self.assertLessEqual(len(read_repo(rel).splitlines()), 150, rel)
 
 
 if __name__ == "__main__":

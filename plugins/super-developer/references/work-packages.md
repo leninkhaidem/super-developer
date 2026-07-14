@@ -19,24 +19,42 @@ Delegate substantial coherent work packages, not tiny fragments. Prefer the larg
 
 Registry status and helper results are signals, not proof.
 
-## Package Sizing
+## Package Sizing and Closure Complexity
 
 A good package is:
 
 - coherent by subsystem, module, directory, user flow, data model, API surface, or test surface;
-- large enough to justify dedicated agent startup;
-- small enough for one agent to reason about safely;
-- independently mergeable;
-- explicit about initial inspection paths;
-- clear about assigned Slice H3 obligations and verification expectations.
+- large enough to justify dedicated agent startup and its fixed proof/report/verification cost;
+- small enough for one agent to implement, verify, and repair through one coherent state/evidence boundary;
+- independently mergeable, with explicit initial paths, assigned Slice obligations, and verification expectations.
 
-Avoid one-tiny-change packages unless the work is risky, naturally isolated, or requires focused verification.
+Before finalizing the boundary, assess semantic closure complexity:
+
+- obligation breadth, caller contracts, and independently observable outcomes;
+- runtime surfaces/environments and distinct evidence or approval boundaries;
+- changed harness/helper/fixture populations and the review depth they trigger;
+- setup, isolation, teardown, cleanup, external preconditions, and shared-resource constraints;
+- expected command cost, serial/fail-fast behavior, and broad-check placement;
+- proof/report refresh fanout when implementation or evidence changes;
+- empirical uncertainty that prevents a safe implementation or verification commitment.
+
+Split when one agent cannot close those dimensions coherently. Keep work together when splitting would
+multiply shared harness ownership, duplicate evidence, or add more fixed gate cost than it removes. Counts of
+files, scenarios, or commands are warning signals, never universal thresholds. Route unresolved empirical
+uncertainty to a spike instead of guessing package boundaries. Avoid tiny packages unless risk or isolation
+justifies their fixed lifecycle cost.
 
 ## IDs and Dependencies
 
 Package IDs use contiguous `WP<N>` values (`WP1`, `WP2`, ...). Renumber when packages are reordered, split, or merged so the sequence has no gaps.
 
-Dependencies live in both the registry `depends_on` array and package Markdown `## Dependencies`; they must agree. A package is externally blocked until each dependency has a fresh `PASS` package verification report and clean `validate-package-complete` result; registry `done` or proof rows alone do not unlock dependents. Internal sequencing is handled by the package agent.
+Dependencies are ID-only in both the registry `depends_on` array and package Markdown
+`## Dependencies`; they must agree. They are durable sequencing prerequisites and a lower bound on
+readiness, not an impact or staleness graph. Put non-obvious rationale in existing package `Notes`, naming
+consumed output, contract, or evidence; runtime overlap, failure, or a desired rerun alone does not create an
+edge. A package is externally blocked until each dependency has a fresh `PASS` package verification report
+and clean `validate-package-complete`; registry `done` or proof rows alone do not unlock dependents.
+Internal sequencing is handled by the package agent.
 
 ## Parallel Safety
 
@@ -68,6 +86,11 @@ Rules:
 - Planner seeds do not limit verifier discovery; verifiers still inspect package scope, assigned Slices, changed code/diff, tests, expectations, and known failure modes for emergent triggered-risk rows.
 - Do not create a second command ledger in the registry.
 - Batch broad or expensive full-suite, generated-contract, typecheck, or lint commands at integration/final gates unless they are cheap by project convention or the only credible package proof.
+- When runtime cost or uncertainty leaves material execution feasibility unresolved, record in existing package
+  `Notes` or verification expectations:
+  authoritative command/harness/contract/fixture sources, preconditions and cleanup, cost class, the smallest
+  credible bounded probe or broad-only justification, broad-check placement, accepted testing-workflow
+  provenance, and a spike/replan trigger. Exact budgets remain project-owned.
 
 ## Risk and Review Lenses
 
@@ -87,7 +110,11 @@ Documentation-only and reference-only packages still receive baseline package ve
 
 ## Runtime Adjustment
 
-The implementation orchestrator may merge, split, defer, or reorder planned packages when current package status, file impact, proof readiness, Slice assignment, or previous merged work makes the plan unsafe or inefficient. It must state the reason before dispatch.
+The implementation orchestrator may merge, split, defer, or reorder planned packages when current package
+status, closure complexity, file impact, proof readiness, Slice assignment, or previous merged work makes the
+plan unsafe or inefficient. When one uncertainty gates several otherwise independent packages, retire it with
+the smallest bounded readiness action before affected fanout; do not invent a dependency edge when dispatch
+readiness alone is sufficient. State the reason before dispatch.
 
 If adjustment changes package scope, Slice H3 assignment, dependencies, proof path, report path, or approved deferrals, route through artifact repair or explicit user approval. Do not silently downgrade verification depth while a triggering risk remains.
 

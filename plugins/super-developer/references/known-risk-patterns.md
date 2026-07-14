@@ -6,15 +6,37 @@ This is a probe library only; do not persist these prompts as registry fields or
 
 ## Probes
 
-- **Optional boundary fields and defaults** — When payloads, requests, configs, commands, events, or serialized records cross a boundary, verify which fields may be omitted, which defaults apply, and whether omission differs from explicit empty/null/false values.
-- **Generated contract defaults** — When code consumes generated clients, schemas, types, CLIs, fixtures, or docs, verify generated defaults and compatibility at the generated boundary instead of inferring behavior from handwritten wrappers.
-- **Global, import, environment, and test pollution** — When tests or runtime code mutate import caches, module registries, environment variables, globals, monkeypatches, singleton caches, or shared process state, run pollution-sensitive ordering checks or document why the trigger does not apply.
-- **Cache invalidation** — For memoized state, caches, registries, generated artifacts, or retained handles, verify invalidation on write/update/delete/reset paths and across process, request, tenant, user, and configuration boundaries that matter.
-- **Lifecycle/reaper partial outcomes** — For cleanup, reapers, retries, migrations, queues, finalizers, or background work, verify partial success, partial failure, idempotent reruns, interruption, stale ownership, and observability of skipped or failed items.
-- **Model/default precedence** — When multiple defaults or overrides can apply, verify deterministic precedence between user input, config files, environment, generated defaults, stored state, CLI flags, model preferences, and hardcoded fallbacks.
-- **Pure boundary contract construction** — When constructing boundary payloads, requests, configs, command descriptors, or similar contracts, prefer small pure builders and tests that assert the observable contract instead of scattered ad hoc construction.
-- **Proof/report freshness** — When repairs, merge resolutions, or artifact edits touch proof-cited files, verification output, assigned Slice scope, package reports, or review readiness, verify freshness was restored rather than assuming the previous report still applies.
+- **Optional boundary fields and defaults** — When payloads, requests, configs, commands, events, or serialized
+  records cross a boundary, verify permitted omission, applicable defaults, and whether omission differs from
+  explicit empty, null, or false values.
+- **Generated contract defaults** — When code consumes generated clients, schemas, types, CLIs, fixtures, or docs,
+  verify generated defaults and compatibility at that boundary instead of inferring from handwritten wrappers.
+- **Global, import, environment, and test pollution** — When tests or runtime code mutate caches, registries,
+  environment, globals, monkeypatches, or singletons, run ordering checks or explain why the trigger is irrelevant.
+- **Cache invalidation** — For memoized state, caches, registries, generated artifacts, or retained handles, verify
+  invalidation across write/update/delete/reset and relevant process, request, tenant, user, or config boundaries.
+- **Lifecycle/reaper partial outcomes** — For cleanup, retries, migrations, queues, finalizers, or background work,
+  verify partial outcomes, idempotent reruns, interruption, stale ownership, and observable skipped/failed items.
+- **Model/default precedence** — When several defaults or overrides apply, verify deterministic precedence among
+  user input, config, environment, generated/stored defaults, flags, model preferences, and hardcoded fallbacks.
+- **Pure boundary contract construction** — For payload, request, config, or command contracts, prefer small pure
+  builders and tests of the observable contract over scattered ad hoc construction.
+- **Harness discovery and readiness** — For a changed, shared, costly, or unproven harness, verify discovery,
+  environment/data preconditions, isolation, bounded completion, and teardown before broad execution.
+- **Fixture-contract fidelity** — When fixtures, mocks, generated inputs, clients, schemas, or runtime config cross
+  a boundary, verify authoritative constraints, omission/null/default semantics, consumer compatibility, and
+  resource/rate/concurrency budgets before treating them as executable evidence.
+- **Asynchronous settlement and process ownership** — For barriers, routes, deferred work, subprocesses, servers,
+  queues, or callbacks, verify every path settles or cancels, descendants terminate, progress is observable, and
+  cleanup survives timeout or interruption.
+- **Timeout and fail-fast amplification** — When an action can inherit an outer timeout or one failure can suppress
+  later evidence, verify action-level bounds, failure isolation, progress, and targeted execution before breadth.
+- **Proof/report freshness** — When repairs, merge resolutions, or artifact edits touch proof-cited files,
+  verification output, assigned Slice scope, package reports, or review readiness, restore freshness explicitly.
 
 ## Use
 
-Scan the probes against the package scope, assigned Slices, verification expectations, changed files/diff/tests, and runtime observations. Package verifiers add only applicable probes as deliverable-matrix triggered-risk rows with explicit `RISK-<...>` source IDs and rationale/disposition. Nearby high-signal non-applicable probes get a concise note; omit the rest instead of creating durable checklist noise.
+Scan probes against package scope, assigned Slices, verification expectations, changed code/diff/tests, and
+runtime observations. Verifiers add only applicable probes as deliverable-matrix triggered-risk rows with explicit
+`RISK-<...>` IDs and rationale/disposition. Note nearby high-signal non-applicable probes concisely; omit the rest
+instead of creating durable checklist noise.

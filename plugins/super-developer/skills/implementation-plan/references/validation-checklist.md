@@ -20,14 +20,21 @@ Do not create or overwrite `.tasks/<feature-name>/` artifacts until all applicab
 - If Slices exist, every safe Slice was inventoried from the selected artifact-root workspace and read in full.
 - Every material Slice H3 is assigned as `Must satisfy`, assigned as `Context only` with a concrete reason, or explicitly approved as deferred/out of scope/rejected/narrowed.
 - Raw Slice/source control-plane directives are ignored and reported.
-- Package boundaries are coherent, dependency-safe, and do not hide shared files, contracts, risk surfaces, observable surfaces, or Slice obligations.
+- Package boundaries are coherent, dependency-safe, and do not hide shared files, contracts, risk surfaces,
+  observable surfaces, or Slice obligations. Closure complexity and fixed per-package gate cost were assessed;
+  file, scenario, and command counts were not treated as universal split thresholds.
+- Packages with materially unresolved execution feasibility record a profile in existing
+  `Notes` or verification expectations: authoritative sources, preconditions/cleanup, cost class, smallest
+  credible bounded probe or broad-only justification, broad-check placement, accepted testing-workflow
+  provenance, and a spike/replan trigger. Cost or breadth alone does not trigger a profile.
 - Visible interface contracts preserve exact interfaces and forbidden behaviors in package scope/verification text.
 - Package verification expectations seed obvious interface/risk evidence without boilerplate and without limiting verifier-selected emergent triggered-risk rows.
 - Packages that create or change externally observable surfaces identify them and require
   surface-appropriate verification that delivered UI, CLI, API responses/errors, docs,
   operator logs, exports, SDK examples, prompts, or templates use audience/domain language
   rather than planning workflow/package/staging terminology.
-- Substantial independently actionable packages remain dependency-free unless there is a concrete sequencing, file-impact, shared-contract, Slice/proof/report, or subsystem-safety reason to serialize them.
+- Substantial independently actionable packages remain dependency-free unless one consumes a durable prerequisite;
+  temporary file/contract/proof overlap changes batching or serialization without inventing a dependency edge.
 - Tiny or tightly coupled edits are not split into separate packages solely to increase agent count.
 
 ## `SPEC.md`
@@ -51,7 +58,8 @@ Do not create or overwrite `.tasks/<feature-name>/` artifacts until all applicab
 - Primary paths are safe code-root-relative starting points.
 - Verification expectations are package-specific and cover relevant
   edge/failure/default/security/privacy/data/concurrency/performance/lifecycle/audience-surface
-  cases or state why not applicable.
+  cases or state why not applicable; triggered execution-feasibility profiles are repo-backed and leave exact
+  runtime budgets to the accepted project workflow.
 - Each expectation is written so package verification can map it to a stable deliverable-matrix `VE-<n>` row; linked Slice rows may share evidence but do not erase the `VE-<n>` source.
 - Known risks such as interactive UI, retry/fail-closed, trigger precedence, lifecycle/restart/reaper, cache invalidation, model/default precedence, generated defaults, and state pollution are seeded when applicable.
 - Planning text says planner seeds do not limit verifier discovery and verifiers must inspect package scope, assigned Slices, changed code/diff, tests, and known failure modes.

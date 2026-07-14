@@ -6,7 +6,9 @@ This reference owns the user-facing implement approval template and its approval
 
 ## Contract
 
-- Derive the contract only from approved plan artifacts, package Markdown, safe assigned Slice content, current git state, and explicit user instructions.
+- Derive the contract only from approved plan artifacts, package Markdown, safe assigned Slice content,
+  accepted/current project testing workflow and linked companions when execution feasibility is triggered,
+  current git state, and explicit user instructions.
 - Approval covers only the exact actions listed in the contract.
 - The contract must name artifact root, code root, sidecar ref `artifacts/<feature>`, artifact worktree
   `.worktrees/<feature>/artifacts`, and package/integration code worktrees.
@@ -19,20 +21,22 @@ This reference owns the user-facing implement approval template and its approval
 - Dependency installs/additions are covered only when exact commands and manifest/lockfile paths are
   derived from approved artifacts or explicit user instruction and listed in this contract; otherwise
   they require separate approval.
-- Auto-resolve mode continues through approved implementation gates and the covered feature push until
-  a stop condition, review-code/audit handoff boundary, or completion.
+- Auto-resolve mode continues through approved implementation gates and the covered feature push only while
+  readiness holds and each repair attempt makes material progress. An open execution/repair circuit stops it.
 - Step-by-step mode asks before each major gate, package wave, repair loop, feature push, and final handoff.
 
 ## Do
 
-1. Validate `.tasks/<feature>/`, package Markdown, declared proof/report paths, assigned Slice paths/H3 IDs,
-   and current git refs before presenting the contract.
+1. Validate `.tasks/<feature>/`, package/proof/report/Slice paths, current git refs, and—when execution
+   feasibility is triggered—the accepted/current testing-workflow path/version and relevant companions.
 2. Name the exact artifact root, code root, artifact ref/worktree, base ref, feature ref, target ref,
    package refs/worktrees, proof/report paths under the artifact root, sidecar checkpoint command,
    and default-covered feature-push command.
 3. For each package, summarize assigned Slice obligations, primary paths, package dependencies, approved
    dependency install/addition commands, verification expectations, package verification depth, Semgrep evidence
-   expectations when enabled/contracted, and known blockers.
+   expectations when enabled/contracted, known blockers, and any triggered execution-feasibility profile:
+   authoritative sources, testing-workflow provenance, preconditions/cleanup, cost class, command bounds,
+   smallest credible readiness probe, and broad-check placement or broad-only justification.
 4. Disclose resolved Semgrep state, privacy/local rule source, helper checks, evidence paths/digests, bounded consumption order, advisory finding policy, and unapproved side effects.
 5. List command-safety boundaries and all actions that are not authorized by this contract.
 6. Offer exactly three choices: `approve auto-resolve`, `step-by-step`, or `abort`.
@@ -52,6 +56,10 @@ Git refs:
 Roots:
   artifact root: .worktrees/<feature>/artifacts (owns .planning/.tasks, proofs, reports, reviews)
   code root: <root or integration/package worktree used for source validation>
+
+Testing workflow:
+  source: <accepted/current docs/testing/workflow.md + relevant companions | not triggered + reason>
+  runtime policy: <command budgets, progress/completion, termination, cleanup, shared-resource constraints>
 
 Remote actions:
   feature branch push: git push -u origin feature/<feature> for review/testing (covered by this contract by default; non-force only)
@@ -86,26 +94,30 @@ Packages:
   verification expectations: <safe scoped commands/inspections or none>
   dependency installs/additions: <none or exact approved manifest/lockfile paths and commands>
   package verification: <standard | enhanced + lenses/reasons>
+  execution readiness: <omit when clearly non-triggered | triggered sources/bounds/cleanup/probe/broad placement>
   known blockers/deferrals: <none or approved details>
 
 Pipeline:
 1. create/resume artifact sidecar plus integration and package code worktrees through the `worktree` skill
 2. create proof placeholders in the artifact root with explicit `--artifact-root`/`--code-root` helper flags
-3. dispatch package agents with artifact-root package/Slice/proof/report paths and package code worktrees
-4. require package-agent SELF_REVIEW and artifact-root proof Markdown evidence
-5. run root-aware `sliceproof.py validate-proof` and package verification; require fresh PASS report
-6. merge accepted source-only package branches into the integration worktree after gates pass
-7. refresh artifact-root proof/report evidence after repairs, merge-impact changes, or verifier findings
-8. checkpoint sidecar artifacts after package delivery, pushing only `origin artifacts/<feature>`
-9. run root-aware final validation and safe integrated checks
-10. after final review-code/audit acceptance, checkpoint sidecar artifacts before target merge/cleanup
-11. push the feature branch using the exact feature push above unless the user explicitly excluded it
-12. hand off to `review-code` and `audit` through fresh Skill-tool/sub-agent invocations when readiness rules allow
+3. run conditional contract/fixture/harness preflight and the smallest bounded readiness probe before costly fanout
+4. dispatch package agents with artifact-root package/Slice/proof/report paths and package code worktrees
+5. require package-agent SELF_REVIEW and artifact-root proof Markdown evidence
+6. run root-aware `validate-proof`, package verification with a fresh PASS report, then `validate-package-complete`
+7. merge accepted source-only package branches into the integration worktree after gates pass
+8. refresh and rerun affected proof/report/verification state after repairs, merge changes, or findings
+9. checkpoint sidecar artifacts after package delivery, pushing only `origin artifacts/<feature>`
+10. run root-aware final validation and safe integrated checks
+11. invoke `review-code` and `audit` as sibling checks against the same integrated state
+12. batch findings, delegate repairs, refresh affected evidence, and rerun affected final checks until both are clean
+13. after clean review-code/audit acceptance, checkpoint sidecar artifacts before target merge/cleanup
+14. push the feature branch using the exact feature push above unless the user explicitly excluded it
 
 Stop conditions:
 - unsafe, missing, stale, contradictory, or out-of-scope artifact root, code root, package/proof/report/Slice/worktree path
 - unassigned material Slice obligation, unresolved plan defect, unapproved deferral, or weak proof evidence
-- failed verification, stale package report, artifact-root ambiguity, or ignored proof/report artifact committed to code git
+- failed readiness/verification, missing runtime bounds or cleanup ownership, stale package report,
+  artifact-root ambiguity, uncertain termination/cleanup, or ignored proof/report artifact committed to code git
 - sidecar checkpoint would push anything except `origin artifacts/<feature>` or merge sidecar artifacts into deliverable code
 - product/design change, scope expansion, existing-feature contract change, or risk acceptance needed
 - unsafe/destructive/external/credentialed command, service install/start, or unlisted dependency install needed
@@ -115,14 +127,15 @@ Stop conditions:
 
 Choices:
   approve auto-resolve — run approved package/verification/repair gates, including the default feature push,
-                         until completion or stop condition
+                         while readiness and material-progress circuit rules hold, until completion or stop
   step-by-step        — ask before each package wave, repair loop, push, and final handoff
   abort               — stop before worktree creation or dispatch
 ```
 
 ## Stop if
 
-- Any template field cannot be derived from safe approved artifacts or explicit user instruction.
+- Any template field cannot be derived from safe approved artifacts, an applicable accepted/current testing
+  workflow, or explicit user instruction.
 - The user wants the contract to authorize target merge/push, force/delete/tag/release action, destructive command,
   service install/start, credentialed action, or external side effect, or a dependency install not derived from
   approved artifacts/explicit instruction and listed exactly in the contract.
@@ -130,4 +143,5 @@ Choices:
 
 ## Output
 
-Return the filled contract, selected choice, explicitly covered actions, explicitly excluded actions, blockers, and any fields needing user clarification.
+Return the filled contract, selected choice, testing-workflow provenance, feasibility profiles/readiness probes,
+covered/excluded actions, progress/circuit boundaries, blockers, and fields needing user clarification.

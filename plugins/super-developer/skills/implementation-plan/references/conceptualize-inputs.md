@@ -3,8 +3,9 @@
 ## Contract
 
 - Use at most one selected artifact-root-relative `.planning/<concept-slug>/` workspace for a plan.
-- Load `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/artifact-store.md` for artifact-root/code-root and slug rules.
-- Load `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/conceptualize-slice-authority.md` for canonical path safety, full-inventory, H3 accounting, approval, conflict, and control-plane rules.
+- Apply the packet-supplied artifact-store contract for root/ref/path and slug rules.
+- Apply the packet-supplied Slice-authority contract for path safety, inventory, H3 accounting, approvals,
+  conflicts, and control-plane rules. Return `BLOCKED` when either labeled path is missing.
 - Index-only planning is valid when no Slice is independently useful. The plan must say no authoritative Slice inventory exists for the feature.
 - If any Slice exists in the selected artifact workspace, planning must inventory every safe Markdown Slice in `slices/` and read each file in full before writing artifacts.
 - The Conceptualize slug is the default feature/artifact slug. A different `.tasks/<feature>` or sidecar path requires explicit user-approved rename/migration metadata.

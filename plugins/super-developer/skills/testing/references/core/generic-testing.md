@@ -33,7 +33,9 @@ For each case or scenario capture:
 
 1. Objective/behavior under test and why it matters.
 2. Scope/test level and selected mode.
-3. Preconditions, fixtures, seeded data, mocks/stubs, live services, and privacy constraints.
+3. Preconditions, fixtures, seeded data, mocks/stubs, live services, privacy constraints, and authoritative
+   contract/configuration sources. Validate data shapes, limits, defaults, client/runtime compatibility, and
+   shared resource/rate/concurrency budgets when applicable.
 4. Actions/inputs, including boundary, negative, regression, and conditional cases when relevant.
 5. Expected outputs, assertions, side effects, invariants, and cleanup expectations.
 6. Determinism/isolation risks, command provenance or discovery blocker, and evidence format.
@@ -43,21 +45,29 @@ Maintainable tests are deterministic, behavior-focused, clear in name and setup,
 conventions, minimal in mocking, and resilient to implementation-detail churn. Do not weaken a test
 to make a product failure disappear.
 
-## Command Safety Classifier
+## Command Safety and Execution Discipline
 
-For workflow-approved or delegated commands, record every proposed/run command as: command, cwd,
-provenance (repo file/script/doc or explicit user instruction), mode, timeout, expected writes,
-environment assumptions without secrets, classification, and approval/blocker reason.
+For every proposed/run command, record a stable identity, command, cwd, repo/user provenance, selected mode,
+scope, expected writes, environment assumptions without secrets, classification, approval/blocker reason,
+timeout, progress/completion signal, termination method, and cleanup obligation.
 
-Default-run within a delegated execution task only when all are true: repo-discovered, deterministic,
-non-destructive, non-network, non-credentialed, non-watch, non-interactive, bounded, local to the repo,
-and no live/browser/service or shared-data mutation risk. Use bounded timeouts and report
-spawned-process termination/cleanup.
+Default-run only when repo-discovered, deterministic, non-destructive, non-network, non-credentialed,
+non-watch, non-interactive, bounded, local, and free of live/browser/service/shared-data risk. Stop for explicit
+approval before live, browser, network, credentialed, destructive, production, mutating, dependency/config/CI,
+orchestration, manifest/lockfile, interactive, daemon/server, long-running, or opaque actions. A script name is
+not provenance; inspect what it runs when safe.
 
-Stop for explicit current-task approval before live-stack, browser E2E, network, credentialed,
-destructive, production, data-mutating, dependency/tooling/config, CI, orchestration,
-package-manifest, lockfile, watch/interactive, daemon/server, long-running, or opaque actions.
-Script names such as `test` or `e2e` are not sufficient provenance; inspect what they run when safe.
+For costly or uncertain execution, use a readiness ladder: deterministic contract/fixture/config preflight,
+command/test discovery, then the smallest credible bounded check. Broaden after clean narrower evidence; when no
+credible narrower check exists, document why and run an explicitly bounded broad command after clean preflight
+and discovery. Keep independent ready work parallel; do not impose universal serialization.
+
+Use project-approved action, barrier, case, and suite budgets. Inner actions must not inherit an entire outer
+timeout. Require observable progress and an awaited terminal state. On timeout/cancel/interruption, terminate
+owned descendants, await exit, run cleanup, and report cleanup status; uncertain termination or cleanup is not a
+pass. Do not enlarge timeouts to mask missing preconditions, bad selectors, unresolved barriers, or deadlocks.
+Do not repeat unchanged failing assertions or commands; require a relevant state or diagnostic-strategy change.
+Return control after each bounded stage or failure instead of hiding follow-up runs in one opaque long call.
 
 ## Durable Plan/Report Gate
 

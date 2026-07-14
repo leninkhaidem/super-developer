@@ -101,13 +101,12 @@ affected review-code or audit checks when the change occurs after those gates re
 
 ## Impact Classification and Repair Handling
 
-Before choosing rerun scope for any post-gate repair, merge edit, proof/report refresh, validation advisory, or verification-output change, record a generic affected-surface classification: affected packages, Slice H3s, verification expectations, deliverables, evidence refs, matrix rows, reports, commands, implementation state, contracts, integration seams, safety/security/privacy/data surfaces, review-code state, audit conclusions, and selected rerun scope.
-
-If impact is narrow, bounded, and justified, rerun only targeted checks needed to reestablish freshness. If impact touches delivered behavior, evidence bindings, proof/report/matrix claims, package/Slice source bindings, public or internal contracts, integration seams, safety/security/privacy/data surfaces, stacked readiness, or cannot be bounded, fail closed to broader package verification, review-code, audit, or final validation as applicable. Advisory-only `context_only` drift is classification input rather than a hard blocker by default, but material risk may still be escalated. Do not run full final gates solely because a commit exists when the classification supports targeted refresh.
-
-Before delegating repair, map each confirmed finding or fix batch to affected packages, Slice H3 IDs, proof rows, verification expectations, matrix rows, and proof-cited files/commands when identifiable.
-
-After repair: run relevant commands/inspections, refresh affected proof evidence, rerun `validate-proof`, rerun focused/full package verification, rerun `validate-package-complete`, and rerun affected final code-review or focused/full audit checks as the classification requires. Do not refresh proof evidence for failed or partial intermediate attempts as accepted evidence.
+Before choosing rerun scope, keep the provisional classification in orchestrator state and repair/verifier packets; persist consequences only in existing proof/report/review/audit artifacts, never a registry field or standalone impact receipt. Record scope, attempt identity, prior outcome, delta, and affected packages, Slices, expectations, evidence/matrices/reports/commands, contracts, integration, sensitive surfaces, review, and audit.
+Treat `depends_on` as a sequencing lower bound, not impact proof. Seed from named failed/changed surfaces; inspect producing prerequisites when consumed output may be falsified, consumers in any lifecycle state when supplied behavior/contract/evidence changed or was contradicted, and shared contract/file/Slice/proof/harness surfaces not represented by a dependency edge.
+Follow only concrete semantic hops until no new affected surface appears. Failure, commit existence, merge ancestry, or dependency reachability alone does not stale a package. A package is affected only when its owned delta, consumed input, proof/report claim, or source/evidence binding changed or was contradicted; classify uncertainty as unbounded.
+After code repair, reclassify the actual code diff, repeat semantic closure, and invalidate newly affected reports before refreshing evidence.
+If impact is narrow, bounded, and justified, use fresh focused verification. Widen when carried inputs cannot be confirmed unchanged, obligation or Test Review Scope populations materially change, impact crosses contract-wide/integration/safety/security/privacy/data or stacked-readiness boundaries, or cannot be bounded. Advisory-only `context_only` drift remains classification input. Do not run full gates solely because a commit or dependency exists.
+Before repair, map each finding or batch to identifiable packages, Slice H3 IDs, proof rows, expectations, matrix rows, and proof-cited files/commands. After code-impact closure, refresh affected proof/command evidence and run `validate-proof`; then reclassify the final code/proof/command-evidence state, repeating closure plus refresh/validation for newly affected surfaces until stable. Only then run fresh focused/full package verification, `validate-package-complete`, and affected final review/audit gates. Never accept failed or partial intermediate evidence.
 
 ## Report Freshness
 
@@ -143,8 +142,8 @@ This allows dispatching final review-code and final audit against the same top s
 4. If either final check was not run, is stale, or is affected by repair, run or rerun it before readiness.
 5. Declare readiness only when package evidence, review-code readiness, and final audit PASS are clean for the same integrated state.
 
-## Dashboard Rule
+## Observability and Dashboard Rule
 
-Dashboards are read-only. They may surface registry status and dependency readiness; package/proof/report paths; proof validation state; matrix cleanliness; report presence/binding state; `validate-package-complete`/`validate-final` helper result; and review-code readiness state when present.
-
-Dashboards must not mutate lifecycle state or present mechanical signals as semantic proof.
+Non-gating traces may surface version; stage/package/wave timing; command identity/scope/outcome/cleanup;
+readiness, freshness, rerun reason/scope, and repair identity/progress. Dashboards may also show mechanical
+lifecycle signals. Neither may mutate state, be required as proof, or present timing/mechanics as completion.

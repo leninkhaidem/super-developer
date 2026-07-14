@@ -103,6 +103,12 @@ or equivalent isolation, unique run identifiers when useful, cleanup expectation
 and explicit follow-up when cleanup fails or is uncertain. Do not default to uncontrolled shared-data
 mutation or hide cleanup failures in raw logs.
 
+The workflow must define project-fit action/barrier/case/suite budgets, observable progress, awaited completion,
+owned-process termination, and cleanup after timeout or interruption. It must prohibit timeout inflation and
+unchanged reruns as substitutes for diagnosis, require authoritative fixture/contract/config preflight when
+applicable, and place broad execution after clean discovery and credible narrower checks. When no credible
+narrower check exists, require a documented, explicitly bounded broad-only path.
+
 ## Legacy and Migration Prompts
 
 Recommend a clean structure for new plans/tests going forward, but leave legacy tests where they are

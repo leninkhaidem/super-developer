@@ -94,4 +94,15 @@ A report is stale when later mutation can affect reviewed package state, proof e
 
 Binding-only refresh is allowed only when the source report body already reviewed identical code tree/diff, proof content/digest, package Markdown/digest, assigned Slice set/digests or matrix-source snapshot, implementer report/`SELF_REVIEW`, verification output, deliverable matrix, Test Review Scope receipt, and Semgrep evidence; the only change is exact commit/ref metadata. Any uncertainty, repair, merge-resolution edit, proof/evidence change, package/Slice/output change, implementer-report change, or reviewed-code change requires focused/full package verification.
 
-After repair, update affected proof rows, rerun `sliceproof.py validate-proof`, rerun focused/full package verification as the changed surface requires, and write a fresh report bound to the repaired state before completion. Final review-code or audit must not rely on missing, failed, stale, root-ambiguous, or pre-repair package reports.
+Focused re-verification is a fresh independent pass and report, not metadata reuse. Recheck affected
+rows/surfaces, named seams, triggered risks, and the Test Review Scope delta. For every carried-forward matrix
+row, confirm implementation, source inputs, proof/evidence, and bindings remain unchanged and uncontradicted.
+Widen to full verification when that confirmation fails, obligation or test-review populations materially
+change, impact crosses package/contract-wide or sensitive boundaries, or scope cannot be bounded. Failure,
+commit existence, merge ancestry, or dependency reachability alone does not require full verification.
+
+After repair, require the repair owner to refresh affected proof rows and the orchestrator to complete
+`sliceproof.py validate-proof` plus final impact closure before verifier dispatch. Inspect but do not edit proof
+state; apply focused/full verification by the rules above and write only the fresh verifier-owned report bound to
+the repaired state. Final review-code or audit must not rely on missing, failed, stale, root-ambiguous, or
+pre-repair package reports.
