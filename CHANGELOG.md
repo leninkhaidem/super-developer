@@ -6,6 +6,11 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [v1.36.4] - 2026-07-13
+
+### Fixed
+- Fixed agent-selected package hygiene checks so harmless blank lines at EOF do not block completion unless repository-declared checks require Git's default whitespace semantics.
+
 ## [v1.36.3] - 2026-07-13
 
 ### Added
