@@ -6,6 +6,8 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [v1.37.0] - 2026-07-14
+
 ### Added
 - Added closure-complexity package shaping and conditional execution-feasibility review/readiness so costly or uncertain evidence is resolved before broad fanout.
 - Added a shared bounded-command runtime envelope, progress-sensitive repair circuit breaking, and non-gating execution observations.
