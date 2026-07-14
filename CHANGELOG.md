@@ -6,6 +6,21 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [v1.38.0] - 2026-07-14
+
+### Added
+- Added testing authority with a bounded routine-safe local-command fallback and exact task-local authorization for focused one-off work.
+- Added dedicated Fix Implementer contracts for diagnosis and review repair so delegated changes are bound to complete starting state and approved scope.
+
+### Changed
+- Changed testing workflow documentation from a universal prerequisite into durable authority for broad, reusable, delegated, browser, live-service, shared-data, and otherwise high-risk testing.
+- Changed `diagnose-and-fix` approval to human-readable scope and delivery intent while keeping hashes, snapshots, leases, and drift checks internal.
+- Changed implementation planning so a missing testing workflow does not block read-only or greenfield planning unless material execution feasibility requires testing authority.
+
+### Fixed
+- Fixed localized repair routing, review-state binding, and commit, push, merge, and cleanup gates so stale or concurrent repository state stops safely instead of being absorbed.
+- Fixed bugfix and hotfix routing across active-feature, maintenance, and production-hotfix bases without using the root checkout for repair or delivery.
+
 ## [v1.37.0] - 2026-07-14
 
 ### Added
