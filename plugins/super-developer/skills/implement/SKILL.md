@@ -41,10 +41,11 @@ affected reruns → final readiness for the same integrated state.
 1. Resolve the selected artifact root and code root; load `../../references/artifact-store.md` and
    `../../references/tool-usage.md`; run `sliceproof.py validate-plan`; read artifact-root `SPEC.md`,
    registry, package Markdown, and safe assigned Slices only after path validation.
-2. For triggered execution-feasibility profiles, read accepted/current `docs/testing/workflow.md` and its
-   relevant companions before contract approval; import command budgets, preconditions, and cleanup policy.
-   If missing, stale, or insufficient, stop and invoke `testing` to establish/update it rather than guessing.
-   Then load `references/execution-contract.md` and present roots/refs/worktrees, pushes/checkpoints,
+2. For triggered execution-feasibility profiles, resolve testing authority before contract approval: use
+   accepted/current workflow for high-risk/reusable work, routine-safe fallback for one bounded local command, or
+   task-local Testing Authorization for exact focused approval. Import command budgets, preconditions, and cleanup
+   policy from that authority. If insufficient, stop and invoke `testing` rather than guessing. Then load
+   `references/execution-contract.md` and present roots/refs/worktrees, pushes/checkpoints,
    package/proof/report/Slice scope, workflow provenance, verification depth, stops, and execution mode.
 3. After approval, use the `worktree` skill for setup commands and worktree safety; create/resume the
    artifact sidecar plus integration/package code worktrees without switching the root worktree.
@@ -101,7 +102,7 @@ affected reruns → final readiness for the same integrated state.
 
 ## Output
 
-Return package status, testing-workflow provenance, readiness decisions/probes, proof/report freshness,
+Return package status, testing-authority provenance, readiness decisions/probes, proof/report freshness,
 bounded command outcomes,
 non-gating stage timing when available, repair identities/progress/circuit state, verification results,
 commits/branches merged, blockers, feature push state, and next gate.

@@ -7,8 +7,9 @@
   dependency-installing, service-starting, or out-of-scope commands.
 - For each nontrivial command, carry a stable identity and record command, cwd, provenance, scope, expected
   writes, timeout budget, progress/completion signal, termination method, and cleanup obligation.
-- Use exact budgets from the accepted project workflow. Without one, choose a conservative bound only for a
-  deterministic local command; stop before potentially long, live, browser, service, or shared-data execution.
+- Use exact budgets from resolved testing authority. Without durable authority, choose a conservative bound only
+  for a routine-safe deterministic local command; stop before potentially long, live, browser, service, or
+  shared-data execution.
 - Bound actions and awaited barriers more narrowly than their parent scenario or suite. A failed action must not
   inherit the entire outer timeout, and a running process without an observable completion signal is not done.
 - On timeout, cancellation, or interruption, terminate owned descendants/process groups, await termination, and

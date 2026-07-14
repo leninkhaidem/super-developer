@@ -19,9 +19,9 @@ exploratory code, and return observed evidence without turning the spike into im
 - Preserve user work; never stash, reset, overwrite, or discard dirty changes without approval.
 - Apply the shared command runtime envelope to every command: identity, provenance, scope, timeout, progress,
   completion, owned-process termination, cleanup, and outcome.
-- When a probe uses project tests, harnesses, live/browser services, or shared data, require the accepted/current
-  project testing workflow and relevant companions. Invoke `testing` to establish/update them when absent,
-  stale, or insufficient; do not invent project budgets or cleanup policy.
+- When a probe uses project tests, harnesses, live/browser services, or shared data, require testing authority:
+  accepted/current workflow for high-risk/reusable work, routine-safe fallback for a bounded local command, or
+  task-local Testing Authorization for exact focused approval. If insufficient, invoke `testing` or stop.
 - Timeout, uncertain termination, or uncertain cleanup is inconclusive evidence, never a successful observation.
 - Do not persist exploratory code as planned-feature artifacts. Persist accepted planning outcomes later through
   normal specification, package, Slice approval/deferral, or registry ownership.
@@ -31,9 +31,9 @@ exploratory code, and return observed evidence without turning the spike into im
 1. State one planning assumption, the decision it blocks, success/failure evidence, constraints, and non-goals.
 2. Inspect existing code, tests, repository docs, and authoritative library/API docs before probing.
 3. Stop the spike when static evidence resolves the assumption; report that evidence directly.
-4. Before any command, load `../../references/tool-usage.md`. If project testing/harness policy applies, read
-   accepted/current `docs/testing/workflow.md` and relevant companions; invoke `testing` and stop when they are
-   missing, stale, conflicting, or insufficient.
+4. Before any command, load `../../references/tool-usage.md`. If project testing/harness policy applies, resolve
+   testing authority. Missing workflow alone does not block read-only/static evidence or a routine-safe probe. If
+   authority is missing, stale, conflicting, or insufficient, invoke `testing` and stop command execution.
 5. Select an isolated temporary branch/worktree for code, service, shared-data, or multi-command probes. Use the
    current tree only for a small read-only or low-risk probe with clean or explicitly approved state.
 6. Define the probe contract: command identity/provenance, cwd/scope, expected writes and signal, explicit timeout,
@@ -52,7 +52,7 @@ exploratory code, and return observed evidence without turning the spike into im
 
 - Command safety, bounds, termination, or cleanup → `../../references/tool-usage.md`
 - Official library/API evidence → only when repository evidence does not resolve the assumption
-- Project test/harness/live/browser workflow is missing or stale → invoke `testing`
+- Project test/harness/live/browser authority is missing or stale → invoke `testing`
 - Temporary branch/worktree isolation → invoke `worktree`
 - Durable feature artifacts after evidence is accepted → invoke `implementation-plan`
 
@@ -70,7 +70,7 @@ exploratory code, and return observed evidence without turning the spike into im
 
 ## Output
 
-Return the planning question and disposition; repository/official evidence; testing-workflow provenance when
+Return the planning question and disposition; repository/official evidence; testing-authority provenance when
 applicable; commands with identity, bounds, progress/termination/cleanup outcome; observed result and rejected
 approaches; broad-only justification when used; remaining risks and verification implications; cleanup status and
 residual state; and either the fresh `implementation-plan` handoff or the exact blocker.

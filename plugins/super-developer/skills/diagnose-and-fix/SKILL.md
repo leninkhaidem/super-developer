@@ -56,11 +56,14 @@ a blocker. Existing exact leases, ancestry checks, and separate target-merge/tar
 1. Record symptom, expected/observed behavior, surface, explicit context/base, environment, and supplied evidence.
 2. Inspect repository status, files, history, tests, and docs read-only. Do not mutate files, create refs/worktrees,
    access the network, start services, or use credentials.
-3. Before nontrivial repro, test, harness, or service commands, load `../../references/tool-usage.md`. When project
-   testing/harness policy applies, read accepted/current `docs/testing/workflow.md` and companions. If absent,
-   stale, conflicting, or insufficient, invoke `testing` and stop command execution until it is accepted.
-4. Ask exact approval before instrumentation, validation writes, unsafe commands, credentials, network, or service
-   use. Put approved diagnostic spikes in a throwaway `worktree`; never promote their history.
+3. Before nontrivial repro, test, harness, or service commands, load `../../references/tool-usage.md` and
+   resolve testing authority. Use accepted/current `docs/testing/workflow.md` for high-risk/reusable work,
+   routine-safe fallback for one clearly bounded local command, or task-local Testing Authorization for an exact
+   focused approval. Missing workflow alone does not block read-only diagnosis or static analysis. If authority is
+   insufficient, invoke `testing` or stop with `blocked`/`not-run`; never report not-run work as passed.
+4. Ask exact approval before instrumentation, validation writes, unsafe commands, credentials, network, service
+   use, or task-local Testing Authorization. Put approved diagnostic spikes in a throwaway `worktree`; never
+   promote their history.
 5. Reproduce and minimize the failure. Record bounded commands/outcomes. Test falsifiable causes until evidence
    confirms one mechanism or a named blocker prevents confirmation.
 6. Present the structured diagnosis report before production edits:
@@ -102,7 +105,7 @@ a blocker. Existing exact leases, ancestry checks, and separate target-merge/tar
 ## Load if needed
 
 - Localized implementation or review repair → pass `references/fix-implementer-contract.md` to a fresh worker.
-- Nontrivial repro/test/harness/service command → `../../references/tool-usage.md` and accepted testing workflow.
+- Nontrivial repro/test/harness/service command → `../../references/tool-usage.md` and testing authority.
 - Worktree/ref creation, push, merge, or cleanup → invoke `worktree`.
 - Broad/risky existing-system or feature change → invoke `implementation-plan` with the diagnosis handoff.
 - Delivered localized state → invoke `review-code` with complete binding, repair owner, and contract path.
@@ -115,8 +118,8 @@ a blocker. Existing exact leases, ancestry checks, and separate target-merge/tar
 - A localized fix expands beyond approved paths or crosses a broad/risky boundary.
 - Live containment/production mutation is requested: hand off only when procedure and exact approval exist;
   otherwise stop. Never execute it within this skill.
-- A command needs credentials, network/external effects, destructive behavior, or unsafe changes without exact
-  approval and the governing command/testing contract.
+- A command needs credentials, network/external effects, destructive behavior, unsafe changes, or missing testing
+  authority without exact approval and the governing command/testing contract.
 
 ## Output
 

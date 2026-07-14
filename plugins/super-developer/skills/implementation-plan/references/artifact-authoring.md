@@ -129,8 +129,8 @@ When Semgrep is enabled, verification expectations should stay helper-owned and 
   security, privacy, performance, concurrency, generated-contract, audience-surface, and lifecycle cases or
   state why not applicable. When material execution feasibility remains unresolved, existing `Notes` or
   expectations identify authoritative command/harness/contract/fixture sources, preconditions/cleanup, cost, the
-  smallest credible bounded probe or broad-only justification, broad-check placement, accepted testing-workflow
-  provenance, and the spike/replan trigger; exact budgets remain project-workflow-owned.
+  smallest credible bounded probe or broad-only justification, broad-check placement, testing-authority
+  provenance, and the spike/replan trigger; exact budgets come from the resolved authority.
 - Each listed expectation becomes a mandatory deliverable-matrix `VE-<n>` row in package order; if a Slice row proves it, keep the `VE-<n>` row and cross-reference the same evidence.
 - Seed visible interface/risk expectations without boilerplate: exact interfaces, forbidden behaviors, interactive UI, retry/fail-closed, trigger precedence, lifecycle/restart/reaper, cache invalidation, model/default precedence, generated defaults, and state pollution when applicable.
 - Planner seeds do not limit verifier discovery; verifier packets still require inspection of package scope, assigned Slices, changed code/diff, tests, verification expectations, and known failure modes for emergent triggered-risk rows.

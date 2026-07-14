@@ -89,8 +89,8 @@ Rules:
 - When runtime cost or uncertainty leaves material execution feasibility unresolved, record in existing package
   `Notes` or verification expectations:
   authoritative command/harness/contract/fixture sources, preconditions and cleanup, cost class, the smallest
-  credible bounded probe or broad-only justification, broad-check placement, accepted testing-workflow
-  provenance, and a spike/replan trigger. Exact budgets remain project-owned.
+  credible bounded probe or broad-only justification, broad-check placement, testing-authority provenance,
+  and a spike/replan trigger. Exact budgets come from the resolved authority.
 
 ## Risk and Review Lenses
 

@@ -60,10 +60,11 @@ rules are required; do not preload references merely because they are named.
    yet (direct planning without Conceptualize), create it through `worktree` before writing `.tasks/`,
    since `git worktree add` refuses a non-empty path.
 2. Check orchestration blockers before delegation: unsafe paths, unresolved decisions, overwrite, spike, or
-   risk acceptance. When repository evidence suggests materially unresolved execution feasibility, inspect
-   accepted/current `docs/testing/workflow.md` and relevant companions. If missing, stale, or insufficient,
-   invoke `testing` to establish/update it and stop planning until accepted; cost or breadth alone is not a
-   trigger. For nontrivial/risky plans, run `references/design-preflight.md` with its
+   risk acceptance. When execution feasibility materially depends on test/harness behavior, resolve testing
+   authority: accepted/current workflow for high-risk/reusable work, routine-safe fallback for a bounded local
+   command, or task-local Testing Authorization for an exact focused approval. Missing workflow alone does not
+   block read-only planning. If authority is insufficient, invoke `testing` to establish/update it or stop;
+   cost or breadth alone is not a trigger. For nontrivial/risky plans, run `references/design-preflight.md` with its
    `models.design-preflight` resolution and requirement-completeness pass; resolve `COVERAGE_GAPS`,
    `MUST_DECIDE`, and `BLOCKERS` before artifact writing; skip only narrow, low-risk plans.
 3. If empirical evidence is required before planning, stop artifact writing and invoke `spike-to-plan`
@@ -78,8 +79,7 @@ rules are required; do not preload references merely because they are named.
    - artifact root, code root, artifact ref, resolved feature/artifact slug, and any approved
      slug migration metadata;
    - approved requirements and selected source material;
-   - accepted testing-workflow path/version and relevant companions only for a triggered feasibility profile;
-     omit routine non-trigger state;
+   - testing-authority provenance only for a triggered feasibility profile; omit routine non-trigger state;
    - Conceptualize workspace/index and Slice paths relative to the artifact root when applicable;
    - path to `references/planner-agent-contract.md`;
    - labeled action-point paths for artifact-store, Slice authority, Conceptualize projection,
@@ -94,8 +94,8 @@ rules are required; do not preload references merely because they are named.
    --artifact-root <artifact-root> --code-root <code-root> .tasks/<feature>/tasks.json` and route
    any non-mechanical repair back through a planner packet instead of patching artifacts inline.
 8. Report artifact root/ref, code root, feature and artifact paths, packages/dependencies, closure-complexity
-   and parallel/serial rationale, triggered execution-feasibility profiles, Slice inventory or no-Slice state,
-   approved deferrals, assumptions, validation result, and next gate.
+   and parallel/serial rationale, triggered execution-feasibility profiles, testing-authority provenance,
+   Slice inventory or no-Slice state, approved deferrals, assumptions, validation result, and next gate.
 
 ## Load if needed
 
@@ -122,10 +122,12 @@ rules are required; do not preload references merely because they are named.
 - A required spike would need unsafe commands, credentials, external side effects, or broad production
   changes.
 - `sliceproof.py validate-plan` fails and cannot be repaired within scope.
-- Semgrep enablement would require unapproved network setup/update, unavailable writable shared cache, hidden registry/URL/cloud behavior, or making scans mandatory.
+- Semgrep enablement would require unapproved network setup/update, unavailable writable shared cache,
+  hidden registry/URL/cloud behavior, or making scans mandatory.
 
 ## Output
 
 Return artifact root/ref, code root, feature and artifact paths, packages/dependencies, closure-complexity
-rationale, triggered execution-feasibility profiles, authoritative Slice inventory or no-Slice note, approved
-deferrals, assumptions, validation result, and next step (`review-plan` after confirmation unless authorized).
+rationale, triggered execution-feasibility profiles, testing-authority provenance, authoritative Slice inventory
+or no-Slice note, approved deferrals, assumptions, validation result, and next step (`review-plan` after
+confirmation unless authorized).

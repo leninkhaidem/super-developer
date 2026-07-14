@@ -24,7 +24,7 @@ The parent supplies:
   Git mode (`100644|100755|120000`), symlink target, and content digest/binary provenance;
 - exact writable file paths, new-file name rules, non-goals, and all other paths read-only;
 - reproduction, minimal strategy, regression requirement, and expected failure mechanism;
-- bounded verification commands and supplied tool-usage/testing-workflow contract paths when applicable;
+- bounded verification commands and supplied tool-usage/testing-authority contract paths when applicable;
 - forbidden actions, stop/scope-expansion route, and required report fields;
 - local context: caller constraints and reviewed snapshot; or
 - pipeline context: artifact/code roots, feature/package/Slice IDs, proof/report/matrix paths, dirty-evidence map,

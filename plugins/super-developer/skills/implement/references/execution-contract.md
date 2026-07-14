@@ -7,8 +7,8 @@ This reference owns the user-facing implement approval template and its approval
 ## Contract
 
 - Derive the contract only from approved plan artifacts, package Markdown, safe assigned Slice content,
-  accepted/current project testing workflow and linked companions when execution feasibility is triggered,
-  current git state, and explicit user instructions.
+  resolved testing authority when execution feasibility is triggered, current git state, and explicit user
+  instructions.
 - Approval covers only the exact actions listed in the contract.
 - The contract must name artifact root, code root, sidecar ref `artifacts/<feature>`, artifact worktree
   `.worktrees/<feature>/artifacts`, and package/integration code worktrees.
@@ -28,14 +28,14 @@ This reference owns the user-facing implement approval template and its approval
 ## Do
 
 1. Validate `.tasks/<feature>/`, package/proof/report/Slice paths, current git refs, and—when execution
-   feasibility is triggered—the accepted/current testing-workflow path/version and relevant companions.
+   feasibility is triggered—the testing-authority provenance and command/write bounds.
 2. Name the exact artifact root, code root, artifact ref/worktree, base ref, feature ref, target ref,
    package refs/worktrees, proof/report paths under the artifact root, sidecar checkpoint command,
    and default-covered feature-push command.
 3. For each package, summarize assigned Slice obligations, primary paths, package dependencies, approved
    dependency install/addition commands, verification expectations, package verification depth, Semgrep evidence
    expectations when enabled/contracted, known blockers, and any triggered execution-feasibility profile:
-   authoritative sources, testing-workflow provenance, preconditions/cleanup, cost class, command bounds,
+   authoritative sources, testing-authority provenance, preconditions/cleanup, cost class, command bounds,
    smallest credible readiness probe, and broad-check placement or broad-only justification.
 4. Disclose resolved Semgrep state, privacy/local rule source, helper checks, evidence paths/digests, bounded consumption order, advisory finding policy, and unapproved side effects.
 5. List command-safety boundaries and all actions that are not authorized by this contract.
@@ -57,8 +57,8 @@ Roots:
   artifact root: .worktrees/<feature>/artifacts (owns .planning/.tasks, proofs, reports, reviews)
   code root: <root or integration/package worktree used for source validation>
 
-Testing workflow:
-  source: <accepted/current docs/testing/workflow.md + relevant companions | not triggered + reason>
+Testing authority:
+  source: <accepted/current workflow + companions | routine-safe fallback | task-local authorization | not triggered>
   runtime policy: <command budgets, progress/completion, termination, cleanup, shared-resource constraints>
 
 Remote actions:
@@ -135,8 +135,8 @@ Choices:
 
 ## Stop if
 
-- Any template field cannot be derived from safe approved artifacts, an applicable accepted/current testing
-  workflow, or explicit user instruction.
+- Any template field cannot be derived from safe approved artifacts, resolved testing authority, or explicit user
+  instruction.
 - The user wants the contract to authorize target merge/push, force/delete/tag/release action, destructive command,
   service install/start, credentialed action, or external side effect, or a dependency install not derived from
   approved artifacts/explicit instruction and listed exactly in the contract.
@@ -144,5 +144,5 @@ Choices:
 
 ## Output
 
-Return the filled contract, selected choice, testing-workflow provenance, feasibility profiles/readiness probes,
+Return the filled contract, selected choice, testing-authority provenance, feasibility profiles/readiness probes,
 covered/excluded actions, progress/circuit boundaries, blockers, and fields needing user clarification.

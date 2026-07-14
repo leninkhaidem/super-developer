@@ -38,7 +38,7 @@ a trigger when accepted workflow policy and repository evidence already establis
 non-trigger bookkeeping; state a reason only when the decision is non-obvious.
 
 For a triggered package, ready means all of the following are established from the approved Execution Contract,
-accepted testing workflow, repository evidence, and shared command runtime envelope:
+resolved testing authority, repository evidence, and shared command runtime envelope:
 
 1. authoritative contract/fixture sources, tool/client compatibility, configured preconditions, data isolation,
    resource/rate/concurrency budgets, and allowed side effects;
@@ -48,7 +48,7 @@ accepted testing workflow, repository evidence, and shared command runtime envel
    explicitly bounded broad command as the first runtime evidence.
 
 If any criterion is absent, mark the package not ready. On failure, withhold only the affected wave and classify
-plan, project-workflow/precondition, implementation, or orchestration ownership; do not guess or retry unchanged.
+plan, testing-authority/precondition, implementation, or orchestration ownership; do not guess or retry unchanged.
 Broad or costly execution requires a clean readiness result and clean targeted evidence when a credible narrower
 check exists. The documented broad-only branch may proceed after deterministic preflight/discovery. Readiness is
 a dispatch control, not package proof or a replacement for holistic package verification.
@@ -85,7 +85,7 @@ only when its action-point condition applies.
 Every package, repair, or verifier packet is compact and pointer-based. Include:
 
 - validated artifact/code roots, artifact ref, package/proof/report/Slice paths, code worktree, and allowed writes;
-- approved dependencies/commands, triggered testing-workflow path/version/companions, and project instructions;
+- approved dependencies/commands, triggered testing-authority provenance, and project instructions;
 - each executable command's identity, cwd, provenance, scope, timeout, progress/completion signal, termination,
   cleanup, expected writes, and whether it is readiness, targeted, broad, or final;
 - triggered readiness result/blockers only when applicable; for repair, attempt identity, prior outcome,
