@@ -28,11 +28,11 @@ Validate that a Slice-first planned-feature artifact set is complete, self-suffi
 2. From the code root, run `python3 plugins/super-developer/assets/sliceproof.py validate-plan --artifact-root <artifact-root> --code-root <code-root> .tasks/<feature>/tasks.json` before reviewer dispatch. Do not load semantic review references into orchestrator context unless debugging or changing review instructions.
 3. Read only enough metadata to present Gate 1 roots/ref, artifact paths, packages/dependencies, Slice and
    proof/report paths, flags, and exclusions. When a package declares an execution-feasibility profile, validate
-   its accepted testing-workflow path/version and companion paths; missing/stale provenance is a blocker.
+   its testing-authority provenance; missing/stale/insufficient provenance is a blocker.
 4. After Gate 1 approval, load `../../references/model-preferences.md` and dispatch one Plan Reviewer/Triage with narrowed artifact paths plus reference paths. The reviewer loads semantic references itself and may request Security/Failure-Mode escalation.
 5. If the Plan Reviewer/Triage returns `ESCALATE: security-failure-mode`, dispatch the Security/Failure-Mode Reviewer with the same artifact/reference paths plus the Plan Reviewer output. Do not decide escalation by loading semantic refs in the orchestrator.
-6. Reviewer packets include roots/ref/slug, narrowed artifacts, triggered testing-workflow/companion paths,
-   and paths for `references/plan-review-rubrics.md`, `references/plan-review-findings.md`,
+6. Reviewer packets include roots/ref/slug, narrowed artifacts, triggered testing-authority provenance, and
+   paths for `references/plan-review-rubrics.md`, `references/plan-review-findings.md`,
    `../../references/artifact-store.md`, `../../references/slice-first-artifacts.md`,
    `../../references/work-packages.md`, conditional `../../references/conceptualize-slice-authority.md`, and
    `../../references/clean-code-rules.md`; never pass hidden chat or copied Slice prose.

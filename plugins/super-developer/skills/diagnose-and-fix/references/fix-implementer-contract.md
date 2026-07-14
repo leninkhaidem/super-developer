@@ -28,8 +28,8 @@ The parent must supply:
 - original repro, minimal fix strategy, regression/spec-test requirement, and expected failure reason;
 - required verification with bounded commands, outcomes, and applicable command budgets;
 - `tool_usage_contract_path` supplied by the parent for any nontrivial command;
-- accepted/current `docs/testing/workflow.md` path/version and companions when testing/harness policy applies,
-  or an explicit `not applicable` rationale;
+- testing authority for repro/verification when applicable: accepted workflow path/version and companions,
+  routine-safe fallback provenance/bounds, task-local Testing Authorization, or explicit `not applicable`;
 - permitted diagnostic artifacts and exact cleanup ownership;
 - forbidden actions, scope-expansion route, and bounded report fields below.
 
@@ -54,8 +54,8 @@ rotation, production config/data changes, or other incident containment. Do not 
    provenance. Recapture HEAD and all four state categories; compare every manifest/checksum to the packet. Any
    mismatch returns no-action `BLOCKED`. Do not clean or absorb drift.
 2. **Reproduce:** load the supplied tool-usage contract before a nontrivial repro/test/harness/service command and
-   the accepted testing workflow when applicable. Run the smallest bounded repro. Confirm the diagnosed failure
-   reason; if it differs or cannot be observed, stop `BLOCKED`.
+   the supplied testing authority when applicable. Run the smallest bounded repro. Confirm the diagnosed failure
+   reason; if it differs or cannot be observed, stop `BLOCKED`; not-run or inconclusive is never pass.
 3. **Regression:** immediately before the first write, recapture the complete starting binding again; any drift is
    `BLOCKED`. Convert the repro into the approved durable test/fixture. When practical, show it fails on the
    starting implementation for the diagnosed reason, not an incidental error.

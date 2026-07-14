@@ -268,10 +268,16 @@ class SkillPromptSurfaceTests(unittest.TestCase):
 
         for needle in [
             "Establish, document, and apply project-specific testing workflows",
-            "Operate as a testing workflow meta-skill",
-            "first establish or load the repository's approved testing workflow",
-            "Do not default to standalone test edits or commands",
-            "Choose an explicit mode before acting: initialize/update workflow, author/alter tests using an accepted/current canonical workflow, or delegate execution-oriented work",
+            "Resolve the repository's testing authority",
+            "establish durable workflow docs when needed",
+            "Do not default to standalone broad test edits or commands",
+            "Choose a mode before acting: initialize/update workflow, author/alter tests, execute a bounded command, or delegate execution-oriented work",
+            "Testing authority is required before test writes, harness/test commands, or delegation",
+            "Authority is canonical workflow, routine-safe fallback for one parent-run local command, or task-local Testing Authorization",
+            "Canonical workflow remains the durable authority for broad/reusable delegation, recurring",
+            "Routine-safe fallback is narrow and command-specific",
+            "Task-local Testing Authorization is a current-task one-off",
+            "Missing workflow alone permits read-only discovery and planning",
             "Keep this eager prompt meta-level",
             "project methodology in `docs/testing/workflow.md` or linked companion docs",
             "use skill references only as optional proposal/adaptation aids",
@@ -281,8 +287,8 @@ class SkillPromptSurfaceTests(unittest.TestCase):
         for needle in [
             "It is not a stack methodology and does not authorize test writes, test runs, installs, browser use, network access, live services, or config/CI changes",
             "Use this reference only as an optional proposal/adaptation aid",
-            "Approved project workflow docs (`docs/testing/workflow.md` and linked companions) govern repository-specific testing behavior",
-            "this reference must not override them or authorize standalone test edits/runs",
+            "Approved project workflow docs (`docs/testing/workflow.md` and linked companions) and exact task-local testing authority govern repository-specific testing behavior",
+            "this reference must not override them or authorize standalone test edits/runs by itself",
         ]:
             self.assertIn(" ".join(needle.split()), combined)
 
@@ -334,12 +340,17 @@ class SkillPromptSurfaceTests(unittest.TestCase):
         combined = compact_text(f"{skill}\n{workflow}")
 
         for needle in [
-            "Check `docs/testing/workflow.md` before test edits, commands, or delegation",
-            "If it is missing, stale, ambiguous, conflicting, unsafe, refused, or not accepted/current, establish, update, adopt, migrate, or link through that canonical file first",
+            "Testing authority is required before test writes, harness/test commands, or delegation",
+            "routine-safe fallback for one parent-run local command",
+            "canonical-workflow`: required for broad/reusable delegation, recurring, browser/E2E, live service",
+            "routine-safe fallback`: allowed without workflow only for one command that is repo-local and project-owned",
+            "It is parent-run only, not delegation authority",
+            "task-local Testing Authorization`: a current-task one-off for focused work or one focused delegated act",
             "`missing`: no canonical entry point exists",
-            "Run candidate discovery and ask the user whether to adopt, migrate, link, or initialize through `docs/testing/workflow.md` before test edits, command runs, or delegation",
-            "`stale/ambiguous/conflicting`: a workflow exists but its commands, paths, stack assumptions, approval gates, safety stance, or acceptance/currentness conflict",
-            "`unsafe/refused`: the workflow or user decision would require unsafe, secret-bearing, production, or unapproved side effects, or the user refuses canonical workflow creation/update/adoption/linking",
+            "Absence alone allows read-only discovery and planning",
+            "For commands/writes, either prove routine-safe fallback, obtain task-local Testing Authorization",
+            "`stale/ambiguous/conflicting`: a workflow exists but its commands, paths, stack assumptions",
+            "`unsafe/refused`: the workflow or user decision would require unsafe, secret-bearing, production",
             "Discovery is bounded, read-only, path-safe, symlink-safe, and secret-aware",
             "Inspect only project-owned candidate locations",
             "`docs/testing/`, `docs/tests/`, and `docs/qa/`",
@@ -352,10 +363,10 @@ class SkillPromptSurfaceTests(unittest.TestCase):
             "**migrate** useful content",
             "**link** from `docs/testing/workflow.md` to an existing curated companion doc",
             "**initialize** a new workflow from repo evidence and focused recommendations",
-            "Candidate choice alone is not enough to proceed",
-            "First write or update `docs/testing/workflow.md` so it incorporates or references the approved candidate",
-            "If the user refuses all canonical-file options, stop",
-            "Do not perform one-off test edits, command execution, or delegation",
+            "Candidate choice alone is not durable authority",
+            "First write or update `docs/testing/workflow.md` so it incorporates or references the approved candidate before treating it as project policy",
+            "proceed only for an exact routine-safe fallback or task-local Testing Authorization",
+            "Do not treat a candidate doc as reusable workflow by itself",
         ]:
             self.assertIn(" ".join(needle.split()), combined)
 
@@ -372,12 +383,12 @@ class SkillPromptSurfaceTests(unittest.TestCase):
             "present a draft summary and proposed file changes before writing workflow docs",
             "Start with repo evidence, not a broad questionnaire",
             "Then present a recommendation",
-            "name the recommended strategy and why repo evidence supports it",
+            "name the strategy and why repo evidence supports it",
             "ask one focused confirmation or risk-boundary question when evidence is insufficient",
             "For missing browser E2E strategy, inspect the web stack, existing scripts/tests, app entry points, dev-server assumptions, auth/data risks, and docs",
             "strategy establishment still stops at a documentation proposal",
             "does not install dependencies, create browser config, write tests, run browsers, start services, use recordings, touch secrets, access the network, edit config/CI/orchestration, or execute tests",
-            "Before writing root `AGENTS.md` or any `docs/testing/*` file, present a draft summary and proposed file changes",
+            "Before writing root `AGENTS.md` or any `docs/testing/*` file, present a draft naming the lazy pointer",
             "Write workflow docs only after explicit current-task approval",
             "If approval is not granted, continue focused discovery or stop with the draft",
             "After explicit approval, the main agent may create or surgically update root `AGENTS.md` and `docs/testing/*`",
@@ -394,19 +405,20 @@ class SkillPromptSurfaceTests(unittest.TestCase):
 
         for needle in [
             "Explicit initialize/update/adopt/migrate/link/revise requests require a strategy interview after repository inspection",
-            "For greenfield/no-strategy repositories or explicit initialize, update, adopt, migrate, link, or revise requests, load `references/strategy-interview.md`, run it before accepted workflow-doc writes",
+            "For greenfield/no-strategy repositories and explicit initialize, update, adopt, migrate, link, or revise requests, follow the parent-owned strategy-interview branch before accepted workflow-doc writes",
             "Treat absent/minimal tests, no documented strategy, and existing testing docs as source evidence, not a reason to skip the interview",
             "existing docs are source material, not a skip",
-            "Ordinary authoring, alteration, or execution may use an accepted/current workflow without the full interview when it adequately answers the task",
-            "missing, stale, ambiguous, conflicting, unsafe, or insufficient workflows fail closed to establish/update mode",
+            "Ordinary author/alter/execute may use accepted/current workflow, routine-safe fallback, or task-local Testing Authorization when adequate",
+            "insufficient authority routes to this update path",
             "Explicit initialize, update, adopt, migrate, link, or revise requests still route to the strategy interview; existing docs are source material",
             "Existing workflows, absent/minimal tests, candidates, and companion docs inform the recommendation but do not skip the interview",
             "`missing`: no canonical entry point exists, including greenfield repositories with no/minimal tests or no documented testing strategy",
-            "Run candidate discovery and ask the user whether to adopt, migrate, link, or initialize through `docs/testing/workflow.md` before test edits, command runs, or delegation",
-            "candidates are source material only: they govern test work only after `docs/testing/workflow.md` exists, is accepted/current, and incorporates or references them through an approved adopt, migrate, link, or initialize decision",
-            "Candidate choice alone is not enough to proceed",
+            "Absence alone allows read-only discovery and planning",
+            "For commands/writes, either prove routine-safe fallback, obtain task-local Testing Authorization",
+            "candidates are source material only: they govern reusable or high-risk test work only after `docs/testing/workflow.md` exists, is accepted/current, and incorporates or references them through an approved adopt, migrate, link, or initialize decision",
+            "Candidate choice alone is not durable authority",
             "First write or update `docs/testing/workflow.md` so it incorporates or references the approved candidate",
-            "candidate handling: any adopted, migrated, or linked candidate is incorporated or referenced by the canonical workflow entry before it can govern delegated work",
+            "candidate handling: any adopted, migrated, or linked candidate is incorporated or referenced by the canonical workflow entry before it can govern reusable/high-risk delegated work",
             "In adopt/migrate/link discussions, ask which existing docs or tests remain authoritative source material",
         ]:
             self.assertIn(" ".join(needle.split()), combined)
@@ -458,8 +470,8 @@ class SkillPromptSurfaceTests(unittest.TestCase):
             self.assertIn(heading, strategy)
 
         for needle in [
-            "folder/taxonomy and central feature test index or coverage-index stance (used, linked, or not used) for new plans, tests, evidence, reports, plus legacy stay-put or migration stance",
-            "feature/domain plan policy, approved plan path/version expectations, and plan-before-work gates",
+            "folder/taxonomy and central feature test index or coverage-index stance for new plans, tests, evidence, and reports, plus legacy stance",
+            "feature/domain plan policy and plan-before-work gates",
             "The workflow draft should name: confidence goals; mandatory and active conditional domains; plan, test, evidence, report, and central feature test index stance; execution choices and approvals; reliability/cleanup semantics; legacy stance; companion docs; redaction; and the update procedure",
             "Recommend a clean structure for new plans/tests going forward, but leave legacy tests where they are unless the user explicitly asks for migration",
             "Keep plans high-level and reviewable. They are scenario/deliverable contracts, not command recipes",
@@ -519,11 +531,11 @@ class SkillPromptSurfaceTests(unittest.TestCase):
             "Each choice should document what it proves, required approvals, command/evidence expectations, stop conditions, cleanup duties, and how results map back to the approved plan",
             "Each choice needs what it proves, approvals, stop conditions, evidence, and cleanup/reporting expectations",
             "Selected execution choice(s): <focused check/feature confidence/browser review/broad regression/do not run yet/etc.>",
-            "Approved plan path/version: <path+version, or workflow-approved no-plan reason>",
+            "Approved plan path/version: <path+version, or authority-approved no-plan reason>",
             "Current-task approvals already granted: <exact approvals or none>",
             "Approval-gated actions to stop for: <commands/writes/browser/live/network/etc.>",
             "Plan-to-result report: map plan scenarios to authored tests/results, selected choices, evidence, skipped/not-run items, redaction, cleanup status, and follow-up risks",
-            "approved plan path/version and scenario-to-test/result mapping, or workflow-approved no-plan reason",
+            "approved plan path/version and scenario-to-test/result mapping, or authority-approved no-plan reason",
             "selected execution choice(s), current approvals used, and choices skipped/not run with reasons",
             "sanitized evidence, artifacts, summaries, blocked approvals/preconditions, and redaction actions",
             "cleanup-failed/uncertain follow-up",
@@ -567,17 +579,17 @@ class SkillPromptSurfaceTests(unittest.TestCase):
         combined = compact_text(f"{skill}\n{delegation}")
 
         for needle in [
-            "Authoring, alteration, and execution are delegated only after canonical workflow consultation",
-            "If no executor or sub-agent is available, return a workflow-aware instruction packet and stop",
+            "Authoring, alteration, and execution are delegated only after canonical workflow or task-local Testing Authorization covers the delegated act",
+            "If no executor/sub-agent is available, return a packet and stop",
             "The main agent remains an orchestrator",
-            "workflow state: `docs/testing/workflow.md` exists, is accepted/current for the task, and has been read by the orchestrator before delegation",
-            "candidate handling: any adopted, migrated, or linked candidate is incorporated or referenced by the canonical workflow entry before it can govern delegated work",
+            "authority state: accepted/current `docs/testing/workflow.md` plus companions; or task-local Testing Authorization for one focused delegated act",
+            "requires canonical workflow authority",
+            "candidate handling: any adopted, migrated, or linked candidate is incorporated or referenced by the canonical workflow entry before it can govern reusable/high-risk delegated work",
             "Testing delegation packet",
             "User goal: <requested testing outcome>",
-            "Precondition: docs/testing/workflow.md exists, is accepted/current, and governs this task",
-            "Workflow entry: docs/testing/workflow.md",
-            "Companion docs to consult: <paths or none>",
-            "Required first step: read the canonical workflow entry and companions; receipt/report must cite them",
+            "Testing authority: <canonical-workflow | task-local Testing Authorization>",
+            "Authority source: <docs/testing/workflow.md + companions, or exact one-off approval text>",
+            "Required first step: read the authority source; receipt/report must cite it",
             "Allowed scope: <test files/fixtures/helpers/docs/commands/evidence surfaces>",
             "Disallowed scope: <production/runtime code, unapproved config/dependencies/CI/orchestration, etc.>",
             "Current-task approvals already granted: <exact approvals or none>",
@@ -585,7 +597,7 @@ class SkillPromptSurfaceTests(unittest.TestCase):
             "Command safety: classify commands, use bounded timeouts, no unsafe/default live side effects",
             "Evidence/reporting: sanitized commands, outputs, artifacts, outcomes, cleanup, blocked reasons",
             "Product-failure routing: do not edit product code; report reproduction and route to owner",
-            "The executor's first reportable fact should prove workflow consultation",
+            "The executor's first reportable fact should prove authority consultation",
             "Final executor reports should include",
             "No-Executor Fallback",
             "Do not run commands or edit tests directly as a substitute for missing delegation",
@@ -611,7 +623,7 @@ class SkillPromptSurfaceTests(unittest.TestCase):
         for needle in [
             "Authority precedence: system/developer/current user/current skill safety rules outrank project workflow docs; approved project workflow docs outrank optional skill-local references",
             "Optional skill-local references, used only as proposal/adaptation aids",
-            "If optional generic, web, or browser references are useful, load them only after canonical workflow state is resolved or while drafting an initialization/update proposal; never let them override approved project workflow docs",
+            "If optional generic, web, or browser references are useful, load them only after testing authority is resolved or while drafting an initialization/update proposal; never let them override approved project workflow docs",
             "Optional stack-agnostic test design, command safety, outcomes, durable plan/report schema, and write boundaries",
             "Optional web/frontend/backend/API/live/browser coverage planning and evidence concerns",
             "Optional browser E2E stack/evidence/reporting setup proposal material, including Playwright/Allure conventions",
@@ -1689,14 +1701,15 @@ class SkillPromptSurfaceTests(unittest.TestCase):
         for token in [
             "material execution feasibility remains unresolved",
             "smallest credible bounded probe or broad-only justification",
-            "accepted testing-workflow provenance",
-            "project-workflow-owned",
+            "testing-authority provenance",
+            "exact budgets come from the resolved authority",
         ]:
             self.assertIn(token, artifact_compact)
         for token in [
             "materially unresolved execution feasibility",
             "Cost or breadth alone does not trigger a profile",
-            "accepted testing-workflow provenance",
+            "testing-authority provenance",
+            "resolved testing authority",
         ]:
             self.assertIn(token, checklist_compact)
         self.assertIn("route empirical assumptions to a spike", planner_compact)
@@ -1731,6 +1744,8 @@ class SkillPromptSurfaceTests(unittest.TestCase):
         for token in [
             "## Command Safety and Runtime Envelope",
             "stable identity",
+            "Use exact budgets from resolved testing authority",
+            "routine-safe deterministic local command",
             "progress/completion signal",
             "termination method",
             "cleanup obligation",
@@ -1746,15 +1761,15 @@ class SkillPromptSurfaceTests(unittest.TestCase):
             "smallest approved bounded probe",
             "documented broad-only branch",
             "broad or costly execution requires a clean readiness result",
-            "classify plan, project-workflow/precondition, implementation, or orchestration ownership",
+            "classify plan, testing-authority/precondition, implementation, or orchestration ownership",
             "triggered readiness result/blockers only when applicable",
         ]:
             self.assertIn(token, dispatch_compact)
 
         contract_compact = compact_text(contract).lower()
         for token in [
-            "accepted/current project testing workflow",
-            "testing workflow:",
+            "resolved testing authority",
+            "testing authority:",
             "omit when clearly non-triggered",
             "broad-only justification",
         ]:
@@ -1844,14 +1859,15 @@ class SkillPromptSurfaceTests(unittest.TestCase):
         implement_compact = compact_text(implement)
         spike_compact = compact_text(spike)
         for token in [
-            "accepted/current `docs/testing/workflow.md`",
-            "invoke `testing` to establish/update it",
-            "accepted testing-workflow path/version and relevant companions only for a triggered",
+            "resolve testing authority",
+            "Missing workflow alone does not block read-only planning",
+            "invoke `testing` to establish/update it or stop",
+            "testing-authority provenance only for a triggered feasibility profile",
             "omit routine non-trigger state",
         ]:
             self.assertIn(token, planning_compact)
-        self.assertIn("accepted testing-workflow path/version", planner_compact)
-        self.assertIn("triggered testing-workflow/companion paths", review_compact)
+        self.assertIn("testing-authority provenance", planner_compact)
+        self.assertIn("triggered testing-authority provenance", review_compact)
         self.assertIn("invoke `spike-to-plan`", review_compact)
         self.assertIn("through `implementation-plan`", review_compact)
         self.assertIn("### empirical feasibility blocker", resolution_compact)
@@ -1865,7 +1881,7 @@ class SkillPromptSurfaceTests(unittest.TestCase):
 
         for token in [
             "../../references/tool-usage.md",
-            "accepted/current `docs/testing/workflow.md`",
+            "testing authority",
             "invoke `testing`",
             "explicitly bounded broad-only probe",
             "uncertain cleanup is inconclusive evidence",

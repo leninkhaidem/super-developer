@@ -40,8 +40,8 @@ Check whether:
   independent packages by convenience;
 - packages with materially unresolved execution feasibility identify repo-backed command/harness/contract/fixture
   sources, environment/data preconditions, isolation and cleanup, cost class, the smallest credible bounded
-  probe or broad-only justification, broad-check placement, accepted testing-workflow provenance, and a
-  spike/replan trigger; cost or breadth alone does not trigger a profile;
+  probe or broad-only justification, broad-check placement, testing-authority provenance, and a spike/replan
+  trigger; cost or breadth alone does not trigger a profile;
 - unresolved static feasibility is a plan finding; unresolved empirical behavior that must be observed before a
   safe commitment requires spike routing rather than implementation-time guessing;
 - a simpler lower-risk approach can produce the same outcome without weakening Slice commitments;
@@ -61,7 +61,7 @@ Check whether:
 - package Markdown proof/report paths match the registry and are usable by `sliceproof.py`;
 - package dependencies and parallel assumptions are safe, with ID-only dependency edges limited to durable prerequisites and non-obvious consumed output, contract, or evidence rationale recorded in package `Notes`;
 - verification expectations are observable and tied to Slice/package obligations and changed behavior;
-- triggered execution-feasibility profiles are file-backed, executable under the accepted project workflow,
+- triggered execution-feasibility profiles are file-backed, executable under the resolved testing authority,
   bounded, deterministic where controllable, cleanup-aware, and sufficient to close the package independently;
 - caller contracts, public API continuity, trust boundaries, invalid input handling, migration/rollback/idempotency, data integrity, performance, and concurrency concerns are represented where relevant;
 - no package relies on future agents discovering unprojected requirements from raw Slice prose.

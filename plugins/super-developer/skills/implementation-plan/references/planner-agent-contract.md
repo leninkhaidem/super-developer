@@ -11,8 +11,7 @@ The packet should provide:
 - artifact root, code root, artifact ref, resolved feature/artifact slug, and any approved slug
   rename/migration metadata;
 - approved requirements or selected Conceptualize workspace/index;
-- accepted testing-workflow path/version and relevant companions for triggered feasibility; omit this field
-  when clearly non-triggered;
+- testing-authority provenance for triggered feasibility; omit this field when clearly non-triggered;
 - safe Conceptualize workspace, Index, and Slice paths relative to the artifact root when known;
 - overwrite approval state for `.tasks/<feature>/` under the artifact root;
 - resolved Semgrep state from the orchestrator (`disabled`, or `enabled` with privacy-mode, local cache/index/profile facts, approved setup side effects, and helper availability);
@@ -33,7 +32,7 @@ The orchestrator packet owns concrete paths and must label each supporting contr
 - clean-code and work-package contracts while shaping package boundaries;
 - canonical artifact-model and artifact-authoring rules before drafting registry and package Markdown;
 - the validation checklist before any write, overwrite, or completion claim;
-- accepted testing workflow while shaping a triggered execution-feasibility profile;
+- testing authority while shaping a triggered execution-feasibility profile;
 - tool usage only when helper syntax or command safety is unclear;
 - Semgrep policy only when enabled or when expectations mention Semgrep evidence.
 
@@ -50,7 +49,7 @@ the packet omits a contract required by the current action.
 4. Draft `SPEC.md`, package split, `tasks.json`, and package Markdown using packet-supplied contracts.
    Apply semantic closure complexity rather than numeric split thresholds, including fixed per-package gate cost.
    When material execution feasibility remains unresolved, use existing package `Notes` or verification
-   expectations for the profile and accepted testing-workflow provenance; route empirical assumptions to a spike.
+   expectations for the profile and testing-authority provenance; route empirical assumptions to a spike.
    Preserve exact interface/forbidden-behavior obligations; seed obvious package-specific risk expectations as deliverable-matrix `VE-<n>` row sources (interactive UI, retry/fail-closed, trigger precedence, lifecycle/restart/reaper, cache invalidation, model/default precedence, generated defaults, state pollution when applicable); and state that planner seeds do not limit verifier discovery.
    If Semgrep is disabled, do not require helper setup, scans, or evidence. If enabled, detect
    impacted stacks from normal repo/package analysis, use helper `index`/`retrieve` for local config

@@ -2,10 +2,10 @@
 
 Use this reference only as an optional proposal/adaptation aid for stack-agnostic test design,
 command safety, durable planning/reporting, and write boundaries. Approved project workflow docs
-(`docs/testing/workflow.md` and linked companions) govern repository-specific testing behavior; this
-reference must not override them or authorize standalone test edits/runs. It does not authorize
-stack-specific, live, browser, network, credentialed, dependency, tooling, configuration, CI, or
-orchestration side effects by itself.
+(`docs/testing/workflow.md` and linked companions) and exact task-local testing authority govern
+repository-specific testing behavior; this reference must not override them or authorize standalone
+test edits/runs by itself. It does not authorize stack-specific, live, browser, network,
+credentialed, dependency, tooling, configuration, CI, or orchestration side effects by itself.
 
 ## Test Modes
 
@@ -51,11 +51,13 @@ For every proposed/run command, record a stable identity, command, cwd, repo/use
 scope, expected writes, environment assumptions without secrets, classification, approval/blocker reason,
 timeout, progress/completion signal, termination method, and cleanup obligation.
 
-Default-run only when repo-discovered, deterministic, non-destructive, non-network, non-credentialed,
-non-watch, non-interactive, bounded, local, and free of live/browser/service/shared-data risk. Stop for explicit
-approval before live, browser, network, credentialed, destructive, production, mutating, dependency/config/CI,
-orchestration, manifest/lockfile, interactive, daemon/server, long-running, or opaque actions. A script name is
-not provenance; inspect what it runs when safe.
+Default-run only when the routine-safe fallback is satisfied: repo-local/project-owned, deterministic,
+non-destructive, non-network, non-credentialed, non-watch, non-interactive, bounded, local, clear provenance,
+no source/fixture/snapshot/config writes except known local cache/report artifacts, trivial owned cleanup, and
+free of live/browser/service/shared-data risk. Stop for explicit approval before live, browser, network,
+credentialed, destructive, production, mutating, dependency/config/CI, orchestration, manifest/lockfile,
+interactive, daemon/server, long-running, or opaque actions. A script name is not provenance; inspect what it
+runs when safe.
 
 For costly or uncertain execution, use a readiness ladder: deterministic contract/fixture/config preflight,
 command/test discovery, then the smallest credible bounded check. Broaden after clean narrower evidence; when no
