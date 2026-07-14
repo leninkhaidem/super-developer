@@ -1,15 +1,16 @@
 ---
 name: implementation-plan
 description: >
-  Creates greenfield Slice-first feature plans and package artifacts. Use for implementation planning,
+  Creates fresh Slice-first planned-feature artifacts for approved changes. Use for implementation planning,
   package breakdowns, or task artifacts. Do not use for coding, code review, audit, or status.
 ---
 
 # Implementation Plan
 
-Orchestrate creation of a greenfield planned-feature file set under the selected artifact root:
-`SPEC.md`, lightweight `tasks.json` registry, package Markdown, declared proof/report paths, and
-proof placeholders when dispatch is next. Source inspection and helper execution use the code root.
+Orchestrate creation of a fresh Slice-first planned-feature file set under the selected artifact root:
+`SPEC.md`, lightweight `tasks.json` registry, package Markdown, declared proof/report paths, and proof
+placeholders when dispatch is next. The approved change may target a new or existing system; “fresh” describes
+its artifact set, not a new-code-only scope. Source inspection and helper execution use the code root.
 
 Important boundary: this skill is the orchestration surface. When artifact writing is needed, hand a
 fresh planner agent a compact packet and `references/planner-agent-contract.md`; do not draft

@@ -119,7 +119,8 @@ Stop conditions:
 - failed readiness/verification, missing runtime bounds or cleanup ownership, stale package report,
   artifact-root ambiguity, uncertain termination/cleanup, or ignored proof/report artifact committed to code git
 - sidecar checkpoint would push anything except `origin artifacts/<feature>` or merge sidecar artifacts into deliverable code
-- product/design change, scope expansion, existing-feature contract change, or risk acceptance needed
+- product/design change, scope expansion, existing-system contract change not explicitly approved in accepted
+  artifacts/this Execution Contract, or risk acceptance needed
 - unsafe/destructive/external/credentialed command, service install/start, or unlisted dependency install needed
 - feature push remote/ref differs from this contract, remote diverges/non-fast-forwards unexpectedly, or credentials fail
 - any target merge/push, force/delete/tag/release action, or branch deletion is requested

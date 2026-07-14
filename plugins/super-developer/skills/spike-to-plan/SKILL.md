@@ -8,8 +8,8 @@ description: >
 
 # Spike to Plan
 
-Answer the smallest empirical question needed for a reliable greenfield plan, discard exploratory code, and
-return observed evidence without turning the spike into implementation.
+Answer the smallest empirical question needed for a reliable Slice-first planned-feature plan, discard
+exploratory code, and return observed evidence without turning the spike into implementation.
 
 ## Always
 

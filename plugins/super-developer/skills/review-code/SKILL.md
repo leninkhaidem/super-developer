@@ -1,10 +1,9 @@
 ---
 name: review-code
 description: >
-  Review code changes with bounded multi-agent review. Use for PR review, local diff review, or the
-  planned-feature final integrated code-review sibling to final audit. Do not use as final
-  planned-feature completion audit or as a PR/local code-fix tool unless the selected mode explicitly
-  permits fixes.
+  Reviews code changes with bounded multi-agent analysis. Use for PRs, local diffs, or planned-feature final
+  integrated review. Do not use for final planned-feature audit or PR/local repairs unless the selected mode
+  explicitly permits fixes.
 ---
 
 # Review Code
@@ -26,7 +25,9 @@ Run bounded review; route report/actions by mode.
 1. PR mode: PR URL, `owner/repo#N`, or `#N` in repo context → load `references/pr-workflow.md`. PR mode is review-only for code changes.
 2. Local mode: no pipeline context and no PR identifier → load `references/local-workflow.md`.
 3. Pipeline mode: feature context plus artifact root, SPEC, registry, package/proof/report artifacts, and
-   integrated code worktree state → load `references/pipeline-report.md`.
+   integrated code worktree state → load `references/pipeline-report.md`. Load and pass
+   `../../references/package-verification-report.md`. Pass `../../references/package-lifecycle.md` as a labeled
+   path, but load it only when proof/report freshness or non-bypass routing is disputed.
 4. Before reviewer dispatch, capture immutable refs/SHAs, worktree or PR identity, diff checksum or saved
    diff, file list/status, artifact root, code root, and mode artifact context.
 
@@ -114,8 +115,9 @@ findings are consistency/evidence signals.
 
 ## Fix Verification Gate
 
-Local and pipeline fixes are delegated to Fix Implementer sub-agents; PR mode has no code-fix path.
-Main agent may apply only trivial behavior-preserving mechanical edits and must say why.
+Every review-owned local/pipeline repair passes `references/fix-implementer-contract.md` to a fresh Fix
+Implementer; PR mode has no fix path. A caller-owned local repair contract takes precedence and receives the
+approved packet/action instead. Main may apply only trivial behavior-preserving mechanical edits and explain why.
 
 After a delegated fix batch, run Fix Verification as a fresh role/sub-agent closure gate, not second
 discovery. Inputs: original findings, Fix Implementer report, pre/post metadata, batch boundaries,
