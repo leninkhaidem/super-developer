@@ -1,6 +1,10 @@
 # Package Verification Contract
 
-Load only for a holistic package verification reviewer in the planned-feature pipeline. It is package-local and assigned-scope focused; final integrated `review-code` and final audit remain separate gates. Pair it with the direct first-read shared report contract `plugins/super-developer/references/package-verification-report.md`.
+Load only for a holistic package verifier in the planned-feature pipeline. Own package-local claims, evidence,
+and the package-owned reviewed delta; trust nothing stale, but do not take over integration seams or final
+completeness. Final integrated `review-code` owns seams/integration-only changes/contradictions, and audit owns
+reconciliation/selective falsification. Pair this with the direct first-read shared report contract
+`plugins/super-developer/references/package-verification-report.md`.
 
 ## Required Inputs
 
@@ -86,20 +90,34 @@ Unsupported PASS rows include vague, stale, impossible, contradicted, or unjusti
 
 ## Required Durable Report
 
-Write/return a concise report for `.tasks/<feature>/reports/<WP-ID>.package-verification.md` exactly per `plugins/super-developer/references/package-verification-report.md`: source H2 first, `### Verdict`, `### Deliverable Completeness Matrix`, risk selection notes, `### Test Review Scope`, Slice closure review, code review findings, optional failure sections, then `## State Binding` and optional `## Semgrep Evidence`. Avoid long transcripts and the legacy `## Checks` / `## Open Findings` shape.
+Write/return a concise report for `.tasks/<feature>/reports/<WP-ID>.package-verification.md` exactly per
+`plugins/super-developer/references/package-verification-report.md`: source H2 first, canonical H3s/tables and
+copy-safe field prefixes, then generated `## State Binding` and optional `## Semgrep Evidence`. For interface
+rows, use the contract's affirmative exact-interface/forbidden-behavior wording verbatim. Avoid long transcripts
+and the legacy `## Checks` / `## Open Findings` shape.
 
 ## Freshness and Repair
 
-A report is stale when later mutation can affect reviewed package state, proof evidence, verification output, deliverable matrix rows/evidence refs, Test Review Scope population/depth/evidence, assigned Slice closure, package Markdown, assigned Slice source text, matrix-source snapshot, Semgrep evidence cited by proof/report, or serious finding closure.
+Initial verification follows the complete verification order above and does not require a semantic-freshness
+classification. For refresh or re-verification only, apply the shared lifecycle classification supplied in
+orchestrator state; if its concise rationale or affected surface is missing, fail closed. Distinguish production
+code, test source/oracles/harness, proof/report claims, execution evidence, and report metadata rather than
+treating every digest change alike.
 
-Binding-only refresh is allowed only when the source report body already reviewed identical code tree/diff, proof content/digest, package Markdown/digest, assigned Slice set/digests or matrix-source snapshot, implementer report/`SELF_REVIEW`, verification output, deliverable matrix, Test Review Scope receipt, and Semgrep evidence; the only change is exact commit/ref metadata. Any uncertainty, repair, merge-resolution edit, proof/evidence change, package/Slice/output change, implementer-report change, or reviewed-code change requires focused/full package verification.
+Binding-only refresh is limited to report metadata when semantic inputs, claims, and execution evidence are
+identical. When only execution evidence changes, inspect its provenance and bound method, including the
+command/harness, prerequisites, environment, assertions, cleanup, and redaction. Rebind only when regenerated
+evidence has identical bound semantic inputs and method and a valid, non-contradictory outcome. Failed,
+inconclusive, or contradictory evidence blocks and routes to diagnosis and affected verification; it never
+permits PASS rebinding. Any discrepancy or uncertainty escalates to semantic rerun.
 
-Focused re-verification is a fresh independent pass and report, not metadata reuse. Recheck affected
-rows/surfaces, named seams, triggered risks, and the Test Review Scope delta. For every carried-forward matrix
-row, confirm implementation, source inputs, proof/evidence, and bindings remain unchanged and uncontradicted.
-Widen to full verification when that confirmation fails, obligation or test-review populations materially
-change, impact crosses package/contract-wide or sensitive boundaries, or scope cannot be bounded. Failure,
-commit existence, merge ancestry, or dependency reachability alone does not require full verification.
+Focused re-verification is a fresh independent pass and report, not metadata reuse. Use it for bounded semantic
+input or claim changes. Recheck affected rows/surfaces, named seams, triggered risks, and the Test Review Scope
+delta. For every carried-forward matrix row, confirm implementation, source inputs, proof/evidence, and bindings
+remain unchanged and uncontradicted. Widen to full verification when that confirmation fails, obligation or
+test-review populations materially change, impact crosses package/contract-wide or sensitive boundaries, or
+scope cannot be bounded. Failure, commit existence, merge ancestry, or dependency reachability alone does not
+require full verification.
 
 After repair, require the repair owner to refresh affected proof rows and the orchestrator to complete
 `sliceproof.py validate-proof` plus final impact closure before verifier dispatch. Inspect but do not edit proof

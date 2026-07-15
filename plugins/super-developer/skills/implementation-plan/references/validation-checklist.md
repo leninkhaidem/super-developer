@@ -36,6 +36,9 @@ Do not create or overwrite `.tasks/<feature-name>/` artifacts until all applicab
 - Substantial independently actionable packages remain dependency-free unless one consumes a durable prerequisite;
   temporary file/contract/proof overlap changes batching or serialization without inventing a dependency edge.
 - Tiny or tightly coupled edits are not split into separate packages solely to increase agent count.
+- Packages deliver substantial coherent planned outcomes, including substantial documentation/reference or
+  other accepted deliverables; verification-only phases stay in package, wave, integration, or final verification
+  unless they create substantial reusable verification or test infrastructure.
 
 ## `SPEC.md`
 

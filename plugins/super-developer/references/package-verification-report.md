@@ -38,29 +38,29 @@ PASS | FAIL
 ### Code Review Findings
 - None.
 ```
+For failures, add `### Blocking Findings` and `### Repair Guidance` under the same H2. A `PASS` requires a
+present, clean `### Deliverable Completeness Matrix` and valid `### Test Review Scope`; Slice closure prose
+alone is insufficient.
 
-For failures, add `### Blocking Findings` and `### Repair Guidance` under the same H2. A `PASS` requires a present, clean `### Deliverable Completeness Matrix` and valid `### Test Review Scope`; `### Slice Closure Review` and proof prose alone are insufficient.
+## Copy-Safe Authoring
+Copy the canonical H2/H3 labels, table headers, controlled values, and field prefixes exactly; do not paraphrase
+mechanically required fields. For an interface row, copy the affirmative form
+`interface: exact; forbidden-behavior falsified by <typed evidence ref>`. Do not substitute negative wording
+such as `not violated` or `not falsified`, which is ambiguous and fails closed. Generate State Binding with the
+helper and paste it verbatim; prose may explain evidence only outside mechanically controlled cells/fields.
 
 ## Matrix Row Contract
-
 Core columns are fixed exactly as shown: `Source ID`, `Row Type`, `Deliverable`, `Evidence Type`, `Evidence Refs`, `Exactness / Risk Disposition`, and `Verdict`.
-
 Controlled verdicts are `delivered`, `missing`, `partial`, `contradicted`, and `unverified`. Clean package verification requires every mandatory row to be present, `delivered`, and supported by structurally valid non-placeholder evidence references. Any `missing`, `partial`, `contradicted`, or `unverified` row blocks completion even if other report sections look coherent.
-
 Mandatory rows come from:
-
 1. Assigned package `Must satisfy` Slice H3 IDs, using each exact H3 ID as `Source ID` and row type `slice`.
 2. Package Markdown `## Verification Expectations`, using stable `VE-<n>` IDs in listed order and row type `verification-expectation`. If an expectation is materially proven by a Slice row, keep the `VE-<n>` row and cross-reference that evidence rather than omitting it.
 3. Triggered risk rows are verifier-selected, using explicit `RISK-<slug-or-n>` IDs and row type `triggered-risk` with rationale/disposition. Selection comes from package scope, assigned Slices, changed code/diff/tests, verification expectations, and known failure modes; planner seeds do not limit discovery, and non-applicable probes must not become checklist noise.
-
 ## Test Review Scope Receipt
-
 The package verifier records one row per changed category in the package-owned reviewed delta: `tests`, `harnesses/helpers`, `mocks/fixtures`, `generators/snapshots`, `test-discovery/CI/coverage/build-config`, or the controlled catch-all `other-test-relevant`.
 Group by semantic population and account for every package-owned changed path. Clean depths are only `baseline-only`, `sampled`, and `deep`; `not-reviewed` and `unreviewed` are invalid.
 Use `other-test-relevant` only when no existing surface category accurately fits. It is valid only at `deep`: its `scope:` must name exact paths or a precise path group, its `triggered:` value must explain why classification is novel or ambiguous, and its typed evidence must anchor the inspected surface. It cannot avoid generator/provenance rules or stand in for another known category. This catch-all improves representability; it does not provide a mechanical exhaustive-discovery guarantee for current or future test-relevant paths.
-
 Every ordinary row uses this exact field grammar (whitespace and harmless punctuation normalization may vary; prefixes and semantics may not):
-
 - `Changed Population`: `count: <positive integer>; scope: <specific non-placeholder description>`.
 - `Baseline Review`: `complete: <specific non-placeholder checks/results>`.
 - `Deep Triggers`: for `deep`, `triggered: <specific non-placeholder trigger>`; for `baseline-only` or `sampled`, `none: <specific reason>`.
@@ -68,39 +68,39 @@ Every ordinary row uses this exact field grammar (whitespace and harmless punctu
 - `Sampling Rationale`: for `sampled`, `strategy: <specific semantic selection rationale>`; otherwise, `not-applicable: <specific reason>`.
 - `Generator / Input / Provenance`: `generators/snapshots` requires `generator: <specific>; inputs: <specific>; provenance: <specific>`; other surfaces allow that triple or `not-applicable: <specific reason>`.
 - `Evidence Refs`: one or more typed anchors from the evidence-reference grammar below.
-
 Baseline checks/results cover assertion weakening/deletion, skip/focus/xfail changes, broad tolerances or matchers, path execution/discrimination, mock/fixture/global-state effects, fresh commands/evidence, and generated provenance where applicable.
 `deep` is required for proof-critical or sole evidence; security/privacy/safety/data/migration/concurrency/public-contract seams; shared harness/helper/config; weakened assertions or skips; missing provenance; contradictions or stale evidence; cross-package seams; and tests-as-deliverable.
-
 Sampling is semantic, never percentage-based: partition by behavior/contract, oracle shape, helper/mock stack, and generator provenance/risk.
 Generated output is sampleable only after its generator, inputs, and provenance are reviewed. Budget exhaustion causes semantic batching or
 widening, never reduced rigor or fixed-percentage quotas.
-
 Only the constrained whole-receipt absence is allowed. For no applicable surface, use exactly one row with `Surface`, `Changed Population`, and `Selected Exemplars` set to `none`, `Review Depth` set to `no-applicable-surface`, every other narrative field set to `not-applicable: <specific reason>`, and typed classification evidence.
 It cannot coexist with another row. Explicit `not-reviewed`/`unreviewed` and unresolved marker forms anywhere in the section are invalid.
-
-Mechanical validation owns the exact grammar, positive count, controlled surface/depth values, non-placeholder payloads, strict table shape (exactly one unfenced contiguous Markdown table with a matching-width delimiter, exact-arity rows, and no extra pipe fragments/tables), and typed-reference safety.
-It does not infer semantic truth from arbitrary prose or decide whether a claim is honest, contradictory, or sufficient. Thus `Review status: baseline review was not performed` fails the required `complete:` grammar, while a syntactically valid but dishonest `complete:` claim is for the verifier/reviewer/auditor to reject; legitimate negative results inside `complete:` remain valid.
-
+Mechanical validation owns the exact grammar, positive count, controlled surface/depth values, non-placeholder
+payloads, strict table shape (exactly one unfenced contiguous Markdown table with a matching-width delimiter,
+exact-arity rows, and no extra pipe fragments/tables), and typed-reference safety. Copy required prefixes from
+this contract rather than paraphrasing them.
+It does not infer semantic truth from arbitrary prose or decide whether a claim is honest, contradictory, or
+sufficient. Thus `Review status: baseline review was not performed` fails the required `complete:` grammar,
+while a syntactically valid but dishonest `complete:` claim is for the verifier/reviewer/auditor to reject;
+legitimate negative results inside `complete:` remain valid.
 Final pipeline review validates each fresh receipt against its package-owned reviewed delta and reconciles the union of fresh package receipts against the integrated diff. It separately reviews integration-only or merge-resolution test-relevant changes at a canonical depth, then widens for triggers/anomalies. It must explicitly inspect and escalate every `other-test-relevant` row, decide whether the known taxonomy should be extended, and never treat a catch-all row as proof that all future test-relevant paths were discovered.
 Audit applies the same targeted reconciliation and catch-all escalation boundary while selectively falsifying rather than rereviewing every test. Reports without the receipt are invalid and must be refreshed; there is no silent format bypass.
 
 ## Evidence Reference Rules
-
 `Evidence Type` is one of `code`, `test`, `static`, `command`, `manual`, or `mixed`. `Evidence Refs` are semicolon-separated typed anchors:
-
 - `code:<repo-relative-path>[#symbol-or-lines]`, `test:<repo-relative-path>[::test-or-#lines]`, and `static:<repo-relative-path>#section` point to safe existing repo paths; no absolute paths, traversal, fabricated files, or vague-only anchors.
 - `command:proof#Commands Run:<label>` or `command:verification-output:<repo-relative-path>#<label>` links to proof command rows or durable verifier output records.
 - `manual:scenario=<specific scenario>; observed=<specific result>` records manual evidence without pretending it is mechanically executable.
-
 Mechanical helpers may reject unsafe, nonexistent, placeholder, fabricated, or structurally vague anchors. They do not decide whether the cited evidence truly proves the deliverable.
 
 ## Exactness and Risk Disposition
-
-Interface-bearing Slice rows must record an exactness verdict and forbidden-behavior falsification in `Exactness / Risk Disposition`. Use exactness values `exact`, `ambiguous`, `partial`, `contradicted`, or `over-broad`; only `exact` plus falsified forbidden behaviors can support a clean `delivered` interface row. Triggered-risk rows record why the probe was triggered, what was checked, and its disposition.
+Interface-bearing Slice rows must use the affirmative copy-safe clause
+`interface: exact; forbidden-behavior falsified by <typed evidence ref>` in `Exactness / Risk Disposition`.
+Other exactness verdicts are `ambiguous`, `partial`, `contradicted`, or `over-broad`; only `exact` with
+affirmative forbidden-behavior falsification can support `delivered`. Triggered-risk rows record why the probe
+was triggered, what was checked, and its disposition.
 
 ## State Binding
-
 Append lifecycle metadata after the source body so helpers and final auditors can consume it without hidden
 chat context. Generate the block with `emit-state-binding`, paste it verbatim, and do not hand-compute
 digests. Paths below are artifact-root-relative except `Worktree`, which is an absolute code worktree.

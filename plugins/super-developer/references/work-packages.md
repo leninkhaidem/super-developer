@@ -6,7 +6,11 @@ This reference owns package semantics: sizing, dependency, assignment, paralleli
 
 ## Core Principle
 
-Delegate substantial coherent work packages, not tiny fragments. Prefer the largest safe useful wave of independently substantial packages that can proceed together. Parallelism reduces latency; it must not maximize agent count or split work merely to create more agents.
+Delegate packages that deliver substantial coherent planned deliverables, not tiny fragments. Deliverables may
+include implementation, substantial documentation/reference work, or other accepted plan outcomes. Prefer the
+largest safe useful wave of independently substantial packages that can proceed together. Parallelism reduces
+latency; it must not maximize agent count or split work merely to create more agents. Verification-only phases
+are not packages unless they create substantial reusable verification or test infrastructure.
 
 ## Package Roles
 
@@ -76,7 +80,13 @@ The cost of serialization is latency; the cost of unsafe parallelism is merge co
 
 ## Verification Expectations
 
-Package Markdown `## Verification Expectations` lists the package's proof expectations and mandatory deliverable-matrix `VE-<n>` row sources: commands known to exist, static inspections, scenarios, edge/failure cases, trust-boundary checks, no-mock constraints, generated-contract checks, interface/risk seeds, or manual observations.
+Package Markdown `## Verification Expectations` lists the package's proof expectations and mandatory
+`VE-<n>` row sources: known commands, static inspections, scenarios, edge/failure cases, trust-boundary checks,
+no-mock constraints, generated-contract checks, interface/risk seeds, or manual observations.
+
+Use only the existing depth vocabulary: `standard`/`enhanced` package verification,
+`baseline-only`/`sampled`/`deep` test review, and `focused`/`full` reruns. These are orthogonal decisions, not
+new lifecycle tiers or durable registry/artifact fields.
 
 Rules:
 
@@ -106,7 +116,8 @@ Enhanced verification is triggered by surfaces such as:
 - cross-package integration;
 - orchestration, git state, package verification, review, audit, or quality-contract changes.
 
-Documentation-only and reference-only packages still receive baseline package verification; risk determines depth, not whether verification runs.
+Documentation-only and reference-only packages still receive standard package verification; risk determines
+whether verification is standard or enhanced, not whether it runs.
 
 ## Runtime Adjustment
 
@@ -120,7 +131,9 @@ If adjustment changes package scope, Slice H3 assignment, dependencies, proof pa
 
 ## Anti-Patterns
 
-- One package per tiny edit.
+- One package per tiny edit or verification-only phase.
+- Making E2E, probes, suites, inspections, or evidence/reporting a package without substantial reusable
+  verification or test infrastructure.
 - Maximizing sub-agent count.
 - Leaving substantial independent packages serialized without a concrete dependency, file-impact, proof, or contract-safety reason.
 - Splitting work touching the same files, Slice obligation, subsystem, or proof surface.

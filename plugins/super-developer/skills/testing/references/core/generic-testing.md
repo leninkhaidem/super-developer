@@ -45,6 +45,21 @@ Maintainable tests are deterministic, behavior-focused, clear in name and setup,
 conventions, minimal in mocking, and resilient to implementation-detail churn. Do not weaken a test
 to make a product failure disappear.
 
+## Executable Verification Preflight
+
+Before executable verification, establish all of the following from project authority and repository evidence:
+
+- command/harness provenance and a configured, discoverable runner rather than a guessed command;
+- prerequisites and compatibility, including dependencies, fixtures/data, services, permissions, and resources;
+- a safe non-production environment and explicit target, with shared or live effects separately approved;
+- bounded, idempotent setup plus owned teardown/cleanup, including interruption and partial-failure paths;
+- an evidence destination/capture capability for the required confidence, with secrets and sensitive data redacted;
+- assertions, checkpoints, and terminal signals strong enough for the stated confidence goal, not mere execution;
+- bounded action/suite timeouts, observable progress, owned-process termination, and cleanup verification.
+
+A failed, missing, stale, or uncertain item blocks execution or narrows it to an approved safe probe. Domain
+references may specialize this preflight but cannot silently weaken it or override project authority.
+
 ## Command Safety and Execution Discipline
 
 For every proposed/run command, record a stable identity, command, cwd, repo/user provenance, selected mode,

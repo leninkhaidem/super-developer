@@ -48,10 +48,10 @@ For each returned package:
 11. Confirm package branches did not force-add or commit ignored `.tasks` proof/report artifacts. If they did,
     preserve artifacts in the artifact root, repair the branch to code/doc changes only, and keep the package incomplete.
 12. Merge each accepted package branch at most once through the integration worktree using the `worktree` skill.
-13. After merge, verify package branch ancestry, integration worktree cleanliness, artifact-root proof/report
-    handoff, and post-merge freshness. If merge resolution or integration changes affect evidence, proof rows,
-    verification output, assignment, source bindings, matrix rows/anchors, or package claims, rerun affected
-    proof validation, package verification, and `validate-package-complete` before completion.
+13. After merge, verify package branch ancestry, integration-worktree cleanliness, artifact-root handoff, and
+    post-merge freshness. Classify production, test/oracle/harness, claim, execution-evidence, and metadata
+    changes through the shared semantic rubric; run only its affected proof, verification, and
+    `validate-package-complete` route before completion.
 14. Before the package-delivery boundary completes, checkpoint sidecar artifacts after proof/report/review
     updates are written. Push only `origin artifacts/<feature>` from `.worktrees/<feature>/artifacts`; do not
     push `feature/<feature>` or `wp/<feature>/<WP-ID>` as an artifact side effect.
@@ -72,15 +72,19 @@ A Slice plan defect is any package/repair/verifier report showing assigned Slice
 Slice plan defects are blockers, not advisory notes. Resolve by projecting the requirement into normal plan artifacts, recording explicit user-approved scope/override metadata, or correcting Slice/package assignment state. Do not accept PASS package verification, mark `done`, or unlock dependents while unresolved.
 
 ## Report Shape and Freshness
-
 Package verification reports use the source-aligned shape from `plugins/super-developer/skills/implement/references/package-verification.md`: `## Package Verification: <WP-ID>` with H3 `Verdict`, `Deliverable Completeness Matrix`, `Triggered Risk Selection Notes`, `Test Review Scope`, `Slice Closure Review`, `Code Review Findings`, and failure-only `Blocking Findings` / `Repair Guidance`. If lifecycle metadata is kept, add it separately as `## State Binding` after the source report body.
 
-A package verification report is stale when later mutation can affect reviewed package state, proof evidence, verification output, deliverable matrix rows/evidence anchors, test-review population/depth/evidence, assigned Slice H3 source binding, package Markdown/digest, matrix-source snapshot, or serious finding closure. `must_satisfy` drift and malformed bindings are hard blockers; `context_only_slice_drift` is advisory input for affected-surface classification unless material risk is escalated. State-changing repairs, merge-resolution edits, proof refreshes, changed verification commands, changed assignments, changed package Markdown verification expectations, or changed Slice scope/approval metadata require focused or full package re-verification.
-
-Binding-only refresh carve-out: if a verifier already semantically reviewed identical code tree/diff, proof content/digest, package Markdown/digest, assigned Slice set and `must_satisfy` section digests/snapshot, implementer report/`SELF_REVIEW`, verification output, deliverable matrix/evidence anchors, and Test Review Scope receipt, and the only change is `## State Binding` metadata or advisory-only `context_only` drift classified as non-material, update only the binding/report metadata without rerunning semantic package verification. The source report body must remain unchanged. Any uncertainty, repair, merge-resolution edit, proof-evidence change, hard-tier package/Slice/output change, matrix/evidence-anchor or test-scope change, implementer-report change, or reviewed-code change fails closed and requires focused or full package verification.
+Apply the shared semantic freshness rubric and keep its rationale in existing orchestrator/proof/report/review
+state, never a new receipt. Binding-only refresh requires identical semantic inputs, claims, and evidence. For
+evidence-only refresh, rebind only when verifier-inspected regenerated evidence has identical bound semantic
+inputs/method and a valid, non-contradictory outcome. Failed, inconclusive, or contradictory evidence routes to
+diagnosis and affected verification, never PASS rebinding. Bounded production, test/oracle/harness,
+proof/report-claim, population, or contract changes may use focused verification. Material, unbounded, sensitive,
+shared, or uncertain population or contract changes, and cross-package changes, require full verification.
+`must_satisfy` drift and malformed bindings fail closed; `context_only_slice_drift` remains non-blocking
+classification input by default.
 
 ## Rejection and Repair
-
 Reject failed code/proof/verification/plan/artifact handling; keep incomplete while proof, findings, repair, or freshness remain open.
 Before repair, record identity, prior outcome, and unresolved state. Treat impact as provisional and apply the
 shared lifecycle semantic-closure rules; a dependency edge, failure, commit, or merge ancestry alone is not
@@ -99,7 +103,6 @@ For confirmed in-scope findings:
 Open the circuit before unchanged work, uncertain termination/cleanup, invalid readiness, or no progress; diagnostic probes do not close it. Reset only after a relevant material state/evidence/strategy delta closes or narrows the gate, changes ownership, or yields decisive evidence, then run the smallest confirmation. Attempt renaming, status/report metadata, or a changed commit alone is not progress. While open, stop affected execution; stop for authority, scope, safety, external facts, or risk.
 
 ## Conflict Handling
-
 Resolve mechanical conflicts only in the integration worktree and never switch the root worktree. For substantive logic, API, contract, test, proof, package-scope, or design conflicts, abort the merge when possible and keep the package incomplete with a blocker naming the conflicting package/files. Do not dispatch dependent packages until conflicts and freshness gates close.
 
 ## Final Readiness Handoff
@@ -116,14 +119,14 @@ Before moving to final `review-code` and `audit`, every package must have:
 
 For bounded stacked-feature readiness, build a packet naming the top integrated worktree/code state and every relevant task/Slice artifact set; each included set must have clean package completion and `validate-final` prerequisites before readiness claims. Do not audit only a follow-up task set when the top branch includes base feature deliverables; stop when included sets are unknown or out of scope.
 
-If Semgrep is enabled for final state, keep package scans primary. Run one integrated scan through
-`python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/semgrep_rules.py" scan ...` only for named cross-package/shared risk. Write
-`.tasks/<feature>/semgrep/integration.semgrep.json` plus
-`.tasks/<feature>/semgrep/integration.semgrep-summary.json`, record raw/summary digests, and do not
-start widen/fix/rescan cycles without a newly named affected surface. Raw direct `semgrep` scans are
-not valid evidence.
+After implementation and repairs, run affected focused and integrated checks. If Semgrep is enabled for final
+state, keep package scans primary and run one integrated scan only for named cross-package/shared risk through
+`python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/semgrep_rules.py" scan ...`. Write
+`.tasks/<feature>/semgrep/integration.semgrep.json` plus its `.semgrep-summary.json`, record raw/summary digests,
+and do not widen/fix/rescan without a newly named surface. Raw direct `semgrep` scans are invalid evidence.
 
-Then run from the code root for each included artifact root/task set, preserving success/failure JSON advisories for affected-surface classification:
+Finalize runtime evidence, termination, and cleanup; refresh affected proof/report/package-verification state.
+Then run from the code root for every included artifact root/task set, preserving JSON advisories:
 
 ```bash
 python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-final \
@@ -131,11 +134,9 @@ python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-final \
   ".tasks/<feature>/tasks.json"
 ```
 
-Run final `review-code` and final `audit` as sibling checks against the same integrated state when practical.
-For any post-gate change or final finding, record an affected-surface impact classification before selecting
-reruns. Batch compatible final findings, delegate repairs, refresh affected proof/report/package-verification
-state, rerun affected package proof validation, package verification, and `validate-package-complete`, then
-rerun affected code-review checks and focused/full audit checks as required.
+Freeze exact integrated-code, artifact, and runtime-evidence inputs consumed by final checks.
+Run sibling final `review-code`/`audit` against it; outputs are not freeze inputs. Any frozen-input change invalidates the binding.
+Classify freshness to select rebind, evidence-focused, focused, or full work, then establish a new freeze before affected final checks.
 
 After review-code readiness and final audit PASS are recorded in the artifact root, run the final sidecar
 checkpoint through the `worktree` skill before target merge/cleanup eligibility. This checkpoint pushes only
@@ -146,5 +147,4 @@ Declare readiness only when package evidence, review-code readiness, and final a
 same integrated state.
 
 ## Status Output
-
 Status summaries should include package ID/title, proof path and validation result, package verification report path, matrix cleanliness, `validate-package-complete` result as mechanical signals only, package branch/worktree, integration state, Slice plan-defect status, repair/follow-up state, next gate, and any blockers.
