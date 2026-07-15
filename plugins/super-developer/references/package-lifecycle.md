@@ -74,11 +74,11 @@ not the classification. Distinguish these surfaces:
 - product/assignment inputs: SPEC, package/Slice obligations, expectations, approvals, and source bindings;
 - production code, generated runtime artifacts, public docs/contracts, and integration or merge edits;
 - test source, assertions/oracles, harnesses/helpers, fixtures/mocks, generators, and test configuration;
-- proof/report claims: statuses, matrices, risk dispositions, Test Review Scope, and evidence sufficiency claims;
+- proof/report claims: implementer `SELF_REVIEW`, repair `REPAIR_SELF_REVIEW`, statuses, matrices, risk dispositions, Test Review Scope, and evidence-sufficiency claims;
 - execution evidence: command outputs, logs, observations, captured artifacts, timestamps, and Semgrep evidence;
 - report metadata: ref/commit/worktree/time/digest bindings that do not alter a claim or evidence body.
 
-Route metadata-only drift to binding-only refresh when semantic inputs, claims, and execution evidence are identical.
+Route metadata-only drift to binding-only refresh when semantic inputs, claims—including implementer `SELF_REVIEW` and repair `REPAIR_SELF_REVIEW`—and execution evidence are identical.
 For evidence-only change, inspect provenance and the bound command/harness, prerequisites, environment,
 assertions, cleanup, and redaction. Rebind only when regenerated evidence has identical bound semantic inputs and
 method and a valid, non-contradictory outcome. Failed, inconclusive, or contradictory evidence blocks and routes

@@ -101,11 +101,12 @@ and the legacy `## Checks` / `## Open Findings` shape.
 Initial verification follows the complete verification order above and does not require a semantic-freshness
 classification. For refresh or re-verification only, apply the shared lifecycle classification supplied in
 orchestrator state; if its concise rationale or affected surface is missing, fail closed. Distinguish production
-code, test source/oracles/harness, proof/report claims, execution evidence, and report metadata rather than
-treating every digest change alike.
+code, test source/oracles/harness, implementer `SELF_REVIEW` or repair `REPAIR_SELF_REVIEW`, proof/report claims,
+execution evidence, and report metadata rather than treating every digest change alike.
 
-Binding-only refresh is limited to report metadata when semantic inputs, claims, and execution evidence are
-identical. When only execution evidence changes, inspect its provenance and bound method, including the
+Binding-only refresh is limited to report metadata when semantic inputs, claims—including implementer
+`SELF_REVIEW` and repair `REPAIR_SELF_REVIEW`—and execution evidence are identical. When only execution
+evidence changes, inspect its provenance and bound method, including the
 command/harness, prerequisites, environment, assertions, cleanup, and redaction. Rebind only when regenerated
 evidence has identical bound semantic inputs and method and a valid, non-contradictory outcome. Failed,
 inconclusive, or contradictory evidence blocks and routes to diagnosis and affected verification; it never
