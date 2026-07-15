@@ -14,8 +14,8 @@ Run bounded review; route report/actions by mode.
 
 - Select exactly one mode: PR, local, or planned-feature pipeline.
 - Keep PR/local review separate from Slice/proof/report/audit obligations unless pipeline artifacts are in scope.
-- Pipeline review binds artifact-root evidence to the integrated code worktree; deliverable matrices are context only
-  for freshness, seams, contradictions, and proof/report invalidation, not a third deliverable-completeness gate.
+- Pipeline review binds artifact-root evidence to one frozen integrated state; deliverable matrices are context
+  only for freshness, seams, contradictions, and proof/report invalidation, not a third deliverable-completeness gate.
 - `CLEAN` means no confirmed serious review-code findings remain for the reviewed state; it is not audit PASS, proof acceptance, or merge readiness.
 - Main agent owns orchestration, state gates, reports, and action routing; semantic review/role work happen through dispatched sub-agents. No mutation until the active mode allows it.
 - Revalidate reviewed-state metadata before posting, fixing, committing, evidence refresh, or audit-context handoff.
@@ -42,8 +42,8 @@ Run bounded review; route report/actions by mode.
 - After batches, run one global integration pass for duplicates, conflicting recommendations, cross-batch serious risks, and seam issues.
 - Reopen reviewer fanout only when batch boundaries cannot preserve confidence.
 - Run one default Code Reviewer sub-agent for each diff or semantic batch.
-- Add at most one specialist per review/batch, chosen by first risk: security/privacy/safety; data/persistence/change-safety; performance/concurrency; public
-  contract/architecture/integration.
+- Add at most one specialist only when the diff/evidence triggers a sensitive surface: security/privacy/safety;
+  data/persistence/change-safety; performance/concurrency; or public-contract/architecture/integration.
 - Add Skeptic only for serious findings, risky-clean coverage, cross-batch serious conflicts, or required mode gates. Caps include Skeptic: normal 2, risky 3.
 - Resolve reviewer model only when local policy matters: `../../references/model-preferences.md`.
   Pass `../../references/clean-code-rules.md`; do not load it in the orchestrator.
@@ -51,7 +51,8 @@ Run bounded review; route report/actions by mode.
 - In pipeline mode, add Slice-first context from the artifact root: package IDs, proof/report paths,
   matrix source IDs/evidence anchors/source bindings, Slice/H3 IDs, verification results/advisories,
   Semgrep evidence when enabled or contracted, risks, deferred concerns, ownership, and the separate integrated code state. Route `context_only_slice_drift` through affected-surface classification as non-blocking by default unless reviewer judgment escalates material risk.
-- Pipeline final review is integration-first. Do not deep-rereview package-local code unless a seam, gap, contradiction, stale report, invalidated matrix, or serious risk triggers it.
+- Pipeline final review is integration-first: trust fresh package-local verification. Reopen local code only for
+  a seam, integration-only change, contradiction, stale report, invalidated matrix, or triggered serious risk.
 
 ## Coverage Gate
 
@@ -145,6 +146,5 @@ Non-closed findings, serious regressions, unresolved triggers, stale state, or d
   rerun need, unrouted validation advisory, or widened verification is missing/stale/contradictory/uncertain.
 
 ## Output
-
 Return the mode report, verdict, allowed next actions, and blocked readiness reason. In pipeline mode, state whether review-code is audit-ready; never state
 final audit PASS or merge readiness.

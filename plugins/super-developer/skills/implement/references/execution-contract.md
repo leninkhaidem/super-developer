@@ -1,17 +1,17 @@
 # Execution Contract
-
 ## Boundary
-
 This reference owns the user-facing implement approval template and its approval boundaries.
 
 ## Contract
-
 - Derive the contract only from approved plan artifacts, package Markdown, safe assigned Slice content,
   resolved testing authority when execution feasibility is triggered, current git state, and explicit user
   instructions.
-- Approval covers only the exact actions listed in the contract.
-- The contract must name artifact root, code root, sidecar ref `artifacts/<feature>`, artifact worktree
-  `.worktrees/<feature>/artifacts`, and package/integration code worktrees.
+- Approval covers only listed actions. List upfront implementation and in-scope test writing,
+  focused/runtime execution, evidence collection, bounded reruns, and sidecar/feature pushes as applicable.
+- Consolidated no-reask applies only to auto-resolve: do not re-ask while scope and side effects remain within
+  those listings; re-ask when either exceeds the contract or a separately protected boundary applies.
+  Step-by-step still asks at every contracted major gate as described below.
+- Name artifact/code roots, sidecar ref/worktree, and package/integration code worktrees.
 - Feature-branch push is covered by default when listed as `git push -u origin feature/<feature>`
   for review/testing; the user may explicitly exclude it.
 - Sidecar checkpoint pushes are covered only when listed as `git push -u origin artifacts/<feature>`
@@ -26,24 +26,21 @@ This reference owns the user-facing implement approval template and its approval
 - Step-by-step mode asks before each major gate, package wave, repair loop, feature push, and final handoff.
 
 ## Do
-
 1. Validate `.tasks/<feature>/`, package/proof/report/Slice paths, current git refs, and—when execution
    feasibility is triggered—the testing-authority provenance and command/write bounds.
 2. Name the exact artifact root, code root, artifact ref/worktree, base ref, feature ref, target ref,
    package refs/worktrees, proof/report paths under the artifact root, sidecar checkpoint command,
    and default-covered feature-push command.
-3. For each package, summarize assigned Slice obligations, primary paths, package dependencies, approved
-   dependency install/addition commands, verification expectations, package verification depth, Semgrep evidence
-   expectations when enabled/contracted, known blockers, and any triggered execution-feasibility profile:
-   authoritative sources, testing-authority provenance, preconditions/cleanup, cost class, command bounds,
-   smallest credible readiness probe, and broad-check placement or broad-only justification.
-4. Disclose resolved Semgrep state, privacy/local rule source, helper checks, evidence paths/digests, bounded consumption order, advisory finding policy, and unapproved side effects.
-5. List command-safety boundaries and all actions that are not authorized by this contract.
+3. For each package, summarize assigned Slice obligations, primary paths, dependencies, approved dependency
+   changes, verification expectations/depth, known blockers, and any execution-feasibility profile: authority,
+   preconditions/cleanup, cost, bounds, readiness probe, and broad placement or broad-only justification.
+4. List exact covered write surfaces, executable verification/evidence actions, bounded rerun rules, and pushes.
+   Disclose Semgrep state, local source, helper/evidence flow, advisory policy, and unapproved side effects.
+5. List command-safety boundaries and every action not authorized by this contract.
 6. Offer exactly three choices: `approve auto-resolve`, `step-by-step`, or `abort`.
 7. Stop unless the user approves one choice or prior explicit instruction already selected one.
 
 ## Template
-
 ```text
 Execution Contract for <feature>
 
@@ -60,6 +57,12 @@ Roots:
 Testing authority:
   source: <accepted/current workflow + companions | routine-safe fallback | task-local authorization | not triggered>
   runtime policy: <command budgets, progress/completion, termination, cleanup, shared-resource constraints>
+
+Covered actions:
+  writes: <implementation/docs plus exact in-scope test/oracle/harness paths or categories>
+  execution/evidence: <focused, runtime, and integrated commands; evidence destinations/redaction>
+  bounded reruns: <same-scope rerun conditions/budgets; no unchanged retries or timeout inflation>
+  pushes: <sidecar checkpoint and feature push commands listed below, or excluded>
 
 Remote actions:
   feature branch push: git push -u origin feature/<feature> for review/testing (covered by this contract by default; non-force only)
@@ -107,11 +110,11 @@ Pipeline:
 7. merge accepted source-only package branches into the integration worktree after gates pass
 8. refresh and rerun affected proof/report/verification state after repairs, merge changes, or findings
 9. checkpoint sidecar artifacts after package delivery, pushing only `origin artifacts/<feature>`
-10. run root-aware final validation and safe integrated checks
-11. invoke `review-code` and `audit` as sibling checks against the same integrated state
-12. batch findings, delegate repairs, refresh affected evidence, and rerun affected final checks until both are clean
-13. after clean review-code/audit acceptance, checkpoint sidecar artifacts before target merge/cleanup
-14. push the feature branch using the exact feature push above unless the user explicitly excluded it
+10. finish repairs; run focused/integrated checks and finalize runtime evidence/cleanup
+11. run root-aware final validation; freeze integrated-code/artifact/runtime-evidence inputs
+12. invoke `review-code` and `audit` as sibling checks; their outputs are not freeze inputs
+13. batch findings, delegate repairs; after any frozen-input change, classify work and establish a new freeze
+14. after clean review-code/audit acceptance, checkpoint artifacts and push the feature branch as covered
 
 Stop conditions:
 - unsafe, missing, stale, contradictory, or out-of-scope artifact root, code root, package/proof/report/Slice/worktree path
@@ -134,7 +137,6 @@ Choices:
 ```
 
 ## Stop if
-
 - Any template field cannot be derived from safe approved artifacts, resolved testing authority, or explicit user
   instruction.
 - The user wants the contract to authorize target merge/push, force/delete/tag/release action, destructive command,
@@ -143,6 +145,5 @@ Choices:
 - Package verification depth, Slice obligations, package dependencies, or default feature-push boundary are ambiguous enough to affect execution.
 
 ## Output
-
 Return the filled contract, selected choice, testing-authority provenance, feasibility profiles/readiness probes,
 covered/excluded actions, progress/circuit boundaries, blockers, and fields needing user clarification.

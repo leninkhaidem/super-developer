@@ -48,6 +48,10 @@ the packet omits a contract required by the current action.
 3. Ask/stop rather than inventing behavior, accepting risk, narrowing scope, or deferring material obligations.
 4. Draft `SPEC.md`, package split, `tasks.json`, and package Markdown using packet-supplied contracts.
    Apply semantic closure complexity rather than numeric split thresholds, including fixed per-package gate cost.
+   Each package must deliver substantial coherent planned deliverables, including implementation, substantial
+   documentation/reference work, or other accepted outcomes. Verification-only phases are not packages unless
+   they create substantial reusable verification or test infrastructure; otherwise put checks in package, wave,
+   integration, or final verification.
    When material execution feasibility remains unresolved, use existing package `Notes` or verification
    expectations for the profile and testing-authority provenance; route empirical assumptions to a spike.
    Preserve exact interface/forbidden-behavior obligations; seed obvious package-specific risk expectations as deliverable-matrix `VE-<n>` row sources (interactive UI, retry/fail-closed, trigger precedence, lifecycle/restart/reaper, cache invalidation, model/default precedence, generated defaults, state pollution when applicable); and state that planner seeds do not limit verifier discovery.

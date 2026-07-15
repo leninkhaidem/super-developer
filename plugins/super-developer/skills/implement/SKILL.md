@@ -45,8 +45,11 @@ affected reruns → final readiness for the same integrated state.
    accepted/current workflow for high-risk/reusable work, routine-safe fallback for one bounded local command, or
    task-local Testing Authorization for exact focused approval. Import command budgets, preconditions, and cleanup
    policy from that authority. If insufficient, stop and invoke `testing` rather than guessing. Then load
-   `references/execution-contract.md` and present roots/refs/worktrees, pushes/checkpoints,
-   package/proof/report/Slice scope, workflow provenance, verification depth, stops, and execution mode.
+   `references/execution-contract.md` and present roots/refs/worktrees, package/proof/report/Slice scope, workflow
+   provenance, verification depth, and stops. List upfront the covered implementation/test writes,
+   focused/runtime execution, evidence collection, bounded reruns, and sidecar/feature pushes. Only auto-resolve
+   consolidates approval without re-asking while actions stay in contract; step-by-step still asks at each
+   contracted major gate.
 3. After approval, use the `worktree` skill for setup commands and worktree safety; create/resume the
    artifact sidecar plus integration/package code worktrees without switching the root worktree.
 4. Load `references/package-dispatch.md`; run conditional readiness, retire shared uncertainty before affected
@@ -64,14 +67,15 @@ affected reruns → final readiness for the same integrated state.
 7. Mark packages done only after integration gates pass; merge through the integration worktree,
    checkpoint sidecar artifacts at package-delivery boundaries, keep package branches/worktrees until
    cleanup gates pass, and loop to downstream packages.
-8. At final readiness, use `references/package-integration-gates.md`; run package completion checks,
-   `sliceproof.py validate-final`, safe integrated checks, final review/audit artifact checkpoint, and
-   default-contracted feature push only through the `worktree` skill's push/cleanup boundary; invoke
-   `review-code` and `audit` only through their skills when readiness rules allow.
-9. If final review-code or audit returns findings, batch compatible findings, delegate repair, refresh
-   affected proof/report/package-verification state, rerun affected review-code checks and focused/full
-   audit as required, and do not declare readiness until both final gates are clean for the same
-   integrated state.
+8. At final readiness, use `references/package-integration-gates.md`: finish implementation/repairs, run focused
+   and integrated checks, finalize runtime evidence, refresh affected proofs/reports, run package completion and
+   `sliceproof.py validate-final`, then freeze exact integrated-code, artifact, and runtime-evidence inputs; invoke
+   `review-code` and `audit` only through their skills against the same freeze. Their generated outputs are not
+   freeze inputs. Use the `worktree` skill for the final artifact checkpoint and covered feature push.
+9. If either final check returns findings, batch compatible findings and delegate repair. Any frozen-input change
+   invalidates the binding. Use semantic freshness classification to select rebind, evidence-focused, focused, or
+   full work, then establish a new freeze before affected final checks. Do not declare readiness until review-code
+   and audit are clean for the same frozen inputs.
 
 ## Load if needed
 
