@@ -6,6 +6,18 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [v1.39.0] - 2026-07-15
+
+### Added
+- Added a generic executable-verification preflight covering authority, prerequisites, safe targets, evidence capability, cleanup, redaction, and bounded termination.
+
+### Changed
+- Changed package planning so verification-only phases stay in package, wave, integration, or final verification unless they deliver substantial reusable verification infrastructure.
+- Changed freshness routing to distinguish metadata rebinding, evidence-focused inspection, focused verification, and full verification while treating implementer and repair self-review as semantic inputs.
+- Changed final readiness to freeze integrated code, artifacts, and runtime evidence before integration-focused review and selective audit reconciliation.
+- Clarified verifier, reviewer, specialist, and auditor ownership to reduce duplicate work without weakening migration, security, data, or other sensitive-surface checks.
+- Consolidated auto-resolve approval coverage for in-scope writes, execution, evidence collection, bounded reruns, and feature or sidecar pushes while preserving step-by-step and protected-action gates.
+
 ## [v1.38.0] - 2026-07-14
 
 ### Added
