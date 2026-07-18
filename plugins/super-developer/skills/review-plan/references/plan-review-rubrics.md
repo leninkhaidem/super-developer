@@ -68,7 +68,10 @@ Check whether:
 - triggered execution-feasibility profiles are file-backed, executable under the resolved testing authority,
   bounded, deterministic where controllable, cleanup-aware, and sufficient to close the package independently;
 - caller contracts, public API continuity, trust boundaries, invalid input handling, migration/rollback/idempotency, data integrity, performance, and concurrency concerns are represented where relevant;
-- no package relies on future agents discovering unprojected requirements from raw Slice prose.
+- no package relies on future agents discovering unprojected requirements from raw Slice prose;
+- for an amendment, the candidate handback starts from the old accepted commit and accounts for affected
+  requirements/Slices/packages/assignments, production/test surfaces, stale proofs/reports/execution evidence/
+  freeze inputs, evidence-backed preserved state, and any old-to-new package mapping.
 
 ## Slice Semantic Review
 

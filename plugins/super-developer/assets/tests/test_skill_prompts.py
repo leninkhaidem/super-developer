@@ -1944,6 +1944,41 @@ class SkillPromptSurfaceTests(unittest.TestCase):
         for text in [verifier, report, audit, testing, pipeline_review]:
             self.assertLessEqual(len(text.splitlines()), 150)
 
+    def test_phase_one_cold_review_authority_corrections_are_fail_closed(self) -> None:
+        pipeline = read_repo(
+            "plugins/super-developer/skills/review-code/references/pipeline-report.md"
+        )
+        repair = read_repo(
+            "plugins/super-developer/skills/implement/references/repair-agent-contract.md"
+        )
+        planning = read_repo("plugins/super-developer/skills/implementation-plan/SKILL.md")
+        review = read_repo("plugins/super-developer/skills/review-plan/SKILL.md")
+        rubric = read_repo(
+            "plugins/super-developer/skills/review-plan/references/plan-review-rubrics.md"
+        )
+
+        for forbidden in ["Fix Verification", "fix delegation", "fix_batches"]:
+            self.assertNotIn(forbidden, pipeline)
+        self.assertIn("Delivery Owner handoff", pipeline)
+        self.assertIn("missing Delivery Owner repair/verification handback", pipeline)
+
+        self.assertNotIn("while the circuit remains open", repair)
+        self.assertIn("whose circuit remains closed", repair)
+        self.assertIn("An open circuit never authorizes another repair command", repair)
+
+        self.assertIn("old accepted/new candidate state", planning)
+        self.assertIn("not the final accepted amendment handback", planning)
+        for token in [
+            "old and new accepted commits",
+            "affected requirements/Slices/packages/assignments",
+            "production/test surfaces",
+            "stale proofs/reports/execution",
+            "evidence-backed preserved state",
+            "old-to-new package map",
+        ]:
+            self.assertIn(token, review)
+        self.assertIn("candidate handback starts from the old accepted commit", rubric)
+
     def test_package_repair_circuit_is_progress_sensitive_and_two_strike(self) -> None:
         convergence = read_repo("plugins/super-developer/references/orchestration-convergence.md")
         dispatch = read_repo("plugins/super-developer/skills/implement/references/package-dispatch.md")

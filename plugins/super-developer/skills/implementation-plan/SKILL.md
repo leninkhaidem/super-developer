@@ -25,8 +25,9 @@ rules are required; do not preload references merely because they are named.
 - Preserve a sanitized accepted source baseline; plan from approved requirements, safe Conceptualize material,
   accepted architecture invariants, and verified repo/spike evidence.
 - For a nested amendment, load `../../references/orchestration-convergence.md`; preserve caller/return, old
-  accepted commit, finite affected scope, and authorization. Return the new candidate/invalidation handback;
-  never invoke review or implementation on the caller's behalf.
+  accepted commit, finite affected scope, and authorization. Return old accepted/new candidate state plus the
+  candidate invalidation handback; never invoke review or implementation on the caller's behalf. `review-plan`
+  owns the final old/new accepted handback after resolution and Gate 2.
 - Delegate planned-feature artifact writing to a fresh planner agent using
   `references/planner-agent-contract.md`.
 - Ask before inventing behavior, narrowing scope, deferring material obligations, accepting risk, or
@@ -98,9 +99,11 @@ rules are required; do not preload references merely because they are named.
 7. From the code root, run `python3 plugins/super-developer/assets/sliceproof.py validate-plan \
    --artifact-root <artifact-root> --code-root <code-root> .tasks/<feature>/tasks.json` and route
    any non-mechanical repair back through a planner packet instead of patching artifacts inline.
-8. Report artifact root/ref, code root, mode, caller/return, old/new candidate state, changed and preserved
-   packages, affected proofs/reports/freeze inputs, explicit old-to-new mappings when needed, validation result,
-   deferrals, assumptions, and the Delivery Owner or standalone next gate.
+8. Report artifact root/ref, code root, mode, caller/return, old accepted/new candidate state, candidate-affected
+   requirements/Slices/packages/assignments and production/test surfaces, stale proofs/reports/execution evidence/
+   freeze inputs, evidence-backed preserved state, explicit old-to-new package mappings when needed, validation,
+   deferrals, assumptions, and the Delivery Owner or standalone next gate. This is review input,
+   not the final accepted amendment handback.
 
 ## Load if needed
 

@@ -6,6 +6,18 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+### Added
+- Added a canonical planned-feature convergence contract with one Delivery Owner, explicit child return dispositions, exact accepted-state binding, and a same-risk-cluster two-strike circuit.
+- Added triggered architecture invariants for authority, transitions, publication, losing owners, cancellation, replay, credentials, actual-path test seams, and broad-regression tripwires without adding a separate ledger.
+
+### Changed
+- Changed nested spike, planning, plan-review, code-review, and audit roles to return control instead of recursively advancing implementation.
+- Changed package verification, pipeline review, and audit to inspect accepted obligations, bound production paths, and causal observations before implementer claims and matrix reconciliation.
+- Changed repair closure to classify findings first and run actual-path targeted evidence plus affected broad regression before proof/report refresh and final freeze.
+
+### Fixed
+- Fixed architecture invalidations being routed as ordinary repairs, owner/model replacement resetting repair progress, and labels, counters, cache hits, or proof wording being accepted as standalone behavioral evidence.
+
 ## [v1.39.0] - 2026-07-15
 
 ### Added

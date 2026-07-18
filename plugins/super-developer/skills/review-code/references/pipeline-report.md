@@ -76,7 +76,7 @@ Schema-less current-state governance only. Write it under the artifact root. Sto
 checksums, summaries, and matrix context summaries; never full matrix bodies, proof/report transcripts,
 separate completion ledgers, or audit evidence.
 
-Refresh after discovery, fix planning/delegation, Fix Verification, evidence refresh, widened verification, escalation, readiness calculation. Sections:
+Refresh after discovery, Delivery Owner handoff, owner-supplied new freeze, affected rereview, evidence refresh, widened verification, escalation, or readiness calculation. Sections:
 
 - `feature`, `mode: "pipeline"`, `state`, timestamp;
 - `reviewed_state`: feature/base/target refs and commits, diff checksum, file-list checksum, code worktree;
@@ -84,9 +84,8 @@ Refresh after discovery, fix planning/delegation, Fix Verification, evidence ref
   Slice paths, ownership;
 - `lenses`: coverage status plus evidence pointers/summaries;
 - `findings.open_serious`: open confirmed serious dedupe keys or `[]`;
-- `fix_batches`: batch IDs, dedupe keys, fix commits/deltas, closure verdicts, evidence impact;
 - `widening_triggers`: trigger, scope, open/complete state;
-- `escalation_status`: none, stronger fix agent, widened verification, semantic split, or authority boundary;
+- `escalation_status`: none, Delivery Owner action requested, widened verification, semantic split, or authority boundary;
 - `package_evidence_state`: clean/dirty/candidate-dirty/no-impact for affected proof/report/matrix/Semgrep evidence;
 - `closure_status`: serious findings closed, no serious regression, widening complete,
   `proofs_and_reports_fresh: true`, `ready_for_audit: true`;
@@ -99,7 +98,7 @@ Audit may receive report path, readiness state path, or `none`. Audit can run as
 prerequisite.
 
 ## Stale-State Gate
-Before `CLEAN`, fix delegation, refresh, rerun, widened review, or audit handoff, revalidate frozen head/refs, checksums, and roots;
+Before `CLEAN`, Delivery Owner handoff, affected rereview, refresh, widened review, or audit handoff, revalidate frozen head/refs, checksums, and roots;
 package/proof/report files, matrix bindings/anchors, Test Review Scope, verification outputs, and bindings. Any frozen-input change invalidates it.
 Generated pipeline report and governance state are outputs, not freeze inputs.
 
@@ -136,5 +135,5 @@ Stop for product/design behavior change, scope expansion beyond accepted SPEC/pa
 destructive/externally visible/credential/network-sensitive/unsafe command, security/privacy/safety/data-loss risk acceptance, missing
 credentials/facts/permissions/environment, or no verification seam.
 
-Reject unexpected commits, broadened file impact, changed base/target, ambiguous worktree metadata, missing Fix Verification verdicts, stale reports, or dirty
+Reject unexpected or unbound repair commits, broadened file impact, changed base/target, ambiguous worktree metadata, missing Delivery Owner repair/verification handback, stale reports, or dirty
 proof/report evidence marked ready. The main agent does not apply substantive fixes inline.

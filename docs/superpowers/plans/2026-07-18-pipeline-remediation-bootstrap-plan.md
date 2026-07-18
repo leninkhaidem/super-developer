@@ -30,7 +30,7 @@ These rules govern this remediation instead of the plugin under repair.
 5. **Bounded independent review.** Independent agents may perform read-only design challenge or final diff review. They return findings to the parent and never own repair or continuation.
 6. **Finding classification before repair.** Every serious finding is classified before any change.
 7. **One repair attempt per serious cluster.** A second failed closure for the same mechanism stops implementation and returns to design reassessment.
-8. **No evidence theater.** Tests must demonstrate orchestration behavior, not merely the presence of required phrases.
+8. **No evidence theater.** Prompt-contract tests may guard static authority, ordering, and contradictions but are not behavioral evidence. Run the phase scenarios as controlled synthetic caller/child packets through a fresh agent and record observed routing, stop, and evidence decisions in session evidence; do not infer behavior from required phrases.
 9. **No helper-first solution.** Prompt/reference semantics are repaired first. Do not add a state database, dashboard, orchestration script, or new mechanical helper.
 10. **Phase boundaries are real.** A phase is not expanded merely because an adjacent baseline finding is visible.
 

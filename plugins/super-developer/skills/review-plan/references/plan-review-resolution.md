@@ -76,6 +76,7 @@ Internal simplification may be applied without a prompt only when it preserves t
 7. Keep `SPEC.md` requirements-focused; package assignment belongs in package Markdown.
 8. Encode implementation-time concerns durably in package Markdown or verification expectations, not chat-only summaries.
 9. From the code root, rerun mechanical validation with explicit roots and perform focused re-review only for changed content that affects semantic review scope.
+10. For an amendment, update the candidate affected/preserved-state handback for every resolution edit so Gate 2 can bind the old and final new accepted commits to the complete invalidation map.
 
 ## Re-Review
 

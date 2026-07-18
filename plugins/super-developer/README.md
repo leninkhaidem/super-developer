@@ -26,6 +26,18 @@ implementation-plan -> review-plan -> implement -> final review-code + final aud
 
 Validated Slices are product/design authority only. Workflow, tool, git, proof, review, and audit authority stays in the plugin instructions and shared references.
 
+In planned-feature mode, `implement` is the Delivery Owner from the exact accepted Gate-2 artifact state through
+readiness. Nested spike, plan-amendment, plan-review, code-review, and audit roles return a bounded disposition to
+that owner; they never restart or advance the parent lifecycle. Serious findings are classified before repair.
+Architecture invalidation returns to focused reassessment, and a second failed closure for the same invariant,
+mechanism, surface, and verification signature stops automatic repair rather than changing agents and retrying.
+
+Triggered Design Preflight projects authority, transition, publication, losing-owner, cancellation, credential,
+and actual-path test invariants into existing SPEC, Slice, and package artifacts. Verification then reads accepted
+obligations, production paths, and causal observations before implementer proof and matrix reconciliation. Matrices
+index evidence rather than define it; named shared-risk changes require affected broad regression before proof/report
+freeze or refresh.
+
 ---
 
 ## Planned-Feature Artifact Model
@@ -156,7 +168,7 @@ Semgrep findings preserve Semgrep severity but are advisory by default. They do 
 | **implementation-plan** | Creates `SPEC.md`, the lightweight registry, package Markdown, proof paths, report paths, and proof placeholders from approved requirements, Slices, or spike evidence. | Pipeline + standalone |
 | **skill-authoring** | Creates or revises compact skills with on-demand references and a mid-tier-agent followability gate. | Standalone + internal |
 | **review-plan** | Validates planned-feature artifacts, Slice coverage, package assignment, proof/report expectations, and approved deferrals before implementation. | Pipeline + standalone |
-| **implement** | Orchestrates package worktrees, package agents, proof Markdown, package verification reports, integration checkpoints, review-code, and audit handoff. | Pipeline + standalone |
+| **implement** | Owns planned-feature progression and orchestrates package worktrees, package agents, behavior-first verification, classified repair, integration checkpoints, review-code, and audit handoff. | Pipeline + standalone |
 | **review-code** | Runs bounded PR, local, or planned-feature pipeline code review with dynamic risk lenses, Skeptic verification for serious findings, and governed fix verification where the mode permits fixes. | Pipeline + standalone + PR review |
 | **audit** | Final read-only planned-feature completeness gate over accepted artifacts, proof Markdown, package reports, optional review-code context, and integrated code state. | Final gate + standalone |
 | **spike-to-plan** | Runs empirical feasibility spikes before planning and routes accepted evidence into durable planning artifacts. | Planning hook |
