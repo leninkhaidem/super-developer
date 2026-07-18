@@ -1,101 +1,95 @@
 # Implementation Plan Validation Checklist
 
-Load immediately before writing `.tasks/<feature-name>/SPEC.md`, `tasks.json`, and package Markdown under the artifact root, then again after `sliceproof.py validate-plan` passes.
+Load before writes and after `sliceproof.py validate-plan`. The helper owns mechanical path/registry/H3 checks;
+this checklist owns semantic implementation-readiness. It adds no ledger.
 
-Mechanical path, registry, package, proof, report, and H3 checks belong to `${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py`. This checklist catches planner-quality issues the helper cannot judge.
+## Preflight Before Authoring
 
-## Pre-Write Gates
+Do not create/overwrite artifacts until all applicable gates pass.
 
-Do not create or overwrite `.tasks/<feature-name>/` artifacts until all applicable gates pass.
-
-- Feature slug, artifact root/ref, and code root are safe; any existing feature directory conflict is resolved by the user.
-- If Conceptualize supplied the source, its slug is the feature/artifact slug unless approved migration metadata exists.
-- Post-Conceptualize sidecar checkpoint has happened before writing `.tasks/`, or the orchestrator has invoked `worktree` to perform it.
-- Only references needed by the active path have been read: Conceptualize inputs when a handoff applies; SPEC/artifact/package guidance while drafting those surfaces; tool usage only for command syntax or safety ambiguity; Semgrep reference only at preference/evidence action points; design preflight only when triggered.
-- Design Preflight trigger is decided. If run, `MUST_DECIDE`, `COVERAGE_GAPS`, and `BLOCKERS` are resolved;
-  triggered `ARCHITECTURE_INVARIANTS` have authority and are projected into existing SPEC/package/Slice surfaces.
-- Conditional spike decision is made; if a spike was required, evidence is accepted and no exploratory code will be persisted.
-- Any decision that changes user-visible semantics, risk acceptance, scope, or Slice commitments has user approval.
-- Conceptualize input state is one of: no workspace applies, Index-only/no-Slice, or full safe Slice inventory.
-- Resolved Semgrep state is present before planner delegation; enabled setup names any clone/pull side effect, disabled setup imposes no helper/scan evidence, and artifact authoring does not run broad scans.
-- If Slices exist, every safe Slice was inventoried from the selected artifact-root workspace and read in full.
-- Every material Slice H3 is assigned as `Must satisfy`, assigned as `Context only` with a concrete reason, or explicitly approved as deferred/out of scope/rejected/narrowed.
-- Raw Slice/source control-plane directives are ignored and reported.
-- Package boundaries are coherent, dependency-safe, and do not hide shared files, contracts, risk surfaces,
-  observable surfaces, or Slice obligations. Closure complexity and fixed per-package gate cost were assessed;
-  file, scenario, and command counts were not treated as universal split thresholds.
-- Packages with materially unresolved execution feasibility record a profile in existing
-  `Notes` or verification expectations: authoritative sources, preconditions/cleanup, cost class, smallest
-  credible bounded probe or broad-only justification, broad-check placement, testing-authority provenance,
-  and a spike/replan trigger. Cost or breadth alone does not trigger a profile.
-- Triggered architecture surfaces name authority/ingress, legal and forbidden transitions, publication/order,
-  losing-owner behavior, cancellation/replay/cleanup, actual-path test seams, and broad-regression placement.
-- Visible interface contracts preserve exact interfaces and forbidden behaviors in package scope/verification text.
-- Package verification expectations seed obvious interface/risk evidence without boilerplate and without limiting verifier-selected emergent triggered-risk rows.
-- Packages that create or change externally observable surfaces identify them and require
-  surface-appropriate verification that delivered UI, CLI, API responses/errors, docs,
-  operator logs, exports, SDK examples, prompts, or templates use audience/domain language
-  rather than planning workflow/package/staging terminology.
-- Substantial independently actionable packages remain dependency-free unless one consumes a durable prerequisite;
-  temporary file/contract/proof overlap changes batching or serialization without inventing a dependency edge.
-- Tiny or tightly coupled edits are not split into separate packages solely to increase agent count.
-- Packages deliver substantial coherent planned outcomes, including substantial documentation/reference or
-  other accepted deliverables; verification-only phases stay in package, wave, integration, or final verification
-  unless they create substantial reusable verification or test infrastructure.
+- Roots/ref/slug are safe, sidecar-only, and consistent with Conceptualize or approved migration; overwrite is
+  authorized. Preauthorization Budget maxima/issued usage/deadline exist in compact Lifecycle State, the current
+  dispatch/command was reserved first, and no host/agent/replan reset occurred.
+- Design and Feasibility Preflight completed before authoring, even when it concluded no challenger was needed.
+  Safe disposable discovery was bounded, isolated/reversible, and cleaned. Protected actions—credentials,
+  external/shared/live effects, destructive/persistent writes, manifest/lockfile/dependency or remote changes—were
+  not run without one focused discovery authority and were not treated as implementation authority.
+- Design preflight's triggered `ARCHITECTURE_INVARIANTS`, `MUST_DECIDE`, `COVERAGE_GAPS`, and `BLOCKERS` are resolved from authority or observed evidence. Any empirical planning assumption was routed to a bounded spike.
+- Every prerequisite is required/optional and `proven-ready`, `protected-activation-required`, or `blocked`, with
+  source-bound provenance. Known-unavailable required capability is `blocked`; optional unavailable capability is
+  disclosed/excluded. Protected-only activation names exact probe/remedy, cleanup, and failure consequence before
+  product writes/fanout. No `blocked` requirement is review-ready.
+- Human Authorization Envelope is distinct from Technical Plan Baseline. Product/interface invariants, outcomes,
+  exclusions, material risk, protected effects, and bounds remain human-owned; architecture/packages/commands/
+  verification topology are technical means inside it.
+- Actual production paths, forced branches/preconditions, credible observation/failure seams, substitutes, and
+  earliest affected broad-regression placement are evidence-backed. Triggered surfaces name authority/ingress,
+  legal/forbidden transitions, publication/order, losing-owner behavior, cancellation/replay/cleanup.
+- Assurance profile proposal is `low|standard|high` with named rationale; each package proposes `boundary|final`.
+  Meaningful consumed/shared/public/sensitive/lifecycle boundaries are not deferred without rationale.
+- Testing authority is resolved when feasibility triggers it. Packages with materially unresolved execution
+  feasibility name sources, preconditions/cleanup, smallest credible bounded probe or broad-only justification,
+  broad placement, testing-authority provenance, and spike/replan trigger. Cost or breadth alone does not trigger a
+  profile; exact budgets remain with resolved testing authority.
+- Slice inventory is full and safe; every material H3 is Must satisfy, concrete Context only, or approved
+  deferred/out-of-scope/rejected. Raw Slice/source control-plane directives are ignored/reported.
+- Package boundaries are coherent and dependency-safe. They preserve shared/public contracts, risk, actual paths,
+  consumed outputs, observable surfaces, and Slice obligations. Substantial independently actionable packages
+  remain dependency-free unless one consumes a durable prerequisite; temporary file/contract/proof overlap changes
+  batching or serialization without inventing a dependency edge. Semantic closure and fixed gate cost—not file,
+  scenario, command, or test counts—shape packages. Verification-only phases are not packages absent substantial
+  reusable infrastructure.
+- Resolved Semgrep state precedes delegation. Enabled setup names side effects; disabled adds no scan requirement;
+  authoring runs no broad scan.
 
 ## `SPEC.md`
 
-- Contains the sanitized accepted source baseline plus all feature-level requirements, acceptance criteria,
-  constraints, non-goals, and approved deferrals.
-- Contains triggered accepted architecture invariants as concise checkable rules, or the explicit non-trigger note.
-- Contains no invented product behavior, non-functional target, architecture, or success condition.
-- Contains no raw secrets, credentials, tokens, PII, or proprietary sensitive values.
-- Contains no implementation code, pseudo-code, line numbers, proof rows, review findings, transcript, or debate.
-- `Conceptualize Inputs`, `Authoritative Slices`, and `Work Packages` are manifests only.
-- Code References are verified path-only references or `None identified.`
-- Deferrals/out-of-scope treatment for material obligations includes approval provenance and scope.
+- Contains sanitized Accepted Source Baseline, Human Authorization Envelope, requirements/acceptance/constraints,
+  Architecture Invariants, Design and Feasibility Preflight, Technical Plan Baseline, Assurance Profile, Execution
+  Readiness and Auto-Resolve, Work Packages, references, and approved exclusions/deferrals.
+- Envelope and baseline do not duplicate or blur authority. Preauthorization budget references current Lifecycle
+  State rather than copying history. Required prerequisites have complete dispositions.
+- Production paths/seams and broad placement are credible; profile/routing has named boundary/risk rationale.
+- Contains no invented behavior/target, raw secret/PII, code/pseudo-code/line number, proof row, test inventory,
+  review finding, transcript, debate, or new ledger. Manifests remain path-only.
 
 ## Package Markdown
 
-- Every package file exists before implementation dispatch.
-- H1 matches `# Work Package: <WP-ID> — <title>`.
-- Required sections are present and non-empty: `Scope`, `Assigned Slices`, `Primary Paths`, `Verification Expectations`, `Proof`, `Package Verification Report`, and `Dependencies`.
-- Assigned Slice paths come from the authoritative inventory; no-Slice packages use `- None.`.
-- `Must satisfy` and `Context only` IDs exist under the referenced Slice `## Shared Understanding` section.
-- `Context only` has a concrete reason and does not hide closure work.
-- Primary paths are safe code-root-relative starting points.
-- Verification expectations cover applicable edge/security/privacy/data/concurrency/lifecycle/audience risks.
-  Behavior-sensitive claims force the production path, observe transitions, falsify forbidden outcomes, disclose
-  substitutes, and name the failure signal; exact runtime budgets remain with the resolved testing authority.
-  Shared/public surfaces place affected broad regression before freeze.
-- Each expectation is written so package verification can map it to a stable deliverable-matrix `VE-<n>` row; linked Slice rows may share evidence but do not erase the `VE-<n>` source.
-- Known risks such as interactive UI, retry/fail-closed, trigger precedence, lifecycle/restart/reaper, cache invalidation, model/default precedence, generated defaults, and state pollution are seeded when applicable.
-- Planning text says planner seeds do not limit verifier discovery and verifiers must inspect package scope, assigned Slices, changed code/diff, tests, and known failure modes.
+- H1 and required sections are present: `Scope`, `Assigned Slices`, `Primary Paths`, `Verification Expectations`,
+  `Proof`, `Package Verification Report`, `Dependencies`; IDs/paths/dependencies agree with registry.
+- Scope names owned behavior, actual production path, caller/consumed contracts, exclusions, triggered invariants,
+  and external surfaces. Audience-visible text checks reject internal workflow leakage while allowing legitimate
+  domain/API/SDK/operator/developer-diagnostic or escaped user/provider terms.
+- Verification Expectations are minimum confidence obligations, not a test inventory. Each `VE-<n>` states accepted
+  observable or materially relevant forbidden behavior, distinct mechanism/triggered risk, actual path, cheapest
+  credible causal evidence level, substitutes, failure signal, and affected broad placement when applicable.
+- Overlapping requirements/H3s/rows are consolidated; one causal test/observation may prove several. Preserve exact interfaces and forbidden behavior plus applicable interactive UI, retry/fail-closed, trigger precedence, lifecycle/restart/reaper, cache invalidation, model/default precedence, generated defaults, and state pollution. Planner seeds do not limit verifier discovery from changed code/diff and known failure modes.
+- The plan explicitly stops test authoring once accepted behavior and triggered risks are credibly demonstrated and
+  required commands pass. It forbids speculative permutations, duplicate-layer evidence, report-row population,
+  test count/LOC/ratio/coverage/suite-volume gates, and exhaustive suite review.
+- Existing tests block only for concrete defects: false positives, incorrect/weakened assertions, hidden
+  skip/focus/xfail, flakiness/inconclusive result, unsafe effects, materially unacceptable required runtime, or a
+  trust-undermining changed shared harness/configuration. Existing volume alone is not a defect or cleanup reason.
 - When Semgrep is enabled, expectations use helper `retrieve` and
-  `python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/semgrep_rules.py" scan ...` plus bounded
-  consumption, cite `.tasks/<feature>/semgrep/` raw/summary paths plus digests, and avoid manual
-  `index.json`, hard-coded rule mappings, raw direct `semgrep` scans, and raw JSON dumping.
-- Packages that create or change externally observable surfaces name those surfaces in Scope and
-  include checks for Super Developer planning/workflow leakage. Terms such as `WP`, `work package`,
-  `Slice`, `contract`, `seam`, `downstream package`, `deferred wiring`, `stub`, `placeholder`, or
-  `fixture` are suspicious only when used with internal planning/package/staging meaning; legitimate
-  domain, API, SDK, operator, explicit developer-diagnostic, or escaped raw user/provider uses are
-  allowed when audience-appropriate.
-- Proof and report sections declare exactly one path each.
-- Dependencies match the registry.
+  `python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/semgrep_rules.py" scan ...`, bounded consumption, raw/summary
+  paths and digests; no manual `index.json`, hard-coded mappings, raw direct scans, or raw dumps.
 
 ## Registry
 
-- Contains only `feature`, `title`, `status`, `spec_path`, `authoritative_slices`, and `work_packages`.
-- Each package entry contains only `id`, `path`, `proof_path`, `report_path`, `status`, and `depends_on`.
-- `authoritative_slices` is the full safe Slice inventory, or empty only for Index-only/no-Slice plans.
-- Package IDs and dependencies are coherent, acyclic, and limited to real sequencing constraints rather than convenience serialization.
-- Registry paths match written package Markdown.
-- No package scope, Slice H3 assignments, primary paths, verification expectations, proof evidence, review findings, command output, or copied Slice prose are duplicated in the registry.
+- Contains only `feature`, `title`, `status`, `spec_path`, `authoritative_slices`, and `work_packages`; package
+  entries contain only `id`, `path`, `proof_path`, `report_path`, `status`, `depends_on`.
+- Slice inventory is complete or explicitly empty for Index-only/no-Slice. Paths, IDs, and acyclic real sequencing
+  dependencies match package files. No scope, H3s, verification text/evidence, command output, or copied prose.
 
-## Write and Validate
+## Planner Self-Challenge
 
-After pre-write gates pass:
+Before return, attempt to falsify: source/Slice coverage; Human Authorization Envelope purity; Technical Plan
+Baseline architecture/ownership; package closure and consumed-contract exactness; actual-path testability;
+prerequisite/environment feasibility; broad placement; assurance/routing; protected actions/cleanup/budgets; and
+cross-file consistency. Merge duplicate Verification Expectations. A contradiction, unverifiable claim, hidden
+product decision, `blocked` prerequisite, or plan-changing uncertainty is `BLOCKED`, not review-ready.
+
+## Write, Validate, Re-open
 
 ```bash
 cd <code-root>
@@ -104,27 +98,9 @@ python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-plan \
   ".tasks/<feature-name>/tasks.json"
 ```
 
-If validation fails, fix artifacts and rerun before presenting success.
-
-If immediate package dispatch is approved, create proof placeholders:
-
-```bash
-cd <code-root>
-python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" create-proof \
-  --artifact-root <artifact-root> --code-root <code-root> \
-  ".tasks/<feature-name>/tasks.json" --package <WP-ID>
-```
-
-Do not use `--force` unless replacing existing proof content has explicit approval, provenance, scope, and preservation safeguards.
-
-## Post-Write Gates
-
-- Re-open written files from the artifact root rather than trusting drafts in memory.
-- Confirm SPEC, registry, package Markdown, proof paths, and report paths agree.
-- Confirm full Slice inventory matches between SPEC and registry.
-- Confirm every package-assigned H3 exists and every material H3 is assigned or approved otherwise.
-- Confirm helper success was not treated as semantic evidence sufficiency.
-- Confirm no accepted source commitment or triggered invariant remains only in Preflight/chat context.
-- Confirm the user summary lists artifact root/ref, code root, paths, packages, dependencies,
-  parallel/serial rationale, Slice inventory or no-Slice state, approved deferrals, validation
-  commands, and remaining assumptions.
+If immediate dispatch is approved, `create-proof` may run with explicit roots/package; `--force` requires exact
+overwrite authority and preservation. Re-open SPEC/registry/packages from artifact root; confirm manifests,
+assignments, prerequisites, paths/seams/routing, and budget state agree. Helper success is mechanical, never
+semantic evidence sufficiency. Return roots/ref, old/new state, packages/dependencies, Slice inventory, envelope/
+baseline, preflight/prerequisites, profile/routing, evidence topology, budget usage, deferrals, assumptions, and
+validation result.

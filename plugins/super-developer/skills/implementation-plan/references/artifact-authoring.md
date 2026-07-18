@@ -1,57 +1,45 @@
 # Implementation Artifact Authoring
 
 ## Contract
-- Apply the packet-supplied canonical artifact-model contract; return `BLOCKED` if its labeled path is missing.
-- Write `.tasks/`, proof/report declarations, and Slice inventory paths under the artifact root; keep source/plugin/test paths code-root-relative.
-- `tasks.json` is a lightweight registry: feature metadata, Slice inventory, package paths, proof paths, report paths, status signals, and dependencies only.
-- Package Markdown is the package assignment source of truth.
-- Proof Markdown is generated from package assignment before dispatch and filled by package agents.
-- Package verification reports are declared during planning and written by independent package verification; their matrices consume package `## Verification Expectations` as `VE-<n>` row sources.
-- Do not duplicate package scope, assigned H3 IDs, primary paths, verification expectations, proof evidence, review findings, command output, or lifecycle history in the registry.
+
+- Apply the packet-supplied canonical artifact model; return `BLOCKED` if its labeled path is missing.
+- Write `.tasks/`, Slice inventory, and proof/report declarations under artifact root; source/test paths stay
+  code-root-relative. Do not add a requirement, architecture, prerequisite, routing, test, or event ledger.
+- `tasks.json` is lightweight bookkeeping. Package Markdown owns assignment and confidence obligations; proof and
+  independent report content is produced later.
 
 ## Registry Shape
+
 ```json
 {
   "feature": "<feature-name>",
-  "title": "Human-readable feature title",
+  "title": "Human-readable title",
   "status": "planned",
   "spec_path": ".tasks/<feature-name>/SPEC.md",
-  "authoritative_slices": [
-    ".planning/<concept-slug>/slices/<slice-name>.md"
-  ],
-  "work_packages": [
-    {
-      "id": "WP1",
-      "path": ".tasks/<feature-name>/packages/WP1.md",
-      "proof_path": ".tasks/<feature-name>/proofs/WP1.proof.md",
-      "report_path": ".tasks/<feature-name>/reports/WP1.package-verification.md",
-      "status": "pending",
-      "depends_on": []
-    }
-  ]
+  "authoritative_slices": [".planning/<concept-slug>/slices/<slice-name>.md"],
+  "work_packages": [{
+    "id": "WP1",
+    "path": ".tasks/<feature-name>/packages/WP1.md",
+    "proof_path": ".tasks/<feature-name>/proofs/WP1.proof.md",
+    "report_path": ".tasks/<feature-name>/reports/WP1.package-verification.md",
+    "status": "pending",
+    "depends_on": []
+  }]
 }
 ```
 
-Use an empty `authoritative_slices` array only for Index-only or no-Slice plans where no Slice is independently useful.
+Use an empty Slice array only for Index-only/no-Slice plans. Registry entries contain only shown fields.
+Dependencies are ID-only durable sequencing prerequisites; rationale belongs in package `Notes`. Runtime impact or
+failure alone does not create an edge. All artifact paths are root-relative POSIX paths; reject absolute,
+traversal, home, drive-qualified, empty-segment, symlink-escape, or out-of-root paths.
 
-## Registry Rules
-
-- `feature` must match the safe feature/artifact slug and `.tasks/<feature>/` directory.
-- If Conceptualize supplied the plan, `feature` defaults to the concept slug; divergent slugs require explicit approved migration metadata.
-- `spec_path` points to the written `SPEC.md` file.
-- `authoritative_slices` lists the full safe Slice inventory when Slices exist.
-- Each package entry contains only `id`, `path`, `proof_path`, `report_path`, `status`, and `depends_on`.
-- Dependencies are ID-only durable sequencing prerequisites and must match package Markdown; rationale belongs in package `Notes`.
-- Keep registry, package, proof, report, and Slice paths artifact-root-relative POSIX paths.
-- Reject absolute, traversal, home, drive-qualified, empty-segment, symlink-escape, or out-of-root paths.
-
-## Package Markdown Template
+## Package Template
 
 ```md
 # Work Package: WP1 — <title>
 
 ## Scope
-<Package outcome, boundaries, caller contracts, triggered architecture invariants, observable surfaces, and exclusions.>
+<Owned outcome/boundaries/caller and consumed contracts/actual production path/observable surfaces/exclusions.>
 
 ## Assigned Slices
 - None.
@@ -60,7 +48,8 @@ Use an empty `authoritative_slices` array only for Index-only or no-Slice plans 
 - `path/to/inspect/first`
 
 ## Verification Expectations
-- <Behavior, actual-production-path seam, forbidden outcome, affected broad regression, or static/manual evidence; this becomes `VE-<n>`.>
+- <Confidence obligation: accepted observable or forbidden behavior; distinct mechanism/triggered risk; actual
+  production-path seam; cheapest credible causal evidence; substitutes; failure signal; affected broad placement.>
 
 ## Proof
 - `.tasks/<feature-name>/proofs/WP1.proof.md`
@@ -72,78 +61,65 @@ Use an empty `authoritative_slices` array only for Index-only or no-Slice plans 
 - None.
 
 ## Notes
-- Optional: accepted authority/state/order/publication invariants, replan triggers, deferrals, and sequencing rationale.
+- <prerequisite activation/cleanup, consumed-boundary rationale, assurance `boundary|final` proposal, replan trigger>
 ```
 
-`sliceproof.py` mechanically requires `Scope`, `Assigned Slices`, `Primary Paths`, `Verification Expectations`, `Proof`, `Package Verification Report`, and `Dependencies`. `Notes` is optional.
-
-When Slices exist, replace the `- None.` body with Slice subsections:
+Required sections are `Scope`, `Assigned Slices`, `Primary Paths`, `Verification Expectations`, `Proof`, `Package
+Verification Report`, and `Dependencies`. `Notes` is optional. With Slices, use:
 
 ```md
 ### `.planning/<concept-slug>/slices/<slice-name>.md`
 Must satisfy:
-- `<H3-ID>` — <H3 title or short obligation>
-
+- `<H3-ID>` — <title/obligation>
 Context only:
-- `<H3-ID>` — <why this package must read it even though closure belongs elsewhere>
+- `<H3-ID>` — <concrete reason>
 ```
 
-## Semgrep Verification Expectations
+## Verification Expectations: Minimum Confidence
 
-When the orchestrator packet says Semgrep is disabled, package Markdown must not require Semgrep setup, scan evidence, or internet access.
+- An expectation is a confidence obligation, not a prescribed test or inventory item. It becomes a stable
+  `VE-<n>` row source, but one causal test/observation may prove multiple related requirements, H3s, and rows.
+  Consolidate overlapping behavior/mechanism/risk obligations rather than creating one test per row.
+- Cover accepted observable behavior through the actual-production-path seam; materially relevant forbidden/failure
+  outcomes; triggered security/privacy/safety/data/concurrency/lifecycle/compatibility/public-contract risk;
+  meaningful consumed contracts at their owning layer; and distinct discovered defect mechanisms.
+- State cheapest credible causal evidence level, forced precondition/branch, observed result/transition, forbidden
+  outcome, substitutes/mocks/fixtures, and discriminating failure signal. Labels and row counts are not evidence.
+- Place earliest credible affected broad regression before freeze for shared discovery/state, lifecycle,
+  generated/public contracts, or recursive control flow; do not broaden merely to increase suite volume.
+- Seed exact interfaces and forbidden behavior plus applicable interactive UI, retry/fail-closed, trigger precedence, lifecycle/restart/reaper, cache invalidation, model/default precedence, generated defaults, state pollution, authority/publication/cancellation/replay risk. Planner seeds do not limit verifier discovery from package scope, assigned Slices, changed code/diff, selected evidence, and known failure modes.
+- Once accepted behaviors and triggered risks have credible causal evidence and required commands pass, test
+  authoring stops. Do not add speculative permutations, duplicate layer confidence, trivial wiring/type checks,
+  private-detail tests already covered by behavior, or tests merely to populate rows/reports.
+- Test count, test LOC, test-to-production ratio, coverage percentage, and suite volume are never acceptance gates.
+  Do not require exhaustive suite review or reject/clean existing tests solely for volume. Block only concrete
+  evidence defects: false positives, wrong/weakened assertions, hidden skip/focus/xfail, flaky/inconclusive result,
+  unsafe side effects, materially unacceptable required runtime, or trust-undermining harness/config change.
 
-When Semgrep is enabled, verification expectations should stay helper-owned and package-scoped:
+## Feasibility and Assurance Notes
 
-- use helper `index`/`retrieve` to refresh `.superdeveloper/semgrep/stack-profile.yml`; do not inspect `index.json` or encode static stack-to-rule mappings;
-- run package scans through `python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/semgrep_rules.py" scan ...`
-  using local configs only, with raw output `.tasks/<feature>/semgrep/<WP-ID>.semgrep.json` and
-  summary output `.tasks/<feature>/semgrep/<WP-ID>.semgrep-summary.json`; never require raw direct
-  `semgrep` scans;
-- cite raw path, raw digest, summary path, summary digest, scan scope, and a concise bounded finding/no-finding summary in proof/report evidence;
-- consume findings through `summarize`, then filtered/limited `list-findings`, then
-  `show-finding` only for selected refs; excerpts require `--target` plus expected summary digest;
-  never require raw JSON dumps;
-- integrated scans are conditional one-shot expectations only for concrete cross-package/shared-surface risk.
+When material execution feasibility remains unresolved, record authoritative sources, prerequisites/cleanup, cost,
+smallest credible bounded probe or broad-only justification, broad placement, testing-authority provenance, and a
+spike/replan trigger; exact budgets come from the resolved authority. A required prerequisite is only
+`proven-ready`, `protected-activation-required` with exact later probe/remedy, or `blocked`.
 
-## Package Rules
+Propose `standard` assurance unless named evidence supports `low` or triggers `high`. Propose `boundary` when output
+is independently consumed or is a material shared/public/sensitive/lifecycle boundary; otherwise `final` may be
+credible. This remains in SPEC/package authority until the canonical routing contract exists.
 
-- Scope states owned behavior and boundaries in implementation-agent terms.
-- If a package creates or changes externally observable surfaces, Scope names them. Surfaces
-  include user/operator/consumer-facing UI, CLI output, API responses/errors, generated docs,
-  README/operator docs, exported reports/files, logs intended for operators, SDK examples, and
-  prompts/templates.
-- Delivered surfaces use audience/domain language rather than Super Developer planning workflow,
-  package-boundary, implementation-staging, placeholder, or unreleased-work terminology. Terms such
-  as `WP`, `work package`, `Slice`, `contract`, `seam`, `downstream package`, `deferred wiring`,
-  `stub`, `placeholder`, `fixture`, or `review/audit gate` are leakage indicators only when used
-  with internal planning/package/staging meaning; legitimate domain, API, SDK, operator, explicit
-  developer-diagnostic, or escaped raw user/provider uses are allowed when audience-appropriate.
-- `Must satisfy` IDs are package closure obligations and require proof rows.
-- `Context only` IDs are required reading/context; do not use them to hide package obligations.
-- Every material H3 in the full Slice inventory must be assigned, context-only with a concrete reason, or explicitly approved as deferred/out of scope/rejected.
-- Primary paths are code-root-relative starting points, not hard boundaries.
-- Apply shared closure-complexity rules; counts are warnings, not thresholds, and fixed package gates count.
-- Verification expectations cover applicable edge, trust, data, privacy, concurrency, public/generated-contract,
-  lifecycle, and audience risks. Behavior-sensitive claims name the forced production path, observed transition,
-  forbidden-outcome check, substitutes, and failure signal. When material execution feasibility remains unresolved,
-  record sources, cleanup/cost, smallest credible bounded probe or broad-only justification, broad placement,
-  testing-authority provenance, spike/replan trigger; exact budgets come from the resolved authority.
-- Each expectation becomes a mandatory `VE-<n>` row; shared Slice evidence does not erase it.
-- Seed exact interfaces and forbidden behavior, interactive UI, retry/fail-closed, trigger precedence,
-  lifecycle/restart/reaper, cache invalidation, model/default precedence, generated defaults, state pollution,
-  authority/transitions, publication/losing-owner behavior, and cancellation/replay. Put affected broad regression before freeze for shared or public surfaces.
-- Planner seeds do not limit verifier discovery; verifier packets still require inspection of package scope, assigned Slices, changed code/diff, tests, verification expectations, and known failure modes for emergent triggered-risk rows.
-- For externally observable surfaces, verification expectations include surface-appropriate checks
-  that delivered text, examples, errors, exports, logs, or prompts are audience-appropriate,
-  actionable where needed, redacted when sensitive, and free of planning/workflow leakage.
-- Proof and report paths are declared during planning; evidence and reports are produced later.
-- Dependencies are ID-only durable sequencing prerequisites and must match the registry. Put non-obvious consumed output, contract, or evidence rationale in `Notes`; runtime impact or failure alone does not create an edge, and edges must not merely serialize independent work.
+## Semgrep Expectations
 
-## Fail Closed When
+Disabled means no helper/setup/scan/network requirement. When enabled, use helper `index`/`retrieve`, then
+`python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/semgrep_rules.py" scan ...` with local configs; store package raw
+and summary outputs under `.tasks/<feature>/semgrep/`, cite both digests, and consume bounded summary/findings.
+Never inspect `index.json`, hard-code rule mappings, run raw direct scans, or dump raw JSON.
 
-- Registry contains package assignment or evidence details.
-- Package Markdown omits a required section or declared proof/report path.
-- A package boundary hides a material Slice obligation.
-- Verification expectations are generic boilerplate, omit visible interface/risk seeds, or imply verifier discovery is limited to planner-declared risks.
-- A package changes externally observable surfaces without identifying them or without an audience-language/leakage verification expectation.
-- A package cannot be verified independently with the declared proof/report surfaces.
+## Package Rules and Stops
+
+- Scope names owned behavior, actual path, caller/consumed contracts, externally observable UI/CLI/API/docs/logs/
+  exports/examples/prompts, and exclusions. Delivered surfaces use audience/domain language, not internal planning.
+- Every material Slice H3 is `Must satisfy`, concrete `Context only`, or approved deferred/out-of-scope. Primary
+  paths are starting points. Package closure uses semantic complexity; fixed gates count, numeric thresholds do not.
+- Dependencies model consumed durable prerequisites, not convenience serialization; use `Notes` for rationale.
+- Fail closed for hidden Slice obligations, generic/unverifiable expectations, missing actual path/seam, unresolved
+  `blocked` prerequisite, visible surfaces without audience checks, unsafe paths, or unverifiable boundaries.

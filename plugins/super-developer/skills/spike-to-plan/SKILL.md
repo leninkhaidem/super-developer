@@ -8,73 +8,70 @@ description: >
 
 # Spike to Plan
 
-Answer the smallest empirical question needed for a reliable Slice-first planned-feature plan, discard
-exploratory code, and return observed evidence without turning the spike into implementation.
+Answer the smallest plan-changing empirical question, discard exploratory code, and return observed evidence.
+A spike is discovery, never production implementation or a way to inherit protected authority.
 
 ## Always
 
-- Treat spike code and temporary harnesses as disposable evidence, not production implementation.
-- Prefer repository, documentation, and official API evidence before exploratory code or commands.
-- Keep work isolated, bounded, reversible, and focused on one material planning assumption.
-- Preserve user work; never stash, reset, overwrite, or discard dirty changes without approval.
-- Apply the shared command runtime envelope to every command: identity, provenance, scope, timeout, progress,
-  completion, owned-process termination, cleanup, and outcome.
-- When a probe uses project tests, harnesses, live/browser services, or shared data, require testing authority:
-  accepted/current workflow for high-risk/reusable work, routine-safe fallback for a bounded local command, or
-  task-local Testing Authorization for exact focused approval. If insufficient, invoke `testing` or stop.
-- Timeout, uncertain termination, or uncertain cleanup is inconclusive evidence, never a successful observation.
-- Do not persist exploratory code as planned-feature artifacts. Persist accepted planning outcomes later through
-  normal specification, package, Slice approval/deferral, or registry ownership.
-- When called by a planned-feature Delivery Owner, load `../../references/orchestration-convergence.md`, preserve
-  caller/return state, and return evidence; never start planning, review, or implementation on the caller's behalf.
+- Prefer repository, tests, docs, and official API evidence before commands or exploratory code.
+- Safe disposable discovery is bounded repository inspection, read-only probing, or reversible local experiment in
+  a disposable spike worktree. It may not modify production branches, manifests/lockfiles, shared services/data,
+  credentials, remote state, or external systems. Record writes and verify cleanup.
+- A credentialed/network/live/paid/shared/destructive probe, dependency/manifest/lockfile change, remote write, or
+  external effect is a protected discovery action. Stop for one focused authority decision naming exact action,
+  side effect, bound, and cleanup. That decision authorizes only this probe, not implementation or later activation.
+- Treat spike code/harnesses as disposable evidence. Preserve user work; never stash/reset/overwrite/discard dirty
+  changes without exact approval.
+- Apply the shared runtime envelope: identity/provenance, cwd/scope, timeout, progress/completion, owned-process
+  termination, expected writes, cleanup, and outcome. Timeout or uncertain cleanup is inconclusive evidence.
+- If project tests/harnesses/live/browser/shared data are involved, require accepted/current testing workflow,
+  routine-safe fallback for one parent-run local command, or exact task-local Testing Authorization. If
+  insufficient, invoke `testing` or stop.
+- A planning-handoff spike consumes the persisted finite Preauthorization Budget. The owner reserves delegated call,
+  spike wave (at most one per empirical cluster), and command units before action; issued usage and absolute
+  deadline never reset across retries, replanning, agents, or hosts. Do not create a budget ledger.
+- For a Delivery Owner call, load `../../references/orchestration-convergence.md`, preserve caller/return and state,
+  and return it to the Delivery
+    Owner; never start planning, review, or implementation.
 
 ## Do
 
-1. State one planning assumption, the decision it blocks, success/failure evidence, constraints, and non-goals.
-2. Inspect existing code, tests, repository docs, and authoritative library/API docs before probing.
-3. Stop the spike when static evidence resolves the assumption; report that evidence directly.
-4. Before any command, load `../../references/tool-usage.md`. If project testing/harness policy applies, resolve
-   testing authority. Missing workflow alone does not block read-only/static evidence or a routine-safe probe. If
-   authority is missing, stale, conflicting, or insufficient, invoke `testing` and stop command execution.
-5. Select an isolated temporary branch/worktree for code, service, shared-data, or multi-command probes. Use the
-   current tree only for a small read-only or low-risk probe with clean or explicitly approved state.
-6. Define the probe contract: command identity/provenance, cwd/scope, expected writes and signal, explicit timeout,
-   progress/completion, termination/cleanup, approval state, and the smallest credible bounded evidence path.
-   If no narrower probe can answer the assumption, document why before an explicitly bounded broad-only probe.
-7. Run one bounded stage at a time and return control after failure. Do not repeat an unchanged command, enlarge a
-   timeout to mask missing progress, or hide iterative follow-ups inside one opaque command/tool call.
-8. Record observed results and failed/rejected approaches. Distinguish passed observation, rejected assumption,
-   blocked precondition, unsafe-needs-approval, and inconclusive/cleanup-uncertain outcomes.
-9. Delete throwaway code, harnesses, branches, and worktrees after extracting evidence. Verify owned-process and
-   data cleanup; stop with the exact residual state when cleanup fails or is uncertain.
-10. Return a concise spike brief with its caller/return disposition. For a nested call, return it to the Delivery
-    Owner for amendment routing. For a standalone planning request, hand it to a fresh `implementation-plan`
-    invocation. Do not draft planned-feature artifacts inline or treat exploratory code as implementation.
-
-## Load if needed
-
-- Command safety, bounds, termination, or cleanup → `../../references/tool-usage.md`
-- Official library/API evidence → only when repository evidence does not resolve the assumption
-- Project test/harness/live/browser authority is missing or stale → invoke `testing`
-- Temporary branch/worktree isolation → invoke `worktree`
-- Nested caller/return or continuation semantics → `../../references/orchestration-convergence.md`
-- Durable feature artifacts after standalone evidence acceptance → invoke `implementation-plan`
+1. State one empirical assumption, blocked plan decision, success/failure evidence, constraints, non-goals, and
+   canonical empirical cluster. Reject bundles of unrelated questions.
+2. Inspect existing code/tests/docs and authoritative library/API docs. Stop when static evidence answers it.
+3. Before a command, load `../../references/tool-usage.md`; verify caller budget reservation and testing authority.
+   Missing workflow alone does not block read-only/static evidence or one proven routine-safe probe.
+4. Classify the action as `safe-disposable` or `protected`. For protected action, return
+   `protected-discovery-authority-required` before execution unless exact focused authority is present.
+5. Use an isolated temporary branch/worktree for code, service, shared-data, or multi-command probes. Current tree
+   is allowed only for a small read-only/low-risk probe with clean or explicitly approved state.
+6. Define one bounded probe: command identity/provenance, cwd/scope, expected disposable writes and signal, timeout,
+   progress/completion, termination/cleanup, approval, and cheapest credible causal evidence. If no narrower probe
+   can answer, document why before an explicitly bounded broad-only probe.
+7. Run one stage at a time. Do not repeat an unchanged command, inflate timeout to hide absent progress, or hide
+   follow-ups in an opaque call. Failure returns control and remains charged.
+8. Classify result as `proven-ready`, `known-unavailable`, `protected-activation-required`, `blocked-precondition`,
+   `unsafe-needs-approval`, or `inconclusive`. `known-unavailable` required capability becomes planning `blocked`;
+   `protected-activation-required` is valid only when feasibility is otherwise established and an exact later
+   activation probe/remedy can run after authorization before product writes/fanout.
+9. Record observed result, failed/rejected approaches, actual production-path implication, credible observation
+   seam, cheapest evidence level, affected broad-regression placement, and prerequisite disposition.
+10. Delete throwaway code/harness/worktree/branch after evidence extraction. Verify process/data cleanup; report
+    exact residual state and stop if cleanup fails or is uncertain.
+11. Return the brief to the caller. Standalone accepted evidence hands off to a fresh `implementation-plan`
+    invocation; nested evidence returns to the Delivery Owner. Never draft artifacts inline.
 
 ## Stop if
 
-- The assumption is not material to a planning decision or several unrelated questions remain bundled.
-- A required command lacks authoritative provenance, an explicit bound, observable completion, termination, or
-  cleanup ownership.
-- Evidence needs external access, credentials, production data, paid services, or an unsafe/unapproved action.
-- The probe requires invasive production changes, broad refactoring, dependency upgrades, or public-contract
-  changes rather than disposable isolation.
-- Dirty state prevents safe isolation and the user has not approved the exact current-tree probe.
-- Timeout, interruption, or failed cleanup leaves process/data/environment state uncertain.
-- The resulting decision changes behavior, scope, risk acceptance, or a locked commitment without user approval.
+- The question is not material/finite, or budget reservation is missing/exhausted/deadline-expired.
+- A command lacks provenance, bound, observable completion, owned termination, or cleanup.
+- A protected action lacks exact focused discovery authority; dirty state prevents safe isolation.
+- The probe requires invasive production/public-contract changes rather than disposable evidence.
+- Timeout/interruption/cleanup leaves uncertainty, or the resulting decision changes product behavior, scope,
+  material risk, protected effects, or another Human Authorization Envelope item without user authority.
 
 ## Output
 
-Return caller/return disposition; planning question and result; repository/official evidence; testing-authority
-provenance; bounded command and cleanup outcomes; rejected approaches; remaining risks and verification
-implications; and either the nested Delivery Owner evidence handback, standalone `implementation-plan` handoff,
-or exact blocker.
+Return caller/return; question/cluster/result; safe-vs-protected classification and authority; repository/official
+evidence; budget reservation/issued usage/deadline; testing authority; exact commands/writes/cleanup; prerequisite
+disposition; production path/seam/broad placement; rejected approaches/risks; and handoff or exact blocker.

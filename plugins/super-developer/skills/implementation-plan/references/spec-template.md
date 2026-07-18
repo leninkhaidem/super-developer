@@ -1,78 +1,118 @@
 # SPEC.md Template and Purity Rules
 
-`SPEC.md` is a concise requirements and manifest file. It is not package assignment, proof evidence, architecture debate, implementation transcript, or a replacement for authoritative Slices.
+`SPEC.md` is concise product authority plus the reviewed planning proposal. It is not package proof, test inventory,
+architecture debate, implementation transcript, lifecycle ledger, or a replacement for authoritative Slices.
 
 ## Template
 
 ```markdown
-# <Feature Name — Human Readable> Specification
+# <Feature Name> Specification
 
 ## Overview
-1-2 sentences describing the user goal and intended outcome.
+<user goal and intended outcome>
 
 ## Accepted Source Baseline
-A sanitized, lossless statement of the approved request and explicit follow-on/out-of-scope boundaries. Preserve
-source wording where omission or reinterpretation would change meaning; use `None beyond requirements below.`
-when the requirements are already the complete direct baseline.
+<sanitized lossless request and follow-on/out-of-scope boundaries; or `None beyond requirements below.`>
 
 ## Conceptualize Inputs
-Path-only planning handoff link; paths are artifact-root-relative.
 - Index: `.planning/<concept-slug>/index.md`
-- Use `None.` when no Conceptualize workspace applies.
+- Or `None.`
 
 ## Authoritative Slices
-Full safe Slice inventory for this plan. Details stay in Slice files.
 - `.planning/<concept-slug>/slices/<slice-name>.md`
-- Use `None; Index-only/no-Slice plan.` when no Slice is independently useful.
+- Or `None; Index-only/no-Slice plan.`
+
+## Human Authorization Envelope
+- Outcomes and acceptance: <stable REQ/AC references plus any user-owned summary>
+- Product and interface invariants: <fixed public/product choices, defaults, errors, compatibility>
+- Constraints and exclusions: <stable constraint/out-of-scope references>
+- Accepted material risks and protected effects: <explicit decisions or none>
+- Spending/command/time bounds: <finite user-owned bounds>
 
 ## Requirements
-User-facing functional requirements and safe Slice-derived feature requirements. Use stable IDs for traceability.
 - REQ-1: ...
 
 ## Acceptance Criteria
-Feature-level outcomes. Use stable IDs; prefer Given/When/Then when useful.
 - AC-1: ...
 
 ## Constraints
-Non-negotiable user-stated constraints, approved scope limits, compatibility/security/performance policy, or Slice-derived constraints that apply feature-wide.
+<non-negotiable user constraints, compatibility/security/performance policy, and approved scope limits>
 
 ## Architecture Invariants
-For triggered Design Preflight only: concise accepted authority, state/transition, ordering/publication,
-cancellation/replay, forbidden-behavior, actual-path test-seam, and broad-regression rules. Use
-`None; Design Preflight did not trigger architecture invariants.` for narrow low-risk work. Do not store debate.
+<accepted owner/state/transition/order/publication/cancellation/replay/forbidden rules, or explicit no-trigger note>
+
+## Design and Feasibility Preflight
+### Prerequisites
+- <required|optional>: `proven-ready | protected-activation-required | blocked` — <source-bound evidence;
+  exact protected probe/remedy and failure consequence when applicable>
+### Production Paths and Verification Seams
+- <entry → actual path → observable/failure signal; cheapest credible causal evidence level>
+### Affected Broad Regression Placement
+- <surface, owning layer, command/discovery source, and why/when it runs; or justified none>
+
+## Technical Plan Baseline
+<version/identity; architecture/ownership; package and consumed-contract topology; commands, writes, cleanup,
+protected activation, verification topology, budgets, deterministic mutation boundary>
+
+## Assurance Profile
+- Profile proposal: `low | standard | high`
+- Rationale: <named risk/eligibility>
+- Package routing: `<WP-ID>: boundary | final` — <named boundary/risk reason>
+- Promotion trigger: <runtime discovery that invalidates this proposal>
+
+## Execution Readiness and Auto-Resolve
+- Prerequisite summary: <all required ready or exact protected activation; `blocked` prevents readiness>
+- Preauthorization Budget: <maxima/issued/deadline from Lifecycle State; no duplicate history>
+- Proposed agent-owned correction boundary: <Technical Plan Baseline only>
+- Human escalation: <envelope/protected/risk/budget/verification stops>
 
 ## Work Packages
-Manifest only. Package scope, Slice H3 assignments, verification expectations, dependencies, proof paths, and report paths live in package Markdown.
 - `packages/WP1.md` — <short title>
 
 ## Code References
-Verified existing files/modules to inspect. Reference paths are code-root-relative only; no code excerpts or change instructions. Use `None identified.` when no safe references are known.
-- `path/to/file` — why it is relevant.
+- `path/to/file` — <relevance>
+- Or `None identified.`
 
 ## Out of Scope
-User-approved exclusions, deferred items, or boundaries. Include approval provenance when an otherwise material Slice commitment is deferred, narrowed, rejected, or excluded.
+<approved exclusions/deferrals with provenance>
 ```
 
-## Source Rules
+## Authority Rules
 
-- Include normative product content only when stated, explicitly approved, or safely projected from authoritative Slice product/design commitments.
-- Do not invent product behavior, architecture, performance targets, security rules, compatibility constraints, or success criteria to make the spec feel complete.
-- Ask before writing if a requirement, constraint, success condition, Slice deferral, or exclusion is needed but ambiguous.
-- Preserve the sanitized accepted source baseline plus all user-stated and safely projected requirements.
-- Persist triggered accepted invariants as checkable constraints/acceptance rules, never architecture debate.
-- Redact secrets, credentials, tokens, PII, and proprietary sensitive values.
+- Human Authorization Envelope is user-owned. Reference stable Requirements, Acceptance Criteria, Constraints, and
+  Out of Scope entries instead of duplicating them. Agents must not alter outcomes, scope, product/interface
+  invariants, accepted material risk, protected effects, or bounds.
+- Technical Plan Baseline is the exact architecture, packages, commands, verification topology, and execution
+  proposal. It may be corrected only while preserving the envelope and later review requirements.
+- Include normative product content only when stated, approved, or safely projected from authoritative Slices.
+  Never invent behavior, targets, security rules, compatibility, or success criteria.
+- Preserve exact interfaces and forbidden behaviors. Ask before an ambiguous requirement, constraint, Slice
+  disposition, exclusion, or risk acceptance.
+- Redact secrets, credentials, tokens, PII, and sensitive proprietary values.
 
-## Manifest Rules
+## Preflight and Verification Rules
 
-- `Conceptualize Inputs` is path-only and non-normative.
-- `Authoritative Slices` lists the same full safe Slice inventory as `tasks.json.authoritative_slices`; for Index-only/no-Slice plans both surfaces explicitly say there are no Slice files.
-- `Work Packages` lists package Markdown paths and short titles only.
-- Code References are non-normative path references from lightweight repo inspection.
+- Every required prerequisite has one disposition. Known unavailable is `blocked`; capability checkable only with
+  protected authority is `protected-activation-required`, not falsely ready. Optional unavailable capability is
+  disclosed and excluded.
+- Production seams name the actual path and causal observation. Broad placement names the earliest credible owning
+  layer for shared/public/lifecycle risk.
+- Assurance/routing is a named proposal in existing plan authority, not a new ledger.
+- Verification Expectations remain in package files and describe confidence obligations plus cheapest credible
+  causal evidence, not a test list. One test may prove multiple related rows.
 
-## Fail Closed When
+## Manifest and Purity Rules
 
-- Raw Slice text, source excerpts, transcripts, debate, implementation sequencing, proof rows, review findings, line numbers, code snippets, or diffs are copied into `SPEC.md`.
-- The accepted source baseline or feature requirements omit, weaken, or reinterpret an approved commitment.
-- Triggered authority/state/transition/publication/forbidden/test-seam invariants remain chat-only or ambiguous.
-- An approved deferral/exclusion lacks provenance and scope.
-- The Slice manifest and registry Slice inventory disagree.
+- `Conceptualize Inputs`, `Authoritative Slices`, and `Work Packages` are manifests only. Slice inventory matches
+  `tasks.json.authoritative_slices`; Index-only/no-Slice plans say so explicitly.
+- Work Packages list paths/titles only. Code References are verified code-root-relative paths.
+- Keep package assignment, test cases, proof rows, review findings, command output, transcripts, debate, code,
+  pseudo-code, line numbers, and diffs out of `SPEC.md`.
+- Do not duplicate Lifecycle State budget history; reference its current maxima/issued/deadline.
+
+## Fail Closed
+
+Stop when baseline/requirements weaken approved intent; envelope and baseline are conflated; a required
+prerequisite is `blocked` or missing; protected activation lacks an exact probe/remedy; actual path/seam/broad
+placement is invented; assurance routing lacks named rationale; Slice manifests disagree; or a material deferral
+lacks approval provenance.

@@ -258,6 +258,68 @@ class SkillPromptSurfaceTests(unittest.TestCase):
         for path, text in texts.items():
             self.assertLessEqual(len(text.splitlines()), 150, path)
 
+    def test_a2_preflight_causally_precedes_plan_and_bounds_discovery(self) -> None:
+        planning = read_repo("plugins/super-developer/skills/implementation-plan/SKILL.md")
+        preflight = read_repo(
+            "plugins/super-developer/skills/implementation-plan/references/design-preflight.md"
+        )
+        planner = read_repo(
+            "plugins/super-developer/skills/implementation-plan/references/planner-agent-contract.md"
+        )
+        spec = read_repo("plugins/super-developer/skills/implementation-plan/references/spec-template.md")
+        convergence = read_repo("plugins/super-developer/references/orchestration-convergence.md")
+        spike = read_repo("plugins/super-developer/skills/spike-to-plan/SKILL.md")
+        combined = compact_text("\n".join([planning, preflight, planner, spec, convergence, spike]))
+
+        self.assertLess(planning.index("Run `references/design-preflight.md`"), planning.index("Dispatch a fresh planner"))
+        for needle in [
+            "Safe disposable discovery", "Protected discovery", "proven-ready",
+            "protected-activation-required", "known-unavailable", "actual production path",
+            "affected broad-regression", "Human Authorization Envelope", "Technical Plan Baseline",
+            "Planner Self-Challenge", "boundary|final", "at most eight total delegated",
+            "two total planner-correction waves", "two total spike waves", "absolute deadline",
+            "Issued usage is monotonic", "needs_decision", "No event ledger is added",
+        ]:
+            self.assertIn(compact_text(needle), combined)
+        for rel in [
+            "plugins/super-developer/skills/implementation-plan/SKILL.md",
+            "plugins/super-developer/skills/implementation-plan/references/design-preflight.md",
+            "plugins/super-developer/skills/implementation-plan/references/planner-agent-contract.md",
+            "plugins/super-developer/skills/implementation-plan/references/spec-template.md",
+            "plugins/super-developer/skills/spike-to-plan/SKILL.md",
+            "plugins/super-developer/references/orchestration-convergence.md",
+        ]:
+            self.assertLessEqual(len(read_repo(rel).splitlines()), 150, rel)
+
+    def test_a2_minimum_sufficient_evidence_stops_test_volume_incentives(self) -> None:
+        surfaces = [
+            "plugins/super-developer/skills/implementation-plan/references/planner-agent-contract.md",
+            "plugins/super-developer/skills/implementation-plan/references/artifact-authoring.md",
+            "plugins/super-developer/skills/implementation-plan/references/validation-checklist.md",
+            "plugins/super-developer/skills/testing/references/core/generic-testing.md",
+            "plugins/super-developer/skills/implement/references/package-agent-contract.md",
+        ]
+        combined = compact_text("\n".join(read_repo(rel) for rel in surfaces)).lower()
+        for needle in [
+            "confidence obligations", "actual production path", "cheapest credible causal evidence",
+            "one causal test", "prove multiple", "stop adding tests", "triggered risks",
+            "test count", "test loc", "test-to-production ratio", "coverage percentage",
+            "suite volume", "exhaustive suite review", "existing tests block only",
+            "false-positive evidence", "hidden skip/focus/xfail", "flakiness/inconclusive",
+            "harness/configuration", "solely for volume", "sole implementation authorization",
+            "never add a routine second testing prompt",
+        ]:
+            self.assertIn(needle, combined)
+        package_agent = read_repo(surfaces[-1])
+        self.assertLess(
+            package_agent.index("## Minimum Sufficient Test Rule"),
+            package_agent.index("## Package Self-Review"),
+        )
+        generic = read_repo(surfaces[-2])
+        self.assertLess(generic.index("Select the smallest maintainable evidence set"), generic.index("stop adding"))
+        for rel in surfaces:
+            self.assertLessEqual(len(read_repo(rel).splitlines()), 150, rel)
+
     def test_obsolete_or_unsafe_terms_are_only_negative_guidance(self) -> None:
         for path in prompt_surface_paths():
             text = path.read_text(encoding="utf-8")
@@ -549,11 +611,13 @@ class SkillPromptSurfaceTests(unittest.TestCase):
             "Keep plans high-level and reviewable. They are scenario/deliverable contracts, not command recipes",
             "Feature/domain plan starter (high-level scenario contract, not a command recipe)",
             "Nontrivial/high-risk work includes live integration, browser E2E, cross-stack behavior, multi-scenario coverage, risky data/setup, or approval-gated tooling/config changes",
-            "Before covered writes or execution, create a Markdown plan, present it, and wait for explicit approval in the current task",
+            "For a standalone testing task, create a Markdown plan before covered writes/execution, present it, and wait for explicit task-local approval",
+            "In a planned-feature auto-resolve flow, the sole Implementation Authorization must already name the testing writes, commands, effects, bounds, and cleanup",
+            "consume that authority and never add a routine second testing prompt",
             "Interview decisions feed the repository testing workflow, not a default standalone questionnaire",
             "Draft or revise `docs/testing/workflow.md` and linked `docs/testing/*` companions with the accepted strategy decisions",
             "A separate checklist or decision record is optional for large or high-risk strategy updates, not the default",
-            "These plan/report paths are not substitutes for the canonical workflow entry point",
+            "These paths do not replace the canonical workflow entry point",
         ]:
             self.assertIn(" ".join(needle.split()), combined)
 

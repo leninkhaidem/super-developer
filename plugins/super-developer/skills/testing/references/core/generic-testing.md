@@ -7,143 +7,121 @@ repository-specific testing behavior; this reference must not override them or a
 test edits/runs by itself. It does not authorize stack-specific, live, browser, network,
 credentialed, dependency, tooling, configuration, CI, or orchestration side effects by itself.
 
+## Minimum Sufficient Causal Evidence
+
+Select the smallest maintainable evidence set that credibly demonstrates:
+
+1. each accepted observable behavior through its actual production path;
+2. each materially relevant forbidden/failure outcome;
+3. each triggered security, privacy, safety, data, concurrency, lifecycle, compatibility, or public-contract risk;
+4. each meaningful consumed/integration contract at its owning layer; and
+5. a regression for a distinct discovered defect mechanism when needed.
+
+Treat these as confidence obligations, not a test inventory. Consolidate overlapping obligations: one causal test
+or observation may prove several requirements or report rows. Select the cheapest credible evidence level that
+forces the production precondition/branch, observes a real result/transition/side effect, falsifies the forbidden
+outcome, and would fail if the invariant broke. Disclose mocks, fixtures, cache hits, hooks, synthetic substitutes,
+and shared-state effects; labels or counters alone are not evidence.
+
+Once accepted behaviors and triggered risks have credible causal evidence and required commands pass, stop adding
+tests. Do not add speculative permutations, duplicate confidence at several layers, trivial wiring/type checks,
+private-detail tests already covered by behavior, or tests merely to populate a matrix/report. Reuse existing
+harnesses; add infrastructure only when accepted behavior cannot otherwise be credibly demonstrated.
+
+Test count, changed test lines, test-to-production ratio, coverage percentage, and suite volume are not gates or
+required report fields. Do not perform exhaustive suite review. Existing tests are not rejected, deleted, or
+cleaned up solely because they are numerous; they block only for a concrete defect: false-positive evidence,
+incorrect/weakened assertions, hidden skip/focus/xfail, flaky/inconclusive outcome, unsafe side effects, materially
+unacceptable required runtime, or a harness/configuration change that undermines confidence.
+
 ## Test Modes
 
-Each chosen mode must state target surface, environment, command or discovery blocker, data and
-cleanup, assertions/invariants, evidence, and exclusions.
+Each selected mode states surface, environment, command/discovery blocker, data/cleanup, assertions, evidence, and
+exclusions. Prefer the cheapest mode that credibly proves the behavior; do not stop at unit level when risk lives
+at integration, service, UI, or user-journey boundary.
 
-- **Unit**: isolated function/module behavior; local fixtures or mocks only; fastest deterministic
-  command available from repo evidence; evidence is assertion result plus focused snippet.
-- **Local integration**: multiple local components in one process or controlled local fixture; no
-  live service/network/shared data by default; include setup/teardown and side-effect assertions.
-- **Live-stack integration**: controlled non-production dev stack or service boundary. Requires
-  explicit approval, preflight, owned/seeded data, cleanup/idempotency, stable assertions, and a
-  clear `blocked-precondition` outcome when the environment is unavailable.
-- **Frontend unit/component/integration**: user-visible UI logic or component behavior under the
-  project's local harness. Browser or live backend use is not default-safe unless separately approved.
-- **Browser E2E**: realistic browser journeys for delivered UX behavior. Requires explicit approval,
-  environment/data preflight, artifact/redaction plan, bounded execution, and cleanup reporting.
+- **Unit:** isolated function/module with local fixtures/mocks and fastest repository-backed deterministic command.
+- **Local integration:** controlled local components/fixtures, explicit setup/teardown and side-effect assertions.
+- **Live-stack integration:** controlled non-production service boundary; exact approval, owned data, cleanup,
+  stable assertions, and `blocked-precondition` when unavailable.
+- **Frontend unit/component/integration:** user-visible logic under the project harness; live backend is separate.
+- **Browser E2E:** realistic journey; exact approval, environment/data preflight, redaction, bounds, and cleanup.
 
-Prefer the smallest mode that proves the behavior, but do not stop at unit tests when the risk is at
-an integration, service, UI, or user-journey boundary.
+## Causal Case Shape
 
-## Test Case Structure
-
-For each case or scenario capture:
-
-1. Objective/behavior under test and why it matters.
-2. Scope/test level and selected mode.
-3. Preconditions, fixtures, seeded data, mocks/stubs, live services, privacy constraints, and authoritative
-   contract/configuration sources. Validate data shapes, limits, defaults, client/runtime compatibility, and
-   shared resource/rate/concurrency budgets when applicable.
-4. Actions/inputs, including boundary, negative, regression, and conditional cases when relevant.
-5. Expected outputs, assertions, side effects, invariants, and cleanup expectations.
-6. Determinism/isolation risks, command provenance or discovery blocker, and evidence format.
-7. Unresolved risks, skipped scope, or approval-gated follow-up.
-
-Maintainable tests are deterministic, behavior-focused, clear in name and setup, aligned with repo conventions,
-minimal in mocking, and resilient to implementation-detail churn. For behavior-sensitive evidence, force the
-production precondition/branch, produce a real collaborator outcome, observe ordering/state/side effects, falsify
-forbidden outcomes, and make the check discriminating so it would fail if the invariant broke. Disclose cache hits,
-mocks, fixtures, test hooks, and synthetic substitutes; labels or counters alone are not evidence. Do not weaken
-a test to make a product failure disappear.
+For each selected scenario capture objective and risk; mode/surface; preconditions/data/mocks/services/privacy and
+authoritative contract; action/input; expected outputs/side effects/forbidden outcomes; isolation/cleanup; command
+provenance and evidence; unresolved or approval-gated scope. Validate relevant shapes, limits, defaults,
+compatibility, shared-resource/rate/concurrency bounds, and failure behavior. Keep tests deterministic,
+behavior-focused, convention-aligned, minimally mocked, and resilient to private implementation churn. Never
+weaken an assertion to hide a product failure.
 
 ## Executable Verification Preflight
 
-Before executable verification, establish all of the following from project authority and repository evidence:
+Before execution establish from project authority/repository evidence:
 
-- command/harness provenance and a configured, discoverable runner rather than a guessed command;
-- prerequisites and compatibility, including dependencies, fixtures/data, services, permissions, and resources;
-- a safe non-production environment and explicit target, with shared or live effects separately approved;
-- bounded, idempotent setup plus owned teardown/cleanup, including interruption and partial-failure paths;
-- an evidence destination/capture capability for the required confidence, with secrets and sensitive data redacted;
-- assertions, checkpoints, and terminal signals strong enough for the stated confidence goal, not mere execution;
+- discoverable command/harness provenance rather than a guessed command;
+- dependencies, fixtures/data, services, permissions, compatibility, and resources;
+- safe non-production target; separate authority for shared/live effects;
+- bounded idempotent setup and owned interruption/partial-failure cleanup;
+- redacted evidence destination and discriminating assertions/terminal signals; and
 - bounded action/suite timeouts, observable progress, owned-process termination, and cleanup verification.
 
-A failed, missing, stale, or uncertain item blocks execution or narrows it to an approved safe probe. Domain
-references may specialize this preflight but cannot silently weaken it or override project authority.
+A missing/stale/uncertain item blocks execution or narrows it to an approved safe probe.
 
 ## Command Safety and Execution Discipline
 
-For every proposed/run command, record a stable identity, command, cwd, repo/user provenance, selected mode,
-scope, expected writes, environment assumptions without secrets, classification, approval/blocker reason,
-timeout, progress/completion signal, termination method, and cleanup obligation.
+Record stable command identity, cwd, repository/user provenance, mode/scope, expected writes, sanitized environment
+assumptions, approval/blocker, timeout, progress/completion, termination, and cleanup. Default-run only a
+repository-local, project-owned, deterministic, non-destructive, non-network, non-credentialed, non-watch,
+non-interactive, bounded local command with clear provenance, no source/fixture/snapshot/config writes except known
+cache/report artifacts, and trivial owned cleanup. Stop before live/browser/shared-data, destructive, production,
+mutating, dependency/config/CI/orchestration, manifest/lockfile, interactive, daemon/server, long-running, or opaque
+actions unless exact authority covers them.
 
-Default-run only when the routine-safe fallback is satisfied: repo-local/project-owned, deterministic,
-non-destructive, non-network, non-credentialed, non-watch, non-interactive, bounded, local, clear provenance,
-no source/fixture/snapshot/config writes except known local cache/report artifacts, trivial owned cleanup, and
-free of live/browser/service/shared-data risk. Stop for explicit approval before live, browser, network,
-credentialed, destructive, production, mutating, dependency/config/CI, orchestration, manifest/lockfile,
-interactive, daemon/server, long-running, or opaque actions. A script name is not provenance; inspect what it
-runs when safe.
+For costly/uncertain work use a readiness ladder: deterministic contract/fixture/config preflight, command/test
+discovery, then smallest credible bounded check. For shared discovery/registration/global state, lifecycle,
+recursive control flow, or public/generated contracts, place the earliest credible affected broad regression
+before evidence freeze. Broaden only when narrower evidence cannot establish the obligation. When no credible
+narrower check exists, document why and run an explicitly bounded broad command after clean preflight. Keep
+independent ready work parallel; do not impose universal serialization.
 
-For costly or uncertain execution, use a readiness ladder: deterministic contract/fixture/config preflight,
-command/test discovery, then the smallest credible bounded check. For shared discovery/registration/global state,
-lifecycle, recursive control flow, or public/generated contracts, place the earliest credible affected broad
-regression before proof/report freeze. Broaden after clean narrower evidence; when no
-credible narrower check exists, document why and run an explicitly bounded broad command after clean preflight
-and discovery. Keep independent ready work parallel; do not impose universal serialization.
-
-Use project-approved action, barrier, case, and suite budgets. Inner actions must not inherit an entire outer
-timeout. Require observable progress and an awaited terminal state. On timeout/cancel/interruption, terminate
-owned descendants, await exit, run cleanup, and report cleanup status; uncertain termination or cleanup is not a
-pass. Do not enlarge timeouts to mask missing preconditions, bad selectors, unresolved barriers, or deadlocks.
-Do not repeat unchanged failing assertions or commands; require a relevant state or diagnostic-strategy change.
-Return control after each bounded stage or failure instead of hiding follow-up runs in one opaque long call.
+Use project-approved budgets. Inner actions do not inherit an outer timeout. On timeout/cancel/interruption,
+terminate owned descendants, await exit, clean up, and report status; uncertain termination or cleanup is not a
+pass. Do not inflate timeouts or repeat unchanged failures. Require relevant state/evidence/strategy change and
+return after each bounded stage or failure.
 
 ## Durable Plan/Report Gate
 
-Use this schema when the approved project workflow calls for a plan/report or when drafting a
-workflow proposal. Nontrivial/high-risk work includes live integration, browser E2E, cross-stack
-behavior, multi-scenario coverage, risky data/setup, or approval-gated tooling/config changes. Before
-covered writes or execution, create a Markdown plan, present it, and wait for explicit approval in
-the current task. Reuse a repo convention; otherwise propose collision-safe fallback paths:
-`docs/testing/<topic>.test-plan.md` and `docs/testing/<topic>.test-report.md`. These plan/report
-paths are not substitutes for the canonical workflow entry point.
+Use only when approved workflow requires it. Nontrivial/high-risk work includes live integration, browser E2E,
+cross-stack behavior, multi-scenario coverage, risky data/setup, or approval-gated tooling/config changes. For a
+standalone testing task, create a Markdown plan before covered writes/execution, present it, and wait for explicit
+task-local approval. In a planned-feature auto-resolve flow, the sole Implementation Authorization must already
+name the testing writes, commands, effects, bounds, and cleanup; consume that authority and never add a routine
+second testing prompt. Reuse repository paths; fallback examples are `docs/testing/<topic>.test-plan.md` and
+`docs/testing/<topic>.test-report.md`. These paths do not replace the canonical workflow entry point.
 
-Feature/domain plan starter (high-level scenario contract, not a command recipe):
+Feature/domain plan starter (high-level scenario contract, not a command recipe): plan/version/topic, confidence
+obligations, selected minimum scenarios/modes, expected artifacts/evidence, data/cleanup/redaction, approvals,
+exclusions, choices not run, blockers, and alternatives.
 
-- Plan path/version, topic, scope, risk level, confidence goal, requester goal, and exclusions.
-- Scenario-to-deliverable mapping with selected surface/mode, files or artifacts expected, evidence
-  needed, data/preconditions, cleanup, redaction, and approval gates per scenario.
-- Selected execution choice(s) under consideration, choices intentionally not run, blockers, and
-  alternatives.
-
-Concise plan-to-result report starter:
-
-- Approved plan path/version, report date, selected execution choice(s), and approvals used.
-- Changed test artifacts by category.
-- Scenario-to-test-to-evidence matrix with outcome, command or not-run reason, cwd, provenance,
-  timeout, termination/cleanup status, sanitized snippets, artifact links, exclusions, and route.
-- Skipped/not-run items, blocked approvals/preconditions, cleanup-failed/uncertain follow-up, and
-  redaction decisions for secrets, credentials, tokens, PII, proprietary content, screenshots,
-  videos, logs, and local environment details.
+Concise report: authority and approvals; Selected Causal Evidence mapping each chosen anchor to behavior/risk,
+sufficiency rationale, substitute disclosure, command/outcome/cleanup; skipped/blocked items; sanitized artifacts;
+and follow-up. Do not report test volume metrics or imply one evidence item per row.
 
 ## Outcomes and Follow-up
 
-Use only these outcomes: `passed`, `failed`, `blocked-precondition`, `unsafe-needs-approval`,
-`inconclusive/flaky`, and `skipped/not-run`.
+Use `passed`, `failed`, `blocked-precondition`, `unsafe-needs-approval`, `inconclusive/flaky`, and
+`skipped/not-run`. Only discriminating assertions under stated preconditions pass. Ambiguity, timeout without signal,
+flakiness, or cleanup uncertainty never passes. Production fixes are out of scope; report reproduction to owner.
 
-- `passed`: assertions succeeded under the stated preconditions.
-- `failed`: deterministic test failure or test-artifact error with reproduction evidence.
-- `blocked-precondition`: required command, service, data, dependency, credential, or environment was
-  unavailable and no unsafe action was taken.
-- `unsafe-needs-approval`: a command/write was correctly not run because it needs approval.
-- `inconclusive/flaky`: result is ambiguous, flaky, timed out without deterministic signal, or cleanup
-  is uncertain; do not count it as passed or report it as a deterministic regression.
-- `skipped/not-run`: out of scope or intentionally omitted, with reason.
-
-Production/application/runtime fixes are out of scope. Report failing commands/assertions and route
-product repair to the appropriate existing workflow with evidence.
-
-Starter execution choices may be renamed by the accepted workflow, but should stay user-facing: focused
-check, feature confidence, active browser review, broad regression, or do not run yet. Each choice
-needs what it proves, approvals, stop conditions, evidence, and cleanup/reporting expectations.
+Starter execution choices may be renamed by the accepted workflow, but should stay user-facing: focused check,
+feature confidence, active browser review, broad regression, or do not run yet. Each choice needs what it proves,
+approvals, stop conditions, evidence, and cleanup/reporting expectations.
 
 ## Write Boundary
 
-Within an approved workflow and delegated scope, test-surface writes may include tests, fixtures,
-test helpers, safe snapshots/golden data, and testing docs/plans/reports. Approval is required for
-workflow documentation writes, dependencies, manifests, lockfiles, package-manager config, test
-tooling, browser or reporting config, CI, orchestration, project-wide test config, test writes when
-the project workflow requires approval, and any production/runtime surface.
+Within approved authority, test writes may include selected tests, fixtures, helpers, safe snapshots/golden data,
+and testing docs/plans/reports. Separate approval is required for workflow docs, dependencies/manifests/lockfiles,
+package-manager/test/browser/reporting config, CI/orchestration, project-wide config, workflow-gated test writes,
+and production/runtime surfaces.
