@@ -2,149 +2,115 @@
 
 ## Boundary
 
-This reference owns artifact roles and file shapes. `artifact-store.md` owns mandatory sidecar-only authority,
-legacy import, roots, portability permission, Lifecycle State, and checkpoint ordering. Slice authority lives in
-`conceptualize-slice-authority.md`; sizing in `work-packages.md`; completion/freshness in `package-lifecycle.md`;
-commands in `tool-usage.md`. Pass `plugins/super-developer/references/package-verification-report.md` directly to
-package verifiers.
+This reference owns artifact roles and file shapes. `artifact-store.md` owns sidecar authority, roots, migration,
+permission, and checkpoint order. Slice authority lives in `conceptualize-slice-authority.md`; sizing in
+`work-packages.md`; completion/freshness in `package-lifecycle.md`; commands in `tool-usage.md`. Pass
+`plugins/super-developer/references/package-verification-report.md` directly to package verifiers.
 
 ## Artifact Set
 
-Planned-feature state is file-based, Slice-first, and authoritative only in the distinct namespaced sidecar.
-Every path below is sidecar artifact-root-relative; code/plugin/test paths resolve under the named code root.
-Equal/current roots fail closed and legacy copies are input only until safely migrated and revalidated.
+All paths are relative to the distinct namespaced artifact root; source/test paths resolve under the code root.
+Equal/current roots fail closed for planned authority; legacy copies are migration input only.
 
-- `.planning/<concept-slug>/slices/*.md` — authoritative product/design Slices when present.
-- `.tasks/<feature>/SPEC.md` — accepted requirements, constraints, non-goals, Slice inventory, and package-level verification summary.
+- `.planning/<feature>/slices/*.md` — authoritative product/design Slices when present.
+- `.tasks/<feature>/SPEC.md` — accepted requirements, constraints, and verification summary.
 - `.tasks/<feature>/tasks.json` — lightweight registry only.
-- `.tasks/<feature>/packages/<WP-ID>.md` — package assignment.
-- `.tasks/<feature>/proofs/<WP-ID>.proof.md` — package closure evidence.
-- `.tasks/<feature>/reports/<WP-ID>.package-verification.md` — independent package verification receipt with a durable deliverable completeness matrix.
-- `.tasks/<feature>/semgrep/<WP-ID>.semgrep.json` and `.semgrep-summary.json` — optional local raw/summary Semgrep package evidence when Semgrep was enabled or contracted.
-- `.tasks/<feature>/semgrep/integration.semgrep.json` and `.semgrep-summary.json` — optional one-shot integrated Semgrep evidence for concrete cross-package/shared-surface risk.
-- `.tasks/<feature>/reviews/review-code-state.json` — review-code governance readiness for audit handoff.
-- `.tasks/<feature>/lifecycle-state.json` — compact mechanical CAS continuation snapshot initialized on first
-  publication; subordinate to Slices/SPEC and never a product authority, completion proof, or event history.
+- `.tasks/<feature>/packages/<WP-ID>.md` — assignment; `proofs/<WP-ID>.proof.md` — closure evidence.
+- `.tasks/<feature>/reports/<WP-ID>.package-verification.md` — independent package receipt and deliverable completeness matrix.
+- `.tasks/<feature>/semgrep/*.{semgrep.json,semgrep-summary.json}` — optional local package/integration evidence.
+- `.tasks/<feature>/reviews/review-code-state.json` — governance readiness for audit handoff.
+- `.tasks/<feature>/lifecycle-state.json` — subordinate mechanical CAS continuation snapshot, never product authority,
+  semantic proof, an event log, or permission to perform its named next action.
 
-## Lightweight Registry
+## Compact Lifecycle State — Schema 1
 
-`tasks.json` is bookkeeping only. It contains no package scope prose, Slice assignment details, proof evidence,
-review findings, Lifecycle State, lifecycle history, command output, or detailed task bodies.
-
-Required shape:
+The helper derives the path from `--feature`; no state path field or CLI path is accepted. Required top-level keys:
 
 ```json
 {
-  "feature": "feature-slug",
-  "title": "Human title",
-  "status": "planned",
-  "spec_path": ".tasks/<feature>/SPEC.md",
-  "authoritative_slices": [".planning/<concept-slug>/slices/example.md"],
-  "work_packages": [
-    {
-      "id": "WP1",
-      "path": ".tasks/<feature>/packages/WP1.md",
-      "proof_path": ".tasks/<feature>/proofs/WP1.proof.md",
-      "report_path": ".tasks/<feature>/reports/WP1.package-verification.md",
-      "status": "pending",
-      "depends_on": []
-    }
-  ]
+  "schema_version": 1, "generation": 1, "feature": "feature-slug",
+  "stage": "conceptualization-checkpoint", "quiescent": true, "next_legal_actions": ["preflight"],
+  "owner": {"token": "owner-token", "host": "host-token", "disposition": "active", "takeover": null},
+  "artifact_checkpoint": {"ref": "refs/heads/artifacts/feature-slug", "sha": null, "tree": null},
+  "code_checkpoint": null,
+  "authorization": {"id": null, "initial_digest": null, "effective_digest": null, "amendment_link": null},
+  "budgets": {"preauthorization": null, "implementation": null, "active_reservation": null,
+              "control_plane_reserve": {"maximum": 1, "issued": 0}},
+  "packages": {}, "wave": null, "serious_clusters": [], "freeze": null, "receipts": [],
+  "last_verified": null, "portability_authorization": "explicit instruction or durable preference"
 }
 ```
 
-Rules:
+Controlled stages cover conceptualization/checkpoint, preflight, planning/review/readiness/authorization-pending,
+authorized/activation/package-wave/quiescent/integration, technical reassessment/review, final assurance,
+completed, blocked, and needs-decision. Authorization fields are all null before authorization and complete after
+it. `amendment_link` is null except in the one snapshot whose effective digest changes from its exact predecessor;
+it contains only `parent_effective_digest`, `amendment_digest`, and current `artifact_sha`. The effective digest is
+SHA-256 of sorted-key compact UTF-8 JSON over those values (using key `technical_amendment_digest`), prefixed
+`sha256:`. The next unchanged snapshot clears the link; Git preserves prior links and no sequence/history array is
+allowed. Canonical state/prior digests use the same JSON rule over the complete state object.
 
-- `feature` is a filesystem-safe slug.
-- feature `status` is one of `planned`, `reviewed`, `in_progress`, `completed`, `blocked`, or `on_hold`.
-- package `status` is one of `pending`, `in_progress`, `done`, or `blocked`.
-- `authoritative_slices` may be empty only for Index-only plans with no independent Slice obligations.
-- all artifact paths are POSIX paths relative to the selected artifact root and must stay inside it;
-- package IDs are contiguous `WP<N>` values and dependencies reference declared packages.
+Budget `maxima`/`issued` use the same non-empty safe counter keys, including finite preauthorization planning,
+correction, spike, and command categories plus implementation repair/call-by-role/command/cost categories as
+applicable. Values are non-negative and issued cannot exceed maxima. Each budget has timezone-aware
+`started_at`/`deadline_at`; an active reservation names owner, budget, generation, and positive units already
+charged to issued usage. Across the exact predecessor, maxima/times stay fixed and issued usage never decreases;
+the control-plane reserve is fixed and monotonic.
 
-## Package Markdown Assignment
+`packages` maps `WP<N>` to current `state`/`wave`; `wave` names current id/generation/state/package ids.
+`serious_clusters` contains canonical SHA-256 ids, strikes 1–2, and current disposition. `freeze` is an optional
+id/digest. Current receipt pointers contain role, safe `.tasks/<feature>/...` path, current file digest, and optional
+freeze-digest-shaped value. `last_verified` is null only at generation 1; later it binds an exact quiescent prior
+artifact commit, canonical state digest, and generation. Optional `assurance_profile: low|standard|high` and
+`package_modes: {"WP1":"boundary|final"}` remain optional until B1; after authorization, changing them or package
+membership requires an effective-digest transition.
 
-Package Markdown owns assignment and must be self-sufficient for a package agent reading files cold.
+Schema 1 validates only current mechanical shapes and A4 transitions. It does not interpret receipt roles,
+predecessors, verdicts, freeze equations, Verification Summary, or `completed` semantics; B3/B4 own those rules.
 
-Required sections:
+## Lightweight Registry
 
-```md
-# Work Package: WP1 — <title>
+`tasks.json` remains bookkeeping only: no scope prose, assignment detail, proof/report body, lifecycle/history,
+commands, findings, or task bodies. Required fields are `feature`, `title`, `status`, `spec_path`,
+`authoritative_slices`, and non-empty `work_packages`; package entries require `id`, `path`, `proof_path`,
+`report_path`, `status`, and `depends_on`. Paths are safe artifact-root-relative POSIX paths; package IDs are
+contiguous `WP<N>`, dependencies declared/acyclic, and statuses retain their controlled values.
+`authoritative_slices` may be empty only for an Index-only plan with no independent Slice obligation.
+`assurance_profile` and package `verification_mode` are optional forward-compatible fields in this slice;
+unknown values fail.
 
-## Scope
-<owned behavior and boundaries>
+## Package Markdown and Proof
 
-## Assigned Slices
-### `.planning/<concept-slug>/slices/example.md`
-Must satisfy:
-- `SLICE-001` — <summary>
+Package Markdown is a cold-readable assignment with `## Scope`, `## Assigned Slices`, `## Primary Paths`,
+`## Verification Expectations`, `## Proof`, `## Package Verification Report`, and `## Dependencies`. Assigned Slice
+H3s split into `Must satisfy` closure rows and required-reading `Context only` rows; context alone creates no proof
+row unless another package owns it.
 
-Context only:
-- `SLICE-002` — <summary and reason>
-
-## Primary Paths
-- `plugins/...`
-
-## Verification Expectations
-- <command, inspection, or scenario expectation>
-
-## Proof
-- `.tasks/<feature>/proofs/WP1.proof.md`
-
-## Package Verification Report
-- `.tasks/<feature>/reports/WP1.package-verification.md`
-
-## Dependencies
-- None.
-```
-
-`Must satisfy` Slice IDs require proof rows. `Context only` IDs must be read and respected but do not create closure rows unless another package owns them.
-
-## Proof Markdown Closure
-
-A package proof file must contain:
-
-- `## Package Scope`
-- `## Assigned Slice Scope`
-- `## Slice Closure Table`
-- `## Acceptance / Verification Closure`
-- `## Commands Run`
-- `## Files Changed / Inspected`
-- `## Gaps, Deviations, or Deferred Items`
-- `## Package Agent Completion Statement`
-
-Closure tables use `PASS`, `DEFERRED`, or `N/A`. `OPEN` and `GAP` block closure. `DEFERRED`, `N/A`, or any non-empty gap/deviation text requires explicit approval, provenance, and scope. Missing rows, duplicate rows, placeholder evidence, unresolved markers, and unapproved gap text fail closed.
+Proof Markdown requires package/slice scope, Slice and expectation closure tables, commands, files, gaps/deviations,
+and completion statement. Closure values are `PASS`, `DEFERRED`, or `N/A`; `OPEN`, `GAP`, placeholders,
+missing/duplicate/unexpected rows, or unapproved deferral/N/A/gap text fail closed. Deferral/N/A/gap metadata
+requires explicit approval, provenance, and scope; N/A also requires rationale.
 
 ## Package Verification Report
 
-A report confirms independent package verification occurred after proof evidence was available, semantically checks deliverable completion, and binds verification to current proof/source/code state through helper-readable metadata.
+The canonical report starts `## Package Verification: <WP-ID>` and includes ordered `### Verdict`,
+`### Deliverable Completeness Matrix`, `### Triggered Risk Selection Notes`, `### Test Review Scope`,
+`### Slice Closure Review`, and `### Code Review Findings`; FAIL adds findings/guidance. Matrix columns remain
+`Source ID`, `Row Type`, `Deliverable`, `Evidence Type`, `Evidence Refs`, `Exactness / Risk Disposition`, `Verdict`;
+clean completion requires delivered mandatory Slice/`VE-<n>` rows, verifier-selected `RISK-<...>` rows when any,
+and typed non-placeholder code/test/static/command/manual anchors. `missing`, `partial`, `contradicted`, or
+`unverified` blocks; proof prose or Slice Closure Review alone is insufficient.
 
-Canonical source body starts with `## Package Verification: <WP-ID>` and includes, in order:
-
-- `### Verdict` with `PASS` or `FAIL`.
-- `### Deliverable Completeness Matrix` using the fixed columns `Source ID`, `Row Type`, `Deliverable`, `Evidence Type`, `Evidence Refs`, `Exactness / Risk Disposition`, and `Verdict`.
-- `### Triggered Risk Selection Notes`, verifier-owned `### Test Review Scope` for the package-owned reviewed delta, `### Slice Closure Review`, and `### Code Review Findings`.
-- For failures, `### Blocking Findings` and `### Repair Guidance`.
-
-Matrix rows cover assigned `Must satisfy` Slice H3 IDs, package verification expectations as stable `VE-<n>` rows, and verifier-selected triggered risks as explicit `RISK-<...>` rows. Clean completion requires every mandatory row to be `delivered` with structurally valid non-placeholder code/test/static/command/manual evidence refs and a canonical test-review receipt. Dirty verdicts (`missing`, `partial`, `contradicted`, `unverified`) block completion; `### Slice Closure Review` or proof prose alone is insufficient. Helpers validate exact receipt grammar, positive counts, controlled values, placeholders, strict table shape, typed refs, source bindings, and clean verdicts only; verifiers and final auditors judge contradictions, semantic sufficiency, and claim truthfulness.
-
-Append `## State Binding` from `emit-state-binding` with package path, package Markdown digest, proof path/digest, assigned Slice paths, section-scoped tier-aware `Assigned Slice Digests` (`path|tier|H3-ID=sha256:<64-hex>` entries separated by `; `, or `none`), `Matrix Source Snapshot` over package Markdown plus `must_satisfy` section blocks only, reviewed worktree/ref/commit, and timestamp. See `plugins/super-developer/references/package-verification-report.md` for the full report template, evidence-ref grammar, malformed-binding fail-closed rules, and `context_only_slice_drift` advisory disposition. If proof content, hard-tier source inputs, cited evidence, Test Review Scope inputs, or reviewed implementation state changes after the report, freshness is lost until a new source report/state binding is produced; advisory-only `context_only` drift is non-blocking by default and routed through affected-surface classification.
+Append helper-emitted `## State Binding` with package/proof paths and digests, Assigned Slices, section-scoped
+`Assigned Slice Digests` (`path|tier|H3-ID=sha256:<64-hex>` separated by `; `), Matrix Source Snapshot over package
+Markdown plus must-satisfy blocks, Worktree, Git Ref, Commit, and Verified At. Hard-tier/current proof/package/code
+or cited-evidence drift loses freshness. `context_only_slice_drift` is non-blocking by default and receives
+affected-surface classification. Helpers validate grammar/bindings, not semantic truth or sufficiency.
 
 ## Review-Code Governance State
 
-Canonical path: `.tasks/<feature>/reviews/review-code-state.json`.
-
-`review-code-state.json` is governance readiness only. It is not proof evidence, package evidence, a review transcript, an event stream, or lifecycle history.
-
-Minimum clean audit-handoff state includes:
-
-- `feature`, `mode: "pipeline"`, `state: "ready_for_audit"`, and `captured_at`;
-- `reviewed_state` with feature/base/target refs, reviewed commit, diff/file-list checksums, and merge worktree;
-- `artifact_context` with SPEC, registry, package/proof/report paths, report freshness, authoritative Slices, and changed-file ownership;
-- `lenses` with completed coverage evidence;
-- `findings.open_serious: []`;
-- `closure_status` with serious findings closed, no serious regression, widening complete, proofs/reports fresh, and ready-for-audit true.
-
-Keep the state compact: bounded current-state summaries and pointers are allowed; package proof bodies, report bodies, transcripts, status history, lifecycle ledgers, and format markers are not.
-
-Audit may run with this state or explicit `none` as optional context. Final merge/readiness fails closed when review-code readiness is missing, not `mode: "pipeline"`, not `state: "ready_for_audit"`, not bound to the reviewed integrated state, has any `findings.open_serious` entry, or has false/uncertain `closure_status.ready_for_audit` or `closure_status.proofs_and_reports_fresh`.
+`.tasks/<feature>/reviews/review-code-state.json` is compact readiness only: feature, pipeline mode/state/time;
+exact refs/commit/diff/file-list/worktree; SPEC/registry/package/proof/report/Slice context and freshness; completed
+lenses; `findings.open_serious: []`; and closure flags for no serious regression, widening, fresh evidence, and
+audit readiness. It is not proof, transcript, history, or lifecycle authority; stale/missing/uncertain readiness
+fails audit handoff.

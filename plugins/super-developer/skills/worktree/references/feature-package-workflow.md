@@ -1,36 +1,29 @@
 # Feature Package Workflow
 
 Use for planned-feature sidecar, package, integration, and checkpoint work. The parent-supplied artifact-store
-contract owns authority, roots, legacy import, permission, state, and ordering; this file owns Git commands.
+contract owns authority, roots, migration, permission, and state; this file alone owns Git/CAS commands.
 
 ## Contract
 
 - Sidecar: orphan `refs/heads/artifacts/<feature>` at `.worktrees/<feature>/artifacts`; artifacts only.
-- Feature: `refs/heads/feature/<feature>` at `.worktrees/<feature>/merge` when integrated.
-- Package: `refs/heads/wp/<feature>/<WP-ID>` at `.worktrees/<feature>/wp-<WP-ID>`.
+- Feature: `refs/heads/feature/<feature>` at `.worktrees/<feature>/merge`; package:
+  `refs/heads/wp/<feature>/<WP-ID>` at `.worktrees/<feature>/wp-<WP-ID>`.
 - Immutable code checkpoint: `refs/heads/checkpoints/<feature>/<slot>/g<generation>`; unique and never moved.
-- Package agents edit/commit only assigned code worktrees. The orchestrator owns refs, worktrees, merges,
-  checkpoints, and cleanup. Never develop in or switch the user-owned root worktree.
-- Sidecar Portability Authorization covers only discovery/planning CAS pushes to the exact artifact ref.
-  Implementation Authorization separately covers named code checkpoint refs. Neither covers target/release/force/
-  delete operations.
-- `.worktrees/` must be ignored. `<feature>` is the one resolved artifact slug; never remap silently.
+- Package agents edit/commit assigned code worktrees. Delivery Owner owns refs/worktrees/merges/checkpoints/cleanup.
+  Never switch/edit the user root. `.worktrees/` is ignored; roots are distinct. Never silently remap `<feature>`.
+- Sidecar Portability Authorization covers only discovery/planning CAS to the artifact ref. Implementation
+  Authorization separately covers named code checkpoints. Neither covers target/release/force/delete operations.
 
-## Layout
+## Layout and Local Sidecar Setup
 
 ```text
 .worktrees/<feature>/
-  artifacts/   # artifacts/<feature>; .planning, .tasks, minimal metadata only
-  wp-WP1/      # wp/<feature>/WP1
-  merge/       # feature/<feature>
+  artifacts/   # artifacts/<feature>; artifact root
+  wp-WP1/      # wp/<feature>/WP1; package code root
+  merge/       # feature/<feature>; integration code root
 ```
 
-The artifact root is fixed. The code root is the package worktree under check or the merge worktree for the top
-code state. Stacked readiness names that top code state plus every relevant base/follow-up artifact set.
-
-## Local Sidecar Setup
-
-Create before any artifact write. The destination must be absent/empty and Git must support `--orphan` (>=2.42):
+Create before artifact writes; destination absent/empty, Git >=2.42, ref absent:
 
 ```bash
 set -euo pipefail
@@ -41,22 +34,22 @@ git show-ref --verify --quiet refs/heads/artifacts/<feature> && exit 1 || test $
 git worktree add --orphan -b artifacts/<feature> .worktrees/<feature>/artifacts
 ```
 
-Existing current-root artifacts do not change this ordering. Create the empty sidecar, then follow the
-provenance-bound import in the artifact-store contract. Never move the legacy directory into place.
+Legacy artifacts do not alter this ordering: create empty sidecar, then provenance-bound import; never move source.
 
 ## Initial Authorized Sidecar Publication
 
-First prove Sidecar Portability Authorization and an absent remote ref. Finalized paths are exact files, including
-Slices/Index, migration provenance when present, and Lifecycle State—never a directory wildcard. Run only from the
-artifact worktree:
+Prove Sidecar Portability Authorization and absent remote ref. Validate schema generation 1 before staging exact
+finalized files (Slices/Index, migration provenance when any, Lifecycle State; never wildcard):
 
 ```bash
 set -euo pipefail
 cd "$PROJECT_ROOT/.worktrees/<feature>/artifacts"
+ARTIFACT_ROOT="$PWD"; CODE_ROOT=<resolved-distinct-code-root>
 ARTIFACT_REF=refs/heads/artifacts/<feature>
-REMOTE_LINE="$(git ls-remote --heads origin "$ARTIFACT_REF")"
-test -z "$REMOTE_LINE"
+test -z "$(git ls-remote --heads origin "$ARTIFACT_REF")"
 test "$(git rev-parse --show-toplevel)" = "$PWD"
+python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-lifecycle-state \
+  --artifact-root "$ARTIFACT_ROOT" --code-root "$CODE_ROOT" --feature <feature>
 FINALIZED_PATHS=(<exact-finalized-path> <exact-lifecycle-state-path>)
 git add -- "${FINALIZED_PATHS[@]}"
 mapfile -d '' -t EXPECTED < <(printf '%s\0' "${FINALIZED_PATHS[@]}" | sort -z)
@@ -69,12 +62,11 @@ SIDECAR_SHA="$(git rev-parse HEAD)"
 git push origin "$SIDECAR_SHA:$ARTIFACT_REF"
 git fetch --no-tags origin "$ARTIFACT_REF"
 test "$(git rev-parse FETCH_HEAD)" = "$SIDECAR_SHA"
-REMOTE_SHA="$(git ls-remote --heads origin "$ARTIFACT_REF" | awk 'NR==1 {print $1}')"
-test "$REMOTE_SHA" = "$SIDECAR_SHA"
+test "$(git ls-remote --heads origin "$ARTIFACT_REF" | awk 'NR==1 {print $1}')" = "$SIDECAR_SHA"
 ```
 
-Any error, non-absent ref, unexpected staged path, push rejection, or SHA mismatch blocks without fallback. This
-publishes no code/feature/target/tag/release ref and does not permit another remote operation.
+Any error, unexpected staged path/parent, rejection, or SHA mismatch blocks. This publishes no code, feature,
+target, tag, or release ref and permits no other remote effect.
 
 ## Feature and Package Setup
 
@@ -86,20 +78,14 @@ git worktree add .worktrees/<feature>/wp-<WP-ID> -b wp/<feature>/<WP-ID> <base-r
 git worktree add .worktrees/<feature>/merge feature/<feature>
 ```
 
-A dependent package branches from `feature/<feature>` only after its prerequisite is integrated and accepted.
-Merge from the integration worktree with `git merge wp/<feature>/<WP-ID> --no-edit`. Feature publication is a
-separate covered action; it never authorizes target merge/push or sidecar cleanup.
+The integration worktree is the top code state; stacked readiness also names every base/follow-up artifact set.
+Branch dependents only after prerequisite acceptance. Merge there with `git merge wp/<feature>/<WP-ID> --no-edit`.
+Feature publication is separate covered authority; it never authorizes target merge/push or sidecar cleanup.
 
 ## Quiescent Code-Before-Sidecar Checkpoint
 
-Verify active owner, generation, budgets, clean code, expected remote parents, and exact finalized path set. Then:
-
-1. Commit clean code and choose a never-used ref
-   `refs/heads/checkpoints/<feature>/<slot>/g<generation>`.
-2. Prove that remote ref absent; non-force push the exact code SHA; fetch/verify remote SHA.
-3. Only after verification, update Lifecycle State to reference that ref/SHA.
-4. Prove artifact remote SHA equals the snapshot's expected parent. Path-stage only exact finalized files, verify
-   the staged set, commit, non-force push only `artifacts/<feature>`, and fetch/verify the SHA.
+Verify owner/generation/budgets, clean code, expected remote parents, and finalized paths. Publish/verify code,
+then update Lifecycle State; validate it against the exact committed sidecar parent before path-specific staging:
 
 ```bash
 set -euo pipefail
@@ -117,6 +103,9 @@ cd "$ARTIFACT_ROOT"
 ARTIFACT_REF=refs/heads/artifacts/<feature>
 EXPECTED_PARENT=<last-verified-sidecar-sha>
 test "$(git ls-remote --heads origin "$ARTIFACT_REF" | awk 'NR==1 {print $1}')" = "$EXPECTED_PARENT"
+python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-lifecycle-state \
+  --artifact-root "$ARTIFACT_ROOT" --code-root "$CODE_ROOT" --feature <feature> \
+  --previous-commit "$EXPECTED_PARENT"
 FINALIZED_PATHS=(<exact-finalized-paths-including-lifecycle-state>)
 git add -- "${FINALIZED_PATHS[@]}"
 mapfile -d '' -t EXPECTED < <(printf '%s\0' "${FINALIZED_PATHS[@]}" | sort -z)
@@ -131,19 +120,20 @@ test "$(git rev-parse FETCH_HEAD)" = "$SIDECAR_SHA"
 test "$(git ls-remote --heads origin "$ARTIFACT_REF" | awk 'NR==1 {print $1}')" = "$SIDECAR_SHA"
 ```
 
-Normal push is required: no force option, mutable ref reuse, sidecar-first ordering, local-only referenced code, or
-broad staging. Before the authorization/status checkpoint, prove the candidate differs only by the
-approved status mutation; any other drift blocks staging.
+No force, mutable ref reuse, sidecar-first publication, local-only referenced code, or broad staging. Before the
+checkpoint, prove the candidate differs only by the
+approved status mutation; any other drift blocks.
 
 ## Safe Resume
 
-Fetch the exact artifact ref, verify its SHA and quiescent Lifecycle State, then fetch and verify every referenced
-code ref/SHA before creating/resuming worktrees. Ignore unreferenced checkpoint refs and treat later local commits,
-files, proofs, or reports as untrusted recovery input. If expected parent, owner/generation, budget/deadline,
-quiescence, or ref reachability is uncertain, do not push or take over; report the last verified checkpoint.
+Fetch/verify exact artifact ref/SHA, check out that commit, derive its sole Git parent for generation >1, and run
+`validate-lifecycle-state` with that full parent SHA. Then fetch and verify every named code ref/SHA using the Git
+commands above. Helper digest success does not prove remote reachability. Ignore unreferenced checkpoints and treat
+later local files/commits as untrusted. On parent/owner/generation/budget/deadline/quiescence/ref uncertainty, do
+not push or take over; report only the validated `last_verified` fallback.
 
 ## Stop If
 
-Stop on unsafe/equal roots, current-root authority, incomplete migration, ref/path collision, dirty finalized code,
-missing permission, unexpected remote parent, non-fast-forward/CAS rejection, staged-path mismatch, unverified code
-SHA, predecessor not integrated, or any request for force, target merge/push, release/tag, cleanup, or deletion.
+Stop on unsafe/equal roots, current-root authority, incomplete migration, ref/path collision, dirty code, missing
+permission, unexpected parent, non-fast-forward/CAS rejection, staged-path mismatch, unverified code SHA,
+predecessor not integrated, or any target merge/push, force, release/tag, cleanup, or deletion request.

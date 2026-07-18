@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import copy
 import hashlib
 import json
 import shutil
@@ -11,6 +10,7 @@ from pathlib import Path
 
 
 FIXTURE_PATH = Path(__file__).parent / "fixtures" / "agentic-lifecycle-scenarios.json"
+SLICEPROOF_PATH = Path(__file__).resolve().parents[1] / "sliceproof.py"
 EXPECTATION_KEYS = ("v1_39", "phase_1", "candidate")
 SCENARIO_KEYS = {
     "id",
@@ -104,18 +104,56 @@ def write_lifecycle_state(repo: Path, state: dict) -> Path:
     return path
 
 
-def monotonic_budget_transition(previous: dict, current: dict) -> bool:
-    if current["generation"] <= previous["generation"]:
-        return False
-    for budget_name in ("preauthorization", "implementation"):
-        before = previous["budgets"][budget_name]
-        after = current["budgets"][budget_name]
-        if after["deadline_at"] != before["deadline_at"]:
-            return False
-        for key, value in before["issued"].items():
-            if after["issued"][key] < value:
-                return False
-    return True
+def canonical_digest(value: dict) -> str:
+    encoded = json.dumps(value, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return "sha256:" + hashlib.sha256(encoded).hexdigest()
+
+
+def valid_lifecycle_state() -> dict:
+    return {
+        "schema_version": 1,
+        "generation": 1,
+        "feature": "fixture",
+        "stage": "planning",
+        "quiescent": True,
+        "next_legal_actions": ["plan-review"],
+        "owner": {"token": "owner-a", "host": "host-a", "disposition": "active", "takeover": None},
+        "artifact_checkpoint": {"ref": "refs/heads/artifacts/fixture", "sha": None, "tree": None},
+        "code_checkpoint": None,
+        "authorization": {
+            "id": None, "initial_digest": None, "effective_digest": None, "amendment_link": None,
+        },
+        "budgets": {
+            "preauthorization": {
+                "maxima": {
+                    "delegated_calls": 8, "planner_correction_waves": 2,
+                    "spike_waves": 2, "command_units": 20,
+                },
+                "issued": {
+                    "delegated_calls": 2, "planner_correction_waves": 1,
+                    "spike_waves": 0, "command_units": 3,
+                },
+                "started_at": "2026-07-18T10:00:00Z",
+                "deadline_at": "2026-07-18T12:00:00Z",
+            },
+            "implementation": None,
+            "active_reservation": None,
+            "control_plane_reserve": {"maximum": 1, "issued": 0},
+        },
+        "packages": {}, "wave": None, "serious_clusters": [],
+        "freeze": None, "receipts": [], "last_verified": None,
+        "portability_authorization": "explicit fixture instruction",
+    }
+
+
+def run_lifecycle_validation(artifact_root: Path, code_root: Path, previous: str | None = None) -> subprocess.CompletedProcess[str]:
+    command = [
+        "python3", str(SLICEPROOF_PATH), "validate-lifecycle-state",
+        "--artifact-root", str(artifact_root), "--code-root", str(code_root), "--feature", "fixture",
+    ]
+    if previous is not None:
+        command.extend(["--previous-commit", previous])
+    return subprocess.run(command, check=False, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
 
 class AgenticLifecycleOracleTests(unittest.TestCase):
@@ -345,7 +383,6 @@ class AgenticLifecycleOracleTests(unittest.TestCase):
             run_git(owner, "remote", "add", "origin", str(remote))
             artifact_ref = "refs/heads/artifacts/fixture"
             slice_path = owner / ".planning" / "fixture" / "slices" / "feature.md"
-            state_path = owner / ".tasks" / "fixture" / "lifecycle-state.json"
             slice_path.parent.mkdir(parents=True)
             slice_path.write_text("# Portable Slice\n", encoding="utf-8")
             write_lifecycle_state(
@@ -410,47 +447,61 @@ class AgenticLifecycleOracleTests(unittest.TestCase):
             root = Path(tmp)
             remote = root / "sidecar.git"
             owner = root / "owner"
+            code = root / "code"
             resumed = root / "resumed"
             init_bare(remote)
             init_repo(owner)
+            init_repo(code)
             run_git(owner, "remote", "add", "origin", str(remote))
-            state_one = {
-                "generation": 1,
-                "budgets": {
-                    "preauthorization": {
-                        "deadline_at": "2026-07-18T12:00:00Z",
-                        "issued": {"calls": 2, "correction_waves": 1, "spike_waves": 0, "commands": 3},
-                    },
-                    "implementation": {
-                        "deadline_at": "2026-07-18T16:00:00Z",
-                        "issued": {"repair_waves": 0, "calls": 1, "commands": 4},
-                    },
-                },
-            }
+            (code / "product.txt").write_text("base\n", encoding="utf-8")
+            commit_all(code, "code base")
+
+            state_one = valid_lifecycle_state()
             write_lifecycle_state(owner, state_one)
-            commit_all(owner, "budget generation one")
+            initial = run_lifecycle_validation(owner, code)
+            self.assertEqual(0, initial.returncode, initial.stdout + initial.stderr)
+            generation_one = commit_all(owner, "budget generation one")
             run_git(owner, "push", "-u", "origin", "main")
 
-            state_two = copy.deepcopy(state_one)
+            state_two = json.loads(json.dumps(state_one))
             state_two["generation"] = 2
-            state_two["budgets"]["preauthorization"]["issued"]["calls"] = 3
-            state_two["budgets"]["implementation"]["issued"]["commands"] = 7
-            self.assertTrue(monotonic_budget_transition(state_one, state_two))
+            state_two["budgets"]["preauthorization"]["issued"]["delegated_calls"] = 3
+            state_two["budgets"]["active_reservation"] = {
+                "id": "reserve-2", "owner_token": "owner-a", "budget": "preauthorization",
+                "generation": 2, "units": {"delegated_calls": 1},
+            }
+            state_two["last_verified"] = {
+                "artifact_ref": "refs/heads/artifacts/fixture",
+                "artifact_sha": generation_one,
+                "state_digest": canonical_digest(state_one),
+                "generation": 1,
+            }
             write_lifecycle_state(owner, state_two)
-            commit_all(owner, "budget generation two")
+            advanced = run_lifecycle_validation(owner, code, generation_one)
+            self.assertEqual(0, advanced.returncode, advanced.stdout + advanced.stderr)
+            generation_two = commit_all(owner, "budget generation two")
             run_git(owner, "push", "origin", "main")
 
-            run_git(root, "clone", str(remote), str(resumed))
+            run_git(root, "clone", "--branch", "main", str(remote), str(resumed))
             persisted = json.loads((resumed / ".tasks" / "fixture" / "lifecycle-state.json").read_text())
             self.assertEqual(state_two, persisted)
-            reset = copy.deepcopy(state_two)
+            resumed_check = run_lifecycle_validation(resumed, code, generation_one)
+            self.assertEqual(0, resumed_check.returncode, resumed_check.stdout + resumed_check.stderr)
+
+            reset = json.loads(json.dumps(state_two))
             reset["generation"] = 3
-            reset["budgets"]["preauthorization"]["issued"]["calls"] = 0
-            self.assertFalse(monotonic_budget_transition(state_two, reset))
-            deadline_reset = copy.deepcopy(state_two)
-            deadline_reset["generation"] = 3
-            deadline_reset["budgets"]["implementation"]["deadline_at"] = "2026-07-19T16:00:00Z"
-            self.assertFalse(monotonic_budget_transition(state_two, deadline_reset))
+            reset["budgets"]["active_reservation"] = None
+            reset["budgets"]["preauthorization"]["issued"]["delegated_calls"] = 0
+            reset["last_verified"] = {
+                "artifact_ref": "refs/heads/artifacts/fixture",
+                "artifact_sha": generation_two,
+                "state_digest": canonical_digest(state_two),
+                "generation": 2,
+            }
+            write_lifecycle_state(resumed, reset)
+            rejected = run_lifecycle_validation(resumed, code, generation_two)
+            self.assertNotEqual(0, rejected.returncode, rejected.stdout + rejected.stderr)
+            self.assertIn("cannot decrease", "\n".join(json.loads(rejected.stderr)["errors"]))
 
     def test_last_verified_escalation_drill(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

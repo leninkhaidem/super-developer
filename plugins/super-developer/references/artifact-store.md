@@ -61,29 +61,37 @@ Record the permission source in Lifecycle State and the handoff.
 ## Initial Lifecycle State
 
 The initial finalized path set includes the safe `.planning/<feature>/` inventory, migration provenance when any,
-and `.tasks/<feature>/lifecycle-state.json`. Initialize one compact current snapshot—not authority or an event log—with:
+and `.tasks/<feature>/lifecycle-state.json`. Initialize the schema-v1 compact current snapshot from
+`slice-first-artifacts.md`: generation 1, derived feature/path/ref, current stage/quiescence/action, explicit owner
+state, null authorization/code/freeze pointers, empty package/wave/cluster/receipt state, and last-verified `null`.
+Record the portability-authorization source. Start finite preauthorization state only at the planning handoff;
+implementation state remains `null` until authorization. Git history is the history: never add events/transcripts.
 
-- schema version, generation, feature, stage, quiescence, and next legal actions;
-- portability-authorization source; artifact ref, expected remote parent (`absent` initially), finalized semantic
-  artifact commit/tree, and last verified sidecar commit;
-- authorization/effective digest and code checkpoints as `null` before they exist;
-- assurance/package/wave, owner/takeover, cluster/freeze/receipt fields as compact empty current state;
-- finite preauthorization/implementation maxima, monotonically issued usage, deadlines/reservations, and the
-  allowlisted control-plane reserve fields, using `null` only where authority has not begun.
+## Mechanical Validation Boundary
 
-Git history preserves old snapshots. Never add transcript/history arrays or infer completion from missing fields.
+`sliceproof.py validate-lifecycle-state` requires explicit distinct Git worktree roots and a safe `--feature`; it
+derives `.tasks/<feature>/lifecycle-state.json` and accepts no caller-selected state path. Generation 1 has no
+predecessor argument and cannot replace existing committed history. Every later snapshot names `last_verified`
+and is checked with the exact full `--previous-commit` containing that prior state. The helper reads local Git
+objects, verifies the committed regular blob/linear predecessor, and emits canonical digests. It never fetches,
+pushes, reserves budget, changes owner/stage/status, dispatches, or establishes semantic completion.
+
+A legacy current-root import initializes generation 1 only in the new empty sidecar after provenance/revalidation.
+A pre-existing partial sidecar state is not schema-v1 authority and has no silent upgrader; it requires an explicit
+reviewed migration rather than history reset or guessed fields. Existing non-lifecycle helper commands retain
+compatibility behavior, but planned lifecycle authority requires exact roots, state, and predecessor binding.
 
 ## Publication and Resume Invariants
 
-- Initial publication verifies the remote artifact ref is absent, commits only the finalized paths, performs one
-  exact non-force CAS push to `artifacts/<feature>`, then fetches/verifies the remote SHA. Record/report that exact
-  verified commit; an unexpected parent, rejection, or unverifiable remote is a blocker.
+- Initial publication first validates generation 1, verifies the remote artifact ref is absent, commits only exact
+  finalized paths, performs one non-force CAS push to `artifacts/<feature>`, then fetches/verifies its exact SHA.
+  Unexpected state, parent, rejection, or unverifiable remote is a blocker.
 - Later code checkpoints use unique immutable refs
   `refs/heads/checkpoints/<feature>/<slot>/g<generation>`. Implementation Authorization—not sidecar permission—must
   cover their creation. Push non-force from a clean code commit, fetch, and verify the exact SHA.
-- At a quiescent checkpoint: verify owner/generation/budgets/remote parents/finalized paths; publish and verify code
-  first; only then update Lifecycle State with remotely reachable code ref/SHA, path-stage finalized sidecar files,
-  commit from the expected parent, non-force CAS-push only `artifacts/<feature>`, and verify it.
+- At a quiescent checkpoint: verify owner/generation/budgets/remote parents/finalized paths; publish/verify code
+  first; update Lifecycle State, validate against the exact expected committed parent, path-stage finalized sidecar
+  files, commit from that parent, non-force CAS-push only `artifacts/<feature>`, and verify it.
 - Never reference local-only code, reuse/move a checkpoint ref, force push, publish sidecar first, or use broad
   staging. An orphan code checkpoint after a crash is ignored until a verified sidecar references it.
 - Resume fetches the sidecar and every referenced code ref/SHA, verifies exact reachability, and continues only from

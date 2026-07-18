@@ -1,15 +1,13 @@
 # Implementation Authorization Content
 
 ## Boundary
-
 This path owns execution-readiness and covered-action content for the sole Implementation Authorization.
 `review-plan` presents it after cold review; `implement` consumes the checkpointed receipt and never presents
 another decision surface.
 
 ## Source and Decision Rule
-
-Derive fields from reviewed artifacts, resolved testing authority, source-bound readiness, current git state,
-budgets, and explicit instructions. Unknown fields or blocked required prerequisites prevent the decision.
+Derive fields from reviewed artifacts, resolved testing authority, readiness, Git state, budgets, and instructions.
+Unknown fields or blocked required prerequisites prevent the decision.
 
 Offer exactly **Approve and auto-resolve**, **Request changes**, and **Abort**. `Approve and auto-resolve` begins
 delivery after the exact authorization checkpoint; it covers all listed routine in-scope actions without later
@@ -35,7 +33,8 @@ Reviewed Technical Plan Baseline:
   allowed amendment policy: <envelope-preserving technical corrections + affected cold re-review only>
 
 Exact state and Authorization Digest inputs:
-  artifact root/ref/candidate tree+commit: <exact values>
+  distinct artifact/code Git roots; artifact ref/candidate tree+commit: <exact values>
+  Lifecycle State path/generation/digest/last-verified predecessor: <derived path + exact values>
   code root/base ref/base commit/clean-status digest: <exact values>
   dependency and prerequisite snapshot: <exact digest/state>
   packages, worktrees, refs, proof/report paths: <exact safe values>
@@ -67,7 +66,7 @@ Covered writes and actions:
   commands/tests/runtime observations: <exact commands/categories and safety bounds>
   package waves/eligible repairs: <scope; one logical owner; batched root causes>
   reruns/evidence refresh/cleanup: <affected-only rules, widening triggers, exact cleanup>
-  checkpoints: <code-before-sidecar refs, paths, CAS commands, boundaries>
+  checkpoints: <code-before-sidecar refs, derived Lifecycle State path, expected parents, CAS commands/boundaries>
   listed pushes: <exact non-force sidecar/code-checkpoint/feature commands or none>
 
 Finite autonomous budgets:
@@ -114,7 +113,8 @@ Choices:
 
 ## Pipeline:
 
-1. exact authorization checkpoint verifies; run cheap freshness guard and covered protected activation
+1. validate the derived Lifecycle State against its exact committed predecessor; verify authorization checkpoint,
+   cheap freshness guard, then covered protected activation
 2. create/resume authorized worktrees and dispatch ready package owners
 3. stabilize production behavior and actual-path causal tests before proof conclusions
 4. run focused and affected broad regression before proof/report refresh
@@ -129,6 +129,12 @@ Choices:
 Stop before the decision when required inputs/readiness are missing or blocked. After authorization, stop only at
 the listed Human Authorization Envelope, protected-action, freshness/ownership, activation, circuit, or budget
 boundaries; routine in-scope failure is returned to the Delivery Owner for bounded auto-resolution.
+
+## Lifecycle Helper Boundary
+Run `sliceproof.py validate-lifecycle-state` with distinct roots, derived `--feature`, and full `--previous-commit`
+after generation 1. It validates local schema/objects/digests, immutable lineage, monotonic state, and predecessor;
+Git remote/ref CAS stays in the worktree contract. It never reserves, transitions, dispatches, pushes, or proves
+completion.
 
 ## Activation Guard
 

@@ -378,6 +378,54 @@ class SkillPromptSurfaceTests(unittest.TestCase):
         for rel, text in texts.items():
             self.assertLessEqual(len(text.splitlines()), 150, rel)
 
+    def test_a4_lifecycle_validation_is_mechanical_and_git_cas_remains_worktree_owned(self) -> None:
+        affected = [
+            "plugins/super-developer/references/slice-first-artifacts.md",
+            "plugins/super-developer/references/artifact-store.md",
+            "plugins/super-developer/skills/worktree/references/feature-package-workflow.md",
+            "plugins/super-developer/skills/implement/references/execution-contract.md",
+            "plugins/super-developer/skills/implement/references/package-dispatch.md",
+        ]
+        texts = {rel: read_repo(rel) for rel in affected}
+        combined = compact_text("\n".join(texts.values())).lower()
+        for token in [
+            ".tasks/<feature>/lifecycle-state.json", "schema-v1", "distinct", "--previous-commit",
+            "last_verified", "amendment_link", "effective digest", "maxima", "issued",
+            "active reservation", "code checkpoint", "serious_clusters", "no sequence/history array",
+            "optional", "boundary|final", "never reserves", "proves completion", "b3/b4 own",
+        ]:
+            self.assertIn(token, combined)
+        for premature in ["technical_amendments", "matching `verification-summary`", "completed stage requires"]:
+            self.assertNotIn(premature, combined)
+
+        workflow = texts[affected[2]]
+        initial = workflow[
+            workflow.index("## Initial Authorized Sidecar Publication"):
+            workflow.index("## Feature and Package Setup")
+        ]
+        checkpoint = workflow[
+            workflow.index("## Quiescent Code-Before-Sidecar Checkpoint"):
+            workflow.index("## Safe Resume")
+        ]
+        self.assertLess(initial.index("validate-lifecycle-state"), initial.index("git add --"))
+        self.assertLess(
+            checkpoint.index('git push origin "$CODE_SHA:$CODE_REF"'),
+            checkpoint.index("validate-lifecycle-state"),
+        )
+        self.assertLess(checkpoint.index("validate-lifecycle-state"), checkpoint.index("git add --"))
+        self.assertIn("Git remote/ref CAS stays in the worktree contract", texts[affected[3]])
+        for rel, text in texts.items():
+            self.assertLessEqual(len(text.splitlines()), 150, rel)
+
+        helper = read_repo("plugins/super-developer/assets/sliceproof.py")
+        self.assertIn('"validate-lifecycle-state"', helper)
+        self.assertIn("canonical_json_digest", helper)
+        self.assertNotIn("technical_amendments", helper)
+        self.assertNotIn("verification-summary", helper)
+        self.assertNotIn('["push"', helper)
+        self.assertNotIn('["fetch"', helper)
+        self.assertNotIn('["ls-remote"', helper)
+
     def test_obsolete_or_unsafe_terms_are_only_negative_guidance(self) -> None:
         for path in prompt_surface_paths():
             text = path.read_text(encoding="utf-8")

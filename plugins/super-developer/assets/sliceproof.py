@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Mechanical helper for Slice-first planned-feature artifacts.
 
-The helper performs deterministic structure, path-safety, proof-closure, and
-report-binding checks. It does not judge semantic proof quality, run tests,
-mutate package status, write review readiness, or replace review/audit gates.
+The helper performs deterministic structure, path-safety, proof-closure,
+report-binding, and local lifecycle/predecessor checks. It does not judge
+semantic quality, run tests, mutate lifecycle/package state, dispatch work,
+perform remote Git effects, or replace review/audit gates.
 """
 
 from __future__ import annotations
@@ -13,6 +14,7 @@ import hashlib
 import json
 import os
 import re
+import subprocess
 import sys
 import tempfile
 from dataclasses import dataclass
@@ -25,11 +27,40 @@ PACKAGE_ID_RE = re.compile(r"^WP[1-9]\d*$")
 SLICE_ID_RE = re.compile(r"^[A-Z][A-Z0-9-]*-[0-9]{3}$")
 H3_ID_RE = re.compile(r"^\s*###\s+`?([A-Z][A-Z0-9-]*-[0-9]{3})`?(?:\s+(?:—|-)\s*(.*?))?\s*$")
 COMMIT_RE = re.compile(r"^[0-9a-fA-F]{7,64}$")
+EXACT_GIT_SHA_RE = re.compile(r"^(?:[0-9a-f]{40}|[0-9a-f]{64})$")
+DIGEST_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
+SAFE_TOKEN_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
+ACTION_RE = re.compile(r"^[a-z][a-z0-9-]{0,63}$")
+COUNTER_RE = re.compile(r"^[a-z][a-z0-9_-]{0,63}$")
+WAVE_ID_RE = re.compile(r"^wave-[a-z0-9][a-z0-9-]*$")
 SEMGREP_DIGEST_RE = re.compile(r"^(?:sha256:)?([0-9a-fA-F]{64})$")
 STATUS_VALUES = {"pending", "in_progress", "done", "blocked"}
 FEATURE_STATUS_VALUES = {"planned", "reviewed", "in_progress", "completed", "blocked", "on_hold"}
-REGISTRY_KEYS = {"feature", "title", "status", "spec_path", "authoritative_slices", "work_packages"}
-REGISTRY_PACKAGE_KEYS = {"id", "path", "proof_path", "report_path", "status", "depends_on"}
+ASSURANCE_PROFILES = {"low", "standard", "high"}
+PACKAGE_VERIFICATION_MODES = {"boundary", "final"}
+REGISTRY_KEYS = {
+    "feature", "title", "status", "spec_path", "authoritative_slices", "work_packages", "assurance_profile"
+}
+REGISTRY_PACKAGE_KEYS = {
+    "id", "path", "proof_path", "report_path", "status", "depends_on", "verification_mode"
+}
+PREAUTH_LIFECYCLE_STAGES = {
+    "conceptualization", "conceptualization-checkpoint", "preflight", "planning", "plan-review",
+    "execution-readiness", "authorization-pending",
+}
+AUTHORIZED_LIFECYCLE_STAGES = {
+    "authorized", "activation", "package-wave", "package-wave-quiescent", "integration",
+    "technical-reassessment", "technical-plan-review", "final-assurance", "completed",
+}
+NEUTRAL_LIFECYCLE_STAGES = {"blocked", "needs-decision"}
+LIFECYCLE_STAGES = PREAUTH_LIFECYCLE_STAGES | AUTHORIZED_LIFECYCLE_STAGES | NEUTRAL_LIFECYCLE_STAGES
+PREAUTH_BUDGET_STAGES = PREAUTH_LIFECYCLE_STAGES - {"conceptualization", "conceptualization-checkpoint"}
+OWNER_DISPOSITIONS = {"unassigned", "active", "stopped", "released"}
+PACKAGE_LIFECYCLE_STATES = {"pending", "in_progress", "stabilized", "verified", "done", "blocked", "invalidated"}
+WAVE_STATES = {"reserved", "active", "quiescent", "completed", "blocked"}
+CLUSTER_DISPOSITIONS = {"repair-eligible", "closed", "circuit-open"}
+PREAUTH_REQUIRED_COUNTERS = {"delegated_calls", "planner_correction_waves", "spike_waves", "command_units"}
+IMPLEMENTATION_REQUIRED_COUNTERS = {"repair_waves", "delegated_calls", "command_units", "cost_units"}
 REQUIRED_PACKAGE_SECTIONS = {
     "Scope",
     "Assigned Slices",
@@ -297,6 +328,7 @@ class RegistryPackage:
     report_path: str
     status: str
     depends_on: list[str]
+    verification_mode: str | None = None
 
 
 @dataclass(frozen=True)
@@ -308,6 +340,7 @@ class Registry:
     feature: str
     authoritative_slices: list[str]
     packages: list[RegistryPackage]
+    assurance_profile: str | None = None
 
     def package(self, package_id: str) -> RegistryPackage | None:
         for package in self.packages:
@@ -432,6 +465,18 @@ def build_parser() -> argparse.ArgumentParser:
     emit_state_binding.add_argument("--commit", required=True, help="Reviewed commit SHA to write into the binding.")
     emit_state_binding.add_argument("--verified-at", required=True, help="ISO-8601 verification timestamp to write into the binding.")
     emit_state_binding.set_defaults(func=cmd_emit_state_binding)
+
+    validate_lifecycle = subparsers.add_parser(
+        "validate-lifecycle-state",
+        parents=[root_options],
+        help="Validate the derived portable Lifecycle State and, after generation one, its exact committed predecessor.",
+    )
+    validate_lifecycle.add_argument("--feature", required=True, help="Feature slug used to derive .tasks/<feature>/lifecycle-state.json.")
+    validate_lifecycle.add_argument(
+        "--previous-commit",
+        help="Exact full artifact-sidecar commit containing the predecessor Lifecycle State; required after generation one.",
+    )
+    validate_lifecycle.set_defaults(func=cmd_validate_lifecycle_state)
     return parser
 
 
@@ -439,13 +484,857 @@ def add_root_options(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--artifact-root",
         type=Path,
-        help="Root for .planning/.tasks artifacts; defaults to the current directory.",
+        help="Root for .planning/.tasks artifacts; compatibility default is cwd, but lifecycle validation requires it.",
     )
     parser.add_argument(
         "--code-root",
         type=Path,
-        help="Root for source, test, and static evidence paths; defaults to the current directory.",
+        help="Root for source/test evidence; compatibility default is cwd, but lifecycle validation requires it.",
     )
+
+
+def cmd_validate_lifecycle_state(args: argparse.Namespace) -> dict[str, Any]:
+    if args.artifact_root is None or args.code_root is None:
+        raise SliceproofError([
+            "validate-lifecycle-state: --artifact-root and --code-root are required for planned-feature authority"
+        ])
+    if not FEATURE_RE.fullmatch(args.feature):
+        raise SliceproofError(["--feature: expected lowercase slug with letters, digits, and hyphens"])
+
+    cwd = Path.cwd().resolve(strict=False)
+    artifact_root = resolve_cli_root(args.artifact_root, cwd, "--artifact-root")
+    code_root = resolve_cli_root(args.code_root, cwd, "--code-root")
+    if artifact_root == code_root:
+        raise SliceproofError(["validate-lifecycle-state: artifact root and code root must be distinct"])
+    require_exact_git_root(artifact_root, "artifact root")
+    require_exact_git_root(code_root, "code root")
+
+    relative_path = f".tasks/{args.feature}/lifecycle-state.json"
+    state = load_strict_json_file(resolve_authority_file(artifact_root, relative_path, "Lifecycle State"), "Lifecycle State")
+    errors = validate_lifecycle_state_data(
+        state,
+        artifact_root=artifact_root,
+        code_root=code_root,
+        feature=args.feature,
+        verify_files=True,
+        verify_git_objects=True,
+    )
+    if errors:
+        raise SliceproofError(errors)
+
+    generation = state["generation"]
+    previous_digest: str | None = None
+    if generation == 1:
+        if args.previous_commit is not None:
+            raise SliceproofError(["validate-lifecycle-state: generation 1 must not name --previous-commit"])
+        validate_generation_one_topology(artifact_root, relative_path, state)
+    else:
+        if args.previous_commit is None:
+            raise SliceproofError(["validate-lifecycle-state: --previous-commit is required after generation 1"])
+        if args.previous_commit != state["last_verified"]["artifact_sha"]:
+            raise SliceproofError([
+                "validate-lifecycle-state: --previous-commit does not match last_verified.artifact_sha"
+            ])
+        previous = load_committed_lifecycle_state(
+            artifact_root, relative_path, args.previous_commit, current_state=state
+        )
+        prior_errors = validate_lifecycle_state_data(
+            previous,
+            artifact_root=artifact_root,
+            code_root=code_root,
+            feature=args.feature,
+            verify_files=False,
+            verify_git_objects=False,
+        )
+        if prior_errors:
+            raise SliceproofError([f"prior snapshot: {error}" for error in prior_errors])
+        if previous["quiescent"] is not True:
+            raise SliceproofError(["prior snapshot: last_verified fallback must be quiescent"])
+        previous_digest = canonical_json_digest(previous)
+        if state["last_verified"]["state_digest"] != previous_digest:
+            raise SliceproofError([
+                "lifecycle-state.json.last_verified.state_digest: does not match the committed predecessor state"
+            ])
+        transition_errors = compare_lifecycle_states(previous, state)
+        transition_errors.extend(validate_artifact_checkpoint_ancestry(artifact_root, previous, state))
+        if transition_errors:
+            raise SliceproofError(transition_errors)
+
+    return {
+        "artifact_root": str(artifact_root),
+        "code_root": str(code_root),
+        "state_path": relative_path,
+        "feature": args.feature,
+        "schema_version": state["schema_version"],
+        "generation": generation,
+        "stage": state["stage"],
+        "quiescent": state["quiescent"],
+        "state_digest": canonical_json_digest(state),
+        "previous_commit": args.previous_commit,
+        "previous_state_digest": previous_digest,
+    }
+
+
+def load_strict_json_file(path: Path, label: str) -> Any:
+    return load_strict_json_text(read_text_file(path, label), label)
+
+
+def load_strict_json_text(text: str, label: str) -> Any:
+    def reject_duplicates(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+        result: dict[str, Any] = {}
+        for key, value in pairs:
+            if key in result:
+                raise ValueError(f"duplicate key {key!r}")
+            result[key] = value
+        return result
+
+    try:
+        return json.loads(text, object_pairs_hook=reject_duplicates)
+    except json.JSONDecodeError as exc:
+        raise SliceproofError([f"{label}: invalid JSON at line {exc.lineno} column {exc.colno}: {exc.msg}"])
+    except ValueError as exc:
+        raise SliceproofError([f"{label}: invalid JSON: {exc}"])
+
+
+# Compact shape grammar: mappings are exact (`?` marks optional); tuple tags cover nullable/pattern/enum/rule/list/map.
+TOKEN_SCHEMA = ("pattern", SAFE_TOKEN_RE, "safe token")
+DIGEST_SCHEMA = ("pattern", DIGEST_RE, "lowercase sha256:<64-hex> digest")
+SHA_SCHEMA = ("pattern", EXACT_GIT_SHA_RE, "exact lowercase 40- or 64-hex Git object id")
+ACTION_SCHEMA = ("pattern", ACTION_RE, "safe action token")
+COUNTER_SCHEMA = ("pattern", COUNTER_RE, "safe counter token")
+PACKAGE_ID_SCHEMA = ("pattern", PACKAGE_ID_RE, "WP<N> package id")
+WAVE_ID_SCHEMA = ("pattern", WAVE_ID_RE, "wave-<slug>")
+POSITIVE_INT_SCHEMA = ("rule", lambda value: type(value) is int and value > 0, "positive integer")
+NONNEGATIVE_INT_SCHEMA = ("rule", lambda value: type(value) is int and value >= 0, "non-negative integer")
+NULLABLE_TOKEN_SCHEMA = ("nullable", TOKEN_SCHEMA)
+NULLABLE_DIGEST_SCHEMA = ("nullable", DIGEST_SCHEMA)
+NULLABLE_SHA_SCHEMA = ("nullable", SHA_SCHEMA)
+BUDGET_SCHEMA = ("nullable", {
+    "maxima": ("map", COUNTER_SCHEMA, NONNEGATIVE_INT_SCHEMA),
+    "issued": ("map", COUNTER_SCHEMA, NONNEGATIVE_INT_SCHEMA),
+    "started_at": str,
+    "deadline_at": str,
+})
+LIFECYCLE_JSON_SCHEMA = {
+    "schema_version": ("rule", lambda value: type(value) is int and value == 1, "1"),
+    "generation": POSITIVE_INT_SCHEMA,
+    "feature": str,
+    "stage": ("enum", LIFECYCLE_STAGES),
+    "quiescent": bool,
+    "next_legal_actions": ("list", ACTION_SCHEMA),
+    "owner": {
+        "token": NULLABLE_TOKEN_SCHEMA,
+        "host": NULLABLE_TOKEN_SCHEMA,
+        "disposition": ("enum", OWNER_DISPOSITIONS),
+        "takeover": ("nullable", {
+            "previous_token": TOKEN_SCHEMA,
+            "previous_host": TOKEN_SCHEMA,
+            "previous_generation": POSITIVE_INT_SCHEMA,
+            "evidence_digest": DIGEST_SCHEMA,
+        }),
+    },
+    "artifact_checkpoint": {"ref": str, "sha": NULLABLE_SHA_SCHEMA, "tree": NULLABLE_SHA_SCHEMA},
+    "code_checkpoint": ("nullable", {"ref": str, "sha": SHA_SCHEMA}),
+    "authorization": {
+        "id": NULLABLE_TOKEN_SCHEMA,
+        "initial_digest": NULLABLE_DIGEST_SCHEMA,
+        "effective_digest": NULLABLE_DIGEST_SCHEMA,
+        "amendment_link": ("nullable", {
+            "parent_effective_digest": DIGEST_SCHEMA,
+            "amendment_digest": DIGEST_SCHEMA,
+            "artifact_sha": SHA_SCHEMA,
+        }),
+    },
+    "budgets": {
+        "preauthorization": BUDGET_SCHEMA,
+        "implementation": BUDGET_SCHEMA,
+        "active_reservation": ("nullable", {
+            "id": TOKEN_SCHEMA,
+            "owner_token": TOKEN_SCHEMA,
+            "budget": ("enum", {"preauthorization", "implementation"}),
+            "generation": POSITIVE_INT_SCHEMA,
+            "units": ("map", COUNTER_SCHEMA, POSITIVE_INT_SCHEMA),
+        }),
+        "control_plane_reserve": {"maximum": NONNEGATIVE_INT_SCHEMA, "issued": NONNEGATIVE_INT_SCHEMA},
+    },
+    "packages": ("map", PACKAGE_ID_SCHEMA, {
+        "state": ("enum", PACKAGE_LIFECYCLE_STATES), "wave": ("nullable", WAVE_ID_SCHEMA),
+    }),
+    "wave": ("nullable", {
+        "id": WAVE_ID_SCHEMA,
+        "generation": POSITIVE_INT_SCHEMA,
+        "state": ("enum", WAVE_STATES),
+        "packages": ("list", PACKAGE_ID_SCHEMA),
+    }),
+    "serious_clusters": ("list", {
+        "id": DIGEST_SCHEMA,
+        "strikes": ("enum", {1, 2}),
+        "disposition": ("enum", CLUSTER_DISPOSITIONS),
+    }),
+    "freeze": ("nullable", {"id": TOKEN_SCHEMA, "digest": DIGEST_SCHEMA}),
+    "receipts": ("list", {
+        "role": ACTION_SCHEMA, "path": str, "digest": DIGEST_SCHEMA, "freeze_digest?": NULLABLE_DIGEST_SCHEMA,
+    }),
+    "last_verified": ("nullable", {
+        "artifact_ref": str,
+        "artifact_sha": SHA_SCHEMA,
+        "state_digest": DIGEST_SCHEMA,
+        "generation": POSITIVE_INT_SCHEMA,
+    }),
+    "portability_authorization": str,
+    "assurance_profile?": ("enum", ASSURANCE_PROFILES),
+    "package_modes?": ("map", PACKAGE_ID_SCHEMA, ("enum", PACKAGE_VERIFICATION_MODES)),
+}
+
+
+def validate_json_shape(value: Any, schema: Any, label: str, errors: list[str]) -> None:
+    if isinstance(schema, dict):
+        if not isinstance(value, dict):
+            errors.append(f"{label}: expected object")
+            return
+        fields = {key.removesuffix("?"): item for key, item in schema.items()}
+        required = {key for key in schema if not key.endswith("?")}
+        for key in sorted(required - set(value)):
+            errors.append(f"{label}: missing required field {key!r}")
+        for key in sorted(set(value) - set(fields)):
+            errors.append(f"{label}.{key}: unsupported field")
+        for key in sorted(set(value) & set(fields)):
+            validate_json_shape(value[key], fields[key], f"{label}.{key}", errors)
+        return
+    if schema is str or schema is bool:
+        if type(value) is not schema:
+            errors.append(f"{label}: expected {schema.__name__}")
+        return
+    kind = schema[0]
+    if kind == "nullable":
+        if value is not None:
+            validate_json_shape(value, schema[1], label, errors)
+    elif kind == "pattern":
+        if not isinstance(value, str) or not schema[1].fullmatch(value):
+            errors.append(f"{label}: expected {schema[2]}")
+    elif kind == "enum":
+        allowed_types = {type(item) for item in schema[1]}
+        if type(value) not in allowed_types or value not in schema[1]:
+            errors.append(f"{label}: expected one of {sorted(schema[1])}")
+    elif kind == "rule":
+        if not schema[1](value):
+            errors.append(f"{label}: expected {schema[2]}")
+    elif kind == "list":
+        if not isinstance(value, list):
+            errors.append(f"{label}: expected array")
+        else:
+            for index, item in enumerate(value):
+                validate_json_shape(item, schema[1], f"{label}[{index}]", errors)
+    elif kind == "map":
+        if not isinstance(value, dict):
+            errors.append(f"{label}: expected object")
+        else:
+            for key in sorted(value):
+                validate_json_shape(key, schema[1], f"{label} key", errors)
+                validate_json_shape(value[key], schema[2], f"{label}.{key}", errors)
+
+
+def validate_lifecycle_state_data(
+    state: Any,
+    *,
+    artifact_root: Path,
+    code_root: Path,
+    feature: str,
+    verify_files: bool,
+    verify_git_objects: bool,
+) -> list[str]:
+    label = "lifecycle-state.json"
+    errors: list[str] = []
+    validate_json_shape(state, LIFECYCLE_JSON_SCHEMA, label, errors)
+    if errors:
+        return errors
+
+    generation, stage = state["generation"], state["stage"]
+    if state["feature"] != feature:
+        errors.append(f"{label}.feature: expected {feature!r}")
+    actions = state["next_legal_actions"]
+    if len(actions) != len(set(actions)) or len(actions) > 8:
+        errors.append(f"{label}.next_legal_actions: actions must be unique and bounded to eight")
+    if not actions and stage != "completed":
+        errors.append(f"{label}.next_legal_actions: non-completed state requires at least one action")
+    portability = state["portability_authorization"]
+    if not portability.strip() or len(portability) > 512:
+        errors.append(f"{label}.portability_authorization: expected concise non-empty source text")
+
+    owner = state["owner"]
+    if owner["disposition"] == "unassigned" and (owner["token"] is not None or owner["host"] is not None):
+        errors.append(f"{label}.owner: unassigned owner must have null token and host")
+    if owner["disposition"] != "unassigned" and (owner["token"] is None or owner["host"] is None):
+        errors.append(f"{label}.owner: {owner['disposition']} owner requires token and host")
+    takeover = owner["takeover"]
+    if takeover is not None and takeover["previous_generation"] >= generation:
+        errors.append(f"{label}.owner.takeover.previous_generation: must be below current generation")
+
+    artifact = state["artifact_checkpoint"]
+    expected_artifact_ref = f"refs/heads/artifacts/{feature}"
+    if artifact["ref"] != expected_artifact_ref:
+        errors.append(f"{label}.artifact_checkpoint.ref: expected {expected_artifact_ref!r}")
+    if (artifact["sha"] is None) != (artifact["tree"] is None):
+        errors.append(f"{label}.artifact_checkpoint: sha and tree must both be null or exact object IDs")
+    elif artifact["sha"] is not None and verify_git_objects:
+        actual_tree = git_commit_tree(artifact_root, artifact["sha"], f"{label}.artifact_checkpoint.sha", errors)
+        if actual_tree is not None and actual_tree != artifact["tree"]:
+            errors.append(f"{label}.artifact_checkpoint.tree: does not match checkpoint commit tree")
+
+    code = state["code_checkpoint"]
+    if code is not None:
+        match = re.fullmatch(
+            rf"refs/heads/checkpoints/{re.escape(feature)}/[A-Za-z0-9][A-Za-z0-9-]*/g([1-9]\d*)",
+            code["ref"],
+        )
+        if match is None:
+            errors.append(
+                f"{label}.code_checkpoint.ref: expected immutable refs/heads/checkpoints/{feature}/<slot>/g<generation>"
+            )
+        elif int(match.group(1)) > generation:
+            errors.append(f"{label}.code_checkpoint.ref: checkpoint generation exceeds Lifecycle State generation")
+        if verify_git_objects:
+            require_git_commit(code_root, code["sha"], f"{label}.code_checkpoint.sha", errors)
+
+    authorization = state["authorization"]
+    auth_values = [authorization[field] for field in ("id", "initial_digest", "effective_digest")]
+    authorization_complete = all(value is not None for value in auth_values)
+    if any(value is not None for value in auth_values) and not authorization_complete:
+        errors.append(f"{label}.authorization: id, initial_digest, and effective_digest must be all null or all set")
+    if stage in PREAUTH_LIFECYCLE_STAGES and authorization_complete:
+        errors.append(f"{label}.authorization: must be empty before authorization")
+    if stage in AUTHORIZED_LIFECYCLE_STAGES and not authorization_complete:
+        errors.append(f"{label}.authorization: complete lineage is required at stage {stage!r}")
+    if authorization_complete and artifact["sha"] is None:
+        errors.append(f"{label}.artifact_checkpoint: authorized state requires exact commit and tree")
+    amendment = authorization["amendment_link"]
+    if amendment is not None and not authorization_complete:
+        errors.append(f"{label}.authorization.amendment_link: requires complete authorization fields")
+    if generation == 1 and authorization_complete and authorization["effective_digest"] != authorization["initial_digest"]:
+        errors.append(f"{label}.authorization.effective_digest: generation 1 must equal initial_digest")
+    if amendment is not None:
+        computed = technical_amendment_effective_digest(
+            amendment["parent_effective_digest"], amendment["amendment_digest"], amendment["artifact_sha"]
+        )
+        if authorization["effective_digest"] != computed:
+            errors.append(f"{label}.authorization.effective_digest: does not match current amendment link")
+        if amendment["artifact_sha"] != artifact["sha"]:
+            errors.append(f"{label}.authorization.amendment_link.artifact_sha: must match artifact checkpoint sha")
+        if generation == 1:
+            errors.append(f"{label}.authorization.amendment_link: generation 1 has no predecessor to amend")
+        if verify_git_objects:
+            require_git_commit(
+                artifact_root, amendment["artifact_sha"], f"{label}.authorization.amendment_link.artifact_sha", errors
+            )
+
+    validate_lifecycle_budget_invariants(state, authorization_complete, errors)
+
+    packages, wave = state["packages"], state["wave"]
+    if wave is None and any(package["wave"] is not None for package in packages.values()):
+        errors.append(f"{label}.wave: package wave pointers require a current wave")
+    if wave is not None:
+        if wave["generation"] > generation:
+            errors.append(f"{label}.wave.generation: cannot exceed Lifecycle State generation")
+        if not wave["packages"] or len(wave["packages"]) != len(set(wave["packages"])):
+            errors.append(f"{label}.wave.packages: expected non-empty unique package ids")
+        for package_id in wave["packages"]:
+            if package_id not in packages or packages[package_id]["wave"] != wave["id"]:
+                errors.append(f"{label}.wave.packages: {package_id!r} must name a package pointing to current wave")
+        for package_id, package in packages.items():
+            if package["wave"] is not None and package["wave"] != wave["id"]:
+                errors.append(f"{label}.packages.{package_id}.wave: does not match current wave")
+            elif package["wave"] == wave["id"] and package_id not in wave["packages"]:
+                errors.append(f"{label}.wave.packages: missing package {package_id!r} that points to current wave")
+
+    cluster_ids = [cluster["id"] for cluster in state["serious_clusters"]]
+    if len(cluster_ids) != len(set(cluster_ids)):
+        errors.append(f"{label}.serious_clusters: duplicate cluster id")
+    for package_id in state.get("package_modes", {}):
+        if package_id not in packages:
+            errors.append(f"{label}.package_modes.{package_id}: package is not present in lifecycle packages")
+
+    validate_receipt_pointers(state["receipts"], artifact_root, feature, errors, verify_files)
+    verified = state["last_verified"]
+    if generation == 1 and verified is not None:
+        errors.append(f"{label}.last_verified: generation 1 must use null")
+    elif generation > 1:
+        if verified is None:
+            errors.append(f"{label}.last_verified: required after generation 1")
+        else:
+            if verified["artifact_ref"] != expected_artifact_ref:
+                errors.append(f"{label}.last_verified.artifact_ref: expected {expected_artifact_ref!r}")
+            if verified["generation"] >= generation:
+                errors.append(f"{label}.last_verified.generation: must be below current generation")
+    return errors
+
+
+def validate_lifecycle_budget_invariants(
+    state: dict[str, Any], authorization_complete: bool, errors: list[str]
+) -> None:
+    label = "lifecycle-state.json.budgets"
+    budgets = state["budgets"]
+    for name in ("preauthorization", "implementation"):
+        budget = budgets[name]
+        if budget is None:
+            continue
+        maxima, issued = budget["maxima"], budget["issued"]
+        if not maxima or set(maxima) != set(issued):
+            errors.append(f"{label}.{name}: maxima and issued require the same non-empty counters")
+        required = PREAUTH_REQUIRED_COUNTERS if name == "preauthorization" else IMPLEMENTATION_REQUIRED_COUNTERS
+        missing = required - set(maxima)
+        if missing:
+            errors.append(f"{label}.{name}: missing required counters {sorted(missing)}")
+        for counter in sorted(set(maxima) & set(issued)):
+            if issued[counter] > maxima[counter]:
+                errors.append(f"{label}.{name}.issued.{counter}: issued usage exceeds maximum")
+        started = parse_aware_iso8601(budget["started_at"], f"{label}.{name}.started_at", errors)
+        deadline = parse_aware_iso8601(budget["deadline_at"], f"{label}.{name}.deadline_at", errors)
+        if started is not None and deadline is not None and deadline <= started:
+            errors.append(f"{label}.{name}.deadline_at: must be later than started_at")
+    if state["stage"] in PREAUTH_BUDGET_STAGES and budgets["preauthorization"] is None:
+        errors.append(f"{label}.preauthorization: required at stage {state['stage']!r}")
+    if authorization_complete and (budgets["preauthorization"] is None or budgets["implementation"] is None):
+        errors.append(f"{label}: authorized state requires preauthorization and implementation budgets")
+    if not authorization_complete and budgets["implementation"] is not None:
+        errors.append(f"{label}.implementation: must be null before authorization")
+    control = budgets["control_plane_reserve"]
+    if control["maximum"] != 1 or control["issued"] > 1:
+        errors.append(f"{label}.control_plane_reserve: expected fixed maximum 1 and issued 0 or 1")
+
+    reservation = budgets["active_reservation"]
+    if reservation is None:
+        return
+    owner = state["owner"]
+    if owner["disposition"] != "active" or reservation["owner_token"] != owner["token"]:
+        errors.append(f"{label}.active_reservation: requires and must match active owner")
+    if reservation["generation"] != state["generation"]:
+        errors.append(f"{label}.active_reservation.generation: must equal Lifecycle State generation")
+    selected = budgets[reservation["budget"]]
+    if selected is None:
+        errors.append(f"{label}.active_reservation.budget: selected budget is not active")
+        return
+    if not reservation["units"]:
+        errors.append(f"{label}.active_reservation.units: expected non-empty counter object")
+    for counter, amount in reservation["units"].items():
+        if counter not in selected["issued"]:
+            errors.append(f"{label}.active_reservation.units.{counter}: unsupported budget counter")
+        elif amount > selected["issued"][counter]:
+            errors.append(f"{label}.active_reservation.units.{counter}: reservation is not already charged")
+
+
+def validate_receipt_pointers(
+    receipts: list[dict[str, Any]],
+    artifact_root: Path,
+    feature: str,
+    errors: list[str],
+    verify_files: bool,
+) -> None:
+    label = "lifecycle-state.json.receipts"
+    seen: set[tuple[str, str]] = set()
+    for index, receipt in enumerate(receipts):
+        item_label = f"{label}[{index}]"
+        try:
+            path = repo_relative_path(receipt["path"], f"{item_label}.path")
+        except SliceproofError as exc:
+            errors.extend(exc.errors)
+            continue
+        if len(path.parts) < 3 or path.parts[:2] != (".tasks", feature):
+            errors.append(f"{item_label}.path: must remain under .tasks/{feature}/")
+            continue
+        key = (receipt["role"], receipt["path"])
+        if key in seen:
+            errors.append(f"{label}: duplicate role/path pointer {key!r}")
+        seen.add(key)
+        if verify_files:
+            try:
+                receipt_path = resolve_authority_file(artifact_root, receipt["path"], f"{item_label}.path")
+            except SliceproofError as exc:
+                errors.extend(exc.errors)
+            else:
+                if digest_bytes(receipt_path.read_bytes()) != receipt["digest"]:
+                    errors.append(f"{item_label}.digest: does not match current receipt file")
+
+
+def technical_amendment_effective_digest(parent: str, amendment: str, artifact_sha: str) -> str:
+    return canonical_json_digest({
+        "artifact_sha": artifact_sha,
+        "parent_effective_digest": parent,
+        "technical_amendment_digest": amendment,
+    })
+
+
+def validate_generation_one_topology(artifact_root: Path, relative_path: str, state: dict[str, Any]) -> None:
+    head = git_head_or_none(artifact_root)
+    if head is None:
+        return
+    try:
+        committed = git_output(
+            artifact_root, ["show", f"{head}:{relative_path}"], "validate-lifecycle-state: committed generation 1 state"
+        )
+    except SliceproofError:
+        raise SliceproofError(["validate-lifecycle-state: generation 1 cannot reset committed lifecycle history"])
+    parents = git_output(
+        artifact_root, ["rev-list", "--parents", "-n", "1", head], "validate-lifecycle-state: generation 1 ancestry"
+    ).split()
+    if len(parents) != 1 or canonical_json_digest(load_strict_json_text(committed, "committed generation 1 Lifecycle State")) != canonical_json_digest(state):
+        raise SliceproofError(["validate-lifecycle-state: generation 1 cannot reset committed lifecycle history"])
+
+
+def load_committed_lifecycle_state(
+    artifact_root: Path,
+    relative_path: str,
+    commit: str,
+    *,
+    current_state: dict[str, Any],
+) -> dict[str, Any]:
+    errors: list[str] = []
+    if not require_exact_git_sha(commit, "validate-lifecycle-state: --previous-commit", errors):
+        raise SliceproofError(errors)
+    require_git_commit(artifact_root, commit, "validate-lifecycle-state: --previous-commit", errors)
+    if errors:
+        raise SliceproofError(errors)
+    tree_line = git_output(
+        artifact_root, ["ls-tree", commit, "--", relative_path], "validate-lifecycle-state: committed predecessor path"
+    ).strip()
+    fields = tree_line.split(None, 3)
+    if len(fields) != 4 or fields[0] not in {"100644", "100755"} or fields[1] != "blob" or fields[3] != relative_path:
+        raise SliceproofError([
+            "validate-lifecycle-state: predecessor Lifecycle State must be a regular committed blob at the derived path"
+        ])
+    previous = load_strict_json_text(
+        git_output(
+            artifact_root, ["show", f"{commit}:{relative_path}"], "validate-lifecycle-state: predecessor Lifecycle State"
+        ),
+        "predecessor Lifecycle State",
+    )
+    if not isinstance(previous, dict):
+        raise SliceproofError(["predecessor Lifecycle State: root must be an object"])
+    validate_predecessor_topology(artifact_root, relative_path, commit, current_state)
+    return previous
+
+
+def validate_predecessor_topology(
+    artifact_root: Path,
+    relative_path: str,
+    previous_commit: str,
+    current_state: dict[str, Any],
+) -> None:
+    head = git_output(artifact_root, ["rev-parse", "HEAD"], "validate-lifecycle-state: artifact HEAD").strip()
+    if head == previous_commit:
+        return
+    committed_current = load_strict_json_text(
+        git_output(
+            artifact_root, ["show", f"{head}:{relative_path}"], "validate-lifecycle-state: committed current Lifecycle State"
+        ),
+        "committed current Lifecycle State",
+    )
+    if canonical_json_digest(committed_current) != canonical_json_digest(current_state):
+        raise SliceproofError([
+            "validate-lifecycle-state: current working state is not based on the named predecessor snapshot"
+        ])
+    parents = git_output(
+        artifact_root, ["rev-list", "--parents", "-n", "1", head], "validate-lifecycle-state: artifact checkpoint ancestry"
+    ).split()
+    if len(parents) != 2 or parents[1] != previous_commit:
+        raise SliceproofError([
+            "validate-lifecycle-state: committed current state must have the named predecessor as its sole parent"
+        ])
+
+
+def compare_lifecycle_states(previous: dict[str, Any], current: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
+    if current["generation"] != previous["generation"] + 1:
+        errors.append("lifecycle transition: generation must advance exactly once from committed predecessor")
+    if current["last_verified"]["generation"] != previous["generation"]:
+        errors.append("lifecycle transition: last_verified.generation must equal predecessor generation")
+
+    previous_owner, current_owner = previous["owner"], current["owner"]
+    if current_owner["token"] == previous_owner["token"]:
+        if current_owner["host"] != previous_owner["host"]:
+            errors.append("lifecycle transition: owner host cannot reset while owner token is unchanged")
+        if current_owner.get("takeover") != previous_owner.get("takeover"):
+            errors.append("lifecycle transition: takeover provenance is immutable for the same owner")
+        if previous_owner["disposition"] == "released" and current_owner["disposition"] != "released":
+            errors.append("lifecycle transition: released owner disposition is terminal")
+    elif previous_owner["token"] is None:
+        if current_owner.get("takeover") is not None or (
+            current_owner.get("token") is not None and current_owner.get("disposition") != "active"
+        ):
+            errors.append("lifecycle transition: initial owner acquisition must become active without takeover provenance")
+    else:
+        takeover = current_owner.get("takeover")
+        valid_takeover = (
+            previous_owner["disposition"] in {"stopped", "released"}
+            and current_owner["disposition"] == "active"
+            and isinstance(takeover, dict)
+            and takeover.get("previous_token") == previous_owner["token"]
+            and takeover.get("previous_host") == previous_owner["host"]
+            and takeover.get("previous_generation") == previous["generation"]
+        )
+        if not valid_takeover:
+            errors.append("lifecycle transition: owner/host change requires exact stopped-owner takeover provenance")
+
+    if previous["artifact_checkpoint"]["ref"] != current["artifact_checkpoint"]["ref"]:
+        errors.append("lifecycle transition: artifact checkpoint ref is immutable")
+    if previous["artifact_checkpoint"]["sha"] is not None and current["artifact_checkpoint"]["sha"] is None:
+        errors.append("lifecycle transition: artifact checkpoint cannot reset to null")
+    if previous["portability_authorization"] != current["portability_authorization"]:
+        errors.append("lifecycle transition: portability authorization source is immutable")
+    previous_code, current_code = previous.get("code_checkpoint"), current.get("code_checkpoint")
+    if previous_code and current_code is None:
+        errors.append("lifecycle transition: code checkpoint cannot reset to null")
+    elif previous_code and current_code:
+        if previous_code["ref"] == current_code["ref"] and previous_code["sha"] != current_code["sha"]:
+            errors.append("lifecycle transition: immutable code checkpoint ref cannot change sha")
+        elif previous_code["ref"] != current_code["ref"] and checkpoint_ref_generation(current_code["ref"]) <= checkpoint_ref_generation(previous_code["ref"]):
+            errors.append("lifecycle transition: code checkpoint generation must advance when ref changes")
+
+    previous_auth, current_auth = previous["authorization"], current["authorization"]
+    previous_authorized = previous_auth["id"] is not None
+    current_authorized = current_auth["id"] is not None
+    authorization_changed = False
+    if previous_authorized:
+        if not current_authorized:
+            errors.append("lifecycle transition: authorization cannot reset")
+        else:
+            for field in ("id", "initial_digest"):
+                if current_auth[field] != previous_auth[field]:
+                    errors.append(f"lifecycle transition: authorization {field} is immutable")
+            authorization_changed = current_auth["effective_digest"] != previous_auth["effective_digest"]
+            link = current_auth.get("amendment_link")
+            if authorization_changed:
+                if not isinstance(link, dict) or link.get("parent_effective_digest") != previous_auth["effective_digest"]:
+                    errors.append("lifecycle transition: effective authorization digest requires an exact amendment link")
+            elif link is not None:
+                errors.append("lifecycle transition: amendment_link is allowed only for this generation's effective-digest change")
+            if current["artifact_checkpoint"]["sha"] != previous["artifact_checkpoint"]["sha"] and not authorization_changed:
+                errors.append("lifecycle transition: authorized artifact checkpoint changed without technical amendment")
+            if not authorization_changed:
+                for field in ("assurance_profile", "package_modes"):
+                    if current.get(field) != previous.get(field):
+                        errors.append(f"lifecycle transition: authorized {field} changed without technical amendment")
+    elif current_authorized and (
+        current_auth["effective_digest"] != current_auth["initial_digest"] or current_auth.get("amendment_link") is not None
+    ):
+        errors.append("lifecycle transition: initial authorization must start at its initial digest without amendment history")
+
+    errors.extend(compare_lifecycle_budgets(previous["budgets"], current["budgets"]))
+    previous_packages, current_packages = previous["packages"], current["packages"]
+    if previous_authorized and not authorization_changed and set(previous_packages) != set(current_packages):
+        errors.append("lifecycle transition: authorized package membership changed without technical amendment")
+    for package_id in set(previous_packages) & set(current_packages):
+        old_state = previous_packages[package_id]["state"]
+        new_state = current_packages[package_id]["state"]
+        allowed = ({"done", "invalidated"} if old_state == "done" else
+                   {"verified", "done", "invalidated"} if old_state == "verified" else None)
+        if allowed is not None and new_state not in allowed:
+            errors.append(f"lifecycle transition: package {package_id} cannot reset from {old_state} to {new_state}")
+
+    previous_wave, current_wave = previous["wave"], current["wave"]
+    if previous_wave is not None:
+        if current_wave is None or current_wave["id"] != previous_wave["id"]:
+            if previous_wave["state"] not in {"completed", "blocked"}:
+                errors.append("lifecycle transition: current wave cannot disappear or change before terminal disposition")
+        else:
+            if current_wave["generation"] != previous_wave["generation"]:
+                errors.append("lifecycle transition: current wave generation is immutable")
+            if current_wave["packages"] != previous_wave["packages"]:
+                errors.append("lifecycle transition: current wave package membership is immutable")
+            if previous_wave["state"] in {"completed", "blocked"} and current_wave["state"] != previous_wave["state"]:
+                errors.append("lifecycle transition: terminal wave disposition is immutable")
+            if previous_wave["state"] == "active" and current_wave["state"] == "reserved":
+                errors.append("lifecycle transition: active wave cannot reset to reserved")
+
+    previous_clusters = {item["id"]: item for item in previous["serious_clusters"]}
+    current_clusters = {item["id"]: item for item in current["serious_clusters"]}
+    for cluster_id, old in previous_clusters.items():
+        new = current_clusters.get(cluster_id)
+        if new is None:
+            errors.append(f"lifecycle transition: serious cluster {cluster_id} cannot disappear")
+            continue
+        if new["strikes"] < old["strikes"]:
+            errors.append(f"lifecycle transition: serious cluster {cluster_id} strikes cannot decrease")
+        if old["disposition"] in {"closed", "circuit-open"} and new["disposition"] != old["disposition"]:
+            errors.append(f"lifecycle transition: serious cluster {cluster_id} terminal disposition is immutable")
+
+    if previous["freeze"] == current["freeze"]:
+        old_receipts = {(item["role"], item["path"]): item for item in previous["receipts"]}
+        new_receipts = {(item["role"], item["path"]): item for item in current["receipts"]}
+        for key, old in old_receipts.items():
+            if new_receipts.get(key) != old:
+                errors.append(f"lifecycle transition: receipt pointer {key!r} cannot mutate under the same freeze")
+    return errors
+
+
+def validate_artifact_checkpoint_ancestry(
+    artifact_root: Path,
+    previous: dict[str, Any],
+    current: dict[str, Any],
+) -> list[str]:
+    old_sha = previous["artifact_checkpoint"].get("sha")
+    new_sha = current["artifact_checkpoint"].get("sha")
+    if old_sha is None or new_sha is None or old_sha == new_sha:
+        return []
+    result = git_process(artifact_root, ["merge-base", "--is-ancestor", old_sha, new_sha], "lifecycle transition")
+    if result.returncode == 0:
+        return []
+    if result.returncode == 1:
+        return ["lifecycle transition: artifact checkpoint cannot move to a non-descendant commit"]
+    detail = result.stderr.strip() or f"exit {result.returncode}"
+    return [f"lifecycle transition: unable to verify artifact checkpoint ancestry: {detail}"]
+
+
+def checkpoint_ref_generation(ref: str) -> int:
+    return int(ref.rsplit("/g", 1)[1])
+
+
+def compare_lifecycle_budgets(previous: dict[str, Any], current: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
+    for budget_name in ("preauthorization", "implementation"):
+        old, new = previous.get(budget_name), current.get(budget_name)
+        if old is not None and new is None:
+            errors.append(f"lifecycle transition: {budget_name} budget cannot reset to null")
+            continue
+        if old is None or new is None:
+            continue
+        if new["maxima"] != old["maxima"]:
+            errors.append(f"lifecycle transition: {budget_name} maxima are fixed")
+        for field in ("started_at", "deadline_at"):
+            if new[field] != old[field]:
+                errors.append(f"lifecycle transition: {budget_name} {field} is fixed")
+        for counter, old_usage in old["issued"].items():
+            if new["issued"].get(counter, -1) < old_usage:
+                errors.append(f"lifecycle transition: {budget_name} issued {counter} cannot decrease")
+
+    old_control, new_control = previous["control_plane_reserve"], current["control_plane_reserve"]
+    if new_control["maximum"] != old_control["maximum"]:
+        errors.append("lifecycle transition: control-plane reserve maximum is fixed")
+    if new_control["issued"] < old_control["issued"]:
+        errors.append("lifecycle transition: control-plane reserve issued usage cannot decrease")
+
+    old_reservation, new_reservation = previous.get("active_reservation"), current.get("active_reservation")
+    if old_reservation and new_reservation and old_reservation["id"] == new_reservation["id"]:
+        if old_reservation != new_reservation:
+            errors.append("lifecycle transition: active reservation cannot mutate under the same id")
+    elif new_reservation is not None:
+        budget_name = new_reservation["budget"]
+        old_budget, new_budget = previous.get(budget_name), current.get(budget_name)
+        old_issued = old_budget["issued"] if old_budget is not None else {}
+        if new_budget is not None:
+            for counter, amount in new_reservation["units"].items():
+                if new_budget["issued"][counter] - old_issued.get(counter, 0) < amount:
+                    errors.append(
+                        f"lifecycle transition: reservation {counter} must be charged by this generation's issued delta"
+                    )
+    return errors
+
+
+def resolve_authority_file(root: Path, value: str, label: str) -> Path:
+    path = repo_relative_path(value, label)
+    current = root
+    for part in path.parts:
+        current /= part
+        if current.is_symlink():
+            raise SliceproofError([f"{label}: authority path must not contain symlinks: {value}"])
+    resolved = current.resolve(strict=False)
+    try:
+        resolved.relative_to(root)
+    except ValueError:
+        raise SliceproofError([f"{label}: path escapes artifact root"])
+    if not resolved.is_file():
+        raise SliceproofError([f"{label}: file not found: {value}"])
+    return resolved
+
+
+def git_process(root: Path, args: list[str], label: str) -> subprocess.CompletedProcess[str]:
+    try:
+        return subprocess.run(
+            ["git", "-C", str(root), *args],
+            check=False,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+    except OSError as exc:
+        raise SliceproofError([f"{label}: unable to invoke local git: {exc}"])
+
+
+def git_output(root: Path, args: list[str], label: str) -> str:
+    result = git_process(root, args, label)
+    if result.returncode != 0:
+        detail = result.stderr.strip() or result.stdout.strip() or f"exit {result.returncode}"
+        raise SliceproofError([f"{label}: local git inspection failed: {detail}"])
+    return result.stdout
+
+
+def git_head_or_none(root: Path) -> str | None:
+    result = git_process(root, ["rev-parse", "--verify", "HEAD"], "validate-lifecycle-state")
+    if result.returncode == 0:
+        return result.stdout.strip()
+    if result.returncode == 128 and "needed a single revision" in result.stderr.lower():
+        return None
+    raise SliceproofError([
+        f"validate-lifecycle-state: unable to inspect artifact HEAD: {result.stderr.strip()}"
+    ])
+
+
+def require_exact_git_root(root: Path, label: str) -> None:
+    top = git_output(root, ["rev-parse", "--show-toplevel"], f"validate-lifecycle-state: {label}").strip()
+    if Path(top).resolve(strict=False) != root:
+        raise SliceproofError([f"validate-lifecycle-state: {label} must be an exact Git worktree root"])
+
+
+def require_git_commit(root: Path, sha: str, label: str, errors: list[str]) -> None:
+    try:
+        actual = git_output(root, ["rev-parse", f"{sha}^{{commit}}"], label).strip()
+    except SliceproofError as exc:
+        errors.extend(exc.errors)
+        return
+    if actual != sha:
+        errors.append(f"{label}: does not resolve to the exact named commit")
+
+
+def git_commit_tree(root: Path, sha: str, label: str, errors: list[str]) -> str | None:
+    before = len(errors)
+    require_git_commit(root, sha, label, errors)
+    if len(errors) != before:
+        return None
+    try:
+        return git_output(root, ["rev-parse", f"{sha}^{{tree}}"], label).strip()
+    except SliceproofError as exc:
+        errors.extend(exc.errors)
+        return None
+
+
+def require_exact_git_sha(value: Any, label: str, errors: list[str]) -> bool:
+    if not isinstance(value, str) or not EXACT_GIT_SHA_RE.fullmatch(value):
+        errors.append(f"{label}: expected exact lowercase 40- or 64-hex Git object id")
+        return False
+    return True
+
+
+def parse_aware_iso8601(value: Any, label: str, errors: list[str]) -> datetime | None:
+    if not isinstance(value, str):
+        errors.append(f"{label}: expected timezone-aware ISO-8601 timestamp")
+        return None
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        errors.append(f"{label}: expected timezone-aware ISO-8601 timestamp")
+        return None
+    if parsed.tzinfo is None or parsed.utcoffset() is None:
+        errors.append(f"{label}: expected timezone-aware ISO-8601 timestamp")
+        return None
+    return parsed
+
+
+def canonical_json_digest(value: Any) -> str:
+    canonical = json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+    return "sha256:" + hashlib.sha256(canonical).hexdigest()
+
+
+def digest_bytes(value: bytes) -> str:
+    return "sha256:" + hashlib.sha256(value).hexdigest()
 
 
 def cmd_validate_plan(args: argparse.Namespace) -> dict[str, Any]:
@@ -455,6 +1344,12 @@ def cmd_validate_plan(args: argparse.Namespace) -> dict[str, Any]:
         "artifact_root": str(registry.root),
         "code_root": str(registry.code_root),
         "feature": registry.feature,
+        "assurance_profile": registry.assurance_profile,
+        "package_modes": {
+            package.package_id: package.verification_mode
+            for package in registry.packages
+            if package.verification_mode is not None
+        },
         "packages": [package.package_id for package in registry.packages],
         "validated_package_markdown": sorted(packages),
         "validated_slices": sorted(registry.authoritative_slices),
@@ -736,6 +1631,9 @@ def load_registry(
                 report_path=item.get("report_path") if isinstance(item.get("report_path"), str) else "",
                 status=item.get("status") if isinstance(item.get("status"), str) else "",
                 depends_on=item.get("depends_on") if isinstance(item.get("depends_on"), list) else [],
+                verification_mode=(
+                    item.get("verification_mode") if isinstance(item.get("verification_mode"), str) else None
+                ),
             )
         )
     return Registry(
@@ -746,6 +1644,9 @@ def load_registry(
         feature=feature,
         authoritative_slices=[path for path in authoritative_slices if isinstance(path, str)],
         packages=packages,
+        assurance_profile=(
+            data.get("assurance_profile") if isinstance(data.get("assurance_profile"), str) else None
+        ),
     )
 
 
@@ -769,6 +1670,11 @@ def validate_registry(registry: Registry) -> list[str]:
     status = data.get("status")
     if not isinstance(status, str) or status not in FEATURE_STATUS_VALUES:
         errors.append(f"status: expected one of {sorted(FEATURE_STATUS_VALUES)}")
+    assurance_profile = data.get("assurance_profile")
+    if assurance_profile is not None and (
+        not isinstance(assurance_profile, str) or assurance_profile not in ASSURANCE_PROFILES
+    ):
+        errors.append(f"assurance_profile: expected one of {sorted(ASSURANCE_PROFILES)} when present")
 
     spec_path = data.get("spec_path")
     if not isinstance(spec_path, str) or not spec_path.strip():
@@ -838,6 +1744,13 @@ def validate_registry(registry: Registry) -> list[str]:
         status = item.get("status")
         if not isinstance(status, str) or status not in STATUS_VALUES:
             errors.append(f"{prefix}.status: expected one of {sorted(STATUS_VALUES)}")
+        verification_mode = item.get("verification_mode")
+        if verification_mode is not None and (
+            not isinstance(verification_mode, str) or verification_mode not in PACKAGE_VERIFICATION_MODES
+        ):
+            errors.append(
+                f"{prefix}.verification_mode: expected one of {sorted(PACKAGE_VERIFICATION_MODES)} when present"
+            )
         depends_on = item.get("depends_on")
         if not isinstance(depends_on, list):
             errors.append(f"{prefix}.depends_on: expected array")

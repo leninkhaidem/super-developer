@@ -1,15 +1,13 @@
 # Implement Package Dispatch
-Load after plan validation and artifact inspection. This reference owns package selection, conditional
-execution readiness, safe batching, and pointer-based package/repair/verifier dispatch. Worker contracts
-define worker behavior.
+Load after plan/artifact inspection. This owns package selection, conditional readiness, safe batching, and
+pointer-based package/repair/verifier dispatch; worker contracts own worker behavior.
 
 ## Context Boundary
-
 The Delivery Owner from `plugins/super-developer/references/orchestration-convergence.md` owns artifacts,
-worktrees, dispatch, integration, repair, circuit state, and continuation. Load worker contracts here only to resolve returns.
+worktrees, dispatch, integration, repair, circuit state, and continuation. Load worker contracts here only to
+resolve returns.
 
 ## Package Surfaces
-
 Use artifact-root package surfaces, never an assumed code checkout:
 
 - `tasks.json` is registry/bookkeeping only.
@@ -19,8 +17,11 @@ Use artifact-root package surfaces, never an assumed code checkout:
 - Package and integration worktrees are separate code roots for source edits and validation.
 
 ## Candidate and Readiness Checks
-
-Before dispatch, confirm:
+Before every semantic dispatch, validate Lifecycle State against its exact predecessor with explicit distinct
+roots. Require the active owner and bounded reservation already charged to monotonic issued usage, then
+CAS-checkpoint it through the worktree contract before the call. Helper only validates/emits digests; it never
+reserves, dispatches, transitions, or pushes.
+Then confirm:
 
 - the `WP<N>` registry entry is `pending` or explicitly resumed for repair;
 - every dependency has a fresh `PASS` report and clean `validate-package-complete`; registry `done` alone does
@@ -145,6 +146,5 @@ and writes the report without hidden chat context.
 
 ## Orchestrator Edit Boundary
 
-The orchestrator does not implement or repair production/test/documentation behavior inline. Direct edits are
-limited to workflow metadata, artifact handoff/validation bookkeeping, mechanical integration state, and
-explicitly approved plan/status changes.
+The orchestrator never implements/repairs product behavior inline. Direct edits are limited to workflow metadata,
+artifact handoff/validation bookkeeping, mechanical integration state, and approved plan/status changes.
