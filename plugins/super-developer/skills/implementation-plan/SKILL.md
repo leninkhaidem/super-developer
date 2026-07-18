@@ -1,16 +1,17 @@
 ---
 name: implementation-plan
 description: >
-  Creates fresh Slice-first planned-feature artifacts for approved changes. Use for implementation planning,
-  package breakdowns, or task artifacts. Do not use for coding, code review, audit, or status.
+  Creates fresh Slice-first planned-feature artifacts or performs a Delivery-Owner-routed focused amendment.
+  Use for implementation planning, package breakdowns, or accepted-plan amendments. Do not use for coding,
+  code review, audit, or status.
 ---
 
 # Implementation Plan
 
-Orchestrate creation of a fresh Slice-first planned-feature file set under the selected artifact root:
-`SPEC.md`, lightweight `tasks.json` registry, package Markdown, declared proof/report paths, and proof
-placeholders when dispatch is next. The approved change may target a new or existing system; “fresh” describes
-its artifact set, not a new-code-only scope. Source inspection and helper execution use the code root.
+Orchestrate `create` of a fresh Slice-first planned-feature file set or an explicit `amend` of accepted artifacts
+under the selected artifact root: `SPEC.md`, lightweight registry, package Markdown, and proof/report paths.
+The approved change may target a new or existing system. “Fresh” describes create-mode artifacts, not
+new-code-only scope. Source inspection and helper execution use the code root.
 
 Important boundary: this skill is the orchestration surface. When artifact writing is needed, hand a
 fresh planner agent a compact packet and `references/planner-agent-contract.md`; do not draft
@@ -21,8 +22,10 @@ rules are required; do not preload references merely because they are named.
 
 ## Always
 
-- Plan from approved user requirements, safe Conceptualize handoff material, and verified repo/spike
-  evidence only.
+- Plan from approved user requirements, safe Conceptualize handoff material, and verified repo/spike evidence.
+- For a nested amendment, load `../../references/orchestration-convergence.md`; preserve caller/return, old
+  accepted commit, finite affected scope, and authorization. Return the new candidate/invalidation handback;
+  never invoke review or implementation on the caller's behalf.
 - Delegate planned-feature artifact writing to a fresh planner agent using
   `references/planner-agent-contract.md`.
 - Ask before inventing behavior, narrowing scope, deferring material obligations, accepting risk, or
@@ -52,13 +55,10 @@ rules are required; do not preload references merely because they are named.
 
 ## Do
 
-1. Load `../../references/artifact-store.md`. Resolve artifact root, code root, artifact ref,
-   feature/artifact slug, and source material. Use direct user requirements, repo evidence, spike
-   evidence, or one selected Conceptualize workspace; ask one focused question if the source is
-   ambiguous. When planning from Conceptualize, verify the post-Conceptualize sidecar checkpoint
-   happened or invoke `worktree` for that checkpoint before writing `.tasks/`. When no sidecar exists
-   yet (direct planning without Conceptualize), create it through `worktree` before writing `.tasks/`,
-   since `git worktree add` refuses a non-empty path.
+1. Load `../../references/artifact-store.md` and, for nested work,
+   `../../references/orchestration-convergence.md`. Resolve `create|amend`, caller/return, artifact/code roots,
+   artifact ref, slug, accepted commit, affected scope, and source material. Create mode may set up the sidecar
+   through `worktree`; amend mode must use the existing accepted artifact root and fail closed on drift.
 2. Check orchestration blockers before delegation: unsafe paths, unresolved decisions, overwrite, spike, or
    risk acceptance. When execution feasibility materially depends on test/harness behavior, resolve testing
    authority: accepted/current workflow for high-risk/reusable work, routine-safe fallback for a bounded local
@@ -87,15 +87,17 @@ rules are required; do not preload references merely because they are named.
      artifact-authoring, validation, tool-usage, and optional Semgrep contracts;
    - resolved Semgrep state: disabled, or enabled with privacy-mode, local cache/index/profile facts,
      approved setup side effects, and helper availability;
-   - overwrite approval state, stop conditions, and expected output fields.
+   - overwrite approval state, stop conditions, expected output fields, and—when amending—caller/return,
+     old accepted commit, affected requirements/Slices/packages/surfaces, preserved state, and expected
+     invalidation handback.
 6. After the planner returns, re-open `SPEC.md`, `tasks.json`, and package Markdown from the
    artifact root.
 7. From the code root, run `python3 plugins/super-developer/assets/sliceproof.py validate-plan \
    --artifact-root <artifact-root> --code-root <code-root> .tasks/<feature>/tasks.json` and route
    any non-mechanical repair back through a planner packet instead of patching artifacts inline.
-8. Report artifact root/ref, code root, feature and artifact paths, packages/dependencies, closure-complexity
-   and parallel/serial rationale, triggered execution-feasibility profiles, testing-authority provenance,
-   Slice inventory or no-Slice state, approved deferrals, assumptions, validation result, and next gate.
+8. Report artifact root/ref, code root, mode, caller/return, old/new candidate state, changed and preserved
+   packages, affected proofs/reports/freeze inputs, explicit old-to-new mappings when needed, validation result,
+   deferrals, assumptions, and the Delivery Owner or standalone next gate.
 
 ## Load if needed
 
@@ -115,7 +117,8 @@ rules are required; do not preload references merely because they are named.
 - Feature slug, artifact root/ref, code root, artifact path, or source path is unsafe.
 - A requested feature slug diverges from the Conceptualize slug without explicit user-approved
   rename/migration metadata.
-- Existing `.tasks/<feature>/` state would be overwritten without explicit approval.
+- Create mode would overwrite existing `.tasks/<feature>/`; amend mode lacks caller authority, exact old accepted
+  state, bounded affected scope, or an evidence-backed invalidation handback.
 - A material requirement, Slice obligation, risk acceptance, approved deferral, or package boundary
   needs a user decision.
 - Slices exist but full safe inventory cannot be completed by the delegated planner.
@@ -127,7 +130,6 @@ rules are required; do not preload references merely because they are named.
 
 ## Output
 
-Return artifact root/ref, code root, feature and artifact paths, packages/dependencies, closure-complexity
-rationale, triggered execution-feasibility profiles, testing-authority provenance, authoritative Slice inventory
-or no-Slice note, approved deferrals, assumptions, validation result, and next step (`review-plan` after
-confirmation unless authorized).
+Return mode, caller/return disposition, artifact root/ref, code root, old/new candidate state, feature paths,
+packages/dependencies, affected/preserved state and invalidation map, closure rationale, testing authority, Slice
+inventory or no-Slice note, deferrals, assumptions, validation result, and owner-selected or standalone next step.

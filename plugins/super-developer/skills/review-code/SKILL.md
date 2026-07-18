@@ -17,7 +17,9 @@ Run bounded review; route report/actions by mode.
 - Pipeline review binds artifact-root evidence to one frozen integrated state; deliverable matrices are context
   only for freshness, seams, contradictions, and proof/report invalidation, not a third deliverable-completeness gate.
 - `CLEAN` means no confirmed serious review-code findings remain for the reviewed state; it is not audit PASS, proof acceptance, or merge readiness.
-- Main agent owns orchestration, state gates, reports, and action routing; semantic review/role work happen through dispatched sub-agents. No mutation until the active mode allows it.
+- Main agent owns orchestration, state gates, reports, and action routing; semantic review happens through sub-agents.
+  Pipeline mode follows `../../references/orchestration-convergence.md` and returns findings to its Delivery Owner;
+  it never owns repair or lifecycle continuation. No mutation occurs unless local mode allows it.
 - Revalidate reviewed-state metadata before posting, fixing, committing, evidence refresh, or audit-context handoff.
 
 ## Mode Routing
@@ -116,13 +118,12 @@ findings are consistency/evidence signals.
 
 ## Fix Verification Gate
 
-Every review-owned local/pipeline repair passes `references/fix-implementer-contract.md` to a fresh Fix
-Implementer; PR mode has no fix path. A caller-owned local repair contract takes precedence and receives the
-approved packet/action instead. Main may apply only trivial behavior-preserving mechanical edits and explain why.
+Every review-owned local repair passes `references/fix-implementer-contract.md` to a fresh Fix Implementer; PR
+mode has no fix path. Pipeline mode returns classified findings, affected state, and suggested verification to the
+Delivery Owner without dispatching a fix. A caller-owned local repair contract takes precedence.
 
-After a delegated fix batch, run Fix Verification as a fresh role/sub-agent closure gate, not second
-discovery. Inputs: original findings, Fix Implementer report, pre/post metadata, batch boundaries,
-constraints, target paths, relevant proof/report context, and enough code to verify the delta.
+After a delegated local fix batch, run Fix Verification as a fresh closure role, not second discovery. Inputs:
+original findings, Fix Implementer report, pre/post metadata, boundaries, constraints, target paths, and code.
 
 Return per dedupe key: `dedupe_key`, `verdict: closed|partially_closed|not_closed|reopened`, evidence, remaining risk, and `next_action: none|same_scope_fix|widened_verification|full_rereview|authority_boundary`. Also include generic affected-surface impact classification, triggers, and readiness: `ready_for_audit`, `needs_fix`, `needs_widened_review`, or `needs_user_authority`.
 
@@ -142,9 +143,8 @@ Non-closed findings, serious regressions, unresolved triggers, stale state, or d
 - A serious finding lacks Skeptic verdict or required lens coverage is weak.
 - A fix requires product/design choice, scope expansion, new dependency/service, unsafe command, credentials, external facts, destructive action, or risk
   acceptance.
-- Pipeline artifact-root proof/report/Semgrep-evidence freshness, review-code state, package verification
-  rerun need, unrouted validation advisory, or widened verification is missing/stale/contradictory/uncertain.
+- Pipeline caller/return or Delivery Owner context is missing, or artifact-root proof/report/Semgrep evidence,
+  package-verification rerun need, validation advisory, or widened verification is stale/contradictory/uncertain.
 
 ## Output
-Return the mode report, verdict, allowed next actions, and blocked readiness reason. In pipeline mode, state whether review-code is audit-ready; never state
-final audit PASS or merge readiness.
+Return mode report, verdict, caller/return, classified findings/affected state, owner actions, and blockers. Pipeline states audit readiness only; never final audit PASS or merge readiness.

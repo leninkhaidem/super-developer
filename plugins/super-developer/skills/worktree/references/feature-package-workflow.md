@@ -115,8 +115,8 @@ git push -u origin feature/<feature>
 This publishes only `feature/<feature>`. It does not authorize target merge/push or sidecar cleanup.
 
 ## Sidecar Checkpoints
-Checkpoint at parent-supplied artifact-store gates (post-Conceptualize, post-review-plan, each package delivery,
-final review/audit), never after every incidental edit.
+Checkpoint only at parent-supplied gates. Before Gate-2 `git add -A`, prove the candidate differs only by the
+approved status mutation; unexpected artifact drift blocks staging. Never checkpoint every incidental edit.
 
 From the artifact worktree only:
 ```bash

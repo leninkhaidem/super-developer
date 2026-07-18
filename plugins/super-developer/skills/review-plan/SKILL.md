@@ -19,12 +19,17 @@ Validate that a Slice-first planned-feature artifact set is complete, self-suffi
 - Registry data is bookkeeping only; package Markdown owns assignment, Slice coverage, proof path, report path, verification expectations, dependencies, and approved package notes.
 - Reviewers challenge completeness, not only internal consistency: they flag requirements, edge cases, or failure modes a feature of this kind is expected to deliver but the artifacts omit.
 - Gate 1 and Gate 2 are blocking user approval gates. Blanket approval does not bypass Gate 2.
+- When called by a planned-feature Delivery Owner, follow
+  `../../references/orchestration-convergence.md`: preserve caller/return and return accepted state or blockers;
+  never invoke implementation or another lifecycle stage on the caller's behalf.
 - Keep artifact root, code root, artifact ref, and resolved feature/artifact slug explicit in gates, reviewer packets, validation commands, and summaries.
 - Do not create implementation proof, mark packages complete, run code review, or execute implementation inline.
 
 ## Do
 
-1. Load `../../references/artifact-store.md`. Resolve artifact root, code root, artifact ref, and `.tasks/<feature>/`; require `SPEC.md`, `tasks.json`, declared package Markdown paths, proof paths, report paths, and safe Slice inventory paths under the artifact root when Slices exist.
+1. Load `../../references/artifact-store.md` and, for a nested call,
+   `../../references/orchestration-convergence.md`. Resolve caller/return state, artifact root, code root, artifact
+   ref, and `.tasks/<feature>/`; require `SPEC.md`, `tasks.json`, package/proof/report paths, and safe Slice paths.
 2. From the code root, run `python3 plugins/super-developer/assets/sliceproof.py validate-plan --artifact-root <artifact-root> --code-root <code-root> .tasks/<feature>/tasks.json` before reviewer dispatch. Do not load semantic review references into orchestrator context unless debugging or changing review instructions.
 3. Read only enough metadata to present Gate 1 roots/ref, artifact paths, packages/dependencies, Slice and
    proof/report paths, flags, and exclusions. When a package declares an execution-feasibility profile, validate
@@ -37,16 +42,21 @@ Validate that a Slice-first planned-feature artifact set is complete, self-suffi
    `../../references/work-packages.md`, conditional `../../references/conceptualize-slice-authority.md`, and
    `../../references/clean-code-rules.md`; never pass hidden chat or copied Slice prose.
 7. If findings exist, load `references/plan-review-resolution.md`; repair mechanics, ask semantic decisions,
-   and persist accepted outcomes. If a blocker requires empirical evidence, stop artifact repair, invoke
-   `spike-to-plan`, route observed evidence through `implementation-plan`, then rerun validation and focused
-   review. Load `../../references/decision-prompts.md` only for structured user decisions.
-8. Present Gate 2 with roots/ref, deliverables, reviewers/escalations, refinements/deferrals/dismissals,
-   closure-complexity and parallel/serial rationale, triggered execution-feasibility profiles, proof/report
-   expectations, and remaining risks.
-9. After Gate 2 approval, update registry feature status to `reviewed` in the artifact root, invoke `worktree` for the sidecar checkpoint to `origin artifacts/<feature>`, report ready-for-implementation, and invoke `implement` only through the skill tool if already authorized.
+   and persist accepted outcomes. For a nested call, return empirical blockers and affected scope to the Delivery
+   Owner instead of invoking spike, planning, or implementation. Standalone mode may invoke `spike-to-plan`,
+   route observed evidence through `implementation-plan`, and then run focused re-review. Load decision prompts only for a
+   required user choice.
+8. Present Gate 2 with roots/ref, the validated artifact candidate identity, the sole expected
+   `status -> reviewed` mutation, deliverables, reviewers/escalations, refinements/deferrals/dismissals,
+   closure-complexity, verification expectations, and remaining risks.
+9. After approval, apply only the declared status mutation; revalidate that no other artifact content changed
+   before broad sidecar staging. Checkpoint through `worktree`, record and verify the exact resulting artifact
+   commit, and fail closed on drift. Return that accepted commit and caller/return disposition. A nested review
+   never invokes `implement`; standalone review may recommend it after separate authorization.
 
 ## Load if needed
 
+- Nested caller/return, accepted-state, or amendment semantics → `../../references/orchestration-convergence.md`
 - Artifact-root/code-root details exceed the workflow summary → `../../references/artifact-store.md`
 - Ambiguous reviewer output, reviewer-packet debugging, or reference maintenance → `references/plan-review-rubrics.md` and `references/plan-review-findings.md`
 
@@ -62,5 +72,6 @@ Validate that a Slice-first planned-feature artifact set is complete, self-suffi
 
 ## Output
 
-Return Gate 2 status, roots/ref, checkpoint, reviewers, findings/resolutions, changed artifacts, validation,
-closure-complexity/dependency/parallel rationale, execution-feasibility findings, deferrals, blockers, and next stage.
+Return Gate 2 status, caller/return disposition, roots/ref, exact accepted artifact commit, expected versus
+observed checkpoint mutation, reviewers, findings/resolutions, changed artifacts, validation,
+closure-complexity/dependency rationale, deferrals, blockers, and owner-selected next stage.

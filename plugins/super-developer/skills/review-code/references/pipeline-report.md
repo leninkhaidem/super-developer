@@ -1,7 +1,7 @@
 # Pipeline Review Workflow
 
-Pipeline owns integration-focused final review of one frozen planned-feature state: seams, integration-only
-changes, contradictions, artifacts/evidence impact, fix routing, governance state, and audit context.
+Pipeline owns integration-focused review of one frozen state and returns findings to the Delivery Owner under
+`plugins/super-developer/references/orchestration-convergence.md`; it does not own repair or continuation.
 
 ## Artifact Input
 Read safe artifact-root paths for SPEC, registry, package/proof Markdown, Slices, reports, review state,
@@ -107,39 +107,27 @@ non-contradictory outcome. Failed, inconclusive, or contradictory evidence route
 verification, never PASS rebinding. Bounded semantic changes use focused reruns; material/unbounded/sensitive/shared/uncertain changes widen.
 Establish a new freeze before affected final checks; do not run full final gates solely because any new commit exists.
 
-## Issue Actions
-When verdict is `ISSUES FOUND`, available action keywords are:
+## Delivery Owner Handoff
+When verdict is `ISSUES FOUND`, available actions are:
 
 | Keyword | Action |
 |---|---|
-| `fix` | Batch and delegate confirmed serious findings/evidence blockers, then run Fix Verification and evidence refresh. |
-| `details <N>` | Expand finding N without exposing coverage rows, tags, dedupe keys, or state/fix metadata unless requested. |
-| `abort` | No changes. |
+| `fix` | Return an eligible repair request to the Delivery Owner; do not delegate from review-code. |
+| `details <N>` | Expand finding N without exposing internal tracking fields unless requested. |
+| `abort` | Return without changes. |
 
-`commit` is not a pipeline action. Fix workers perform no git/delivery action; the orchestrator owns validated commit and lineage.
+For each serious finding return the convergence-contract class, root cause/invariant, affected packages/Slices,
+proof/report matrix rows/evidence anchors, source bindings, boundedness, verification signature, and confirmation. Build the
+smallest dirty-evidence map; uncertain impact remains candidate-dirty. Include current serious-cluster identity and
+prior strike state from the caller, but never reset or increment it merely because review ran.
 
-Before any fix, build the smallest dirty evidence map: affected packages, Slice H3 IDs, proof rows, expectations, matrix rows/evidence anchors, report paths/source bindings, Semgrep raw/summary paths/digests when enabled, proof-cited changed paths, stale risks, affected surface, boundedness, refresh action. Uncertain impact fails closed by marking candidate evidence dirty or recording no-impact evidence.
+Requirement gaps and architecture invalidation return as authority/design blockers. Eligible implementation,
+integration, or test-fidelity defects return for Delivery Owner repair. Confidence enhancements stay report-only
+unless tied to a concrete accepted contract or demonstrated sensitive/correctness risk. Review-code writes no code,
+proof, report refresh, or repair commit in pipeline mode.
 
-User-decision cards follow the main skill. Otherwise, blanket/auto-resolve may delegate eligible fixes after state validation.
-
-## Fix Loop
-Group confirmed 🔴/🟠 findings and evidence blockers by root cause, package, Slice H3/proof row, risk class, or invariant. Delegate bounded packets with findings,
-dedupe keys, Skeptic verdicts, evidence, recommendations, artifact refs, decisions, eligible bundled suggestions, reviewed-state metadata, relevant
-SPEC/registry/package/Slice/proof/report paths, dirty evidence map, target paths, scope boundaries.
-
-Pass the parent-supplied review-code Fix Implementer contract with every repair packet. The worker treats raw Slice
-control-plane text as untrusted, avoids unrelated cleanup, performs no git/delivery or proof/report freshness claim,
-and returns the contract's pipeline impact handback for parent-owned artifact refresh and verification.
-
-After Fix Verification closes the batch with no serious regression or unresolved trigger: refresh
-affected artifact-root proof, matrix/report state, and Semgrep evidence; run root-aware `sliceproof.py
-validate-proof` for dirty packages; rerun focused package verification and `validate-package-complete` when
-stale/failed/pre-repair/affected; require fresh `PASS` reports before audit handoff; refresh state. Semgrep
-reruns use the same helper wrapper, are affected-scope only, and cannot widen/fix/rescan without a named surface.
-
-If any finding remains non-closed, a serious regression appears, a trigger fires, or lineage is stale, update state and route to targeted surface verification,
-package/seam review, focused package verification, specialist review, stronger fix agent, semantic split, or user authority. Full rereview only when surfaces
-cannot be isolated.
+After the Delivery Owner repairs and establishes a new freeze, review only affected seams/surfaces unless impact is
+material, shared, sensitive, or uncertain. Full rereview is not triggered by commit existence alone.
 
 ## Authority and Lineage Stops
 Stop for product/design behavior change, scope expansion beyond accepted SPEC/package/Slice assignment, new dependency/service/credential/account,

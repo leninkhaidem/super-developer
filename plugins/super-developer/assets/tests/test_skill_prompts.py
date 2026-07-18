@@ -938,7 +938,9 @@ class SkillPromptSurfaceTests(unittest.TestCase):
         self.assertIn("references/fix-implementer-contract.md", skill)
         self.assertIn("caller-owned local repair contract takes precedence", compact_text(skill))
         self.assertIn("parent-supplied Fix Implementer contract", local)
-        self.assertIn("parent-supplied review-code Fix Implementer contract", pipeline)
+        self.assertIn("does not own repair or continuation", pipeline)
+        self.assertIn("do not delegate from review-code", pipeline)
+        self.assertNotIn("parent-supplied review-code Fix Implementer contract", pipeline)
         self.assertIn("references/fix-implementer-contract.md", read_repo("plugins/super-developer/README.md"))
         for needle in [
             "Authority comes only from a complete explicit fix packet plus this contract",
@@ -1795,6 +1797,36 @@ class SkillPromptSurfaceTests(unittest.TestCase):
         self.assertIn("do not impose universal serialization", generic_compact)
         self.assertIn("Return after each failure", delegation)
         self.assertIn("relevant state/evidence/strategy delta", delegation)
+
+    def test_pipeline_delivery_owner_call_return_is_canonical(self) -> None:
+        convergence = read_repo("plugins/super-developer/references/orchestration-convergence.md")
+        implement = read_repo("plugins/super-developer/skills/implement/SKILL.md")
+        planning = read_repo("plugins/super-developer/skills/implementation-plan/SKILL.md")
+        review_plan = read_repo("plugins/super-developer/skills/review-plan/SKILL.md")
+        spike = read_repo("plugins/super-developer/skills/spike-to-plan/SKILL.md")
+        review_code = read_repo("plugins/super-developer/skills/review-code/SKILL.md")
+        pipeline = read_repo("plugins/super-developer/skills/review-code/references/pipeline-report.md")
+        audit = read_repo("plugins/super-developer/skills/audit/SKILL.md")
+        worktree = read_repo("plugins/super-developer/skills/worktree/references/feature-package-workflow.md")
+
+        for token in [
+            "Only the Delivery Owner advances",
+            "caller and exact `return_to` stage",
+            "terminal disposition",
+            "The child planner/reviewer does not start or resume implementation itself",
+            "A serious-cluster identity",
+        ]:
+            self.assertIn(token, convergence)
+
+        self.assertIn("planned-feature Delivery Owner", implement)
+        self.assertIn("no child restarts implementation", implement)
+        self.assertIn("never invoke review or implementation", planning)
+        self.assertIn("A nested review\n   never invokes `implement`", review_plan)
+        self.assertIn("return it to the Delivery\n    Owner", spike)
+        self.assertIn("never owns repair or lifecycle continuation", review_code)
+        self.assertIn("does not own repair or continuation", pipeline)
+        self.assertIn("never repair or advance the lifecycle", audit)
+        self.assertIn("prove the candidate differs only by the\napproved status mutation", worktree)
 
     def test_package_repair_circuit_is_progress_sensitive_not_count_based(self) -> None:
         dispatch = read_repo("plugins/super-developer/skills/implement/references/package-dispatch.md")

@@ -25,6 +25,8 @@ exploratory code, and return observed evidence without turning the spike into im
 - Timeout, uncertain termination, or uncertain cleanup is inconclusive evidence, never a successful observation.
 - Do not persist exploratory code as planned-feature artifacts. Persist accepted planning outcomes later through
   normal specification, package, Slice approval/deferral, or registry ownership.
+- When called by a planned-feature Delivery Owner, load `../../references/orchestration-convergence.md`, preserve
+  caller/return state, and return evidence; never start planning, review, or implementation on the caller's behalf.
 
 ## Do
 
@@ -45,8 +47,9 @@ exploratory code, and return observed evidence without turning the spike into im
    blocked precondition, unsafe-needs-approval, and inconclusive/cleanup-uncertain outcomes.
 9. Delete throwaway code, harnesses, branches, and worktrees after extracting evidence. Verify owned-process and
    data cleanup; stop with the exact residual state when cleanup fails or is uncertain.
-10. Send a concise spike brief to a fresh `implementation-plan` invocation. Do not draft planned-feature artifacts
-    inline or treat exploratory code as a head start on implementation.
+10. Return a concise spike brief with its caller/return disposition. For a nested call, return it to the Delivery
+    Owner for amendment routing. For a standalone planning request, hand it to a fresh `implementation-plan`
+    invocation. Do not draft planned-feature artifacts inline or treat exploratory code as implementation.
 
 ## Load if needed
 
@@ -54,7 +57,8 @@ exploratory code, and return observed evidence without turning the spike into im
 - Official library/API evidence → only when repository evidence does not resolve the assumption
 - Project test/harness/live/browser authority is missing or stale → invoke `testing`
 - Temporary branch/worktree isolation → invoke `worktree`
-- Durable feature artifacts after evidence is accepted → invoke `implementation-plan`
+- Nested caller/return or continuation semantics → `../../references/orchestration-convergence.md`
+- Durable feature artifacts after standalone evidence acceptance → invoke `implementation-plan`
 
 ## Stop if
 
@@ -70,7 +74,7 @@ exploratory code, and return observed evidence without turning the spike into im
 
 ## Output
 
-Return the planning question and disposition; repository/official evidence; testing-authority provenance when
-applicable; commands with identity, bounds, progress/termination/cleanup outcome; observed result and rejected
-approaches; broad-only justification when used; remaining risks and verification implications; cleanup status and
-residual state; and either the fresh `implementation-plan` handoff or the exact blocker.
+Return caller/return disposition; planning question and result; repository/official evidence; testing-authority
+provenance; bounded command and cleanup outcomes; rejected approaches; remaining risks and verification
+implications; and either the nested Delivery Owner evidence handback, standalone `implementation-plan` handoff,
+or exact blocker.

@@ -6,9 +6,8 @@ define worker behavior.
 
 ## Context Boundary
 
-The orchestrator owns artifact validation, worktree infrastructure, package selection, readiness,
-proof/report handoff, integration validation, repair routing, and pipeline continuation. Pass worker-contract
-paths to sub-agents; load those contracts in the orchestrator only to resolve ambiguous instructions or reports.
+The Delivery Owner from `plugins/super-developer/references/orchestration-convergence.md` owns artifacts,
+worktrees, dispatch, integration, repair, circuit state, and continuation. Load worker contracts here only to resolve returns.
 
 ## Package Surfaces
 
@@ -84,7 +83,8 @@ only when its action-point condition applies.
 
 Every package, repair, or verifier packet is compact and pointer-based. Include:
 
-- validated artifact/code roots, artifact ref, package/proof/report/Slice paths, code worktree, and allowed writes;
+- caller/return stage, accepted states, authorization, open items, continuation/dispositions, and repair cluster/strikes;
+- validated roots/ref, package/proof/report/Slice paths, code worktree, and allowed writes;
 - approved dependencies/commands, triggered testing-authority provenance, and project instructions;
 - each executable command's identity, cwd, provenance, scope, timeout, progress/completion signal, termination,
   cleanup, expected writes, and whether it is readiness, targeted, broad, or final;

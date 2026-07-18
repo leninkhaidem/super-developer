@@ -17,6 +17,9 @@ affected reruns → final readiness for the same integrated state.
 
 ## Always
 
+- After Gate 2, the main agent is the planned-feature Delivery Owner defined by
+  `../../references/orchestration-convergence.md`: it alone advances the lifecycle, preserves caller/return,
+  accepted-state, finding-classification, logical-owner, and serious-cluster circuit context.
 - The main agent orchestrates only: validate artifacts, manage worktrees/branches, dispatch agents,
   verify handoffs, merge, route repairs, and continue gates.
 - Package agents implement and repair; the orchestrator does not do substantive production, test,
@@ -38,9 +41,10 @@ affected reruns → final readiness for the same integrated state.
 
 ## Do
 
-1. Resolve the selected artifact root and code root; load `../../references/artifact-store.md` and
-   `../../references/tool-usage.md`; run `sliceproof.py validate-plan`; read artifact-root `SPEC.md`,
-   registry, package Markdown, and safe assigned Slices only after path validation.
+1. Resolve the selected artifact root and code root; load `../../references/artifact-store.md`,
+   `../../references/orchestration-convergence.md`, and `../../references/tool-usage.md`; require the exact
+   Gate-2-accepted artifact commit and explicit caller/return state; run `sliceproof.py validate-plan`; read
+   artifact-root `SPEC.md`, registry, package Markdown, and safe assigned Slices only after path validation.
 2. For triggered execution-feasibility profiles, resolve testing authority before contract approval: use
    accepted/current workflow for high-risk/reusable work, routine-safe fallback for one bounded local command, or
    task-local Testing Authorization for exact focused approval. Import command budgets, preconditions, and cleanup
@@ -54,31 +58,36 @@ affected reruns → final readiness for the same integrated state.
    artifact sidecar plus integration/package code worktrees without switching the root worktree.
 4. Load `references/package-dispatch.md`; run conditional readiness, retire shared uncertainty before affected
    fanout, and choose the largest safe useful ready batch. If readiness exposes a plan-owned empirical blocker,
-   stop affected dispatch, invoke `spike-to-plan`, route evidence through `implementation-plan` and `review-plan`,
-   and revalidate before resuming. Otherwise create proof placeholders and compact worker packets.
+   stop affected dispatch, invoke `spike-to-plan`, and route evidence through `implementation-plan` and
+   `review-plan` with the shared call envelope. Each child returns old/new accepted state and affected/invalidation scope to
+   this paused step; no child restarts implementation; revalidate before resuming from the new accepted state.
+   Otherwise create proof placeholders and compact worker packets.
 5. When package agents return, load `references/package-integration-gates.md`; validate `SELF_REVIEW`,
    artifact-root proof Markdown, commands/inspections, Slice plan-defect status, artifact-root report,
    `validate-package-complete`, post-merge freshness, source-only package branches, and ignored `.tasks`
    handling.
-6. If repair is needed, load the shared lifecycle rules and use `references/package-dispatch.md` for bounded
-   follow-up packets; treat pre-repair impact as provisional, require material progress, and open the circuit on
-   unchanged work or uncertain cleanup. After repair, reclassify the actual diff/evidence to semantic closure,
-   refresh affected proof/report state, and rerun only the required focused/full gates.
+6. If a finding occurs, classify it through the convergence contract before repair. Requirement gaps return for
+   authority; architecture invalidation stops for reassessment; confidence enhancements remain non-blocking.
+   For an eligible defect use `references/package-dispatch.md` for one bounded logical-owner repair, preserve
+   serious-cluster strikes, and open the circuit at the second failed closure. Establish actual-path targeted and
+   affected broad-regression evidence before refreshing proof/report state; then rerun only affected gates.
 7. Mark packages done only after integration gates pass; merge through the integration worktree,
    checkpoint sidecar artifacts at package-delivery boundaries, keep package branches/worktrees until
    cleanup gates pass, and loop to downstream packages.
 8. At final readiness, use `references/package-integration-gates.md`: finish implementation/repairs, run focused
    and integrated checks, finalize runtime evidence, refresh affected proofs/reports, run package completion and
-   `sliceproof.py validate-final`, then freeze exact integrated-code, artifact, and runtime-evidence inputs; invoke
-   `review-code` and `audit` only through their skills against the same freeze. Their generated outputs are not
-   freeze inputs. Use the `worktree` skill for the final artifact checkpoint and covered feature push.
-9. If either final check returns findings, batch compatible findings and delegate repair. Any frozen-input change
-   invalidates the binding. Use semantic freshness classification to select rebind, evidence-focused, focused, or
-   full work, then establish a new freeze before affected final checks. Do not declare readiness until review-code
-   and audit are clean for the same frozen inputs.
+   `sliceproof.py validate-final`, then freeze exact integrated-code, artifact, and runtime-evidence inputs;
+   invoke `review-code` and `audit` only as return-only children against the same freeze; their outputs are not freeze inputs
+   and neither child owns pipeline repair. Use `worktree` for the final checkpoint and covered feature push.
+9. Classify returned final findings before action. The Delivery Owner batches eligible repairs, preserves the
+   serious-cluster circuit, refreshes affected evidence only after behavioral closure, and establishes a new
+   freeze before affected final checks. Do not declare readiness until review-code and audit are clean for the
+   same frozen inputs.
 
 ## Load if needed
 
+- Nested continuation, finding class, owner, circuit, amendment, or evidence-order dispute →
+  `../../references/orchestration-convergence.md`
 - Dispatching a package worker → pass `references/package-agent-contract.md`; worker reads it before action
 - Dispatching a repair worker → pass `references/repair-agent-contract.md`; worker reads it before action
 - Dispatching package verification → pass `references/package-verification.md`; verifier reads it before action
@@ -94,7 +103,8 @@ affected reruns → final readiness for the same integrated state.
 
 - Plan artifacts, package/proof/report paths, Slice paths, or worktree state are unsafe, missing, stale,
   contradictory, or outside repo scope.
-- Execution Contract is not approved, or requested git/remote action differs from the approved contract.
+- Execution Contract is not approved, requested git/remote action differs from it, or the accepted artifact
+  commit/caller/return state is missing, stale, or contradictory.
 - A package exposes unassigned material Slice obligations, unresolved plan defects, unapproved deferrals,
   weak proof evidence, failed verification, stale reports, or ignored proof/report artifacts committed to git.
 - Correct work requires product/design change, scope expansion, an existing-system contract change not explicitly
@@ -103,10 +113,12 @@ affected reruns → final readiness for the same integrated state.
 - The root worktree would need branch switching, or any target/main merge or push lacks explicit approval
   for that exact target.
 - Final review-code readiness or audit prerequisites are not fresh and closed.
+- Finding class or serious-cluster identity is uncertain, the circuit is open, a second same-cluster closure
+  failed, architecture is invalidated, or concurrent implementation owners claim the same surface.
 
 ## Output
 
-Return package status, testing-authority provenance, readiness decisions/probes, proof/report freshness,
-bounded command outcomes,
-non-gating stage timing when available, repair identities/progress/circuit state, verification results,
-commits/branches merged, blockers, feature push state, and next gate.
+Return accepted artifact state, caller/return stage, package status, testing-authority provenance, readiness
+results, finding classes, logical owner and serious-cluster/strike state, proof/report freshness, bounded command
+outcomes, non-gating stage timing when available, verification results, commits/branches merged, blockers,
+feature push state, and next gate.

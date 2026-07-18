@@ -23,9 +23,9 @@ state, including bounded stack-aware artifact sets when supplied.
   verification and is not a wholesale rereview or the first routine per-package semantic gate.
 - Review-code state/report are optional audit context. Use safe paths when supplied or available; otherwise pass explicit `none`.
 - If review-code state exists but is non-clean, pass/report it. Absence or non-clean state does not block audit dispatch, only final readiness.
-- Main agent performs only mechanical prerequisites, dispatches one cold read-only auditor with a
-  self-contained packet, preserves its report, and summarizes; do not perform semantic audit inline
-  or rely on conversation history.
+- Main agent performs only mechanical prerequisites, dispatches one cold read-only auditor with a self-contained
+  packet, preserves its report, and summarizes. When called by a Delivery Owner, follow
+  `../../references/orchestration-convergence.md` and return only; never repair or advance the lifecycle.
 - PASS means final audit passed for that integrated state only. Merge/readiness still needs clean review-code readiness for the same state.
 
 ## Do
@@ -60,14 +60,14 @@ state, including bounded stack-aware artifact sets when supplied.
      `.tasks/<feature>/reviews/review-code-state.json` when available;
    - otherwise record explicit `none`;
    - when state is present, validate same feature/top state, `mode: "pipeline"`, `state: "ready_for_audit"`, empty `findings.open_serious`, `closure_status.ready_for_audit: true`, and `closure_status.proofs_and_reports_fresh: true`.
-9. Load `references/audit-subagent-contract.md` and dispatch a cold read-only auditor through a fresh
-   sub-agent/role invocation with an explicit packet: top code worktree state, artifact root set list, git
-   metadata, SPEC/registry/package/proof/report/Slice paths, package-completion and `validate-final`
-   results/advisories per set, review-code paths or `none`, and Semgrep expectations.
+9. Load `references/audit-subagent-contract.md` and dispatch a cold read-only auditor with caller/return,
+   frozen top state, artifact sets, git metadata, SPEC/registry/package/proof/report/Slice paths, package and
+   `validate-final` results, review-code paths or `none`, and Semgrep expectations.
 10. Preserve the auditor's structured report and return a concise PASS/FAIL summary with review-code context status and repair targets.
 
 ## Load if needed
 
+- Nested caller/return and finding-class handoff → `../../references/orchestration-convergence.md`.
 - Helper command safety → `../../references/tool-usage.md`.
 - Slice path and product/control-plane authority → `../../references/conceptualize-slice-authority.md`.
 - Artifact shapes → `../../references/slice-first-artifacts.md`.
@@ -86,7 +86,7 @@ state, including bounded stack-aware artifact sets when supplied.
 
 ## Output
 
-Return:
+Return caller/return disposition and:
 
 - `PASS` with final frozen audited code/evidence state, artifact root, merge-worktree path, and review-code
   context status when audit gates pass;
