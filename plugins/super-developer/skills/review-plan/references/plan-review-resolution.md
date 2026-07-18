@@ -21,6 +21,13 @@ authority and must be observed before the plan is safe. Do not defer it to imple
 budgets. Return this classification to the orchestrator for `spike-to-plan`; accepted evidence must return
 through `implementation-plan` artifact repair and focused plan review before Gate 2.
 
+### architecture invalidation
+
+A post-acceptance finding that the approved authority, state, transition, publication, cancellation/replay, or
+verification-seam design cannot satisfy an invariant. Return `architecture-invalidation` to the Delivery Owner;
+do not route it into implementation repair. Exit only after revised invariants, focused review, a new accepted
+artifact commit, and affected-state/invalidation handback.
+
 ### design decision
 
 A finding that requires choosing between materially different approaches. Ask the user unless explicit constraints or approved Slice/package artifacts already decide it. Persist accepted outcomes in the owning artifact:
@@ -61,9 +68,9 @@ Internal simplification may be applied without a prompt only when it preserves t
 ## Workflow
 
 1. Group duplicate findings by target and issue.
-2. Classify each finding.
-3. Apply mechanical fixes directly.
-4. Route empirical feasibility blockers to the orchestrator; do not repair artifacts until observed evidence returns.
+2. Classify each finding, including architecture invalidation during an amendment.
+3. Apply mechanical fixes directly; never mechanically patch an invalidated architecture.
+4. Route empirical blockers or architecture invalidation to the Delivery Owner; do not continue ordinary repair.
 5. Escalate semantic choices to the user unless already resolved by explicit constraints.
 6. Persist accepted decisions in the owning artifact.
 7. Keep `SPEC.md` requirements-focused; package assignment belongs in package Markdown.

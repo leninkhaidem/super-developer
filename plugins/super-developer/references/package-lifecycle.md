@@ -1,7 +1,6 @@
 # Package Lifecycle, Proof, and Report Freshness
 ## Boundary
 This reference owns package completion, proof creation/refresh, verification reports, freshness, and non-bypass semantics. Artifact shapes live in `slice-first-artifacts.md`; package sizing lives in `work-packages.md`; command shapes live in `tool-usage.md`.
-
 ## Status Signals
 Registry package status is routing only: `pending`, `in_progress`, `blocked`, or `done`. Status does not
 prove implementation correctness. Dashboards may show status, dependency readiness, proof/report paths,
@@ -88,21 +87,22 @@ contract change is material, unbounded, sensitive, shared, or uncertain, or impa
 boundaries. Fail closed when classification or carried inputs are uncertain. Keep the rationale in existing
 orchestrator state or proof/report/review/audit artifacts—never a new receipt, field, or lifecycle tier.
 
-## Impact Classification and Repair Handling
-Before choosing rerun scope, keep the provisional classification in orchestrator state and repair/verifier
-packets; persist consequences only in existing proof/report/review/audit artifacts, never a registry field or
-standalone impact receipt. Record package Markdown/digest, assigned Slice source/digest, matrix source snapshot,
-matrix evidence anchors, changed class, scope, delta, affected claims/evidence/contracts, and chosen route.
-Treat `depends_on` as a sequencing lower bound, not impact proof. Inspect producing prerequisites, consumers in
-any lifecycle state, and shared surfaces not represented by a dependency edge. Follow concrete semantic hops
-until no new affected surface appears. Failure, commit existence, merge ancestry, or dependency reachability
-alone does not stale a package; classify uncertainty as unbounded.
-After code repair, reclassify the actual code diff and invalidate newly affected reports. If impact is narrow,
-bounded, and justified, use fresh focused verification; widen for sensitive/shared/uncertain impact. Before
-repair, map findings to packages/Slices/proof rows/expectations/matrix rows/evidence. Refresh affected proof and
-command evidence and run `validate-proof`; reclassify the final code/proof/command-evidence state, repeating
-closure and refresh until stable. Only then run fresh focused/full package verification,
-`validate-package-complete`, and affected final review/audit gates. Never accept partial intermediate evidence.
+## Finding Classification, Impact, and Circuit
+Load `orchestration-convergence.md`; keep provisional classification in orchestrator state and repair/verifier packets,
+never a registry field or standalone impact receipt. Classify every finding before repair.
+Requirement gaps return for authority; architecture invalidation opens design reassessment;
+implementation/integration defects may receive bounded repair; test-fidelity/evidence defects repair their seam;
+confidence enhancements are non-blocking unless tied to an accepted contract or demonstrated serious risk.
+A serious cluster is invariant/contract + mechanism + architectural surface + verification signature. The first
+failed closure permits one repair; the second stops automatic repair. New agent/model/prompt/commit/status/report/
+matrix state does not reset it. Treat `depends_on` as a sequencing lower bound, never impact proof.
+Record package Markdown/digest, assigned Slice source/digest, matrix source snapshot, and matrix evidence anchors;
+inspect producing prerequisites, consumers in any lifecycle state, and shared surfaces not represented by a dependency edge until no new affected surface appears. Failure, commit existence, merge ancestry, or
+dependency reachability alone does not stale a package; classify uncertainty as unbounded.
+After repair, reclassify the actual code diff, invalidate affected reports, establish actual-path targeted and broad
+regression evidence, refresh proof/commands, and reclassify the final code/proof/command-evidence state until stable.
+Only then use fresh focused verification for bounded impact; widen for material/shared/sensitive/uncertain impact,
+then run `validate-package-complete` and affected final checks. Never accept intermediate evidence.
 
 ## Report Freshness
 Reports bind package/proof/Slice sources, matrix snapshot, reviewed code and execution evidence, verifier/time,

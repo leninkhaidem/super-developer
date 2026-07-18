@@ -1446,13 +1446,15 @@ class SkillPromptSurfaceTests(unittest.TestCase):
         ]:
             self.assertIn(token, lifecycle_compact)
         for token in [
-            "treat impact as provisional",
-            "shared lifecycle semantic-closure rules",
-            "actual repair diff through semantic closure",
-            "newly affected report/matrix/bindings",
-            "final code/proof/command-evidence state to semantic closure",
-            "repeating steps 3–4 for newly affected surfaces until stable",
-            "fresh focused package verification",
+            "apply `orchestration-convergence.md`",
+            "classify the finding",
+            "one logical primary implementation owner",
+            "actual diff and invalidate affected reports",
+            "actual-production-path targeted evidence",
+            "affected broad regression before refreshing proof",
+            "focused verification only for bounded impact",
+            "fresh report and bindings",
+            "only after the fresh report",
         ]:
             self.assertIn(token, gates_compact)
         for token in [
@@ -1479,14 +1481,15 @@ class SkillPromptSurfaceTests(unittest.TestCase):
         repair = gates[gates.index("## Rejection and Repair"):gates.index("## Conflict Handling")]
         repair_compact = compact_text(repair).lower()
         ordered = [
-            "after code repair, reclassify the actual repair diff",
-            "refresh affected proof/command evidence",
+            "reproduce and repair one coherent root cause",
+            "reclassify the actual diff",
+            "actual-production-path targeted evidence",
+            "affected broad regression before refreshing proof/command evidence",
+            "refresh affected proof state",
             "run `validate-proof`",
-            "reclassify the final code/proof/command-evidence state",
-            "repeating steps 3–4 for newly affected surfaces until stable",
-            "only then run fresh focused package verification",
+            "focused verification only for bounded impact",
             "the verifier writes the fresh report",
-            "only after the fresh verification report, run `validate-package-complete`",
+            "only after the fresh report run `validate-package-complete`",
         ]
         for earlier, later in zip(ordered, ordered[1:]):
             self.assertLess(repair_compact.index(earlier), repair_compact.index(later))
@@ -1871,7 +1874,8 @@ class SkillPromptSurfaceTests(unittest.TestCase):
         self.assertLessEqual(len(authoring.splitlines()), 150)
         self.assertLessEqual(len(checklist.splitlines()), 150)
 
-    def test_package_repair_circuit_is_progress_sensitive_not_count_based(self) -> None:
+    def test_package_repair_circuit_is_progress_sensitive_and_two_strike(self) -> None:
+        convergence = read_repo("plugins/super-developer/references/orchestration-convergence.md")
         dispatch = read_repo("plugins/super-developer/skills/implement/references/package-dispatch.md")
         gates = read_repo("plugins/super-developer/skills/implement/references/package-integration-gates.md")
         repair_agent = read_repo(
@@ -1879,41 +1883,40 @@ class SkillPromptSurfaceTests(unittest.TestCase):
         )
         lifecycle = read_repo("plugins/super-developer/references/package-lifecycle.md")
         implement = read_repo("plugins/super-developer/skills/implement/SKILL.md")
+        combined = compact_text(
+            "\n".join([convergence, dispatch, gates, repair_agent, lifecycle, implement])
+        ).lower()
 
-        gate_compact = compact_text(gates).lower()
         for token in [
-            "changed diagnostic strategy may authorize a bounded probe",
-            "circuit stays open",
-            "closes or narrows the gate, changes ownership, or yields decisive evidence",
-            "diagnostic probes do not close it",
-            "reset only after a relevant material state/evidence/strategy delta",
-            "attempt renaming",
-            "status/report metadata",
-            "changed commit alone is not progress",
-            "uncertain termination/cleanup",
+            "requirement-gap",
+            "architecture-invalidation",
+            "implementation-defect",
+            "integration-regression",
+            "test-fidelity-gap",
+            "evidence-stale-or-contradicted",
+            "confidence-enhancement",
+            "failure mechanism",
+            "architectural surface",
+            "verification signature",
+            "first failed closure",
+            "second failed closure",
+            "explicit user approval",
         ]:
-            self.assertIn(token, gate_compact)
-        self.assertIn("distinct identity/expected signal", dispatch)
-        self.assertIn("attempt identity or status/report metadata is never progress", dispatch.lower())
-        self.assertIn("distinct identity/expected signal", repair_agent)
-        self.assertIn(
-            "identity, commit, status, or report metadata alone is not progress",
-            compact_text(repair_agent).lower(),
-        )
+            self.assertIn(token, combined)
+        for non_progress in ["new agent", "model", "prompt", "commit", "status", "report", "matrix row"]:
+            self.assertIn(non_progress, compact_text(convergence).lower())
+
+        self.assertIn("one logical primary implementation owner", gates)
+        self.assertIn("successor inherits state and never resets strikes", dispatch)
+        self.assertIn("Owner identity changes never reset strikes", repair_agent)
+        self.assertIn("no child restarts implementation", implement)
 
         repair = gates[gates.index("## Rejection and Repair"):gates.index("## Conflict Handling")]
-        self.assertLess(repair.index("`validate-proof`"), repair.index("package verification"))
-        self.assertLess(repair.index("package verification"), repair.index("`validate-package-complete`"))
-        repair_compact = compact_text(repair)
-        self.assertIn("invalidate newly affected report/matrix/bindings", repair_compact)
-        self.assertIn("orchestrator never rewrites verifier-owned report or proof state", repair_compact)
-        self.assertIn("the verifier writes the fresh report", repair_compact.lower())
-        self.assertIn("only after the fresh verification report", repair)
-
-        combined = compact_text("\n".join([dispatch, gates, repair_agent, lifecycle, implement])).lower()
-        self.assertNotRegex(combined, r"\b(?:one|two|1|2)\s+(?:distinct\s+)?diagnostic probes?\b")
-        self.assertNotRegex(combined, r"\b(?:two|2)\s+(?:distinct\s+)?(?:failures|attempts)\b")
-        self.assertNotIn("one consolidated repair pass", combined)
+        self.assertLess(repair.index("actual-production-path"), repair.index("refreshing proof"))
+        self.assertLess(repair.index("`validate-proof`"), repair.index("focused verification"))
+        self.assertLess(repair.index("fresh report"), repair.index("`validate-package-complete`"))
+        self.assertNotIn("delegate a fresh repair agent", repair)
+        self.assertNotIn("changes ownership", compact_text(repair).lower())
 
     def test_feasibility_workflow_and_spike_routes_are_followable(self) -> None:
         planning = read_repo("plugins/super-developer/skills/implementation-plan/SKILL.md")

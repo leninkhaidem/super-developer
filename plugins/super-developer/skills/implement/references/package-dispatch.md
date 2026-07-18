@@ -1,5 +1,4 @@
 # Implement Package Dispatch
-
 Load after plan validation and artifact inspection. This reference owns package selection, conditional
 execution readiness, safe batching, and pointer-based package/repair/verifier dispatch. Worker contracts
 define worker behavior.
@@ -125,13 +124,14 @@ Do not create worktrees/branches/merges or force-add ignored proof/report artifa
 
 ## Repair Agent Packet
 
-Include the repair-agent contract path; original SPEC/registry/package/proof/report paths; affected Slice IDs,
-proof rows, matrix rows/evidence anchors, findings, failed observations, and classified rerun scope;
-and screened commands with the runtime envelope. Define attempt identity as gate plus finding/command signature
-plus affected surface; state prior attempts, candidate delta, circuit state, and bounded scope. A changed
-strategy may authorize a bounded probe with a distinct identity/expected signal while the circuit stays open.
-Attempt identity or status/report metadata is never progress. Only a relevant material state/evidence/strategy delta that closes/narrows the gate, changes ownership, or yields decisive evidence may reset routing;
-otherwise the circuit remains open. Stop for authority changes, unsafe actions, missing external facts, risk acceptance, or unchanged work.
+Include contract and artifact paths; finding class; invariant/mechanism/surface/verification-signature cluster;
+prior closure cycles/strikes; logical owner and rehydration context; affected matrix rows/evidence anchors;
+classified rerun scope; and screened commands. Dispatch repair only for an eligible first-closure defect. Requirement gaps and architecture
+invalidation return without repair; confidence enhancements are report-only by default. One logical owner works
+the surface; a successor inherits state and never resets strikes. The second failed closure opens the circuit for
+design reassessment. Agent/model/prompt/commit/status/report/matrix changes are not progress. Reset requires an
+accepted design/invariant change, decisive evidence, or demonstrated closure. Stop for authority, safety,
+external facts, risk acceptance, concurrent ownership, or an open circuit.
 
 ## Package Verifier Packet
 

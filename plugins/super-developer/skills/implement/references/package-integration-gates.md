@@ -1,5 +1,4 @@
 # Implement Package Integration Gates
-
 Load after package agents return and before accepting, merging, marking `done`, dispatching downstream packages, or final readiness. This reference owns package return acceptance, proof validation, holistic package verification, merge/freshness gates, repair routing, and final handoff.
 
 The `worktree` skill owns git command runbooks, root-worktree safety, branch/ref invariants, sidecar
@@ -85,22 +84,23 @@ shared, or uncertain population or contract changes, and cross-package changes, 
 classification input by default.
 
 ## Rejection and Repair
-Reject failed code/proof/verification/plan/artifact handling; keep incomplete while proof, findings, repair, or freshness remain open.
-Before repair, record identity, prior outcome, and unresolved state. Treat impact as provisional and apply the
-shared lifecycle semantic-closure rules; a dependency edge, failure, commit, or merge ancestry alone is not
-staleness. A changed diagnostic strategy may authorize a bounded probe while the circuit stays open.
-For confirmed in-scope findings:
-1. map the finding to named packages/Slices/rows/evidence/contracts and classify boundedness;
-2. batch compatible findings and delegate a fresh repair agent with identity and progress requirement;
-3. after code repair, reclassify the actual repair diff through semantic closure and invalidate newly affected
-   report/matrix/bindings before refreshing proof/command evidence;
-4. refresh affected proof/command evidence and run `validate-proof`; reclassify the final
-   code/proof/command-evidence state to semantic closure, repeating steps 3–4 for newly affected surfaces until stable;
-5. only then run fresh focused package verification when carried inputs remain unchanged and impact is bounded;
-   widen when reuse cannot be confirmed or shared lifecycle criteria require it. The verifier writes the fresh
-   report, matrix, and bindings; the orchestrator never rewrites verifier-owned report or proof state;
-6. only after the fresh verification report, run `validate-package-complete`.
-Open the circuit before unchanged work, uncertain termination/cleanup, invalid readiness, or no progress; diagnostic probes do not close it. Reset only after a relevant material state/evidence/strategy delta closes or narrows the gate, changes ownership, or yields decisive evidence, then run the smallest confirmation. Attempt renaming, status/report metadata, or a changed commit alone is not progress. While open, stop affected execution; stop for authority, scope, safety, external facts, or risk.
+Reject failed code/proof/verification/plan/artifact handling; keep incomplete while any blocker is open. Before
+repair, apply `orchestration-convergence.md`: classify the finding and preserve its serious-cluster/strike state.
+Requirement gaps return for authority; architecture invalidation stops for reassessment; confidence enhancements
+are report-only unless tied to an accepted contract or demonstrated serious risk.
+For an eligible first-closure defect:
+1. map its invariant/mechanism and affected packages/Slices/rows/evidence/contracts;
+2. assign one logical primary implementation owner; prefer session resume, otherwise rehydrate one successor with
+   prior outcomes/strikes; never run concurrent owners or reset because identity changed;
+3. reproduce and repair one coherent root cause, then reclassify the actual diff and invalidate affected reports;
+4. establish actual-production-path targeted evidence and the earliest credible affected broad regression before
+   refreshing proof/command evidence;
+5. refresh affected proof state, run `validate-proof`, then use focused verification only for bounded impact;
+   widen for material/shared/sensitive/uncertain impact. The verifier writes the fresh report and bindings;
+6. only after the fresh report run `validate-package-complete`.
+The second failed closure for the same cluster opens the circuit for design reassessment. Renamed attempts, new
+agents/models/prompts/commits/status/reports, or more matrix rows do not reset it. While open, stop affected work;
+continuation requires explicit authority plus changed accepted design or decisive evidence.
 
 ## Conflict Handling
 Resolve mechanical conflicts only in the integration worktree and never switch the root worktree. For substantive logic, API, contract, test, proof, package-scope, or design conflicts, abort the merge when possible and keep the package incomplete with a blocker naming the conflicting package/files. Do not dispatch dependent packages until conflicts and freshness gates close.
