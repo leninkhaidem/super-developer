@@ -295,6 +295,15 @@ The Planner gets one coherent correction pass for a serious review cluster follo
 second failure of that cluster stops for method/authority reassessment. A changed reviewer, package label, or
 technical wording does not mint a new cluster; unrelated findings do not inherit its strike.
 
+A monotonic **Preauthorization Budget** begins at the Conceptualize-to-planning handoff and is CAS-persisted before
+autonomous planning. The default permits at most eight delegated planning/review/specialist calls, two total
+planner-correction waves, two total spike waves with at most one per empirical cluster, bounded command units, and
+an absolute deadline; stricter project preferences may lower it. Interactive user answers do not consume an
+autonomous correction wave. Every dispatch/reservation increments issued usage before the call and cannot be reset
+by replanning, a new agent, or a new host. Exhaustion returns one batched `needs_decision` packet with unresolved
+clusters and a recommended scope/evidence choice; only an explicit focused user decision may establish a new finite
+budget. It does not authorize implementation.
+
 No blocking Gate 1 precedes cold review. Review improves the proposal before user authorization.
 
 ## Stage 5 — Execution-Readiness Validation
@@ -513,9 +522,12 @@ After Implementation Authorization, the user is interrupted only when at least o
 7. exact accepted state or exclusive ownership cannot be recovered safely;
 8. a serious cluster opens its circuit or the total repair/command/time budget is exhausted.
 
-An escalation first CAS-checkpoints quiescent state and presents the blocker, evidence, prior bounded attempts,
-affected envelope/technical surfaces, recommendation, and alternatives. It never asks a vague “what next?” when a
-concrete decision can be formulated.
+An escalation attempts a quiescent CAS checkpoint using only reserved control-plane capacity when ownership and
+expected parents are valid. If ownership, remote parent, repository reachability, or safe state is unavailable, it
+must not mutate or take over: it reports from the last verified checkpoint, labels later local observations
+untrusted, and names the exact recovery conflict. Either path presents the blocker, evidence, prior bounded
+attempts, affected envelope/technical surfaces, recommendation, and alternatives. It never asks a vague “what
+next?” when a concrete decision can be formulated.
 
 Routine compilation/test failures, local implementation iteration, technical plan correction inside the unchanged
 envelope, implementation/integration/test-fidelity repair, bounded reruns, profile promotion inside covered
@@ -546,16 +558,22 @@ a third product authority or event log. It contains:
 - authorization ID/effective digest and exact artifact/code checkpoint refs and SHAs;
 - assurance graph, package/wave dispositions, active owner token, and takeover state;
 - canonical cluster lineage/strikes and latest freeze/receipt identities;
-- authorization-wide maxima plus monotonically issued/used repair waves, delegated calls by role, command units,
-  cost units when applicable, `started_at`, and absolute `deadline_at`;
+- preauthorization maxima/issued usage/deadline for planning calls, correction waves, spike waves, and commands;
+- implementation-authorization maxima plus monotonically issued/used repair waves, delegated calls by role,
+  command units, cost units when applicable, `started_at`, and absolute `deadline_at`;
 - bounded active reservations for the next wave/call. Issued budget never decreases; a crash cannot reclaim it or
-  reset the deadline. Uncertain clock/budget state fails closed.
+  reset either deadline. Uncertain clock/budget state fails closed;
+- one strictly allowlisted control-plane reserve for ownership/parent checks, path-safe state preservation, and
+  escalation metadata. It cannot dispatch semantic agents, run implementation/tests, repair code, expand budgets,
+  or stage production/package evidence.
 
 ### Two-phase recoverable checkpoint
 
-Before dispatch, the Delivery Owner reserves the wave/call/command allocation through a sidecar CAS checkpoint.
-Each reservation has a unique generation; abandoned work remains charged. Package agents write only assigned paths
-and report actual usage for observation, never authority expansion.
+Before any autonomous pre- or post-authorization dispatch, the active orchestrator reserves its finite
+call/wave/command allocation through a sidecar CAS checkpoint. Each reservation has a unique generation; abandoned
+work remains charged. Package agents write only assigned paths and report actual usage for observation, never
+authority expansion. The separate control-plane reserve remains available after semantic budget exhaustion solely
+for the allowlisted fail-closed operations above.
 
 At a quiescent package/integration checkpoint:
 
@@ -641,8 +659,8 @@ initial git/artifact state, user inputs, allowed commands, seed, expected detect
 prompts, and terminal verdict.
 
 Run baseline and candidate with fresh agent contexts and fixed packets. Record delegated calls by role, formal user
-prompts, technical questions, repair waves, closure checks, stage of first correct detection, false blockers,
-terminal result, and exact commits. Static prompt-token assertions and helper fixtures support contract coverage but
+prompts, technical questions, preauthorization correction/spike waves and issued budget, post-handoff repair waves,
+closure checks, stage of first correct detection, false blockers, terminal result, and exact commits. Static prompt-token assertions and helper fixtures support contract coverage but
 do not count as behavioral evidence.
 
 Candidate acceptance requires:
@@ -750,19 +768,22 @@ stage/class, permitted calls/prompts, and terminal verdict.
 | 3 | Technical plan defect inside unchanged envelope | One batched reviewer result, agent-owned revision and affected cold re-review, no user prompt |
 | 4 | Missing product/interface decision | One focused user question updates the envelope before authorization |
 | 5 | Omitted architecture/public-contract/verification seam | Preflight or plan challenge blocks before authorization with the correct class |
-| 6 | Required tool/service/credential unavailable | Readiness is `blocked`; no authorization or fanout; covered protected activation is checked immediately after approval |
-| 7 | Ordinary local implementation defect before handoff | Logical owner stabilizes it within progress budget; no closure strike or user prompt |
-| 8 | Package output consumed by a dependent | Exact boundary receipt and contract digests PASS before dependent unlock |
-| 9 | Standard code-review defect | One batched repair wave and affected closure PASS; audit runs once on the new freeze |
-| 10 | Runtime low-to-high trigger | Candidate/profile invalidated, technical baseline promoted/reviewed, Effective Authorization Digest and checkpoint advance, required high topology runs; user asked only if envelope/budget changes |
-| 11 | Technical architecture invalidation with envelope-preserving alternative | Automatic return to preflight/planning and cold review; no code repair and no user prompt |
-| 12 | Architecture/product invariant cannot be preserved | CAS checkpoint plus one precise user decision; no automatic technical mutation |
-| 13 | Same serious mechanism fails after its one repair | Initial rejection is strike 1; failed closure is strike 2 and circuit opens across agent/commit/signature changes |
-| 14 | Any unlisted artifact/code/dependency/profile drift | Exact freshness/freeze validator rejects; no subjective rebind |
-| 15 | Host stops before/after each code/sidecar publication step | Referenced code is already remote, orphan code refs are ignored, cold resume preserves owner/stage/issued budgets/deadline/strikes/next action, and completion is never inferred |
-| 16 | Low/standard/high final receipt graphs | Validator accepts only the declared acyclic predecessor order and rejects circular, cross-freeze, missing, duplicate-role, or summary-as-proof receipts |
-| 17 | Existing current-root artifacts or first remote sidecar push | Planned lifecycle requires safe migration to sidecar; exact namespaced initial CAS push has explicit portability authority; no silent current-root fallback |
-| 18 | Target merge/release or unplanned protected action | Completion notifies once; protected operation cannot inherit sidecar portability or implementation auto-resolve authority |
+| 6 | Required tool/service/credential is known unavailable before authorization | Readiness is `blocked`; no Implementation Authorization or package fanout occurs |
+| 7 | Required protected prerequisite can be checked only under authorization | Gate lists the exact activation probe/remedy; failure is caught before product writes/fanout and either covered remedy succeeds or one precise escalation occurs |
+| 8 | Autonomous planning receives many unrelated findings | Monotonic preauthorization call/correction/spike/command/deadline budget stops with one batched `needs_decision`; new host/agent cannot reset it |
+| 9 | Ordinary local implementation defect before handoff | Logical owner stabilizes it within progress budget; no closure strike or user prompt |
+| 10 | Package output consumed by a dependent | Exact boundary receipt and contract digests PASS before dependent unlock |
+| 11 | Standard code-review defect | One batched repair wave and affected closure PASS; audit runs once on the new freeze |
+| 12 | Runtime low-to-high trigger | Candidate/profile invalidated, technical baseline promoted/reviewed, Effective Authorization Digest and checkpoint advance, required high topology runs; user asked only if envelope/budget changes |
+| 13 | Technical architecture invalidation with envelope-preserving alternative | Automatic return to preflight/planning and cold review; no code repair and no user prompt |
+| 14 | Architecture/product invariant cannot be preserved | CAS checkpoint plus one precise user decision; no automatic technical mutation |
+| 15 | Same serious mechanism fails after its one repair | Initial rejection is strike 1; failed closure is strike 2 and circuit opens across agent/commit/signature changes |
+| 16 | Any unlisted artifact/code/dependency/profile drift | Exact freshness/freeze validator rejects; no subjective rebind |
+| 17 | Host stops before/after each code/sidecar publication step | Referenced code is already remote, orphan code refs are ignored, cold resume preserves owner/stage/issued budgets/deadline/strikes/next action, and completion is never inferred |
+| 18 | Escalation occurs after budget exhaustion or ownership/CAS loss | Reserved control capacity checkpoints only when safe; otherwise escalation uses the last verified state without mutation or false takeover |
+| 19 | Low/standard/high final receipt graphs | Validator accepts only the declared acyclic predecessor order and rejects circular, cross-freeze, missing, duplicate-role, or summary-as-proof receipts |
+| 20 | Existing current-root artifacts or first remote sidecar push | Planned lifecycle requires safe migration to sidecar; exact namespaced initial CAS push has explicit portability authority; no silent current-root fallback |
+| 21 | Target merge/release or unplanned protected action | Completion notifies once; protected operation cannot inherit sidecar portability or implementation auto-resolve authority |
 
 ## Challenger Acceptance Standard
 
