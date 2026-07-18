@@ -1,0 +1,437 @@
+from __future__ import annotations
+
+import copy
+import json
+import shutil
+import subprocess
+import tempfile
+import unittest
+from pathlib import Path
+
+
+FIXTURE_PATH = Path(__file__).parent / "fixtures" / "agentic-lifecycle-scenarios.json"
+EXPECTATION_KEYS = ("v1_39", "phase_1", "candidate")
+SCENARIO_KEYS = {
+    "id",
+    "title",
+    "initial_state_class",
+    "initial_state",
+    "user_inputs",
+    "allowed_commands",
+    "permitted_calls",
+    "permitted_prompts",
+    "seed",
+    "expectations",
+}
+EXPECTATION_FIELDS = {
+    "first_detection_stage",
+    "first_detection_class",
+    "maximum_formal_prompts",
+    "repair_wave_expectation",
+    "terminal_result",
+    "notes",
+}
+TERMINAL_RESULTS = {
+    "pass",
+    "blocked",
+    "needs_decision",
+    "circuit_open",
+    "rejected",
+    "not_guaranteed",
+}
+
+
+def load_scenarios() -> dict:
+    return json.loads(FIXTURE_PATH.read_text(encoding="utf-8"))
+
+
+def run_git(cwd: Path, *args: str, check: bool = True) -> subprocess.CompletedProcess[str]:
+    result = subprocess.run(
+        ["git", *args],
+        cwd=cwd,
+        check=False,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    if check and result.returncode != 0:
+        raise AssertionError(f"git {' '.join(args)} failed:\n{result.stdout}{result.stderr}")
+    return result
+
+
+def init_repo(path: Path) -> None:
+    path.mkdir(parents=True)
+    run_git(path, "init", "-b", "main")
+    run_git(path, "config", "user.email", "agentic-fixture@example.invalid")
+    run_git(path, "config", "user.name", "Agentic Fixture")
+    run_git(path, "config", "commit.gpgsign", "false")
+
+
+def init_bare(path: Path) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    subprocess.run(
+        ["git", "init", "--bare", str(path)],
+        check=True,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+
+
+def commit_all(repo: Path, message: str) -> str:
+    run_git(repo, "add", ".")
+    run_git(repo, "commit", "-m", message)
+    return run_git(repo, "rev-parse", "HEAD").stdout.strip()
+
+
+def remote_ref(remote: Path, ref: str) -> str | None:
+    result = subprocess.run(
+        ["git", "ls-remote", str(remote), ref],
+        check=True,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    line = result.stdout.strip()
+    return line.split()[0] if line else None
+
+
+def write_lifecycle_state(repo: Path, state: dict) -> Path:
+    path = repo / ".tasks" / "fixture" / "lifecycle-state.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(state, indent=2) + "\n", encoding="utf-8")
+    return path
+
+
+def monotonic_budget_transition(previous: dict, current: dict) -> bool:
+    if current["generation"] <= previous["generation"]:
+        return False
+    for budget_name in ("preauthorization", "implementation"):
+        before = previous["budgets"][budget_name]
+        after = current["budgets"][budget_name]
+        if after["deadline_at"] != before["deadline_at"]:
+            return False
+        for key, value in before["issued"].items():
+            if after["issued"][key] < value:
+                return False
+    return True
+
+
+class AgenticLifecycleOracleTests(unittest.TestCase):
+    def test_scenario_manifest_schema_is_complete(self) -> None:
+        manifest = load_scenarios()
+        self.assertEqual(
+            {"schema_version", "corpus_id", "oracle_revisions", "scenarios"},
+            set(manifest),
+        )
+        self.assertEqual(1, manifest["schema_version"])
+        self.assertEqual(EXPECTATION_KEYS, tuple(manifest["oracle_revisions"]))
+        for revision in manifest["oracle_revisions"].values():
+            self.assertRegex(revision["commit"], r"^[0-9a-f]{40}$")
+            self.assertTrue(revision["label"].strip())
+
+        self.assertEqual(22, len(manifest["scenarios"]))
+        for scenario in manifest["scenarios"]:
+            with self.subTest(scenario=scenario["id"]):
+                self.assertEqual(SCENARIO_KEYS, set(scenario))
+                self.assertRegex(scenario["id"], r"^ADH-(0[1-9]|1[0-9]|2[0-2])$")
+                self.assertTrue(scenario["title"].strip())
+                self.assertTrue(scenario["initial_state_class"].strip())
+                self.assertEqual(
+                    {"code", "artifacts", "lifecycle"}, set(scenario["initial_state"])
+                )
+                for value in scenario["initial_state"].values():
+                    self.assertTrue(value.strip())
+                for field in (
+                    "user_inputs",
+                    "allowed_commands",
+                    "permitted_calls",
+                    "permitted_prompts",
+                ):
+                    self.assertIsInstance(scenario[field], list)
+                    self.assertTrue(scenario[field])
+                    self.assertTrue(all(isinstance(item, str) and item.strip() for item in scenario[field]))
+
+                seed = scenario["seed"]
+                self.assertEqual({"id", "class", "serious", "description"}, set(seed))
+                self.assertIsInstance(seed["serious"], bool)
+                self.assertTrue(seed["id"].strip())
+                self.assertTrue(seed["class"].strip())
+                self.assertTrue(seed["description"].strip())
+
+                self.assertEqual(EXPECTATION_KEYS, tuple(scenario["expectations"]))
+                for revision_name, expectation in scenario["expectations"].items():
+                    self.assertEqual(EXPECTATION_FIELDS, set(expectation), revision_name)
+                    self.assertTrue(expectation["first_detection_stage"].strip())
+                    self.assertTrue(expectation["first_detection_class"].strip())
+                    maximum_prompts = expectation["maximum_formal_prompts"]
+                    self.assertTrue(maximum_prompts is None or maximum_prompts >= 0)
+                    waves = expectation["repair_wave_expectation"]
+                    self.assertEqual({"minimum", "maximum"}, set(waves))
+                    self.assertGreaterEqual(waves["minimum"], 0)
+                    if waves["maximum"] is not None:
+                        self.assertGreaterEqual(waves["maximum"], waves["minimum"])
+                    self.assertIn(expectation["terminal_result"], TERMINAL_RESULTS)
+                    self.assertTrue(expectation["notes"].strip())
+
+                candidate = scenario["expectations"]["candidate"]
+                self.assertIsInstance(candidate["maximum_formal_prompts"], int)
+                self.assertIsNotNone(candidate["repair_wave_expectation"]["maximum"])
+
+    def test_scenario_manifest_identity_and_seed_fields_are_unique(self) -> None:
+        scenarios = load_scenarios()["scenarios"]
+        for field_getter in (
+            lambda item: item["id"],
+            lambda item: item["title"],
+            lambda item: item["seed"]["id"],
+            lambda item: item["seed"]["description"],
+        ):
+            values = [field_getter(item) for item in scenarios]
+            self.assertEqual(len(values), len(set(values)))
+        self.assertEqual([f"ADH-{number:02d}" for number in range(1, 23)], [s["id"] for s in scenarios])
+
+    def test_sidecar_only_roots_drill(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            code = root / "code"
+            sidecar = root / "artifact-sidecar"
+            init_repo(code)
+            init_repo(sidecar)
+            (code / "product.txt").write_text("base\n", encoding="utf-8")
+            artifact = sidecar / ".tasks" / "fixture" / "SPEC.md"
+            artifact.parent.mkdir(parents=True)
+            artifact.write_text("# Fixture\n", encoding="utf-8")
+            commit_all(code, "code base")
+            commit_all(sidecar, "sidecar base")
+
+            code_root = Path(run_git(code, "rev-parse", "--show-toplevel").stdout.strip())
+            artifact_root = Path(run_git(sidecar, "rev-parse", "--show-toplevel").stdout.strip())
+            self.assertNotEqual(code_root, artifact_root)
+            self.assertTrue(artifact.is_relative_to(artifact_root))
+            self.assertFalse(artifact.is_relative_to(code_root))
+            self.assertFalse((code / ".tasks").exists())
+
+    def test_non_force_code_before_sidecar_publication_windows_drill(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            code_remote = root / "remotes" / "code.git"
+            sidecar_remote = root / "remotes" / "sidecar.git"
+            code = root / "code"
+            sidecar = root / "sidecar"
+            init_bare(code_remote)
+            init_bare(sidecar_remote)
+            init_repo(code)
+            init_repo(sidecar)
+            run_git(code, "remote", "add", "origin", str(code_remote))
+            run_git(sidecar, "remote", "add", "origin", str(sidecar_remote))
+
+            (code / "product.txt").write_text("candidate one\n", encoding="utf-8")
+            code_sha = commit_all(code, "candidate")
+            (sidecar / "README.md").write_text("sidecar\n", encoding="utf-8")
+            commit_all(sidecar, "initial sidecar")
+            checkpoint_ref = "refs/heads/checkpoints/fixture/integration/g1"
+            artifact_ref = "refs/heads/artifacts/fixture"
+
+            # Before code publication, a sidecar reference would point at a local-only object.
+            self.assertIsNone(remote_ref(code_remote, checkpoint_ref))
+            self.assertIsNone(remote_ref(sidecar_remote, artifact_ref))
+
+            run_git(code, "push", "origin", f"HEAD:{checkpoint_ref}")
+            self.assertEqual(code_sha, remote_ref(code_remote, checkpoint_ref))
+            # A crash here leaves only an unreferenced orphan checkpoint.
+            self.assertIsNone(remote_ref(sidecar_remote, artifact_ref))
+
+            write_lifecycle_state(
+                sidecar,
+                {"generation": 1, "code_checkpoint": {"ref": checkpoint_ref, "sha": code_sha}},
+            )
+            commit_all(sidecar, "reference verified code")
+            run_git(sidecar, "push", "origin", f"HEAD:{artifact_ref}")
+            self.assertIsNotNone(remote_ref(sidecar_remote, artifact_ref))
+
+            (code / "product.txt").write_text("rewritten candidate\n", encoding="utf-8")
+            run_git(code, "add", "product.txt")
+            run_git(code, "commit", "--amend", "-m", "rewritten candidate")
+            rejected = run_git(code, "push", "origin", f"HEAD:{checkpoint_ref}", check=False)
+            self.assertNotEqual(0, rejected.returncode, "immutable checkpoint ref must reject non-force rewrite")
+            self.assertEqual(code_sha, remote_ref(code_remote, checkpoint_ref))
+
+    def test_current_root_rejection_and_migration_drill(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            code = root / "code"
+            sidecar = root / "sidecar"
+            init_repo(code)
+            init_repo(sidecar)
+            legacy_slice = code / ".planning" / "fixture" / "slices" / "feature.md"
+            legacy_task = code / ".tasks" / "fixture" / "SPEC.md"
+            legacy_slice.parent.mkdir(parents=True)
+            legacy_task.parent.mkdir(parents=True)
+            legacy_slice.write_text("# Legacy Slice\n", encoding="utf-8")
+            legacy_task.write_text("# Legacy Spec\n", encoding="utf-8")
+            commit_all(code, "legacy current-root artifacts")
+
+            self.assertEqual(
+                run_git(code, "rev-parse", "--show-toplevel").stdout.strip(),
+                str(code),
+                "current-root artifacts cannot establish a distinct planned authority",
+            )
+            for source in (legacy_slice, legacy_task):
+                self.assertFalse(source.is_symlink())
+                relative = source.relative_to(code)
+                destination = sidecar / relative
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(source, destination)
+            provenance = sidecar / ".tasks" / "fixture" / "migration-provenance.json"
+            provenance.write_text(
+                json.dumps({"source_root": str(code), "feature": "fixture"}) + "\n",
+                encoding="utf-8",
+            )
+            commit_all(sidecar, "import legacy artifacts")
+
+            self.assertNotEqual(
+                run_git(code, "rev-parse", "--show-toplevel").stdout.strip(),
+                run_git(sidecar, "rev-parse", "--show-toplevel").stdout.strip(),
+            )
+            self.assertEqual(legacy_slice.read_text(), (sidecar / legacy_slice.relative_to(code)).read_text())
+            self.assertEqual(legacy_task.read_text(), (sidecar / legacy_task.relative_to(code)).read_text())
+            tracked = run_git(sidecar, "ls-files").stdout.splitlines()
+            self.assertIn(".tasks/fixture/migration-provenance.json", tracked)
+
+    def test_monotonic_budget_persistence_drill(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            remote = root / "sidecar.git"
+            owner = root / "owner"
+            resumed = root / "resumed"
+            init_bare(remote)
+            init_repo(owner)
+            run_git(owner, "remote", "add", "origin", str(remote))
+            state_one = {
+                "generation": 1,
+                "budgets": {
+                    "preauthorization": {
+                        "deadline_at": "2026-07-18T12:00:00Z",
+                        "issued": {"calls": 2, "correction_waves": 1, "spike_waves": 0, "commands": 3},
+                    },
+                    "implementation": {
+                        "deadline_at": "2026-07-18T16:00:00Z",
+                        "issued": {"repair_waves": 0, "calls": 1, "commands": 4},
+                    },
+                },
+            }
+            write_lifecycle_state(owner, state_one)
+            commit_all(owner, "budget generation one")
+            run_git(owner, "push", "-u", "origin", "main")
+
+            state_two = copy.deepcopy(state_one)
+            state_two["generation"] = 2
+            state_two["budgets"]["preauthorization"]["issued"]["calls"] = 3
+            state_two["budgets"]["implementation"]["issued"]["commands"] = 7
+            self.assertTrue(monotonic_budget_transition(state_one, state_two))
+            write_lifecycle_state(owner, state_two)
+            commit_all(owner, "budget generation two")
+            run_git(owner, "push", "origin", "main")
+
+            run_git(root, "clone", str(remote), str(resumed))
+            persisted = json.loads((resumed / ".tasks" / "fixture" / "lifecycle-state.json").read_text())
+            self.assertEqual(state_two, persisted)
+            reset = copy.deepcopy(state_two)
+            reset["generation"] = 3
+            reset["budgets"]["preauthorization"]["issued"]["calls"] = 0
+            self.assertFalse(monotonic_budget_transition(state_two, reset))
+            deadline_reset = copy.deepcopy(state_two)
+            deadline_reset["generation"] = 3
+            deadline_reset["budgets"]["implementation"]["deadline_at"] = "2026-07-19T16:00:00Z"
+            self.assertFalse(monotonic_budget_transition(state_two, deadline_reset))
+
+    def test_last_verified_escalation_drill(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            remote = root / "sidecar.git"
+            owner_a = root / "owner-a"
+            owner_b = root / "owner-b"
+            escalation_reader = root / "escalation-reader"
+            init_bare(remote)
+            init_repo(owner_a)
+            run_git(owner_a, "remote", "add", "origin", str(remote))
+            write_lifecycle_state(owner_a, {"generation": 1, "owner": "owner-a", "stage": "quiescent"})
+            commit_all(owner_a, "verified generation one")
+            run_git(owner_a, "push", "-u", "origin", "main")
+
+            run_git(root, "clone", str(remote), str(owner_b))
+            write_lifecycle_state(owner_a, {"generation": 2, "owner": "owner-a", "stage": "local-unverified"})
+            commit_all(owner_a, "unverified local generation")
+            write_lifecycle_state(owner_b, {"generation": 2, "owner": "owner-b", "stage": "quiescent"})
+            commit_all(owner_b, "verified competing generation")
+            run_git(owner_b, "push", "origin", "main")
+
+            cas_loser = run_git(owner_a, "push", "origin", "main", check=False)
+            self.assertNotEqual(0, cas_loser.returncode)
+            remote_before = remote_ref(remote, "refs/heads/main")
+            run_git(root, "clone", str(remote), str(escalation_reader))
+            last_verified = json.loads(
+                (escalation_reader / ".tasks" / "fixture" / "lifecycle-state.json").read_text()
+            )
+            self.assertEqual({"generation": 2, "owner": "owner-b", "stage": "quiescent"}, last_verified)
+            self.assertNotEqual("local-unverified", last_verified["stage"])
+            self.assertEqual(remote_before, remote_ref(remote, "refs/heads/main"))
+
+    def test_cold_resume_drill(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            code_remote = root / "code.git"
+            sidecar_remote = root / "sidecar.git"
+            code_owner = root / "code-owner"
+            sidecar_owner = root / "sidecar-owner"
+            cold_sidecar = root / "cold-sidecar"
+            cold_code = root / "cold-code"
+            init_bare(code_remote)
+            init_bare(sidecar_remote)
+            init_repo(code_owner)
+            init_repo(sidecar_owner)
+            run_git(code_owner, "remote", "add", "origin", str(code_remote))
+            run_git(sidecar_owner, "remote", "add", "origin", str(sidecar_remote))
+
+            (code_owner / "product.txt").write_text("quiescent candidate\n", encoding="utf-8")
+            code_sha = commit_all(code_owner, "quiescent candidate")
+            checkpoint_ref = "refs/heads/checkpoints/fixture/wave-1/g7"
+            run_git(code_owner, "push", "origin", f"HEAD:{checkpoint_ref}")
+            self.assertEqual(code_sha, remote_ref(code_remote, checkpoint_ref))
+
+            state = {
+                "schema_version": 1,
+                "generation": 7,
+                "feature": "fixture",
+                "quiescent": True,
+                "stage": "package-wave-quiescent",
+                "next_legal_actions": ["resume-owner-cas"],
+                "owner": {"token": "owner-a", "disposition": "stopped"},
+                "code_checkpoint": {"ref": checkpoint_ref, "sha": code_sha},
+                "budgets": {
+                    "issued_calls": 4,
+                    "issued_repair_waves": 1,
+                    "deadline_at": "2026-07-18T16:00:00Z",
+                },
+                "clusters": [{"id": "REQ-1|mechanism|surface", "strikes": 1}],
+            }
+            write_lifecycle_state(sidecar_owner, state)
+            commit_all(sidecar_owner, "publish quiescent state")
+            run_git(sidecar_owner, "push", "-u", "origin", "main")
+
+            run_git(root, "clone", str(sidecar_remote), str(cold_sidecar))
+            resumed = json.loads((cold_sidecar / ".tasks" / "fixture" / "lifecycle-state.json").read_text())
+            self.assertEqual(state, resumed)
+            self.assertTrue(resumed["quiescent"])
+            self.assertEqual(1, resumed["clusters"][0]["strikes"])
+            self.assertEqual(4, resumed["budgets"]["issued_calls"])
+            self.assertNotEqual("completed", resumed["stage"])
+
+            run_git(root, "clone", str(code_remote), str(cold_code))
+            run_git(cold_code, "fetch", "origin", checkpoint_ref)
+            self.assertEqual(code_sha, run_git(cold_code, "rev-parse", "FETCH_HEAD").stdout.strip())
+            self.assertEqual(code_sha, remote_ref(code_remote, resumed["code_checkpoint"]["ref"]))
+
+
+if __name__ == "__main__":
+    unittest.main()

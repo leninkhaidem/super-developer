@@ -1,0 +1,1505 @@
+{
+  "schema_version": 1,
+  "corpus_id": "agentic-delivery-harness-core-acceptance",
+  "oracle_revisions": {
+    "v1_39": {
+      "label": "v1.39.0 baseline",
+      "commit": "df7396f677c026cd8bfdf2d0e9baca29e5a03791"
+    },
+    "phase_1": {
+      "label": "Phase 1 safety checkpoint",
+      "commit": "790bf679466b3738e422b3eb23a951a92a239a6f"
+    },
+    "candidate": {
+      "label": "accepted north-star candidate",
+      "commit": "1fdebf33af509061ae593796e532dcc4b1a93a9e"
+    }
+  },
+  "scenarios": [
+    {
+      "id": "ADH-01",
+      "title": "Clean low feature",
+      "initial_state_class": "clean-low",
+      "initial_state": {
+        "code": "Clean tracked base commit; no product writes.",
+        "artifacts": "Clean namespaced artifacts/<feature> sidecar at an exact accepted commit.",
+        "lifecycle": "Quiescent planned state with no open clusters and no issued implementation repair waves."
+      },
+      "user_inputs": [
+        "Deliver one coherent low-risk package and stop after independently verified completion."
+      ],
+      "allowed_commands": [
+        "read-only repository inspection",
+        "focused and affected test commands",
+        "non-force namespaced checkpoint pushes"
+      ],
+      "permitted_calls": [
+        "Planner",
+        "Plan Reviewer",
+        "Implementer",
+        "Combined Final Verifier"
+      ],
+      "permitted_prompts": [
+        "one Implementation Authorization: Approve and auto-resolve"
+      ],
+      "seed": {
+        "id": "SEED-CLEAN-LOW",
+        "class": "none",
+        "serious": false,
+        "description": "No defect; one coherent package has no boundary, sensitive, shared, public, or lifecycle trigger."
+      },
+      "expectations": {
+        "v1_39": {
+          "first_detection_stage": "not-applicable",
+          "first_detection_class": "none",
+          "maximum_formal_prompts": 3,
+          "repair_wave_expectation": {
+            "minimum": 0,
+            "maximum": 0
+          },
+          "terminal_result": "pass",
+          "notes": "Gate 1, Gate 2, and the later execution decision can all appear on the baseline clean path."
+        },
+        "phase_1": {
+          "first_detection_stage": "not-applicable",
+          "first_detection_class": "none",
+          "maximum_formal_prompts": 3,
+          "repair_wave_expectation": {
+            "minimum": 0,
+            "maximum": 0
+          },
+          "terminal_result": "pass",
+          "notes": "Delivery ownership is improved, but the three approval surfaces remain."
+        },
+        "candidate": {
+          "first_detection_stage": "not-applicable",
+          "first_detection_class": "none",
+          "maximum_formal_prompts": 1,
+          "repair_wave_expectation": {
+            "minimum": 0,
+            "maximum": 0
+          },
+          "terminal_result": "pass",
+          "notes": "Exactly one authorization, four delegated roles after discovery, combined two-verdict PASS, and V."
+        }
+      }
+    },
+    {
+      "id": "ADH-02",
+      "title": "Clean standard feature with a consumed boundary",
+      "initial_state_class": "clean-standard-boundary",
+      "initial_state": {
+        "code": "Clean tracked base commit; no product writes.",
+        "artifacts": "Clean namespaced artifacts/<feature> sidecar at an exact accepted commit.",
+        "lifecycle": "Quiescent planned state; package B consumes package A through a named contract."
+      },
+      "user_inputs": [
+        "Deliver the standard-risk feature; package B may consume A only after independent boundary confidence."
+      ],
+      "allowed_commands": [
+        "read-only repository inspection",
+        "package and integration checks",
+        "non-force namespaced checkpoint pushes"
+      ],
+      "permitted_calls": [
+        "Planner",
+        "Plan Reviewer",
+        "Package A Implementer",
+        "Package Verifier",
+        "Package B Implementer",
+        "Code Reviewer",
+        "Completion Auditor"
+      ],
+      "permitted_prompts": [
+        "one Implementation Authorization: Approve and auto-resolve"
+      ],
+      "seed": {
+        "id": "SEED-CLEAN-STANDARD-BOUNDARY",
+        "class": "none",
+        "serious": false,
+        "description": "No defect; a meaningful consumed boundary requires a pre-consumption receipt."
+      },
+      "expectations": {
+        "v1_39": {
+          "first_detection_stage": "not-applicable",
+          "first_detection_class": "none",
+          "maximum_formal_prompts": 3,
+          "repair_wave_expectation": {
+            "minimum": 0,
+            "maximum": 0
+          },
+          "terminal_result": "pass",
+          "notes": "Universal package verification can cover the boundary, but final review and audit are not serially receipt-bound."
+        },
+        "phase_1": {
+          "first_detection_stage": "not-applicable",
+          "first_detection_class": "none",
+          "maximum_formal_prompts": 3,
+          "repair_wave_expectation": {
+            "minimum": 0,
+            "maximum": 0
+          },
+          "terminal_result": "pass",
+          "notes": "Universal package verification remains; final review and audit remain sibling checks."
+        },
+        "candidate": {
+          "first_detection_stage": "not-applicable",
+          "first_detection_class": "none",
+          "maximum_formal_prompts": 1,
+          "repair_wave_expectation": {
+            "minimum": 0,
+            "maximum": 0
+          },
+          "terminal_result": "pass",
+          "notes": "Boundary PASS precedes consumption; R PASS precedes U dispatch; zero repair waves."
+        }
+      }
+    },
+    {
+      "id": "ADH-03",
+      "title": "Envelope-preserving technical plan defect",
+      "initial_state_class": "preauthorization-reviewed-plan-defect",
+      "initial_state": {
+        "code": "Clean tracked base commit; no product writes.",
+        "artifacts": "Clean namespaced artifacts/<feature> sidecar at an exact accepted commit.",
+        "lifecycle": "Quiescent planned state with no open clusters and no issued implementation repair waves."
+      },
+      "user_inputs": [
+        "Preserve the accepted product envelope while correcting technical means."
+      ],
+      "allowed_commands": [
+        "read-only inspection",
+        "bounded plan rewrite",
+        "affected cold plan re-review",
+        "sidecar CAS checkpoint"
+      ],
+      "permitted_calls": [
+        "Planner",
+        "Plan Reviewer"
+      ],
+      "permitted_prompts": [
+        "one Implementation Authorization after clean re-review; no repair prompt"
+      ],
+      "seed": {
+        "id": "SEED-TECHNICAL-PLAN-DEFECT",
+        "class": "technical-plan-defect",
+        "serious": true,
+        "description": "The package order contradicts a consumed contract but an envelope-preserving correction is available."
+      },
+      "expectations": {
+        "v1_39": {
+          "first_detection_stage": "plan-review",
+          "first_detection_class": "technical-plan-defect",
+          "maximum_formal_prompts": 3,
+          "repair_wave_expectation": {
+            "minimum": 0,
+            "maximum": null
+          },
+          "terminal_result": "pass",
+          "notes": "Correction can return through approval surfaces and has no authorization-wide preauthorization budget."
+        },
+        "phase_1": {
+          "first_detection_stage": "plan-review",
+          "first_detection_class": "technical-plan-defect",
+          "maximum_formal_prompts": 3,
+          "repair_wave_expectation": {
+            "minimum": 0,
+            "maximum": 0
+          },
+          "terminal_result": "pass",
+          "notes": "Reviewer batches findings, but the old formal gates remain."
+        },
+        "candidate": {
+          "first_detection_stage": "cold-plan-challenge",
+          "first_detection_class": "technical-plan-defect",
+          "maximum_formal_prompts": 1,
+          "repair_wave_expectation": {
+            "minimum": 0,
+            "maximum": 0
+          },
+          "terminal_result": "pass",
+          "notes": "One batched finding, agent-owned revision, and affected cold re-review occur before authorization."
+        }
+      }
+    },
+    {
+      "id": "ADH-04",
+      "title": "Missing product or interface decision",
+      "initial_state_class": "discovery-envelope-gap",
+      "initial_state": {
+        "code": "Clean tracked base commit; no product writes.",
+        "artifacts": "Clean namespaced artifacts/<feature> sidecar at an exact accepted commit.",
+        "lifecycle": "Quiescent planned state with no open clusters and no issued implementation repair waves."
+      },
+      "user_inputs": [
+        "Choose the externally observable default after receiving one recommendation."
+      ],
+      "allowed_commands": [
+        "read-only evidence gathering",
+        "focused artifact amendment",
+        "sidecar CAS checkpoint"
+      ],
+      "permitted_calls": [
+        "Conceptualizer",
+        "Planner",
+        "Plan Reviewer"
+      ],
+      "permitted_prompts": [
+        "one focused product question",
+        "one Implementation Authorization after the envelope is complete"
+      ],
+      "seed": {
+        "id": "SEED-MISSING-PRODUCT-DECISION",
+        "class": "human-envelope-gap",
+        "serious": true,
+        "description": "The externally visible default and error behavior are absent from durable authority."
+      },
+      "expectations": {
+        "v1_39": {
+          "first_detection_stage": "plan-review",
+          "first_detection_class": "human-envelope-gap",
+          "maximum_formal_prompts": 4,
+          "repair_wave_expectation": {
+            "minimum": 0,
+            "maximum": null
+          },
+          "terminal_result": "pass",
+          "notes": "The omission may survive discovery until review and adds another question to multiple gates."
+        },
+        "phase_1": {
+          "first_detection_stage": "plan-review",
+          "first_detection_class": "human-envelope-gap",
+          "maximum_formal_prompts": 4,
+          "repair_wave_expectation": {
+            "minimum": 0,
+            "maximum": 0
+          },
+          "terminal_result": "pass",
+          "notes": "Architecture challenge improves detection but still retains multiple gates."
+        },
+        "candidate": {
+          "first_detection_stage": "conceptualization",
+          "first_detection_class": "human-envelope-gap",
+          "maximum_formal_prompts": 2,
+          "repair_wave_expectation": {
+            "minimum": 0,
+            "maximum": 0
+          },
+          "terminal_result": "pass",
+          "notes": "One focused conversational decision updates the envelope before the sole formal authorization."
+        }
+      }
+    },
+    {
+      "id": "ADH-05",
+      "title": "Omitted architecture, public contract, and verification seam",
+      "initial_state_class": "preauthorization-architecture-gap",
+      "initial_state": {
+        "code": "Clean tracked base commit; no product writes.",
+        "artifacts": "Clean namespaced artifacts/<feature> sidecar at an exact accepted commit.",
+        "lifecycle": "Quiescent planned state with no open clusters and no issued implementation repair waves."
+      },
+      "user_inputs": [
+        "Keep the public contract and establish a credible production-path seam before implementation."
+      ],
+      "allowed_commands": [
+        "read-only architecture inspection",
+        "safe local feasibility probe",
+        "bounded plan amendment",
+        "affected cold re-review"
+      ],
+      "permitted_calls": [
+        "Design Preflight Challenger",
+        "Planner",
+        "Plan Reviewer"
+      ],
+      "permitted_prompts": [
+        "one Implementation Authorization only after closure"
+      ],
+      "seed": {
+        "id": "SEED-OMITTED-ARCHITECTURE-SEAM",
+        "class": "architecture-invalidation",
+        "serious": true,
+        "description": "Mutable-state ownership, its public ordering contract, and an actual-path observation seam are omitted."
+      },
+      "expectations": {
+        "v1_39": {
+          "first_detection_stage": "package-verification",
+          "first_detection_class": "architecture-invalidation",
+          "maximum_formal_prompts": 3,
+          "repair_wave_expectation": {
+            "minimum": 1,
+            "maximum": null
+          },
+          "terminal_result": "pass",
+          "notes": "Known field failures can be found only after package implementation and may enter repeated repair."
+        },
+        "phase_1": {
+          "first_detection_stage": "design-preflight",
+          "first_detection_class": "architecture-invalidation",
+          "maximum_formal_prompts": 3,
+          "repair_wave_expectation": {
+            "minimum": 0,
+            "maximum": 0
+          },
+          "terminal_result": "pass",
+          "notes": "Triggered invariant projection moves this seed earlier, although old gates remain."
+        },
+        "candidate": {
+          "first_detection_stage": "design-and-feasibility-preflight",
+          "first_detection_class": "architecture-invalidation",
+          "maximum_formal_prompts": 1,
+          "repair_wave_expectation": {
+            "minimum": 0,
+            "maximum": 0
+          },
+          "terminal_result": "pass",
+          "notes": "Preflight blocks before authorization and persists the architecture/public-contract/verification seam."
+        }
+      }
+    },
+    {
+      "id": "ADH-06",
+      "title": "Known unavailable required prerequisite",
+      "initial_state_class": "readiness-blocked",
+      "initial_state": {
+        "code": "Clean tracked base commit; no product writes.",
+        "artifacts": "Clean namespaced artifacts/<feature> sidecar at an exact accepted commit.",
+        "lifecycle": "Quiescent planned state with no open clusters and no issued implementation repair waves."
+      },
+      "user_inputs": [
+        "Use the required project-owned tool; do not substitute or install an unapproved dependency."
+      ],
+      "allowed_commands": [
+        "read-only tool discovery",
+        "safe version/readiness probe"
+      ],
+      "permitted_calls": [
+        "Planner",
+        "Plan Reviewer"
+      ],
+      "permitted_prompts": [
+        "one precise blocked handback; no Implementation Authorization"
+      ],
+      "seed": {
+        "id": "SEED-PREREQUISITE-UNAVAILABLE",
+        "class": "prerequisite-blocked",
+        "serious": true,
+        "description": "A required tool or service is proven unavailable before authorization."
+      },
+      "expectations": {
+        "v1_39": {
+          "first_detection_stage": "implementation-readiness",
+          "first_detection_class": "prerequisite-blocked",
+          "maximum_formal_prompts": 3,
+          "repair_wave_expectation": {
+            "minimum": 0,
+            "maximum": 0
+          },
+          "terminal_result": "blocked",
+          "notes": "Baseline readiness may occur only after plan approvals or at execution entry."
+        },
+        "phase_1": {
+          "first_detection_stage": "implementation-readiness",
+          "first_detection_class": "prerequisite-blocked",
+          "maximum_formal_prompts": 3,
+          "repair_wave_expectation": {
+            "minimum": 0,
+            "maximum": 0
+          },
+          "terminal_result": "blocked",
+          "notes": "Phase 1 does not yet require all plan-changing prerequisites before authorization."
+        },
+        "candidate": {
+          "first_detection_stage": "execution-readiness",
+          "first_detection_class": "prerequisite-blocked",
+          "maximum_formal_prompts": 0,
+          "repair_wave_expectation": {
+            "minimum": 0,
+            "maximum": 0
+          },
+          "terminal_result": "blocked",
+          "notes": "Readiness is blocked; no authorization or package fanout occurs."
+        }
+      }
+    },
+    {
+      "id": "ADH-07",
+      "title": "Protected prerequisite checked after authorization",
+      "initial_state_class": "protected-activation",
+      "initial_state": {
+        "code": "Clean tracked base commit; no product writes.",
+        "artifacts": "Clean namespaced artifacts/<feature> sidecar at an exact accepted commit.",
+        "lifecycle": "Quiescent planned state with no open clusters and no issued implementation repair waves."
+      },
+      "user_inputs": [
+        "Authorize the exact protected probe and only the listed remedy; otherwise escalate before product writes."
+      ],
+      "allowed_commands": [
+        "read-only preflight",
+        "the exact authorized activation probe",
+        "the exact covered remedy if needed",
+        "sidecar CAS checkpoint"
+      ],
+      "permitted_calls": [
+        "Planner",
+        "Plan Reviewer",
+        "Delivery Owner"
+      ],
+      "permitted_prompts": [
+        "one Implementation Authorization listing probe/remedy",
+        "at most one precise escalation if the covered remedy cannot succeed"
+      ],
+      "seed": {
+        "id": "SEED-PROTECTED-ACTIVATION-FAILURE",
+        "class": "protected-activation-failure",
+        "serious": true,
+        "description": "The authorized protected activation probe fails and no successful covered remedy remains."
+      },
+      "expectations": {
+        "v1_39": {
+          "first_detection_stage": "implementation-readiness",
+          "first_detection_class": "protected-activation-failure",
+          "maximum_formal_prompts": 4,
+          "repair_wave_expectation": {
+            "minimum": 0,
+            "maximum": null
+          },
+          "terminal_result": "needs_decision",
+          "notes": "Protected checks occur near execution and can create another approval or vague blocker."
+        },
+        "phase_1": {
+          "first_detection_stage": "implementation-readiness",
+          "first_detection_class": "protected-activation-failure",
+          "maximum_formal_prompts": 4,
+          "repair_wave_expectation": {
+            "minimum": 0,
+            "maximum": 0
+          },
+          "terminal_result": "needs_decision",
+          "notes": "Delivery Owner improves routing, but the single-gate activation contract is absent."
+        },
+        "candidate": {
+          "first_detection_stage": "authorized-activation",
+          "first_detection_class": "protected-activation-failure",
+          "maximum_formal_prompts": 2,
+          "repair_wave_expectation": {
+            "minimum": 0,
+            "maximum": 0
+          },
+          "terminal_result": "needs_decision",
+          "notes": "Failure is caught before product writes/fanout and yields one precise escalation."
+        }
+      }
+    },
+    {
+      "id": "ADH-08",
+      "title": "Preauthorization budget exhaustion across owners",
+      "initial_state_class": "preauthorization-budget-pressure",
+      "initial_state": {
+        "code": "Clean tracked base commit; no product writes.",
+        "artifacts": "Clean namespaced artifacts/<feature> sidecar at an exact accepted commit.",
+        "lifecycle": "Quiescent planned state with no open clusters and no issued implementation repair waves."
+      },
+      "user_inputs": [
+        "Do not expand the finite planning/review/spike budget without a focused decision."
+      ],
+      "allowed_commands": [
+        "read-only investigation",
+        "bounded safe spike commands",
+        "sidecar budget reservation and CAS checkpoint"
+      ],
+      "permitted_calls": [
+        "Planner",
+        "Plan Reviewer",
+        "Design Preflight Challenger",
+        "Spike Investigator"
+      ],
+      "permitted_prompts": [
+        "one batched needs_decision packet; no Implementation Authorization"
+      ],
+      "seed": {
+        "id": "SEED-PREAUTH-BUDGET-EXHAUSTION",
+        "class": "budget-exhaustion",
+        "serious": true,
+        "description": "Many unrelated plan findings consume the finite call/correction/spike/command budget."
+      },
+      "expectations": {
+        "v1_39": {
+          "first_detection_stage": "not-guaranteed",
+          "first_detection_class": "not-guaranteed",
+          "maximum_formal_prompts": null,
+          "repair_wave_expectation": {
+            "minimum": 0,
+            "maximum": null
+          },
+          "terminal_result": "not_guaranteed",
+          "notes": "No durable monotonic preauthorization budget prevents owner or host reset."
+        },
+        "phase_1": {
+          "first_detection_stage": "not-guaranteed",
+          "first_detection_class": "not-guaranteed",
+          "maximum_formal_prompts": null,
+          "repair_wave_expectation": {
+            "minimum": 0,
+            "maximum": null
+          },
+          "terminal_result": "not_guaranteed",
+          "notes": "Phase 1 has local bounded passes but no CAS-persisted authorization-wide budget."
+        },
+        "candidate": {
+          "first_detection_stage": "cold-plan-challenge",
+          "first_detection_class": "budget-exhaustion",
+          "maximum_formal_prompts": 1,
+          "repair_wave_expectation": {
+            "minimum": 0,
+            "maximum": 0
+          },
+          "terminal_result": "needs_decision",
+          "notes": "Issued usage and deadline persist; one batched packet stops autonomous planning."
+        }
+      }
+    },
+    {
+      "id": "ADH-09",
+      "title": "Ordinary local defect before stable handoff",
+      "initial_state_class": "implementation-stabilization",
+      "initial_state": {
+        "code": "Clean tracked base commit; no product writes.",
+        "artifacts": "Clean namespaced artifacts/<feature> sidecar at an exact accepted commit.",
+        "lifecycle": "Quiescent planned state with no open clusters and no issued implementation repair waves."
+      },
+      "user_inputs": [
+        "Implement the accepted package and stabilize it before independent handoff."
+      ],
+      "allowed_commands": [
+        "owned file edits",
+        "focused tests",
+        "earliest affected broad regression",
+        "package commit"
+      ],
+      "permitted_calls": [
+        "Implementer"
+      ],
+      "permitted_prompts": [
+        "one Implementation Authorization; no repair prompt"
+      ],
+      "seed": {
+        "id": "SEED-LOCAL-PREHANDOFF-DEFECT",
+        "class": "implementation-defect",
+        "serious": true,
+        "description": "A focused check exposes an ordinary local implementation defect before a stable-candidate claim."
+      },
+      "expectations": {
+        "v1_39": {
+          "first_detection_stage": "package-stabilization",
+          "first_detection_class": "implementation-defect",
+          "maximum_formal_prompts": 3,
+          "repair_wave_expectation": {
+            "minimum": 0,
+            "maximum": 0
+          },
+          "terminal_result": "pass",
+          "notes": "The implementer can repair ordinary local defects before verifier handoff."
+        },
+        "phase_1": {
+          "first_detection_stage": "package-stabilization",
+          "first_detection_class": "implementation-defect",
+          "maximum_formal_prompts": 3,
+          "repair_wave_expectation": {
+            "minimum": 0,
+            "maximum": 0
+          },
+          "terminal_result": "pass",
+          "notes": "Logical owner stabilizes behavior before proof refresh."
+        },
+        "candidate": {
+          "first_detection_stage": "package-stabilization",
+          "first_detection_class": "implementation-defect",
+          "maximum_formal_prompts": 1,
+          "repair_wave_expectation": {
+            "minimum": 0,
+            "maximum": 0
+          },
+          "terminal_result": "pass",
+          "notes": "Local iteration consumes progress budget, not a closure strike or repair wave."
+        }
+      }
+    },
+    {
+      "id": "ADH-10",
+      "title": "Dependent package requests unverified output",
+      "initial_state_class": "consumed-package-boundary",
+      "initial_state": {
+        "code": "Clean tracked base commit; no product writes.",
+        "artifacts": "Clean namespaced artifacts/<feature> sidecar at an exact accepted commit.",
+        "lifecycle": "Package A candidate is stable; dependent package B is locked pending the exact consumed-contract receipt."
+      },
+      "user_inputs": [
+        "Unlock package B only from independently verified package A output."
+      ],
+      "allowed_commands": [
+        "package A checks",
+        "boundary verification",
+        "receipt CAS checkpoint",
+        "package B dispatch after PASS"
+      ],
+      "permitted_calls": [
+        "Package A Implementer",
+        "Package Verifier",
+        "Package B Implementer"
+      ],
+      "permitted_prompts": [
+        "one Implementation Authorization"
+      ],
+      "seed": {
+        "id": "SEED-DEPENDENCY-UNLOCK-WITHOUT-RECEIPT",
+        "class": "dependency-boundary-violation",
+        "serious": true,
+        "description": "A dependent dispatch is attempted before a PASS receipt bound to the candidate and contract digests."
+      },
+      "expectations": {
+        "v1_39": {
+          "first_detection_stage": "package-verification",
+          "first_detection_class": "dependency-boundary-violation",
+          "maximum_formal_prompts": 3,
+          "repair_wave_expectation": {
+            "minimum": 0,
+            "maximum": 0
+          },
+          "terminal_result": "pass",
+          "notes": "Universal package verification usually precedes integration but exact consumed digests are not a lifecycle unlock key."
+        },
+        "phase_1": {
+          "first_detection_stage": "package-verification",
+          "first_detection_class": "dependency-boundary-violation",
+          "maximum_formal_prompts": 3,
+          "repair_wave_expectation": {
+            "minimum": 0,
+            "maximum": 0
+          },
+          "terminal_result": "pass",
+          "notes": "Package reports exist, but profile/routing and exact unlock binding are not encoded."
+        },
+        "candidate": {
+          "first_detection_stage": "boundary-verification",
+          "first_detection_class": "dependency-boundary-violation",
+          "maximum_formal_prompts": 1,
+          "repair_wave_expectation": {
+            "minimum": 0,
+            "maximum": 0
+          },
+          "terminal_result": "pass",
+          "notes": "Dispatch remains locked until exact B[i] PASS and consumed-contract digests match."
+        }
+      }
+    },
+    {
+      "id": "ADH-11",
+      "title": "Standard code-review defect closes once",
+      "initial_state_class": "post-freeze-standard-rejection",
+      "initial_state": {
+        "code": "Clean tracked base commit; no product writes.",
+        "artifacts": "Clean namespaced artifacts/<feature> sidecar at an exact accepted commit.",
+        "lifecycle": "Quiescent planned state with no open clusters and no issued implementation repair waves."
+      },
+      "user_inputs": [
+        "Repair the one coherent implementation root cause inside authorization and rerun affected assurance."
+      ],
+      "allowed_commands": [
+        "targeted reproduction",
+        "one root-cause repair",
+        "affected broad regression",
+        "new freeze",
+        "closure review",
+        "audit after review PASS"
+      ],
+      "permitted_calls": [
+        "Code Reviewer",
+        "Logical Implementer",
+        "Code Review Successor",
+        "Completion Auditor"
+      ],
+      "permitted_prompts": [
+        "one Implementation Authorization; no routine repair prompt"
+      ],
+      "seed": {
+        "id": "SEED-STANDARD-CODE-REVIEW-DEFECT",
+        "class": "implementation-defect",
+        "serious": true,
+        "description": "Code review finds one serious integrated defect; one root-cause repair makes the affected closure check pass."
+      },
+      "expectations": {
+        "v1_39": {
+          "first_detection_stage": "final-code-review",
+          "first_detection_class": "implementation-defect",
+          "maximum_formal_prompts": null,
+          "repair_wave_expectation": {
+            "minimum": 1,
+            "maximum": null
+          },
+          "terminal_result": "pass",
+          "notes": "Repair may be re-prompted/re-entered and review/audit ordering is not serially bound."
+        },
+        "phase_1": {
+          "first_detection_stage": "final-code-review",
+          "first_detection_class": "implementation-defect",
+          "maximum_formal_prompts": 3,
+          "repair_wave_expectation": {
+            "minimum": 1,
+            "maximum": 1
+          },
+          "terminal_result": "pass",
+          "notes": "Delivery Owner batches repair, but review and audit can still be sibling checks."
+        },
+        "candidate": {
+          "first_detection_stage": "final-code-review",
+          "first_detection_class": "implementation-defect",
+          "maximum_formal_prompts": 1,
+          "repair_wave_expectation": {
+            "minimum": 1,
+            "maximum": 1
+          },
+          "terminal_result": "pass",
+          "notes": "One repair wave closes on a new freeze; audit dispatches once after R PASS."
+        }
+      }
+    },
+    {
+      "id": "ADH-12",
+      "title": "Runtime low-to-high profile trigger",
+      "initial_state_class": "runtime-profile-promotion",
+      "initial_state": {
+        "code": "Clean tracked base commit; no product writes.",
+        "artifacts": "Clean namespaced artifacts/<feature> sidecar at an exact accepted commit.",
+        "lifecycle": "Quiescent planned state with no open clusters and no issued implementation repair waves."
+      },
+      "user_inputs": [
+        "Promote assurance inside the accepted envelope and budget when runtime evidence reveals a high trigger."
+      ],
+      "allowed_commands": [
+        "runtime observation",
+        "technical baseline amendment",
+        "affected cold re-review",
+        "checkpoint",
+        "high assurance topology"
+      ],
+      "permitted_calls": [
+        "Implementer",
+        "Plan Reviewer",
+        "Code Reviewer",
+        "Named Final Specialist",
+        "Completion Auditor"
+      ],
+      "permitted_prompts": [
+        "one Implementation Authorization; a user question only if envelope or budget must change"
+      ],
+      "seed": {
+        "id": "SEED-RUNTIME-HIGH-TRIGGER",
+        "class": "profile-invalid",
+        "serious": true,
+        "description": "Runtime evidence reveals a sensitive shared-state risk after the feature was initially classified low."
+      },
+      "expectations": {
+        "v1_39": {
+          "first_detection_stage": "final-code-review",
+          "first_detection_class": "not-guaranteed",
+          "maximum_formal_prompts": null,
+          "repair_wave_expectation": {
+            "minimum": 0,
+            "maximum": null
+          },
+          "terminal_result": "not_guaranteed",
+          "notes": "Triggered specialists exist, but no profile promotion/effective-digest lifecycle invalidates a low candidate."
+        },
+        "phase_1": {
+          "first_detection_stage": "final-code-review",
+          "first_detection_class": "not-guaranteed",
+          "maximum_formal_prompts": 3,
+          "repair_wave_expectation": {
+            "minimum": 0,
+            "maximum": null
+          },
+          "terminal_result": "not_guaranteed",
+          "notes": "Risk-triggered review exists without controlled low/standard/high promotion state."
+        },
+        "candidate": {
+          "first_detection_stage": "package-stabilization",
+          "first_detection_class": "profile-invalid",
+          "maximum_formal_prompts": 1,
+          "repair_wave_expectation": {
+            "minimum": 0,
+            "maximum": 0
+          },
+          "terminal_result": "pass",
+          "notes": "Candidate is invalidated, profile/topology promoted and reviewed, effective digest/checkpoint advanced."
+        }
+      }
+    },
+    {
+      "id": "ADH-13",
+      "title": "Envelope-preserving architecture invalidation",
+      "initial_state_class": "postauthorization-architecture-invalidation",
+      "initial_state": {
+        "code": "Clean tracked base commit; no product writes.",
+        "artifacts": "Clean namespaced artifacts/<feature> sidecar at an exact accepted commit.",
+        "lifecycle": "Quiescent planned state with no open clusters and no issued implementation repair waves."
+      },
+      "user_inputs": [
+        "Use the credible envelope-preserving alternative without asking for a product decision."
+      ],
+      "allowed_commands": [
+        "read-only architecture reassessment",
+        "bounded preflight",
+        "technical plan amendment",
+        "affected cold review",
+        "checkpoint"
+      ],
+      "permitted_calls": [
+        "Code Reviewer",
+        "Design Preflight Challenger",
+        "Planner",
+        "Plan Reviewer"
+      ],
+      "permitted_prompts": [
+        "one Implementation Authorization; no architecture repair prompt"
+      ],
+      "seed": {
+        "id": "SEED-TECHNICAL-ARCHITECTURE-INVALIDATION",
+        "class": "architecture-invalidation",
+        "serious": true,
+        "description": "Implemented architecture cannot satisfy the invariant, but another technical design preserves the human envelope."
+      },
+      "expectations": {
+        "v1_39": {
+          "first_detection_stage": "final-code-review",
+          "first_detection_class": "architecture-invalidation",
+          "maximum_formal_prompts": null,
+          "repair_wave_expectation": {
+            "minimum": 1,
+            "maximum": null
+          },
+          "terminal_result": "not_guaranteed",
+          "notes": "Baseline often routes late architecture failures through code repair."
+        },
+        "phase_1": {
+          "first_detection_stage": "final-code-review",
+          "first_detection_class": "architecture-invalidation",
+          "maximum_formal_prompts": 3,
+          "repair_wave_expectation": {
+            "minimum": 0,
+            "maximum": 0
+          },
+          "terminal_result": "pass",
+          "notes": "Phase 1 classifies and returns architecture invalidation to focused reassessment."
+        },
+        "candidate": {
+          "first_detection_stage": "final-code-review",
+          "first_detection_class": "architecture-invalidation",
+          "maximum_formal_prompts": 1,
+          "repair_wave_expectation": {
+            "minimum": 0,
+            "maximum": 0
+          },
+          "terminal_result": "pass",
+          "notes": "Automatic return to preflight/planning and affected cold review; no code repair or user prompt."
+        }
+      }
+    },
+    {
+      "id": "ADH-14",
+      "title": "Architecture cannot preserve product invariant",
+      "initial_state_class": "envelope-change-required",
+      "initial_state": {
+        "code": "Clean tracked base commit; no product writes.",
+        "artifacts": "Clean namespaced artifacts/<feature> sidecar at an exact accepted commit.",
+        "lifecycle": "Quiescent planned state with no open clusters and no issued implementation repair waves."
+      },
+      "user_inputs": [
+        "Choose whether to change the product invariant, scope, or accepted material risk."
+      ],
+      "allowed_commands": [
+        "read-only reassessment",
+        "safe control-plane checkpoint only"
+      ],
+      "permitted_calls": [
+        "Delivery Owner",
+        "Design Preflight Challenger"
+      ],
+      "permitted_prompts": [
+        "one precise product decision after the existing Implementation Authorization"
+      ],
+      "seed": {
+        "id": "SEED-NO-ENVELOPE-PRESERVING-DESIGN",
+        "class": "human-envelope-gap",
+        "serious": true,
+        "description": "No technical design can preserve an accepted product invariant under current constraints."
+      },
+      "expectations": {
+        "v1_39": {
+          "first_detection_stage": "final-code-review",
+          "first_detection_class": "human-envelope-gap",
+          "maximum_formal_prompts": null,
+          "repair_wave_expectation": {
+            "minimum": 1,
+            "maximum": null
+          },
+          "terminal_result": "needs_decision",
+          "notes": "Detection is late and repair may precede a user decision."
+        },
+        "phase_1": {
+          "first_detection_stage": "architecture-reassessment",
+          "first_detection_class": "human-envelope-gap",
+          "maximum_formal_prompts": 4,
+          "repair_wave_expectation": {
+            "minimum": 0,
+            "maximum": 0
+          },
+          "terminal_result": "needs_decision",
+          "notes": "Classification reaches the user, but durable CAS handoff is absent."
+        },
+        "candidate": {
+          "first_detection_stage": "architecture-reassessment",
+          "first_detection_class": "human-envelope-gap",
+          "maximum_formal_prompts": 2,
+          "repair_wave_expectation": {
+            "minimum": 0,
+            "maximum": 0
+          },
+          "terminal_result": "needs_decision",
+          "notes": "Safe checkpoint plus one precise decision; no automatic technical mutation."
+        }
+      }
+    },
+    {
+      "id": "ADH-15",
+      "title": "Same serious mechanism fails closure",
+      "initial_state_class": "closure-circuit",
+      "initial_state": {
+        "code": "Clean tracked base commit; no product writes.",
+        "artifacts": "Clean namespaced artifacts/<feature> sidecar at an exact accepted commit.",
+        "lifecycle": "Quiescent planned state with no open clusters and no issued implementation repair waves."
+      },
+      "user_inputs": [
+        "Allow one root-cause repair for the canonical cluster and stop after failed closure."
+      ],
+      "allowed_commands": [
+        "targeted reproduction",
+        "one root-cause repair",
+        "affected broad regression",
+        "one closure check",
+        "safe escalation checkpoint"
+      ],
+      "permitted_calls": [
+        "Independent Verifier",
+        "Logical Implementer",
+        "Verifier Successor"
+      ],
+      "permitted_prompts": [
+        "one Implementation Authorization; one circuit-open escalation"
+      ],
+      "seed": {
+        "id": "SEED-SAME-MECHANISM-CLOSURE-FAILURE",
+        "class": "implementation-defect",
+        "serious": true,
+        "description": "The same invariant/root-mechanism/surface still fails after its one eligible repair despite changed agent, commit, and signature."
+      },
+      "expectations": {
+        "v1_39": {
+          "first_detection_stage": "final-verification",
+          "first_detection_class": "implementation-defect",
+          "maximum_formal_prompts": null,
+          "repair_wave_expectation": {
+            "minimum": 1,
+            "maximum": null
+          },
+          "terminal_result": "not_guaranteed",
+          "notes": "Identity and retries can reset through changed observations or repair ownership."
+        },
+        "phase_1": {
+          "first_detection_stage": "closure-verification",
+          "first_detection_class": "implementation-defect",
+          "maximum_formal_prompts": null,
+          "repair_wave_expectation": {
+            "minimum": 1,
+            "maximum": 2
+          },
+          "terminal_result": "not_guaranteed",
+          "notes": "Phase 1 strike semantics begin after a failed closure and can allow another repair."
+        },
+        "candidate": {
+          "first_detection_stage": "closure-verification",
+          "first_detection_class": "implementation-defect",
+          "maximum_formal_prompts": 2,
+          "repair_wave_expectation": {
+            "minimum": 1,
+            "maximum": 1
+          },
+          "terminal_result": "circuit_open",
+          "notes": "Initial rejection is strike 1; failed closure is strike 2 across renamed observations."
+        }
+      }
+    },
+    {
+      "id": "ADH-16",
+      "title": "Exact accepted-state drift",
+      "initial_state_class": "freshness-drift",
+      "initial_state": {
+        "code": "Clean tracked base commit; no product writes.",
+        "artifacts": "Clean namespaced artifacts/<feature> sidecar at an exact accepted commit.",
+        "lifecycle": "Quiescent planned state with no open clusters and no issued implementation repair waves."
+      },
+      "user_inputs": [
+        "Do not rebind unlisted artifact, code, dependency, profile, or routing drift."
+      ],
+      "allowed_commands": [
+        "exact digest/ref comparison",
+        "read-only drift inspection"
+      ],
+      "permitted_calls": [
+        "Delivery Owner"
+      ],
+      "permitted_prompts": [
+        "one Implementation Authorization; no drift waiver prompt unless the envelope changes"
+      ],
+      "seed": {
+        "id": "SEED-EXACT-STATE-DRIFT",
+        "class": "exact-state-drift",
+        "serious": true,
+        "description": "One unlisted artifact/code/dependency/profile identity differs from the authorized or frozen input."
+      },
+      "expectations": {
+        "v1_39": {
+          "first_detection_stage": "final-validation",
+          "first_detection_class": "exact-state-drift",
+          "maximum_formal_prompts": 3,
+          "repair_wave_expectation": {
+            "minimum": 0,
+            "maximum": 0
+          },
+          "terminal_result": "rejected",
+          "notes": "v1.39 semantic freshness and freeze checks can reject changed final inputs."
+        },
+        "phase_1": {
+          "first_detection_stage": "freshness-guard",
+          "first_detection_class": "exact-state-drift",
+          "maximum_formal_prompts": 3,
+          "repair_wave_expectation": {
+            "minimum": 0,
+            "maximum": 0
+          },
+          "terminal_result": "rejected",
+          "notes": "Phase 1 binds exact accepted artifact state but lacks the complete lifecycle digest."
+        },
+        "candidate": {
+          "first_detection_stage": "freshness-guard",
+          "first_detection_class": "exact-state-drift",
+          "maximum_formal_prompts": 1,
+          "repair_wave_expectation": {
+            "minimum": 0,
+            "maximum": 0
+          },
+          "terminal_result": "rejected",
+          "notes": "Exact equality fails closed; no subjective materiality rebind."
+        }
+      }
+    },
+    {
+      "id": "ADH-17",
+      "title": "Crash windows around code and sidecar publication",
+      "initial_state_class": "quiescent-checkpoint-crash",
+      "initial_state": {
+        "code": "Clean tracked base commit; no product writes.",
+        "artifacts": "Clean namespaced artifacts/<feature> sidecar at an exact accepted commit.",
+        "lifecycle": "A quiescent checkpoint is ready to publish; crash is injected before or after each publication step."
+      },
+      "user_inputs": [
+        "Resume only from remotely reachable code referenced by a verified sidecar checkpoint."
+      ],
+      "allowed_commands": [
+        "non-force immutable code-ref push",
+        "remote ref verification",
+        "path-specific sidecar commit",
+        "sidecar CAS push",
+        "cold fetch"
+      ],
+      "permitted_calls": [
+        "Delivery Owner",
+        "Cold Resume Owner"
+      ],
+      "permitted_prompts": [
+        "one Implementation Authorization; no takeover prompt while exact safe state is recoverable"
+      ],
+      "seed": {
+        "id": "SEED-CHECKPOINT-CRASH-WINDOW",
+        "class": "publication-order-violation",
+        "serious": true,
+        "description": "The host stops at every boundary around code publication and sidecar CAS publication."
+      },
+      "expectations": {
+        "v1_39": {
+          "first_detection_stage": "not-guaranteed",
+          "first_detection_class": "not-guaranteed",
+          "maximum_formal_prompts": null,
+          "repair_wave_expectation": {
+            "minimum": 0,
+            "maximum": null
+          },
+          "terminal_result": "not_guaranteed",
+          "notes": "No durable code-before-sidecar checkpoint protocol supports cold continuation."
+        },
+        "phase_1": {
+          "first_detection_stage": "not-guaranteed",
+          "first_detection_class": "not-guaranteed",
+          "maximum_formal_prompts": null,
+          "repair_wave_expectation": {
+            "minimum": 0,
+            "maximum": null
+          },
+          "terminal_result": "not_guaranteed",
+          "notes": "Phase 1 handbacks are conversational and do not preserve remote code/budget/strike state."
+        },
+        "candidate": {
+          "first_detection_stage": "cold-resume",
+          "first_detection_class": "publication-order-violation",
+          "maximum_formal_prompts": 1,
+          "repair_wave_expectation": {
+            "minimum": 0,
+            "maximum": 0
+          },
+          "terminal_result": "pass",
+          "notes": "Orphan refs are ignored; referenced code is remote; exact state resumes and never infers completion."
+        }
+      }
+    },
+    {
+      "id": "ADH-18",
+      "title": "Escalation after budget exhaustion or CAS loss",
+      "initial_state_class": "fail-closed-escalation",
+      "initial_state": {
+        "code": "Clean tracked base commit; no product writes.",
+        "artifacts": "Clean namespaced artifacts/<feature> sidecar at an exact accepted commit.",
+        "lifecycle": "Semantic budget is exhausted or owner/remote-parent verification has failed."
+      },
+      "user_inputs": [
+        "Use reserved control capacity only for a safe checkpoint; otherwise report the last verified state without takeover."
+      ],
+      "allowed_commands": [
+        "owner/parent checks",
+        "read-only remote fetch",
+        "path-safe state preservation when CAS remains valid"
+      ],
+      "permitted_calls": [
+        "Delivery Owner"
+      ],
+      "permitted_prompts": [
+        "one precise needs_decision escalation"
+      ],
+      "seed": {
+        "id": "SEED-ESCALATION-CAS-LOSS",
+        "class": "ownership-or-cas-loss",
+        "serious": true,
+        "description": "Semantic budget is exhausted and the expected sidecar parent or exclusive owner cannot be verified."
+      },
+      "expectations": {
+        "v1_39": {
+          "first_detection_stage": "not-guaranteed",
+          "first_detection_class": "not-guaranteed",
+          "maximum_formal_prompts": null,
+          "repair_wave_expectation": {
+            "minimum": 0,
+            "maximum": null
+          },
+          "terminal_result": "not_guaranteed",
+          "notes": "No reserved control-plane budget or last-verified durable snapshot exists."
+        },
+        "phase_1": {
+          "first_detection_stage": "not-guaranteed",
+          "first_detection_class": "not-guaranteed",
+          "maximum_formal_prompts": null,
+          "repair_wave_expectation": {
+            "minimum": 0,
+            "maximum": null
+          },
+          "terminal_result": "not_guaranteed",
+          "notes": "Phase 1 lacks CAS ownership and remote last-verified escalation state."
+        },
+        "candidate": {
+          "first_detection_stage": "escalation",
+          "first_detection_class": "ownership-or-cas-loss",
+          "maximum_formal_prompts": 2,
+          "repair_wave_expectation": {
+            "minimum": 0,
+            "maximum": 0
+          },
+          "terminal_result": "needs_decision",
+          "notes": "No unsafe mutation/takeover; escalation binds the last verified checkpoint and labels later local state untrusted."
+        }
+      }
+    },
+    {
+      "id": "ADH-19",
+      "title": "Profile-specific final receipt graph",
+      "initial_state_class": "final-receipt-graph",
+      "initial_state": {
+        "code": "Clean tracked base commit; no product writes.",
+        "artifacts": "Clean namespaced artifacts/<feature> sidecar at an exact accepted commit.",
+        "lifecycle": "Quiescent planned state with no open clusters and no issued implementation repair waves."
+      },
+      "user_inputs": [
+        "Accept only the declared low, standard, or high acyclic predecessor equation for one freeze."
+      ],
+      "allowed_commands": [
+        "read-only receipt validation",
+        "digest/ref comparison"
+      ],
+      "permitted_calls": [
+        "Combined Final Verifier or Code Reviewer",
+        "Named Final Specialist when high",
+        "Completion Auditor"
+      ],
+      "permitted_prompts": [
+        "one Implementation Authorization"
+      ],
+      "seed": {
+        "id": "SEED-INVALID-FINAL-RECEIPT-GRAPH",
+        "class": "receipt-graph-invalid",
+        "serious": true,
+        "description": "A fixture contains a circular, cross-freeze, missing, duplicate-role, or summary-as-proof receipt edge."
+      },
+      "expectations": {
+        "v1_39": {
+          "first_detection_stage": "not-guaranteed",
+          "first_detection_class": "not-guaranteed",
+          "maximum_formal_prompts": 3,
+          "repair_wave_expectation": {
+            "minimum": 0,
+            "maximum": null
+          },
+          "terminal_result": "not_guaranteed",
+          "notes": "A freeze exists, but profile equations and acyclic receipt roles are not mechanically owned."
+        },
+        "phase_1": {
+          "first_detection_stage": "not-guaranteed",
+          "first_detection_class": "not-guaranteed",
+          "maximum_formal_prompts": 3,
+          "repair_wave_expectation": {
+            "minimum": 0,
+            "maximum": null
+          },
+          "terminal_result": "not_guaranteed",
+          "notes": "Final review/audit remain siblings and no profile-specific graph validator exists."
+        },
+        "candidate": {
+          "first_detection_stage": "final-validation",
+          "first_detection_class": "receipt-graph-invalid",
+          "maximum_formal_prompts": 1,
+          "repair_wave_expectation": {
+            "minimum": 0,
+            "maximum": 0
+          },
+          "terminal_result": "rejected",
+          "notes": "Only F\u2192C\u2192V, F\u2192R\u2192U\u2192V, or F\u2192R\u2192S[*]\u2192U\u2192V for one freeze is accepted."
+        }
+      }
+    },
+    {
+      "id": "ADH-20",
+      "title": "Legacy current-root artifacts and initial sidecar publication",
+      "initial_state_class": "legacy-current-root",
+      "initial_state": {
+        "code": "Clean tracked base containing legacy current-root .planning/<feature> and .tasks/<feature>.",
+        "artifacts": "No namespaced sidecar ref exists yet.",
+        "lifecycle": "Pre-planning legacy input; no implementation authorization exists."
+      },
+      "user_inputs": [
+        "Migrate legacy artifacts path-safely and authorize only the exact initial artifacts/<feature> CAS push."
+      ],
+      "allowed_commands": [
+        "read-only legacy inspection",
+        "path-safe import",
+        "sidecar validation",
+        "exact non-force namespaced CAS push"
+      ],
+      "permitted_calls": [
+        "Conceptualizer"
+      ],
+      "permitted_prompts": [
+        "at most one Sidecar Portability Authorization question",
+        "one later Implementation Authorization"
+      ],
+      "seed": {
+        "id": "SEED-CURRENT-ROOT-OR-UNAUTHORIZED-PUSH",
+        "class": "artifact-root-invalid",
+        "serious": true,
+        "description": "Planning starts from current-root authority or attempts the first remote sidecar push without explicit portability authority."
+      },
+      "expectations": {
+        "v1_39": {
+          "first_detection_stage": "not-applicable",
+          "first_detection_class": "none",
+          "maximum_formal_prompts": 3,
+          "repair_wave_expectation": {
+            "minimum": 0,
+            "maximum": 0
+          },
+          "terminal_result": "pass",
+          "notes": "Current-root planned authority is accepted and no initial portability permission is required."
+        },
+        "phase_1": {
+          "first_detection_stage": "not-applicable",
+          "first_detection_class": "none",
+          "maximum_formal_prompts": 3,
+          "repair_wave_expectation": {
+            "minimum": 0,
+            "maximum": 0
+          },
+          "terminal_result": "pass",
+          "notes": "Phase 1 retains current-root planned mode and has no fenced initial sidecar CAS permission."
+        },
+        "candidate": {
+          "first_detection_stage": "conceptualization",
+          "first_detection_class": "artifact-root-invalid",
+          "maximum_formal_prompts": 2,
+          "repair_wave_expectation": {
+            "minimum": 0,
+            "maximum": 0
+          },
+          "terminal_result": "pass",
+          "notes": "Current-root authority is rejected then safely migrated; exact initial CAS requires portability authority."
+        }
+      }
+    },
+    {
+      "id": "ADH-21",
+      "title": "Protected target or release operation",
+      "initial_state_class": "post-completion-protected-action",
+      "initial_state": {
+        "code": "Clean tracked base commit; no product writes.",
+        "artifacts": "Clean namespaced artifacts/<feature> sidecar at an exact accepted commit.",
+        "lifecycle": "Final V is durably checkpointed; target merge/release or another unplanned protected action is requested."
+      },
+      "user_inputs": [
+        "Notify completion once; do not inherit authority for target merge, release, tags, deletion, or unplanned protected effects."
+      ],
+      "allowed_commands": [
+        "read-only completion verification",
+        "notification"
+      ],
+      "permitted_calls": [
+        "Delivery Owner"
+      ],
+      "permitted_prompts": [
+        "one separate exact protected-action decision if the user wants it"
+      ],
+      "seed": {
+        "id": "SEED-PROTECTED-ACTION-INHERITANCE",
+        "class": "protected-action",
+        "serious": true,
+        "description": "An actor attempts to treat sidecar portability or implementation auto-resolve as target/release authority."
+      },
+      "expectations": {
+        "v1_39": {
+          "first_detection_stage": "release-boundary",
+          "first_detection_class": "protected-action",
+          "maximum_formal_prompts": 4,
+          "repair_wave_expectation": {
+            "minimum": 0,
+            "maximum": 0
+          },
+          "terminal_result": "needs_decision",
+          "notes": "Existing worktree/release contracts preserve separate protected-action approval."
+        },
+        "phase_1": {
+          "first_detection_stage": "release-boundary",
+          "first_detection_class": "protected-action",
+          "maximum_formal_prompts": 4,
+          "repair_wave_expectation": {
+            "minimum": 0,
+            "maximum": 0
+          },
+          "terminal_result": "needs_decision",
+          "notes": "Phase 1 retains separate target/release authority."
+        },
+        "candidate": {
+          "first_detection_stage": "release-boundary",
+          "first_detection_class": "protected-action",
+          "maximum_formal_prompts": 2,
+          "repair_wave_expectation": {
+            "minimum": 0,
+            "maximum": 0
+          },
+          "terminal_result": "needs_decision",
+          "notes": "Completion notifies once; protected work remains separately authorized."
+        }
+      }
+    },
+    {
+      "id": "ADH-22",
+      "title": "Minimum sufficient evidence with a large valid suite",
+      "initial_state_class": "test-evidence-selection",
+      "initial_state": {
+        "code": "Clean tracked base commit; no product writes.",
+        "artifacts": "Clean namespaced artifacts/<feature> sidecar at an exact accepted commit.",
+        "lifecycle": "Quiescent planned state with no open clusters and no issued implementation repair waves."
+      },
+      "user_inputs": [
+        "Use the smallest causal set that proves overlapping obligations; retain the already-large valid suite without volume cleanup."
+      ],
+      "allowed_commands": [
+        "read-only suite discovery",
+        "selected causal focused checks",
+        "materially affected broad regression"
+      ],
+      "permitted_calls": [
+        "Planner",
+        "Implementer",
+        "Package Verifier or Final Reviewer"
+      ],
+      "permitted_prompts": [
+        "one Implementation Authorization; no test-volume prompt"
+      ],
+      "seed": {
+        "id": "SEED-OVERLAPPING-OBLIGATIONS-LARGE-SUITE",
+        "class": "none",
+        "serious": false,
+        "description": "Related obligations share one decisive production-path test and the existing valid suite is already large."
+      },
+      "expectations": {
+        "v1_39": {
+          "first_detection_stage": "package-verification",
+          "first_detection_class": "test-evidence-defect",
+          "maximum_formal_prompts": 3,
+          "repair_wave_expectation": {
+            "minimum": 0,
+            "maximum": null
+          },
+          "terminal_result": "pass",
+          "notes": "Changed-population census and one-row incentives can demand duplicative review even when behavior passes."
+        },
+        "phase_1": {
+          "first_detection_stage": "package-verification",
+          "first_detection_class": "test-evidence-defect",
+          "maximum_formal_prompts": 3,
+          "repair_wave_expectation": {
+            "minimum": 0,
+            "maximum": null
+          },
+          "terminal_result": "pass",
+          "notes": "Phase 1 behavior-first review still retains exhaustive Test Review Scope contracts."
+        },
+        "candidate": {
+          "first_detection_stage": "not-applicable",
+          "first_detection_class": "none",
+          "maximum_formal_prompts": 1,
+          "repair_wave_expectation": {
+            "minimum": 0,
+            "maximum": 0
+          },
+          "terminal_result": "pass",
+          "notes": "One causal test may prove related rows; no count/LOC/ratio/coverage/volume gate or cleanup."
+        }
+      }
+    }
+  ]
+}
