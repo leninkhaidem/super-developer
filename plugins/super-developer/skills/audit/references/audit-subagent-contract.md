@@ -16,14 +16,12 @@ Fail if any required input is missing, unsafe, unreadable, malformed, stale, roo
 2. `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/clean-code-rules.md`
 3. `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/slice-first-artifacts.md`
 4. `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/package-lifecycle.md`
-5. every artifact set's artifact-root `.tasks/<feature>/SPEC.md` and `.tasks/<feature>/tasks.json`
-6. every artifact-root registry package Markdown, proof Markdown, and package verification report,
-   including `### Deliverable Completeness Matrix`, `### Test Review Scope`, and `## State Binding`
-7. every orchestrator-screened Slice in the selected artifact workspace and every Slice referenced by
-   SPEC/package Markdown
-8. Semgrep raw/summary summaries through bounded helper views when enabled/contracted; never raw JSON wholesale
-9. optional review-code state/report when provided or safely available; if packet says `none`, proceed without it
-10. final integrated code worktree state only as needed to verify claims, seams, matrix evidence, and blockers
+5. each artifact-root SPEC/registry/package Markdown and every screened Slice: establish accepted requirements, assignments, constraints, and invariants
+6. frozen integrated production diff/code and actual paths before implementer proof/report conclusions
+7. causal tests/runtime observations, including affected broad-regression evidence and substitute disclosures
+8. proof, verification reports, `### Deliverable Completeness Matrix`, Test Review Scope, and State Binding
+9. bounded Semgrep summaries when enabled/contracted; never raw JSON wholesale
+10. optional review-code state/report when supplied; explicit `none` remains valid for audit dispatch
 
 Use screened Slice workspaces and re-check path boundaries. Review-code inputs are optional: absence or non-clean readiness blocks final merge/readiness, not audit dispatch or audit PASS by itself.
 
@@ -46,12 +44,19 @@ Work in order. Clean code cannot compensate for Slice/proof/report gaps.
 ### 2. Package Assignment Closure
 For each package Markdown, verify scope, assigned Slice paths, `Must satisfy` and `Context only` IDs, proof/report paths, dependencies, primary paths, and verification expectations against registry, SPEC, and full Slice content. Fail omitted material H3s, context-only misuse, unapproved narrowing/deferral, locked-Slice contradictions, or hidden global obligations.
 
-### 3. Proof Markdown Truthfulness
-For each proof Markdown, verify every assigned `Must satisfy` H3 has a closure row; each row is `PASS` or has durable approval for `DEFERRED`/`N/A`; evidence, acceptance closure, commands, inspected files, and completion statement are concrete; no unresolved `TODO`, `OPEN`, `GAP`, placeholder, contradiction, or unsupported status remains.
+### 3. Integrated Behavior and Causal Evidence
+Inspect the bound production diff/path and causal tests before proof/report conclusions. For behavior-sensitive
+claims require forced preconditions/branch, real collaborator outcomes, observed ordering/state, forbidden-outcome
+falsification, failure when the invariant breaks, substitute disclosure, and required affected broad regression.
+Reject labels, counters, cache hits, synthetic outcomes, row counts, or proof wording as standalone evidence.
 
-Mechanical validation is necessary, never sufficient. Judge evidence sufficiency, and for each interface-bearing H3 carrying an `Interface contract`, disprove exact fulfillment and assign an exactness verdict per the authority reference, failing any non-`exact` result as `[INTERFACE-EXACTNESS]`.
+### 4. Proof Markdown Truthfulness
+Now reconcile proof with Stages 1–3. Require every assigned H3 row, concrete evidence/commands/files/completion,
+approved deferrals only, no unresolved markers or unsupported `N/A`, and exact fulfillment of each `Interface contract`
+and its Forbidden behaviors. Assign the authority-reference exactness verdict; fail non-`exact` as `[INTERFACE-EXACTNESS]`.
+Mechanical validation is necessary, never sufficient.
 
-### 4. Package Reports and Matrix Reconciliation
+### 5. Package Reports and Matrix Reconciliation
 For each package report, require `PASS`, no open findings, current artifact-root proof digest/content, package Markdown digest,
 assigned Slice paths/digests or matrix-source snapshot, deliverable matrix, canonical Test Review Scope receipt for the
 package-owned reviewed delta, reviewed code worktree/ref/commit, verification output, verifier, timestamp, closure review,
@@ -61,24 +66,15 @@ Reconcile the full Slice inventory, package assignments, proof rows, reports, ma
 
 Confirm matrices are bound to the final integrated state or to an exact package commit/ref with ancestry/content-equivalence and post-merge freshness evidence. Missing, failed, stale, pre-repair, forged, path-escaped, mismatched, unbounded Semgrep evidence, or uncertain reports fail audit; advisory findings block only when normal authority confirms material risk.
 
-### 5. Targeted Skeptical Backstop
+### 6. Targeted Skeptical Backstop
+This targeted skeptic backstop is not a full second package verifier or test rereview for every clean row; it selectively falsifies high-value claims and trusts fresh package-local work unless contradicted.
+Validate each Test Review Scope receipt against its package-owned reviewed delta, then reconcile the union of fresh package receipts against the integrated diff.
+Separately classify integration-only or merge-resolution test-relevant changes; widen on deep triggers, omissions, contradictions, or stale evidence.
+A mechanical receipt pass proves only grammar/count/value/placeholder/table/ref validity; auditor judgment owns contradictions, dishonest `complete:` claims, and semantic sufficiency.
+Explicitly inspect and escalate every `other-test-relevant` row under this same targeted reconciliation boundary; verify that no known category or generator/provenance rule was bypassed; decide whether the known taxonomy should be extended; never treat the catch-all as proof that all future test-relevant paths were discovered.
+Escalate interface-bearing rows, verifier-selected triggered risk rows, global/cross-package seams, stacked-feature obligations, weak evidence, and claims cheaply disprovable from code/tests.
 
-Final audit is a completeness reconciler plus targeted skeptic backstop, not a full second package verifier or
-test rereview for every clean low-risk row. It selectively falsifies claims and trusts fresh package-local work
-unless reconciliation, contradiction, integration, or high-value skepticism disproves it. Validate and selectively
-falsify each Test Review Scope receipt against its package-owned reviewed delta, then reconcile the union of
-fresh package receipts against the integrated diff. A mechanical receipt pass proves only
-grammar/count/value/placeholder/table/ref validity; auditor judgment owns contradictions, dishonest `complete:`
-claims, and semantic sufficiency. Explicitly inspect and escalate every `other-test-relevant` row under this same targeted
-reconciliation boundary; verify that no known category or generator/provenance rule was bypassed, decide whether
-the known taxonomy should be extended, and never treat the catch-all as proof that all future test-relevant
-paths were discovered. Separately classify and review integration-only or merge-resolution test-relevant
-changes under the same depth invariants; widen on canonical deep triggers, omissions, contradictions, or stale
-evidence. Also probe interface-bearing rows, verifier-selected triggered risk rows, global/cross-package seams,
-stacked-feature obligations, weak evidence, stale reports, and high-value behavior,
-including claims cheaply disprovable from code/tests.
-
-### 6. Optional Review-Code Context and Code State
+### 7. Optional Review-Code Context and Code State
 When review-code state/report is supplied or safely available from the artifact root, validate same
 feature/top state, `mode: "pipeline"`, `state: "ready_for_audit"`, empty `findings.open_serious`,
 completed widening/no serious regression, and true `closure_status.ready_for_audit` plus
@@ -91,7 +87,7 @@ fake success, missing verification, caller-contract failure, unsafe trust bounda
 security/privacy/safety/data risk, public-contract breaks, unresolved requirements, missing completion
 evidence, or material brittleness.
 
-### 7. Global Completeness
+### 8. Global Completeness
 Cross-check all task sets, Slices, SPECs, packages, proof Markdown, reports, matrices, optional review-code context, and final code for material Slice fulfillment, weak/stale evidence, unapproved deferrals, scope drift, unresolved questions, contradictions, global seams, API/schema/data/migration, security/privacy/safety requirements, accepted tradeoffs, and rare package-verifier misses.
 
 ## Blocking Categories

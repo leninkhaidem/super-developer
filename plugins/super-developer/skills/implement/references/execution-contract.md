@@ -105,15 +105,15 @@ Pipeline:
 2. create proof placeholders in the artifact root with explicit `--artifact-root`/`--code-root` helper flags
 3. run conditional contract/fixture/harness preflight and the smallest bounded readiness probe before costly fanout
 4. dispatch package agents with artifact-root package/Slice/proof/report paths and package code worktrees
-5. require package-agent SELF_REVIEW and artifact-root proof Markdown evidence
-6. run root-aware `validate-proof`, package verification with a fresh PASS report, then `validate-package-complete`
+5. stabilize production behavior and actual-path tests before SELF_REVIEW/proof conclusions
+6. run root-aware `validate-proof`, then behavior-first package verification with a fresh PASS report and `validate-package-complete`
 7. merge accepted source-only package branches into the integration worktree after gates pass
-8. refresh and rerun affected proof/report/verification state after repairs, merge changes, or findings
+8. after repair, run actual-path targeted and affected broad regression before proof/report refresh and verification
 9. checkpoint sidecar artifacts after package delivery, pushing only `origin artifacts/<feature>`
-10. finish repairs; run focused/integrated checks and finalize runtime evidence/cleanup
+10. finish remaining integrated checks and finalize runtime evidence/cleanup
 11. run root-aware final validation; freeze integrated-code/artifact/runtime-evidence inputs
 12. invoke `review-code` and `audit` as sibling checks; their outputs are not freeze inputs
-13. batch findings, delegate repairs; after any frozen-input change, classify work and establish a new freeze
+13. batch findings, delegate repairs only for eligible clusters; owner repeats behavior-first checks and establishes a new freeze
 14. after clean review-code/audit acceptance, checkpoint artifacts and push the feature branch as covered
 
 Stop conditions:

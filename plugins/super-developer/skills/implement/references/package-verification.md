@@ -30,47 +30,61 @@ When Semgrep evidence is in scope, use helper-produced `summarize`, filtered/lim
 
 ## Verification Order
 
-### 1. Audit-lite Slice/proof lens
+Do not read implementer proof, `SELF_REVIEW`, or matrix conclusions before Stages 1–3. Mechanical
+`sliceproof.py validate-proof` may run as a prerequisite, but helper success and claim prose are not semantic proof.
 
-- identify all `Must satisfy` H3 IDs from package Markdown;
-- read corresponding H3 blocks in full plus relevant non-goals, constraints, and verification expectations;
-- verify each required H3 appears in `## Slice Closure Table` with concrete implementation and verification evidence;
-- require `PASS`, not `TODO`, `OPEN`, `GAP`, unapproved `DEFERRED`, or unsupported `N/A`;
-- verify every package verification expectation is addressed in `## Acceptance / Verification Closure`;
-- verify `Context only` H3 IDs are not contradicted and no in-scope material H3 is missing from assignment;
-- for any `Must satisfy` H3 carrying an inline `Interface contract` (schema in `plugins/super-developer/references/conceptualize-slice-authority.md`), treat it as a split obligation: confirm the positive interface, actively falsify its `Forbidden behaviors` against package code/diff, and record exactness (exact/ambiguous/partial/contradicted/over-broad). Only `exact` is sufficient.
+### 1. Accepted obligations and invariants
 
-Mechanical root-aware `sliceproof.py validate-proof` should pass before verification, but helper success is not semantic proof.
+- read SPEC requirements/criteria/constraints, package assignment, assigned Slice H3 blocks, non-goals, and
+  triggered architecture invariants;
+- identify any `Interface contract`, its `Forbidden behaviors`, exact interfaces, authority, legal transitions,
+  publication/order, losing-owner, cancellation/replay/cleanup, actual-path seams, and broad-regression placement;
+- treat missing or contradictory accepted obligations as a plan/architecture finding, not an implementation fix.
 
-### 2. Code/evidence lens
+### 2. Bound production diff and actual path
 
-Inspect package code/diff for correctness against assigned obligations, proof-claim truthfulness, evidence quality, edge/failure/default cases, security/privacy/safety, data integrity, API/contract stability, performance/concurrency, maintainability risks backed by material evidence, and mock/stub/generated-fixture risk. Do not invent product scope. Stop on product/design decisions, scope expansion, unapproved dependency/service changes, unsafe command, credentials, external facts, or risk acceptance.
+Inspect the reviewed code/diff before implementer conclusions. Trace the production branch, real collaborators,
+state ownership/mutation, ordering, side effects, error/cleanup paths, default/injected branches, and surrounding
+callers/contracts. Check correctness, security/privacy/safety, data, API, concurrency, performance, and material
+maintainability risk without inventing scope.
 
-Own package-local test review for the package-owned reviewed delta and write `### Test Review Scope` exactly per the shared report contract's structured field grammar. Classify every package-owned changed test-relevant surface, perform the baseline checks, honor every deep trigger, and use only semantic sampling with specific population/exemplars/rationale/evidence after generated provenance review. Use `other-test-relevant` conservatively only when no known category accurately fits, always review it at `deep`, and require its scope, novel/ambiguous classification trigger, and typed evidence to identify the inspected surface; never use it to evade generator/provenance rules or a known category. Budget pressure causes semantic batching or widening, never weaker rigor or percentage quotas. A missing/malformed receipt, wrong or missing field prefix, unsupported depth, unresolved marker, or `not-reviewed`/`unreviewed` scope requires `FAIL`; use the constrained no-applicable-surface row only after evidenced classification of this package-owned reviewed delta, regardless of changes owned by other packages or later integration. Mechanical validation checks grammar, positive count, controlled values, placeholders, table shape, and typed refs only; you own contradictions, semantic sufficiency, and the truth of every `complete:` claim.
+### 3. Causal tests and observations
 
-### 3. Deliverable completeness matrix lens
+For each behavior-sensitive claim require evidence that forces production preconditions/branch, produces a real
+collaborator outcome, observes ordering/state transition, falsifies forbidden outcomes, and would fail if the
+invariant broke. Disclose cache hits, mocks, fixtures, test hooks, synthetic counters, and substitutes; labels or
+outcome names alone are insufficient. Require the earliest credible affected broad regression, whether planned
+or discovered during inspection, for shared discovery/registration/global state/lifecycle/recursive control flow/public or generated contracts.
 
-Using `plugins/super-developer/references/package-verification-report.md`, build and judge the `### Deliverable Completeness Matrix` before declaring a package clean:
+Own package-local test review for the package-owned reviewed delta and write `### Test Review Scope` per the shared contract.
+Classify every package-owned changed test-relevant surface and honor its deep triggers.
+Use `other-test-relevant` conservatively only when no known category accurately fits; always review it at `deep` and never use it to evade generator/provenance rules or a known category.
+Use the constrained no-applicable row only after evidencing no such package-owned surface, regardless of changes owned by other packages or later integration.
+Missing/malformed receipts, unsupported depths, or unresolved claims require `FAIL`. Mechanical validation checks grammar, positive count, controlled values,
+table shape, and typed refs only; you own contradictions, semantic sufficiency, and the truth of every `complete:` claim.
 
-- include every assigned `Must satisfy` H3 row by exact Slice ID, every package verification expectation as stable `VE-<n>` rows from package Markdown order, and every applicable verifier-selected triggered risk as explicit `RISK-<slug-or-n>` rows;
-- select triggered risks from package scope, assigned Slices, changed code/diff/tests, verification expectations, and known failure modes; record rationale/disposition for applied probes and concise rationale for nearby high-signal non-applicable probes without creating universal checklist noise;
-- require fixed core columns, controlled verdicts (`delivered`, `missing`, `partial`, `contradicted`, `unverified`), type-aware non-placeholder evidence refs, source-input bindings, and reviewed worktree/ref/commit metadata;
-- require interface-bearing rows to show exact interface fulfillment plus forbidden-behavior falsification; `ambiguous`, `partial`, `contradicted`, or `over-broad` exactness cannot support a clean row;
-- treat `missing`, `partial`, `contradicted`, `unverified`, structurally invalid evidence refs, stale source bindings, or reliance on `### Slice Closure Review` and proof prose alone as completion blockers.
+### 4. Implementer claims and proof reconciliation
 
-Helpers validate shape, row coverage, clean verdict state, bindings, and evidence-anchor structure only. Package verifiers and final auditors judge semantic truthfulness and sufficiency.
+Only now read `SELF_REVIEW`/`REPAIR_SELF_REVIEW`, proof rows, commands, and closure prose. Reconcile each claim
+against Stages 1–3; reject evidence shaped only to satisfy a row. Require assigned H3 and verification-expectation
+closure with concrete implementation/verification evidence; reject unresolved markers, unapproved deferrals,
+unsupported `N/A`, context-only misuse, or hidden in-scope H3s. Assign each interface `exact`, `ambiguous`,
+`partial`, `contradicted`, or `over-broad`; only `exact` fulfills the obligation.
 
-### 4. Semgrep evidence lens
+### 5. Deliverable matrix and triggered risks
 
-When Semgrep is disabled and not contracted, do not require scan evidence. When enabled or contracted, require proof and report evidence to bind:
+Build the matrix after semantic inspection. Include every assigned H3, stable `VE-<n>`, and applicable
+verifier-selected `RISK-<...>` row. Use controlled verdicts and typed non-placeholder evidence; matrix rows index
+decisive Stage 2–3 evidence and never substitute for it. Dirty verdicts, stale bindings, vague anchors, or proof
+prose alone block completion. Treat `### Slice Closure Review` and proof prose alone as completion blockers.
+Helpers validate shape, row coverage, clean verdict state, bindings, and evidence-anchor structure only.
+Package verifiers and final auditors judge semantic truthfulness and sufficiency.
 
-- raw path `.tasks/<feature>/semgrep/<WP-ID>.semgrep.json` and companion summary path `.tasks/<feature>/semgrep/<WP-ID>.semgrep-summary.json`;
-- raw digest, summary digest, package scan scope, and concise bounded finding/no-finding summary;
-- helper-enforced local/offline scan contract through `python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/semgrep_rules.py" scan ...`; no registry/URL/cloud/telemetry side effects or raw direct `semgrep` scans;
-- bounded consumption order: `summarize` → filtered/limited `list-findings` → selected `show-finding` (`--target` plus expected summary digest for excerpts);
-- unresolved relevant findings summarized with rule ID, path, severity, and rationale, without automatic blocker labels.
+### 6. Semgrep evidence
 
-Treat evidence outside `.tasks/<feature>/semgrep/`, path traversal, symlinks, unpaired raw/summary stems, digest mismatches, stale outputs, forged summaries, or wholesale raw JSON consumption as evidence blockers. Policy/exclusion changes require user/verifier/reviewer/skeptic authority; implementers may propose but not self-suppress.
+When disabled and not contracted, require none. When enabled/contracted, require paired artifact-root raw/summary
+paths and digests, package scope, bounded summary, and helper-owned local scan/consumption. Reject traversal,
+symlink escape, mismatched/stale/forged evidence, raw direct `semgrep`, raw JSON dumps, or self-suppression.
 
 ## PASS Criteria
 
@@ -80,9 +94,12 @@ Return `PASS` only when:
 - the deliverable matrix is present in the canonical source body, covers all mandatory row sources, has only `delivered` mandatory rows, and uses structurally valid non-placeholder evidence refs;
 - `### Test Review Scope` accounts for the changed test-relevant diff at a clean canonical depth with baseline/deep/sampling/provenance evidence;
 - source bindings cover artifact-root package/proof/Slice sources plus reviewed code worktree/ref/commit metadata;
-- implementation does not contradict assigned Slice content, `Context only` IDs, `SPEC.md`, package scope, interface contracts, or forbidden-behavior checks;
+- requirements-first and bound-diff review preceded implementer claims; behavior-sensitive evidence forces the
+  production path, observes transitions, falsifies forbidden outcomes, and discloses substitutes;
+- required affected broad regression passed before proof/report refresh;
+- implementation does not contradict Slices, SPEC, package scope, architecture/interface contracts, or forbidden behavior;
 - Semgrep evidence is absent only when disabled/not contracted, or fresh/bounded/path-valid when enabled/contracted;
-- package agent `SELF_REVIEW` is present and consistent with proof and matrix evidence;
+- package agent `SELF_REVIEW` is present and reconciled after independent code/test inspection;
 - no serious correctness, security, privacy, safety, data, migration, API, performance, concurrency, maintainability, or evidence-quality issue remains;
 - no unresolved proof markers, unapproved deferrals, raw Slice control-plane bypass attempts, authority-boundary blockers, dirty matrix verdicts, or stale bindings remain.
 

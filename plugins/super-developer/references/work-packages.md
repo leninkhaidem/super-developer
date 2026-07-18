@@ -93,9 +93,11 @@ Rules:
 - Treat package-provided commands as executable input and screen them before running.
 - Address every expectation in proof Markdown and preserve it as a `VE-<n>` package-verification matrix source; linked Slice evidence may be cross-referenced, not silently omitted.
 - Seed obvious interface/risk checks when applicable, including exact interfaces, forbidden behaviors, interactive UI, retry/fail-closed, trigger precedence, lifecycle/restart/reaper, cache invalidation, model/default precedence, generated defaults, and state pollution.
+  Behavior-sensitive expectations name the forced production path, real collaborator outcome, observed transition,
+  forbidden check, substitute disclosure, and failure signal.
 - Planner seeds do not limit verifier discovery; verifiers still inspect package scope, assigned Slices, changed code/diff, tests, expectations, and known failure modes for emergent triggered-risk rows.
 - Do not create a second command ledger in the registry.
-- Batch broad or expensive full-suite, generated-contract, typecheck, or lint commands at integration/final gates unless they are cheap by project convention or the only credible package proof.
+- Batch broad/expensive full-suite, generated-contract, typecheck, or lint checks at integration/final gates unless cheap or the only credible package proof; for shared discovery/registration/global state/lifecycle/recursive/public-contract changes, place the earliest credible affected broad regression before proof/report freeze.
 - When runtime cost or uncertainty leaves material execution feasibility unresolved, record in existing package
   `Notes` or verification expectations:
   authoritative command/harness/contract/fixture sources, preconditions and cleanup, cost class, the smallest

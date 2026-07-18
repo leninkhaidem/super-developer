@@ -5,7 +5,6 @@ package completion helpers, final auditors, and freshness checks. Reports live u
 binding is the reviewed code worktree. Verifiers and final auditors own semantic truthfulness and sufficiency.
 
 ## Canonical Source Body
-
 The report at `.tasks/<feature>/reports/<WP-ID>.package-verification.md` starts with this H2 before lifecycle metadata:
 
 ```md
@@ -51,7 +50,8 @@ helper and paste it verbatim; prose may explain evidence only outside mechanical
 
 ## Matrix Row Contract
 Core columns are fixed exactly as shown: `Source ID`, `Row Type`, `Deliverable`, `Evidence Type`, `Evidence Refs`, `Exactness / Risk Disposition`, and `Verdict`.
-Controlled verdicts are `delivered`, `missing`, `partial`, `contradicted`, and `unverified`. Clean package verification requires every mandatory row to be present, `delivered`, and supported by structurally valid non-placeholder evidence references. Any `missing`, `partial`, `contradicted`, or `unverified` row blocks completion even if other report sections look coherent.
+Controlled verdicts are `delivered`, `missing`, `partial`, `contradicted`, and `unverified`. A matrix indexes
+requirements-first code/test evidence after semantic inspection; it never defines tests or proves its own rows. Clean verification requires every mandatory row present, `delivered`, and backed by decisive non-placeholder evidence; any missing or dirty row blocks completion.
 Mandatory rows come from:
 1. Assigned package `Must satisfy` Slice H3 IDs, using each exact H3 ID as `Source ID` and row type `slice`.
 2. Package Markdown `## Verification Expectations`, using stable `VE-<n>` IDs in listed order and row type `verification-expectation`. If an expectation is materially proven by a Slice row, keep the `VE-<n>` row and cross-reference that evidence rather than omitting it.
@@ -68,7 +68,7 @@ Every ordinary row uses this exact field grammar (whitespace and harmless punctu
 - `Sampling Rationale`: for `sampled`, `strategy: <specific semantic selection rationale>`; otherwise, `not-applicable: <specific reason>`.
 - `Generator / Input / Provenance`: `generators/snapshots` requires `generator: <specific>; inputs: <specific>; provenance: <specific>`; other surfaces allow that triple or `not-applicable: <specific reason>`.
 - `Evidence Refs`: one or more typed anchors from the evidence-reference grammar below.
-Baseline checks/results cover assertion weakening/deletion, skip/focus/xfail changes, broad tolerances or matchers, path execution/discrimination, mock/fixture/global-state effects, fresh commands/evidence, and generated provenance where applicable.
+Baseline checks/results cover assertion weakening/deletion, skip/focus/xfail changes, broad tolerances or matchers, path execution/discrimination, mock/fixture/global-state effects, forced production-path discrimination, real collaborator outcomes, ordering/state effects, forbidden outcomes, substitute disclosures, fresh commands/evidence, and generated provenance where applicable.
 `deep` is required for proof-critical or sole evidence; security/privacy/safety/data/migration/concurrency/public-contract seams; shared harness/helper/config; weakened assertions or skips; missing provenance; contradictions or stale evidence; cross-package seams; and tests-as-deliverable.
 Sampling is semantic, never percentage-based: partition by behavior/contract, oracle shape, helper/mock stack, and generator provenance/risk.
 Generated output is sampleable only after its generator, inputs, and provenance are reviewed. Budget exhaustion causes semantic batching or
@@ -85,13 +85,13 @@ while a syntactically valid but dishonest `complete:` claim is for the verifier/
 legitimate negative results inside `complete:` remain valid.
 Final pipeline review validates each fresh receipt against its package-owned reviewed delta and reconciles the union of fresh package receipts against the integrated diff. It separately reviews integration-only or merge-resolution test-relevant changes at a canonical depth, then widens for triggers/anomalies. It must explicitly inspect and escalate every `other-test-relevant` row, decide whether the known taxonomy should be extended, and never treat a catch-all row as proof that all future test-relevant paths were discovered.
 Audit applies the same targeted reconciliation and catch-all escalation boundary while selectively falsifying rather than rereviewing every test. Reports without the receipt are invalid and must be refreshed; there is no silent format bypass.
-
 ## Evidence Reference Rules
 `Evidence Type` is one of `code`, `test`, `static`, `command`, `manual`, or `mixed`. `Evidence Refs` are semicolon-separated typed anchors:
 - `code:<repo-relative-path>[#symbol-or-lines]`, `test:<repo-relative-path>[::test-or-#lines]`, and `static:<repo-relative-path>#section` point to safe existing repo paths; no absolute paths, traversal, fabricated files, or vague-only anchors.
 - `command:proof#Commands Run:<label>` or `command:verification-output:<repo-relative-path>#<label>` links to proof command rows or durable verifier output records.
 - `manual:scenario=<specific scenario>; observed=<specific result>` records manual evidence without pretending it is mechanically executable.
-Mechanical helpers may reject unsafe, nonexistent, placeholder, fabricated, or structurally vague anchors. They do not decide whether the cited evidence truly proves the deliverable.
+Mechanical helpers reject unsafe, nonexistent, placeholder, fabricated, or structurally vague anchors but do not judge causality. Labels, counters,
+cache hits, synthetic outcomes, row counts, or proof wording alone cannot prove a behavior-sensitive deliverable.
 
 ## Exactness and Risk Disposition
 Interface-bearing Slice rows must use the affirmative copy-safe clause

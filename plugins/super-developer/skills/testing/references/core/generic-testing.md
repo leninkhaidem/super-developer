@@ -41,9 +41,12 @@ For each case or scenario capture:
 6. Determinism/isolation risks, command provenance or discovery blocker, and evidence format.
 7. Unresolved risks, skipped scope, or approval-gated follow-up.
 
-Maintainable tests are deterministic, behavior-focused, clear in name and setup, aligned with repo
-conventions, minimal in mocking, and resilient to implementation-detail churn. Do not weaken a test
-to make a product failure disappear.
+Maintainable tests are deterministic, behavior-focused, clear in name and setup, aligned with repo conventions,
+minimal in mocking, and resilient to implementation-detail churn. For behavior-sensitive evidence, force the
+production precondition/branch, produce a real collaborator outcome, observe ordering/state/side effects, falsify
+forbidden outcomes, and make the check discriminating so it would fail if the invariant broke. Disclose cache hits,
+mocks, fixtures, test hooks, and synthetic substitutes; labels or counters alone are not evidence. Do not weaken
+a test to make a product failure disappear.
 
 ## Executable Verification Preflight
 
@@ -75,7 +78,9 @@ interactive, daemon/server, long-running, or opaque actions. A script name is no
 runs when safe.
 
 For costly or uncertain execution, use a readiness ladder: deterministic contract/fixture/config preflight,
-command/test discovery, then the smallest credible bounded check. Broaden after clean narrower evidence; when no
+command/test discovery, then the smallest credible bounded check. For shared discovery/registration/global state,
+lifecycle, recursive control flow, or public/generated contracts, place the earliest credible affected broad
+regression before proof/report freeze. Broaden after clean narrower evidence; when no
 credible narrower check exists, document why and run an explicitly bounded broad command after clean preflight
 and discovery. Keep independent ready work parallel; do not impose universal serialization.
 

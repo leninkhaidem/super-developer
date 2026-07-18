@@ -20,7 +20,8 @@ state, including bounded stack-aware artifact sets when supplied.
 - Package final readiness must be mechanically valid, matrix-clean, and bound to the resolved artifact root
   plus integrated code state before audit dispatch.
 - Final audit reconciles completeness and selectively falsifies high-value claims; it trusts fresh package-local
-  verification and is not a wholesale rereview or the first routine per-package semantic gate.
+  verification and is not wholesale rereview. The cold auditor establishes accepted obligations, bound production
+  diff, and causal tests before reading implementer proof/report conclusions.
 - Review-code state/report are optional audit context. Use safe paths when supplied or available; otherwise pass explicit `none`.
 - If review-code state exists but is non-clean, pass/report it. Absence or non-clean state does not block audit dispatch, only final readiness.
 - Main agent performs only mechanical prerequisites, dispatches one cold read-only auditor with a self-contained

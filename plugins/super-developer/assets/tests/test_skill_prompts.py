@@ -1874,6 +1874,76 @@ class SkillPromptSurfaceTests(unittest.TestCase):
         self.assertLessEqual(len(authoring.splitlines()), 150)
         self.assertLessEqual(len(checklist.splitlines()), 150)
 
+    def test_behavior_first_verification_precedes_claims_and_freeze(self) -> None:
+        verifier = read_repo(
+            "plugins/super-developer/skills/implement/references/package-verification.md"
+        )
+        report = read_repo("plugins/super-developer/references/package-verification-report.md")
+        audit = read_repo(
+            "plugins/super-developer/skills/audit/references/audit-subagent-contract.md"
+        )
+        testing = read_repo(
+            "plugins/super-developer/skills/testing/references/core/generic-testing.md"
+        )
+        execution = read_repo(
+            "plugins/super-developer/skills/implement/references/execution-contract.md"
+        )
+        review = read_repo("plugins/super-developer/skills/review-code/SKILL.md")
+        pipeline_review = read_repo(
+            "plugins/super-developer/skills/review-code/references/pipeline-report.md"
+        )
+
+        verifier_compact = compact_text(verifier)
+        ordered = [
+            "### 1. Accepted obligations and invariants",
+            "### 2. Bound production diff and actual path",
+            "### 3. Causal tests and observations",
+            "### 4. Implementer claims and proof reconciliation",
+            "### 5. Deliverable matrix and triggered risks",
+        ]
+        for earlier, later in zip(ordered, ordered[1:]):
+            self.assertLess(verifier.index(earlier), verifier.index(later))
+        for token in [
+            "Do not read implementer proof",
+            "forces production preconditions/branch",
+            "real collaborator outcome",
+            "falsifies forbidden outcomes",
+            "would fail if the invariant broke",
+            "labels or outcome names alone are insufficient",
+            "affected broad regression",
+            "whether planned or discovered during inspection",
+        ]:
+            self.assertIn(token, verifier_compact)
+        self.assertNotIn("contracted affected broad regression", verifier_compact)
+        self.assertIn("A matrix indexes", report)
+        self.assertIn("synthetic outcomes", report)
+        audit_ordered = [
+            "each artifact-root SPEC/registry/package Markdown",
+            "frozen integrated production diff/code",
+            "causal tests/runtime observations",
+            "proof, verification reports",
+        ]
+        for earlier, later in zip(audit_ordered, audit_ordered[1:]):
+            self.assertLess(audit.index(earlier), audit.index(later))
+        self.assertIn("labels or counters alone are not evidence", compact_text(testing))
+        pipeline = execution[execution.index("Pipeline:"):execution.index("Stop conditions:")]
+        self.assertLess(pipeline.index("affected broad regression"), pipeline.index("proof/report refresh"))
+        self.assertIn("first establishes accepted obligations and frozen production paths", review)
+        pipeline_review_compact = compact_text(pipeline_review)
+        pipeline_review_ordered = [
+            "accepted SPEC/Slice obligations first",
+            "frozen integration code/diff",
+            "causal tests/runtime observations",
+            "Reconcile implementer `SELF_REVIEW` and proof claims",
+            "only afterward inspect package reports, deliverable matrices",
+        ]
+        for earlier, later in zip(pipeline_review_ordered, pipeline_review_ordered[1:]):
+            self.assertLess(
+                pipeline_review_compact.index(earlier), pipeline_review_compact.index(later)
+            )
+        for text in [verifier, report, audit, testing, pipeline_review]:
+            self.assertLessEqual(len(text.splitlines()), 150)
+
     def test_package_repair_circuit_is_progress_sensitive_and_two_strike(self) -> None:
         convergence = read_repo("plugins/super-developer/references/orchestration-convergence.md")
         dispatch = read_repo("plugins/super-developer/skills/implement/references/package-dispatch.md")

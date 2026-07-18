@@ -14,8 +14,8 @@ Run bounded review; route report/actions by mode.
 
 - Select exactly one mode: PR, local, or planned-feature pipeline.
 - Keep PR/local review separate from Slice/proof/report/audit obligations unless pipeline artifacts are in scope.
-- Pipeline review binds artifact-root evidence to one frozen integrated state; deliverable matrices are context
-  only for freshness, seams, contradictions, and proof/report invalidation, not a third deliverable-completeness gate.
+- Pipeline review first establishes accepted obligations and frozen production paths, then causal test/runtime evidence;
+  deliverable matrices are context only for freshness, seams, contradictions, and proof/report invalidation, not a third deliverable-completeness gate.
 - `CLEAN` means no confirmed serious review-code findings remain for the reviewed state; it is not audit PASS, proof acceptance, or merge readiness.
 - Main agent owns orchestration, state gates, reports, and action routing; semantic review happens through sub-agents.
   Pipeline mode follows `../../references/orchestration-convergence.md` and returns findings to its Delivery Owner;
