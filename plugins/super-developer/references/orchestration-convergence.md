@@ -2,131 +2,109 @@
 
 ## Boundary
 
-This reference owns authority separation, finite preauthorization, planned-feature continuation, nested
-call/return, post-acceptance finding classification, serious-cluster circuit state, logical implementation
-ownership, focused amendment handback, and behavior-before-evidence ordering. It does not replace artifact,
-command, worktree, verification, review, or audit contracts.
+This reference owns Human Authorization Envelope separation, technical-plan amendments, the one Implementation
+Authorization, finite budgets, planned-feature continuation, finding classification, serious-cluster state,
+logical ownership, and behavior-before-evidence ordering. Other references own artifact, command, worktree,
+verification, review, and audit mechanics.
 
 ## Human Envelope and Technical Baseline
 
 - **Human Authorization Envelope:** user-owned outcomes, scope/exclusions, product/interface invariants, accepted
   material risks, protected effects, and spending/command/time bounds. Agents cannot alter it.
 - **Technical Plan Baseline:** versioned architecture, packages/consumed contracts, commands/writes/cleanup,
-  prerequisite activation, verification topology, assurance profile/routing proposal, and execution details.
-  Agents may correct technical means only while the Human Authorization Envelope remains unchanged and the
-  correction receives the required cold review.
+  prerequisite activation, verification topology, assurance routing, and execution details. Agents may correct it
+  only inside the unchanged envelope and after affected cold review.
 
-A product/interface decision, material risk acceptance, protected effect, scope change, or bound expansion returns
-to the user. An envelope-preserving architecture/feasibility correction returns through preflight/planning. Do not
-create a second requirement, decision, amendment, or authorization ledger; Slices/SPEC/package authority remains
-canonical and the compact Lifecycle State stores mechanical continuation only.
+Product/interface decisions, scope, risk acceptance, protected effects, and bound expansion require one focused
+product question with a recommendation before another authorization candidate exists. Envelope-preserving
+architecture, feasibility, package, command, or verification corrections return through preflight/planning and
+cold review without a user prompt. Slices/SPEC/package authority remains canonical; add no decision ledger.
 
 ## Preauthorization Budget
 
 At the Conceptualize-to-planning handoff, initialize or resume one finite budget in
-`.tasks/<feature>/lifecycle-state.json`. Defaults: at most eight total delegated planning/review/specialist calls;
-two total planner-correction waves; two total spike waves, at most one per empirical cluster; an explicit finite
-command-unit maximum; and an absolute deadline. Stricter project/user bounds win.
+`.tasks/<feature>/lifecycle-state.json`: at most eight total delegated planning/review/specialist calls, two total
+planner-correction waves, two total spike waves (one per empirical cluster), a finite command maximum, and an
+absolute deadline unless stricter bounds apply. CAS-reserve before use. Issued usage is monotonic and abandoned
+work remains charged. A new baseline, agent, host, model, prompt, commit, or timeout never resets it.
 
-Before every dispatch, correction/spike wave, or command, CAS-reserve its units and increment issued usage. Issued
-usage is monotonic and abandoned work remains charged. Replanning, a new technical baseline, agent, host, model,
-prompt, commit, or timeout never resets usage or deadline. Interactive user answers do not consume a planner
-correction wave. Uncertain state fails closed. Exhaustion returns one batched `needs_decision` packet containing
-unresolved clusters, observations, and a recommended scope/evidence choice. Only an explicit focused user decision
-may establish a new finite budget; it does not authorize implementation. No event ledger is added.
+Exhaustion returns one batched `needs_decision` packet with unresolved clusters and a recommendation. Only a
+focused user decision may establish a new finite preauthorization budget; that decision does not authorize
+implementation. No event ledger is added.
 
-## Delivery Owner
+## One Implementation Authorization
 
-After Gate 2 accepts and checkpoints an exact artifact state, `implement` is the Delivery Owner through final
-readiness. Only the Delivery Owner advances the planned-feature lifecycle, selects repair or reassessment,
-preserves active authorization and circuit state, and declares the next gate.
+Cold plan challenge and execution-readiness validation precede the user decision. One decision surface presents:
 
-A child called by the Delivery Owner performs bounded work and returns. It never invokes the next stage, restarts
-`implement`, independently delegates repair, or treats inherited authorization as continuation authority.
+- the complete Human Authorization Envelope and reviewed initial Technical Plan Baseline;
+- exact artifact candidate tree/commit, base code commit and clean-status digest, dependencies, prerequisite
+  snapshot, assurance profile/routing, package/receipt topology, and expected deterministic mutations;
+- exact covered writes, commands, tests, repairs, reruns, evidence refresh, cleanup, delivery checkpoints and
+  listed non-force pushes, each under finite call/repair-wave/command/cost/time budgets;
+- `proven-ready` results and exact `protected-activation-required` probes/remedies; and
+- exclusions, escalation conditions, allowed technical-amendment policy, and the canonical Authorization Digest.
 
-## Nested Call Envelope
+The choices are exactly **Approve and auto-resolve**, **Request changes**, and **Abort**. Approval authorizes all
+listed in-scope delivery actions without routine testing, repair, evidence, checkpoint, or handoff re-prompts. It
+does not inherit Sidecar Portability Authorization or authorize target merge/push, force, tag, release, deletion,
+deployment, destructive/external effects, or new dependencies/services/credentials. Those remain separately
+protected.
 
-Every nested planned-feature call/return names:
+Approval creates an immutable authorization ID and digest. Checkpoint the deterministic reviewed status,
+authorization record, and exact accepted artifact commit. `implement` becomes the canonical Delivery Owner only
+after that checkpoint verifies. There is no later execution decision.
 
-- caller and exact `return_to` stage; mode (`create|amend|resume`);
-- accepted artifact and reviewed code state when any;
-- Human Authorization Envelope and current Technical Plan Baseline identity;
-- inherited authorization, excluded/protected actions, and finite open items;
-- preauthorization maxima/issued/deadline and reservation when planning remains active;
-- serious-cluster identity, prior closure cycles, and circuit disposition when relevant; and
-- terminal disposition: `done`, `blocked`, `needs_decision`, `architecture_invalidated`, or `parked`.
+## Freshness, Activation, and Amendments
 
-Keep this in active owner context, child packets/returns, and the existing compact Lifecycle State where mechanical.
-Do not create a registry field, standalone ledger, report, dashboard, or hidden chat-only continuation rule.
+Immediately before product writes or package fanout, run a cheap equality guard over authorization ID/digest,
+accepted artifact commit/tree, base code/status digest, dependency/prerequisite snapshot, profile/routing, covered
+actions, and only expected deterministic worktree/status mutations. Unlisted drift fails closed and returns
+through affected technical review; ask the user only if the Human Authorization Envelope changes.
 
-## Accepted State and Amendments
+Then run each listed protected activation probe. A listed remedy may auto-resolve; otherwise return one precise
+prerequisite escalation before product writes. A later envelope-preserving technical revision records parent/new
+baseline identities, affected invalidation, cold-review receipt, checkpoint, and Technical Amendment Digest under
+the same authorization ID. The ordered chain advances the Effective Authorization Digest without reapproval.
 
-Gate 2 approves the mechanically validated candidate plus only declared `status -> reviewed` mutation. Revalidate
-before broad staging; unexpected drift invalidates approval. Implementation consumes the exact accepted commit.
+## Delivery Owner and Child Envelope
 
-A focused amendment returns old/new accepted commits and affected requirements, Slices, packages, assignments,
-production/test surfaces, proof/report state, and final-freeze inputs. Preserve unaffected identity only with
-evidence; otherwise map old-to-new explicitly. The child planner/reviewer does not start or resume implementation itself. An envelope-preserving Technical Plan Baseline revision does not silently mutate the Human Authorization
-Envelope or reset any budget/circuit.
+Only the Delivery Owner advances the post-checkpoint lifecycle, chooses repair or reassessment, preserves active
+authorization/circuit state, and declares completion. A child performs bounded work and returns; it never invokes
+the next stage, restarts `implement`, or treats inherited authorization as continuation authority.
 
-## Finding Classification
+Every nested call/return names caller and exact `return_to` stage; `create|amend|resume`; accepted artifact/code
+state; envelope and current baseline identity; inherited covered/excluded actions and finite open items; budgets;
+cluster/strike state when relevant; and terminal disposition `done|blocked|needs_decision|architecture_invalidated|parked`.
+The child planner/reviewer does not start or resume implementation itself.
 
-The Delivery Owner classifies every post-acceptance serious finding before repair:
+A focused amendment returns old and new accepted commits; affected requirements/Slices/packages/assignments,
+production/test surfaces, proof/report/evidence/freeze inputs; evidence-backed preserved state; and old-to-new
+package mapping. No child restarts implementation.
 
-- `requirement-gap`: accepted behavior/scope missing or ambiguous; return for authority/amendment;
-- `architecture-invalidation`: ownership/state/routing cannot satisfy an invariant; stop and reassess design;
-- `implementation-defect`: accepted design encoded incorrectly; bounded repair may proceed;
-- `integration-regression`: another mode/caller/public contract is broken; repair bounded impact;
-- `test-fidelity-gap`: evidence misses claimed behavior; repair evidence seam first;
-- `evidence-stale-or-contradicted`: refresh only after behavior stabilizes;
-- `confidence-enhancement`: non-blocking absent accepted contract or demonstrated serious risk.
+## Finding Classification and Circuit
 
-Mixed findings use highest authority: requirement/scope, architecture, implementation/integration, test/evidence,
-then confidence enhancement.
+Classify every serious finding before repair: `requirement-gap`, `architecture-invalidation`,
+`implementation-defect`, `integration-regression`, `test-fidelity-gap`, `evidence-stale-or-contradicted`, or
+`confidence-enhancement`. Mixed findings use that authority order. Envelope gaps return to the user; architecture
+invalidation returns to bounded technical reassessment when an envelope-preserving alternative is credible;
+eligible implementation/integration/test defects auto-resolve within listed budgets.
 
-## Serious-Cluster Circuit
+A serious-cluster identity is accepted invariant/contract + failure mechanism + architectural surface. The initial
+independent rejection is strike 1 and permits one root-cause repair; failed affected closure is strike 2 and opens
+the circuit. A new agent, model, prompt, commit, status, report, matrix row, signature, package label, timeout, or
+wording change never resets it. Continuing an open circuit requires explicit user approval naming new information
+and a new finite bound.
 
-A serious-cluster identity is the accepted invariant or contract plus failure mechanism, architectural surface,
-and verification signature. One strike is one failed closure cycle, not duplicate finding/command/report rows.
+Keep one logical primary implementation owner per package/surface. Prefer resume; otherwise rehydrate one successor
+with exact authorization, invariants, worktree, outcomes, cluster/strikes, and next action. Independent assurance
+stays cold.
 
-- First failed closure: permit one bounded repair after classification.
-- Second failed closure for the same cluster: open circuit and stop for focused design reassessment.
-- Confirmed architecture invalidation opens immediately.
-- A new agent, model, prompt, commit, status, report, matrix row, timeout, or renamed attempt does not reset it.
-- Reset only after accepted design/invariant change, decisive evidence, or demonstrated mechanism closure.
-- Continuing an open circuit requires explicit user approval naming new information and bounded action.
+## Behavior-First Evidence and Stops
 
-Design reassessment exits only with revised invariants, focused plan review, new accepted artifact commit, and an
-affected-state/invalidation handback.
+Inspect accepted obligations, bound production diff/actual path, minimum sufficient causal tests/observations,
+proof/self-review, then matrices. Classify, reproduce, repair one root cause, run actual-path targeted and earliest
+credible affected broad regression, then refresh proof/report and freeze. Test volume never gates.
 
-## Logical Implementation Owner
-
-Keep one logical primary implementation owner per package/architectural surface. Prefer session resume; otherwise
-rehydrate one successor with accepted invariants, worktree state, outcomes, cluster/strikes, and next action. Do not
-run concurrent owners or reset state because runtime identity changed. Independent verification stays cold.
-
-## Behavior-First Evidence
-
-Inspect: (1) accepted requirements/contracts/invariants; (2) bound production diff and actual execution path;
-(3) minimum sufficient causal tests/observations; (4) proof and self-review; (5) matrix reconciliation. One causal
-test may prove multiple rows. A PASS forces the production precondition/branch, observes a real outcome/transition,
-falsifies forbidden outcomes, and would fail when the invariant breaks. Disclose cache/mocks/fixtures/hooks/
-substitutes. Labels, counters, row counts, proof wording, and synthetic outcomes alone are insufficient.
-
-Once accepted behavior and triggered risks are credibly demonstrated and required checks pass, stop adding tests.
-Test count/LOC/ratio/coverage/suite volume and exhaustive suite review never gate. Existing tests block only for a
-concrete correctness, fidelity, flakiness, skip/focus/weakening, unsafe-effect, material-runtime, or
-trust-undermining harness/config defect—not volume.
-
-## Repair and Freeze Order
-
-Classify, reproduce the mechanism, repair one root cause, establish actual-path targeted evidence, run earliest
-credible affected broad regression (or justified bounded substitute), then refresh proof/report and freeze. Shared
-discovery/registration/global state/lifecycle/generated-public contracts/recursive control flow require broad
-regression before freeze. Classify broad failure before another repair.
-
-## Stops
-
-Stop for missing caller/return or budget state; envelope ambiguity; protected action; unknown cluster/class;
-artifact/code drift; scope/risk authority; budget/deadline exhaustion; second same-cluster failure; architecture
-invalidation; concurrent owner; or evidence unable to force the claimed production path.
+Stop for envelope ambiguity/change, protected or unlisted action, blocked prerequisite, exact-state/ownership loss,
+unknown class/cluster, budget/deadline exhaustion, open circuit, no credible envelope-preserving design, concurrent
+owner, or evidence unable to force the claimed production path.

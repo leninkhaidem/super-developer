@@ -320,6 +320,64 @@ class SkillPromptSurfaceTests(unittest.TestCase):
         for rel in surfaces:
             self.assertLessEqual(len(read_repo(rel).splitlines()), 150, rel)
 
+    def test_a3_cold_review_precedes_the_sole_authorization_and_delivery_guard(self) -> None:
+        affected = [
+            "plugins/super-developer/skills/review-plan/SKILL.md",
+            "plugins/super-developer/skills/review-plan/references/plan-review-resolution.md",
+            "plugins/super-developer/skills/review-plan/references/plan-review-rubrics.md",
+            "plugins/super-developer/skills/implement/SKILL.md",
+            "plugins/super-developer/skills/implement/references/execution-contract.md",
+            "plugins/super-developer/references/orchestration-convergence.md",
+        ]
+        texts = {rel: read_repo(rel) for rel in affected}
+        review = compact_text(texts[affected[0]])
+        implement = compact_text(texts[affected[3]])
+        decision = compact_text(texts[affected[4]])
+        convergence = compact_text(texts[affected[5]])
+        combined = "\n".join(texts.values())
+
+        # Causal path: cold challenge and batched correction happen before readiness and
+        # the user decision; the exact checkpoint then precedes Delivery Owner activation.
+        ordered_review = [
+            "Dispatch one cold Plan Reviewer/Triage",
+            "Aggregate all findings into one coherent result",
+            "dispatch affected cold re-review",
+            "validate execution readiness",
+            "Present the reviewed plan",
+            "On `Approve and auto-resolve`",
+            "after this exact checkpoint passes",
+        ]
+        for earlier, later in zip(ordered_review, ordered_review[1:]):
+            self.assertLess(review.index(earlier), review.index(later))
+        self.assertLess(
+            implement.index("Validate the authorization receipt"),
+            implement.index("run the cheap exact freshness guard"),
+        )
+        self.assertLess(
+            implement.index("run the cheap exact freshness guard"),
+            implement.index("Run each exact `protected-activation-required` probe"),
+        )
+        self.assertLess(
+            implement.index("Run each exact `protected-activation-required` probe"),
+            implement.index("use `worktree` for authorized setup/resume"),
+        )
+
+        # Only review-plan presents the decision. The historical execution-contract path
+        # supplies its content and implement consumes the checkpointed receipt.
+        self.assertLess(
+            review.index("ask one focused product question"),
+            review.index("before offering an authorization candidate"),
+        )
+        self.assertEqual(1, combined.count("On `Approve and auto-resolve`"))
+        self.assertIn("sole Implementation Authorization", review)
+        self.assertIn("never presents another decision surface", decision)
+        self.assertIn("There is no later execution decision", convergence)
+        self.assertIn("Never present another execution decision", implement)
+        for stale in ["Gate 1", "Gate 2", "step-by-step", "approve auto-resolve"]:
+            self.assertNotIn(stale, combined)
+        for rel, text in texts.items():
+            self.assertLessEqual(len(text.splitlines()), 150, rel)
+
     def test_obsolete_or_unsafe_terms_are_only_negative_guidance(self) -> None:
         for path in prompt_surface_paths():
             text = path.read_text(encoding="utf-8")
@@ -1960,7 +2018,7 @@ class SkillPromptSurfaceTests(unittest.TestCase):
         self.assertIn("planned-feature Delivery Owner", implement)
         self.assertIn("no child restarts implementation", implement)
         self.assertIn("never invoke review or implementation", planning)
-        self.assertIn("A nested review\n   never invokes `implement`", review_plan)
+        self.assertIn("A nested review never invokes `implement`", compact_text(review_plan))
         self.assertIn("return it to the Delivery\n    Owner", spike)
         self.assertIn("never owns repair or lifecycle continuation", review_code)
         self.assertIn("does not own repair or continuation", pipeline)
