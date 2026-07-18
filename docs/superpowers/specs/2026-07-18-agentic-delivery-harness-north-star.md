@@ -1,6 +1,6 @@
 # Agentic Delivery Harness North-Star Design
 
-**Status:** Candidate for independent challenge; not implementation authority  
+**Status:** Architecture-redesign candidate after challenge; not implementation authority
 **Date:** 2026-07-18  
 **User-confirmed invariant:** Every planned feature retains a portable artifact sidecar.  
 **Existing foundation under reconciliation:** `790bf679466b3738e422b3eb23a951a92a239a6f`
@@ -86,6 +86,9 @@ A successful clean path has these properties:
 
 - **Conversational decision:** a focused question during discovery or plan resolution. It is not a formal
   implementation gate.
+- **Sidecar Portability Authorization:** explicit task instruction or durable preference permitting only non-force,
+  compare-and-swap pushes from the sidecar to the exact namespaced `artifacts/<feature>` ref during discovery and
+  planning. It is a protected remote-write permission, not implementation authority.
 - **Human Authorization Envelope:** user-owned outcomes, constraints, exclusions, product/interface invariants,
   accepted material risks, protected side effects, and spending/command bounds. Agents cannot change it.
 - **Technical Plan Baseline:** the exact reviewed architecture, packages, commands, verification topology, and
@@ -103,8 +106,14 @@ A successful clean path has these properties:
 - **Stable Candidate Identity:** immutable package/integrated code, semantic-artifact, runtime-evidence, profile,
   and proof identities produced after stabilization and offered to independent assurance; verifier outputs are not
   part of the candidate.
-- **Final Freeze:** the immutable integrated candidate plus selected package/specialist inputs consumed by final
-  review/audit. Final review, audit, and Verification Summary receipts are outputs and are excluded.
+- **Pre-freeze boundary receipt:** package or boundary-specialist PASS bound to one Stable Candidate Identity and
+  consumed-contract digests before dependent unlock. It is an input to the Final Freeze.
+- **Final Freeze:** the immutable integrated candidate plus pre-freeze boundary receipts consumed by final
+  assurance. Code-review, final-specialist, audit, and Verification Summary receipts are outputs and are excluded.
+- **Post-freeze assurance receipt:** an immutable output bound to the Final Freeze and any explicitly preceding
+  receipt digests in the acyclic final-assurance graph.
+- **Checkpoint transaction:** publish every code object to an immutable retained remote checkpoint ref, verify it,
+  then CAS-commit sidecar state that references it. Sidecar state never points to local-only code.
 - **Closure cycle:** an initial independent serious rejection (strike 1), one eligible root-cause repair, and one
   affected closure check. Closure failure is strike 2 and opens the circuit. Ordinary coding/test iteration before
   a stable-candidate claim is not a closure cycle.
@@ -116,7 +125,9 @@ A successful clean path has these properties:
 
 ## Governing Invariants
 
-1. **Mandatory sidecar.** No profile may replace the sidecar with chat, a hidden database, or code-branch files.
+1. **Mandatory sidecar-only planned lifecycle.** Every planned feature uses the namespaced sidecar; current-root
+   `.planning`/`.tasks` modes are rejected or migrated before planning. No profile may replace the sidecar with
+   chat, a hidden database, or code-branch files.
 2. **One formal implementation gate.** Gate 1, Gate 2, and a later Execution Contract must not become separate
    approvals. One Implementation Authorization owns the transition to product code writes.
 3. **One lifecycle owner.** After authorization, only the Delivery Owner advances stages or decides repair,
@@ -203,6 +214,14 @@ cannot own. Planning must not rely on hidden conversation context.
 There is no additional ceremonial approval merely to let planning read settled decisions. The later
 Implementation Authorization accepts the complete reviewed proposal. If planning or review exposes a missing
 product decision, the focused question returns through the Conceptualizer and updates durable authority.
+
+Planned-feature discovery has no current-root artifact mode. The Conceptualizer derives and creates the local
+sidecar before its first artifact write. Before the first remote checkpoint, it resolves Sidecar Portability
+Authorization from the explicit request or a durable preference; otherwise it asks one focused remote-write
+permission. That permission covers only the exact non-force CAS push to `artifacts/<feature>` from the sidecar and
+never code, target, tag, release, force, or delete refs. Declining it blocks the portable planning transition rather
+than silently falling back to current-root artifacts. The initial checkpoint initializes Lifecycle State, verifies
+an absent or expected remote parent, and records the exact remote commit.
 
 ## Stage 2 — Design and Feasibility Preflight
 
@@ -374,39 +393,79 @@ captures another active package through broad staging.
 
 ## Stage 9 — Risk-Adaptive Independent Assurance
 
-`standard` is the default. `low` must satisfy every eligibility condition. Any high trigger wins over standard or
-low. The accepted SPEC/package authority owns profile and routing rationale; mechanical state mirrors controlled
-values only for dispatch and validation.
+`standard` is the default. `low` must satisfy every eligibility condition. Any high trigger wins. The accepted
+SPEC/package authority owns profile, routing, and specialist placement; mechanical state mirrors controlled values
+only for dispatch and validation.
 
-| Profile | Package equation | Final equation |
+### Acyclic receipt graph
+
+Every receipt has exactly one side of freeze `F`:
+
+```text
+Effective Authorization A
+        |
+        +--> package candidate P[i] --> boundary/package-specialist receipt B[i]
+        |                                  |
+        +--> integrated code + semantic artifacts + runtime evidence
+                                           |
+                                           v
+                       F = freeze(A, integrated state, evidence, B[*])
+                                           |
+                    +----------------------+----------------------+
+                    |                                             |
+             low: combined C(F)                         standard/high: code review R(F)
+                    |                                             |
+                    |                                  high only: final specialists S[j](F, R)
+                    |                                             |
+                    |                                  completion audit U(F, R, S[*])
+                    |                                             |
+                    +----------------------+----------------------+
+                                           |
+                                  Verification Summary V
+```
+
+`B[i]` is a pre-freeze input produced before dependent consumption. A domain specialist assigned to a package or
+consumed contract produces `B[i]` and cannot also claim final-state coverage. `R`, final-state `S[j]`, `U`, and `C`
+are post-freeze outputs. Final specialists run only after code-review PASS and own a named integrated threat,
+privacy, data, concurrency, compatibility, or operational lens not owned by code review or audit. Audit receives
+clean prerequisite receipt digests and owns accepted-outcome reconciliation; it does not repeat their lenses.
+`V` references the graph but proves nothing independently.
+
+Profile equations are therefore:
+
+| Profile | Pre-freeze equation | Post-freeze equation |
 |---|---|---|
-| Low | One coherent `final` package, stable proof, no dependency/parallel/sensitive/shared/public/lifecycle trigger | One cold combined receipt with separate `code-risk: PASS` and `completion: PASS` bound to one freeze |
-| Standard | Fresh PASS reports for every `boundary` package; coherent leaf packages may use `final` | After all evidence is final, create `F`; integrated code-review PASS on `F`, then a different read-only audit PASS on the same `F`; code review directly covers `final` packages |
-| High | Fresh enhanced PASS reports for every material package/consumed boundary plus each named specialist receipt | After all evidence is final, create `F`; integrated code-review PASS on `F`, then a different read-only audit PASS on the same `F` |
+| Low | One coherent `final` package proof; no boundary/sensitive/shared/public/lifecycle trigger | `F → C(code-risk PASS, completion PASS) → V` |
+| Standard | PASS `B[i]` for every `boundary` package; coherent leaf packages may use `final` | `F → R(PASS) → U(PASS, R) → V` |
+| High | Enhanced PASS `B[i]` for every material package/consumed boundary and each package-bound specialist | `F → R(PASS) → S[*](PASS, F, R) → U(PASS, F, R, S[*]) → V` |
 
-Package verification occurs in Stage 8 where trust is consumed; final assurance occurs after integrated
-stabilization. Receipt ownership is non-overlapping:
+Receipt ownership is non-overlapping:
 
-- **Package verifier:** package-local obligations, actual behavior, package-owned tests/evidence, and consumed
-  contract at the selected boundary.
-- **Code reviewer:** integration/merge behavior, implementation and test risk, cross-package contracts, regressions,
-  and direct semantic coverage for packages intentionally routed `final`.
-- **Completion auditor:** read-only reconciliation of the Human Authorization Envelope and accepted plan against
-  the exact reviewed freeze and receipts; selective falsification only, not wholesale code rereview.
-- **Combined low verifier:** both named verdicts in one cold receipt over the sole coherent package/integration
-  freeze.
-- **Delivery Owner:** classification, repair, state refresh, and lifecycle transition only.
+- **Package verifier or package-bound specialist:** package-local behavior/tests/evidence and named consumed
+  contract/risk; emits pre-freeze `B[i]`.
+- **Code reviewer:** integrated implementation/test risk, merge behavior, cross-package contracts, regressions, and
+  direct semantic coverage for packages routed `final`; emits `R`.
+- **Final-state specialist:** one named integrated risk absent from package and generic code-review ownership;
+  emits `S[j]` only after `R` PASS.
+- **Completion auditor:** read-only Human Authorization Envelope and accepted-plan reconciliation over `F` and
+  prerequisite receipts; emits `U`.
+- **Combined low verifier:** explicit code-risk and completion verdicts in `C`.
+- **Delivery Owner:** classification, repair, checkpointing, and lifecycle transitions; emits no semantic verdict.
 
-Runtime discovery that raises profile or changes routing invalidates the current affected candidate/assurance
-selection. The Delivery Owner records promotion, updates the Technical Plan Baseline, and obtains affected cold
-review. It proceeds without user input only when envelope, covered actions, cost/budgets, and protected effects stay
-inside authorization. A low verifier that discovers a high/standard trigger returns `PROFILE_INVALID`, not PASS or
-a repair finding; the required topology then runs. Downgrade after authorization requires a new reviewed baseline
-and user authorization.
+A serious failure at `R`, `S[j]`, `U`, or `C` routes through Stage 10. Any repair changes integrated semantic input,
+so it creates a new `F`; every downstream receipt from the old freeze is invalid. Pre-freeze `B[i]` is retained only
+when exact affected-state analysis proves its package/contract inputs unchanged. Standard/high audit is never
+started before all preceding receipts PASS.
 
-Helpers must validate profile-specific equations: no missing required boundary report, no substitute report for a
-`final` package, correct specialist/review/audit receipts, and one compatible freeze. Universal report assumptions
-in current contracts are replaced deliberately rather than bypassed.
+Runtime discovery that raises profile, package routing, or specialist placement invalidates affected candidates
+and the current graph. The Delivery Owner records promotion, updates/reviews the Technical Plan Baseline, and
+advances the Effective Authorization Digest/checkpoint. It proceeds without user input only when envelope, covered
+actions, budgets, and protected effects stay inside authorization. A low verifier discovering a higher trigger
+returns `PROFILE_INVALID`, not PASS or repair. Downgrade requires a new reviewed baseline and user authorization.
+
+Helpers must validate the graph topologically: profile/routing, required `B[i]`, exact `F`, allowed incoming receipt
+digests, receipt role, and final equation. They reject a receipt on both sides of `F`, a missing required boundary,
+a substitute report for `final`, or a summary used as semantic proof.
 
 ## Stage 10 — Finding and Repair Convergence
 
@@ -462,58 +521,91 @@ Routine compilation/test failures, local implementation iteration, technical pla
 envelope, implementation/integration/test-fidelity repair, bounded reruns, profile promotion inside covered
 budgets, evidence refresh, and listed non-force sidecar/feature pushes do not re-prompt.
 
-## Mandatory Portable Sidecar and Authority
+## Mandatory Portable Sidecar and Checkpoint Protocol
 
-The sidecar remains present in every profile and path. Its remote ref is retained by default; release or cleanup
-may delete it only through a separate explicit retention decision after required evidence is preserved.
+All planned-feature stages validate a sidecar root/ref distinct from the code root. Existing current-root
+`.planning`/`.tasks` artifacts are legacy input only: they must be path-safely imported into a namespaced sidecar,
+checkpointed with provenance, and revalidated before planning. Planned Conceptualize, planning, review,
+implementation, pipeline review, audit, helpers, and tests must reject current-root authority rather than silently
+preserving two modes.
 
-Product/completion authority remains intentionally small:
+The sidecar remote ref and every code checkpoint ref are retained by default. Release or cleanup may delete them
+only through a separate explicit retention decision after final evidence is preserved.
+
+Product/completion authority remains small:
 
 1. **Human Authorization Envelope and versioned Technical Plan:** Slices plus accepted SPEC/package authority,
-   authorization ID/digest, initial exact baseline, and reviewed envelope-preserving technical revisions.
-2. **Verification Summary:** append-only final receipt naming the immutable freeze, profile equation, reviewer
-   receipts, deviations, limitations, and verdict.
+   authorization ID/effective digest, exact baseline, and reviewed technical revisions.
+2. **Verification Summary:** append-only `V` naming `F`, the required receipt DAG, deviations, limitations, and
+   verdict.
 
-One canonical Lifecycle State file is initialized with the sidecar and is mechanical continuation state, not a
-third product authority or event log. It contains schema/generation, feature, authorization ID/effective digest,
-exact artifact/code identities, stage, assurance
-profile/routing, active owner token, package/wave dispositions, repair-wave budget, canonical cluster lineage and
-strikes, latest freeze/receipt identities, quiescence, and next legal actions.
+One canonical Lifecycle State snapshot is initialized with the sidecar and is mechanical continuation state, not
+a third product authority or event log. It contains:
 
-Lifecycle State updates use compare-and-swap against the expected sidecar generation and remote parent. Package
-agents write only assigned paths; the Delivery Owner path-stages finalized outputs at quiescent boundaries. Broad
-`git add -A` checkpointing of concurrent work is forbidden. Ownership takeover requires evidence the prior owner
-stopped plus a CAS generation change; lease expiry alone cannot reset ownership or strikes.
+- schema/generation, feature, quiescence, stage, and next legal actions;
+- authorization ID/effective digest and exact artifact/code checkpoint refs and SHAs;
+- assurance graph, package/wave dispositions, active owner token, and takeover state;
+- canonical cluster lineage/strikes and latest freeze/receipt identities;
+- authorization-wide maxima plus monotonically issued/used repair waves, delegated calls by role, command units,
+  cost units when applicable, `started_at`, and absolute `deadline_at`;
+- bounded active reservations for the next wave/call. Issued budget never decreases; a crash cannot reclaim it or
+  reset the deadline. Uncertain clock/budget state fails closed.
 
-A cold resume begins from the last quiescent checkpoint, verifies authorization/code/artifact identities, inspects
-any later package commits or uncheckpointed evidence as untrusted recovery input, and never infers `done`. Minimal
-resume, exclusive ownership, CAS checkpointing, cluster continuity, remote retention, and fail-closed recovery are
-Phase A/B prerequisites. Phase C may add richer park/cancel/supersede UX, retention policy, and release automation.
+### Two-phase recoverable checkpoint
 
-Registry data, lifecycle state, proofs, reports, command outputs, and specialist results are subordinate; none may
+Before dispatch, the Delivery Owner reserves the wave/call/command allocation through a sidecar CAS checkpoint.
+Each reservation has a unique generation; abandoned work remains charged. Package agents write only assigned paths
+and report actual usage for observation, never authority expansion.
+
+At a quiescent package/integration checkpoint:
+
+1. verify the active owner, generation, remote parents, budgets, and finalized path set;
+2. commit clean code and allocate an immutable unique ref such as
+   `refs/heads/checkpoints/<feature>/<slot>/g<generation>`;
+3. non-force push that code ref, fetch/verify its exact SHA is remotely reachable, and retain it;
+4. update Lifecycle State and finalized sidecar paths to reference only verified remote code refs/SHAs;
+5. path-stage and commit the sidecar from the expected parent, then non-force CAS-push only
+   `artifacts/<feature>` and verify the remote commit.
+
+A crash after step 3 leaves an unreferenced code checkpoint that resume ignores and later cleanup may collect. A
+crash after step 5 is recoverable because all referenced code objects already exist remotely. The sidecar may never
+reference a local-only commit. Broad `git add -A`, force push, mutable checkpoint refs, and sidecar-first publication
+are forbidden.
+
+Initial discovery uses the same CAS rule without code refs under Sidecar Portability Authorization. Implementation
+Authorization separately covers creation of the exact namespaced code checkpoint refs used during autonomous
+work. A remote without safe non-force namespaced refs cannot claim portable planned-feature execution.
+
+Ownership takeover requires evidence the prior owner stopped plus a CAS generation change; elapsed lease time
+alone cannot reset ownership, budgets, or strikes. Cold resume fetches and verifies every referenced ref/SHA, begins
+from the last quiescent state, treats later local commits/evidence as untrusted recovery input, and never infers
+`done`. Minimal resume, exclusive ownership, monotonic budgets, two-phase publication, remote retention, and
+fail-closed recovery are Phase A/B prerequisites.
+
+Registry data, Lifecycle State, proofs, reports, command outputs, and receipts remain subordinate; none may
 redefine accepted behavior or completion.
 
 ## Completion and Notification
 
-After implementation stabilizes and all package/runtime evidence is final, the Delivery Owner creates immutable
-freeze `F` containing authorization ID/effective digest, exact clean integrated code commit/tree and base/diff, a
-canonical semantic-artifact path manifest/tree, runtime-evidence digests, profile/routing, package/specialist input
-receipts, cluster state, and command results. The manifest includes accepted plan/proof/report inputs and excludes
-append-only review/audit/final-receipt paths plus mechanical Lifecycle State.
+After implementation stabilizes and all pre-freeze package/runtime evidence is final, the Delivery Owner creates
+immutable `F` containing authorization ID/effective digest, exact remotely reachable clean integrated code
+commit/tree and base/diff, canonical semantic-artifact path manifest/tree, runtime-evidence digests,
+profile/routing, pre-freeze `B[*]`, cluster state, and command results. The manifest includes accepted
+plan/proof/boundary-report inputs and excludes Lifecycle State plus post-freeze `C/R/S/U/V` paths.
 
-Review, specialist, and audit receipts are append-only outputs bound to `F`; they are not inputs that mutate `F`.
-Any production, test, accepted-plan, proof, package-report, runtime-evidence, profile, or routing change creates a
-new freeze and invalidates affected receipts. Mechanical receipt-file commits do not rebind semantic inputs.
+Post-freeze receipts are append-only outputs bound according to the Stage-9 DAG. Any production, test,
+accepted-plan, proof, boundary report, runtime evidence, profile, or routing change creates a new `F` and
+invalidates its downstream receipts. Receipt-file/Lifecycle-State commits do not rebind semantic inputs.
 
-Profile-specific completion is:
+A deterministic final validator checks one authorization lineage, remotely reachable `F`, acyclic profile equation,
+allowed receipt predecessors/digests, closed clusters, monotonic budgets/deadline, and no drift. It accepts only:
 
-- **low:** package proof plus combined receipt with both verdicts PASS;
-- **standard:** all selected boundary receipts plus integrated code-review PASS and subsequent audit PASS;
-- **high:** all material package/specialist receipts plus integrated code-review PASS and subsequent audit PASS.
+- **low:** `F → C(two PASS verdicts) → V`;
+- **standard:** `F → R(PASS) → U(PASS) → V`;
+- **high:** `F → R(PASS) → S[*](PASS) → U(PASS) → V`.
 
-A deterministic final validator checks one authorization lineage, freeze, profile equation, receipt digests,
-closed clusters/budgets, and no unsafe drift. The Verification Summary then references `F` and verified outputs and
-is CAS-checkpointed as the append-only final receipt. Completion notification occurs only after that checkpoint.
+`V` references verified outputs and is CAS-checkpointed as the append-only final receipt. Completion notification
+occurs only after that checkpoint; `V` cannot make a failed or missing predecessor pass.
 
 The user receives delivered outcomes, important decisions, assurance results, deviations/limitations, exact
 feature/artifact refs, and any separately authorized next action. Internal transcripts and duplicate gate prose are
@@ -601,8 +693,11 @@ exact contracts must be reconciled, not merely supplemented.
   universal reports;
 - final lifecycle: replace sibling review/audit with combined low or serial standard/high receipts bound to one
   immutable freeze;
-- sidecar/worktree/release contracts: add CAS Lifecycle State, path-specific quiescent checkpointing, cold resume,
-  exclusive takeover, append-only final receipt, and remote-sidecar retention by default;
+- artifact-store/Slice/tool/helper contracts: retire current-root planned-feature authority, add safe legacy import,
+  and fence initial namespaced CAS publication under Sidecar Portability Authorization;
+- sidecar/worktree/release contracts: add monotonic-budget Lifecycle State, immutable remote code checkpoint refs,
+  code-before-sidecar two-phase publication, path-specific quiescent CAS, cold resume, exclusive takeover, acyclic
+  final receipts, and remote ref retention by default;
 - tests: add behavioral baseline fixtures, stage oracles, drift/promotion/dependency/receipt/continuation cases, and
   retain prompt/helper tests only as supporting evidence.
 
@@ -611,26 +706,28 @@ exact contracts must be reconciled, not merely supplemented.
 - child-owned lifecycle continuation or recursive repair;
 - Gate 1, a second execution approval, or routine in-boundary reapproval;
 - universal package reports where routing selects final coverage;
-- sibling final review/audit against a state likely to change;
-- cluster identity that can reset through a new signature, agent, package label, or commit;
-- broad concurrent sidecar staging, release-default sidecar deletion, hidden-chat continuation, or floating state;
+- sibling final review/audit against a state likely to change or a specialist receipt used on both sides of `F`;
+- cluster or budget identity that resets through a new signature, agent, host, package label, or commit;
+- current-root planned authority, broad concurrent sidecar staging, sidecar-first publication, local-only referenced
+  code, release-default ref deletion, hidden-chat continuation, or floating state;
 - assurance justified only by file/call count or semantic proof inferred from helper/prose/matrices.
 
 ## Recommended Delivery Phases
 
 ### Phase A — Pre-implementation correctness, exact authorization, and minimum portability
 
-Strengthen Conceptualize completeness; move feasibility before planning; add Planner self-challenge; make cold
-review precede approval; prove prerequisites; consolidate one Authorization Digest gate; and establish the minimal
-CAS Lifecycle State, exclusive owner, quiescent checkpoint, and cold-resume contract. Phase A is not releasable
-without its continuation drills.
+Strengthen Conceptualize completeness; enforce sidecar-only planned authority and initial portability permission;
+move feasibility before planning; add Planner self-challenge; make cold review precede approval; prove prerequisites;
+consolidate one Authorization Digest gate; and establish monotonic-budget Lifecycle State, immutable remote code
+checkpoint refs, two-phase code-before-sidecar CAS, exclusive owner, and cold resume. Phase A is not releasable
+without publication/crash continuation drills.
 
 ### Phase B — Autonomous delivery, adaptive assurance, and authoritative completion
 
-Add exact stable candidates, consumed-boundary unlock, profile-specific helper equations, combined low or serial
-standard/high final assurance, deterministic repair waves/circuits, immutable freeze/receipts, Verification Summary,
-and final notification. Integrate retained Phase 1 primitives only after conflicts are replaced. Phase B is not
-releasable without the fixed behavioral corpus and final-receipt validation.
+Add exact stable candidates, consumed-boundary unlock, the acyclic `B → F → C/R/S/U → V` receipt graph,
+profile-specific helper equations, combined low or serial standard/high final assurance, deterministic repair
+waves/circuits, Verification Summary, and final notification. Integrate retained Phase 1 primitives only after
+conflicts are replaced. Phase B is not releasable without the fixed corpus and receipt-DAG validation.
 
 ### Phase C — Extended lifecycle and release durability
 
@@ -662,8 +759,10 @@ stage/class, permitted calls/prompts, and terminal verdict.
 | 12 | Architecture/product invariant cannot be preserved | CAS checkpoint plus one precise user decision; no automatic technical mutation |
 | 13 | Same serious mechanism fails after its one repair | Initial rejection is strike 1; failed closure is strike 2 and circuit opens across agent/commit/signature changes |
 | 14 | Any unlisted artifact/code/dependency/profile drift | Exact freshness/freeze validator rejects; no subjective rebind |
-| 15 | Host stops at each quiescent stage | Cold resume recovers owner/stage/authorization/budgets/strikes/next action without partial-proof capture or inferred completion |
-| 16 | Final receipt, target merge/release, or unplanned protected action | Receipt validates one immutable freeze; completion notifies once; protected operation cannot inherit auto-resolve authority |
+| 15 | Host stops before/after each code/sidecar publication step | Referenced code is already remote, orphan code refs are ignored, cold resume preserves owner/stage/issued budgets/deadline/strikes/next action, and completion is never inferred |
+| 16 | Low/standard/high final receipt graphs | Validator accepts only the declared acyclic predecessor order and rejects circular, cross-freeze, missing, duplicate-role, or summary-as-proof receipts |
+| 17 | Existing current-root artifacts or first remote sidecar push | Planned lifecycle requires safe migration to sidecar; exact namespaced initial CAS push has explicit portability authority; no silent current-root fallback |
+| 18 | Target merge/release or unplanned protected action | Completion notifies once; protected operation cannot inherit sidecar portability or implementation auto-resolve authority |
 
 ## Challenger Acceptance Standard
 
@@ -672,9 +771,9 @@ Approve only if the lifecycle and non-waivable scenarios are achievable without:
 - a second formal implementation approval or hidden protected-action gate;
 - user involvement for envelope-preserving technical correction or routine repair;
 - unresolved plan-changing prerequisites at authorization;
-- subjective/floating state, circular final evidence, or unsafe dependency unlock;
+- subjective/floating state, circular receipt edges, local-only referenced code, or unsafe dependency unlock;
 - unbounded planner/reviewer, implementation, repair-wave, or verifier loops;
-- duplicate assurance ownership or weakened named-risk verification;
-- resetting profile, cluster, budget, or ownership across hosts/agents/commits;
-- removing/bypassing the sidecar or deferring minimum portability required by Phase A/B;
+- duplicate assurance ownership or a specialist on both sides of the freeze;
+- resetting profile, cluster, monotonic budget/deadline, or ownership across hosts/agents/commits;
+- current-root planned authority, unauthorized initial sidecar publication, or deferred Phase-A/B portability;
 - claiming quality from call reduction, token checks, helpers, or prose without the fixed behavioral corpus.
