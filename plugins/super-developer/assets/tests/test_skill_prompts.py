@@ -1828,6 +1828,49 @@ class SkillPromptSurfaceTests(unittest.TestCase):
         self.assertIn("never repair or advance the lifecycle", audit)
         self.assertIn("prove the candidate differs only by the\napproved status mutation", worktree)
 
+    def test_triggered_preflight_projects_architecture_invariants_without_a_ledger(self) -> None:
+        preflight = read_repo(
+            "plugins/super-developer/skills/implementation-plan/references/design-preflight.md"
+        )
+        planning = read_repo("plugins/super-developer/skills/implementation-plan/SKILL.md")
+        planner = read_repo(
+            "plugins/super-developer/skills/implementation-plan/references/planner-agent-contract.md"
+        )
+        spec = read_repo("plugins/super-developer/skills/implementation-plan/references/spec-template.md")
+        authoring = read_repo(
+            "plugins/super-developer/skills/implementation-plan/references/artifact-authoring.md"
+        )
+        checklist = read_repo(
+            "plugins/super-developer/skills/implementation-plan/references/validation-checklist.md"
+        )
+        review = read_repo(
+            "plugins/super-developer/skills/review-plan/references/plan-review-rubrics.md"
+        )
+
+        for token in [
+            "Skip narrow, mechanical, low-risk plans",
+            "ARCHITECTURE_INVARIANTS",
+            "authoritative owner plus every ingress and mutation path",
+            "ordering and linearization/publication point",
+            "winning and losing generation/lease/owner behavior",
+            "actual-production-path seams",
+            "earliest credible affected broad-regression tripwire",
+            "Do not add an architecture ledger",
+        ]:
+            self.assertIn(token, preflight)
+        self.assertIn("sanitized accepted source baseline", planning)
+        self.assertIn("accepted architecture invariants", planning)
+        self.assertIn("accepted source baseline", planner)
+        self.assertIn("## Accepted Source Baseline", spec)
+        self.assertIn("## Architecture Invariants", spec)
+        self.assertIn("actual-production-path seam", authoring)
+        self.assertIn("broad regression before freeze", authoring)
+        self.assertIn("triggered `ARCHITECTURE_INVARIANTS`", checklist)
+        self.assertIn("losing-owner rules", review)
+        self.assertLessEqual(len(preflight.splitlines()), 150)
+        self.assertLessEqual(len(authoring.splitlines()), 150)
+        self.assertLessEqual(len(checklist.splitlines()), 150)
+
     def test_package_repair_circuit_is_progress_sensitive_not_count_based(self) -> None:
         dispatch = read_repo("plugins/super-developer/skills/implement/references/package-dispatch.md")
         gates = read_repo("plugins/super-developer/skills/implement/references/package-integration-gates.md")

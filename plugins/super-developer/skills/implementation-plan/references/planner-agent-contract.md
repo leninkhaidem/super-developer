@@ -10,7 +10,8 @@ The packet should provide:
 
 - artifact root, code root, artifact ref, resolved feature/artifact slug, and any approved slug
   rename/migration metadata;
-- approved requirements or selected Conceptualize workspace/index;
+- sanitized accepted source baseline, approved requirements, or selected Conceptualize workspace/index;
+- resolved Preflight findings and accepted architecture invariants when triggered;
 - testing-authority provenance for triggered feasibility; omit this field when clearly non-triggered;
 - safe Conceptualize workspace, Index, and Slice paths relative to the artifact root when known;
 - overwrite approval state for `.tasks/<feature>/` under the artifact root;
@@ -46,6 +47,8 @@ the packet omits a contract required by the current action.
    artifacts. Treat the Conceptualize slug as the default feature/artifact slug; stop before writing
    `.tasks/<different-feature>` unless approved migration metadata is in the packet.
 3. Ask/stop rather than inventing behavior, accepting risk, narrowing scope, or deferring material obligations.
+   Preserve the accepted baseline and project triggered invariants through existing SPEC/package/Slice surfaces;
+   do not create an architecture ledger or leave implementation-shaping invariants in chat.
 4. Draft `SPEC.md`, package split, `tasks.json`, and package Markdown using packet-supplied contracts.
    Apply semantic closure complexity rather than numeric split thresholds, including fixed per-package gate cost.
    Each package must deliver substantial coherent planned deliverables, including implementation, substantial
@@ -72,6 +75,6 @@ the packet omits a contract required by the current action.
 
 ## Output
 
-Return artifact root/ref, code root, feature path, SPEC/registry/package/proof/report paths, package
-list with dependencies, authoritative Slice inventory or Index-only/no-Slice note, resolved Semgrep
-state, approved deferrals, assumptions, validation command result, and next gate.
+Return artifact root/ref, code root, feature paths, accepted baseline/invariant projection, package list and
+SPEC/registry/package/proof/report paths, Slice inventory or no-Slice note, Semgrep state, deferrals, assumptions,
+validation result, unresolved architecture blockers, and next gate.

@@ -12,7 +12,8 @@ Do not create or overwrite `.tasks/<feature-name>/` artifacts until all applicab
 - If Conceptualize supplied the source, its slug is the feature/artifact slug unless approved migration metadata exists.
 - Post-Conceptualize sidecar checkpoint has happened before writing `.tasks/`, or the orchestrator has invoked `worktree` to perform it.
 - Only references needed by the active path have been read: Conceptualize inputs when a handoff applies; SPEC/artifact/package guidance while drafting those surfaces; tool usage only for command syntax or safety ambiguity; Semgrep reference only at preference/evidence action points; design preflight only when triggered.
-- Design preflight trigger decision is made; if it ran, unresolved `COVERAGE_GAPS`, `MUST_DECIDE`, and `BLOCKERS` findings are resolved.
+- Design Preflight trigger is decided. If run, `MUST_DECIDE`, `COVERAGE_GAPS`, and `BLOCKERS` are resolved;
+  triggered `ARCHITECTURE_INVARIANTS` have authority and are projected into existing SPEC/package/Slice surfaces.
 - Conditional spike decision is made; if a spike was required, evidence is accepted and no exploratory code will be persisted.
 - Any decision that changes user-visible semantics, risk acceptance, scope, or Slice commitments has user approval.
 - Conceptualize input state is one of: no workspace applies, Index-only/no-Slice, or full safe Slice inventory.
@@ -27,6 +28,8 @@ Do not create or overwrite `.tasks/<feature-name>/` artifacts until all applicab
   `Notes` or verification expectations: authoritative sources, preconditions/cleanup, cost class, smallest
   credible bounded probe or broad-only justification, broad-check placement, testing-authority provenance,
   and a spike/replan trigger. Cost or breadth alone does not trigger a profile.
+- Triggered architecture surfaces name authority/ingress, legal and forbidden transitions, publication/order,
+  losing-owner behavior, cancellation/replay/cleanup, actual-path test seams, and broad-regression placement.
 - Visible interface contracts preserve exact interfaces and forbidden behaviors in package scope/verification text.
 - Package verification expectations seed obvious interface/risk evidence without boilerplate and without limiting verifier-selected emergent triggered-risk rows.
 - Packages that create or change externally observable surfaces identify them and require
@@ -42,7 +45,9 @@ Do not create or overwrite `.tasks/<feature-name>/` artifacts until all applicab
 
 ## `SPEC.md`
 
-- Contains all feature-level user-stated and safely projected requirements, acceptance criteria, constraints, non-goals, and approved deferrals.
+- Contains the sanitized accepted source baseline plus all feature-level requirements, acceptance criteria,
+  constraints, non-goals, and approved deferrals.
+- Contains triggered accepted architecture invariants as concise checkable rules, or the explicit non-trigger note.
 - Contains no invented product behavior, non-functional target, architecture, or success condition.
 - Contains no raw secrets, credentials, tokens, PII, or proprietary sensitive values.
 - Contains no implementation code, pseudo-code, line numbers, proof rows, review findings, transcript, or debate.
@@ -59,10 +64,10 @@ Do not create or overwrite `.tasks/<feature-name>/` artifacts until all applicab
 - `Must satisfy` and `Context only` IDs exist under the referenced Slice `## Shared Understanding` section.
 - `Context only` has a concrete reason and does not hide closure work.
 - Primary paths are safe code-root-relative starting points.
-- Verification expectations are package-specific and cover relevant
-  edge/failure/default/security/privacy/data/concurrency/performance/lifecycle/audience-surface
-  cases or state why not applicable; triggered execution-feasibility profiles are repo-backed and leave exact
-  runtime budgets to the resolved testing authority.
+- Verification expectations cover applicable edge/security/privacy/data/concurrency/lifecycle/audience risks.
+  Behavior-sensitive claims force the production path, observe transitions, falsify forbidden outcomes, disclose
+  substitutes, and name the failure signal; exact runtime budgets remain with the resolved testing authority.
+  Shared/public surfaces place affected broad regression before freeze.
 - Each expectation is written so package verification can map it to a stable deliverable-matrix `VE-<n>` row; linked Slice rows may share evidence but do not erase the `VE-<n>` source.
 - Known risks such as interactive UI, retry/fail-closed, trigger precedence, lifecycle/restart/reaper, cache invalidation, model/default precedence, generated defaults, and state pollution are seeded when applicable.
 - Planning text says planner seeds do not limit verifier discovery and verifiers must inspect package scope, assigned Slices, changed code/diff, tests, and known failure modes.
@@ -119,6 +124,7 @@ Do not use `--force` unless replacing existing proof content has explicit approv
 - Confirm full Slice inventory matches between SPEC and registry.
 - Confirm every package-assigned H3 exists and every material H3 is assigned or approved otherwise.
 - Confirm helper success was not treated as semantic evidence sufficiency.
+- Confirm no accepted source commitment or triggered invariant remains only in Preflight/chat context.
 - Confirm the user summary lists artifact root/ref, code root, paths, packages, dependencies,
   parallel/serial rationale, Slice inventory or no-Slice state, approved deferrals, validation
   commands, and remaining assumptions.

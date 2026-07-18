@@ -1,7 +1,6 @@
 # Implementation Artifact Authoring
 
 ## Contract
-
 - Apply the packet-supplied canonical artifact-model contract; return `BLOCKED` if its labeled path is missing.
 - Write `.tasks/`, proof/report declarations, and Slice inventory paths under the artifact root; keep source/plugin/test paths code-root-relative.
 - `tasks.json` is a lightweight registry: feature metadata, Slice inventory, package paths, proof paths, report paths, status signals, and dependencies only.
@@ -11,7 +10,6 @@
 - Do not duplicate package scope, assigned H3 IDs, primary paths, verification expectations, proof evidence, review findings, command output, or lifecycle history in the registry.
 
 ## Registry Shape
-
 ```json
 {
   "feature": "<feature-name>",
@@ -53,7 +51,7 @@ Use an empty `authoritative_slices` array only for Index-only or no-Slice plans 
 # Work Package: WP1 — <title>
 
 ## Scope
-<Package-specific outcome, boundaries, caller contracts, externally observable surfaces when relevant, and explicitly excluded nearby work.>
+<Package outcome, boundaries, caller contracts, triggered architecture invariants, observable surfaces, and exclusions.>
 
 ## Assigned Slices
 - None.
@@ -62,7 +60,7 @@ Use an empty `authoritative_slices` array only for Index-only or no-Slice plans 
 - `path/to/inspect/first`
 
 ## Verification Expectations
-- <Expected command, static inspection, edge/failure case, no-mock boundary, audience-surface check, risk/interface seed, or manual observation; this becomes `VE-<n>` in the deliverable matrix.>
+- <Behavior, actual-production-path seam, forbidden outcome, affected broad regression, or static/manual evidence; this becomes `VE-<n>`.>
 
 ## Proof
 - `.tasks/<feature-name>/proofs/WP1.proof.md`
@@ -74,7 +72,7 @@ Use an empty `authoritative_slices` array only for Index-only or no-Slice plans 
 - None.
 
 ## Notes
-- Optional: deferrals, risk/replan triggers, closure/execution profile, constraints, and sequencing rationale.
+- Optional: accepted authority/state/order/publication invariants, replan triggers, deferrals, and sequencing rationale.
 ```
 
 `sliceproof.py` mechanically requires `Scope`, `Assigned Slices`, `Primary Paths`, `Verification Expectations`, `Proof`, `Package Verification Report`, and `Dependencies`. `Notes` is optional.
@@ -125,14 +123,15 @@ When Semgrep is enabled, verification expectations should stay helper-owned and 
 - Every material H3 in the full Slice inventory must be assigned, context-only with a concrete reason, or explicitly approved as deferred/out of scope/rejected.
 - Primary paths are code-root-relative starting points, not hard boundaries.
 - Apply shared closure-complexity rules; counts are warnings, not thresholds, and fixed package gates count.
-- Verification expectations must be package-specific and cover relevant edge, failure, trust-boundary, data,
-  security, privacy, performance, concurrency, generated-contract, audience-surface, and lifecycle cases or
-  state why not applicable. When material execution feasibility remains unresolved, existing `Notes` or
-  expectations identify authoritative command/harness/contract/fixture sources, preconditions/cleanup, cost, the
-  smallest credible bounded probe or broad-only justification, broad-check placement, testing-authority
-  provenance, and the spike/replan trigger; exact budgets come from the resolved authority.
-- Each listed expectation becomes a mandatory deliverable-matrix `VE-<n>` row in package order; if a Slice row proves it, keep the `VE-<n>` row and cross-reference the same evidence.
-- Seed visible interface/risk expectations without boilerplate: exact interfaces, forbidden behaviors, interactive UI, retry/fail-closed, trigger precedence, lifecycle/restart/reaper, cache invalidation, model/default precedence, generated defaults, and state pollution when applicable.
+- Verification expectations cover applicable edge, trust, data, privacy, concurrency, public/generated-contract,
+  lifecycle, and audience risks. Behavior-sensitive claims name the forced production path, observed transition,
+  forbidden-outcome check, substitutes, and failure signal. When material execution feasibility remains unresolved,
+  record sources, cleanup/cost, smallest credible bounded probe or broad-only justification, broad placement,
+  testing-authority provenance, spike/replan trigger; exact budgets come from the resolved authority.
+- Each expectation becomes a mandatory `VE-<n>` row; shared Slice evidence does not erase it.
+- Seed exact interfaces and forbidden behavior, interactive UI, retry/fail-closed, trigger precedence,
+  lifecycle/restart/reaper, cache invalidation, model/default precedence, generated defaults, state pollution,
+  authority/transitions, publication/losing-owner behavior, and cancellation/replay. Put affected broad regression before freeze for shared or public surfaces.
 - Planner seeds do not limit verifier discovery; verifier packets still require inspection of package scope, assigned Slices, changed code/diff, tests, verification expectations, and known failure modes for emergent triggered-risk rows.
 - For externally observable surfaces, verification expectations include surface-appropriate checks
   that delivered text, examples, errors, exports, logs, or prompts are audience-appropriate,

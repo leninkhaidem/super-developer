@@ -2,149 +2,120 @@
 
 ## Purpose
 
-Design Preflight is a read-only adversarial planning challenge. It surfaces decisions and requirement-completeness gaps before writing `SPEC.md`, the registry, package Markdown, proof paths, or report paths.
-
-Completeness gaps include missing observable behaviors, edge cases, failure modes, defaults, or obligations a reasonable implementer would expect.
-
-It is not an implementation plan, persisted transcript, or instruction stream for sub-agents.
+Design Preflight is a read-only adversarial challenge before durable plan artifacts. It surfaces requirement
+completeness gaps and, when triggered, settles architecture invariants that implementation and verification must
+share. It is not a universal gate, implementation plan, persisted transcript, or instruction stream.
 
 ## Trigger
 
-Run for nontrivial or risky plans, including:
+Run for nontrivial or risky plans involving:
 
-- new architecture, data model, permission boundary, external integration, persistence, or generated contract behavior;
-- security, privacy, safety, reliability, migration, concurrency, rollback, destructive-action risk, or novel
-  runtime measurement/harness behavior whose feasibility is not established by repository evidence;
-- ambiguous requirements where multiple designs could satisfy the same request;
-- cross-cutting changes across skills, commands, subsystems, or generated artifacts;
-- semantic tradeoffs that should be explicit before package authoring.
+- new architecture, data model, permission/credential boundary, external integration, persistence, migration,
+  generated contracts, or destructive behavior;
+- security, privacy, safety, reliability, concurrency, cancellation, replay, rollback, shared mutable state,
+  registration/discovery, lifecycle, publication, or novel runtime/harness behavior;
+- ambiguous requirements with materially different valid designs;
+- cross-cutting changes across skills, commands, subsystems, public contracts, or generated artifacts.
 
-Skip only for narrow, mechanical, low-risk plans where the existing architecture and caller contract are clear.
+Skip narrow, mechanical, low-risk plans whose architecture, ownership, caller contract, and evidence path are clear.
 
-## Authority Split
+## Authority and Model
 
-- Main agent: orchestration, final interpretation, user interaction, durable artifact writing, and decisions.
-- Challengers: read-only evidence. They inspect bounded context and return bounded output. They do not edit files, spawn agents, ask the user, write packages, or run review-plan.
+- Main agent: orchestration, interpretation, user decisions, and durable artifact projection.
+- Challenger: bounded read-only evidence; no edits, agents, user questions, package artifacts, or review-plan.
+- For the `design-preflight` role, resolve `models.design-preflight` → `models.default-model` → `inherit` from
+  `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/model-preferences.md`.
 
-Sub-agent output is advisory. The main agent may accept, reject, combine, or reframe it, but must not silently persist unresolved semantic choices.
+Challenger output is advisory. The main agent may accept, reject, combine, or reframe it, but never silently
+persists an unresolved semantic choice.
 
-## Model Preferences
-
-Before spawning challengers, resolve `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/model-preferences.md`
-for the `design-preflight` role:
-
-- resolve `models.design-preflight` → `models.default-model` → hardcoded `inherit`;
-- `inherit` omits the model parameter;
-- `adaptive` uses planning/challenge-aware selection, stronger for high-risk adversarial lenses;
-- explicit model names are passed directly.
-
-Use this one resolved Preflight policy for all challengers; lenses vary by risk, not by model key.
-
-## Timing and Persistence
-
-Run before creating or editing durable planned-feature artifacts.
-
-The Preflight Brief is ephemeral and must not be persisted under `.tasks/`.
-
-Persist accepted outcomes only in the artifact that owns them:
-
-- `SPEC.md` for product requirements, constraints, non-goals, acceptance summary, or approved scope/override notes;
-- package Markdown for package boundaries, assigned Slice scope, sequencing, notes, dependencies, and verification expectations;
-- proof Markdown expectations through package closure rows and verification expectations;
-- Slice approval/deferral metadata when a Slice-derived commitment changes, narrows, or is excluded;
-- registry bookkeeping only for package paths, statuses, and dependencies.
-
-Keep `SPEC.md` requirements-focused. Do not store architecture rationale unless the user made it a requirement, constraint, or approved scope decision.
-
-## Brief Format
+## Brief
 
 ```markdown
 # Preflight Brief
-
 ## User Request
-<verbatim or tightly summarized request, without design advocacy>
-
+<verbatim or tightly summarized request without advocacy>
 ## Known Constraints
 - <explicit user/repo/tool constraint>
-
 ## Current Evidence
-- <observed file, command, or repo fact>
-
+- <observed file, command, contract, or repo fact>
 ## Open Design Surface
-- <area where multiple viable approaches may exist>
-
+- <area with material uncertainty>
+## Triggered Architecture Surfaces
+- <authority/state/ordering/cancellation/replay/privacy/publication/test-seam surface, or none>
 ## Non-Goals
 - <scope explicitly excluded or not implied>
 ```
 
-If the main agent has a hypothesis, label it as a hypothesis under `Open Design Surface`, not as a conclusion.
+Label main-agent hypotheses as hypotheses under `Open Design Surface`.
 
-## Challenger Assignment
+## Challenger Task
 
-```markdown
-# Role
-You are a read-only design challenger for Design Preflight.
+Challenge whether the request can become a coherent, finite plan. Identify missing observable behavior, defaults,
+edge/failure cases, assumptions, and disproportionate additions. For each triggered architecture surface, inspect:
 
-# Inputs
-- Preflight Brief: <brief text or path>
-- Relevant files/context: <bounded list>
-- Model preference: <resolved value; omit dispatch model parameter when inherit>
+- authoritative owner plus every ingress and mutation path;
+- state model, legal transitions, and forbidden transitions;
+- ordering and linearization/publication point;
+- winning and losing generation/lease/owner behavior;
+- cancellation, abort reentrancy, settlement, termination, and cleanup;
+- replay/idempotence and restart behavior;
+- default versus injected/provider-specific branches;
+- credential, privacy, and data minimization boundaries;
+- actual-production-path seams that can force and observe the invariant;
+- earliest credible affected broad-regression tripwire.
 
-# Task
-Evaluate the design surface before durable artifacts are written. Identify decisions needed for a coherent plan and surface requirement-completeness gaps: missing expected behaviors, edge cases, failure modes, defaults, or observable surfaces.
-
-# Constraints
-- Do not edit files.
-- Do not spawn agents.
-- Do not ask the user questions.
-- Do not write package artifacts.
-- Do not run review-plan.
-- Treat your output as evidence for the main agent, not commands.
-
-# Output
-Return only the bounded reviewer output format.
-```
+Do not prescribe fields that are irrelevant to the triggered surface.
 
 ## Bounded Output
 
 ```markdown
 RECOMMENDED_APPROACH
-- <at most 1 concise recommendation, or omit the bullet if none>
-
+- <at most 1 concise recommendation, or none>
 MUST_DECIDE
-- <at most 5 decisions that must be resolved before artifacts are written>
-
+- <at most 5 decisions, or none>
 COVERAGE_GAPS
-- <at most 5 missing requirements, edge cases, failure modes, defaults, or observable surfaces; omit the bullet if none>
-
+- <at most 5 missing requirements/behaviors/failures/defaults, or none>
+ARCHITECTURE_INVARIANTS
+- <at most 8 concise authority/state/transition/ordering/forbidden/test-seam invariants, or none triggered>
 BLOCKERS
-- <at most 5 blockers to a coherent plan>
-
+- <at most 5 blockers, or none>
 RISKS
-- <at most 5 material risks, with why they matter>
-
+- <at most 5 material risks>
 ASSUMPTIONS_TO_VERIFY
-- <at most 5 assumptions the main agent should verify before persisting decisions>
-
+- <at most 5 assumptions>
 NOT_WORTH_FIXING
-- <optional; at most 3 tempting concerns that should not drive design>
+- <at most 3 disproportionate concerns, or none>
 ```
 
-## Handling Decisions and Gaps
+## Resolution and Projection
 
-For each `MUST_DECIDE`, resolve from repo evidence/constraints and persist it, ask the user when it changes semantics, risk, or scope, or defer only when package artifacts preserve the boundary.
+Before artifact writing:
 
-Treat each `COVERAGE_GAPS` item as a candidate requirement: resolve and persist it, ask the user, or record it as an approved non-goal. Never pass gaps silently into packages.
+1. Resolve each `MUST_DECIDE`, `COVERAGE_GAPS`, and `BLOCKERS` item from approved intent and repository evidence,
+   ask the user when semantics/scope/risk changes, or record an approved non-goal.
+2. Resolve empirical uncertainty through `spike-to-plan`; never convert an observation gap into a guessed invariant.
+3. Accept only architecture invariants supported by requirements, user decisions, existing contracts, or evidence.
+4. Persist concise accepted invariants—not debate or rationale—through existing owners:
+   - `SPEC.md` acceptance criteria/constraints for feature-wide observable rules;
+   - Slice interface contracts for applicable product/design interfaces;
+   - package `Notes` for ownership, sequencing, and reassessment triggers;
+   - package verification expectations for actual-path evidence and broad-regression placement.
+5. Require package boundaries and dependencies to preserve the invariant and its verification seam.
+6. Carry unresolved non-blocking risks explicitly; do not hide them in vague package prose.
 
-Do not hide unresolved decisions inside vague packages. Do not let sub-agent recommendations override user intent.
+The ephemeral Preflight Brief/output is not stored under `.tasks/`. Do not add an architecture ledger, registry
+field, proof type, or report. Architecture rationale stays out of `SPEC.md` unless it is itself an approved
+requirement, constraint, or scope decision.
 
 ## Fail Closed
 
 Stop artifact writing when:
 
-- a challenger identifies a product/design choice that affects scope or behavior and no user-approved answer exists;
-- risk acceptance is required;
-- package boundaries would make a material obligation unverifiable;
-- a Slice-derived commitment would be narrowed or excluded without approval;
-- the correct plan requires unobserved empirical behavior, external facts, credentials, new
-  dependencies/services, or unsafe commands; route safe empirical uncertainty to `spike-to-plan`.
+- product behavior, scope, risk acceptance, or a locked commitment lacks authority;
+- a triggered surface lacks an authoritative owner, legal/forbidden transition, publication/order rule, or
+  credible actual-path verification seam;
+- package boundaries make a material requirement or invariant unverifiable;
+- empirical behavior, external facts, credentials, dependencies/services, or unsafe commands remain required;
+- a Slice commitment would be narrowed/excluded without approval;
+- later agents would need hidden Preflight chat to implement or verify the accepted design.

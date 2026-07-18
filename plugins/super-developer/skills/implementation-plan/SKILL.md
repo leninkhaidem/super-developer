@@ -22,7 +22,8 @@ rules are required; do not preload references merely because they are named.
 
 ## Always
 
-- Plan from approved user requirements, safe Conceptualize handoff material, and verified repo/spike evidence.
+- Preserve a sanitized accepted source baseline; plan from approved requirements, safe Conceptualize material,
+  accepted architecture invariants, and verified repo/spike evidence.
 - For a nested amendment, load `../../references/orchestration-convergence.md`; preserve caller/return, old
   accepted commit, finite affected scope, and authorization. Return the new candidate/invalidation handback;
   never invoke review or implementation on the caller's behalf.
@@ -65,8 +66,9 @@ rules are required; do not preload references merely because they are named.
    command, or task-local Testing Authorization for an exact focused approval. Missing workflow alone does not
    block read-only planning. If authority is insufficient, invoke `testing` to establish/update it or stop;
    cost or breadth alone is not a trigger. For nontrivial/risky plans, run `references/design-preflight.md` with its
-   `models.design-preflight` resolution and requirement-completeness pass; resolve `COVERAGE_GAPS`,
-   `MUST_DECIDE`, and `BLOCKERS` before artifact writing; skip only narrow, low-risk plans.
+   `models.design-preflight` resolution and requirement/architecture challenge; resolve `MUST_DECIDE`,
+   `COVERAGE_GAPS`, and `BLOCKERS`, then project triggered `ARCHITECTURE_INVARIANTS` into existing artifacts;
+   skip only narrow low-risk plans.
 3. If empirical evidence is required before planning, stop artifact writing and invoke `spike-to-plan`
    via fresh Skill-tool/sub-agent packet; do not guess or run the spike workflow inline.
 4. Resolve the planner packet's Semgrep state before planner dispatch. Use supplied resolved state
@@ -78,7 +80,8 @@ rules are required; do not preload references merely because they are named.
 5. Dispatch a fresh planner agent with a compact packet containing:
    - artifact root, code root, artifact ref, resolved feature/artifact slug, and any approved
      slug migration metadata;
-   - approved requirements and selected source material;
+   - sanitized accepted source baseline, approved requirements, selected source material, and resolved triggered
+     architecture invariants;
    - testing-authority provenance only for a triggered feasibility profile; omit routine non-trigger state;
    - Conceptualize workspace/index and Slice paths relative to the artifact root when applicable;
    - path to `references/planner-agent-contract.md`;
@@ -130,6 +133,7 @@ rules are required; do not preload references merely because they are named.
 
 ## Output
 
-Return mode, caller/return disposition, artifact root/ref, code root, old/new candidate state, feature paths,
-packages/dependencies, affected/preserved state and invalidation map, closure rationale, testing authority, Slice
+Return mode, caller/return disposition, artifact root/ref, code root, old/new candidate state, accepted
+baseline/invariant projection, feature paths, packages/dependencies, affected/preserved state and invalidation map,
+closure rationale, testing authority, Slice
 inventory or no-Slice note, deferrals, assumptions, validation result, and owner-selected or standalone next step.

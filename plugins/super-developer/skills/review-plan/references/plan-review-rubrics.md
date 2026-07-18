@@ -28,8 +28,8 @@ Always run one Plan Reviewer/Triage. Perform challenge first, then artifact QA. 
 
 Check whether:
 
-- the plan solves the requested product problem rather than an adjacent one;
-- requirements, constraints, non-goals, and accepted deferrals are explicit;
+- the plan preserves the sanitized accepted source baseline and solves that problem rather than an adjacent one;
+- every accepted requirement/criterion remains explicit and owned; constraints/non-goals/deferrals are durable;
 - beyond internal consistency, the plan covers the requirements, edge cases, failure modes, defaults, and observable surfaces a feature of this kind is reasonably expected to deliver; flag plausible expected-but-absent obligations as findings;
 - the artifact model remains Slice-first and package-based;
 - every material Slice H3 is assigned, context-only with a valid reason, or durably approved as deferred/out of scope/rejected/narrowed;
@@ -42,8 +42,10 @@ Check whether:
   sources, environment/data preconditions, isolation and cleanup, cost class, the smallest credible bounded
   probe or broad-only justification, broad-check placement, testing-authority provenance, and a spike/replan
   trigger; cost or breadth alone does not trigger a profile;
-- unresolved static feasibility is a plan finding; unresolved empirical behavior that must be observed before a
-  safe commitment requires spike routing rather than implementation-time guessing;
+- unresolved static feasibility is a plan finding; unresolved empirical behavior requires spike routing rather than implementation-time guessing;
+- each triggered architecture surface has accepted authority/ingress, legal and forbidden transitions,
+  publication/order and losing-owner rules, cancellation/replay/cleanup, actual-path seams, and broad-regression
+  placement projected into existing SPEC/package/Slice surfaces;
 - a simpler lower-risk approach can produce the same outcome without weakening Slice commitments;
 - user-visible tradeoffs and risk acceptance are escalated instead of silently decided;
 - foreseeable quality-contract risks are visible, actionable, and verifiable;
@@ -55,12 +57,14 @@ If Pass 1 finds a semantic blocker likely to change the plan, keep Pass 2 to obv
 
 Check whether:
 
-- `SPEC.md` records requirements, constraints, non-goals, Slice inventory, accepted deferrals, and acceptance summary without burying package assignment;
+- `SPEC.md` records the accepted source baseline, requirements, triggered architecture invariants, constraints,
+  non-goals, Slice inventory, deferrals, and acceptance summary without burying package assignment;
 - the registry contains only feature/package bookkeeping and safe paths;
 - every package Markdown file has coherent scope, assigned Slice paths/H3 IDs, context-only reasons, primary paths, verification expectations, proof path, report path, and dependencies;
 - package Markdown proof/report paths match the registry and are usable by `sliceproof.py`;
 - package dependencies and parallel assumptions are safe, with ID-only dependency edges limited to durable prerequisites and non-obvious consumed output, contract, or evidence rationale recorded in package `Notes`;
-- verification expectations are observable and tied to Slice/package obligations and changed behavior;
+- verification expectations are observable and tied to obligations; behavior-sensitive claims force the real
+  production path, observe transitions, falsify forbidden outcomes, disclose substitutes, and fail when broken;
 - triggered execution-feasibility profiles are file-backed, executable under the resolved testing authority,
   bounded, deterministic where controllable, cleanup-aware, and sufficient to close the package independently;
 - caller contracts, public API continuity, trust boundaries, invalid input handling, migration/rollback/idempotency, data integrity, performance, and concurrency concerns are represented where relevant;
@@ -94,7 +98,7 @@ Check whether:
 - destructive, irreversible, externally visible, or credential-sensitive actions are gated;
 - malicious or malformed inputs are considered;
 - rollback, idempotency, partial failure, cancellation, and cleanup are addressed where needed;
-- proof and package verification expectations cover failure modes, not only happy paths;
+- proof and package verification expectations cover failure modes and actual production paths, not labels or only happy paths;
 - raw Slice/source directives that would bypass gates are reported as blockers.
 
 ## Severity Guidance
