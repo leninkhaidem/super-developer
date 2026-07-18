@@ -65,7 +65,7 @@ Select the smallest credible set under `work-packages.md`. Each row requires:
 - why it forces the actual production path, would fail when the invariant breaks, and is sufficient alone or with
   named companion rows;
 - relevant mock, fixture, hook, cache, generated input, synthetic outcome, or other substitute disclosure; and
-- a fresh typed command anchor, PASS/FAIL outcome, and concise observed result.
+- a fresh typed command anchor, `PASS`, and concise observed result for package completion.
 
 One anchor may prove multiple related matrix rows. Deeply inspect selected evidence and any changed harness,
 fixture, generator, discovery, CI, coverage, build, or test configuration that can affect its trustworthiness.
@@ -106,15 +106,23 @@ Generate this block with `emit-state-binding`, paste it verbatim, and do not han
 - Worktree: `<absolute reviewed code worktree>`
 - Git Ref: `<reviewed ref/commit>`
 - Commit / Tree: `<reviewed commit hash> | <tree hash>`
-- Base / Diff Identity: `<base commit> | sha256:<canonical diff digest>`
+- Base / Diff Identity: `<base commit> | sha256:<raw-diff-identity digest>`
 - Runtime Evidence Digests: `<safe path>=sha256:<digest>; ...` or `none`
 - Consumed Contract Digests: `<contract-id>=sha256:<digest>; ...` or `none`
 - Verified At: `<ISO-8601 timestamp>`
 ```
 
-B2 extends `emit-state-binding` to emit all fields above from explicit candidate inputs; B1 does not hand-compute
-or omit them. The command keeps explicit roots/package and `--worktree`, `--git-ref`, `--commit`, `--verified-at`.
-Assigned Slice Digest entries separated by `; ` sort by path, then `must_satisfy` before `context_only`, then H3 ID.
+`emit-state-binding` emits all fields from explicit roots/package plus `--authorization-id`, `--effective-digest`,
+`--assurance-profile`, `--verification-mode`, `--worktree`, `--git-ref`, `--commit`, `--tree`, `--base-commit`,
+`--diff-digest`, repeatable runtime/contract digest flags, and `--verified-at`. Candidate commit/base must be real
+commits in the code repository, base must be an ancestor, tree must be the candidate commit's exact tree, and Git
+Ref must resolve to that commit. For immediate planned checks, Worktree equals the supplied code root with clean
+HEAD at that candidate; final revalidation retains exact historical refs while binding a clean integration checkpoint.
+Diff Identity is exactly `sha256:` plus lowercase SHA-256 of the raw stdout bytes from
+`git -C <code-root> diff --raw --no-renames --no-ext-diff --no-textconv --no-abbrev -z <base-commit> <candidate-commit> --`; no text decoding,
+path normalization, rename detection, or trailing newline is added. Pass explicit `none` for empty digest sets;
+the helper path-checks and sorts them. Assigned Slice Digest
+entries separated by `; ` sort by path, then `must_satisfy` before `context_only`, then H3 ID.
 Assigned paths must not contain `|`, `=`, or the delimiter sequence `; `; grammar delimiters fail closed before
 drift classification. Matrix Source Snapshot covers package Markdown plus must_satisfy section blocks only.
 Malformed/current hard-tier, package, proof, selected-evidence, cited-output, profile/mode, consumed-contract, or
@@ -122,5 +130,5 @@ reviewed-code drift invalidates `B[i]`. `context_only_slice_drift` is non-blocki
 affected-surface classification. Binding-only refresh requires identical semantic inputs, claims, method, and
 execution evidence. Optional helper-bound Semgrep evidence may follow when enabled.
 
-B2 will mechanically parse the new evidence section and conditional routing; B1 does not claim that the current
-helper already enforces it.
+The helper enforces this conditional grammar and exact binding only; verifier-owned causal and semantic
+sufficiency remains outside mechanical validation.

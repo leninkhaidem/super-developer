@@ -104,7 +104,7 @@ requires `id`, `path`, `proof_path`, `verification_mode` (`boundary|final`), `re
 `depends_on`. `report_path` is a safe artifact-root-relative report path for `boundary` and exactly `null` for
 `final`; substitutes are invalid. Paths are safe artifact-root-relative POSIX paths; IDs are contiguous `WP<N>`,
 dependencies declared/acyclic, and statuses controlled. `authoritative_slices` may be empty only for Index-only
-plans. B2 adds strict helper parsing; B1 authors must follow this shape and must not fabricate final reports.
+plans. The helper parses this shape strictly and rejects final report substitutes.
 
 ## Package Markdown and Proof
 
@@ -118,8 +118,9 @@ Package Markdown is a cold-readable assignment with `## Scope`, `## Assigned Sli
 - Rationale: <named boundary/risk reason>
 ```
 
-Mode/report must equal registry values. Assigned Slice H3s split into `Must satisfy` closure rows and required-
-reading `Context only`; context alone creates no proof row unless another package owns it.
+Mode/report must equal registry values. Rationale names the boundary/risk for `boundary`; `final` explicitly says
+semantic verification is deferred to final assurance and uses `Owner: <direct-final role>` (plus `lens: <risk>` for
+high). Assigned H3s split into `Must satisfy` closure rows and required-reading `Context only`.
 
 Proof Markdown requires package/slice scope, Slice and expectation closure tables, commands, files, gaps/deviations,
 and completion statement. Closure values are `PASS`, `DEFERRED`, or `N/A`; `OPEN`, `GAP`, placeholders,
@@ -135,12 +136,11 @@ columns and delivered mandatory Slice/`VE-<n>`/triggered `RISK-<...>` rows with 
 Evidence records typed selected anchors, behavior/risk, sufficiency, substitutes, and fresh command result—never a
 changed-population census or volume gate.
 
-Append helper-emitted `## State Binding` with package/proof paths and digests, Assigned Slices, section-scoped
-`Assigned Slice Digests` (`path|tier|H3-ID=sha256:<64-hex>` separated by `; `), Matrix Source Snapshot, Worktree,
-Git Ref, Commit, and Verified At. It must preserve exact Stable Candidate Identity, profile/mode, evidence, and
-consumed-contract bindings. Hard-tier/current candidate drift loses freshness. `context_only_slice_drift` is
-non-blocking by default and receives affected-surface classification. Helpers validate grammar/bindings, not
-semantic truth or sufficiency; B2 implements the new conditional grammar.
+Append helper-emitted `## State Binding` with existing package/proof/Slice/matrix fields plus authorization/
+effective digest, profile/mode, worktree/ref, commit/tree, base/diff, runtime-evidence and consumed-contract
+digests, and verified-at. Slice digest entries use `path|tier|H3-ID=sha256:<64-hex>` separated by `; `. Hard-tier/
+candidate drift loses freshness; `context_only_slice_drift` is non-blocking by default and receives affected-surface classification. Helpers validate bindings, not
+semantic truth or sufficiency.
 
 ## Review-Code Governance State
 `.tasks/<feature>/reviews/review-code-state.json` is compact readiness only: feature, pipeline mode/state/time;

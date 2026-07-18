@@ -38,9 +38,9 @@ wholesale, or perform hidden rule clone/pull/network sync; routine scans are loc
 `sliceproof.py` is the planned-feature mechanical helper. Always pass both roots as resolved absolute paths:
 `$ARTIFACT_ROOT` is the distinct sidecar (`.worktrees/<feature>/artifacts`) and `$CODE_ROOT` is the code worktree
 being checked—a package worktree for package checks and the integration/top worktree for `validate-final` and file
-evidence. Treat them as trust anchors; a report's `Worktree` is descriptive only. Omitted flags/current-directory
-defaults are helper compatibility, never valid planned-feature authority. Reject equal roots and current-root
-`.planning`/`.tasks`; migrate through `artifact-store.md` before validation. The tasks path remains
+evidence. Treat roots as trust anchors. A report's `Worktree` cannot select roots, but its candidate binding must
+resolve to an exact worktree in the same Git repository. Omitted defaults are compatibility, never planned authority.
+Reject equal/current roots; migrate `.planning`/`.tasks` through `artifact-store.md`. The tasks path remains
 artifact-root-relative.
 
 Git publication is not a helper function. At action time use the parent-supplied artifact-store and worktree
@@ -49,7 +49,6 @@ and path-specific finalized staging. Sidecar Portability Authorization cannot au
 force, or deletion operations.
 
 Read-only checks:
-
 ```bash
 python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-plan \
   --artifact-root "$ARTIFACT_ROOT" --code-root "$CODE_ROOT" \
@@ -66,21 +65,26 @@ python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-final \
 python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" emit-state-binding \
   --artifact-root "$ARTIFACT_ROOT" --code-root "$CODE_ROOT" \
   ".tasks/<feature>/tasks.json" --package WP1 \
+  --authorization-id "$AUTHORIZATION_ID" --effective-digest "$EFFECTIVE_DIGEST" \
+  --assurance-profile "$PROFILE" --verification-mode boundary \
   --worktree "$REVIEWED_WORKTREE" --git-ref "$REVIEWED_GIT_REF" \
-  --commit "$REVIEWED_COMMIT" --verified-at "$VERIFIED_AT"
+  --commit "$REVIEWED_COMMIT" --tree "$REVIEWED_TREE" --base-commit "$BASE_COMMIT" \
+  --diff-digest "$DIFF_DIGEST" --runtime-evidence-digest none \
+  --consumed-contract-digest none --verified-at "$VERIFIED_AT"
 ```
+For `boundary`, completion requires fresh PASS, clean matrix, exact six-column `### Selected Causal Evidence`, and
+exact State Binding. For `final`, it requires null report, stable closed proof, explicit direct-final owner/deferral,
+and no dependent boundary. Distinct roots require transition-valid authorization and exact checkpoint ref/SHA;
+immediate completion requires `stabilized|verified|done` plus a clean exact candidate code-root HEAD. Consumer
+completion revalidates each direct producer's `done` state and exact historical `B[i]`. `validate-final` requires
+lifecycle `done` and a clean integration checkpoint while accepting exact prior `B[i]`. Same-root is non-authoritative.
+Commands return JSON on success and JSON `errors` plus `advisories` on failure. `context_only_slice_drift` remains
+non-blocking by default, routes to affected-surface classification, and is aggregated by `validate-final` even with hard errors.
 
-`validate-package-complete` and `validate-final` require the canonical package report, including a structurally
-valid `### Test Review Scope`; reports without it are invalid and must be refreshed rather than bypassed. They
-return JSON on stdout when successful. On failure, they return JSON on stderr with `errors` and a top-level
-`advisories` array. `context_only_slice_drift` advisories are non-blocking by default and must still be routed to affected-surface classification;
-`validate-final` aggregates advisories across packages and includes them even when hard errors also exist.
-
-Read-only emit command:
-
-`emit-state-binding` writes the canonical Markdown `## State Binding` block to stdout for verifiers to
-paste verbatim. It requires `--package` plus runtime metadata flags `--worktree`, `--git-ref`, `--commit`,
-and `--verified-at`; it uses the same formatter as validation, and the verifier computes no digests.
+`emit-state-binding` is read-only and boundary-only. It writes canonical Markdown to stdout from the explicit
+candidate flags above. Repeat artifact-relative `--runtime-evidence-digest PATH=sha256:<digest>` and safe
+`--consumed-contract-digest ID=sha256:<digest>` as needed; pass each flag exactly once with `none` for an empty set.
+Inputs are validated/sorted, current runtime files are digested, and verifiers never hand-compute the block.
 
 Write command:
 
@@ -99,7 +103,7 @@ python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" create-proof \
 - State Binding grammar delimiter rejection (`|`, `=`, `; `) for assigned Slice paths;
 - package dependency references and cycles;
 - package Markdown required sections;
-- package Markdown proof/report/dependency references;
+- package Markdown `Independent Verification` mode/report/rationale and dependency references;
 - assigned Slice H3 IDs under `## Shared Understanding`.
 
 `create-proof` writes only the declared proof Markdown placeholder for one package. Existing filled,
@@ -113,16 +117,13 @@ edited, or drifted proof content is never overwritten silently.
 - explicit approval, provenance, and scope for deferrals, non-applicable rows, gaps, or deviations;
 - non-placeholder command/file/completion evidence.
 
-`validate-package-complete` checks one selected package before done-status bookkeeping: plan/package
-shape, closed proof rows, package-verification report binding, deliverable-matrix shape/coverage/clean
-verdicts, current package/section-scoped Slice source bindings, and typed non-placeholder evidence-anchor
-structure. It is read-only, does not require the selected package status to already be `done`, reports
-`context_only` drift as advisories, and does not prove cited evidence is semantically sufficient.
+`validate-package-complete` branches mechanically: `boundary` validates PASS report, matrix, Selected Causal
+Evidence, exact candidate/contract binding, and optional Semgrep evidence; `final` validates proof/assignment,
+null/absent report, direct-final deferral, and leaf routing. It accepts pre-`done` status and judges no semantics.
 
-`validate-final` runs plan and proof checks for every package, requires every package to be `done`,
-applies the same package report/deliverable-matrix checks, requires each report to bind to the current
-proof/package/section-scoped Slice source state, aggregates advisories across packages, and validates
-optional enabled Semgrep Evidence raw/summary path/digest bindings when present.
+`validate-final` requires every package `done` and validates only the selected pre-freeze equation: fresh `B[i]`
+for boundary packages and stable direct-final deferral for final packages. It aggregates advisories and explicitly
+does not claim post-freeze final assurance ran.
 
 The helper does not run tests, inspect implementation semantics, judge proof or matrix
 truthfulness/sufficiency, mutate registry status, write review-code readiness, perform package

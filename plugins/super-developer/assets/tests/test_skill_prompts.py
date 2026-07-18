@@ -1583,11 +1583,11 @@ class SkillPromptSurfaceTests(unittest.TestCase):
         ]:
             self.assertIn(token, contract_compact)
         for token in [
-            "return JSON on stdout",
-            "return JSON on stderr with `errors` and a top-level `advisories` array",
-            "`validate-final` aggregates advisories across packages",
+            "JSON on success",
+            "JSON `errors` plus `advisories` on failure",
+            "aggregated by `validate-final`",
             "State Binding grammar delimiter rejection",
-            "the verifier computes no digests",
+            "verifiers never hand-compute",
         ]:
             self.assertIn(token, tool_compact)
         for text in [artifacts, lifecycle, tool_usage, gates, review, audit]:
@@ -1636,7 +1636,7 @@ class SkillPromptSurfaceTests(unittest.TestCase):
             "marking `done`",
             "unlocking dependents",
             "final readiness handoff",
-            "mechanical signal only",
+            "Helper success is mechanical",
         ]:
             self.assertIn(needle, gates + lifecycle)
         self.assertIn("review-code readiness and final audit PASS", lifecycle)
@@ -1886,7 +1886,7 @@ class SkillPromptSurfaceTests(unittest.TestCase):
         self.assertNotIn("### Deliverable Completeness Matrix", implement)
         self.assertNotIn("Source ID | Row Type", implement)
         self.assertIn("invoke `review-code` and `audit` only", compact_text(implement))
-        self.assertIn("semantic truthfulness remains with package verification and final audit", gates)
+        self.assertIn("semantic truth remains with independent assurance", compact_text(gates))
         self.assertIn("Declare readiness only when package evidence, review-code readiness, and final audit PASS", gates)
 
         for rel in [

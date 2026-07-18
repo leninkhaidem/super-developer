@@ -79,10 +79,9 @@ code-review, or specialist lenses. Verification Summary `V` indexes receipts and
 The profile equations and final dispatch implementation are completed in B3/B4; this B1 contract already forbids
 duplicate roles, cross-freeze ownership, and fabricated reports.
 
-## B1 / B2 Enforcement Boundary
+## Mechanical Enforcement Boundary
 
-B1 makes these authoring and dispatch contracts normative. B2 remains responsible for helper parsing and
-mechanical enforcement of required profile/mode fields, conditional report paths, Selected Causal Evidence, and
-profile-specific `validate-package-complete`/`validate-final`. Until B2 lands, this contract supersedes any
-pre-B2 universal report or changed-population authoring example; helper acceptance is not routing evidence, and
-callers must not fabricate a report to compensate for missing helper support.
+The helper requires profile/mode and conditional report paths, parses Selected Causal Evidence, binds boundary
+receipts to explicit candidate/contract inputs, and validates the selected pre-freeze package equation. It rejects
+final substitutes and controlled Lifecycle State routing mismatch. Helper acceptance never establishes semantic
+sufficiency or claims post-freeze final assurance ran.

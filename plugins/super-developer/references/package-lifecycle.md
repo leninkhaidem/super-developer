@@ -48,9 +48,8 @@ authority blocker, fresh exact `PASS B[i]`, clean `validate-package-complete`, r
 freshness, and checkpoint eligibility. A final package may become implementation-`done` after the same gates except
 report/verifier, but feature completion remains blocked until its final assurance owner passes.
 
-Before B2, helpers still implement the older universal shape. B2 will make completion branch on mode and parse
-Selected Causal Evidence. During B1, never fabricate a report or treat helper behavior as routing proof. The
-mode-specific command remains:
+The helper branches on mode and parses Selected Causal Evidence; its result is mechanical routing/binding evidence,
+not semantic proof. The mode-specific command is:
 ```bash
 python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-package-complete \
   --artifact-root "$ARTIFACT_ROOT" --code-root "$CODE_ROOT" \

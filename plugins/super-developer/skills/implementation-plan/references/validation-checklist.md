@@ -56,7 +56,7 @@ Do not create/overwrite artifacts until all applicable gates pass.
 ## Package Markdown
 
 - H1 and required sections are present: `Scope`, `Assigned Slices`, `Primary Paths`, `Verification Expectations`,
-  `Proof`, `Package Verification Report`, `Dependencies`; IDs/paths/dependencies agree with registry.
+  `Proof`, `Independent Verification`, `Dependencies`; mode/report/rationale and dependencies agree with registry.
 - Scope names owned behavior, actual production path, caller/consumed contracts, exclusions, triggered invariants,
   and external surfaces. Audience-visible text checks reject internal workflow leakage while allowing legitimate
   domain/API/SDK/operator/developer-diagnostic or escaped user/provider terms.
@@ -76,8 +76,9 @@ Do not create/overwrite artifacts until all applicable gates pass.
 
 ## Registry
 
-- Contains only `feature`, `title`, `status`, `spec_path`, `authoritative_slices`, and `work_packages`; package
-  entries contain only `id`, `path`, `proof_path`, `report_path`, `status`, `depends_on`.
+- Contains only `feature`, `title`, `status`, `spec_path`, `authoritative_slices`, `assurance_profile`, and
+  `work_packages`; packages contain `id`, `path`, `proof_path`, `verification_mode`, conditional `report_path`,
+  `status`, and `depends_on`.
 - Slice inventory is complete or explicitly empty for Index-only/no-Slice. Paths, IDs, and acyclic real sequencing
   dependencies match package files. No scope, H3s, verification text/evidence, command output, or copied prose.
 

@@ -39,8 +39,8 @@ For each returned package:
      --artifact-root "$ARTIFACT_ROOT" --code-root "$CODE_ROOT" \
      ".tasks/<feature>/tasks.json" --package <WP-ID>
    ```
-   B2 will implement mode branching; during B1, never fabricate a report or treat current helper behavior as
-   routing proof. Helper success is a mechanical signal only; semantic truthfulness remains with package verification and final audit. Route `context_only_slice_drift` as non-blocking by default to affected-surface
+   The helper branches by mode and validates only routing/binding. Helper success is mechanical; semantic truth
+   remains with independent assurance. Route `context_only_slice_drift` as non-blocking by default to affected-surface
    classification; verifier/reviewer authority may escalate material risk.
 10. Confirm package branches did not force-add or commit ignored `.tasks` proof/report artifacts. If they did,
     preserve artifacts in the artifact root, repair the branch to code/doc changes only, and keep the package incomplete.

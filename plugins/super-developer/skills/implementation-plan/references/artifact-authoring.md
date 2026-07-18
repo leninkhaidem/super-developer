@@ -17,10 +17,12 @@
   "status": "planned",
   "spec_path": ".tasks/<feature-name>/SPEC.md",
   "authoritative_slices": [".planning/<concept-slug>/slices/<slice-name>.md"],
+  "assurance_profile": "standard",
   "work_packages": [{
     "id": "WP1",
     "path": ".tasks/<feature-name>/packages/WP1.md",
     "proof_path": ".tasks/<feature-name>/proofs/WP1.proof.md",
+    "verification_mode": "boundary",
     "report_path": ".tasks/<feature-name>/reports/WP1.package-verification.md",
     "status": "pending",
     "depends_on": []
@@ -54,8 +56,10 @@ traversal, home, drive-qualified, empty-segment, symlink-escape, or out-of-root 
 ## Proof
 - `.tasks/<feature-name>/proofs/WP1.proof.md`
 
-## Package Verification Report
-- `.tasks/<feature-name>/reports/WP1.package-verification.md`
+## Independent Verification
+- Mode: `boundary`
+- Report: `.tasks/<feature-name>/reports/WP1.package-verification.md`
+- Rationale: <named boundary/contract/risk reason>
 
 ## Dependencies
 - None.
@@ -64,8 +68,10 @@ traversal, home, drive-qualified, empty-segment, symlink-escape, or out-of-root 
 - <prerequisite activation/cleanup, consumed-boundary rationale, assurance `boundary|final` proposal, replan trigger>
 ```
 
-Required sections are `Scope`, `Assigned Slices`, `Primary Paths`, `Verification Expectations`, `Proof`, `Package
-Verification Report`, and `Dependencies`. `Notes` is optional. With Slices, use:
+Required sections are `Scope`, `Assigned Slices`, `Primary Paths`, `Verification Expectations`, `Proof`,
+`Independent Verification`, and `Dependencies`. For `final`, registry report is `null`, Markdown Report is
+`None — final assurance`, and Rationale includes deferral plus `Owner: <role>` (`lens: <risk>` for high).
+`Notes` is optional. With Slices, use:
 
 ```md
 ### `.planning/<concept-slug>/slices/<slice-name>.md`
@@ -103,9 +109,9 @@ smallest credible bounded probe or broad-only justification, broad placement, te
 spike/replan trigger; exact budgets come from the resolved authority. A required prerequisite is only
 `proven-ready`, `protected-activation-required` with exact later probe/remedy, or `blocked`.
 
-Propose `standard` assurance unless named evidence supports `low` or triggers `high`. Propose `boundary` when output
-is independently consumed or is a material shared/public/sensitive/lifecycle boundary; otherwise `final` may be
-credible. This remains in SPEC/package authority until the canonical routing contract exists.
+Use `standard` unless named evidence supports `low` or triggers `high`. Use `boundary` for independently consumed
+or material shared/public/sensitive/lifecycle boundaries; otherwise a coherent leaf may use `final`. Profile/mode/
+conditional report must match registry, package Markdown, and controlled Lifecycle State.
 
 ## Semgrep Expectations
 

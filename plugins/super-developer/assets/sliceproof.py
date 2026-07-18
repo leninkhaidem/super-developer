@@ -26,10 +26,10 @@ FEATURE_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 PACKAGE_ID_RE = re.compile(r"^WP[1-9]\d*$")
 SLICE_ID_RE = re.compile(r"^[A-Z][A-Z0-9-]*-[0-9]{3}$")
 H3_ID_RE = re.compile(r"^\s*###\s+`?([A-Z][A-Z0-9-]*-[0-9]{3})`?(?:\s+(?:—|-)\s*(.*?))?\s*$")
-COMMIT_RE = re.compile(r"^[0-9a-fA-F]{7,64}$")
 EXACT_GIT_SHA_RE = re.compile(r"^(?:[0-9a-f]{40}|[0-9a-f]{64})$")
 DIGEST_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
 SAFE_TOKEN_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
+SAFE_GIT_REF_RE = re.compile(r"^(?!/)(?!.*(?:\.\.|//|@\{|[\\ ~^:?*\[]))[A-Za-z0-9._/-]{1,256}(?<![/.])$")
 ACTION_RE = re.compile(r"^[a-z][a-z0-9-]{0,63}$")
 COUNTER_RE = re.compile(r"^[a-z][a-z0-9_-]{0,63}$")
 WAVE_ID_RE = re.compile(r"^wave-[a-z0-9][a-z0-9-]*$")
@@ -37,7 +37,9 @@ SEMGREP_DIGEST_RE = re.compile(r"^(?:sha256:)?([0-9a-fA-F]{64})$")
 STATUS_VALUES = {"pending", "in_progress", "done", "blocked"}
 FEATURE_STATUS_VALUES = {"planned", "reviewed", "in_progress", "completed", "blocked", "on_hold"}
 ASSURANCE_PROFILES = {"low", "standard", "high"}
+ASSURANCE_PROFILE_RANK = {"low": 0, "standard": 1, "high": 2}
 PACKAGE_VERIFICATION_MODES = {"boundary", "final"}
+FINAL_REPORT_MARKER = "None — final assurance"
 REGISTRY_KEYS = {
     "feature", "title", "status", "spec_path", "authoritative_slices", "work_packages", "assurance_profile"
 }
@@ -67,6 +69,7 @@ PACKAGE_STATE_TRANSITIONS = {
     "invalidated": {"invalidated", "in_progress", "blocked"},
 }
 REPLAN_RESET_STATES = {"in_progress", "stabilized", "verified", "done", "invalidated"}
+ROUTING_CANDIDATE_STATES = {"in_progress", "stabilized", "verified", "done"}
 WAVE_STATES = {"reserved", "active", "quiescent", "completed", "blocked"}
 CLUSTER_DISPOSITIONS = {"repair-eligible", "closed", "circuit-open"}
 PREAUTH_REQUIRED_COUNTERS = {"delegated_calls", "planner_correction_waves", "spike_waves", "command_units"}
@@ -77,7 +80,7 @@ REQUIRED_PACKAGE_SECTIONS = {
     "Primary Paths",
     "Verification Expectations",
     "Proof",
-    "Package Verification Report",
+    "Independent Verification",
     "Dependencies",
 }
 REQUIRED_PROOF_SECTIONS = {
@@ -94,7 +97,7 @@ REQUIRED_SOURCE_REPORT_H3 = {
     "Verdict",
     "Deliverable Completeness Matrix",
     "Triggered Risk Selection Notes",
-    "Test Review Scope",
+    "Selected Causal Evidence",
     "Slice Closure Review",
     "Code Review Findings",
 }
@@ -112,35 +115,17 @@ MATRIX_ROW_TYPES = {"slice", "verification-expectation", "triggered-risk"}
 MATRIX_EVIDENCE_TYPES = {"code", "test", "static", "command", "manual", "mixed"}
 MATRIX_VERDICTS = {"delivered", "missing", "partial", "contradicted", "unverified"}
 MATRIX_CLEAN_VERDICT = "delivered"
-TEST_REVIEW_SCOPE_COLUMNS = [
-    "Surface",
-    "Changed Population",
-    "Review Depth",
-    "Baseline Review",
-    "Deep Triggers",
-    "Selected Exemplars",
-    "Sampling Rationale",
-    "Generator / Input / Provenance",
-    "Evidence Refs",
+SELECTED_CAUSAL_EVIDENCE_COLUMNS = [
+    "Evidence Anchor",
+    "Evidence Type",
+    "Behavior / Risk Proven",
+    "Causal Sufficiency",
+    "Substitutes / Fixtures",
+    "Fresh Command Result",
 ]
-TEST_REVIEW_SURFACES = {
-    "tests",
-    "harnesses/helpers",
-    "mocks/fixtures",
-    "generators/snapshots",
-    "test-discovery/ci/coverage/build-config",
-    "other-test-relevant",
-}
-TEST_REVIEW_DEPTHS = {"baseline-only", "sampled", "deep"}
-NO_APPLICABLE_TEST_SURFACE_DEPTH = "no-applicable-surface"
-TEST_REVIEW_UNRESOLVED_MARKER_RE = re.compile(
-    r"(?i:\btodo\b)|\b(?:OPEN|GAP)\b|"
-    r"(?i:(?:^|[|;(\[])\s*(?:open|gap)\s*(?=[:;,\])|]|$)|"
-    r"\b(?:open|gap)\s+(?:marker|item|remains?|pending|unresolved)\b|"
-    r"\b(?:unresolved|pending)\s+(?:open|gap)\b)",
-    re.MULTILINE,
+EVIDENCE_UNRESOLVED_MARKER_RE = re.compile(
+    r"(?i)(?:^|[;|])\s*(?:TODO|OPEN|GAP)(?:\s*[:;]|\s*$)"
 )
-TEST_REVIEW_FORBIDDEN_STATUS_RE = re.compile(r"\b(?:not[- ]reviewed|unreviewed)\b", re.IGNORECASE)
 RISK_SOURCE_ID_RE = re.compile(r"^RISK-[A-Za-z0-9][A-Za-z0-9_-]*$")
 FALSIFICATION_TERM = r"falsif(?:y|ies|ied|ication|ications)"
 FORBIDDEN_BEHAVIOR_TERM = r"forbidden[-\s]+behaviou?rs?"
@@ -198,9 +183,14 @@ STATE_BINDING_FIELD_ORDER = [
     "Assigned Slices",
     "Assigned Slice Digests",
     "Matrix Source Snapshot",
+    "Authorization / Effective Digest",
+    "Assurance Profile / Verification Mode",
     "Worktree",
     "Git Ref",
-    "Commit",
+    "Commit / Tree",
+    "Base / Diff Identity",
+    "Runtime Evidence Digests",
+    "Consumed Contract Digests",
     "Verified At",
 ]
 REQUIRED_STATE_BINDING_FIELDS = set(STATE_BINDING_FIELD_ORDER)
@@ -319,7 +309,9 @@ class PackageMarkdown:
     primary_paths: list[str]
     verification_expectations: list[str]
     proof_path: str
-    report_path: str
+    verification_mode: str
+    report_path: str | None
+    verification_rationale: str
     dependencies: list[str]
 
     @property
@@ -335,10 +327,10 @@ class RegistryPackage:
     package_id: str
     path: str
     proof_path: str
-    report_path: str
+    report_path: str | None
     status: str
     depends_on: list[str]
-    verification_mode: str | None = None
+    verification_mode: str
 
 
 @dataclass(frozen=True)
@@ -350,13 +342,46 @@ class Registry:
     feature: str
     authoritative_slices: list[str]
     packages: list[RegistryPackage]
-    assurance_profile: str | None = None
+    assurance_profile: str
+    planned_sidecar: bool
 
     def package(self, package_id: str) -> RegistryPackage | None:
         for package in self.packages:
             if package.package_id == package_id:
                 return package
         return None
+
+    def dependents(self, package_id: str) -> list[str]:
+        return [
+            package.package_id
+            for package in self.packages
+            if package_id in package.depends_on
+        ]
+
+
+@dataclass(frozen=True)
+class CandidateBinding:
+    authorization_id: str
+    effective_digest: str
+    assurance_profile: str
+    verification_mode: str
+    commit: str
+    tree: str
+    base_commit: str
+    diff_digest: str
+    runtime_evidence_digests: tuple[tuple[str, str], ...]
+    consumed_contract_digests: tuple[tuple[str, str], ...]
+
+
+@dataclass(frozen=True)
+class ControlledRouting:
+    authorization_id: str
+    effective_digest: str
+    assurance_profile: str
+    package_modes: dict[str, str]
+    package_states: dict[str, str]
+    code_checkpoint_ref: str | None
+    code_checkpoint_sha: str | None
 
 
 @dataclass(frozen=True)
@@ -371,7 +396,8 @@ class PackageState:
     package: RegistryPackage
     package_md: PackageMarkdown
     proof_path: Path
-    report_path: Path
+    report_path: Path | None
+    package_markdowns: dict[str, PackageMarkdown]
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -470,10 +496,29 @@ def build_parser() -> argparse.ArgumentParser:
     )
     emit_state_binding.add_argument("tasks", type=Path, help="Path to .tasks/<feature>/tasks.json under the artifact root.")
     emit_state_binding.add_argument("--package", required=True, help="Work package id, for example WP1.")
+    emit_state_binding.add_argument("--authorization-id", required=True, help="Stable authorization identifier.")
+    emit_state_binding.add_argument("--effective-digest", required=True, help="Effective Authorization sha256 digest.")
+    emit_state_binding.add_argument("--assurance-profile", required=True, help="Candidate assurance profile.")
+    emit_state_binding.add_argument("--verification-mode", required=True, help="Candidate package verification mode.")
     emit_state_binding.add_argument("--worktree", required=True, help="Absolute reviewed worktree path to write into the binding.")
     emit_state_binding.add_argument("--git-ref", required=True, help="Reviewed git ref to write into the binding.")
-    emit_state_binding.add_argument("--commit", required=True, help="Reviewed commit SHA to write into the binding.")
-    emit_state_binding.add_argument("--verified-at", required=True, help="ISO-8601 verification timestamp to write into the binding.")
+    emit_state_binding.add_argument("--commit", required=True, help="Exact reviewed commit object id.")
+    emit_state_binding.add_argument("--tree", required=True, help="Exact reviewed tree object id.")
+    emit_state_binding.add_argument("--base-commit", required=True, help="Exact base commit object id.")
+    emit_state_binding.add_argument("--diff-digest", required=True, help="Canonical candidate diff sha256 digest.")
+    emit_state_binding.add_argument(
+        "--runtime-evidence-digest",
+        action="append",
+        required=True,
+        help="Repeat artifact-relative PATH=sha256:<digest>, or pass exactly 'none'.",
+    )
+    emit_state_binding.add_argument(
+        "--consumed-contract-digest",
+        action="append",
+        required=True,
+        help="Repeat CONTRACT-ID=sha256:<digest>, or pass exactly 'none'.",
+    )
+    emit_state_binding.add_argument("--verified-at", required=True, help="Timezone-aware ISO-8601 verification timestamp.")
     emit_state_binding.set_defaults(func=cmd_emit_state_binding)
 
     validate_lifecycle = subparsers.add_parser(
@@ -532,76 +577,16 @@ def cmd_validate_lifecycle_state(args: argparse.Namespace) -> dict[str, Any]:
     if errors:
         raise SliceproofError(errors)
 
-    head = git_head_or_none(artifact_root)
-    lineage_errors = validate_artifact_checkpoint_lineage(
-        artifact_root,
-        state["artifact_checkpoint"]["sha"],
-        head,
-        "lifecycle-state.json.artifact_checkpoint.sha",
+    generation, previous_commit, previous_digest = validate_lifecycle_transition_authority(
+        state,
+        artifact_root=artifact_root,
+        code_root=code_root,
+        feature=args.feature,
+        relative_path=relative_path,
+        previous_commit=args.previous_commit,
+        infer_previous=False,
+        state_data_already_validated=True,
     )
-    if lineage_errors:
-        raise SliceproofError(lineage_errors)
-
-    generation = state["generation"]
-    previous_digest: str | None = None
-    if generation == 1:
-        if args.previous_commit is not None:
-            raise SliceproofError(["validate-lifecycle-state: generation 1 must not name --previous-commit"])
-        validate_generation_one_topology(artifact_root, relative_path, state)
-    else:
-        if args.previous_commit is None:
-            raise SliceproofError(["validate-lifecycle-state: --previous-commit is required after generation 1"])
-        if args.previous_commit != state["last_verified"]["artifact_sha"]:
-            raise SliceproofError([
-                "validate-lifecycle-state: --previous-commit does not match last_verified.artifact_sha"
-            ])
-        previous = load_committed_lifecycle_state(
-            artifact_root, relative_path, args.previous_commit, current_state=state
-        )
-        prior_errors = validate_lifecycle_state_data(
-            previous,
-            artifact_root=artifact_root,
-            code_root=code_root,
-            feature=args.feature,
-            verify_files=False,
-            verify_git_objects=False,
-        )
-        if prior_errors:
-            raise SliceproofError([f"prior snapshot: {error}" for error in prior_errors])
-        prior_artifact = previous["artifact_checkpoint"]
-        if prior_artifact["sha"] is not None:
-            prior_object_errors: list[str] = []
-            prior_tree = git_commit_tree(
-                artifact_root,
-                prior_artifact["sha"],
-                "prior snapshot: artifact_checkpoint.sha",
-                prior_object_errors,
-            )
-            if prior_tree is not None and prior_tree != prior_artifact["tree"]:
-                prior_object_errors.append(
-                    "prior snapshot: artifact_checkpoint.tree does not match checkpoint commit tree"
-                )
-            if prior_object_errors:
-                raise SliceproofError(prior_object_errors)
-        if previous["quiescent"] is not True:
-            raise SliceproofError(["prior snapshot: last_verified fallback must be quiescent"])
-        prior_lineage_errors = validate_artifact_checkpoint_lineage(
-            artifact_root,
-            previous["artifact_checkpoint"]["sha"],
-            args.previous_commit,
-            "prior snapshot: artifact_checkpoint.sha",
-        )
-        if prior_lineage_errors:
-            raise SliceproofError(prior_lineage_errors)
-        previous_digest = canonical_json_digest(previous)
-        if state["last_verified"]["state_digest"] != previous_digest:
-            raise SliceproofError([
-                "lifecycle-state.json.last_verified.state_digest: does not match the committed predecessor state"
-            ])
-        transition_errors = compare_lifecycle_states(previous, state)
-        transition_errors.extend(validate_artifact_checkpoint_ancestry(artifact_root, previous, state))
-        if transition_errors:
-            raise SliceproofError(transition_errors)
 
     return {
         "artifact_root": str(artifact_root),
@@ -613,7 +598,7 @@ def cmd_validate_lifecycle_state(args: argparse.Namespace) -> dict[str, Any]:
         "stage": state["stage"],
         "quiescent": state["quiescent"],
         "state_digest": canonical_json_digest(state),
-        "previous_commit": args.previous_commit,
+        "previous_commit": previous_commit,
         "previous_state_digest": previous_digest,
     }
 
@@ -850,6 +835,13 @@ def validate_lifecycle_state_data(
             errors.append(f"{label}.code_checkpoint.ref: checkpoint generation exceeds Lifecycle State generation")
         if verify_git_objects:
             require_git_commit(code_root, code["sha"], f"{label}.code_checkpoint.sha", errors)
+            require_git_ref_at_commit(
+                code_root,
+                code["ref"],
+                code["sha"],
+                f"{label}.code_checkpoint.ref",
+                errors,
+            )
 
     authorization = state["authorization"]
     auth_fields = ("id", "initial_digest", "effective_digest", "inputs")
@@ -914,6 +906,10 @@ def validate_lifecycle_state_data(
             errors.append(f"{label}.package_modes: authorized state must bind every lifecycle package exactly")
         if not packages:
             errors.append(f"{label}.packages: authorized state requires at least one package")
+        if profile == "low" and isinstance(modes, dict) and (
+            len(modes) != 1 or set(modes.values()) != {"final"}
+        ):
+            errors.append(f"{label}: low assurance requires exactly one final package mode")
         if authorization["effective_digest"] == authorization["initial_digest"]:
             if inputs["artifact_commit"] != artifact["sha"]:
                 errors.append(
@@ -981,6 +977,112 @@ def validate_lifecycle_state_data(
             if verified["generation"] >= generation:
                 errors.append(f"{label}.last_verified.generation: must be below current generation")
     return errors
+
+
+def validate_lifecycle_transition_authority(
+    state: dict[str, Any],
+    *,
+    artifact_root: Path,
+    code_root: Path,
+    feature: str,
+    relative_path: str,
+    previous_commit: str | None,
+    infer_previous: bool,
+    state_data_already_validated: bool = False,
+) -> tuple[int, str | None, str | None]:
+    """Validate the exact committed predecessor and one-generation transition.
+
+    The standalone command supplies ``previous_commit`` explicitly. Distinct-root
+    consumers infer that same exact value from ``last_verified`` so schema-valid
+    snapshots cannot become controlled authority without transition proof.
+    """
+    if not state_data_already_validated:
+        errors = validate_lifecycle_state_data(
+            state,
+            artifact_root=artifact_root,
+            code_root=code_root,
+            feature=feature,
+            verify_files=True,
+            verify_git_objects=True,
+        )
+        if errors:
+            raise SliceproofError(errors)
+
+    head = git_head_or_none(artifact_root)
+    lineage_errors = validate_artifact_checkpoint_lineage(
+        artifact_root,
+        state["artifact_checkpoint"]["sha"],
+        head,
+        "lifecycle-state.json.artifact_checkpoint.sha",
+    )
+    if lineage_errors:
+        raise SliceproofError(lineage_errors)
+
+    generation = state["generation"]
+    previous_digest: str | None = None
+    if generation == 1:
+        if previous_commit is not None:
+            raise SliceproofError(["validate-lifecycle-state: generation 1 must not name --previous-commit"])
+        validate_generation_one_topology(artifact_root, relative_path, state)
+        return generation, None, None
+
+    verified = state["last_verified"]
+    inferred_previous = verified["artifact_sha"] if infer_previous else previous_commit
+    if inferred_previous is None:
+        raise SliceproofError(["validate-lifecycle-state: --previous-commit is required after generation 1"])
+    if inferred_previous != verified["artifact_sha"]:
+        raise SliceproofError([
+            "validate-lifecycle-state: --previous-commit does not match last_verified.artifact_sha"
+        ])
+
+    previous = load_committed_lifecycle_state(
+        artifact_root, relative_path, inferred_previous, current_state=state
+    )
+    prior_errors = validate_lifecycle_state_data(
+        previous,
+        artifact_root=artifact_root,
+        code_root=code_root,
+        feature=feature,
+        verify_files=False,
+        verify_git_objects=False,
+    )
+    if prior_errors:
+        raise SliceproofError([f"prior snapshot: {error}" for error in prior_errors])
+    prior_artifact = previous["artifact_checkpoint"]
+    if prior_artifact["sha"] is not None:
+        prior_object_errors: list[str] = []
+        prior_tree = git_commit_tree(
+            artifact_root,
+            prior_artifact["sha"],
+            "prior snapshot: artifact_checkpoint.sha",
+            prior_object_errors,
+        )
+        if prior_tree is not None and prior_tree != prior_artifact["tree"]:
+            prior_object_errors.append(
+                "prior snapshot: artifact_checkpoint.tree does not match checkpoint commit tree"
+            )
+        if prior_object_errors:
+            raise SliceproofError(prior_object_errors)
+    if previous["quiescent"] is not True:
+        raise SliceproofError(["prior snapshot: last_verified fallback must be quiescent"])
+    prior_lineage_errors = validate_artifact_checkpoint_lineage(
+        artifact_root,
+        previous["artifact_checkpoint"]["sha"],
+        inferred_previous,
+        "prior snapshot: artifact_checkpoint.sha",
+    )
+    if prior_lineage_errors:
+        raise SliceproofError(prior_lineage_errors)
+    previous_digest = canonical_json_digest(previous)
+    if verified["state_digest"] != previous_digest:
+        raise SliceproofError([
+            "lifecycle-state.json.last_verified.state_digest: does not match the committed predecessor state"
+        ])
+    transition_errors = compare_lifecycle_states(previous, state)
+    transition_errors.extend(validate_artifact_checkpoint_ancestry(artifact_root, previous, state))
+    if transition_errors:
+        raise SliceproofError(transition_errors)
+    return generation, inferred_previous, previous_digest
 
 
 def validate_lifecycle_budget_invariants(
@@ -1248,10 +1350,6 @@ def compare_lifecycle_states(previous: dict[str, Any], current: dict[str, Any]) 
                 errors.append("lifecycle transition: amendment_link is allowed only for this generation's effective-digest change")
             if new_artifact != old_artifact and not authorization_changed:
                 errors.append("lifecycle transition: authorized artifact checkpoint changed without technical amendment")
-            if not authorization_changed:
-                for field in ("assurance_profile", "package_modes"):
-                    if current.get(field) != previous.get(field):
-                        errors.append(f"lifecycle transition: authorized {field} changed without technical amendment")
     elif current_authorized:
         if (
             current_auth["effective_digest"] != current_auth["initial_digest"]
@@ -1262,12 +1360,23 @@ def compare_lifecycle_states(previous: dict[str, Any], current: dict[str, Any]) 
             errors.append(
                 "lifecycle transition: initial authorization artifact_commit must match the exact reviewed predecessor candidate"
             )
+        introduced_non_pending = sorted(
+            package_id
+            for package_id, package_state in current["packages"].items()
+            if package_state["state"] != "pending"
+        )
+        if introduced_non_pending:
+            errors.append(
+                "lifecycle transition: initial authorization must introduce every package in pending state; "
+                f"got non-pending packages {introduced_non_pending}"
+            )
 
     errors.extend(compare_lifecycle_budgets(previous["budgets"], current["budgets"]))
     previous_packages, current_packages = previous["packages"], current["packages"]
     if previous_authorized and not authorization_changed and set(previous_packages) != set(current_packages):
         errors.append("lifecycle transition: authorized package membership changed without technical amendment")
     errors.extend(compare_package_states(previous_packages, current_packages, authorization_changed))
+    errors.extend(compare_assurance_routing(previous, current, previous_authorized, authorization_changed))
 
     previous_wave, current_wave = previous["wave"], current["wave"]
     if previous_wave is not None:
@@ -1302,6 +1411,58 @@ def compare_lifecycle_states(previous: dict[str, Any], current: dict[str, Any]) 
         for key, old in old_receipts.items():
             if new_receipts.get(key) != old:
                 errors.append(f"lifecycle transition: receipt pointer {key!r} cannot mutate under the same freeze")
+    return errors
+
+
+def compare_assurance_routing(
+    previous: dict[str, Any],
+    current: dict[str, Any],
+    previous_authorized: bool,
+    authorization_changed: bool,
+) -> list[str]:
+    if not previous_authorized:
+        return []
+    old_profile = previous.get("assurance_profile")
+    new_profile = current.get("assurance_profile")
+    old_modes = previous.get("package_modes", {})
+    new_modes = current.get("package_modes", {})
+    profile_changed = old_profile != new_profile
+    changed_mode_ids = {
+        package_id
+        for package_id in set(old_modes) | set(new_modes)
+        if old_modes.get(package_id) != new_modes.get(package_id)
+    }
+    if not profile_changed and not changed_mode_ids:
+        return []
+
+    errors: list[str] = []
+    if not authorization_changed:
+        if profile_changed:
+            direction = "changed"
+            if old_profile in ASSURANCE_PROFILE_RANK and new_profile in ASSURANCE_PROFILE_RANK:
+                direction = (
+                    "promotion"
+                    if ASSURANCE_PROFILE_RANK[new_profile] > ASSURANCE_PROFILE_RANK[old_profile]
+                    else "downgrade"
+                )
+            errors.append(
+                f"lifecycle transition: assurance profile {direction} requires a reviewed effective-digest amendment"
+            )
+        if changed_mode_ids:
+            errors.append(
+                "lifecycle transition: package verification mode change requires a reviewed effective-digest amendment"
+            )
+        return errors
+
+    affected = set(previous.get("packages", {})) if profile_changed else changed_mode_ids
+    for package_id in sorted(affected & set(previous.get("packages", {})) & set(current.get("packages", {}))):
+        old_state = previous["packages"][package_id]["state"]
+        new_state = current["packages"][package_id]["state"]
+        if old_state in ROUTING_CANDIDATE_STATES and new_state != "invalidated":
+            errors.append(
+                f"lifecycle transition: routing change must invalidate existing candidate for {package_id}; "
+                f"got {old_state} to {new_state}"
+            )
     return errors
 
 
@@ -1449,6 +1610,34 @@ def git_output(root: Path, args: list[str], label: str) -> str:
     return result.stdout
 
 
+def git_output_bytes(root: Path, args: list[str], label: str) -> bytes:
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(root), *args],
+            check=False,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+    except OSError as exc:
+        raise SliceproofError([f"{label}: unable to invoke local git: {exc}"])
+    if result.returncode != 0:
+        detail = (result.stderr or result.stdout).decode("utf-8", errors="replace").strip()
+        raise SliceproofError([f"{label}: local git inspection failed: {detail or f'exit {result.returncode}'}"])
+    return result.stdout
+
+
+def raw_git_diff_identity(root: Path, base_commit: str, candidate_commit: str, label: str) -> str:
+    raw = git_output_bytes(
+        root,
+        [
+            "diff", "--raw", "--no-renames", "--no-ext-diff", "--no-textconv", "--no-abbrev", "-z",
+            base_commit, candidate_commit, "--",
+        ],
+        label,
+    )
+    return digest_bytes(raw)
+
+
 def git_head_or_none(root: Path) -> str | None:
     result = git_process(root, ["rev-parse", "--verify", "HEAD"], "validate-lifecycle-state")
     if result.returncode == 0:
@@ -1466,6 +1655,11 @@ def require_exact_git_root(root: Path, label: str) -> None:
         raise SliceproofError([f"validate-lifecycle-state: {label} must be an exact Git worktree root"])
 
 
+def git_common_dir(root: Path, label: str) -> Path:
+    value = git_output(root, ["rev-parse", "--path-format=absolute", "--git-common-dir"], label).strip()
+    return Path(value).resolve(strict=False)
+
+
 def require_git_commit(root: Path, sha: str, label: str, errors: list[str]) -> None:
     try:
         actual = git_output(root, ["rev-parse", f"{sha}^{{commit}}"], label).strip()
@@ -1474,6 +1668,22 @@ def require_git_commit(root: Path, sha: str, label: str, errors: list[str]) -> N
         return
     if actual != sha:
         errors.append(f"{label}: does not resolve to the exact named commit")
+
+
+def require_git_ref_at_commit(
+    root: Path,
+    ref: str,
+    sha: str,
+    label: str,
+    errors: list[str],
+) -> None:
+    try:
+        actual = git_output(root, ["rev-parse", "--verify", f"{ref}^{{commit}}"], label).strip()
+    except SliceproofError as exc:
+        errors.extend(exc.errors)
+        return
+    if actual != sha:
+        errors.append(f"{label}: must resolve locally to the exact checkpoint sha")
 
 
 def git_commit_tree(root: Path, sha: str, label: str, errors: list[str]) -> str | None:
@@ -1540,7 +1750,6 @@ def cmd_validate_plan(args: argparse.Namespace) -> dict[str, Any]:
         "package_modes": {
             package.package_id: package.verification_mode
             for package in registry.packages
-            if package.verification_mode is not None
         },
         "packages": [package.package_id for package in registry.packages],
         "validated_package_markdown": sorted(packages),
@@ -1638,48 +1847,73 @@ def cmd_validate_proof(args: argparse.Namespace) -> dict[str, Any]:
 def cmd_validate_package_complete(args: argparse.Namespace) -> dict[str, Any]:
     state = load_package_state(args.tasks, args.package, artifact_root=args.artifact_root, code_root=args.code_root)
     errors = validate_proof_markdown(state.proof_path, state.package_md)
-    report_result = validate_report_markdown(
-        state.report_path,
-        state.package,
-        state.package_md,
-        state.proof_path,
-        state.registry.root,
-        state.registry.code_root,
-        state.registry.feature,
-    )
-    errors.extend(report_result.errors)
+    dependency_result = validate_direct_dependency_unlocks(state)
+    errors.extend(dependency_result.errors)
+    advisories = list(dependency_result.advisories)
+    report_result = ReportValidationResult([], [])
+    if state.package.verification_mode == "boundary":
+        if state.report_path is None:
+            errors.append(f"work_packages[{state.package.package_id}].report_path: boundary report is required")
+        else:
+            report_result = validate_report_markdown(
+                state.report_path,
+                state.registry,
+                state.package,
+                state.package_md,
+                state.proof_path,
+            )
+            errors.extend(report_result.errors)
+            advisories.extend(report_result.advisories)
+    else:
+        errors.extend(validate_final_report_absence(state.registry, state.package))
+        errors.extend(validate_controlled_stable_candidate(
+            state.registry,
+            state.package,
+            candidate_commit=None,
+            label="validate-package-complete",
+        ))
     if errors:
-        raise SliceproofError(errors, report_result.advisories)
+        raise SliceproofError(errors, advisories)
     return {
         "package": state.package.package_id,
         "package_status": state.package.status,
+        "assurance_profile": state.registry.assurance_profile,
+        "verification_mode": state.package.verification_mode,
         "proof_path": state.package.proof_path,
         "report_path": state.package.report_path,
+        "boundary_receipt_validated": state.package.verification_mode == "boundary",
+        "direct_final_deferral_validated": state.package.verification_mode == "final",
+        "post_freeze_assurance_validated": False,
         "required_slice_rows": state.package_md.must_satisfy_ids,
         "verification_expectation_rows": [f"VE-{index}" for index in range(1, len(state.package_md.verification_expectations) + 1)],
-        "advisories": report_result.advisories,
+        "advisories": advisories,
     }
 
 
 def cmd_emit_state_binding(args: argparse.Namespace) -> RawText:
     state = load_package_state(args.tasks, args.package, artifact_root=args.artifact_root, code_root=args.code_root)
+    if state.package.verification_mode != "boundary":
+        raise SliceproofError([
+            "emit-state-binding: final packages have no package report; substitute State Binding is invalid"
+        ])
+    candidate, candidate_errors = candidate_binding_from_cli(state.registry, state.package, args)
     runtime_errors = validate_state_binding_runtime_metadata(
         "emit-state-binding",
         args.worktree,
         args.git_ref,
-        args.commit,
         args.verified_at,
     )
-    if runtime_errors:
-        raise SliceproofError(runtime_errors)
+    errors = [*candidate_errors, *runtime_errors]
+    if errors or candidate is None:
+        raise SliceproofError(errors or ["emit-state-binding: invalid candidate binding inputs"])
     values = state_binding_values(
         state.registry.root,
         state.package,
         state.package_md,
         state.proof_path,
+        candidate=candidate,
         worktree=args.worktree,
         git_ref=args.git_ref,
-        commit=args.commit,
         verified_at=args.verified_at,
     )
     return RawText(render_state_binding_block(values))
@@ -1687,9 +1921,10 @@ def cmd_emit_state_binding(args: argparse.Namespace) -> RawText:
 
 def cmd_validate_final(args: argparse.Namespace) -> dict[str, Any]:
     registry, packages = load_and_validate_plan(args.tasks, artifact_root=args.artifact_root, code_root=args.code_root)
-    errors: list[str] = []
+    errors: list[str] = validate_controlled_integration_checkpoint(registry, "validate-final")
     advisories: list[dict[str, Any]] = []
     validated_reports: list[str] = []
+    final_deferrals: list[str] = []
     for package in registry.packages:
         package_md = packages[package.package_id]
         if package.status != "done":
@@ -1701,36 +1936,149 @@ def cmd_validate_final(args: argparse.Namespace) -> dict[str, Any]:
             expected_suffix=".proof.md",
             root_label="artifact root",
         )
-        report_path = resolve_safe_path(
-            registry.root,
-            package.report_path,
-            f"work_packages[{package.package_id}].report_path",
-            expected_suffix=".package-verification.md",
-            root_label="artifact root",
-        )
         errors.extend(validate_proof_markdown(proof_path, package_md))
-        report_result = validate_report_markdown(
-            report_path,
-            package,
-            package_md,
-            proof_path,
-            registry.root,
-            registry.code_root,
-            registry.feature,
-        )
-        advisories.extend(report_result.advisories)
-        if not report_result.errors:
-            validated_reports.append(package.report_path)
-        errors.extend(report_result.errors)
+        if package.verification_mode == "boundary":
+            if package.report_path is None:
+                errors.append(f"work_packages[{package.package_id}].report_path: boundary report is required")
+                continue
+            report_path = resolve_safe_path(
+                registry.root,
+                package.report_path,
+                f"work_packages[{package.package_id}].report_path",
+                expected_suffix=".package-verification.md",
+                root_label="artifact root",
+            )
+            report_result = validate_report_markdown(
+                report_path,
+                registry,
+                package,
+                package_md,
+                proof_path,
+                final_validation=True,
+            )
+            advisories.extend(report_result.advisories)
+            if not report_result.errors:
+                validated_reports.append(package.report_path)
+            errors.extend(report_result.errors)
+        else:
+            final_errors = validate_final_report_absence(registry, package)
+            final_errors.extend(validate_controlled_stable_candidate(
+                registry,
+                package,
+                candidate_commit=None,
+                label="validate-final",
+                require_done=True,
+            ))
+            if not final_errors:
+                final_deferrals.append(package.package_id)
+            errors.extend(final_errors)
     if errors:
         raise SliceproofError(errors, advisories)
     return {
         "feature": registry.feature,
+        "assurance_profile": registry.assurance_profile,
         "packages": [package.package_id for package in registry.packages],
         "proofs_validated": [package.proof_path for package in registry.packages],
-        "reports_validated": validated_reports,
+        "boundary_reports_validated": validated_reports,
+        "final_deferrals_validated": final_deferrals,
+        "pre_freeze_package_equation_validated": True,
+        "post_freeze_assurance_validated": False,
         "advisories": advisories,
     }
+
+
+def validate_final_report_absence(registry: Registry, package: RegistryPackage) -> list[str]:
+    errors: list[str] = []
+    if package.report_path is not None:
+        errors.append(
+            f"work_packages[{package.package_id}].report_path: final mode requires null; substitute report is invalid"
+        )
+    dependents = registry.dependents(package.package_id)
+    if dependents:
+        errors.append(
+            f"assurance routing: final package {package.package_id} cannot unlock dependents {dependents}"
+        )
+    canonical_relative = f".tasks/{registry.feature}/reports/{package.package_id}.package-verification.md"
+    canonical_path = registry.root / canonical_relative
+    if canonical_path.exists() or canonical_path.is_symlink():
+        errors.append(
+            f"assurance routing: final package {package.package_id} must not use fabricated or substitute report "
+            f"{canonical_relative}"
+        )
+    return errors
+
+
+def validate_direct_dependency_unlocks(state: PackageState) -> ReportValidationResult:
+    """Validate direct producer receipts without recursively completing producers."""
+    registry = state.registry
+    if not registry.planned_sidecar or not state.package.depends_on:
+        return ReportValidationResult([], [])
+
+    errors: list[str] = []
+    advisories: list[dict[str, Any]] = []
+    controlled, controlled_errors = load_controlled_routing(registry)
+    errors.extend(controlled_errors)
+    if controlled is None:
+        if not controlled_errors:
+            errors.append(
+                "dependency unlock: distinct-root planned mode requires controlled authorized Lifecycle State"
+            )
+        return ReportValidationResult(errors, advisories)
+
+    for dependency_id in state.package.depends_on:
+        producer = registry.package(dependency_id)
+        if producer is None:
+            errors.append(f"dependency unlock: unknown direct producer {dependency_id}")
+            continue
+        if producer.verification_mode != "boundary":
+            errors.append(f"dependency unlock: producer {dependency_id} must use boundary verification mode")
+        if controlled.package_states.get(dependency_id) != "done":
+            errors.append(f"dependency unlock: controlled producer {dependency_id} must be done")
+
+        producer_md = state.package_markdowns[dependency_id]
+        try:
+            proof_path = resolve_safe_path(
+                registry.root,
+                producer.proof_path,
+                f"dependency unlock: producer {dependency_id} proof_path",
+                expected_suffix=".proof.md",
+                must_exist_file=True,
+                root_label="artifact root",
+            )
+        except SliceproofError as exc:
+            errors.extend(exc.errors)
+            proof_path = None
+        if proof_path is not None:
+            errors.extend(validate_proof_markdown(proof_path, producer_md))
+
+        if producer.report_path is None:
+            errors.append(f"dependency unlock: producer {dependency_id} boundary report is required")
+            continue
+        try:
+            report_path = resolve_safe_path(
+                registry.root,
+                producer.report_path,
+                f"dependency unlock: producer {dependency_id} report_path",
+                expected_suffix=".package-verification.md",
+                must_exist_file=True,
+                root_label="artifact root",
+            )
+        except SliceproofError as exc:
+            errors.extend(exc.errors)
+            continue
+        if proof_path is None:
+            continue
+        result = validate_report_markdown(
+            report_path,
+            registry,
+            producer,
+            producer_md,
+            proof_path,
+            final_validation=True,
+        )
+        errors.extend(result.errors)
+        advisories.extend(result.advisories)
+    return ReportValidationResult(errors, advisories)
 
 
 def load_package_state(
@@ -1750,14 +2098,16 @@ def load_package_state(
         expected_suffix=".proof.md",
         root_label="artifact root",
     )
-    report_path = resolve_safe_path(
-        registry.root,
-        package.report_path,
-        f"work_packages[{package.package_id}].report_path",
-        expected_suffix=".package-verification.md",
-        root_label="artifact root",
-    )
-    return PackageState(registry, package, package_md, proof_path, report_path)
+    report_path: Path | None = None
+    if package.report_path is not None:
+        report_path = resolve_safe_path(
+            registry.root,
+            package.report_path,
+            f"work_packages[{package.package_id}].report_path",
+            expected_suffix=".package-verification.md",
+            root_label="artifact root",
+        )
+    return PackageState(registry, package, package_md, proof_path, report_path, packages)
 
 
 def load_and_validate_plan(
@@ -1801,10 +2151,7 @@ def load_registry(
     root = resolve_cli_root(artifact_root, cwd, "--artifact-root")
     source_root = resolve_cli_root(code_root, cwd, "--code-root")
     tasks_resolved = resolve_tasks_argument(root, tasks_path, root_label="artifact root")
-    try:
-        data = json.loads(read_text_file(tasks_resolved, "tasks.json"))
-    except json.JSONDecodeError as exc:
-        raise SliceproofError([f"tasks.json: invalid JSON at line {exc.lineno} column {exc.colno}: {exc.msg}"])
+    data = load_strict_json_file(tasks_resolved, "tasks.json")
     if not isinstance(data, dict):
         raise SliceproofError(["tasks.json: root must be an object"])
 
@@ -1820,11 +2167,11 @@ def load_registry(
                 package_id=item.get("id") if isinstance(item.get("id"), str) else "",
                 path=item.get("path") if isinstance(item.get("path"), str) else "",
                 proof_path=item.get("proof_path") if isinstance(item.get("proof_path"), str) else "",
-                report_path=item.get("report_path") if isinstance(item.get("report_path"), str) else "",
+                report_path=item.get("report_path") if isinstance(item.get("report_path"), str) else None,
                 status=item.get("status") if isinstance(item.get("status"), str) else "",
                 depends_on=item.get("depends_on") if isinstance(item.get("depends_on"), list) else [],
                 verification_mode=(
-                    item.get("verification_mode") if isinstance(item.get("verification_mode"), str) else None
+                    item.get("verification_mode") if isinstance(item.get("verification_mode"), str) else ""
                 ),
             )
         )
@@ -1837,7 +2184,12 @@ def load_registry(
         authoritative_slices=[path for path in authoritative_slices if isinstance(path, str)],
         packages=packages,
         assurance_profile=(
-            data.get("assurance_profile") if isinstance(data.get("assurance_profile"), str) else None
+            data.get("assurance_profile") if isinstance(data.get("assurance_profile"), str) else ""
+        ),
+        planned_sidecar=(
+            artifact_root is not None
+            and code_root is not None
+            and root != source_root
         ),
     )
 
@@ -1850,7 +2202,15 @@ def validate_registry(registry: Registry) -> list[str]:
         errors.append(f"tasks.json.{key}: not part of the lightweight registry")
     for key in unknown_keys:
         errors.append(f"tasks.json.{key}: unsupported registry field")
-    for key in ("feature", "title", "status", "spec_path", "authoritative_slices", "work_packages"):
+    for key in (
+        "feature",
+        "title",
+        "status",
+        "spec_path",
+        "authoritative_slices",
+        "assurance_profile",
+        "work_packages",
+    ):
         if key not in data:
             errors.append(f"{key}: expected field in lightweight registry")
 
@@ -1863,10 +2223,8 @@ def validate_registry(registry: Registry) -> list[str]:
     if not isinstance(status, str) or status not in FEATURE_STATUS_VALUES:
         errors.append(f"status: expected one of {sorted(FEATURE_STATUS_VALUES)}")
     assurance_profile = data.get("assurance_profile")
-    if assurance_profile is not None and (
-        not isinstance(assurance_profile, str) or assurance_profile not in ASSURANCE_PROFILES
-    ):
-        errors.append(f"assurance_profile: expected one of {sorted(ASSURANCE_PROFILES)} when present")
+    if not isinstance(assurance_profile, str) or assurance_profile not in ASSURANCE_PROFILES:
+        errors.append(f"assurance_profile: required and expected one of {sorted(ASSURANCE_PROFILES)}")
 
     spec_path = data.get("spec_path")
     if not isinstance(spec_path, str) or not spec_path.strip():
@@ -1908,6 +2266,8 @@ def validate_registry(registry: Registry) -> list[str]:
             continue
         for key in sorted(set(item) - REGISTRY_PACKAGE_KEYS):
             errors.append(f"{prefix}.{key}: unsupported package registry field")
+        for key in sorted(REGISTRY_PACKAGE_KEYS - set(item)):
+            errors.append(f"{prefix}.{key}: expected field in package registry entry")
         package_id = item.get("id")
         if not isinstance(package_id, str) or not PACKAGE_ID_RE.fullmatch(package_id):
             errors.append(f"{prefix}.id: expected WP<N> package id")
@@ -1916,8 +2276,7 @@ def validate_registry(registry: Registry) -> list[str]:
                 errors.append(f"work_packages: duplicate package id {package_id}")
             seen_ids.add(package_id)
             package_ids.add(package_id)
-        path_suffixes = {"path": ".md", "proof_path": ".proof.md", "report_path": ".package-verification.md"}
-        for key, suffix in path_suffixes.items():
+        for key, suffix in (("path", ".md"), ("proof_path", ".proof.md")):
             path = item.get(key)
             if not isinstance(path, str) or not path.strip():
                 errors.append(f"{prefix}.{key}: expected non-empty string")
@@ -1937,12 +2296,27 @@ def validate_registry(registry: Registry) -> list[str]:
         if not isinstance(status, str) or status not in STATUS_VALUES:
             errors.append(f"{prefix}.status: expected one of {sorted(STATUS_VALUES)}")
         verification_mode = item.get("verification_mode")
-        if verification_mode is not None and (
-            not isinstance(verification_mode, str) or verification_mode not in PACKAGE_VERIFICATION_MODES
-        ):
+        if not isinstance(verification_mode, str) or verification_mode not in PACKAGE_VERIFICATION_MODES:
             errors.append(
-                f"{prefix}.verification_mode: expected one of {sorted(PACKAGE_VERIFICATION_MODES)} when present"
+                f"{prefix}.verification_mode: required and expected one of {sorted(PACKAGE_VERIFICATION_MODES)}"
             )
+        report_path = item.get("report_path")
+        if verification_mode == "boundary":
+            if not isinstance(report_path, str) or not report_path.strip():
+                errors.append(f"{prefix}.report_path: boundary mode requires a non-empty safe report path string")
+            else:
+                try:
+                    resolve_safe_path(
+                        registry.root,
+                        report_path,
+                        f"{prefix}.report_path",
+                        expected_suffix=".package-verification.md",
+                        root_label="artifact root",
+                    )
+                except SliceproofError as exc:
+                    errors.extend(exc.errors)
+        elif verification_mode == "final" and report_path is not None:
+            errors.append(f"{prefix}.report_path: final mode requires exactly null; substitute reports are invalid")
         depends_on = item.get("depends_on")
         if not isinstance(depends_on, list):
             errors.append(f"{prefix}.depends_on: expected array")
@@ -1964,6 +2338,192 @@ def validate_registry(registry: Registry) -> list[str]:
             if isinstance(dependency, str) and PACKAGE_ID_RE.fullmatch(dependency) and dependency not in package_ids:
                 errors.append(f"work_packages[{index}].depends_on: unknown package id {dependency}")
     errors.extend(validate_dependency_cycles(packages_data))
+    if assurance_profile == "low":
+        low_shape = (
+            len(packages_data) == 1
+            and isinstance(packages_data[0], dict)
+            and packages_data[0].get("verification_mode") == "final"
+            and packages_data[0].get("depends_on") == []
+        )
+        if not low_shape:
+            errors.append("assurance routing: low profile requires exactly one coherent final package with no dependencies")
+    mode_by_id = {
+        item.get("id"): item.get("verification_mode")
+        for item in packages_data
+        if isinstance(item, dict) and isinstance(item.get("id"), str)
+    }
+    for consumer in packages_data:
+        if not isinstance(consumer, dict) or not isinstance(consumer.get("depends_on"), list):
+            continue
+        for producer_id in consumer["depends_on"]:
+            if mode_by_id.get(producer_id) == "final":
+                errors.append(
+                    f"assurance routing: producer {producer_id} has dependent {consumer.get('id')}; "
+                    "dependent producers must use boundary mode"
+                )
+    if registry.feature and FEATURE_RE.fullmatch(registry.feature):
+        _controlled, lifecycle_errors = load_controlled_routing(registry)
+        errors.extend(lifecycle_errors)
+    return errors
+
+
+def load_controlled_routing(registry: Registry) -> tuple[ControlledRouting | None, list[str]]:
+    """Load authority only from a distinct-root planned sidecar.
+
+    Same-root/default-root operation remains compatibility mode. A colocated
+    lifecycle-shaped file is deliberately not a source of planned authority.
+    """
+    if not registry.planned_sidecar:
+        return None, []
+
+    relative_path = f".tasks/{registry.feature}/lifecycle-state.json"
+    unresolved = registry.root / relative_path
+    if not unresolved.exists() and not unresolved.is_symlink():
+        return None, []
+    try:
+        state_path = resolve_authority_file(registry.root, relative_path, "Lifecycle State routing")
+        state = load_strict_json_file(state_path, "Lifecycle State routing")
+    except SliceproofError as exc:
+        return None, exc.errors
+    if not isinstance(state, dict):
+        return None, ["Lifecycle State routing: root must be an object"]
+    try:
+        validate_lifecycle_transition_authority(
+            state,
+            artifact_root=registry.root,
+            code_root=registry.code_root,
+            feature=registry.feature,
+            relative_path=relative_path,
+            previous_commit=None,
+            infer_previous=True,
+        )
+    except SliceproofError as exc:
+        return None, exc.errors
+
+    authorization = state["authorization"]
+    if authorization["id"] is None:
+        return None, []
+
+    errors: list[str] = []
+    authorization_id = authorization["id"]
+    effective_digest = authorization["effective_digest"]
+    profile = state["assurance_profile"]
+    modes = state["package_modes"]
+    package_states = {
+        package_id: package_state["state"]
+        for package_id, package_state in state["packages"].items()
+    }
+    code_checkpoint = state["code_checkpoint"]
+    code_checkpoint_ref = code_checkpoint["ref"] if code_checkpoint is not None else None
+    code_checkpoint_sha = code_checkpoint["sha"] if code_checkpoint is not None else None
+    if is_report_binding_placeholder_text(authorization_id):
+        errors.append("Lifecycle State routing: controlled authorization id must be a safe non-placeholder token")
+    if errors:
+        return None, errors
+
+    expected_modes = {package.package_id: package.verification_mode for package in registry.packages}
+    if profile != registry.assurance_profile:
+        errors.append(
+            "assurance routing: registry assurance_profile does not match controlled Lifecycle State"
+        )
+    if modes != expected_modes:
+        errors.append(
+            "assurance routing: registry verification_mode values do not match controlled Lifecycle State package_modes"
+        )
+    return ControlledRouting(
+        authorization_id,
+        effective_digest,
+        profile,
+        modes,
+        package_states,
+        code_checkpoint_ref,
+        code_checkpoint_sha,
+    ), errors
+
+
+def validate_worktree_head_and_clean(root: Path, expected_commit: str, label: str) -> list[str]:
+    errors: list[str] = []
+    try:
+        head = git_output(root, ["rev-parse", "--verify", "HEAD^{commit}"], label).strip()
+        if head != expected_commit:
+            errors.append(f"{label}: HEAD must equal the exact bound candidate commit")
+        status = git_output(
+            root,
+            ["status", "--porcelain=v1", "--untracked-files=all"],
+            label,
+        )
+        if status:
+            errors.append(f"{label}: worktree must be clean, including tracked and untracked files")
+    except SliceproofError as exc:
+        errors.extend(exc.errors)
+    return errors
+
+
+def validate_controlled_integration_checkpoint(registry: Registry, label: str) -> list[str]:
+    if not registry.planned_sidecar:
+        return []
+    controlled, errors = load_controlled_routing(registry)
+    if errors:
+        return errors
+    if controlled is None:
+        return [f"{label}: distinct-root planned mode requires controlled authorized Lifecycle State"]
+    if controlled.code_checkpoint_sha is None:
+        return [f"{label}: controlled code checkpoint is required for the integration candidate"]
+    errors.extend(validate_worktree_head_and_clean(
+        registry.code_root,
+        controlled.code_checkpoint_sha,
+        f"{label}: integration code root",
+    ))
+    return errors
+
+
+def validate_controlled_stable_candidate(
+    registry: Registry,
+    package: RegistryPackage,
+    *,
+    candidate_commit: str | None,
+    label: str,
+    require_done: bool = False,
+    require_current_candidate: bool = True,
+) -> list[str]:
+    """Fail closed only for explicit, distinct-root planned sidecars.
+
+    Same-root/default-root use is a legacy compatibility mode and is not Lifecycle State authority.
+    """
+    if not registry.planned_sidecar:
+        return []
+    controlled, errors = load_controlled_routing(registry)
+    if errors:
+        return errors
+    if controlled is None:
+        return [f"{label}: distinct-root planned mode requires controlled authorized Lifecycle State"]
+
+    package_state = controlled.package_states.get(package.package_id)
+    allowed_states = {"done"} if require_done else {"stabilized", "verified", "done"}
+    if package_state not in allowed_states:
+        required_state = "done" if require_done else "stabilized, verified, or done"
+        errors.append(
+            f"{label}: controlled package {package.package_id} must be {required_state}"
+        )
+    if controlled.code_checkpoint_sha is None or controlled.code_checkpoint_ref is None:
+        errors.append(f"{label}: controlled code checkpoint is required for a stable package candidate")
+    else:
+        require_git_commit(
+            registry.code_root,
+            controlled.code_checkpoint_sha,
+            f"{label}: controlled code checkpoint sha",
+            errors,
+        )
+        if require_current_candidate:
+            if candidate_commit is not None and candidate_commit != controlled.code_checkpoint_sha:
+                errors.append(
+                    f"{label}: boundary report commit must match the controlled code checkpoint"
+                )
+            errors.extend(validate_worktree_head_and_clean(
+                registry.code_root,
+                controlled.code_checkpoint_sha,
+                f"{label}: controlled code root/package worktree",
+            ))
     return errors
 
 
@@ -2010,9 +2570,13 @@ def parse_package_markdown(path: Path, package_id: str) -> PackageMarkdown:
         errors.append(f"{path}: expected H1 '# Work Package: {package_id} — <title>'")
 
     sections = split_h2_sections(text)
+    section_names = h2_order(text)
     for section in sorted(REQUIRED_PACKAGE_SECTIONS):
-        if section not in sections:
+        count = section_names.count(section)
+        if count == 0:
             errors.append(f"{path}: missing required section ## {section}")
+        elif count > 1:
+            errors.append(f"{path}: duplicate required section ## {section}")
 
     if errors:
         raise SliceproofError(errors)
@@ -2024,17 +2588,22 @@ def parse_package_markdown(path: Path, package_id: str) -> PackageMarkdown:
     primary_paths = parse_bullets(sections["Primary Paths"], unwrap_path=True)
     verification_expectations = parse_bullets(sections["Verification Expectations"], unwrap_path=False)
     proof_paths = parse_bullets(sections["Proof"], unwrap_path=True)
-    report_paths = parse_bullets(sections["Package Verification Report"], unwrap_path=True)
+    verification_mode, report_path, verification_rationale, verification_errors = (
+        parse_independent_verification(path, sections["Independent Verification"])
+    )
+    errors.extend(verification_errors)
     dependencies = parse_dependencies(sections["Dependencies"])
 
+    if "Package Verification Report" in sections:
+        errors.append(
+            f"{path}: obsolete ## Package Verification Report is a substitute; use ## Independent Verification"
+        )
     if not primary_paths:
         errors.append(f"{path}: ## Primary Paths must list at least one path")
     if not verification_expectations:
         errors.append(f"{path}: ## Verification Expectations must list at least one expectation")
     if len(proof_paths) != 1:
         errors.append(f"{path}: ## Proof must list exactly one proof path")
-    if len(report_paths) != 1:
-        errors.append(f"{path}: ## Package Verification Report must list exactly one report path")
     if errors:
         raise SliceproofError(errors)
     return PackageMarkdown(
@@ -2045,19 +2614,142 @@ def parse_package_markdown(path: Path, package_id: str) -> PackageMarkdown:
         primary_paths=primary_paths,
         verification_expectations=verification_expectations,
         proof_path=proof_paths[0],
-        report_path=report_paths[0],
+        verification_mode=verification_mode,
+        report_path=report_path,
+        verification_rationale=verification_rationale,
         dependencies=dependencies,
     )
+
+
+def parse_independent_verification(
+    path: Path,
+    body: str,
+) -> tuple[str, str | None, str, list[str]]:
+    label = f"{path}: ## Independent Verification"
+    expected_fields = ["Mode", "Report", "Rationale"]
+    fields: dict[str, str] = {}
+    order: list[str] = []
+    errors: list[str] = []
+    in_fence = False
+    for raw_line in body.splitlines():
+        line = raw_line.strip()
+        if not line:
+            continue
+        if is_fence(line):
+            in_fence = not in_fence
+            errors.append(f"{label} must not contain fenced content")
+            continue
+        if in_fence:
+            continue
+        match = re.fullmatch(r"[-*]\s+([^:]+):\s*(.+)", line)
+        if match is None:
+            errors.append(f"{label} must contain only Mode, Report, and Rationale bullet fields")
+            continue
+        field, value = match.group(1).strip(), match.group(2).strip()
+        if field not in expected_fields:
+            errors.append(f"{label} contains unsupported field {field!r}")
+            continue
+        if field in fields:
+            errors.append(f"{label} contains duplicate field {field!r}")
+            continue
+        fields[field] = value
+        order.append(field)
+    for field in expected_fields:
+        if field not in fields:
+            errors.append(f"{label} missing {field!r}")
+    if order and order != [field for field in expected_fields if field in fields]:
+        errors.append(f"{label} fields must appear in Mode, Report, Rationale order")
+
+    mode = normalize_markdown_scalar(fields.get("Mode", ""))
+    if mode not in PACKAGE_VERIFICATION_MODES:
+        errors.append(f"{label} Mode must be boundary or final")
+    raw_report = fields.get("Report", "")
+    report_value = normalize_markdown_scalar(raw_report)
+    report_path: str | None = report_value
+    if mode == "final":
+        final_value = normalize_text(raw_report.replace("`", ""))
+        if final_value != FINAL_REPORT_MARKER:
+            errors.append(f"{label} final Report must be exactly {FINAL_REPORT_MARKER!r}")
+            report_path = report_value or None
+        else:
+            report_path = None
+    elif mode == "boundary":
+        if normalize_text(raw_report.replace("`", "")) == FINAL_REPORT_MARKER:
+            errors.append(f"{label} boundary Report requires a safe package verification report path")
+            report_path = None
+        elif not report_value:
+            errors.append(f"{label} boundary Report requires a safe package verification report path")
+
+    rationale = normalize_markdown_scalar(fields.get("Rationale", ""))
+    if not is_specific_evidence_payload(rationale, allow_none=False):
+        errors.append(f"{label} Rationale must be a non-placeholder named boundary/risk or final-owner rationale")
+    return mode, report_path, rationale, errors
+
+
+def validate_independent_verification_rationale(
+    registry: Registry,
+    package: RegistryPackage,
+    package_md: PackageMarkdown,
+) -> list[str]:
+    label = f"{package.path}: ## Independent Verification Rationale"
+    rationale = package_md.verification_rationale
+    if not is_specific_evidence_payload(rationale, allow_none=False):
+        return [f"{label} must be non-placeholder"]
+    lowered = rationale.lower()
+    if package.verification_mode == "boundary":
+        if not re.search(
+            r"\b(?:boundary|depend(?:ent|ency)?|consum(?:e|ed|er|ption)|contract|risk|specialist|"
+            r"shared|public|sensitive|lifecycle)\b",
+            lowered,
+        ):
+            return [f"{label} must name the consumed boundary, contract, or package-bound risk"]
+        return []
+
+    errors: list[str] = []
+    if "final assurance" not in lowered or re.search(r"\bdefer(?:red|ral|s|ring)?\b", lowered) is None:
+        errors.append(f"{label} must explicitly defer semantic verification to final assurance")
+    owner_match = re.search(
+        r"(?:(?:direct[- ]final|final assurance)\s+)?owner\s*:\s*([^;,.]+)",
+        rationale,
+        re.IGNORECASE,
+    )
+    owned_by_match = re.search(r"\bfinal assurance\b.{0,80}\bowned by\s+([^;,.]+)", rationale, re.IGNORECASE)
+    owner_value = owner_match.group(1) if owner_match is not None else (
+        owned_by_match.group(1) if owned_by_match is not None else ""
+    )
+    if not is_specific_evidence_payload(owner_value, allow_none=False):
+        errors.append(f"{label} must name an explicit direct-final owner")
+    if registry.assurance_profile == "high":
+        lens_match = re.search(r"\blens\s*:\s*([^;,.]+)", rationale, re.IGNORECASE)
+        named_lens = re.search(
+            r"\b(security|privacy|safety|data(?: integrity)?|migration|rollback|concurrency|idempotency|"
+            r"replay|cancellation|cleanup|operational|performance|resource|public|external)\s+lens\b",
+            rationale,
+            re.IGNORECASE,
+        )
+        lens_value = lens_match.group(1) if lens_match is not None else (
+            named_lens.group(1) if named_lens is not None else ""
+        )
+        if not is_specific_evidence_payload(lens_value, allow_none=False):
+            errors.append(f"{label} must name the high-risk final-assurance lens")
+    return errors
 
 
 def validate_package_markdown(registry: Registry, package: RegistryPackage, package_md: PackageMarkdown) -> list[str]:
     errors: list[str] = []
     if package_md.proof_path != package.proof_path:
         errors.append(f"{package.path}: ## Proof path {package_md.proof_path!r} does not match registry proof_path {package.proof_path!r}")
+    if package_md.verification_mode != package.verification_mode:
+        errors.append(
+            f"{package.path}: ## Independent Verification Mode {package_md.verification_mode!r} "
+            f"does not match registry verification_mode {package.verification_mode!r}"
+        )
     if package_md.report_path != package.report_path:
         errors.append(
-            f"{package.path}: ## Package Verification Report path {package_md.report_path!r} does not match registry report_path {package.report_path!r}"
+            f"{package.path}: ## Independent Verification Report {package_md.report_path!r} "
+            f"does not match registry report_path {package.report_path!r}"
         )
+    errors.extend(validate_independent_verification_rationale(registry, package, package_md))
     if package_md.dependencies != package.depends_on:
         errors.append(f"{package.path}: ## Dependencies {package_md.dependencies!r} do not match registry depends_on {package.depends_on!r}")
 
@@ -2067,12 +2759,25 @@ def validate_package_markdown(registry: Registry, package: RegistryPackage, pack
     if not authoritative and package_md.slice_refs:
         errors.append(f"{package.path}: assigned Slice references require authoritative_slices registry entries")
 
-    for key, value, suffix in (
-        ("proof path", package_md.proof_path, ".proof.md"),
-        ("report path", package_md.report_path, ".package-verification.md"),
-    ):
+    try:
+        resolve_safe_path(
+            registry.root,
+            package_md.proof_path,
+            f"{package.path}: proof path",
+            expected_suffix=".proof.md",
+            root_label="artifact root",
+        )
+    except SliceproofError as exc:
+        errors.extend(exc.errors)
+    if package_md.verification_mode == "boundary" and package_md.report_path is not None:
         try:
-            resolve_safe_path(registry.root, value, f"{package.path}: {key}", expected_suffix=suffix, root_label="artifact root")
+            resolve_safe_path(
+                registry.root,
+                package_md.report_path,
+                f"{package.path}: report path",
+                expected_suffix=".package-verification.md",
+                root_label="artifact root",
+            )
         except SliceproofError as exc:
             errors.extend(exc.errors)
     for path in package_md.primary_paths:
@@ -2507,15 +3212,49 @@ def validate_expectation_row_status(proof_path: Path, row: ProofRow, row_label: 
     return errors
 
 
+def bound_candidate_commit(state_binding_body: str) -> str | None:
+    binding = parse_key_values(state_binding_body)
+    value = clean_cell_id(binding.get("Commit / Tree", ""))
+    parts = value.split(" | ")
+    if len(parts) == 2 and EXACT_GIT_SHA_RE.fullmatch(parts[0]):
+        return parts[0]
+    return None
+
+
+def validate_candidate_tracked_evidence_path(
+    root: Path,
+    candidate_commit: str,
+    path_value: str,
+    label: str,
+) -> list[str]:
+    result = git_process(root, ["ls-tree", candidate_commit, "--", path_value], label)
+    if result.returncode != 0:
+        detail = result.stderr.strip() or result.stdout.strip() or f"exit {result.returncode}"
+        return [f"{label}: unable to inspect bound candidate tree: {detail}"]
+    fields = result.stdout.strip().split(None, 3)
+    if (
+        len(fields) != 4
+        or fields[0] not in {"100644", "100755"}
+        or fields[1] != "blob"
+        or fields[3] != path_value
+    ):
+        return [f"{label}: must be a regular Git-tracked file in the bound candidate commit"]
+    return []
+
+
 def validate_report_markdown(
     report_path: Path,
+    registry: Registry,
     package: RegistryPackage,
     package_md: PackageMarkdown,
     proof_path: Path,
-    root: Path,
-    code_root: Path,
-    feature: str,
+    *,
+    final_validation: bool = False,
 ) -> ReportValidationResult:
+    if package.verification_mode != "boundary" or package.report_path is None:
+        return ReportValidationResult([
+            f"{package.package_id}: package verification report is valid only for boundary mode"
+        ], [])
     if not report_path.is_file():
         return ReportValidationResult([f"report: file not found: {report_path}"], [])
     text = read_text_file(report_path, f"package verification report {report_path}")
@@ -2547,7 +3286,7 @@ def validate_report_markdown(
         "Verdict",
         "Deliverable Completeness Matrix",
         "Triggered Risk Selection Notes",
-        "Test Review Scope",
+        "Selected Causal Evidence",
         "Slice Closure Review",
         "Code Review Findings",
         "Blocking Findings",
@@ -2559,14 +3298,20 @@ def validate_report_markdown(
         errors.append(
             f"{report_path}: source report sections must appear in order: "
             "### Verdict, ### Deliverable Completeness Matrix, ### Triggered Risk Selection Notes, "
-            "### Test Review Scope, ### Slice Closure Review, ### Code Review Findings, "
+            "### Selected Causal Evidence, ### Slice Closure Review, ### Code Review Findings, "
             "### Blocking Findings, ### Repair Guidance"
         )
     for section in sorted(REQUIRED_SOURCE_REPORT_H3):
         if section not in source_h3:
             errors.append(f"{report_path}: missing required source section ### {section}")
 
-    evidence_root = code_root.resolve(strict=False)
+    root = registry.root
+    evidence_root = registry.code_root.resolve(strict=False)
+    evidence_candidate_commit = (
+        bound_candidate_commit(sections["State Binding"])
+        if registry.planned_sidecar
+        else None
+    )
 
     verdict = ""
     if "Verdict" in source_h3:
@@ -2574,7 +3319,7 @@ def validate_report_markdown(
         if verdict not in {"PASS", "FAIL"}:
             errors.append(f"{report_path}: ### Verdict must be PASS or FAIL")
         elif verdict != "PASS":
-            errors.append(f"{report_path}: ### Verdict must be PASS for final validation")
+            errors.append(f"{report_path}: ### Verdict must be PASS for boundary package completion")
         if verdict == "FAIL":
             for section in sorted(FAILURE_SOURCE_REPORT_H3):
                 if section not in source_h3:
@@ -2589,18 +3334,22 @@ def validate_report_markdown(
                 proof_path,
                 package_md,
                 source_h3["Deliverable Completeness Matrix"],
+                candidate_commit=evidence_candidate_commit,
             )
         )
     if "Triggered Risk Selection Notes" in source_h3:
         errors.extend(validate_triggered_risk_selection_notes(report_path, source_h3["Triggered Risk Selection Notes"]))
     if "Test Review Scope" in source_h3:
+        errors.append(f"{report_path}: obsolete ### Test Review Scope receipt is not supported")
+    if "Selected Causal Evidence" in source_h3:
         errors.extend(
-            validate_test_review_scope(
+            validate_selected_causal_evidence(
                 report_path,
                 root,
                 evidence_root,
                 proof_path,
-                source_h3["Test Review Scope"],
+                source_h3["Selected Causal Evidence"],
+                candidate_commit=evidence_candidate_commit,
             )
         )
     if "Slice Closure Review" in source_h3:
@@ -2608,18 +3357,34 @@ def validate_report_markdown(
     if "Code Review Findings" in source_h3:
         errors.extend(validate_report_code_review_findings(report_path, source_h3["Code Review Findings"]))
     if "Blocking Findings" in source_h3 and not is_empty_gaps_deviations_section(source_h3["Blocking Findings"]):
-        errors.append(f"{report_path}: ### Blocking Findings must be empty or None for final validation")
+        errors.append(f"{report_path}: ### Blocking Findings must be empty or None for boundary completion")
     if "Open Findings" in sections:
         open_findings = sections["Open Findings"]
         if UNRESOLVED_MARKER_RE.search(open_findings):
             errors.append(f"{report_path}: ## Open Findings contains unresolved TODO/OPEN marker")
         if not is_empty_gaps_deviations_section(open_findings):
-            errors.append(f"{report_path}: ## Open Findings must be '- None.' for final validation")
+            errors.append(f"{report_path}: ## Open Findings must be '- None.' for boundary completion")
 
-    state_result = validate_report_state_binding(report_path, root, package, package_md, proof_path, sections["State Binding"])
+    state_result = validate_report_state_binding(
+        report_path,
+        registry,
+        package,
+        package_md,
+        proof_path,
+        sections["State Binding"],
+        final_validation=final_validation,
+    )
     errors.extend(state_result.errors)
     if "Semgrep Evidence" in sections:
-        errors.extend(validate_semgrep_evidence_binding(report_path, root, feature, package, sections["Semgrep Evidence"]))
+        errors.extend(
+            validate_semgrep_evidence_binding(
+                report_path,
+                root,
+                registry.feature,
+                package,
+                sections["Semgrep Evidence"],
+            )
+        )
     return ReportValidationResult(errors, state_result.advisories)
 
 
@@ -2640,6 +3405,8 @@ def validate_deliverable_completeness_matrix(
     proof_path: Path,
     package_md: PackageMarkdown,
     body: str,
+    *,
+    candidate_commit: str | None = None,
 ) -> list[str]:
     errors: list[str] = []
     if is_report_section_placeholder_body(body):
@@ -2712,6 +3479,7 @@ def validate_deliverable_completeness_matrix(
                 row_label,
                 evidence_type,
                 row.cells.get("Evidence Refs", ""),
+                candidate_commit=candidate_commit,
             )
         )
         if source_id in interface_ids and row_type == "slice":
@@ -2733,8 +3501,13 @@ def extract_first_table_headers(body: str) -> list[str]:
     return []
 
 
-def parse_test_review_scope_table(report_path: Path, body: str) -> tuple[list[ProofRow], list[str]]:
-    label = f"{report_path}: ### Test Review Scope"
+def parse_strict_report_table(
+    report_path: Path,
+    section: str,
+    body: str,
+    columns: list[str],
+) -> tuple[list[ProofRow], list[str]]:
+    label = f"{report_path}: ### {section}"
     numbered_lines = [
         (line_number, raw_line.strip())
         for line_number, raw_line in enumerate(body.splitlines(), start=1)
@@ -2743,51 +3516,39 @@ def parse_test_review_scope_table(report_path: Path, body: str) -> tuple[list[Pr
     if any(is_fence(line) for _line_number, line in numbered_lines):
         return [], [f"{label} must not contain fenced content"]
     if not numbered_lines:
-        return [], [f"{label} must include at least one surface row"]
+        return [], [f"{label} must include at least one evidence row"]
 
     table_lines: list[tuple[int, list[str], str]] = []
     for line_number, line in numbered_lines:
         cells = split_markdown_table_row(line)
         if cells is None:
             return [], [
-                f"{label} must contain exactly one contiguous Markdown table with no prose or ignored pipe fragments"
+                f"{label} must contain exactly one contiguous Markdown table with no prose"
             ]
         table_lines.append((line_number, cells, line))
-
     line_numbers = [line_number for line_number, _cells, _line in table_lines]
     if line_numbers != list(range(line_numbers[0], line_numbers[0] + len(line_numbers))):
-        return [], [
-            f"{label} must contain exactly one contiguous Markdown table with no prose or ignored pipe fragments"
-        ]
+        return [], [f"{label} must contain exactly one contiguous Markdown table with no prose"]
 
-    headers = table_lines[0][1]
     errors: list[str] = []
-    if headers != TEST_REVIEW_SCOPE_COLUMNS:
-        errors.append(f"{label} columns must be exactly {TEST_REVIEW_SCOPE_COLUMNS}")
-    expected_width = len(TEST_REVIEW_SCOPE_COLUMNS)
+    if table_lines[0][1] != columns:
+        errors.append(f"{label} columns must be exactly {columns}")
+    expected_width = len(columns)
     if len(table_lines) < 2 or not is_markdown_table_delimiter(table_lines[1][1], expected_width):
-        errors.append(
-            f"{label} must place a matching-width Markdown delimiter immediately after the header"
-        )
+        errors.append(f"{label} must place a matching-width Markdown delimiter after the header")
     if len(table_lines) < 3:
-        errors.append(f"{label} must include at least one surface row")
+        errors.append(f"{label} must include at least one evidence row")
 
-    proof_rows: list[ProofRow] = []
+    rows: list[ProofRow] = []
     for table_index, (_line_number, cells, raw_line) in enumerate(table_lines[2:], start=3):
         if is_markdown_table_delimiter(cells, len(cells)):
             errors.append(f"{label} must contain exactly one contiguous Markdown table")
             continue
         if len(cells) != expected_width:
-            errors.append(
-                f"{report_path}: Test Review Scope table row {table_index} must contain exactly "
-                f"{expected_width} cells"
-            )
+            errors.append(f"{label} row {table_index} must contain exactly {expected_width} cells")
             continue
-        proof_rows.append(ProofRow(dict(zip(TEST_REVIEW_SCOPE_COLUMNS, cells)), raw_line))
-
-    if errors:
-        return [], errors
-    return proof_rows, []
+        rows.append(ProofRow(dict(zip(columns, cells)), raw_line))
+    return ([], errors) if errors else (rows, [])
 
 
 def is_markdown_table_delimiter(cells: list[str], expected_width: int) -> bool:
@@ -2804,26 +3565,25 @@ def validate_triggered_risk_selection_notes(report_path: Path, body: str) -> lis
     return []
 
 
-def validate_test_review_scope(
+def validate_selected_causal_evidence(
     report_path: Path,
     root: Path,
     evidence_root: Path,
     proof_path: Path,
     body: str,
+    *,
+    candidate_commit: str | None = None,
 ) -> list[str]:
-    errors: list[str] = []
     if is_report_section_placeholder_body(body):
-        return [f"{report_path}: ### Test Review Scope must contain a non-placeholder receipt"]
-    if TEST_REVIEW_UNRESOLVED_MARKER_RE.search(body):
-        errors.append(f"{report_path}: ### Test Review Scope contains unresolved TODO/OPEN/GAP marker")
-    if TEST_REVIEW_FORBIDDEN_STATUS_RE.search(body):
-        errors.append(f"{report_path}: ### Test Review Scope contains forbidden not-reviewed/unreviewed status")
-
-    rows, table_errors = parse_test_review_scope_table(report_path, body)
-    errors.extend(table_errors)
-    if table_errors:
+        return [f"{report_path}: ### Selected Causal Evidence must contain a non-placeholder table"]
+    rows, errors = parse_strict_report_table(
+        report_path,
+        "Selected Causal Evidence",
+        body,
+        SELECTED_CAUSAL_EVIDENCE_COLUMNS,
+    )
+    if errors:
         return errors
-
     try:
         proof_sections = split_h2_sections(read_text_file(proof_path, f"proof {proof_path}"))
     except SliceproofError as exc:
@@ -2832,174 +3592,69 @@ def validate_test_review_scope(
     else:
         proof_commands = proof_sections.get("Commands Run", "")
 
-    no_applicable_rows = [
-        row
-        for row in rows
-        if normalize_test_review_value(row.cells.get("Review Depth", "")) == NO_APPLICABLE_TEST_SURFACE_DEPTH
-    ]
-    if no_applicable_rows:
-        if len(rows) != 1 or not is_canonical_no_applicable_test_surface_row(no_applicable_rows[0]):
-            errors.append(
-                f"{report_path}: no-applicable-surface receipt must contain exactly one canonical none row"
-            )
-        errors.extend(
-            validate_matrix_evidence_refs(
-                report_path,
-                root,
-                evidence_root,
-                proof_commands,
-                "Test Review Scope no-applicable-surface row",
-                "mixed",
-                no_applicable_rows[0].cells.get("Evidence Refs", ""),
-            )
-        )
-        return errors
-
-    seen_surfaces: set[str] = set()
     for index, row in enumerate(rows, start=1):
-        surface = normalize_test_review_value(row.cells.get("Surface", ""))
-        depth = normalize_test_review_value(row.cells.get("Review Depth", ""))
-        row_label = f"Test Review Scope {surface or f'row {index}'}"
-
-        if surface not in TEST_REVIEW_SURFACES:
-            errors.append(f"{report_path}: {row_label} Surface {surface!r} is not supported")
-        elif surface in seen_surfaces:
-            errors.append(f"{report_path}: duplicate Test Review Scope row for {surface}")
+        row_label = f"Selected Causal Evidence row {index}"
+        for column in SELECTED_CAUSAL_EVIDENCE_COLUMNS:
+            value = row.cells.get(column, "")
+            allow_none = column == "Substitutes / Fixtures"
+            if not is_specific_evidence_payload(value, allow_none=allow_none):
+                errors.append(f"{report_path}: {row_label} {column} must be a specific non-placeholder value")
+            elif EVIDENCE_UNRESOLVED_MARKER_RE.search(value):
+                errors.append(f"{report_path}: {row_label} {column} contains an unresolved marker")
+        evidence_type = clean_cell_id(row.cells.get("Evidence Type", "")).lower()
+        if evidence_type not in MATRIX_EVIDENCE_TYPES:
+            errors.append(f"{report_path}: {row_label} Evidence Type {evidence_type!r} is not supported")
         else:
-            seen_surfaces.add(surface)
-
-        population = parse_test_review_components(row.cells.get("Changed Population", ""), ("count", "scope"))
-        if population is None:
-            errors.append(
-                f"{report_path}: {row_label} Changed Population must use "
-                "'count: <positive integer>; scope: <specific non-placeholder description>'"
-            )
-        else:
-            count, scope = population
-            if not count.isascii() or not count.isdecimal() or int(count) < 1:
-                errors.append(f"{report_path}: {row_label} Changed Population count must be a positive integer")
-            if not is_specific_test_review_payload(scope):
-                errors.append(f"{report_path}: {row_label} Changed Population scope must be non-placeholder")
-
-        if not has_test_review_grammar(row.cells.get("Baseline Review", ""), ("complete",)):
-            errors.append(
-                f"{report_path}: {row_label} Baseline Review must use "
-                "'complete: <specific non-placeholder checks/results>'"
-            )
-
-        if surface == "other-test-relevant" and depth in TEST_REVIEW_DEPTHS and depth != "deep":
-            errors.append(
-                f"{report_path}: {row_label} Review Depth must be deep for other-test-relevant"
-            )
-
-        if depth not in TEST_REVIEW_DEPTHS:
-            errors.append(f"{report_path}: {row_label} Review Depth {depth!r} is not supported")
-        elif depth == "sampled":
-            if not has_test_review_grammar(row.cells.get("Selected Exemplars", ""), ("selected",)):
-                errors.append(
-                    f"{report_path}: {row_label} sampled Selected Exemplars must use "
-                    "'selected: <specific exemplars>'"
+            errors.extend(
+                validate_matrix_evidence_refs(
+                    report_path,
+                    root,
+                    evidence_root,
+                    proof_commands,
+                    row_label,
+                    evidence_type,
+                    row.cells.get("Evidence Anchor", ""),
+                    field_name="Evidence Anchor",
+                    candidate_commit=candidate_commit,
                 )
-            if not has_test_review_grammar(row.cells.get("Sampling Rationale", ""), ("strategy",)):
-                errors.append(
-                    f"{report_path}: {row_label} sampled Sampling Rationale must use "
-                    "'strategy: <specific semantic selection rationale>'"
-                )
-        else:
-            for column in ("Selected Exemplars", "Sampling Rationale"):
-                if not has_test_review_grammar(row.cells.get(column, ""), ("not-applicable",)):
-                    errors.append(
-                        f"{report_path}: {row_label} {column} must use "
-                        f"'not-applicable: <specific reason>' when depth is {depth}"
-                    )
-
-        if depth == "deep":
-            if not has_test_review_grammar(row.cells.get("Deep Triggers", ""), ("triggered",)):
-                errors.append(
-                    f"{report_path}: {row_label} deep Deep Triggers must use "
-                    "'triggered: <specific non-placeholder trigger>'"
-                )
-        elif depth in {"baseline-only", "sampled"} and not has_test_review_grammar(
-            row.cells.get("Deep Triggers", ""), ("none",)
-        ):
-            errors.append(
-                f"{report_path}: {row_label} {depth} Deep Triggers must use 'none: <specific reason>'"
             )
-
-        provenance = row.cells.get("Generator / Input / Provenance", "")
-        has_provenance = has_test_review_grammar(provenance, ("generator", "inputs", "provenance"))
-        if surface == "generators/snapshots":
-            if not has_provenance:
-                errors.append(
-                    f"{report_path}: {row_label} Generator / Input / Provenance must use "
-                    "'generator: <specific>; inputs: <specific>; provenance: <specific>'"
-                )
-        elif not (has_provenance or has_test_review_grammar(provenance, ("not-applicable",))):
-            errors.append(
-                f"{report_path}: {row_label} Generator / Input / Provenance must use the structured "
-                "generator/inputs/provenance triple or 'not-applicable: <specific reason>'"
-            )
-
         errors.extend(
-            validate_matrix_evidence_refs(
+            validate_fresh_command_result(
                 report_path,
                 root,
-                evidence_root,
                 proof_commands,
                 row_label,
-                "mixed",
-                row.cells.get("Evidence Refs", ""),
+                row.cells.get("Fresh Command Result", ""),
             )
         )
     return errors
 
 
-def normalize_test_review_value(value: str) -> str:
-    return normalize_text(value).strip("`").lower()
-
-
-def parse_test_review_components(value: str, keys: tuple[str, ...]) -> tuple[str, ...] | None:
-    text = normalize_text(value).strip("`")
-    segments = [text] if len(keys) == 1 else text.split(";")
-    if len(segments) != len(keys):
-        return None
-    values: list[str] = []
-    for segment, expected_key in zip(segments, keys):
-        key, separator, payload = segment.partition(":")
-        if not separator or normalize_text(key).lower() != expected_key:
-            return None
-        values.append(payload.strip())
-    return tuple(values)
-
-
-def has_test_review_grammar(value: str, keys: tuple[str, ...]) -> bool:
-    components = parse_test_review_components(value, keys)
-    return components is not None and all(is_specific_test_review_payload(item) for item in components)
-
-
-def is_specific_test_review_payload(value: str) -> bool:
-    normalized = normalize_text(value).strip("`").strip()
-    placeholder = normalize_report_binding_placeholder_value(normalized)
-    return (
-        any(character.isalnum() for character in normalized)
-        and placeholder not in REPORT_BINDING_PLACEHOLDER_VALUES | {"not applicable"}
-        and not (normalized.startswith("<") and normalized.endswith(">"))
+def validate_fresh_command_result(
+    report_path: Path,
+    root: Path,
+    proof_commands: str,
+    row_label: str,
+    value: str,
+) -> list[str]:
+    cleaned = value.replace("`", "").strip()
+    match = re.fullmatch(
+        r"(?P<anchor>command:.+?)\s+(?:—|-)\s+PASS(?:\s*[,;:]\s*|\s+)(?P<observed>.+)",
+        cleaned,
     )
-
-
-def is_canonical_no_applicable_test_surface_row(row: ProofRow) -> bool:
-    exact_none_fields = ("Surface", "Changed Population", "Selected Exemplars")
-    rationale_fields = (
-        "Baseline Review",
-        "Deep Triggers",
-        "Sampling Rationale",
-        "Generator / Input / Provenance",
-    )
-    return (
-        all(normalize_test_review_value(row.cells.get(field, "")) == "none" for field in exact_none_fields)
-        and normalize_test_review_value(row.cells.get("Review Depth", "")) == NO_APPLICABLE_TEST_SURFACE_DEPTH
-        and all(has_test_review_grammar(row.cells.get(field, ""), ("not-applicable",)) for field in rationale_fields)
-    )
+    if match is None:
+        return [
+            f"{report_path}: {row_label} Fresh Command Result must use "
+            "'command:<typed anchor> — PASS, <fresh observed result>'"
+        ]
+    observed = match.group("observed").strip()
+    if not is_specific_evidence_payload(observed, allow_none=False):
+        return [f"{report_path}: {row_label} Fresh Command Result must include a specific observed result"]
+    anchor = match.group("anchor").strip()
+    ref_type, separator, payload = anchor.partition(":")
+    if ref_type != "command" or not separator:
+        return [f"{report_path}: {row_label} Fresh Command Result requires one typed command anchor"]
+    return validate_command_evidence_ref(report_path, root, proof_commands, row_label, payload)
 
 
 def validate_matrix_evidence_refs(
@@ -3010,24 +3665,37 @@ def validate_matrix_evidence_refs(
     row_label: str,
     evidence_type: str,
     refs_text: str,
+    *,
+    field_name: str = "Evidence Refs",
+    candidate_commit: str | None = None,
 ) -> list[str]:
     errors: list[str] = []
+    cleaned_refs = refs_text.replace("`", "").strip()
+    if not re.match(r"^(?:code|test|static|command|manual):", cleaned_refs):
+        return [f"{report_path}: {row_label} {field_name} must start with a typed evidence anchor"]
     refs = split_evidence_refs(refs_text)
     if not refs:
-        return [f"{report_path}: {row_label} Evidence Refs must use typed evidence anchors"]
+        return [f"{report_path}: {row_label} {field_name} must use typed evidence anchors"]
     for ref in refs:
         ref_type, _separator, payload = ref.partition(":")
         ref_type = ref_type.strip().lower()
         if ref_type not in MATRIX_EVIDENCE_TYPES - {"mixed"}:
-            errors.append(f"{report_path}: {row_label} Evidence Refs anchor {ref!r} has unsupported evidence type")
+            errors.append(f"{report_path}: {row_label} {field_name} anchor {ref!r} has unsupported evidence type")
             continue
         if evidence_type in MATRIX_EVIDENCE_TYPES - {"mixed"} and ref_type != evidence_type:
             errors.append(f"{report_path}: {row_label} Evidence Type {evidence_type!r} does not match {ref_type!r} anchor")
         if is_report_section_placeholder_body(payload):
-            errors.append(f"{report_path}: {row_label} Evidence Refs anchor {ref!r} must be non-placeholder")
+            errors.append(f"{report_path}: {row_label} {field_name} anchor {ref!r} must be non-placeholder")
             continue
         if ref_type in {"code", "test", "static"}:
-            errors.extend(validate_path_evidence_ref(report_path, evidence_root, row_label, ref_type, payload))
+            errors.extend(validate_path_evidence_ref(
+                report_path,
+                evidence_root,
+                row_label,
+                ref_type,
+                payload,
+                candidate_commit=candidate_commit,
+            ))
         elif ref_type == "command":
             errors.extend(validate_command_evidence_ref(report_path, root, proof_commands, row_label, payload))
         elif ref_type == "manual":
@@ -3050,7 +3718,15 @@ def split_evidence_refs(value: str) -> list[str]:
     return refs
 
 
-def validate_path_evidence_ref(report_path: Path, root: Path, row_label: str, ref_type: str, payload: str) -> list[str]:
+def validate_path_evidence_ref(
+    report_path: Path,
+    root: Path,
+    row_label: str,
+    ref_type: str,
+    payload: str,
+    *,
+    candidate_commit: str | None = None,
+) -> list[str]:
     errors: list[str] = []
     path_value = payload
     anchor = ""
@@ -3074,6 +3750,14 @@ def validate_path_evidence_ref(report_path: Path, root: Path, row_label: str, re
         )
     except SliceproofError as exc:
         errors.extend(exc.errors)
+    else:
+        if candidate_commit is not None:
+            errors.extend(validate_candidate_tracked_evidence_path(
+                root,
+                candidate_commit,
+                path_value,
+                f"{report_path}: {row_label} {ref_type} evidence path",
+            ))
     return errors
 
 
@@ -3520,35 +4204,427 @@ def digest_semgrep_summary(summary: dict[str, Any]) -> str:
     return hashlib.sha256(json.dumps(clone, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
 
 
+def candidate_binding_from_cli(
+    registry: Registry,
+    package: RegistryPackage,
+    args: argparse.Namespace,
+) -> tuple[CandidateBinding | None, list[str]]:
+    runtime_entries, runtime_errors = parse_digest_entries(
+        args.runtime_evidence_digest,
+        "emit-state-binding: --runtime-evidence-digest",
+        key_kind="path",
+        root=registry.root,
+    )
+    contract_entries, contract_errors = parse_digest_entries(
+        args.consumed_contract_digest,
+        "emit-state-binding: --consumed-contract-digest",
+        key_kind="token",
+    )
+    errors = [*runtime_errors, *contract_errors]
+    candidate = CandidateBinding(
+        authorization_id=args.authorization_id,
+        effective_digest=args.effective_digest,
+        assurance_profile=args.assurance_profile,
+        verification_mode=args.verification_mode,
+        commit=args.commit,
+        tree=args.tree,
+        base_commit=args.base_commit,
+        diff_digest=args.diff_digest,
+        runtime_evidence_digests=runtime_entries,
+        consumed_contract_digests=contract_entries,
+    )
+    errors.extend(validate_candidate_binding(
+        registry,
+        package,
+        candidate,
+        "emit-state-binding",
+        worktree=args.worktree,
+        git_ref=args.git_ref,
+    ))
+    return (None, errors) if errors else (candidate, [])
+
+
+def candidate_binding_from_report(
+    report_path: Path,
+    registry: Registry,
+    package: RegistryPackage,
+    binding: dict[str, str],
+    *,
+    final_validation: bool = False,
+) -> tuple[CandidateBinding | None, list[str]]:
+    label = f"{report_path}: State Binding"
+    authorization, authorization_errors = parse_binding_pair(
+        clean_cell_id(binding["Authorization / Effective Digest"]),
+        f"{label} Authorization / Effective Digest",
+    )
+    profile_mode, profile_errors = parse_binding_pair(
+        clean_cell_id(binding["Assurance Profile / Verification Mode"]),
+        f"{label} Assurance Profile / Verification Mode",
+    )
+    commit_tree, commit_errors = parse_binding_pair(
+        clean_cell_id(binding["Commit / Tree"]),
+        f"{label} Commit / Tree",
+    )
+    base_diff, base_errors = parse_binding_pair(
+        clean_cell_id(binding["Base / Diff Identity"]),
+        f"{label} Base / Diff Identity",
+    )
+    runtime_entries, runtime_errors = parse_digest_binding_text(
+        clean_cell_id(binding["Runtime Evidence Digests"]),
+        f"{label} Runtime Evidence Digests",
+        key_kind="path",
+        root=registry.root,
+    )
+    contract_entries, contract_errors = parse_digest_binding_text(
+        clean_cell_id(binding["Consumed Contract Digests"]),
+        f"{label} Consumed Contract Digests",
+        key_kind="token",
+    )
+    errors = [
+        *authorization_errors,
+        *profile_errors,
+        *commit_errors,
+        *base_errors,
+        *runtime_errors,
+        *contract_errors,
+    ]
+    if errors:
+        return None, errors
+    candidate = CandidateBinding(
+        authorization_id=authorization[0],
+        effective_digest=authorization[1],
+        assurance_profile=profile_mode[0],
+        verification_mode=profile_mode[1],
+        commit=commit_tree[0],
+        tree=commit_tree[1],
+        base_commit=base_diff[0],
+        diff_digest=base_diff[1],
+        runtime_evidence_digests=runtime_entries,
+        consumed_contract_digests=contract_entries,
+    )
+    errors.extend(validate_candidate_binding(
+        registry,
+        package,
+        candidate,
+        label,
+        worktree=clean_cell_id(binding["Worktree"]),
+        git_ref=clean_cell_id(binding["Git Ref"]),
+        final_validation=final_validation,
+    ))
+    return (None, errors) if errors else (candidate, [])
+
+
+def parse_binding_pair(value: str, label: str) -> tuple[tuple[str, str], list[str]]:
+    parts = value.split(" | ")
+    if len(parts) != 2 or not all(parts):
+        return ("", ""), [f"{label} must contain exactly two values separated by ' | '"]
+    return (parts[0], parts[1]), []
+
+
+def parse_digest_binding_text(
+    value: str,
+    label: str,
+    *,
+    key_kind: str,
+    root: Path | None = None,
+) -> tuple[tuple[tuple[str, str], ...], list[str]]:
+    values = ["none"] if value == "none" else value.split("; ")
+    entries, errors = parse_digest_entries(values, label, key_kind=key_kind, root=root)
+    if not errors and format_digest_entries(entries) != value:
+        errors.append(f"{label} entries must be unique and sorted by key")
+    return entries, errors
+
+
+def parse_digest_entries(
+    values: list[str],
+    label: str,
+    *,
+    key_kind: str,
+    root: Path | None = None,
+) -> tuple[tuple[tuple[str, str], ...], list[str]]:
+    if values == ["none"]:
+        return (), []
+    errors: list[str] = []
+    if not values or "none" in values:
+        return (), [f"{label} must be exactly 'none' or one or more digest entries"]
+    entries: list[tuple[str, str]] = []
+    seen: set[str] = set()
+    for raw_entry in values:
+        if raw_entry.count("=") != 1 or "; " in raw_entry:
+            errors.append(f"{label}: malformed digest entry {raw_entry!r}")
+            continue
+        key, digest = raw_entry.split("=", 1)
+        if key in seen:
+            errors.append(f"{label}: duplicate digest key {key!r}")
+        seen.add(key)
+        if key_kind == "path":
+            try:
+                repo_relative_path(key, f"{label} path")
+            except SliceproofError as exc:
+                errors.extend(exc.errors)
+            if any(delimiter in key for delimiter in ("=", "; ")):
+                errors.append(f"{label} path must not contain binding delimiters")
+            if root is not None:
+                try:
+                    evidence_path = resolve_authority_file(root, key, f"{label} path")
+                except SliceproofError as exc:
+                    errors.extend(exc.errors)
+                else:
+                    if DIGEST_RE.fullmatch(digest) and digest_bytes(evidence_path.read_bytes()) != digest:
+                        errors.append(f"{label}: digest does not match current runtime evidence file {key}")
+        elif key_kind == "token":
+            if not SAFE_TOKEN_RE.fullmatch(key) or is_report_binding_placeholder_text(key):
+                errors.append(f"{label}: contract id {key!r} must be a safe non-placeholder token")
+        else:
+            errors.append(f"{label}: unsupported digest key kind")
+        if not DIGEST_RE.fullmatch(digest):
+            errors.append(f"{label}: digest for {key!r} must be lowercase sha256:<64-hex>")
+        entries.append((key, digest))
+    return tuple(sorted(entries)), errors
+
+
+def format_digest_entries(entries: tuple[tuple[str, str], ...]) -> str:
+    if not entries:
+        return "none"
+    return "; ".join(f"{key}={digest}" for key, digest in entries)
+
+
+def validate_candidate_git_identity(
+    registry: Registry,
+    candidate: CandidateBinding,
+    *,
+    worktree: str,
+    git_ref: str,
+    label: str,
+    historical_candidate: bool = False,
+) -> list[str]:
+    errors: list[str] = []
+    if not all(EXACT_GIT_SHA_RE.fullmatch(value) for value in (
+        candidate.commit,
+        candidate.tree,
+        candidate.base_commit,
+    )) or not DIGEST_RE.fullmatch(candidate.diff_digest):
+        return errors
+    if (
+        not Path(worktree).is_absolute()
+        or "\x00" in worktree
+        or not SAFE_GIT_REF_RE.fullmatch(git_ref)
+        or is_report_binding_placeholder_text(git_ref)
+    ):
+        return errors
+
+    unresolved_worktree = Path(worktree)
+    try:
+        reviewed_worktree = unresolved_worktree.resolve(strict=True)
+    except OSError as exc:
+        return [f"{label}: Worktree must be an existing exact Git worktree root: {exc}"]
+    if reviewed_worktree != unresolved_worktree or not reviewed_worktree.is_dir():
+        return [f"{label}: Worktree must be an existing exact Git worktree root"]
+
+    try:
+        code_top = Path(git_output(
+            registry.code_root,
+            ["rev-parse", "--show-toplevel"],
+            f"{label}: code repository",
+        ).strip()).resolve(strict=False)
+        worktree_top = Path(git_output(
+            reviewed_worktree,
+            ["rev-parse", "--show-toplevel"],
+            f"{label}: Worktree",
+        ).strip()).resolve(strict=False)
+        if code_top != registry.code_root:
+            errors.append(f"{label}: code root must be an exact Git worktree root")
+        if worktree_top != reviewed_worktree:
+            errors.append(f"{label}: Worktree must be an existing exact Git worktree root")
+        if registry.planned_sidecar and not historical_candidate and reviewed_worktree != registry.code_root:
+            errors.append(f"{label}: Worktree must equal the exact supplied code root/package worktree")
+        if git_common_dir(registry.code_root, f"{label}: code repository") != git_common_dir(
+            reviewed_worktree,
+            f"{label}: Worktree",
+        ):
+            errors.append(f"{label}: Worktree must belong to the code repository")
+    except SliceproofError as exc:
+        errors.extend(exc.errors)
+    if errors:
+        return errors
+
+    commit_errors_before = len(errors)
+    require_git_commit(registry.code_root, candidate.commit, f"{label}: Commit", errors)
+    require_git_commit(registry.code_root, candidate.base_commit, f"{label}: Base commit", errors)
+    if len(errors) != commit_errors_before:
+        return errors
+
+    actual_tree = git_commit_tree(registry.code_root, candidate.commit, f"{label}: Commit", errors)
+    if actual_tree is not None and actual_tree != candidate.tree:
+        errors.append(f"{label}: Tree must equal the exact candidate commit tree")
+
+    ancestry = git_process(
+        registry.code_root,
+        ["merge-base", "--is-ancestor", candidate.base_commit, candidate.commit],
+        f"{label}: candidate ancestry",
+    )
+    if ancestry.returncode == 1:
+        errors.append(f"{label}: Base commit must be an ancestor of Commit")
+    elif ancestry.returncode != 0:
+        detail = ancestry.stderr.strip() or ancestry.stdout.strip() or f"exit {ancestry.returncode}"
+        errors.append(f"{label}: candidate ancestry local git inspection failed: {detail}")
+
+    try:
+        resolved_ref = git_output(
+            reviewed_worktree,
+            ["rev-parse", "--verify", f"{git_ref}^{{commit}}"],
+            f"{label}: Git Ref",
+        ).strip()
+        if resolved_ref != candidate.commit:
+            errors.append(f"{label}: Git Ref must resolve to the exact candidate commit")
+        expected_diff = raw_git_diff_identity(
+            registry.code_root,
+            candidate.base_commit,
+            candidate.commit,
+            f"{label}: Diff Identity",
+        )
+        if candidate.diff_digest != expected_diff:
+            errors.append(
+                f"{label}: Diff Identity must equal sha256 of the canonical raw no-renames Git diff identity"
+            )
+    except SliceproofError as exc:
+        errors.extend(exc.errors)
+    if registry.planned_sidecar and not historical_candidate:
+        errors.extend(validate_worktree_head_and_clean(
+            reviewed_worktree,
+            candidate.commit,
+            f"{label}: reviewed package worktree",
+        ))
+    return errors
+
+
+def validate_candidate_binding(
+    registry: Registry,
+    package: RegistryPackage,
+    candidate: CandidateBinding,
+    label: str,
+    *,
+    worktree: str,
+    git_ref: str,
+    final_validation: bool = False,
+) -> list[str]:
+    errors: list[str] = []
+    if not SAFE_TOKEN_RE.fullmatch(candidate.authorization_id) or is_report_binding_placeholder_text(
+        candidate.authorization_id
+    ):
+        errors.append(f"{label}: Authorization id must be a safe non-placeholder token")
+    if not DIGEST_RE.fullmatch(candidate.effective_digest):
+        errors.append(f"{label}: Effective Authorization Digest must be lowercase sha256:<64-hex>")
+    if candidate.assurance_profile not in ASSURANCE_PROFILES:
+        errors.append(f"{label}: Assurance Profile is unknown")
+    elif candidate.assurance_profile != registry.assurance_profile:
+        errors.append(f"{label}: Assurance Profile does not match registry assurance_profile")
+    if candidate.verification_mode not in PACKAGE_VERIFICATION_MODES:
+        errors.append(f"{label}: Verification Mode is unknown")
+    elif candidate.verification_mode != package.verification_mode:
+        errors.append(f"{label}: Verification Mode does not match registry verification_mode")
+    if package.verification_mode != "boundary":
+        errors.append(f"{label}: State Binding is a boundary receipt only; final mode cannot substitute it")
+    for field, value in (
+        ("Commit", candidate.commit),
+        ("Tree", candidate.tree),
+        ("Base commit", candidate.base_commit),
+    ):
+        if not EXACT_GIT_SHA_RE.fullmatch(value):
+            errors.append(f"{label}: {field} must be an exact lowercase 40- or 64-hex Git object id")
+    if not DIGEST_RE.fullmatch(candidate.diff_digest):
+        errors.append(f"{label}: Diff Identity must be lowercase sha256:<64-hex>")
+    verifier_output_prefix = f".tasks/{registry.feature}/reports/"
+    for path_value, _digest in candidate.runtime_evidence_digests:
+        if path_value.startswith(verifier_output_prefix):
+            errors.append(f"{label}: verifier report output cannot be a runtime-evidence candidate input")
+    if registry.dependents(package.package_id) and not candidate.consumed_contract_digests:
+        errors.append(
+            f"{label}: dependent producer {package.package_id} requires at least one consumed-contract digest"
+        )
+    controlled, controlled_errors = load_controlled_routing(registry)
+    errors.extend(controlled_errors)
+    if controlled is not None:
+        if candidate.authorization_id != controlled.authorization_id:
+            errors.append(f"{label}: Authorization id does not match controlled Lifecycle State")
+        if candidate.effective_digest != controlled.effective_digest:
+            errors.append(f"{label}: Effective Authorization Digest does not match controlled Lifecycle State")
+    errors.extend(validate_candidate_git_identity(
+        registry,
+        candidate,
+        worktree=worktree,
+        git_ref=git_ref,
+        label=label,
+        historical_candidate=final_validation,
+    ))
+    errors.extend(validate_controlled_stable_candidate(
+        registry,
+        package,
+        candidate_commit=candidate.commit,
+        label=label,
+        require_done=final_validation,
+        require_current_candidate=not final_validation,
+    ))
+    return errors
+
+
 def validate_report_state_binding(
     report_path: Path,
-    root: Path,
+    registry: Registry,
     package: RegistryPackage,
     package_md: PackageMarkdown,
     proof_path: Path,
     body: str,
+    *,
+    final_validation: bool = False,
 ) -> ReportValidationResult:
     errors: list[str] = []
     advisories: list[dict[str, Any]] = []
-    binding = parse_key_values(body)
+    binding, binding_errors = parse_key_values_strict(body, REQUIRED_STATE_BINDING_FIELDS)
+    errors.extend(f"{report_path}: ## State Binding {error}" for error in binding_errors)
     for field in sorted(REQUIRED_STATE_BINDING_FIELDS - set(binding)):
         errors.append(f"{report_path}: ## State Binding missing {field!r}")
     if errors:
         return ReportValidationResult(errors, advisories)
 
+    digest_result = validate_assigned_slice_digest_binding(
+        report_path,
+        package.package_id,
+        clean_cell_id(binding["Assigned Slice Digests"]),
+        registry.root,
+        package_md,
+    )
+    errors.extend(digest_result.errors)
+    advisories.extend(digest_result.advisories)
+    candidate, candidate_errors = candidate_binding_from_report(
+        report_path,
+        registry,
+        package,
+        binding,
+        final_validation=final_validation,
+    )
+    errors.extend(candidate_errors)
+    if candidate is None:
+        return ReportValidationResult(errors, advisories)
     expected_values = state_binding_values(
-        root,
+        registry.root,
         package,
         package_md,
         proof_path,
+        candidate=candidate,
         worktree=clean_cell_id(binding["Worktree"]),
         git_ref=clean_cell_id(binding["Git Ref"]),
-        commit=clean_cell_id(binding["Commit"]),
         verified_at=clean_cell_id(binding["Verified At"]),
     )
+    none_allowed = {
+        "Assigned Slices",
+        "Assigned Slice Digests",
+        "Runtime Evidence Digests",
+        "Consumed Contract Digests",
+    }
     for field in STATE_BINDING_FIELD_ORDER:
         value = clean_cell_id(binding[field])
-        if field in {"Assigned Slices", "Assigned Slice Digests"} and expected_values[field] == "none" and value == "none":
+        if field in none_allowed and expected_values[field] == "none" and value == "none":
             continue
         if is_report_binding_placeholder_text(value):
             errors.append(f"{report_path}: State Binding {field} must be non-placeholder")
@@ -3566,26 +4642,27 @@ def validate_report_state_binding(
     if clean_cell_id(binding["Assigned Slices"]) != expected_values["Assigned Slices"]:
         errors.append(f"{report_path}: State Binding Assigned Slices must be {expected_values['Assigned Slices']}")
 
-    digest_result = validate_assigned_slice_digest_binding(
-        report_path,
-        package.package_id,
-        clean_cell_id(binding["Assigned Slice Digests"]),
-        root,
-        package_md,
-    )
-    errors.extend(digest_result.errors)
-    advisories.extend(digest_result.advisories)
-
     if clean_cell_id(binding["Matrix Source Snapshot"]) != expected_values["Matrix Source Snapshot"]:
         errors.append(f"{report_path}: State Binding Matrix Source Snapshot does not match current package/Slice source content")
-    worktree = clean_cell_id(binding["Worktree"])
-    if not Path(worktree).is_absolute():
-        errors.append(f"{report_path}: State Binding Worktree must be an absolute reviewed worktree path")
-    commit = clean_cell_id(binding["Commit"])
-    if not COMMIT_RE.fullmatch(commit):
-        errors.append(f"{report_path}: State Binding Commit must look like a git commit")
-    if not is_iso8601(clean_cell_id(binding["Verified At"])):
-        errors.append(f"{report_path}: State Binding Verified At must be ISO-8601")
+
+    for field in (
+        "Authorization / Effective Digest",
+        "Assurance Profile / Verification Mode",
+        "Commit / Tree",
+        "Base / Diff Identity",
+        "Runtime Evidence Digests",
+        "Consumed Contract Digests",
+    ):
+        if clean_cell_id(binding[field]) != expected_values[field]:
+            errors.append(f"{report_path}: State Binding {field} is not in canonical candidate form")
+    errors.extend(
+        validate_state_binding_runtime_metadata(
+            f"{report_path}: State Binding",
+            clean_cell_id(binding["Worktree"]),
+            clean_cell_id(binding["Git Ref"]),
+            clean_cell_id(binding["Verified At"]),
+        )
+    )
     return ReportValidationResult(errors, advisories)
 
 
@@ -3595,9 +4672,9 @@ def state_binding_values(
     package_md: PackageMarkdown,
     proof_path: Path,
     *,
+    candidate: CandidateBinding,
     worktree: str,
     git_ref: str,
-    commit: str,
     verified_at: str,
 ) -> dict[str, str]:
     package_path = resolve_safe_path(root, package.path, f"work_packages[{package.package_id}].path", expected_suffix=".md", must_exist_file=True)
@@ -3612,9 +4689,16 @@ def state_binding_values(
         "Assigned Slices": assigned_slices_binding(package_md),
         "Assigned Slice Digests": assigned_slice_digests_binding(root, package_md),
         "Matrix Source Snapshot": matrix_source_snapshot_binding(root, package, package_md),
+        "Authorization / Effective Digest": f"{candidate.authorization_id} | {candidate.effective_digest}",
+        "Assurance Profile / Verification Mode": (
+            f"{candidate.assurance_profile} | {candidate.verification_mode}"
+        ),
         "Worktree": worktree,
         "Git Ref": git_ref,
-        "Commit": commit,
+        "Commit / Tree": f"{candidate.commit} | {candidate.tree}",
+        "Base / Diff Identity": f"{candidate.base_commit} | {candidate.diff_digest}",
+        "Runtime Evidence Digests": format_digest_entries(candidate.runtime_evidence_digests),
+        "Consumed Contract Digests": format_digest_entries(candidate.consumed_contract_digests),
         "Verified At": verified_at,
     }
 
@@ -3633,18 +4717,14 @@ def validate_state_binding_runtime_metadata(
     command: str,
     worktree: str,
     git_ref: str,
-    commit: str,
     verified_at: str,
 ) -> list[str]:
     errors: list[str] = []
-    if not Path(worktree).is_absolute():
+    if not Path(worktree).is_absolute() or "\x00" in worktree:
         errors.append(f"{command}: --worktree must be an absolute reviewed worktree path")
-    if is_report_binding_placeholder_text(git_ref):
-        errors.append(f"{command}: --git-ref must be non-placeholder")
-    if not COMMIT_RE.fullmatch(commit):
-        errors.append(f"{command}: --commit must look like a git commit")
-    if not is_iso8601(verified_at):
-        errors.append(f"{command}: --verified-at must be ISO-8601")
+    if not SAFE_GIT_REF_RE.fullmatch(git_ref) or is_report_binding_placeholder_text(git_ref):
+        errors.append(f"{command}: --git-ref must be a safe non-placeholder reviewed ref")
+    parse_aware_iso8601(verified_at, f"{command}: --verified-at", errors)
     return errors
 
 
@@ -3864,6 +4944,37 @@ def matrix_source_snapshot_binding(root: Path, package: RegistryPackage, package
 
 def snapshot_part(path_value: str, content: str) -> str:
     return f"{path_value}\0{content}\0"
+
+
+def parse_key_values_strict(body: str, allowed_fields: set[str]) -> tuple[dict[str, str], list[str]]:
+    values: dict[str, str] = {}
+    errors: list[str] = []
+    in_fence = False
+    for raw_line in body.splitlines():
+        line = raw_line.strip()
+        if is_fence(line):
+            in_fence = not in_fence
+            errors.append("must not contain fenced content")
+            continue
+        if in_fence or not line:
+            continue
+        bullet = re.match(r"^(?:[-*]|\d+\.)\s+(.+)$", line)
+        if bullet is None:
+            continue
+        item = bullet.group(1)
+        if ":" not in item:
+            errors.append(f"malformed field line {line!r}")
+            continue
+        key, value = item.split(":", 1)
+        key = key.strip()
+        if key not in allowed_fields:
+            errors.append(f"contains unsupported field {key!r}")
+            continue
+        if key in values:
+            errors.append(f"contains duplicate field {key!r}")
+            continue
+        values[key] = value.strip()
+    return values, errors
 
 
 def parse_key_values(body: str) -> dict[str, str]:
@@ -4130,6 +5241,30 @@ def normalize_path_value(value: str) -> str:
     return clean_cell_id(value).strip()
 
 
+def normalize_markdown_scalar(value: str) -> str:
+    stripped = value.strip()
+    if len(stripped) >= 2 and stripped.startswith("`") and stripped.endswith("`"):
+        stripped = stripped[1:-1]
+    return normalize_text(stripped)
+
+
+def is_specific_evidence_payload(value: str, *, allow_none: bool) -> bool:
+    normalized = normalize_text(value).strip("`").strip()
+    lowered = normalize_report_binding_placeholder_value(normalized)
+    if allow_none and lowered in {
+        "none",
+        "none disclosed",
+        "no substitutes",
+        "no fixtures or substitutes",
+    }:
+        return True
+    return (
+        any(character.isalnum() for character in normalized)
+        and lowered not in REPORT_BINDING_PLACEHOLDER_VALUES | {"not applicable"}
+        and not (normalized.startswith("<") and normalized.endswith(">"))
+    )
+
+
 def normalize_status(value: str) -> str:
     return value.strip().strip("`").upper()
 
@@ -4208,16 +5343,6 @@ def normalize_approval_placeholder_value(value: str) -> str:
 
 def digest_text(value: str) -> str:
     return "sha256:" + hashlib.sha256(value.encode("utf-8")).hexdigest()
-
-
-def is_iso8601(value: str) -> bool:
-    if not value:
-        return False
-    try:
-        datetime.fromisoformat(value.replace("Z", "+00:00"))
-    except ValueError:
-        return False
-    return True
 
 
 def format_title(title: str) -> str:
