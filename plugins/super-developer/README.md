@@ -12,25 +12,26 @@ Super Developer replaces scattered prompts with a file-backed workflow. New and 
 fresh Slice-first planned-feature artifact model:
 
 ```text
-conceptualize (optional Index + Slices)
-        |
-        v
-implementation-plan -> review-plan -> implement -> final review-code + final audit
-        |                 |              |             |                  |
-        |                 |              |             |                  final completeness gate
-        |                 |              |             final code-risk gate
-        |                 |              package agents + proof Markdown + reports
-        |                 plan quality and Slice coverage gate
-        SPEC.md + tasks.json registry + packages/proofs/reports
+conceptualize -> design/feasibility preflight -> implementation-plan -> cold review-plan
+                                                                     |
+                                                                     v
+                                                    ONE Implementation Authorization
+                                                                     |
+                                                                     v
+                                  Delivery Owner -> autonomous package delivery
+                                                                     |
+                                                                     v
+                                      risk-adaptive assurance -> verified notification
 ```
 
 Validated Slices are product/design authority only. Workflow, tool, git, proof, review, and audit authority stays in the plugin instructions and shared references.
 
-In planned-feature mode, `implement` is the Delivery Owner from the exact accepted Gate-2 artifact state through
-readiness. Nested spike, plan-amendment, plan-review, code-review, and audit roles return a bounded disposition to
-that owner; they never restart or advance the parent lifecycle. Serious findings are classified before repair.
-Architecture invalidation returns to focused reassessment, and a second failed closure for the same invariant,
-mechanism, surface, and verification signature stops automatic repair rather than changing agents and retrying.
+In planned-feature mode, `implement` becomes Delivery Owner only after the exact one-authorization checkpoint.
+Nested spike, technical-plan amendment, cold amendment review, code-review, and audit roles return a bounded
+receipt/disposition to that owner; they never restart or advance the parent lifecycle, mint another authorization,
+or present another implementation gate. Serious findings are classified before repair.
+Architecture invalidation returns to focused reassessment, and a second failed closure for the same accepted
+invariant, failure mechanism, and architectural surface stops automatic repair rather than changing agents and retrying.
 
 Triggered Design Preflight projects authority, transition, publication, losing-owner, cancellation, credential,
 and actual-path test invariants into existing SPEC, Slice, and package artifacts. Verification then reads accepted
@@ -42,18 +43,21 @@ freeze or refresh.
 
 ## Planned-Feature Artifact Model
 
-A planned feature lives under `.tasks/<feature>/` and points to optional `.planning/<concept>/` Slice material.
+Every planned feature uses a mandatory portable `artifacts/<feature>` sidecar at a Git root distinct from the code
+root. Its `.tasks/<feature>/` namespace points to optional sidecar `.planning/<feature>/` Slice material; current-root
+copies are legacy migration input, never planned-feature authority.
 
 | Artifact | Purpose |
 |---|---|
-| `.planning/<concept>/index.md` | Optional Conceptualize workspace entry point. |
-| `.planning/<concept>/slices/*.md` | Optional authoritative product/design Slices. |
+| `.planning/<feature>/index.md` | Optional Conceptualize workspace entry point. |
+| `.planning/<feature>/slices/*.md` | Optional authoritative product/design Slices. |
 | `.tasks/<feature>/SPEC.md` | Accepted requirements, constraints, non-goals, Slice inventory, and verification summary. |
 | `.tasks/<feature>/tasks.json` | Lightweight registry only: feature metadata, package paths, proof paths, report paths, status, and dependencies. |
 | `.tasks/<feature>/packages/<WP-ID>.md` | Work-package assignment: scope, Slice obligations, primary paths, verification expectations, proof/report paths, dependencies. |
 | `.tasks/<feature>/proofs/<WP-ID>.proof.md` | Package-agent closure evidence for Slice rows and verification expectations. |
 | `.tasks/<feature>/reports/<WP-ID>.package-verification.md` | Independent package verification receipt bound to proof digest and reviewed state. |
 | `.tasks/<feature>/reviews/review-code-state.json` | Review-code governance readiness for audit handoff. |
+| `.tasks/<feature>/lifecycle-state.json` | Compact CAS continuation state: authorization lineage, checkpoints, budgets, packages, and current receipts; not a history ledger. |
 
 `tasks.json` is bookkeeping. Package Markdown owns assignment, proof Markdown owns closure evidence, package reports own independent verification receipt state, review-code state owns final-review readiness, and audit owns the final PASS/FAIL judgment.
 
@@ -63,13 +67,14 @@ A planned feature lives under `.tasks/<feature>/` and points to optional `.plann
 
 `plugins/super-developer/assets/sliceproof.py` is the only planned-feature mechanical helper. It validates paths and artifact mechanics; it does not run tests, judge implementation sufficiency, write review readiness, or replace package verification, review-code, or audit.
 
-Run from a repository or package worktree with explicit paths:
+Run with explicit distinct artifact/code roots (arguments shortened below only after those variables are resolved):
 
 ```bash
-python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-plan ".tasks/<feature>/tasks.json"
-python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" create-proof ".tasks/<feature>/tasks.json" --package WP1
-python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-proof ".tasks/<feature>/tasks.json" --package WP1
-python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-final ".tasks/<feature>/tasks.json"
+ROOTS=(--artifact-root "$ARTIFACT_ROOT" --code-root "$CODE_ROOT")
+python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-plan "${ROOTS[@]}" ".tasks/<feature>/tasks.json"
+python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" create-proof "${ROOTS[@]}" ".tasks/<feature>/tasks.json" --package WP1
+python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-proof "${ROOTS[@]}" ".tasks/<feature>/tasks.json" --package WP1
+python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-lifecycle-state "${ROOTS[@]}" --feature <feature> --previous-commit <prior-sha> # omit predecessor at generation 1
 ```
 
 Command boundaries:
@@ -77,7 +82,9 @@ Command boundaries:
 - `validate-plan`: checks the registry, package Markdown, safe paths, dependencies, and declared Slice H3 IDs.
 - `create-proof`: creates the declared proof Markdown placeholder and refuses silent overwrite of edited evidence.
 - `validate-proof`: checks required proof sections, closure rows, command/file evidence, blocking markers, and approved deferrals.
-- `validate-final`: checks all packages are done, all proofs pass mechanically, and all package verification reports exist and bind to the current proof digest.
+- `validate-final`: checks all packages are done, all proofs pass mechanically, and reports bind current evidence.
+- `validate-lifecycle-state`: checks compact local topology, immutable authorization inputs/effective lineage,
+  checkpoint ancestry, budgets, and package transitions; exact-endpoint remote reachability stays worktree-owned.
 
 See [`references/tool-usage.md`](references/tool-usage.md), [`references/slice-first-artifacts.md`](references/slice-first-artifacts.md), and [`references/package-lifecycle.md`](references/package-lifecycle.md) for the detailed boundaries.
 
@@ -211,7 +218,7 @@ Key rules:
 
 - The orchestrator owns branch/worktree creation, merges, cleanup, and approved pushes.
 - Package agents edit only their assigned package worktree and proof Markdown handoff.
-- Feature-branch push must match the approved Execution Contract.
+- Every covered sidecar/code/feature push must use its one captured exact authorized push endpoint and ref.
 - Target/main merge or push always requires separate explicit approval.
 - Cleanup requires merge-base proof and clean worktrees.
 
@@ -251,7 +258,13 @@ Claude Code discovers packaged skills automatically. Other hosts need equivalent
 > Plan this feature
 ```
 
-A delegated planner agent writes `.tasks/<feature>/SPEC.md`, `.tasks/<feature>/tasks.json`, package Markdown, and declared proof/report paths. After plan review approval, `implement` presents an Execution Contract. Approve auto-resolve to continue through package implementation, package verification, final review-code, and final audit sibling checks, or choose step-by-step control at each gate.
+A delegated planner writes the sidecar SPEC, registry, package assignments, and evidence paths after design/
+feasibility preflight. Cold `review-plan` challenges and resolves technical defects, then an initial clean review
+presents the sole **Implementation Authorization**: **Approve and auto-resolve**, **Request changes**, or **Abort**.
+Approval checkpoints one immutable authorization ID/input snapshot. `implement` then owns autonomous delivery;
+nested envelope-preserving amendments return cold receipts under that same ID, while envelope/protected/budget
+changes stop for one focused authority decision. Independent assurance returns the verified result or one precise
+escalation—there is no later implementation approval.
 
 Useful standalone prompts:
 

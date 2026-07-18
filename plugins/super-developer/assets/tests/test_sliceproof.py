@@ -200,7 +200,8 @@ class SliceproofFixture:
             },
             "code_checkpoint": None,
             "authorization": {
-                "id": None, "initial_digest": None, "effective_digest": None, "amendment_link": None,
+                "id": None, "initial_digest": None, "effective_digest": None,
+                "inputs": None, "amendment_link": None,
             },
             "budgets": {
                 "preauthorization": {
@@ -219,15 +220,13 @@ class SliceproofFixture:
                 "active_reservation": None,
                 "control_plane_reserve": {"maximum": 1, "issued": 0},
             },
-            "packages": {"WP1": {"state": "pending", "wave": None}},
+            "packages": {},
             "wave": None,
             "serious_clusters": [],
             "freeze": None,
             "receipts": [],
             "last_verified": None,
             "portability_authorization": "explicit fixture instruction",
-            "assurance_profile": "standard",
-            "package_modes": {"WP1": "boundary"},
         }
 
     def authorized_lifecycle_state(self, previous: dict, previous_commit: str) -> dict:
@@ -240,13 +239,9 @@ class SliceproofFixture:
             "sha": previous_commit,
             "tree": self.git_at(self.artifact_root, "rev-parse", f"{previous_commit}^{{tree}}"),
         }
-        authorization_digest = self.digest_text("fixture authorization")
-        state["authorization"] = {
-            "id": "auth-fixture-1",
-            "initial_digest": authorization_digest,
-            "effective_digest": authorization_digest,
-            "amendment_link": None,
-        }
+        state["packages"] = {"WP1": {"state": "pending", "wave": None}}
+        state["assurance_profile"] = "standard"
+        state["package_modes"] = {"WP1": "boundary"}
         state["budgets"]["implementation"] = {
             "maxima": {
                 "repair_waves": 2, "delegated_calls": 6, "command_units": 30, "cost_units": 0,
@@ -260,6 +255,27 @@ class SliceproofFixture:
         state["budgets"]["active_reservation"] = {
             "id": "reservation-2", "owner_token": "owner-1", "budget": "implementation",
             "generation": state["generation"], "units": {"delegated_calls": 1},
+        }
+        inputs = {
+            "artifact_tree": state["artifact_checkpoint"]["tree"],
+            "base_commit": self.git_at(self.repo, "rev-parse", "HEAD"),
+            "clean_status": self.digest_text("clean status"),
+            "dependencies": self.digest_text("dependencies and prerequisites"),
+            "routing": SLICEPROOF.canonical_json_digest({
+                "assurance_profile": state["assurance_profile"],
+                "package_modes": state["package_modes"],
+            }),
+            "actions": self.digest_text("covered actions"),
+            "budget_authority": SLICEPROOF.authorization_budget_authority_digest(state["budgets"]),
+            "amendment_policy": self.digest_text("amendment policy"),
+        }
+        authorization_digest = SLICEPROOF.canonical_json_digest(inputs)
+        state["authorization"] = {
+            "id": "auth-fixture-1",
+            "initial_digest": authorization_digest,
+            "effective_digest": authorization_digest,
+            "inputs": inputs,
+            "amendment_link": None,
         }
         state["last_verified"] = {
             "artifact_ref": "refs/heads/artifacts/fixture",
@@ -910,6 +926,85 @@ class SliceproofTests(unittest.TestCase):
         finally:
             fixture.cleanup()
 
+    def test_generation_one_and_unauthorized_state_reject_future_topology(self) -> None:
+        fixture = SliceproofFixture(separate_roots=True)
+        try:
+            fixture.init_lifecycle_git_roots()
+            initial = fixture.lifecycle_state()
+            self.assertEqual([], SLICEPROOF.validate_lifecycle_state_data(
+                initial,
+                artifact_root=fixture.artifact_root,
+                code_root=fixture.repo,
+                feature="fixture",
+                verify_files=False,
+                verify_git_objects=False,
+            ))
+            future_cases = {
+                "artifact_checkpoint": lambda state: state["artifact_checkpoint"].update({
+                    "sha": "1" * 40, "tree": "2" * 40,
+                }),
+                "code_checkpoint": lambda state: state.__setitem__(
+                    "code_checkpoint",
+                    {"ref": "refs/heads/checkpoints/fixture/local/g1", "sha": "1" * 40},
+                ),
+                "authorization": lambda state: state["authorization"].__setitem__("id", "auth-1"),
+                "amendment": lambda state: state["authorization"].__setitem__("amendment_link", {
+                    "parent_effective_digest": fixture.digest_text("parent"),
+                    "amendment_digest": fixture.digest_text("amendment"), "artifact_sha": "1" * 40,
+                }),
+                "packages": lambda state: state["packages"].update({
+                    "WP1": {"state": "pending", "wave": None},
+                }),
+                "wave": lambda state: state.__setitem__(
+                    "wave", {"id": "wave-one", "generation": 1, "state": "reserved", "packages": ["WP1"]},
+                ),
+                "serious_clusters": lambda state: state["serious_clusters"].append({
+                    "id": fixture.digest_text("cluster"), "strikes": 1, "disposition": "repair-eligible",
+                }),
+                "freeze": lambda state: state.__setitem__(
+                    "freeze", {"id": "freeze-1", "digest": fixture.digest_text("freeze")},
+                ),
+                "receipts": lambda state: state["receipts"].append({
+                    "role": "audit", "path": ".tasks/fixture/audit.md", "digest": fixture.digest_text("audit"),
+                }),
+            }
+            for field, mutate in future_cases.items():
+                with self.subTest(field=field):
+                    state = copy.deepcopy(initial)
+                    if field == "wave":
+                        state["packages"] = {"WP1": {"state": "pending", "wave": "wave-one"}}
+                    mutate(state)
+                    errors = SLICEPROOF.validate_lifecycle_state_data(
+                        state,
+                        artifact_root=fixture.artifact_root,
+                        code_root=fixture.repo,
+                        feature="fixture",
+                        verify_files=False,
+                        verify_git_objects=False,
+                    )
+                    self.assertIn("generation 1 requires initial null/empty topology", "\n".join(errors))
+
+            local_only = copy.deepcopy(initial)
+            local_only["generation"] = 2
+            local_only["code_checkpoint"] = {
+                "ref": "refs/heads/checkpoints/fixture/local/g2", "sha": "1" * 40,
+            }
+            local_only["last_verified"] = {
+                "artifact_ref": "refs/heads/artifacts/fixture", "artifact_sha": "2" * 40,
+                "state_digest": fixture.digest_text("state"), "generation": 1,
+            }
+            errors = SLICEPROOF.validate_lifecycle_state_data(
+                local_only,
+                artifact_root=fixture.artifact_root,
+                code_root=fixture.repo,
+                feature="fixture",
+                verify_files=False,
+                verify_git_objects=False,
+            )
+            self.assertIn("complete implementation authorization is required", "\n".join(errors))
+        finally:
+            fixture.cleanup()
+
     def test_lifecycle_schema_has_no_history_or_completion_semantics(self) -> None:
         fixture = SliceproofFixture(separate_roots=True)
         try:
@@ -1027,6 +1122,103 @@ class SliceproofTests(unittest.TestCase):
         finally:
             fixture.cleanup()
 
+    def test_authorization_inputs_bind_exact_objects_routing_and_budget_authority(self) -> None:
+        fixture = SliceproofFixture(separate_roots=True)
+        try:
+            fixture.init_lifecycle_git_roots()
+            initial = fixture.lifecycle_state()
+            fixture.write_lifecycle(initial)
+            generation_one = fixture.commit_lifecycle("generation one")
+            authorized = fixture.authorized_lifecycle_state(initial, generation_one)
+            fixture.write_lifecycle(authorized)
+            accepted = fixture.validate_lifecycle(generation_one)
+            self.assertEqual(0, accepted.returncode, accepted.stdout + accepted.stderr)
+            alternate_tree = subprocess.run(
+                ["git", "mktree"], cwd=fixture.artifact_root, input="", check=True,
+                text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            ).stdout.strip()
+
+            cases = [
+                (
+                    "canonical inputs digest",
+                    lambda state: state["authorization"].__setitem__("initial_digest", fixture.digest_text("wrong")),
+                    "canonical inputs digest",
+                ),
+                (
+                    "artifact tree object",
+                    lambda state: state["authorization"]["inputs"].__setitem__("artifact_tree", generation_one),
+                    "exact named tree",
+                ),
+                (
+                    "artifact tree relation",
+                    lambda state: state["authorization"]["inputs"].__setitem__("artifact_tree", alternate_tree),
+                    "initial artifact checkpoint tree",
+                ),
+                (
+                    "base commit object",
+                    lambda state: state["authorization"]["inputs"].__setitem__("base_commit", "0" * 40),
+                    "local git inspection failed",
+                ),
+                (
+                    "routing digest",
+                    lambda state: state["authorization"]["inputs"].__setitem__(
+                        "routing", fixture.digest_text("other routing")
+                    ),
+                    "initial lifecycle routing",
+                ),
+                (
+                    "budget authority digest",
+                    lambda state: state["authorization"]["inputs"].__setitem__(
+                        "budget_authority", fixture.digest_text("other budgets")
+                    ),
+                    "finite budget authority",
+                ),
+                (
+                    "complete package modes",
+                    lambda state: state.__setitem__("package_modes", {}),
+                    "bind every lifecycle package exactly",
+                ),
+            ]
+            for name, mutate, expected in cases:
+                with self.subTest(name=name):
+                    invalid = copy.deepcopy(authorized)
+                    mutate(invalid)
+                    if name not in {"canonical inputs digest", "complete package modes"}:
+                        invalid["authorization"]["initial_digest"] = SLICEPROOF.canonical_json_digest(
+                            invalid["authorization"]["inputs"]
+                        )
+                        invalid["authorization"]["effective_digest"] = invalid["authorization"]["initial_digest"]
+                    errors = SLICEPROOF.validate_lifecycle_state_data(
+                        invalid,
+                        artifact_root=fixture.artifact_root,
+                        code_root=fixture.repo,
+                        feature="fixture",
+                        verify_files=False,
+                        verify_git_objects=True,
+                    )
+                    self.assertIn(expected, "\n".join(errors))
+
+            next_state = copy.deepcopy(authorized)
+            next_state["generation"] = 3
+            next_state["last_verified"] = {
+                "artifact_ref": "refs/heads/artifacts/fixture", "artifact_sha": generation_one,
+                "state_digest": SLICEPROOF.canonical_json_digest(authorized), "generation": 2,
+            }
+            next_state["authorization"]["inputs"]["actions"] = fixture.digest_text("replacement actions")
+            self.assertIn(
+                "authorization inputs is immutable",
+                "\n".join(SLICEPROOF.compare_lifecycle_states(authorized, next_state)),
+            )
+
+            invalid_initial = copy.deepcopy(authorized)
+            invalid_initial["authorization"]["effective_digest"] = fixture.digest_text("not initial")
+            self.assertIn(
+                "initial authorization must start at its initial digest",
+                "\n".join(SLICEPROOF.compare_lifecycle_states(initial, invalid_initial)),
+            )
+        finally:
+            fixture.cleanup()
+
     def test_lifecycle_transition_enforces_predecessor_owner_budget_and_current_lineage(self) -> None:
         fixture = SliceproofFixture(separate_roots=True)
         try:
@@ -1098,7 +1290,7 @@ class SliceproofTests(unittest.TestCase):
             prior_done, reset_package = copy.deepcopy(authorized), copy.deepcopy(current)
             prior_done["packages"]["WP1"]["state"] = "done"
             reset_package["packages"]["WP1"]["state"] = "pending"
-            terminal_cases.append((prior_done, reset_package, "package WP1 cannot reset"))
+            terminal_cases.append((prior_done, reset_package, "package WP1 cannot move from done to pending"))
 
             prior_wave, reset_wave = copy.deepcopy(authorized), copy.deepcopy(current)
             prior_wave["packages"]["WP1"]["wave"] = "wave-2"
@@ -1141,6 +1333,43 @@ class SliceproofTests(unittest.TestCase):
             self.assertIn("cannot reset committed lifecycle history", "\n".join(json.loads(reset.stderr)["errors"]))
         finally:
             fixture.cleanup()
+
+    def test_package_state_transition_matrix_requires_reviewed_replan_reset(self) -> None:
+        states = sorted(SLICEPROOF.PACKAGE_LIFECYCLE_STATES)
+        for authorization_changed in (False, True):
+            for old_state in states:
+                expected = set(SLICEPROOF.PACKAGE_STATE_TRANSITIONS[old_state])
+                if authorization_changed and old_state in SLICEPROOF.REPLAN_RESET_STATES:
+                    expected.add("pending")
+                for new_state in states:
+                    with self.subTest(
+                        authorization_changed=authorization_changed,
+                        old_state=old_state,
+                        new_state=new_state,
+                    ):
+                        errors = SLICEPROOF.compare_package_states(
+                            {"WP1": {"state": old_state, "wave": None}},
+                            {"WP1": {"state": new_state, "wave": None}},
+                            authorization_changed,
+                        )
+                        self.assertEqual(new_state not in expected, bool(errors), errors)
+
+        self.assertEqual([], SLICEPROOF.compare_package_states(
+            {"WP1": {"state": "blocked", "wave": None}},
+            {"WP1": {"state": "pending", "wave": None}},
+            False,
+        ))
+        self.assertEqual([], SLICEPROOF.compare_package_states(
+            {"WP1": {"state": "invalidated", "wave": None}},
+            {"WP1": {"state": "in_progress", "wave": None}},
+            False,
+        ))
+        reset_errors = SLICEPROOF.compare_package_states(
+            {"WP1": {"state": "done", "wave": None}},
+            {"WP1": {"state": "pending", "wave": None}},
+            False,
+        )
+        self.assertIn("reviewed effective-digest change", "\n".join(reset_errors))
 
     def test_amendment_link_is_only_the_current_effective_digest_transition(self) -> None:
         fixture = SliceproofFixture(separate_roots=True)
@@ -1191,9 +1420,45 @@ class SliceproofTests(unittest.TestCase):
             accepted = fixture.validate_lifecycle(generation_two)
             self.assertEqual(0, accepted.returncode, accepted.stdout + accepted.stderr)
 
+            same_checkpoint = copy.deepcopy(amended)
+            same_checkpoint["artifact_checkpoint"] = copy.deepcopy(authorized["artifact_checkpoint"])
+            same_checkpoint["authorization"]["amendment_link"]["artifact_sha"] = authorized[
+                "artifact_checkpoint"
+            ]["sha"]
+            same_checkpoint["authorization"]["effective_digest"] = SLICEPROOF.technical_amendment_effective_digest(
+                link["parent_effective_digest"],
+                link["amendment_digest"],
+                authorized["artifact_checkpoint"]["sha"],
+            )
+            same_errors = "\n".join(SLICEPROOF.compare_lifecycle_states(authorized, same_checkpoint))
+            self.assertIn("requires a distinct artifact checkpoint", same_errors)
+
+            prior_done, reviewed_reset = copy.deepcopy(authorized), copy.deepcopy(amended)
+            prior_done["packages"]["WP1"]["state"] = "done"
+            reviewed_reset["packages"]["WP1"]["state"] = "pending"
+            self.assertFalse(any(
+                "package WP1" in error
+                for error in SLICEPROOF.compare_lifecycle_states(prior_done, reviewed_reset)
+            ))
+
+            for field, replacement in (
+                ("id", "auth-replaced"),
+                ("initial_digest", fixture.digest_text("replaced initial")),
+                ("inputs", {**authorized["authorization"]["inputs"], "actions": fixture.digest_text("changed")}),
+            ):
+                with self.subTest(immutable=field):
+                    changed = copy.deepcopy(amended)
+                    changed["authorization"][field] = replacement
+                    self.assertIn(
+                        f"authorization {field} is immutable",
+                        "\n".join(SLICEPROOF.compare_lifecycle_states(authorized, changed)),
+                    )
+
             unrelated = copy.deepcopy(amended)
             tree = fixture.git_at(fixture.artifact_root, "rev-parse", f"{generation_two}^{{tree}}")
-            unrelated_sha = fixture.git_at(fixture.artifact_root, "commit-tree", tree, "-m", "unrelated")
+            unrelated_sha = fixture.git_at(
+                fixture.artifact_root, "commit-tree", tree, "-p", generation_two, "-m", "unrelated descendant"
+            )
             unrelated["artifact_checkpoint"].update({"sha": unrelated_sha, "tree": tree})
             unrelated["authorization"]["amendment_link"]["artifact_sha"] = unrelated_sha
             unrelated["authorization"]["effective_digest"] = SLICEPROOF.technical_amendment_effective_digest(
@@ -1202,7 +1467,14 @@ class SliceproofTests(unittest.TestCase):
             fixture.write_lifecycle(unrelated)
             rejected_ancestry = fixture.validate_lifecycle(generation_two)
             self.assertNotEqual(0, rejected_ancestry.returncode, rejected_ancestry.stdout + rejected_ancestry.stderr)
-            self.assertIn("non-descendant", "\n".join(json.loads(rejected_ancestry.stderr)["errors"]))
+            self.assertEqual(
+                [], SLICEPROOF.validate_artifact_checkpoint_ancestry(fixture.artifact_root, authorized, unrelated),
+                "old-to-new ancestry alone must not accept a side-branch checkpoint",
+            )
+            self.assertIn(
+                "exact sidecar HEAD/predecessor lineage",
+                "\n".join(json.loads(rejected_ancestry.stderr)["errors"]),
+            )
 
             fixture.write_lifecycle(amended)
             generation_three = fixture.commit_lifecycle("generation three")

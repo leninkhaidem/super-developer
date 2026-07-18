@@ -1,5 +1,4 @@
 # Implementation Authorization Content
-
 ## Boundary
 This path owns execution-readiness and covered-action content for the sole Implementation Authorization.
 `review-plan` presents it after cold review; `implement` consumes the checkpointed receipt and never presents
@@ -9,10 +8,10 @@ another decision surface.
 Derive fields from reviewed artifacts, resolved testing authority, readiness, Git state, budgets, and instructions.
 Unknown fields or blocked required prerequisites prevent the decision.
 
-Offer exactly **Approve and auto-resolve**, **Request changes**, and **Abort**. `Approve and auto-resolve` begins
-delivery after the exact authorization checkpoint; it covers all listed routine in-scope actions without later
-repair/testing/evidence/checkpoint/handoff prompts. No per-stage or downstream implementation choice is added.
-
+Only initial clean `review-plan` offers **Approve and auto-resolve**, **Request changes**, and **Abort**. Approval
+begins delivery after the exact checkpoint and covers listed routine actions without later prompts. Nested-amendment
+review returns a cold receipt to the existing Delivery Owner; it never offers choices, creates an ID, or re-enters
+gate readiness. No per-stage or downstream implementation choice is added.
 ## Canonical Decision Surface
 
 ```text
@@ -33,14 +32,13 @@ Reviewed Technical Plan Baseline:
   allowed amendment policy: <envelope-preserving technical corrections + affected cold re-review only>
 
 Exact state and Authorization Digest inputs:
-  distinct artifact/code Git roots; artifact ref/candidate tree+commit: <exact values>
+  distinct artifact/code roots; artifact ref/candidate commit+tree; base commit: <exact verified objects>
+  immutable inputs snapshot: <artifact_tree, base_commit, clean_status, dependencies, routing, actions,
+    budget_authority, amendment_policy; last six are canonical digests>
+  initial digest: <canonical JSON digest of exactly inputs>; initial effective digest: <equal value>
   Lifecycle State path/generation/digest/last-verified predecessor: <derived path + exact values>
-  code root/base ref/base commit/clean-status digest: <exact values>
-  dependency and prerequisite snapshot: <exact digest/state>
-  packages, worktrees, refs, proof/report paths: <exact safe values>
-  covered-action manifest and finite budgets: <exact digests/values below>
-  expected deterministic mutations: <reviewed status, authorization record, lifecycle/worktree mutations>
-  canonical Authorization Digest: <digest over every listed input>
+  packages, worktrees, proof/report paths and expected deterministic mutations: <exact safe values>
+  one configured push endpoint and exact refs per relevant root: <authorized exact values>
 
 Execution readiness:
   mechanical plan/sidecar validation: <fresh result>
@@ -66,8 +64,8 @@ Covered writes and actions:
   commands/tests/runtime observations: <exact commands/categories and safety bounds>
   package waves/eligible repairs: <scope; one logical owner; batched root causes>
   reruns/evidence refresh/cleanup: <affected-only rules, widening triggers, exact cleanup>
-  checkpoints: <code-before-sidecar refs, derived Lifecycle State path, expected parents, CAS commands/boundaries>
-  listed pushes: <exact non-force sidecar/code-checkpoint/feature commands or none>
+  checkpoints: <code-before-sidecar refs, Lifecycle State path, expected parents, CAS boundaries>
+  listed pushes: <one exact configured endpoint per root + exact non-force sidecar/code/feature argv or none>
 
 Finite autonomous budgets:
   delegated calls by role: <maxima>
@@ -79,8 +77,8 @@ Finite autonomous budgets:
 Auto-resolve boundary:
   Includes listed implementation, tests, stabilization, repairs, reruns, evidence refresh, cleanup,
   cold technical amendment/re-review, checkpoints, and pushes.
-  Stops for envelope/scope/risk/budget change, unlisted action, blocked activation, exact-state/ownership loss,
-  no credible envelope-preserving design, open circuit, or exhausted budget.
+  Stops for envelope/scope/risk/budget or protected action/endpoint change, unlisted action, blocked activation,
+  exact-state/ownership loss, no credible envelope-preserving design, open circuit, or exhausted budget.
 
 Excluded/protected actions:
   initial Sidecar Portability Authorization: separate planning-only authority; not inherited here
@@ -100,9 +98,10 @@ Choices:
 
 - New dependencies/services and dependency manifest/lockfile changes are outside auto-resolve and require their
   own focused authority; reviewed plan text alone never authorizes them.
-- Delivery checkpoint authority is separate from initial Sidecar Portability Authorization. List immutable
-  `refs/heads/checkpoints/<feature>/<slot>/g<generation>` publication before sidecar CAS to
-  `refs/heads/artifacts/<feature>`; all are non-force and expected-parent-bound.
+- Delivery checkpoint authority is separate from Sidecar Portability Authorization. For each relevant root,
+  require one configured push endpoint, bind it in covered actions, capture it once, reject zero/multiple/change,
+  and use that exact argv for `ls-remote`, `push`, `fetch`, and post-check. A distinct fetch URL proves nothing.
+  Publish immutable checkpoint refs before expected-parent-bound sidecar CAS; all operations are non-force.
 - Feature push is covered only when its exact non-force ref/command appears. Target merge/push and release remain
   separate even when feature delivery is complete.
 - Semgrep stays advisory and local under reviewed policy. When enabled, list evidence paths and use only
@@ -113,7 +112,7 @@ Choices:
 
 ## Pipeline:
 
-1. validate the derived Lifecycle State against its exact committed predecessor; verify authorization checkpoint,
+1. validate Lifecycle State/predecessor plus canonical immutable inputs, objects/tree, authorization checkpoint,
    cheap freshness guard, then covered protected activation
 2. create/resume authorized worktrees and dispatch ready package owners
 3. stabilize production behavior and actual-path causal tests before proof conclusions
@@ -121,7 +120,8 @@ Choices:
 5. perform package verification, completion validation, merge, and code-before-sidecar checkpoints
 6. finish integrated checks/evidence and run root-aware final validation; freeze exact inputs
 7. invoke `review-code` and `audit` only as return-only independent checks against that freeze
-8. batch findings, delegate repairs only for eligible clusters, rerun affected checks, and establish a new freeze
+8. for amendment invoke nested `review-plan`, validate its cold receipt/effective digest, checkpoint; then batch findings, delegate repairs
+   only for eligible clusters, rerun affected checks, and establish a new freeze
 9. after clean review-code/audit acceptance, run listed final checkpoint and push the feature branch if covered
 
 ## Stop conditions:
@@ -132,9 +132,9 @@ boundaries; routine in-scope failure is returned to the Delivery Owner for bound
 
 ## Lifecycle Helper Boundary
 Run `sliceproof.py validate-lifecycle-state` with distinct roots, derived `--feature`, and full `--previous-commit`
-after generation 1. It validates local schema/objects/digests, immutable lineage, monotonic state, and predecessor;
-Git remote/ref CAS stays in the worktree contract. It never reserves, transitions, dispatches, pushes, or proves
-completion.
+after generation 1. It validates generation-1 null topology, local objects/tree/digests, immutable authorization,
+artifact ancestry on exact sidecar lineage, monotonic state, and predecessor. Exact-endpoint remote reachability/CAS
+stays in the worktree contract; the helper never reserves, transitions, dispatches, pushes, or proves completion.
 
 ## Activation Guard
 

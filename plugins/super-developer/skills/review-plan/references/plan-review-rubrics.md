@@ -78,28 +78,35 @@ Check that:
   performance, concurrency, cancellation, and recovery are represented where relevant; and
 - no package relies on future agents discovering unprojected requirements from raw Slice prose.
 
-## Authorization Challenge
+## Initial Authorization Challenge
 
-Before returning `NONE`, prove the proposed single decision surface can name exactly:
+In `initial` mode, before returning `NONE`, prove the proposed one decision surface can name exactly:
 
 - complete Human Authorization Envelope and reviewed initial Technical Plan Baseline;
-- artifact candidate tree/commit; base commit/status digest; dependency/prerequisite snapshot; assurance profile,
-  routing, package/receipt topology; covered actions; expected deterministic mutations; amendment policy; and
-  canonical Authorization Digest;
-- readiness results and protected activation probes/remedies;
-- exact covered implementation/test/documentation/evidence writes, commands/tests, repairs/reruns, cleanup,
-  checkpoints, and listed pushes with finite budgets; and
-- exclusions and escalation triggers, especially target operations, force/tag/release/delete/deploy, destructive or
-  external effects, and new dependency/service/credential work.
+- artifact candidate tree/commit; base commit/clean-status digest; dependency/prerequisite snapshot; assurance
+  profile/routing; covered actions; amendment policy; expected deterministic mutations; and finite budget authority;
+- one authorized configured push endpoint per relevant root plus each exact ref, readiness result, activation
+  probe/remedy, covered write/command/test/repair/rerun/checkpoint, exclusion, and escalation trigger; and
+- compact `inputs`: exact `artifact_tree`/`base_commit` and digests `clean_status`, `dependencies`, `routing`,
+  `actions`, `budget_authority`, `amendment_policy`; canonical initial digest is exactly its JSON digest.
 
-Reject any preliminary or later implementation approval, routine repair/testing/evidence re-prompt, or wording
-that lets sidecar portability authority expand into delivery/protected actions.
+Verify base/artifact objects and initial tree relation. Reject preliminary/later approval, routine re-prompts,
+multiple/implicit endpoints, or sidecar permission expansion. Only initial clean review can support the one choices
+and creation of an authorization ID.
 
-## Amendment and Slice Plane
+## Nested Amendment and Slice Plane
 
-For an amendment, the candidate handback starts from the old accepted commit and accounts for affected
+In `nested-amendment` mode, require the existing Delivery Owner/return stage, immutable ID/inputs/initial digest,
+parent effective digest/artifact, and unchanged envelope, covered/protected actions/endpoints, amendment policy,
+and budget authority. The new artifact is a distinct reviewed descendant on the exact sidecar lineage. Require a
+cold receipt binding parent/new baseline/artifact/tree, affected/preserved state, routing, invalidation/mapping, and
+verdict; its canonical digest plus exact parent/artifact derives the effective digest. Reject choices, a new/replaced
+ID, fresh-gate readiness, lifecycle checkpointing by review-plan, or direct implementation continuation.
+
+For either mode, the candidate handback starts from the old accepted commit and accounts for affected
 requirements/Slices/packages/assignments, production/test surfaces, stale proofs/reports/execution evidence/freeze
-inputs, evidence-backed preserved state, and old-to-new mapping.
+inputs, evidence-backed preserved state,
+and old-to-new mapping.
 
 Block unsafe/missing/symlink-escaped Slice paths, incomplete inventory/H3 accounting, stale or contradictory
 commitments, vague interface-bearing H3s, hidden required outcomes marked context-only, unapproved scope reduction,

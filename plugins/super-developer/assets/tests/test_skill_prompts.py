@@ -240,7 +240,11 @@ class SkillPromptSurfaceTests(unittest.TestCase):
             workflow.index("## Initial Authorized Sidecar Publication"):
             workflow.index("## Feature and Package Setup")
         ]
-        self.assertLess(initial.index("git ls-remote"), initial.index("git push origin"))
+        self.assertLess(
+            initial.index('git ls-remote --heads -- "$ARTIFACT_PUSH_ENDPOINT"'),
+            initial.index('git push -- "$ARTIFACT_PUSH_ENDPOINT"'),
+        )
+        self.assertNotIn("git push origin", initial)
         self.assertLess(initial.index("git add --"), initial.index("git commit"))
         self.assertIn("refs/heads/artifacts/<feature>", initial)
         self.assertNotRegex(initial, r"git add (?:-A|--all|\.)")
@@ -250,7 +254,10 @@ class SkillPromptSurfaceTests(unittest.TestCase):
             workflow.index("## Quiescent Code-Before-Sidecar Checkpoint"):
             workflow.index("## Safe Resume")
         ]
-        self.assertLess(checkpoint.index("git push origin \"$CODE_SHA:$CODE_REF\""), checkpoint.index("cd \"$ARTIFACT_ROOT\""))
+        self.assertLess(
+            checkpoint.index('git push -- "$CODE_PUSH_ENDPOINT" "$CODE_SHA:$CODE_REF"'),
+            checkpoint.index('cd "$ARTIFACT_ROOT"'),
+        )
         self.assertIn("refs/heads/checkpoints/<feature>/<slot>/g<generation>", checkpoint)
         self.assertIn("FINALIZED_PATHS", checkpoint)
         self.assertNotRegex(checkpoint, r"git add (?:-A|--all|\.)")
@@ -320,7 +327,7 @@ class SkillPromptSurfaceTests(unittest.TestCase):
         for rel in surfaces:
             self.assertLessEqual(len(read_repo(rel).splitlines()), 150, rel)
 
-    def test_a3_cold_review_precedes_the_sole_authorization_and_delivery_guard(self) -> None:
+    def test_a3_initial_and_nested_review_have_one_causal_authorization_gate(self) -> None:
         affected = [
             "plugins/super-developer/skills/review-plan/SKILL.md",
             "plugins/super-developer/skills/review-plan/references/plan-review-resolution.md",
@@ -330,47 +337,54 @@ class SkillPromptSurfaceTests(unittest.TestCase):
             "plugins/super-developer/references/orchestration-convergence.md",
         ]
         texts = {rel: read_repo(rel) for rel in affected}
-        review = compact_text(texts[affected[0]])
+        review_raw = texts[affected[0]]
+        review = compact_text(review_raw)
         implement = compact_text(texts[affected[3]])
         decision = compact_text(texts[affected[4]])
         convergence = compact_text(texts[affected[5]])
         combined = "\n".join(texts.values())
 
-        # Causal path: cold challenge and batched correction happen before readiness and
-        # the user decision; the exact checkpoint then precedes Delivery Owner activation.
-        ordered_review = [
-            "Dispatch one cold Plan Reviewer/Triage",
-            "Aggregate all findings into one coherent result",
-            "dispatch affected cold re-review",
-            "validate execution readiness",
-            "Present the reviewed plan",
-            "On `Approve and auto-resolve`",
-            "after this exact checkpoint passes",
+        # Shared cold challenge precedes two disjoint causal branches.
+        self.assertLess(review.index("Dispatch one cold Plan Reviewer/Triage"), review.index("Aggregate all findings"))
+        self.assertLess(review.index("dispatch affected cold re-review"), review.index("## Initial Branch"))
+        initial = review_raw[
+            review_raw.index("## Initial Branch — The One Gate"):
+            review_raw.index("## Nested Amendment Branch — Return Only")
         ]
-        for earlier, later in zip(ordered_review, ordered_review[1:]):
-            self.assertLess(review.index(earlier), review.index(later))
-        self.assertLess(
-            implement.index("Validate the authorization receipt"),
-            implement.index("run the cheap exact freshness guard"),
-        )
-        self.assertLess(
-            implement.index("run the cheap exact freshness guard"),
-            implement.index("Run each exact `protected-activation-required` probe"),
-        )
-        self.assertLess(
-            implement.index("Run each exact `protected-activation-required` probe"),
-            implement.index("use `worktree` for authorized setup/resume"),
-        )
+        nested = review_raw[
+            review_raw.index("## Nested Amendment Branch — Return Only"):
+            review_raw.index("## Stop if")
+        ]
+        for earlier, later in [
+            ("validate execution readiness", "Construct the compact authorization `inputs` snapshot"),
+            ("Construct the compact authorization `inputs` snapshot", "present the"),
+            ("present the", "On `Approve and auto-resolve`"),
+            ("On `Approve and auto-resolve`", "CAS-checkpoint"),
+        ]:
+            self.assertLess(initial.index(earlier), initial.index(later))
+        for choice in ["Approve and auto-resolve", "Request changes", "Abort"]:
+            self.assertIn(choice, initial)
+            self.assertNotIn(choice, nested)
+        self.assertIn("existing Delivery Owner", nested)
+        self.assertIn("distinct reviewed descendant", nested)
+        self.assertIn("derive the next effective digest", nested)
+        self.assertIn("Never present authorization choices", nested)
+        self.assertIn("The Delivery Owner validates", nested)
 
-        # Only review-plan presents the decision. The historical execution-contract path
-        # supplies its content and implement consumes the checkpointed receipt.
+        # Initial digest is reproducible; nested mode preserves lineage and returns before continuation.
+        for field in [
+            "artifact_tree", "base_commit", "clean_status", "dependencies", "routing", "actions",
+            "budget_authority", "amendment_policy",
+        ]:
+            self.assertIn(field, combined)
+        self.assertIn("canonical JSON digest of exactly", combined)
+        self.assertIn("inputs/initial digest", implement)
+        self.assertLess(implement.index("Validate the receipt"), implement.index("run the exact freshness guard"))
         self.assertLess(
-            review.index("ask one focused product question"),
-            review.index("before offering an authorization candidate"),
+            implement.index("invoke cold `review-plan` explicitly in `nested-amendment` mode"),
+            implement.index("Only after that validation checkpoint"),
         )
-        self.assertEqual(1, combined.count("On `Approve and auto-resolve`"))
-        self.assertIn("sole Implementation Authorization", review)
-        self.assertIn("never presents another decision surface", decision)
+        self.assertIn("never offers choices, creates an ID", decision)
         self.assertIn("There is no later execution decision", convergence)
         self.assertIn("Never present another execution decision", implement)
         for stale in ["Gate 1", "Gate 2", "step-by-step", "approve auto-resolve"]:
@@ -409,11 +423,14 @@ class SkillPromptSurfaceTests(unittest.TestCase):
         ]
         self.assertLess(initial.index("validate-lifecycle-state"), initial.index("git add --"))
         self.assertLess(
-            checkpoint.index('git push origin "$CODE_SHA:$CODE_REF"'),
+            checkpoint.index('git push -- "$CODE_PUSH_ENDPOINT" "$CODE_SHA:$CODE_REF"'),
             checkpoint.index("validate-lifecycle-state"),
         )
         self.assertLess(checkpoint.index("validate-lifecycle-state"), checkpoint.index("git add --"))
-        self.assertIn("Git remote/ref CAS stays in the worktree contract", texts[affected[3]])
+        self.assertIn(
+            "Exact-endpoint remote reachability/CAS stays in the worktree contract",
+            compact_text(texts[affected[3]]),
+        )
         for rel, text in texts.items():
             self.assertLessEqual(len(text.splitlines()), 150, rel)
 
@@ -425,6 +442,50 @@ class SkillPromptSurfaceTests(unittest.TestCase):
         self.assertNotIn('["push"', helper)
         self.assertNotIn('["fetch"', helper)
         self.assertNotIn('["ls-remote"', helper)
+
+    def test_phase_a_corrections_bind_endpoint_authorization_and_replan_state(self) -> None:
+        workflow = read_repo(
+            "plugins/super-developer/skills/worktree/references/feature-package-workflow.md"
+        )
+        store = read_repo("plugins/super-developer/references/artifact-store.md")
+        artifacts = read_repo("plugins/super-developer/references/slice-first-artifacts.md")
+        lifecycle = read_repo("plugins/super-developer/references/package-lifecycle.md")
+        readme = read_repo("plugins/super-developer/README.md")
+
+        endpoint_fence = workflow[
+            workflow.index("## Exact Push Endpoint Fence"):
+            workflow.index("## Layout and Local Sidecar Setup")
+        ]
+        for token in [
+            "git remote get-url --push --all", '"${#endpoints[@]}" -eq 1',
+            "assert_push_endpoint_unchanged", "one quoted argv value", "distinct `pushurl`",
+        ]:
+            self.assertIn(token, endpoint_fence)
+        remote_commands = [
+            line for line in workflow.splitlines()
+            if re.search(r"\bgit (?:ls-remote|push|fetch)\b", line)
+        ]
+        self.assertTrue(remote_commands)
+        for line in remote_commands:
+            self.assertRegex(line, r'"\$(?:ARTIFACT|CODE)_PUSH_ENDPOINT"', line)
+            self.assertNotRegex(line, r"\bgit (?:ls-remote|push|fetch)[^\n]*\borigin\b", line)
+        self.assertIn("zero/multiple/changed endpoint", workflow)
+        self.assertIn("Remote reachability belongs here", workflow)
+        self.assertIn("exact configured push endpoint", store)
+
+        artifact_compact = compact_text(artifacts)
+        for token in [
+            "Generation 1 is initial topology", "Initial publication with a code ref is invalid",
+            "complete Implementation Authorization", "canonical sorted-key compact UTF-8 JSON",
+            "distinct reviewed descendant", "exact sidecar lineage", "no sequence/history array",
+            "reviewed effective-digest change", "blocked resolution", "explicit repair progression",
+        ]:
+            self.assertIn(token, artifact_compact)
+        self.assertIn("requires a reviewed effective-digest", lifecycle)
+        for obsolete in ["Execution Contract", "step-by-step", "sibling checks", "Gate-2"]:
+            self.assertNotIn(obsolete, readme)
+        self.assertIn("ONE Implementation Authorization", readme)
+        self.assertIn("nested envelope-preserving amendments return cold receipts", compact_text(readme))
 
     def test_obsolete_or_unsafe_terms_are_only_negative_guidance(self) -> None:
         for path in prompt_surface_paths():

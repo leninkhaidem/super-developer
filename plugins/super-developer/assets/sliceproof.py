@@ -57,6 +57,16 @@ LIFECYCLE_STAGES = PREAUTH_LIFECYCLE_STAGES | AUTHORIZED_LIFECYCLE_STAGES | NEUT
 PREAUTH_BUDGET_STAGES = PREAUTH_LIFECYCLE_STAGES - {"conceptualization", "conceptualization-checkpoint"}
 OWNER_DISPOSITIONS = {"unassigned", "active", "stopped", "released"}
 PACKAGE_LIFECYCLE_STATES = {"pending", "in_progress", "stabilized", "verified", "done", "blocked", "invalidated"}
+PACKAGE_STATE_TRANSITIONS = {
+    "pending": {"pending", "in_progress", "blocked", "invalidated"},
+    "in_progress": {"in_progress", "stabilized", "blocked", "invalidated"},
+    "stabilized": {"stabilized", "verified", "in_progress", "blocked", "invalidated"},
+    "verified": {"verified", "done", "in_progress", "blocked", "invalidated"},
+    "done": {"done", "invalidated"},
+    "blocked": {"blocked", "pending", "in_progress", "invalidated"},
+    "invalidated": {"invalidated", "in_progress", "blocked"},
+}
+REPLAN_RESET_STATES = {"in_progress", "stabilized", "verified", "done", "invalidated"}
 WAVE_STATES = {"reserved", "active", "quiescent", "completed", "blocked"}
 CLUSTER_DISPOSITIONS = {"repair-eligible", "closed", "circuit-open"}
 PREAUTH_REQUIRED_COUNTERS = {"delegated_calls", "planner_correction_waves", "spike_waves", "command_units"}
@@ -522,6 +532,16 @@ def cmd_validate_lifecycle_state(args: argparse.Namespace) -> dict[str, Any]:
     if errors:
         raise SliceproofError(errors)
 
+    head = git_head_or_none(artifact_root)
+    lineage_errors = validate_artifact_checkpoint_lineage(
+        artifact_root,
+        state["artifact_checkpoint"]["sha"],
+        head,
+        "lifecycle-state.json.artifact_checkpoint.sha",
+    )
+    if lineage_errors:
+        raise SliceproofError(lineage_errors)
+
     generation = state["generation"]
     previous_digest: str | None = None
     if generation == 1:
@@ -548,8 +568,31 @@ def cmd_validate_lifecycle_state(args: argparse.Namespace) -> dict[str, Any]:
         )
         if prior_errors:
             raise SliceproofError([f"prior snapshot: {error}" for error in prior_errors])
+        prior_artifact = previous["artifact_checkpoint"]
+        if prior_artifact["sha"] is not None:
+            prior_object_errors: list[str] = []
+            prior_tree = git_commit_tree(
+                artifact_root,
+                prior_artifact["sha"],
+                "prior snapshot: artifact_checkpoint.sha",
+                prior_object_errors,
+            )
+            if prior_tree is not None and prior_tree != prior_artifact["tree"]:
+                prior_object_errors.append(
+                    "prior snapshot: artifact_checkpoint.tree does not match checkpoint commit tree"
+                )
+            if prior_object_errors:
+                raise SliceproofError(prior_object_errors)
         if previous["quiescent"] is not True:
             raise SliceproofError(["prior snapshot: last_verified fallback must be quiescent"])
+        prior_lineage_errors = validate_artifact_checkpoint_lineage(
+            artifact_root,
+            previous["artifact_checkpoint"]["sha"],
+            args.previous_commit,
+            "prior snapshot: artifact_checkpoint.sha",
+        )
+        if prior_lineage_errors:
+            raise SliceproofError(prior_lineage_errors)
         previous_digest = canonical_json_digest(previous)
         if state["last_verified"]["state_digest"] != previous_digest:
             raise SliceproofError([
@@ -609,6 +652,16 @@ NONNEGATIVE_INT_SCHEMA = ("rule", lambda value: type(value) is int and value >= 
 NULLABLE_TOKEN_SCHEMA = ("nullable", TOKEN_SCHEMA)
 NULLABLE_DIGEST_SCHEMA = ("nullable", DIGEST_SCHEMA)
 NULLABLE_SHA_SCHEMA = ("nullable", SHA_SCHEMA)
+AUTHORIZATION_INPUTS_SCHEMA = {
+    "artifact_tree": SHA_SCHEMA,
+    "base_commit": SHA_SCHEMA,
+    "clean_status": DIGEST_SCHEMA,
+    "dependencies": DIGEST_SCHEMA,
+    "routing": DIGEST_SCHEMA,
+    "actions": DIGEST_SCHEMA,
+    "budget_authority": DIGEST_SCHEMA,
+    "amendment_policy": DIGEST_SCHEMA,
+}
 BUDGET_SCHEMA = ("nullable", {
     "maxima": ("map", COUNTER_SCHEMA, NONNEGATIVE_INT_SCHEMA),
     "issued": ("map", COUNTER_SCHEMA, NONNEGATIVE_INT_SCHEMA),
@@ -639,6 +692,7 @@ LIFECYCLE_JSON_SCHEMA = {
         "id": NULLABLE_TOKEN_SCHEMA,
         "initial_digest": NULLABLE_DIGEST_SCHEMA,
         "effective_digest": NULLABLE_DIGEST_SCHEMA,
+        "inputs": ("nullable", AUTHORIZATION_INPUTS_SCHEMA),
         "amendment_link": ("nullable", {
             "parent_effective_digest": DIGEST_SCHEMA,
             "amendment_digest": DIGEST_SCHEMA,
@@ -797,21 +851,25 @@ def validate_lifecycle_state_data(
             require_git_commit(code_root, code["sha"], f"{label}.code_checkpoint.sha", errors)
 
     authorization = state["authorization"]
-    auth_values = [authorization[field] for field in ("id", "initial_digest", "effective_digest")]
+    auth_fields = ("id", "initial_digest", "effective_digest", "inputs")
+    auth_values = [authorization[field] for field in auth_fields]
     authorization_complete = all(value is not None for value in auth_values)
     if any(value is not None for value in auth_values) and not authorization_complete:
-        errors.append(f"{label}.authorization: id, initial_digest, and effective_digest must be all null or all set")
+        errors.append(
+            f"{label}.authorization: id, initial_digest, effective_digest, and inputs must be all null or all set"
+        )
     if stage in PREAUTH_LIFECYCLE_STAGES and authorization_complete:
         errors.append(f"{label}.authorization: must be empty before authorization")
     if stage in AUTHORIZED_LIFECYCLE_STAGES and not authorization_complete:
         errors.append(f"{label}.authorization: complete lineage is required at stage {stage!r}")
     if authorization_complete and artifact["sha"] is None:
         errors.append(f"{label}.artifact_checkpoint: authorized state requires exact commit and tree")
+    if code is not None and not authorization_complete:
+        errors.append(f"{label}.code_checkpoint: complete implementation authorization is required")
+
     amendment = authorization["amendment_link"]
     if amendment is not None and not authorization_complete:
         errors.append(f"{label}.authorization.amendment_link: requires complete authorization fields")
-    if generation == 1 and authorization_complete and authorization["effective_digest"] != authorization["initial_digest"]:
-        errors.append(f"{label}.authorization.effective_digest: generation 1 must equal initial_digest")
     if amendment is not None:
         computed = technical_amendment_effective_digest(
             amendment["parent_effective_digest"], amendment["amendment_digest"], amendment["artifact_sha"]
@@ -830,6 +888,48 @@ def validate_lifecycle_state_data(
     validate_lifecycle_budget_invariants(state, authorization_complete, errors)
 
     packages, wave = state["packages"], state["wave"]
+    if authorization_complete:
+        inputs = authorization["inputs"]
+        if authorization["initial_digest"] != canonical_json_digest(inputs):
+            errors.append(f"{label}.authorization.initial_digest: must equal the canonical inputs digest")
+        if verify_git_objects:
+            require_git_tree(artifact_root, inputs["artifact_tree"], f"{label}.authorization.inputs.artifact_tree", errors)
+            require_git_commit(code_root, inputs["base_commit"], f"{label}.authorization.inputs.base_commit", errors)
+        profile = state.get("assurance_profile")
+        modes = state.get("package_modes")
+        if profile is None:
+            errors.append(f"{label}.assurance_profile: required after authorization")
+        if not isinstance(modes, dict) or not modes or set(modes) != set(packages):
+            errors.append(f"{label}.package_modes: authorized state must bind every lifecycle package exactly")
+        if not packages:
+            errors.append(f"{label}.packages: authorized state requires at least one package")
+        if authorization["effective_digest"] == authorization["initial_digest"]:
+            if inputs["artifact_tree"] != artifact["tree"]:
+                errors.append(
+                    f"{label}.authorization.inputs.artifact_tree: must match the initial artifact checkpoint tree"
+                )
+            if profile is not None and isinstance(modes, dict):
+                routing = canonical_json_digest({"assurance_profile": profile, "package_modes": modes})
+                if inputs["routing"] != routing:
+                    errors.append(f"{label}.authorization.inputs.routing: does not match initial lifecycle routing")
+        expected_budget_authority = authorization_budget_authority_digest(state["budgets"])
+        if inputs["budget_authority"] != expected_budget_authority:
+            errors.append(f"{label}.authorization.inputs.budget_authority: does not match finite budget authority")
+
+    if generation == 1:
+        future_state = {
+            "artifact_checkpoint": artifact["sha"] is not None or artifact["tree"] is not None,
+            "code_checkpoint": code is not None,
+            "authorization": any(value is not None for value in auth_values) or amendment is not None,
+            "packages": bool(packages),
+            "wave": wave is not None,
+            "serious_clusters": bool(state["serious_clusters"]),
+            "freeze": state["freeze"] is not None,
+            "receipts": bool(state["receipts"]),
+        }
+        populated = sorted(name for name, present in future_state.items() if present)
+        if populated:
+            errors.append(f"{label}: generation 1 requires initial null/empty topology; found {populated}")
     if wave is None and any(package["wave"] is not None for package in packages.values()):
         errors.append(f"{label}.wave: package wave pointers require a current wave")
     if wave is not None:
@@ -960,6 +1060,24 @@ def technical_amendment_effective_digest(parent: str, amendment: str, artifact_s
         "artifact_sha": artifact_sha,
         "parent_effective_digest": parent,
         "technical_amendment_digest": amendment,
+    })
+
+
+def authorization_budget_authority_digest(budgets: dict[str, Any]) -> str:
+    def fixed_budget(name: str) -> dict[str, Any] | None:
+        budget = budgets[name]
+        if budget is None:
+            return None
+        return {
+            "maxima": budget["maxima"],
+            "started_at": budget["started_at"],
+            "deadline_at": budget["deadline_at"],
+        }
+
+    return canonical_json_digest({
+        "preauthorization": fixed_budget("preauthorization"),
+        "implementation": fixed_budget("implementation"),
+        "control_plane_maximum": budgets["control_plane_reserve"]["maximum"],
     })
 
 
@@ -1097,17 +1215,23 @@ def compare_lifecycle_states(previous: dict[str, Any], current: dict[str, Any]) 
         if not current_authorized:
             errors.append("lifecycle transition: authorization cannot reset")
         else:
-            for field in ("id", "initial_digest"):
+            for field in ("id", "initial_digest", "inputs"):
                 if current_auth[field] != previous_auth[field]:
                     errors.append(f"lifecycle transition: authorization {field} is immutable")
             authorization_changed = current_auth["effective_digest"] != previous_auth["effective_digest"]
             link = current_auth.get("amendment_link")
+            old_artifact = previous["artifact_checkpoint"]["sha"]
+            new_artifact = current["artifact_checkpoint"]["sha"]
             if authorization_changed:
                 if not isinstance(link, dict) or link.get("parent_effective_digest") != previous_auth["effective_digest"]:
                     errors.append("lifecycle transition: effective authorization digest requires an exact amendment link")
+                if new_artifact == old_artifact:
+                    errors.append("lifecycle transition: effective authorization digest requires a distinct artifact checkpoint")
+                if not isinstance(link, dict) or link.get("artifact_sha") != new_artifact:
+                    errors.append("lifecycle transition: amendment link must name the exact new artifact checkpoint")
             elif link is not None:
                 errors.append("lifecycle transition: amendment_link is allowed only for this generation's effective-digest change")
-            if current["artifact_checkpoint"]["sha"] != previous["artifact_checkpoint"]["sha"] and not authorization_changed:
+            if new_artifact != old_artifact and not authorization_changed:
                 errors.append("lifecycle transition: authorized artifact checkpoint changed without technical amendment")
             if not authorization_changed:
                 for field in ("assurance_profile", "package_modes"):
@@ -1122,13 +1246,7 @@ def compare_lifecycle_states(previous: dict[str, Any], current: dict[str, Any]) 
     previous_packages, current_packages = previous["packages"], current["packages"]
     if previous_authorized and not authorization_changed and set(previous_packages) != set(current_packages):
         errors.append("lifecycle transition: authorized package membership changed without technical amendment")
-    for package_id in set(previous_packages) & set(current_packages):
-        old_state = previous_packages[package_id]["state"]
-        new_state = current_packages[package_id]["state"]
-        allowed = ({"done", "invalidated"} if old_state == "done" else
-                   {"verified", "done", "invalidated"} if old_state == "verified" else None)
-        if allowed is not None and new_state not in allowed:
-            errors.append(f"lifecycle transition: package {package_id} cannot reset from {old_state} to {new_state}")
+    errors.extend(compare_package_states(previous_packages, current_packages, authorization_changed))
 
     previous_wave, current_wave = previous["wave"], current["wave"]
     if previous_wave is not None:
@@ -1164,6 +1282,49 @@ def compare_lifecycle_states(previous: dict[str, Any], current: dict[str, Any]) 
             if new_receipts.get(key) != old:
                 errors.append(f"lifecycle transition: receipt pointer {key!r} cannot mutate under the same freeze")
     return errors
+
+
+def compare_package_states(
+    previous: dict[str, dict[str, Any]],
+    current: dict[str, dict[str, Any]],
+    authorization_changed: bool,
+) -> list[str]:
+    errors: list[str] = []
+    for package_id in sorted(set(previous) & set(current)):
+        old_state = previous[package_id]["state"]
+        new_state = current[package_id]["state"]
+        reviewed_replan_reset = (
+            authorization_changed and old_state in REPLAN_RESET_STATES and new_state == "pending"
+        )
+        if new_state not in PACKAGE_STATE_TRANSITIONS[old_state] and not reviewed_replan_reset:
+            suffix = "; pending replan reset requires a reviewed effective-digest change" if new_state == "pending" else ""
+            errors.append(
+                f"lifecycle transition: package {package_id} cannot move from {old_state} to {new_state}{suffix}"
+            )
+    return errors
+
+
+def validate_artifact_checkpoint_lineage(
+    artifact_root: Path,
+    checkpoint_sha: str | None,
+    lineage_tip: str | None,
+    label: str,
+) -> list[str]:
+    if checkpoint_sha is None:
+        return []
+    if lineage_tip is None:
+        return [f"{label}: cannot exist before the sidecar has an exact HEAD lineage"]
+    result = git_process(
+        artifact_root,
+        ["merge-base", "--is-ancestor", checkpoint_sha, lineage_tip],
+        label,
+    )
+    if result.returncode == 0:
+        return []
+    if result.returncode == 1:
+        return [f"{label}: must be an ancestor of the exact sidecar HEAD/predecessor lineage"]
+    detail = result.stderr.strip() or f"exit {result.returncode}"
+    return [f"{label}: unable to verify exact sidecar lineage: {detail}"]
 
 
 def validate_artifact_checkpoint_ancestry(
@@ -1304,6 +1465,16 @@ def git_commit_tree(root: Path, sha: str, label: str, errors: list[str]) -> str 
     except SliceproofError as exc:
         errors.extend(exc.errors)
         return None
+
+
+def require_git_tree(root: Path, sha: str, label: str, errors: list[str]) -> None:
+    try:
+        actual_type = git_output(root, ["cat-file", "-t", sha], label).strip()
+    except SliceproofError as exc:
+        errors.extend(exc.errors)
+        return
+    if actual_type != "tree":
+        errors.append(f"{label}: does not resolve to the exact named tree")
 
 
 def require_exact_git_sha(value: Any, label: str, errors: list[str]) -> bool:

@@ -17,13 +17,13 @@ Use artifact-root package surfaces, never an assumed code checkout:
 - Package and integration worktrees are separate code roots for source edits and validation.
 
 ## Candidate and Readiness Checks
-Before every semantic dispatch, validate Lifecycle State against its exact predecessor with explicit distinct
-roots. Require the active owner and bounded reservation already charged to monotonic issued usage, then
-CAS-checkpoint it through the worktree contract before the call. Helper only validates/emits digests; it never
-reserves, dispatches, transitions, or pushes.
+Before dispatch, validate Lifecycle State/predecessor with distinct roots, immutable authorization inputs/effective
+digest, active owner, and a charged reservation; CAS-checkpoint through the worktree contract using one captured
+authorized endpoint per root. Helper never proves remote reachability, reserves, dispatches, transitions, or pushes.
 Then confirm:
 
-- the `WP<N>` registry entry is `pending` or explicitly resumed for repair;
+- a new `WP<N>` is `pending`; blocked resolution and explicit `in_progress` repair follow the state matrix. Any
+  advanced/invalidated-to-pending replan requires a reviewed effective-digest amendment, never a status-only reset;
 - every dependency has a fresh `PASS` report and clean `validate-package-complete`; registry `done` alone does
   not unlock dependents, and proof rows alone do not unlock dependents;
 - `sliceproof.py validate-plan` passed and package/proof/report paths agree under the artifact root;

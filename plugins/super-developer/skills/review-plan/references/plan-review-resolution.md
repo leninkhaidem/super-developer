@@ -68,26 +68,31 @@ scope. Suggestions never block.
 
 ## Workflow
 
-1. Batch duplicates and related root mechanisms before action.
-2. Classify every finding and identify envelope versus Technical Plan Baseline impact.
-3. Apply mechanical fixes; route technical, empirical, and architecture corrections agent-to-agent.
-4. Ask one recommendation-bearing product question only for a Human Authorization Envelope change.
-5. Persist the resolution in its canonical artifact and update amendment affected/preserved-state handback.
-6. Rerun mechanical validation from the code root with explicit artifact/code roots.
-7. Re-review changed semantic content and every directly affected package, Slice, consumed contract, command,
+1. Confirm `initial` or `nested-amendment`. Initial has no authorization; nested names the existing Delivery Owner,
+   immutable ID/inputs/initial digest, parent effective digest/artifact, and exact return stage.
+2. Batch duplicates and related root mechanisms before action.
+3. Classify every finding and identify envelope versus Technical Plan Baseline impact.
+4. Apply mechanical fixes; route technical, empirical, and architecture corrections agent-to-agent.
+5. Ask one recommendation-bearing product question only for envelope, protected action/endpoint, covered-action or
+   budget-authority change; that stops nested mode and cannot silently replace its authorization.
+6. Persist the resolution in canonical artifacts and update amendment affected/preserved-state handback.
+7. Rerun mechanical validation from the code root with explicit artifact/code roots.
+8. Re-review changed semantic content and every directly affected package, Slice, consumed contract, command,
    prerequisite, readiness result, assurance route, or Authorization Digest input.
-8. Widen to holistic cold re-review only for global envelope, package graph, Slice inventory, cross-package
-   contract, profile/routing, or digest-input changes.
-9. Stop after one coherent serious-cluster correction plus affected re-review; recurrence returns method/authority
-   reassessment rather than an unchanged loop.
+9. Widen only for global envelope, package graph, Slice inventory, cross-package contract, routing, or digest-input
+   impact. Stop after one coherent serious-cluster correction plus affected re-review; recurrence returns
+   method/authority reassessment rather than an unchanged loop.
 
-## Ready Result
+## Mode-Specific Clean Result
 
-Ready means no blocker remains; all expected obligations/H3s are accounted for; dependencies and actual-path
-verification are credible; plan-changing prerequisites are resolved; protected activations are exact; readiness
-inputs are source-bound; and the reviewed baseline plus auto-resolve boundary can populate one exact decision
-surface. Remaining suggestions are explicitly dismissed or recorded as non-blocking.
+For **initial** mode, clean means obligations/H3s are accounted for, actual-path verification is credible,
+plan-changing prerequisites are resolved, protected activations are exact, and source-bound readiness can populate
+one decision surface. The review-plan orchestrator—not the reviewer—constructs and verifies the compact exact
+`inputs` snapshot, computes its canonical initial digest, presents the one choices, and checkpoints it on approval.
 
-For an amendment, bind old/new accepted commits to affected requirements/Slices/packages/assignments,
-production/test surfaces, stale proofs/reports/execution evidence/freeze inputs, evidence-backed preserved state,
-and old-to-new package mapping.
+For **nested-amendment** mode, clean means the Human Envelope, immutable input snapshot/ID/initial digest, covered
+and protected actions/endpoints, amendment policy, and budget authority remain unchanged. Bind old/new baseline and
+artifact commits, affected requirements/Slices/packages/assignments, production/test surfaces, stale evidence/
+freeze inputs, preserved state, routing, mapping, and cold verdict into one amendment receipt. Review-plan returns
+its canonical digest, exact parent/artifact, and derived effective digest to the existing Delivery Owner. It never
+presents choices, mints/replaces an ID, checkpoints lifecycle state, or describes this as fresh gate readiness.

@@ -54,18 +54,23 @@ invocation. If neither exists, ask exactly one focused discovery question recomm
 A refusal or unavailable safe namespaced remote blocks the planning transition; it does not select current-root.
 
 This permission covers only non-force compare-and-swap publication from the sidecar to the exact
-`refs/heads/artifacts/<feature>` ref during discovery/planning. It does not authorize code/checkpoint/feature/target
-pushes, force, merge, tag, release, deployment, deletion, cleanup, credentials, or any other remote operation.
-Record the permission source in Lifecycle State and the handoff.
+`refs/heads/artifacts/<feature>` ref at one exact configured push endpoint during discovery/planning. Record that
+endpoint and permission provenance before Git access; zero/multiple push endpoints, an authorization mismatch, or
+a changed endpoint blocks. A distinct fetch URL is allowed but never used as verification. It does not authorize
+code/checkpoint/feature/target pushes, force, merge, tag, release,
+deployment, deletion, cleanup, credentials, or any other remote operation. Record the permission source in
+Lifecycle State and the handoff; the exact endpoint stays in the authorization/covered-action snapshot, not state.
 
 ## Initial Lifecycle State
 
 The initial finalized path set includes the safe `.planning/<feature>/` inventory, migration provenance when any,
 and `.tasks/<feature>/lifecycle-state.json`. Initialize the schema-v1 compact current snapshot from
 `slice-first-artifacts.md`: generation 1, derived feature/path/ref, current stage/quiescence/action, explicit owner
-state, null authorization/code/freeze pointers, empty package/wave/cluster/receipt state, and last-verified `null`.
-Record the portability-authorization source. Start finite preauthorization state only at the planning handoff;
-implementation state remains `null` until authorization. Git history is the history: never add events/transcripts.
+state, null artifact SHA/tree, code, authorization inputs/lineage/amendment, freeze and last-verified pointers, and
+empty package/wave/cluster/receipt state. Record the portability-authorization source. Start finite
+preauthorization state only at the planning handoff; implementation state remains `null` until authorization. Git
+history is the history: never add events/transcripts. Generation-1 validation makes publication with code refs
+impossible.
 
 ## Mechanical Validation Boundary
 
@@ -73,8 +78,10 @@ implementation state remains `null` until authorization. Git history is the hist
 derives `.tasks/<feature>/lifecycle-state.json` and accepts no caller-selected state path. Generation 1 has no
 predecessor argument and cannot replace existing committed history. Every later snapshot names `last_verified`
 and is checked with the exact full `--previous-commit` containing that prior state. The helper reads local Git
-objects, verifies the committed regular blob/linear predecessor, and emits canonical digests. It never fetches,
-pushes, reserves budget, changes owner/stage/status, dispatches, or establishes semantic completion.
+objects, verifies the committed regular blob/linear predecessor, exact authorization objects/tree relation, and
+that every artifact checkpoint is an ancestor of the exact sidecar HEAD/predecessor lineage; then it emits
+canonical digests. It never fetches, pushes, reserves budget, changes owner/stage/status, dispatches, proves remote
+reachability, or establishes semantic completion.
 
 A legacy current-root import initializes generation 1 only in the new empty sidecar after provenance/revalidation.
 A pre-existing partial sidecar state is not schema-v1 authority and has no silent upgrader; it requires an explicit
@@ -83,12 +90,14 @@ compatibility behavior, but planned lifecycle authority requires exact roots, st
 
 ## Publication and Resume Invariants
 
-- Initial publication first validates generation 1, verifies the remote artifact ref is absent, commits only exact
-  finalized paths, performs one non-force CAS push to `artifacts/<feature>`, then fetches/verifies its exact SHA.
-  Unexpected state, parent, rejection, or unverifiable remote is a blocker.
+- Initial publication first validates generation-1 initial/null topology, captures exactly one authorized push
+  endpoint, verifies the artifact ref is absent there, commits only exact finalized paths, then uses that captured
+  endpoint as argv for non-force CAS push, fetch, and exact post-check. A changed endpoint or unexpected state,
+  parent, rejection, code ref, or unverifiable remote is a blocker; the configured fetch URL is not evidence.
 - Later code checkpoints use unique immutable refs
-  `refs/heads/checkpoints/<feature>/<slot>/g<generation>`. Implementation Authorization—not sidecar permission—must
-  cover their creation. Push non-force from a clean code commit, fetch, and verify the exact SHA.
+  `refs/heads/checkpoints/<feature>/<slot>/g<generation>`. Complete Implementation Authorization—not sidecar
+  permission—must cover their creation and exact push endpoint. Resolve one endpoint independently in each code or
+  artifact root and use it consistently for remote reads/writes; push clean code non-force, fetch, and verify SHA.
 - At a quiescent checkpoint: verify owner/generation/budgets/remote parents/finalized paths; publish/verify code
   first; update Lifecycle State, validate against the exact expected committed parent, path-stage finalized sidecar
   files, commit from that parent, non-force CAS-push only `artifacts/<feature>`, and verify it.

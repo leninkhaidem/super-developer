@@ -97,6 +97,14 @@ def remote_ref(remote: Path, ref: str) -> str | None:
     return line.split()[0] if line else None
 
 
+def resolve_push_endpoint(repo: Path, authorized: str) -> str:
+    result = run_git(repo, "remote", "get-url", "--push", "--all", "origin", check=False)
+    endpoints = result.stdout.splitlines()
+    if result.returncode != 0 or len(endpoints) != 1 or not endpoints[0] or endpoints[0] != authorized:
+        raise ValueError("expected one unchanged authorized push endpoint")
+    return endpoints[0]
+
+
 def write_lifecycle_state(repo: Path, state: dict) -> Path:
     path = repo / ".tasks" / "fixture" / "lifecycle-state.json"
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -121,7 +129,8 @@ def valid_lifecycle_state() -> dict:
         "artifact_checkpoint": {"ref": "refs/heads/artifacts/fixture", "sha": None, "tree": None},
         "code_checkpoint": None,
         "authorization": {
-            "id": None, "initial_digest": None, "effective_digest": None, "amendment_link": None,
+            "id": None, "initial_digest": None, "effective_digest": None,
+            "inputs": None, "amendment_link": None,
         },
         "budgets": {
             "preauthorization": {
@@ -282,7 +291,11 @@ class AgenticLifecycleOracleTests(unittest.TestCase):
 
             write_lifecycle_state(
                 sidecar,
-                {"generation": 1, "code_checkpoint": {"ref": checkpoint_ref, "sha": code_sha}},
+                {
+                    "generation": 2,
+                    "authorization_id": "auth-fixture",
+                    "code_checkpoint": {"ref": checkpoint_ref, "sha": code_sha},
+                },
             )
             commit_all(sidecar, "reference verified code")
             run_git(sidecar, "push", "origin", f"HEAD:{artifact_ref}")
@@ -294,6 +307,42 @@ class AgenticLifecycleOracleTests(unittest.TestCase):
             rejected = run_git(code, "push", "origin", f"HEAD:{checkpoint_ref}", check=False)
             self.assertNotEqual(0, rejected.returncode, "immutable checkpoint ref must reject non-force rewrite")
             self.assertEqual(code_sha, remote_ref(code_remote, checkpoint_ref))
+
+    def test_exact_push_endpoint_fence_ignores_distinct_fetch_url(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            fetch_remote = root / "fetch.git"
+            push_remote = root / "push.git"
+            owner = root / "owner"
+            init_bare(fetch_remote)
+            init_bare(push_remote)
+            init_repo(owner)
+            run_git(owner, "remote", "add", "origin", str(fetch_remote))
+            run_git(owner, "remote", "set-url", "--push", "origin", str(push_remote))
+            (owner / "artifact.txt").write_text("endpoint-fenced\n", encoding="utf-8")
+            sha = commit_all(owner, "endpoint-fenced candidate")
+            ref = "refs/heads/artifacts/fixture"
+
+            endpoint = resolve_push_endpoint(owner, str(push_remote))
+            self.assertIsNone(remote_ref(Path(endpoint), ref))
+            run_git(owner, "push", "--", endpoint, f"{sha}:{ref}")
+            run_git(owner, "fetch", "--no-tags", "--", endpoint, ref)
+            self.assertEqual(sha, run_git(owner, "rev-parse", "FETCH_HEAD").stdout.strip())
+            self.assertEqual(sha, remote_ref(Path(endpoint), ref))
+            self.assertIsNone(remote_ref(fetch_remote, ref), "fetch URL must not verify the push endpoint")
+            self.assertEqual(endpoint, resolve_push_endpoint(owner, str(push_remote)))
+
+            run_git(owner, "remote", "set-url", "--add", "--push", "origin", str(fetch_remote))
+            with self.assertRaises(ValueError):
+                resolve_push_endpoint(owner, str(push_remote))
+            run_git(owner, "remote", "set-url", "--delete", "--push", "origin", str(fetch_remote))
+            captured = resolve_push_endpoint(owner, str(push_remote))
+            run_git(owner, "remote", "set-url", "--push", "origin", str(fetch_remote))
+            with self.assertRaises(ValueError):
+                resolve_push_endpoint(owner, captured)
+            run_git(owner, "remote", "remove", "origin")
+            with self.assertRaises(ValueError):
+                resolve_push_endpoint(owner, captured)
 
     def test_current_root_rejection_and_migration_drill(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

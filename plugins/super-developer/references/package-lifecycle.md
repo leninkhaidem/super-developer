@@ -2,10 +2,10 @@
 ## Boundary
 This reference owns package completion, proof creation/refresh, verification reports, freshness, and non-bypass semantics. Artifact shapes live in `slice-first-artifacts.md`; package sizing lives in `work-packages.md`; command shapes live in `tool-usage.md`.
 ## Status Signals
-Registry package status is routing only: `pending`, `in_progress`, `blocked`, or `done`. Status does not
-prove implementation correctness. Dashboards may show status, dependency readiness, proof/report paths,
-package matrix cleanliness, and helper results only as mechanical signals.
-
+Registry status is routing only and proves no correctness. Lifecycle package states and every normal successor are
+the explicit matrix in `slice-first-artifacts.md`: blocked resolution and `invalidated|stabilized|verified → in_progress`
+repair remain legal; `in_progress|stabilized|verified|done|invalidated → pending` requires a reviewed effective-digest
+replan. Dashboards expose only mechanical status/dependency/proof/report/helper signals.
 ## Proof Ownership
 Each package has one artifact-root proof Markdown file declared in the registry and package Markdown:
 `.tasks/<feature>/proofs/<WP-ID>.proof.md`.

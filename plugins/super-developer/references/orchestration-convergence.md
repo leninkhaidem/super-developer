@@ -37,10 +37,11 @@ implementation. No event ledger is added.
 Cold plan challenge and execution-readiness validation precede the user decision. One decision surface presents:
 
 - the complete Human Authorization Envelope and reviewed initial Technical Plan Baseline;
-- exact artifact candidate tree/commit, base code commit and clean-status digest, dependencies, prerequisite
+- exact artifact candidate tree/commit, base code commit and clean-status digest, dependency/prerequisite
   snapshot, assurance profile/routing, package/receipt topology, and expected deterministic mutations;
 - exact covered writes, commands, tests, repairs, reruns, evidence refresh, cleanup, delivery checkpoints and
-  listed non-force pushes, each under finite call/repair-wave/command/cost/time budgets;
+  listed non-force refs plus the single authorized configured push endpoint for each relevant root, each under
+  finite call/repair-wave/command/cost/time budgets;
 - `proven-ready` results and exact `protected-activation-required` probes/remedies; and
 - exclusions, escalation conditions, allowed technical-amendment policy, and the canonical Authorization Digest.
 
@@ -50,21 +51,31 @@ does not inherit Sidecar Portability Authorization or authorize target merge/pus
 deployment, destructive/external effects, or new dependencies/services/credentials. Those remain separately
 protected.
 
-Approval creates an immutable authorization ID and digest. Checkpoint the deterministic reviewed status,
-authorization record, and exact accepted artifact commit. `implement` becomes the canonical Delivery Owner only
-after that checkpoint verifies. There is no later execution decision.
+Only an **initial** clean review may present these choices. `review-plan` constructs one compact exact `inputs`
+snapshot: reviewed `artifact_tree`, `base_commit`, and digests `clean_status`, `dependencies`, `routing`, `actions`,
+`budget_authority`, and `amendment_policy`. It verifies the objects/tree relation and computes `initial_digest` as
+the canonical JSON digest of exactly that snapshot. Approval creates one immutable authorization ID, with initial
+effective digest equal to initial digest; `review-plan` records/checkpoints the snapshot, deterministic reviewed
+status, and exact accepted artifact commit. `implement` becomes Delivery Owner only after verification. There is no
+later execution decision.
 
 ## Freshness, Activation, and Amendments
 
-Immediately before product writes or package fanout, run a cheap equality guard over authorization ID/digest,
-accepted artifact commit/tree, base code/status digest, dependency/prerequisite snapshot, profile/routing, covered
-actions, and only expected deterministic worktree/status mutations. Unlisted drift fails closed and returns
-through affected technical review; ask the user only if the Human Authorization Envelope changes.
+Immediately before product writes or package fanout, run a cheap equality guard over immutable authorization ID,
+inputs/initial digest, effective digest, accepted artifact commit/tree, base code/status digest,
+dependency/prerequisite snapshot, profile/routing, covered actions, authorized endpoints, and only expected
+deterministic worktree/status mutations. Unlisted drift fails closed and returns through affected technical
+review; ask the user only if protected authority or the Human Authorization Envelope changes.
 
 Then run each listed protected activation probe. A listed remedy may auto-resolve; otherwise return one precise
-prerequisite escalation before product writes. A later envelope-preserving technical revision records parent/new
-baseline identities, affected invalidation, cold-review receipt, checkpoint, and Technical Amendment Digest under
-the same authorization ID. The ordered chain advances the Effective Authorization Digest without reapproval.
+prerequisite escalation before product writes. For a later envelope-preserving correction, the Delivery Owner
+invokes `review-plan` in **nested amendment** mode with its return stage, existing ID/inputs/initial digest, parent
+effective digest, and parent artifact. Nested review never offers choices, creates/replaces an ID, or enters fresh
+gate readiness. It returns one cold amendment receipt binding unchanged envelope/inputs, parent/new baseline,
+distinct reviewed descendant artifact checkpoint/tree, affected invalidation, routing, and cold verdict. Its
+canonical amendment digest plus exact parent/artifact computes the next effective digest. The Delivery Owner
+validates that receipt, checkpoints state, and resumes. Envelope, protected-action/endpoint, covered-action, or
+budget-authority change stops for focused authority instead.
 
 ## Delivery Owner and Child Envelope
 

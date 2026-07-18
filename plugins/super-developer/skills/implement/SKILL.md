@@ -12,9 +12,9 @@ package proof/verification, integration, bounded repairs, final review-code/audi
 
 ## Always
 
-- Become Delivery Owner only after `../../references/orchestration-convergence.md` verifies the immutable
-  authorization ID/digest and exact accepted artifact checkpoint. Before that, perform no product write, package
-  fanout, worktree setup, test command, or delivery checkpoint.
+- Become Delivery Owner only after `../../references/orchestration-convergence.md` verifies immutable
+  authorization ID/inputs/initial digest, initial effective digest, and exact accepted artifact checkpoint. Before
+  that, perform no product write, package fanout, worktree setup, test command, or delivery checkpoint.
 - Never present another execution decision. `Approve and auto-resolve` already covers every listed in-scope write,
   command, test, repair, rerun, evidence refresh, cleanup, checkpoint, and push within finite budgets.
 - Only the Delivery Owner advances, classifies findings, selects reassessment/repair, preserves logical owner and
@@ -34,13 +34,16 @@ package proof/verification, integration, bounded repairs, final review-code/audi
 
 1. Resolve artifact/code roots and load `../../references/artifact-store.md`,
    `../../references/orchestration-convergence.md`, `../../references/tool-usage.md`, and
-   `references/execution-contract.md`. Validate the authorization receipt: ID, initial/effective digest, exact
-   accepted artifact commit/tree, reviewed baseline, base code/status digest, readiness/prerequisites, profile/
-   routing, finite budgets, covered actions, exclusions, and caller/`return_to`. Run `sliceproof.py validate-plan`.
-2. Immediately before product writes/fanout, run the cheap exact freshness guard from the convergence contract.
-   Unlisted artifact/code/dependency/prerequisite/profile/routing/action drift fails closed. Route affected
-   envelope-preserving technical correction through preflight, `implementation-plan`, and cold `review-plan`, then
-   advance the Effective Authorization Digest/checkpoint without asking the user. Envelope change stops.
+   `references/execution-contract.md`. Validate the receipt: canonical immutable input snapshot/initial digest,
+   ID/effective digest, exact accepted artifact commit/tree and object relation, base commit object/status digest,
+   dependencies, profile/routing, finite budget authority, covered actions, one authorized push endpoint per
+   relevant root, exclusions, and caller/`return_to`. Run `sliceproof.py validate-plan` and lifecycle validation.
+2. Immediately before product writes/fanout, run the exact freshness guard. Unlisted artifact/code/dependency/
+   prerequisite/profile/routing/action/endpoint drift fails closed. For an envelope-preserving correction, invoke
+   cold `review-plan` explicitly in `nested-amendment` mode with this Delivery Owner/return stage and immutable
+   authorization lineage. Require its cold receipt to preserve ID/inputs/initial digest, name the current parent
+   effective digest and a distinct reviewed descendant artifact, and recompute the amendment/next-effective digest.
+   Only after that validation checkpoint the one-generation link and resume. Envelope/protected/budget change stops.
 3. Run each exact `protected-activation-required` probe before product writes/fanout. Use only a listed remedy and
    checkpoint success. If no covered remedy succeeds, return one precise prerequisite escalation; never introduce
    a new dependency, service, credential, permission, architecture choice, or external effect.
@@ -49,15 +52,18 @@ package proof/verification, integration, bounded repairs, final review-code/audi
    match the covered refs/paths and non-force policy exactly.
 5. Load `references/package-dispatch.md`; run conditional readiness, retire shared uncertainty before fanout, and
    choose the largest safe useful ready batch. If a plan-owned empirical blocker appears, pause affected dispatch,
-   invoke `spike-to-plan`, route evidence through `implementation-plan` and `review-plan`, receive old/new state and
-   invalidation scope, rebind the effective digest, and revalidate before resuming. No child restarts implementation.
+   invoke `spike-to-plan`, then route evidence through `implementation-plan` and `review-plan` in nested-amendment
+   mode. Validate the returned cold receipt/effective digest and invalidation scope; checkpoint and revalidate before resuming.
+   No child restarts implementation or creates another authorization ID.
 6. Dispatch package owners with exact authorization/budget/actions and `references/package-agent-contract.md`.
    Owners stabilize production behavior and minimum sufficient causal tests, run focused and earliest affected
    broad checks, inspect the full owned diff, repair routine local defects within budget, then refresh proof and
    return a stable package candidate.
 7. Load `references/package-integration-gates.md`; validate `SELF_REVIEW`, artifact-root proof, command/inspection
    evidence, Slice status, fresh package report, `validate-package-complete`, freshness, source-only branch state,
-   and ignored `.tasks` handling. Mark done/unlock/merge only after all package gates pass.
+   and ignored `.tasks` handling. Apply the explicit lifecycle package transition matrix; advanced/invalidated state
+   returns to `pending` only through a reviewed effective-digest replan, while blocked resolution/repair stays legal.
+   Mark done/unlock/merge only after all package gates pass.
 8. Classify findings through the convergence contract. Envelope gaps stop; envelope-preserving architecture
    invalidation returns to bounded technical reassessment/cold review; confidence enhancements do not block. Batch
    eligible implementation/integration/test clusters and use `references/repair-agent-contract.md` for one
