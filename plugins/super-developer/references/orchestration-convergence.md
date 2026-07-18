@@ -93,6 +93,21 @@ A focused amendment returns old and new accepted commits; affected requirements/
 production/test surfaces, proof/report/evidence/freeze inputs; evidence-backed preserved state; and old-to-new
 package mapping. No child restarts implementation.
 
+## Final Assurance Continuation
+
+Package verifiers and package-bound specialists return pre-freeze `B[i]` for one named package/contract lens; they
+cannot claim final-state coverage. After the Delivery Owner creates `F`, every assurance child is cold, read-only,
+return-only, and assigned one named non-overlapping lens. It never repairs, transitions, freezes, dispatches
+another assurance role, checkpoints, or notifies.
+
+The Delivery Owner alone runs the selected serial graph: low `F→C(two explicit PASS verdicts)→V`; standard
+`F→R(PASS/closure)→U(PASS, F, R)→V`; high `F→R(PASS/closure)→S[*] (each named lens PASS, F, R)→U(PASS,
+F, R, S[*])→V`. Low uses one combined verifier and no separate reviewer, auditor, or specialist. Standard/high
+never dispatch audit alongside review; high specialists and audit wait for `R` PASS. If review returns a serious
+finding, finish owner repair and affected checks, create a new `F`, and obtain review PASS/closure before any later
+role starts. Persist returned outputs in existing sidecar/state paths, not a receipt ledger or registry. The Delivery
+Owner checkpoints `V` before completion notification; protected target/release actions remain separately authorized.
+
 ## Finding Classification and Circuit
 
 Classify every serious finding before repair: `requirement-gap`, `architecture-invalidation`,

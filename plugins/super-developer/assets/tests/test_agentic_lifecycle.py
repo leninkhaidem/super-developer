@@ -238,6 +238,22 @@ class AgenticLifecycleOracleTests(unittest.TestCase):
             self.assertEqual(len(values), len(set(values)))
         self.assertEqual([f"ADH-{number:02d}" for number in range(1, 23)], [s["id"] for s in scenarios])
 
+    def test_b3_assurance_scenarios_require_combined_low_and_serial_standard(self) -> None:
+        scenarios = {item["id"]: item for item in load_scenarios()["scenarios"]}
+
+        low_calls = scenarios["ADH-01"]["permitted_calls"]
+        self.assertIn("Combined Final Verifier", low_calls)
+        self.assertNotIn("Code Reviewer", low_calls)
+        self.assertNotIn("Completion Auditor", low_calls)
+        self.assertIn("combined two-verdict PASS, and V", scenarios["ADH-01"]["expectations"]["candidate"]["notes"])
+
+        standard_calls = scenarios["ADH-02"]["permitted_calls"]
+        self.assertLess(standard_calls.index("Code Reviewer"), standard_calls.index("Completion Auditor"))
+        repair = scenarios["ADH-11"]
+        self.assertLess(repair["allowed_commands"].index("new freeze"), repair["allowed_commands"].index("closure review"))
+        self.assertLess(repair["allowed_commands"].index("closure review"), repair["allowed_commands"].index("audit after review PASS"))
+        self.assertIn("new freeze; audit dispatches once after R PASS", repair["expectations"]["candidate"]["notes"])
+
     def test_sidecar_only_roots_drill(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

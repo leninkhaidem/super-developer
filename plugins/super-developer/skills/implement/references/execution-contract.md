@@ -60,7 +60,7 @@ Testing authority:
 Covered writes and actions:
   production/docs: <exact paths/categories>
   tests/oracles/fixtures/harness/config: <exact paths/categories>
-  artifacts/evidence/lifecycle receipts: <exact paths/categories>
+  artifacts/evidence/freeze-scoped assurance outputs: <existing sidecar paths/categories; no new receipt registry>
   commands/tests/runtime observations: <exact commands/categories and safety bounds>
   package waves/eligible repairs: <scope; one logical owner; batched root causes>
   reruns/evidence refresh/cleanup: <affected-only rules, widening triggers, exact cleanup>
@@ -118,11 +118,13 @@ Choices:
 3. stabilize production behavior and actual-path causal tests before proof conclusions
 4. run focused and affected broad regression before proof/report refresh
 5. perform package verification, completion validation, merge, and code-before-sidecar checkpoints
-6. finish integrated checks/evidence and run root-aware final validation; freeze exact inputs
-7. invoke `review-code` and `audit` only as return-only independent checks against that freeze
-8. amendment: retain inputs; validate nested receipt/link; advance checkpoint; batch findings, delegate repairs
-   only for eligible clusters, rerun affected checks, and establish a new freeze
-9. after clean review-code/audit acceptance, run listed final checkpoint and push the feature branch if covered
+6. finish integrated checks/evidence and run root-aware final validation; freeze exact inputs as `F`
+7. dispatch only the selected serial equation: low `F→C(two PASS verdicts)→V`; standard
+   `F→R(PASS/closure)→U(PASS,F,R)→V`; high `F→R(PASS/closure)→S[*] (each named-lens PASS,F,R)→U(PASS,F,R,S[*])→V`
+8. if a role rejects, return to the Delivery Owner; batch eligible repairs, rerun affected checks, create a new `F`,
+   and obtain review closure before any standard/high specialist or audit starts—never dispatch them concurrently
+9. after profile-required PASS outputs, CAS-checkpoint `V`, notify completion, and push the feature branch only if
+   covered; target/release/protected actions remain separate
 
 ## Stop conditions:
 
@@ -144,7 +146,5 @@ mutations. This is a cheap activation guard, not a new decision surface. Unliste
 technical review; only Human Authorization Envelope change returns to the user.
 
 ## Output
-
-Before authorization, return filled content or blockers. Afterward, `implement` returns authorization/effective
-digest, readiness/freshness/activation, budgets, covered/excluded actions, and any precise escalation—never a new
-delivery decision.
+Before authorization, return filled content or blockers. Afterward, `implement` returns authorization/effective digest,
+readiness/freshness/activation, budgets, covered/excluded actions, and precise escalation—never a new decision.

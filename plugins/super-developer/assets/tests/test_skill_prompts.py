@@ -1552,6 +1552,34 @@ class SkillPromptSurfaceTests(unittest.TestCase):
         self.assertNotIn("### Test Review Scope", b1_contracts)
         self.assertNotIn("Changed Population", b1_contracts)
 
+    def test_b3_final_assurance_is_serial_freeze_scoped_and_role_bounded(self) -> None:
+        routing = read_repo("plugins/super-developer/references/assurance-routing.md")
+        implement = read_repo("plugins/super-developer/skills/implement/SKILL.md")
+        gates = read_repo("plugins/super-developer/skills/implement/references/package-integration-gates.md")
+        review = read_repo("plugins/super-developer/skills/review-code/references/pipeline-report.md")
+        audit = read_repo("plugins/super-developer/skills/audit/SKILL.md")
+        convergence = read_repo("plugins/super-developer/references/orchestration-convergence.md")
+        combined = compact_text("\n".join([routing, implement, gates, review, audit, convergence]))
+
+        for equation in [
+            "F → C(code-risk PASS, completion PASS) → V",
+            "F → R(PASS/closure) → U(PASS, F, R) → V",
+            "F → R(PASS/closure) → S[*] (each named integrated lens PASS, F, R) → U(PASS, F, R, S[*]) → V",
+        ]:
+            self.assertIn(equation, combined)
+        self.assertIn("one cold combined read-only verifier", routing.lower())
+        self.assertIn("do not dispatch a separate reviewer, auditor, or specialist", compact_text(routing))
+        self.assertIn("`B[i]` roles are pre-freeze only and", gates)
+        self.assertIn("final specialists post-freeze only", gates)
+        self.assertIn("new `F`, and obtains `R` PASS/closure before", compact_text(routing))
+        self.assertIn("read-only and return-only", combined)
+        self.assertIn("only the Delivery Owner dispatches", combined)
+        self.assertIn("Selected Causal Evidence` deeply plus only changed", compact_text(gates))
+        self.assertIn("selectively falsifies high-value claims without suite rereview", compact_text(gates))
+        self.assertIn("B4 owns executable final receipt validation", routing)
+        for stale in ["ready_for_audit", "Audit can run as sibling", "audit-dispatch prerequisite"]:
+            self.assertNotIn(stale, "\n".join([routing, implement, gates, review, audit, convergence]))
+
     def test_section_scoped_state_binding_prompt_contract_is_guarded(self) -> None:
         contract = read_repo("plugins/super-developer/references/package-verification-report.md")
         artifacts = read_repo("plugins/super-developer/references/slice-first-artifacts.md")
@@ -1639,7 +1667,7 @@ class SkillPromptSurfaceTests(unittest.TestCase):
             "Helper success is mechanical",
         ]:
             self.assertIn(needle, gates + lifecycle)
-        self.assertIn("review-code readiness and final audit PASS", lifecycle)
+        self.assertIn("profile-required PASS outputs and `V`", lifecycle)
 
     def test_planner_risk_seeding_preserves_verifier_discovery(self) -> None:
         artifact = read_repo("plugins/super-developer/skills/implementation-plan/references/artifact-authoring.md")
@@ -1768,7 +1796,7 @@ class SkillPromptSurfaceTests(unittest.TestCase):
             "refresh affected proof state",
             "run `validate-proof`",
             "focused verification only for bounded impact",
-            "the verifier writes the fresh report",
+            "the verifier returns the fresh report and bindings",
             "only after the fresh report (boundary) or stable final candidate run `validate-package-complete`",
         ]
         for earlier, later in zip(ordered, ordered[1:]):
@@ -1885,9 +1913,10 @@ class SkillPromptSurfaceTests(unittest.TestCase):
         gates = read_repo("plugins/super-developer/skills/implement/references/package-integration-gates.md")
         self.assertNotIn("### Deliverable Completeness Matrix", implement)
         self.assertNotIn("Source ID | Row Type", implement)
-        self.assertIn("invoke `review-code` and `audit` only", compact_text(implement))
+        self.assertIn("Dispatch only the profile equation", compact_text(implement))
         self.assertIn("semantic truth remains with independent assurance", compact_text(gates))
-        self.assertIn("Declare readiness only when package evidence, review-code readiness, and final audit PASS", gates)
+        self.assertIn("Readiness requires package evidence and", gates)
+        self.assertIn("profile-required PASS outputs plus `V` bound to the same `F`", compact_text(gates))
 
         for rel in [
             "plugins/super-developer/skills/audit/SKILL.md",
@@ -2061,10 +2090,10 @@ class SkillPromptSurfaceTests(unittest.TestCase):
             self.assertIn(token, contract_compact)
         pipeline = contract[contract.index("Pipeline:"):contract.index("Stop conditions:")]
         for earlier, later in [
-            ("run root-aware final validation", "invoke `review-code` and `audit`"),
-            ("invoke `review-code` and `audit`", "batch findings, delegate repairs"),
-            ("batch findings, delegate repairs", "after clean review-code/audit acceptance"),
-            ("after clean review-code/audit acceptance", "push the feature branch"),
+            ("run root-aware final validation", "dispatch only the selected serial equation"),
+            ("dispatch only the selected serial equation", "batch eligible repairs"),
+            ("batch eligible repairs", "CAS-checkpoint `V`"),
+            ("CAS-checkpoint `V`", "push the feature branch"),
         ]:
             self.assertLess(pipeline.index(earlier), pipeline.index(later))
         package_agent_compact = compact_text(package_agent).lower()

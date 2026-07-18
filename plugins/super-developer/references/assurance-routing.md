@@ -74,14 +74,31 @@ Every assurance assignment names exactly one owner, one non-overlapping lens, an
 | completion auditor / `U` | accepted-outcome/envelope reconciliation over clean predecessors | post-freeze |
 | Delivery Owner | classification, routing, repair, checkpointing, lifecycle | no semantic verdict |
 
-A package specialist assigned to `B[i]` cannot claim the same lens at final state. Audit does not repeat package,
-code-review, or specialist lenses. Verification Summary `V` indexes receipts and proves nothing independently.
-The profile equations and final dispatch implementation are completed in B3/B4; this B1 contract already forbids
-duplicate roles, cross-freeze ownership, and fabricated reports.
+A package specialist assigned to `B[i]` is pre-freeze only and cannot claim final-state coverage. A final specialist
+is post-freeze only. Audit does not repeat package, code-review, or specialist lenses. Verification Summary `V`
+indexes freeze-scoped outputs and proves nothing independently.
+
+## Serial Final Equations
+
+After the Delivery Owner freezes final inputs as `F`, it dispatches exactly the selected equation:
+
+- **Low:** `F → C(code-risk PASS, completion PASS) → V`. One cold combined read-only verifier owns the named
+  `combined-low-assurance` lens and returns both explicit verdicts in `C`; do not dispatch a separate reviewer,
+  auditor, or specialist.
+- **Standard:** `F → R(PASS/closure) → U(PASS, F, R) → V`. `U` cannot start until `R` is PASS for `F`.
+- **High:** `F → R(PASS/closure) → S[*] (each PASS, F, R) → U(PASS, F, R, S[*]) → V`. Each `S[j]` owns one
+  named non-overlapping integrated lens and starts only after `R` PASS.
+
+All verifiers, reviewers, auditors, and specialists are cold, read-only, return-only roles. They do not dispatch,
+repair, freeze, transition, checkpoint, notify, or invoke a successor. Only the Delivery Owner does those things.
+A code-review repair invalidates `R` and `F`; the Delivery Owner finishes repair and required checks, creates a new
+`F`, and obtains `R` PASS/closure before any standard/high `S[j]` or `U` starts. Review and audit never run concurrently.
+Returned `C/R/S/U` and `V` bind one freeze. Persist them through existing sidecar paths and Lifecycle State only;
+do not add a receipt registry, ledger, or orchestration platform.
 
 ## Mechanical Enforcement Boundary
 
 The helper requires profile/mode and conditional report paths, parses Selected Causal Evidence, binds boundary
 receipts to explicit candidate/contract inputs, and validates the selected pre-freeze package equation. It rejects
 final substitutes and controlled Lifecycle State routing mismatch. Helper acceptance never establishes semantic
-sufficiency or claims post-freeze final assurance ran.
+sufficiency or validates the post-freeze DAG; B4 owns executable final receipt validation.

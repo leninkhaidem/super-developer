@@ -35,9 +35,9 @@ Any bound input change invalidates the candidate and affected receipt.
 
 Use `assurance-routing.md` to select exactly one mode:
 
-- **`boundary`**: one independent verifier for the meaningful boundary writes fresh `PASS` B[i] at the non-null
-  report path, with clean matrix, `Selected Causal Evidence`, and exact candidate/proof/
-  State Binding plus consumed-contract digests. Then run `validate-package-complete`.
+- **`boundary`**: one independent read-only verifier returns fresh `PASS` B[i] for the meaningful boundary; the
+  Delivery Owner persists it at the non-null report path. Require clean matrix, `Selected Causal Evidence`, exact
+  candidate/proof/State Binding, and consumed-contract digests. Then run `validate-package-complete`.
 - **`final`**: allowed only for a coherent leaf with no dependent or independently consumed material contract and
   no package-bound high-risk lens. `report_path` is null. Do not dispatch package verification or fabricate a
   report; retain valid proof/candidate identity and explicit final-assurance deferral. Final semantic closure is
@@ -110,12 +110,18 @@ candidate with null report and explicit direct-final owner for `final`. Run pack
 `validate-final` for every included artifact set. For stacked readiness identify the top integrated state and all
 base/follow-up task/Slice artifact sets; do not audit only a follow-up when base deliverables are included.
 
-Role ownership is non-duplicative. Package verification owns only its named pre-freeze boundary. Final review owns
-integration and direct semantic coverage for `final`; specialists and audit keep their named lenses. Freeze exact
-integrated code, semantic artifacts, runtime evidence, profile/routing, and fresh `B[*]`. Any frozen-input change
-invalidates downstream outputs. B3/B4 implement the final serial equations; until then do not represent the legacy
-sibling checks as satisfying the new graph. Semantic truthfulness remains with package verification and final audit.
-Declare readiness only when package evidence, review-code readiness and final audit PASS are bound to the same top state.
+Role ownership is non-duplicative. Package verification inspects Selected Causal Evidence plus only changed
+harness/configuration that affects its trustworthiness; it owns one named pre-freeze package/contract lens and cannot
+claim final-state coverage. Final review owns concrete integrated correctness, evidence, regression, flakiness,
+unsafe/shared-harness, material-runtime, merge/contract risk, and direct semantic coverage for `final`; final
+specialists and audit retain distinct named lenses. Audit reconciles accepted outcomes and selectively falsifies
+high-value claims without rereviewing the suite.
+
+Freeze exact integrated code, semantic artifacts, runtime evidence, profile/routing, and fresh `B[*]` as `F`.
+Dispatch only the serial equation in `assurance-routing.md`: low `F→C→V`, standard `F→R→U→V`, or high
+`F→R→S[*]→U→V`. Any frozen-input change invalidates downstream outputs. A review repair must finish and create a
+new freeze before review closure; standard/high audit or final specialists start only after `R` PASS for that freeze.
+Declare readiness only when all profile-required PASS outputs and `V` bind the same top state.
 
 ## Observability
 

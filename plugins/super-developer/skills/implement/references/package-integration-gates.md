@@ -27,9 +27,11 @@ For each returned package:
 5. Prefer committing/stabilizing the package branch before holistic package verification so a `PASS` report binds directly to an exact commit/ref. Do not commit ignored `.tasks` proof/report artifacts.
 6. Freeze the exact Stable Candidate Identity: authorization/effective digest, code commit/tree and base/diff,
    semantic package/Slice inputs, proof/runtime-evidence digests, profile/mode, and consumed-contract digests.
-7. For `boundary`, run one verifier for the named meaningful lens and store `B[i]` at its safe report path. Require
-   fresh PASS, clean matrix, `### Selected Causal Evidence`, and exact candidate/proof/State Binding; reject stale,
-   placeholder, dirty, contradictory, pre-repair, mode-mismatched, or higher-trigger `PROFILE_INVALID` returns.
+7. For `boundary`, dispatch one cold read-only verifier for the named meaningful lens and persist its returned `B[i]`
+   at the safe report path. It inspects `### Selected Causal Evidence` deeply plus only changed harness/configuration
+   that affects trust; it does not census or rereview the suite and cannot claim final-state coverage. Require fresh
+   PASS, clean matrix, exact candidate/proof/State Binding; reject stale, dirty, contradictory, pre-repair,
+   mode-mismatched, placeholder, or higher-trigger `PROFILE_INVALID` returns.
 8. For `final`, require a coherent leaf, `report_path: null`, and explicit direct-final owner. Do not dispatch
    package verification or fabricate/substitute a report.
 9. Run the pre-done helper after a boundary report or final stabilization and before accepting/merging as complete,
@@ -57,9 +59,7 @@ Mark `boundary` done only after proof, expectations, exact `PASS B[i]`, clean `v
 `.tasks` handling, merge freshness, checkpoint, repair, and plan-defect gates pass. A `final` leaf may become
 implementation-done after the same gates without report/verifier, but feature completion waits for direct final
 semantic PASS. No dependent or independently consumed material contract may unlock from `final`.
-
 ## Slice Plan-Defect Gate
-
 A Slice plan defect is any package/repair/verifier report showing assigned Slice content contains or implies:
 
 - a hard requirement missing from package assignment/proof obligations;
@@ -85,7 +85,6 @@ sensitive, shared, or uncertain contract/trust-seam changes and cross-package ch
 No count, LOC, ratio, coverage, review-percentage, or suite-volume gate selects depth.
 `must_satisfy` drift and malformed bindings fail closed; `context_only_slice_drift` remains non-blocking
 classification input by default.
-
 ## Rejection and Repair
 Reject failed code/proof/verification/plan/artifact handling; keep incomplete while any blocker is open. Before
 repair, apply `orchestration-convergence.md`: classify the finding and preserve its serious-cluster/strike state.
@@ -97,8 +96,8 @@ For an eligible first-closure defect:
 3. reproduce and repair one coherent root cause, then reclassify the actual diff and invalidate affected reports;
 4. establish actual-production-path targeted evidence and earliest credible affected broad regression before refreshing proof/command evidence;
 5. refresh affected proof state, run `validate-proof`, then focused verification only for bounded impact; widen for
-   material/shared/sensitive/uncertain impact. For boundary the verifier writes the fresh report and bindings;
-   for final re-stabilize the candidate for its direct-final owner;
+   material/shared/sensitive/uncertain impact. For boundary the verifier returns the fresh report and bindings; the
+   Delivery Owner persists them. For final re-stabilize the candidate for its direct-final owner;
 6. only after the fresh report (boundary) or stable final candidate run `validate-package-complete`.
 The second failed closure for the same cluster opens the circuit for design reassessment. Renamed attempts, new
 agents/models/prompts/commits/status/reports, or more matrix rows do not reset it. While open, stop affected work;
@@ -108,7 +107,6 @@ continuation requires explicit authority plus changed accepted design or decisiv
 Resolve mechanical conflicts only in the integration worktree and never switch the root worktree. For substantive logic, API, contract, test, proof, package-scope, or design conflicts, abort the merge when possible and keep the package incomplete with a blocker naming the conflicting package/files. Do not dispatch dependent packages until conflicts and freshness gates close.
 
 ## Final Readiness Handoff
-
 Before final assurance every package needs valid proof with no unresolved marker/deferral; required command/manual
 evidence; clean mode-specific `validate-package-complete`; no Slice plan defect; clean integrated state; and merged
 branches retained. `boundary` additionally needs fresh exact `PASS B[i]` with clean matrix and Selected Causal
@@ -132,18 +130,21 @@ python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-final \
   ".tasks/<feature>/tasks.json"
 ```
 
-Freeze exact integrated code, semantic artifacts, runtime evidence, profile/routing, and fresh `B[*]`; verifier
-outputs are not candidate inputs. Every assurance assignment has one owner, named non-overlapping lens, and one
-side of freeze. Any frozen-input change invalidates downstream binding. B3 implements low combined and serial
-standard/high final dispatch; do not represent legacy sibling review/audit as satisfying the new graph.
-
-After review-code readiness and final audit PASS are recorded in the artifact root, run the final sidecar
-checkpoint through `worktree` before target merge/cleanup eligibility. Use only the captured exact authorized
-artifact endpoint and ref; never merge the sidecar branch. Sidecar cleanup is routed to the
-`worktree`/`release` boundary after final target merge/push and exact user approval.
-
-Declare readiness only when package evidence, review-code readiness, and final audit PASS are clean for the
-same integrated state.
+The Delivery Owner freezes exact integrated code, semantic artifacts, runtime evidence, profile/routing, and fresh
+`B[*]` as `F`; outputs are not inputs. Each assignment has one owner/lens/side: `B[i]` roles are pre-freeze only and
+final specialists post-freeze only. Dispatch exactly:
+- low: one cold combined verifier, no separate review/audit/specialist, `F → C(code-risk PASS, completion PASS) → V`;
+- standard: `F → R(PASS/closure) → U(PASS, F, R) → V`;
+- high: `F → R(PASS/closure) → S[*] (each named integrated lens PASS, F, R) → U(PASS, F, R, S[*]) → V`.
+Code review considers only concrete correctness/evidence/regression/flakiness/unsafe/shared-harness/material-runtime
+risk; audit reconciles outcomes and selectively falsifies high-value claims without suite rereview. Roles are
+read-only/return-only; only the Delivery Owner dispatches, repairs, freezes, transitions, persists, checkpoints, and
+notifies. Never dispatch review and audit concurrently. Review repair invalidates old `F/R`; create a new `F` and
+obtain `R` PASS/closure before standard/high specialist or audit dispatch.
+Persist freeze-scoped `C/R/S/U/V` in existing sidecar paths/Lifecycle State, not a new registry, ledger, or platform.
+After required PASS outputs, checkpoint `V` through `worktree`; only then notify. Keep target push/merge, release,
+cleanup, force, deploy, and other protected actions separately authorized. Readiness requires package evidence and
+profile-required PASS outputs plus `V` bound to the same `F`.
 
 ## Status Output
 Status summaries should include package ID/title, proof path and validation result, package verification report path, matrix cleanliness, `validate-package-complete` result as mechanical signals only, package branch/worktree, integration state, Slice plan-defect status, repair/follow-up state, next gate, and any blockers.

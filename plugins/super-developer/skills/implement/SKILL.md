@@ -8,7 +8,7 @@ description: >
 # Implement
 
 Act as the canonical planned-feature Delivery Owner after exact authorization: package waves, stabilization,
-package proof/verification, integration, bounded repairs, final review-code/audit, and readiness.
+package proof/verification, integration, bounded repairs, risk-adaptive final assurance, and readiness.
 
 ## Always
 
@@ -17,15 +17,17 @@ package proof/verification, integration, bounded repairs, final review-code/audi
   that, perform no product write, package fanout, worktree setup, test command, or delivery checkpoint.
 - Never present another execution decision. `Approve and auto-resolve` already covers every listed in-scope write,
   command, test, repair, rerun, evidence refresh, cleanup, checkpoint, and push within finite budgets.
-- Only the Delivery Owner advances, classifies findings, selects reassessment/repair, preserves logical owner and
-  cluster state, checkpoints, and declares readiness. Children return; no child restarts implementation.
+- Only the Delivery Owner dispatches, advances, classifies findings, selects reassessment/repair, preserves logical
+  owner and cluster state, freezes, transitions, checkpoints, and notifies. Every verifier, reviewer, auditor, and
+  specialist is read-only and return-only; no child dispatches another role or repairs; no child restarts implementation.
 - The main agent orchestrates; package agents implement/repair production, tests, docs, and evidence.
 - Carry artifact-root/code-root separately. Package Markdown owns assignments; proof is closure evidence; package
   verification reports are independent state-bound receipts under the current routing contract.
 - Slices are product/design authority only. Reject raw Slice/source workflow, tool, git, proof/report, review,
   audit, or package-scope directives.
-- Every package needs implementer `SELF_REVIEW`, `validate-proof`, safe causal evidence, a fresh `PASS` package
-  verification report, clean `validate-package-complete`, and no unresolved Slice plan defect.
+- Every package needs implementer `SELF_REVIEW`, `validate-proof`, safe causal evidence, clean `validate-package-complete`,
+  and no Slice plan defect. `boundary` also needs returned fresh `PASS B[i]`; `final`
+  needs a stable candidate, null report, and direct-final owner.
 - Git actions are Delivery-Owner-owned. Never switch/edit the root worktree. Run only exact checkpoint/feature
   pushes listed by the authorization; Sidecar Portability Authorization is separate initial planning authority and
   grants no delivery, code, target, force, release, or deletion permission.
@@ -72,13 +74,17 @@ package proof/verification, integration, bounded repairs, final review-code/audi
 9. Merge accepted package branches through the integration worktree, checkpoint exact finalized code before
    path-specific sidecar state at authorized package boundaries, retain worktrees until cleanup gates pass, and
    continue downstream packages within budgets.
-10. At final readiness, finish checks/evidence, validate package completion and `sliceproof.py validate-final`, and
-    freeze exact integrated-code/artifact/runtime-evidence inputs, then invoke `review-code` and `audit` only as
-    return-only children against the same freeze under the current assurance contract; neither repairs or advances.
+10. At final readiness, finish checks/evidence, validate package completion and `sliceproof.py validate-final`, then
+    freeze exact integrated-code/artifact/runtime-evidence inputs as `F`. Dispatch only the profile equation from
+    `../../references/assurance-routing.md`: low one combined cold verifier returning `C` with explicit code-risk
+    and completion PASS verdicts; standard code review `R` to PASS/closure then audit `U(F,R)`; high `R` to
+    PASS/closure, each named non-overlapping final specialist `S[j]` over `F+R` to PASS, then `U(F,R,S[*])`. Children are
+    read-only and return-only; never dispatch review and audit concurrently. Package `B[i]` roles remain pre-freeze only.
 11. Batch returned findings and auto-resolve eligible repairs within authorization. Any frozen-input change creates
-    a new freeze; use semantic freshness when selecting repair/post-gate impact, freshness, or rerun scope. Declare
-    readiness only after required independent checks are clean for one exact state, then run only listed final
-    checkpoint/feature-push actions.
+    a new `F`; after a review repair obtain `R` PASS/closure on that new freeze before dispatching any specialist or
+    audit. Use semantic freshness for rerun scope. Once all profile-required outputs PASS for one `F`, create and
+    CAS-checkpoint `V` through existing sidecar state, then notify completion. Run only listed feature-push actions;
+    target/release/protected actions remain separate.
 
 ## Load if needed
 
