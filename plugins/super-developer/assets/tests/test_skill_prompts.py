@@ -186,6 +186,78 @@ class SkillPromptSurfaceTests(unittest.TestCase):
         self.assertIn("Only when no resolved Semgrep state is supplied", implementation_plan)
         self.assertIn("treat this as\n  direct invocation", implementation_plan)
 
+    def test_sidecar_only_authority_routes_migration_permission_and_publication_in_order(self) -> None:
+        affected = [
+            "plugins/super-developer/references/artifact-store.md",
+            "plugins/super-developer/references/conceptualize-slice-authority.md",
+            "plugins/super-developer/references/tool-usage.md",
+            "plugins/super-developer/references/slice-first-artifacts.md",
+            "plugins/super-developer/skills/conceptualize/SKILL.md",
+            "plugins/super-developer/skills/conceptualize/references/final-handoff.md",
+            "plugins/super-developer/skills/worktree/references/feature-package-workflow.md",
+        ]
+        texts = {path: read_repo(path) for path in affected}
+        store = texts[affected[0]]
+        concept = texts[affected[4]]
+        handoff = texts[affected[5]]
+        workflow = texts[affected[6]]
+        combined = compact_text("\n".join(texts.values())).lower()
+
+        # The authority route is causal: reject legacy authority, import safely, resolve the
+        # narrow remote permission, initialize state, then publish/resume from verified CAS state.
+        ordered_store_sections = [
+            "## Sidecar-Only Authority",
+            "## Provenance-Bound Legacy Import",
+            "## Sidecar Portability Authorization",
+            "## Initial Lifecycle State",
+            "## Publication and Resume Invariants",
+        ]
+        for earlier, later in zip(ordered_store_sections, ordered_store_sections[1:]):
+            self.assertLess(store.index(earlier), store.index(later))
+        for forbidden_affirmative in [
+            "legacy/current-root artifact stores remain valid",
+            "omit both flags only for current-root stores",
+            "current-root artifact store is explicitly selected",
+        ]:
+            self.assertNotIn(forbidden_affirmative, combined)
+        self.assertIn("declining or failing migration blocks planning", combined)
+        self.assertIn("never resume from the current-root copy", combined)
+
+        concept_route = compact_text(concept)
+        for earlier, later in [
+            ("create the empty orphan sidecar before writing", "import with provenance and revalidate"),
+            ("import with provenance and revalidate", "Resolve portability permission"),
+        ]:
+            self.assertLess(concept_route.index(earlier), concept_route.index(later))
+        self.assertIn("explicit instruction", concept)
+        self.assertIn("durable preference", concept)
+        self.assertIn("ask one focused discovery question", concept)
+        self.assertIn("Sidecar Portability Authorization", handoff)
+        for excluded in ["code", "target", "release", "force", "deletion"]:
+            self.assertIn(excluded, combined)
+
+        initial = workflow[
+            workflow.index("## Initial Authorized Sidecar Publication"):
+            workflow.index("## Feature and Package Setup")
+        ]
+        self.assertLess(initial.index("git ls-remote"), initial.index("git push origin"))
+        self.assertLess(initial.index("git add --"), initial.index("git commit"))
+        self.assertIn("refs/heads/artifacts/<feature>", initial)
+        self.assertNotRegex(initial, r"git add (?:-A|--all|\.)")
+        self.assertNotRegex(initial, r"git push[^\n]*--force")
+
+        checkpoint = workflow[
+            workflow.index("## Quiescent Code-Before-Sidecar Checkpoint"):
+            workflow.index("## Safe Resume")
+        ]
+        self.assertLess(checkpoint.index("git push origin \"$CODE_SHA:$CODE_REF\""), checkpoint.index("cd \"$ARTIFACT_ROOT\""))
+        self.assertIn("refs/heads/checkpoints/<feature>/<slot>/g<generation>", checkpoint)
+        self.assertIn("FINALIZED_PATHS", checkpoint)
+        self.assertNotRegex(checkpoint, r"git add (?:-A|--all|\.)")
+        self.assertIn("last quiescent CAS snapshot", store)
+        for path, text in texts.items():
+            self.assertLessEqual(len(text.splitlines()), 150, path)
+
     def test_obsolete_or_unsafe_terms_are_only_negative_guidance(self) -> None:
         for path in prompt_surface_paths():
             text = path.read_text(encoding="utf-8")

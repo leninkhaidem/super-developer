@@ -1,150 +1,149 @@
 # Feature Package Workflow
 
-Use this reference for planned-feature execution. Boundary: artifact sidecar setup/checkpoints,
-package/integration worktree setup, package merge order, dependency examples, and feature-push handoff.
-Use the parent-supplied artifact-store contract for root terms.
+Use for planned-feature sidecar, package, integration, and checkpoint work. The parent-supplied artifact-store
+contract owns authority, roots, legacy import, permission, state, and ordering; this file owns Git commands.
 
 ## Contract
-- One artifact sidecar per feature slug: orphan ref `artifacts/<feature>` at `.worktrees/<feature>/artifacts`.
-- The artifact sidecar contains `.planning/`, `.tasks/`, proof/report artifacts, and minimal metadata only.
-- The artifact sidecar is not a source checkout, feature branch, package branch, or target-merge branch.
-- One package worktree and one package branch per work package.
-- Package branches use `wp/<feature>/<WP-ID>` and worktrees use `.worktrees/<feature>/wp-<WP-ID>`.
-- The feature ref is `feature/<feature>` and its integration worktree is `.worktrees/<feature>/merge`.
-- Stacked-feature final readiness names the top code state plus every relevant base/follow-up artifact set.
-- Package agents implement inside assigned package worktrees only.
-- The orchestrator creates worktrees/branches, merges packages, pushes refs, and handles cleanup.
-- Never put worktree-managed development in the root worktree or assume the root is on `main`.
 
-## Directory Layout
+- Sidecar: orphan `refs/heads/artifacts/<feature>` at `.worktrees/<feature>/artifacts`; artifacts only.
+- Feature: `refs/heads/feature/<feature>` at `.worktrees/<feature>/merge` when integrated.
+- Package: `refs/heads/wp/<feature>/<WP-ID>` at `.worktrees/<feature>/wp-<WP-ID>`.
+- Immutable code checkpoint: `refs/heads/checkpoints/<feature>/<slot>/g<generation>`; unique and never moved.
+- Package agents edit/commit only assigned code worktrees. The orchestrator owns refs, worktrees, merges,
+  checkpoints, and cleanup. Never develop in or switch the user-owned root worktree.
+- Sidecar Portability Authorization covers only discovery/planning CAS pushes to the exact artifact ref.
+  Implementation Authorization separately covers named code checkpoint refs. Neither covers target/release/force/
+  delete operations.
+- `.worktrees/` must be ignored. `<feature>` is the one resolved artifact slug; never remap silently.
+
+## Layout
+
 ```text
-project/                            <- root worktree; user-owned branch
-+-- .worktrees/
-|   +-- auth/
-|   |   +-- artifacts/              <- orphan branch artifacts/auth; no source checkout required
-|   |   +-- wp-WP1/                 <- branch wp/auth/WP1
-|   |   +-- wp-WP2/                 <- branch wp/auth/WP2
-|   |   +-- merge/                  <- branch feature/auth
-+-- src/
+.worktrees/<feature>/
+  artifacts/   # artifacts/<feature>; .planning, .tasks, minimal metadata only
+  wp-WP1/      # wp/<feature>/WP1
+  merge/       # feature/<feature>
 ```
-Keep `.worktrees/` ignored before creating these paths.
 
-## Branch Naming
-| Type | Pattern | Example |
-|---|---|---|
-| Artifact ref | `artifacts/<feature>` | `artifacts/auth` |
-| Feature ref | `feature/<feature>` | `feature/auth` |
-| Package branch | `wp/<feature>/<WP-ID>` | `wp/auth/WP1` |
+The artifact root is fixed. The code root is the package worktree under check or the merge worktree for the top
+code state. Stacked readiness names that top code state plus every relevant base/follow-up artifact set.
 
-`<feature>` is the resolved feature/artifact slug. Do not prompt for routine slug naming or silently
-remap `.planning/`, `.tasks/`, sidecar branch, or worktree paths. `<WP-ID>` is a work package ID.
-`<base-ref>` defaults to `main`; stacked features may use another feature ref. `<target-ref>` is the
-later merge destination after explicit approval and defaults to `main`.
+## Local Sidecar Setup
 
-## Artifact Sidecar Setup
-Create the sidecar before the first artifact write; `git worktree add` refuses a non-empty path, so it
-cannot be added after `.planning/` exists. `--orphan` needs git >= 2.42; on older git, stop and report
-the version gap rather than improvising an orphan checkout.
+Create before any artifact write. The destination must be absent/empty and Git must support `--orphan` (>=2.42):
+
 ```bash
+set -euo pipefail
 cd "$PROJECT_ROOT"
+test ! -e .worktrees/<feature>/artifacts
 mkdir -p .worktrees/<feature>
+git show-ref --verify --quiet refs/heads/artifacts/<feature> && exit 1 || test $? -eq 1
 git worktree add --orphan -b artifacts/<feature> .worktrees/<feature>/artifacts
 ```
-Resume an existing sidecar instead of creating a new orphan branch:
-```bash
-cd "$PROJECT_ROOT"
-git worktree add .worktrees/<feature>/artifacts artifacts/<feature>   # when the local branch exists
-git fetch origin artifacts/<feature> && \
-  git worktree add -b artifacts/<feature> .worktrees/<feature>/artifacts origin/artifacts/<feature>  # remote-only
-```
-Create `.planning/<concept-slug>/` and `.tasks/<feature>/` inside the artifact worktree/root. Do not
-expect plugin files, source files, dependencies, or source validation to exist there.
 
-## Feature and Package Commands
-### 1. Create the feature ref
+Existing current-root artifacts do not change this ordering. Create the empty sidecar, then follow the
+provenance-bound import in the artifact-store contract. Never move the legacy directory into place.
+
+## Initial Authorized Sidecar Publication
+
+First prove Sidecar Portability Authorization and an absent remote ref. Finalized paths are exact files, including
+Slices/Index, migration provenance when present, and Lifecycle State—never a directory wildcard. Run only from the
+artifact worktree:
+
 ```bash
+set -euo pipefail
+cd "$PROJECT_ROOT/.worktrees/<feature>/artifacts"
+ARTIFACT_REF=refs/heads/artifacts/<feature>
+REMOTE_LINE="$(git ls-remote --heads origin "$ARTIFACT_REF")"
+test -z "$REMOTE_LINE"
+test "$(git rev-parse --show-toplevel)" = "$PWD"
+FINALIZED_PATHS=(<exact-finalized-path> <exact-lifecycle-state-path>)
+git add -- "${FINALIZED_PATHS[@]}"
+mapfile -d '' -t EXPECTED < <(printf '%s\0' "${FINALIZED_PATHS[@]}" | sort -z)
+mapfile -d '' -t STAGED < <(git diff --cached --name-only -z | sort -z)
+test "${#EXPECTED[@]}" -eq "${#STAGED[@]}"
+for I in "${!EXPECTED[@]}"; do test "${EXPECTED[$I]}" = "${STAGED[$I]}"; done
+git diff --cached --quiet && exit 1
+git commit -m "artifacts: initialize <feature>"
+SIDECAR_SHA="$(git rev-parse HEAD)"
+git push origin "$SIDECAR_SHA:$ARTIFACT_REF"
+git fetch --no-tags origin "$ARTIFACT_REF"
+test "$(git rev-parse FETCH_HEAD)" = "$SIDECAR_SHA"
+REMOTE_SHA="$(git ls-remote --heads origin "$ARTIFACT_REF" | awk 'NR==1 {print $1}')"
+test "$REMOTE_SHA" = "$SIDECAR_SHA"
+```
+
+Any error, non-absent ref, unexpected staged path, push rejection, or SHA mismatch blocks without fallback. This
+publishes no code/feature/target/tag/release ref and does not permit another remote operation.
+
+## Feature and Package Setup
+
+```bash
+set -euo pipefail
 cd "$PROJECT_ROOT"
 git branch feature/<feature> <base-ref>
-```
-No feature worktree is created here. `feature/<feature>` starts from `<base-ref>` and package branches
-merge into it later.
-
-### 2. Create package worktrees
-For a package that can start from the feature base:
-```bash
-cd "$PROJECT_ROOT"
 git worktree add .worktrees/<feature>/wp-<WP-ID> -b wp/<feature>/<WP-ID> <base-ref>
-```
-For a package that depends on already-integrated feature work:
-```bash
-cd "$PROJECT_ROOT"
-git worktree add .worktrees/<feature>/wp-<WP-ID> -b wp/<feature>/<WP-ID> feature/<feature>
-```
-Branch from `feature/<feature>` only after prerequisite packages have merged into that feature ref.
-
-### 3. Work inside the package worktree
-```bash
-cd "$PROJECT_ROOT/.worktrees/<feature>/wp-<WP-ID>"
-# implement all work assigned to this package
-# commit the package's source/reference/test changes on wp/<feature>/<WP-ID>
-```
-Proof/report artifacts stay in the artifact root, not the package branch. Do not create smaller
-internal branches unless the plan split them into separate work packages.
-
-### 4. Create the integration worktree
-```bash
-cd "$PROJECT_ROOT"
 git worktree add .worktrees/<feature>/merge feature/<feature>
-cd .worktrees/<feature>/merge
 ```
-This is the only checkout of `feature/<feature>`. Keep it until feature merge, push, and final cleanup complete.
 
-### 5. Merge package branches into the feature ref
+A dependent package branches from `feature/<feature>` only after its prerequisite is integrated and accepted.
+Merge from the integration worktree with `git merge wp/<feature>/<WP-ID> --no-edit`. Feature publication is a
+separate covered action; it never authorizes target merge/push or sidecar cleanup.
+
+## Quiescent Code-Before-Sidecar Checkpoint
+
+Verify active owner, generation, budgets, clean code, expected remote parents, and exact finalized path set. Then:
+
+1. Commit clean code and choose a never-used ref
+   `refs/heads/checkpoints/<feature>/<slot>/g<generation>`.
+2. Prove that remote ref absent; non-force push the exact code SHA; fetch/verify remote SHA.
+3. Only after verification, update Lifecycle State to reference that ref/SHA.
+4. Prove artifact remote SHA equals the snapshot's expected parent. Path-stage only exact finalized files, verify
+   the staged set, commit, non-force push only `artifacts/<feature>`, and fetch/verify the SHA.
+
 ```bash
-cd "$PROJECT_ROOT/.worktrees/<feature>/merge"
-git merge wp/<feature>/WP1 --no-edit
-git merge wp/<feature>/WP2 --no-edit
+set -euo pipefail
+cd "$CODE_ROOT"
+test -z "$(git status --porcelain)"
+CODE_SHA="$(git rev-parse HEAD)"
+CODE_REF=refs/heads/checkpoints/<feature>/<slot>/g<generation>
+test -z "$(git ls-remote --heads origin "$CODE_REF")"
+git push origin "$CODE_SHA:$CODE_REF"
+git fetch --no-tags origin "$CODE_REF"
+test "$(git rev-parse FETCH_HEAD)" = "$CODE_SHA"
+test "$(git ls-remote --heads origin "$CODE_REF" | awk 'NR==1 {print $1}')" = "$CODE_SHA"
+
+cd "$ARTIFACT_ROOT"
+ARTIFACT_REF=refs/heads/artifacts/<feature>
+EXPECTED_PARENT=<last-verified-sidecar-sha>
+test "$(git ls-remote --heads origin "$ARTIFACT_REF" | awk 'NR==1 {print $1}')" = "$EXPECTED_PARENT"
+FINALIZED_PATHS=(<exact-finalized-paths-including-lifecycle-state>)
+git add -- "${FINALIZED_PATHS[@]}"
+mapfile -d '' -t EXPECTED < <(printf '%s\0' "${FINALIZED_PATHS[@]}" | sort -z)
+mapfile -d '' -t STAGED < <(git diff --cached --name-only -z | sort -z)
+test "${#EXPECTED[@]}" -eq "${#STAGED[@]}"
+for I in "${!EXPECTED[@]}"; do test "${EXPECTED[$I]}" = "${STAGED[$I]}"; done
+git commit -m "artifacts: checkpoint <feature> g<generation>"
+SIDECAR_SHA="$(git rev-parse HEAD)"
+git push origin "$SIDECAR_SHA:$ARTIFACT_REF"
+git fetch --no-tags origin "$ARTIFACT_REF"
+test "$(git rev-parse FETCH_HEAD)" = "$SIDECAR_SHA"
+test "$(git ls-remote --heads origin "$ARTIFACT_REF" | awk 'NR==1 {print $1}')" = "$SIDECAR_SHA"
 ```
-Resolve conflicts in the integration worktree. Verification for the integrated feature runs there.
 
-### 6. Push feature branch for review/testing
-```bash
-cd "$PROJECT_ROOT/.worktrees/<feature>/merge"
-git push -u origin feature/<feature>
-```
-This publishes only `feature/<feature>`. It does not authorize target merge/push or sidecar cleanup.
+Normal push is required: no force option, mutable ref reuse, sidecar-first ordering, local-only referenced code, or
+broad staging. Before the authorization/status checkpoint, prove the candidate differs only by the
+approved status mutation; any other drift blocks staging.
 
-## Sidecar Checkpoints
-Checkpoint only at parent-supplied gates. Before Gate-2 `git add -A`, prove the candidate differs only by the
-approved status mutation; unexpected artifact drift blocks staging. Never checkpoint every incidental edit.
+## Safe Resume
 
-From the artifact worktree only:
-```bash
-cd "$PROJECT_ROOT/.worktrees/<feature>/artifacts"
-git status --short
-git add -A   # artifact worktree is a dedicated orphan checkout: only .planning/.tasks live here
-if ! git diff --cached --quiet; then git commit -m "artifacts: <feature> <gate>"; fi
-git push -u origin artifacts/<feature>
-```
-This push targets only `origin artifacts/<feature>` and must not push `main`, `feature/<feature>`, or
-`wp/<feature>/<WP-ID>` as an artifact side effect.
+Fetch the exact artifact ref, verify its SHA and quiescent Lifecycle State, then fetch and verify every referenced
+code ref/SHA before creating/resuming worktrees. Ignore unreferenced checkpoint refs and treat later local commits,
+files, proofs, or reports as untrusted recovery input. If expected parent, owner/generation, budget/deadline,
+quiescence, or ref reachability is uncertain, do not push or take over; report the last verified checkpoint.
 
-## Multi-Phase and Concurrent Features
-Phase 1 packages branch from `<base-ref>` when independent; dependent packages branch from
-`feature/<feature>` after prerequisite packages merge. Separate active features by namespace:
-```text
-.worktrees/auth/artifacts   -> artifacts/auth
-.worktrees/auth/wp-WP1      -> wp/auth/WP1
-.worktrees/auth/merge       -> feature/auth
-.worktrees/search/artifacts -> artifacts/search
-.worktrees/search/wp-WP1    -> wp/search/WP1
-```
-Clean up only the namespace being finalized. Package IDs such as `WP1` can repeat across features.
+## Stop If
 
-## Stop if
-- `.worktrees/` is not ignored.
-- Artifact sidecar creation would reuse a non-orphan/deliverable branch or require source files in the artifact worktree.
-- A sidecar checkpoint would push anything except `origin artifacts/<feature>` from the artifact worktree.
-- A package needs predecessor output that has not merged into `feature/<feature>`.
-- Package ownership/dependencies do not permit parallel package work.
-- A target merge, target push, cleanup, force action, or remote deletion is requested inside this playbook.
+Stop on unsafe/equal roots, current-root authority, incomplete migration, ref/path collision, dirty finalized code,
+missing permission, unexpected remote parent, non-fast-forward/CAS rejection, staged-path mismatch, unverified code
+SHA, predecessor not integrated, or any request for force, target merge/push, release/tag, cleanup, or deletion.

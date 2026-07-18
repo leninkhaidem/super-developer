@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import hashlib
 import json
 import shutil
 import subprocess
@@ -261,30 +262,61 @@ class AgenticLifecycleOracleTests(unittest.TestCase):
             root = Path(tmp)
             code = root / "code"
             sidecar = root / "sidecar"
+            outside = root / "outside-secret.md"
             init_repo(code)
             init_repo(sidecar)
             legacy_slice = code / ".planning" / "fixture" / "slices" / "feature.md"
             legacy_task = code / ".tasks" / "fixture" / "SPEC.md"
+            unsafe_link = code / ".planning" / "fixture" / "slices" / "escape.md"
             legacy_slice.parent.mkdir(parents=True)
             legacy_task.parent.mkdir(parents=True)
             legacy_slice.write_text("# Legacy Slice\n", encoding="utf-8")
             legacy_task.write_text("# Legacy Spec\n", encoding="utf-8")
-            commit_all(code, "legacy current-root artifacts")
+            outside.write_text("must not import\n", encoding="utf-8")
+            unsafe_link.symlink_to(outside)
+            source_head = commit_all(code, "legacy current-root artifacts")
 
             self.assertEqual(
                 run_git(code, "rev-parse", "--show-toplevel").stdout.strip(),
                 str(code),
                 "current-root artifacts cannot establish a distinct planned authority",
             )
-            for source in (legacy_slice, legacy_task):
-                self.assertFalse(source.is_symlink())
+            candidates = (legacy_slice, legacy_task, unsafe_link)
+            safe_sources = [
+                source
+                for source in candidates
+                if not source.is_symlink()
+                and source.is_file()
+                and source.resolve().is_relative_to(code.resolve())
+            ]
+            self.assertEqual([legacy_slice, legacy_task], safe_sources)
+            imported = []
+            for source in safe_sources:
                 relative = source.relative_to(code)
                 destination = sidecar / relative
                 destination.parent.mkdir(parents=True, exist_ok=True)
+                self.assertFalse(destination.exists(), "migration must not overwrite")
                 shutil.copy2(source, destination)
+                imported.append(
+                    {
+                        "source": relative.as_posix(),
+                        "destination": relative.as_posix(),
+                        "sha256": hashlib.sha256(source.read_bytes()).hexdigest(),
+                    }
+                )
             provenance = sidecar / ".tasks" / "fixture" / "migration-provenance.json"
             provenance.write_text(
-                json.dumps({"source_root": str(code), "feature": "fixture"}) + "\n",
+                json.dumps(
+                    {
+                        "source_root": str(code.resolve()),
+                        "source_head": source_head,
+                        "feature": "fixture",
+                        "initiating_instruction": "fixture migration authorization",
+                        "files": imported,
+                    },
+                    indent=2,
+                )
+                + "\n",
                 encoding="utf-8",
             )
             commit_all(sidecar, "import legacy artifacts")
@@ -295,8 +327,83 @@ class AgenticLifecycleOracleTests(unittest.TestCase):
             )
             self.assertEqual(legacy_slice.read_text(), (sidecar / legacy_slice.relative_to(code)).read_text())
             self.assertEqual(legacy_task.read_text(), (sidecar / legacy_task.relative_to(code)).read_text())
+            self.assertFalse((sidecar / unsafe_link.relative_to(code)).exists())
+            persisted = json.loads(provenance.read_text(encoding="utf-8"))
+            self.assertEqual(source_head, persisted["source_head"])
+            self.assertEqual(imported, persisted["files"])
             tracked = run_git(sidecar, "ls-files").stdout.splitlines()
             self.assertIn(".tasks/fixture/migration-provenance.json", tracked)
+
+    def test_initial_sidecar_cas_and_path_specific_staging_drill(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            remote = root / "remote.git"
+            owner = root / "owner"
+            competitor = root / "competitor"
+            init_bare(remote)
+            init_repo(owner)
+            run_git(owner, "remote", "add", "origin", str(remote))
+            artifact_ref = "refs/heads/artifacts/fixture"
+            slice_path = owner / ".planning" / "fixture" / "slices" / "feature.md"
+            state_path = owner / ".tasks" / "fixture" / "lifecycle-state.json"
+            slice_path.parent.mkdir(parents=True)
+            slice_path.write_text("# Portable Slice\n", encoding="utf-8")
+            write_lifecycle_state(
+                owner,
+                {
+                    "schema_version": 1,
+                    "generation": 1,
+                    "feature": "fixture",
+                    "quiescent": True,
+                    "stage": "conceptualization-checkpoint",
+                    "next_legal_actions": ["planning"],
+                    "portability_authorization": "explicit fixture instruction",
+                    "artifact_ref": artifact_ref,
+                    "expected_parent": "absent",
+                    "code_checkpoints": [],
+                },
+            )
+            (owner / "unfinalized.tmp").write_text("do not capture\n", encoding="utf-8")
+
+            self.assertIsNone(remote_ref(remote, artifact_ref))
+            run_git(
+                owner,
+                "add",
+                ".planning/fixture/slices/feature.md",
+                ".tasks/fixture/lifecycle-state.json",
+            )
+            staged = run_git(owner, "diff", "--cached", "--name-only").stdout.splitlines()
+            self.assertEqual(
+                [
+                    ".planning/fixture/slices/feature.md",
+                    ".tasks/fixture/lifecycle-state.json",
+                ],
+                staged,
+            )
+            run_git(owner, "commit", "-m", "initial sidecar")
+            initial_sha = run_git(owner, "rev-parse", "HEAD").stdout.strip()
+            run_git(owner, "push", "origin", f"{initial_sha}:{artifact_ref}")
+            self.assertEqual(initial_sha, remote_ref(remote, artifact_ref))
+            self.assertIsNone(remote_ref(remote, "refs/heads/main"))
+            self.assertIsNone(remote_ref(remote, "refs/heads/feature/fixture"))
+
+            run_git(root, "clone", str(remote), str(competitor))
+            run_git(competitor, "config", "user.email", "competitor@example.invalid")
+            run_git(competitor, "config", "user.name", "Competitor")
+            run_git(competitor, "checkout", "-b", "artifact-copy", "origin/artifacts/fixture")
+            (competitor / ".tasks" / "fixture" / "competitor.md").write_text(
+                "advance remote\n", encoding="utf-8"
+            )
+            competitor_sha = commit_all(competitor, "competing sidecar CAS")
+
+            (owner / ".tasks" / "fixture" / "owner.md").write_text("stale owner\n", encoding="utf-8")
+            run_git(owner, "add", ".tasks/fixture/owner.md")
+            run_git(owner, "commit", "-m", "stale owner checkpoint")
+            owner_sha = run_git(owner, "rev-parse", "HEAD").stdout.strip()
+            run_git(competitor, "push", "origin", f"{competitor_sha}:{artifact_ref}")
+            rejected = run_git(owner, "push", "origin", f"{owner_sha}:{artifact_ref}", check=False)
+            self.assertNotEqual(0, rejected.returncode)
+            self.assertEqual(competitor_sha, remote_ref(remote, artifact_ref))
 
     def test_monotonic_budget_persistence_drill(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

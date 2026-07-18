@@ -35,15 +35,18 @@ wholesale, or perform hidden rule clone/pull/network sync; routine scans are loc
 
 ## `sliceproof.py`
 
-`sliceproof.py` is the planned-feature mechanical helper. When roots differ, pass both as absolute
-paths so the command is location-independent: `$ARTIFACT_ROOT` is the artifact worktree
-(`.worktrees/<feature>/artifacts`) and `$CODE_ROOT` is the code worktree being checked — a package
-worktree for package checks, the integration/top worktree for `validate-final` and any deliverable-matrix
-file evidence. Treat `--artifact-root` and `--code-root` as the trust anchors; a report's `Worktree` field
-is runtime metadata for humans/auditors, not evidence-root authority. Do not pass `--code-root "."` from
-the project root for integrated checks: the feature's files live in a worktree, not the root, so file-evidence
-existence checks would resolve against the wrong tree. The `.tasks/<feature>/tasks.json` argument is always
-artifact-root-relative. Omit both flags only for current-root stores, where both default to the current directory.
+`sliceproof.py` is the planned-feature mechanical helper. Always pass both roots as resolved absolute paths:
+`$ARTIFACT_ROOT` is the distinct sidecar (`.worktrees/<feature>/artifacts`) and `$CODE_ROOT` is the code worktree
+being checked—a package worktree for package checks and the integration/top worktree for `validate-final` and file
+evidence. Treat them as trust anchors; a report's `Worktree` is descriptive only. Omitted flags/current-directory
+defaults are helper compatibility, never valid planned-feature authority. Reject equal roots and current-root
+`.planning`/`.tasks`; migrate through `artifact-store.md` before validation. The tasks path remains
+artifact-root-relative.
+
+Git publication is not a helper function. At action time use the parent-supplied artifact-store and worktree
+contracts: exact namespaced non-force CAS, immutable code checkpoint refs, verified code-before-sidecar ordering,
+and path-specific finalized staging. Sidecar Portability Authorization cannot authorize code, target, release,
+force, or deletion operations.
 
 Read-only checks:
 

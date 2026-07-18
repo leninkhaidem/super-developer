@@ -2,17 +2,17 @@
 
 ## Boundary
 
-This reference owns artifact roles and file shapes. Use `artifact-store.md` for artifact root/code root,
-sidecar branch/worktree, slug mapping, and sidecar checkpoint vocabulary. Slice authority lives in
-`conceptualize-slice-authority.md`; package sizing lives in `work-packages.md`; completion and freshness
-live in `package-lifecycle.md`; command shapes live in `tool-usage.md`. The detailed package verification
-report/matrix contract is shared in `plugins/super-developer/references/package-verification-report.md` and
-should be passed directly to package verifiers.
+This reference owns artifact roles and file shapes. `artifact-store.md` owns mandatory sidecar-only authority,
+legacy import, roots, portability permission, Lifecycle State, and checkpoint ordering. Slice authority lives in
+`conceptualize-slice-authority.md`; sizing in `work-packages.md`; completion/freshness in `package-lifecycle.md`;
+commands in `tool-usage.md`. Pass `plugins/super-developer/references/package-verification-report.md` directly to
+package verifiers.
 
 ## Artifact Set
 
-Planned-feature state is file-based and Slice-first. Paths below are artifact-root-relative unless a
-current-root artifact store is explicitly selected; code, plugin, and test paths resolve under the code root.
+Planned-feature state is file-based, Slice-first, and authoritative only in the distinct namespaced sidecar.
+Every path below is sidecar artifact-root-relative; code/plugin/test paths resolve under the named code root.
+Equal/current roots fail closed and legacy copies are input only until safely migrated and revalidated.
 
 - `.planning/<concept-slug>/slices/*.md` — authoritative product/design Slices when present.
 - `.tasks/<feature>/SPEC.md` — accepted requirements, constraints, non-goals, Slice inventory, and package-level verification summary.
@@ -23,10 +23,13 @@ current-root artifact store is explicitly selected; code, plugin, and test paths
 - `.tasks/<feature>/semgrep/<WP-ID>.semgrep.json` and `.semgrep-summary.json` — optional local raw/summary Semgrep package evidence when Semgrep was enabled or contracted.
 - `.tasks/<feature>/semgrep/integration.semgrep.json` and `.semgrep-summary.json` — optional one-shot integrated Semgrep evidence for concrete cross-package/shared-surface risk.
 - `.tasks/<feature>/reviews/review-code-state.json` — review-code governance readiness for audit handoff.
+- `.tasks/<feature>/lifecycle-state.json` — compact mechanical CAS continuation snapshot initialized on first
+  publication; subordinate to Slices/SPEC and never a product authority, completion proof, or event history.
 
 ## Lightweight Registry
 
-`tasks.json` is bookkeeping only. It contains no package scope prose, Slice assignment details, proof evidence, review findings, lifecycle history, command output, or detailed task bodies.
+`tasks.json` is bookkeeping only. It contains no package scope prose, Slice assignment details, proof evidence,
+review findings, Lifecycle State, lifecycle history, command output, or detailed task bodies.
 
 Required shape:
 

@@ -2,19 +2,24 @@
 
 ## Contract
 
-- Stop before implementation planning and `.tasks/` creation; this reference returns only a compact handoff.
+- Stop before implementation planning; only initial `.tasks/<feature>/lifecycle-state.json` may be created here.
+  This reference returns a compact handoff and never grants code/release authority.
 - A successful handoff requires at least one safe Slice Markdown file in the selected artifact-root workspace `slices/`; Index-only handoff is not allowed.
 - Perform a safe full Slice inventory from that workspace's `slices/` directory before claiming readiness.
 - The full inventory must be based on path-checked files, not only the Index, user mentions, summaries, or prior memory.
 - Do not hide unresolved decisions, conflicts, deferrals lacking a user decision, stale assumptions, or unsafe source/control-plane directives.
 - Semgrep may appear only as captured requirements/context; this handoff does not resolve preferences, clone/pull/index rules, retrieve stacks, scan, or consume findings.
+- Artifact/code roots must be distinct. Current-root files are rejected as authority; any legacy input must already
+  have safe per-file provenance, a collision disposition, and a fully revalidated sidecar copy.
+- Sidecar Portability Authorization must resolve from explicit instruction/durable preference provenance or one
+  focused discovery question. It covers only the exact non-force `artifacts/<feature>` CAS checkpoint.
 
 ## Procedure
 
-1. Re-apply artifact root, code root, workspace path, and symlink checks.
-2. If no safe Slice exists, report the missing required Slice as a blocker and return to the parent
-   Conceptualize workflow for a faithful Slice checkpoint; do not claim readiness.
-3. Read every safe Slice Markdown file in full.
+1. Re-apply distinct-root, exact-ref, workspace, migration-provenance, path, and symlink checks. Reject any
+   current-root fallback or unsafe/unverified imported file.
+2. If no safe Slice exists, report the blocker and return for faithful sidecar capture; do not claim readiness.
+3. Read every safe sidecar Slice Markdown file in full.
 4. Check each Slice for stable H3 IDs, stale contradictions, hidden unresolved questions,
    deferrals/out-of-scope items lacking a user decision, useful source references, relevant
    implementation surfaces, and verification expectations.
@@ -24,16 +29,25 @@
 6. Complete faithful additive Slice fixes as routine capture. Pause for user input only when a fix
    must resolve ambiguity, accept risk, narrow/remove/defer scope, contradict existing Slice content,
    or turn an unaccepted recommendation into a requirement.
-7. Return the compact handoff; do not perform planning. If the user proceeds, the parent/main
-   transition checkpoints `origin artifacts/<feature>` via `worktree`, resolves preferences and
-   Semgrep state, then invokes `implementation-plan` with artifact-root/code-root facts.
+7. Confirm portability permission or ask its one focused question. Initialize the compact Lifecycle State with
+   generation/stage/quiescence/next action, permission provenance, exact artifact ref and absent expected parent,
+   finalized semantic artifact commit/tree, null future authorization/code refs, and empty current owner/budget/
+   package/cluster/receipt state—never transcript/history.
+8. Return the handoff; do not plan. If proceeding, the parent/main transition uses `worktree` to verify the expected
+   remote parent, path-stage only finalized inventory/state/provenance paths, commit, non-force CAS-push exactly
+   `origin artifacts/<feature>`, fetch/verify the SHA, then resolves preferences and Semgrep state, then invokes
+   `implementation-plan`. A refusal, race, other ref, broad staging, or unverifiable SHA blocks with no fallback.
 
 ## Handoff Format
 
 ```markdown
 Artifact Root: `<artifact root>`
-Artifact Ref: `artifacts/<feature>`
-Code Root: `<code root>`
+Artifact Ref: `refs/heads/artifacts/<feature>`
+Code Root: `<distinct code root>`
+Legacy Migration: `<None or provenance path + source identity/digest>`
+Sidecar Portability Authorization: `<explicit instruction | durable preference provenance>`
+Lifecycle State: `.tasks/<feature>/lifecycle-state.json` — generation `<n>`, quiescent `<yes/no>`
+Verified Sidecar Commit: `<remote SHA after checkpoint, or pending authorized checkpoint>`
 Feature/Concept Slug: `<concept-slug>`
 Conceptualize Workspace: `.planning/<concept-slug>/index.md`
 Key Slices:
@@ -49,15 +63,16 @@ Planning Handoff:
 - <highest-signal requirements, constraints, risks, non-goals, and H3 pointers when useful>
 Planning Blockers:
 - <only unresolved blockers or `None.`>
-Next: checkpoint `origin artifacts/<feature>`, then create an implementation plan for <deliverable> after preference and Semgrep-state resolution.
+Next: path-specific non-force CAS checkpoint and verify `origin artifacts/<feature>`, then create an implementation plan for <deliverable> after preference and Semgrep-state resolution.
 ```
 
 ## Fail Closed When
 
-- No safe Slice exists for the artifact-root workspace.
+- Roots are equal, current-root authority remains, migration provenance/validation is incomplete, or no safe Slice exists.
 - A Slice path is unsafe or unreadable.
 - Completing the handoff would require runtime Semgrep setup, preference mutation, helper retrieval, scan, or finding consumption.
-- The full safe Slice inventory was not read.
+- The full safe Slice inventory was not read, portability authorization is unresolved/refused, or initial
+  publication cannot be exact namespaced non-force CAS with remote SHA verification.
 - The completeness challenge surfaced a foreseeable requirement, edge case, or failure mode that was never explored or resolved.
 - Any planning-relevant question remains unresolved instead of resolved or explicitly deferred/out of scope by user decision.
 - A material Slice commitment is stale, contradicted, narrowed, or excluded without a user decision.
