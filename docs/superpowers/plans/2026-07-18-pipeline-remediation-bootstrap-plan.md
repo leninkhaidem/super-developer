@@ -12,7 +12,7 @@ Repair the orchestration, evidence, repair-loop, lifecycle, and release gaps doc
 The work is delivered in three phases:
 
 1. **Convergence hardening:** stop non-progressing repair cycles and move architecture/evidence discovery earlier.
-2. **Assurance simplification:** reduce clean-path agent and artifact amplification while preserving independent defect detection.
+2. **Verification-loop simplification:** reduce redundant verification and repair-loop amplification while preserving independent defect detection and the current artifact model.
 3. **Lifecycle durability:** make amendment, resume, audit, evidence retention, and release exact-state coherent.
 
 All three phases are in program scope. Each phase must be independently reviewable and releasable; later phases do not block the first convergence fix.
@@ -376,37 +376,52 @@ Do not modify `sliceproof.py` or `semgrep_rules.py` behavior in Phase 1.
 
 ---
 
-# Phase 2 — Assurance Simplification
+# Phase 2 — Verification-Loop Simplification
 
 ## Objective
 
-Reduce clean-path agent, context, and artifact amplification after Phase 1 proves that defect detection and stopping behavior remain sound.
+Reduce repeated verification, repair, and re-verification work while preserving the Phase 1 stopping rules,
+independent defect detection, exact-state binding, and deliverable quality. This phase does not redesign the
+artifact sidecar, Slice-first planning, or cross-system handoff model.
 
-## Planned scope
+## User-confirmed scope
 
-1. Introduce explicit low, standard, and high assurance selection based on named risk—not file count.
-2. Make per-package independent verification conditional for low-risk coherent work.
-3. Preserve package verifiers for parallel, sensitive, or independently meaningful boundaries.
-4. Consolidate planning plus plan challenge into one user acceptance phase while retaining a cold challenge.
-5. Consolidate pipeline final review and audit into one final-verification phase with separate completeness and code-risk lenses; use multiple agents only when risk requires.
-6. Remove blocking Gate 1 before read-only plan review.
-7. Remove repeated approvals for repairs already inside an accepted execution boundary.
-8. Make Slices and sidecars conditional where a narrow Accepted Brief is sufficient.
-9. Reduce duplicate closure prose while retaining traceability from accepted outcome to evidence.
-10. Establish clean-path call budgets and report actual amplification.
+1. Select low, standard, or high assurance from named risk and meaningful ownership boundaries—not file count.
+2. Make per-package independent verification conditional for genuinely low-risk coherent work.
+3. Preserve package verifiers for parallel, sensitive, cross-package, or independently meaningful boundaries.
+4. Replace universal final `review-code` plus final `audit` duplication with one final-verification phase carrying
+   distinct completeness and code-risk lenses; use a second independent agent only when named risk requires it.
+5. Return final findings once to the Delivery Owner, classify and batch eligible repairs once, and forbid child-owned
+   fix/verification loops.
+6. After repair, rerun only affected seams and evidence unless impact is material, shared, sensitive, or uncertain;
+   the Phase 1 same-cluster second-failure circuit remains authoritative.
+7. Do not re-request approval for repairs and bounded reruns already inside the accepted Execution Contract;
+   product/scope/risk changes and protected side effects still require explicit authority.
+8. Establish clean-path call budgets and report planned versus actual agent amplification in existing execution
+   summaries, without adding a ledger, dashboard, or receipt.
+
+## Explicit non-goals
+
+- Do not make the artifact sidecar or Slice-first artifacts optional; they support cross-system handoff and remain intact.
+- Do not change planning Gate 1/Gate 2 or planning-plus-challenge topology in this phase.
+- Do not redesign proof/report schemas merely to shorten prose.
+- Do not implement Phase 3 resume, package-identity, concurrent checkpoint, Verification Summary, audit-receipt,
+  release, retention, cleanup, or degraded-host-assurance work.
 
 ## Phase 2 guardrails
 
-- Do not eliminate cold independent verification.
-- Do not weaken security/privacy/safety/data/public-contract escalation.
-- Do not use agent count alone to classify risk.
-- Do not hide low assurance behind an implicit default.
-- Do not remove an artifact until its authority has a clear replacement.
+- Keep one cold independent final verifier for every planned feature.
+- Do not weaken security/privacy/safety/data/public-contract/concurrency/lifecycle escalation.
+- Standard is the default when risk or boundary meaning is uncertain; low assurance must be explicit and justified.
+- Agent count is a cost signal, never the assurance classifier.
+- Preserve root-worktree safety, bounded commands, current artifact authority, and exact freeze semantics.
 
 ## Phase 2 target metrics
 
-- Narrow feature: approximately 3–4 agent calls.
-- Clean four-package feature: no more than approximately 7 calls unless named risk justifies more.
+- Narrow clean feature: no more than one package implementer plus one cold final verifier after plan acceptance.
+- Clean four-package feature: no more than approximately 6 implementation/verification calls unless named risk
+  justifies package verifiers or specialists.
+- No duplicate final review and audit agents for low/standard assurance.
 - No reduction in seeded serious-defect detection compared with Phase 1.
 - Fewer than 10% false blockers in the scenario set.
 
