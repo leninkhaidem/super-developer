@@ -1,9 +1,11 @@
 # Agentic Delivery Harness North-Star Design
 
-**Status:** Architecture-redesign candidate after challenge; not implementation authority
-**Date:** 2026-07-18  
-**User-confirmed invariant:** Every planned feature retains a portable artifact sidecar.  
-**Existing foundation under reconciliation:** `790bf679466b3738e422b3eb23a951a92a239a6f`
+- **Status:** Accepted north-star design; not implementation authorization
+- **Date:** 2026-07-18
+- **Accepted semantic state:** `1fdebf33af509061ae593796e532dcc4b1a93a9e`
+- **Cold acceptance:** architecture `ACCEPT` (`#4b2472c0`); comprehensive Sol `ACCEPT` (`#18550bca`)
+- **User-confirmed invariant:** Every planned feature retains a portable artifact sidecar.
+- **Existing foundation under reconciliation:** `790bf679466b3738e422b3eb23a951a92a239a6f`
 
 ## Purpose
 
