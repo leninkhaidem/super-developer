@@ -1,9 +1,10 @@
 # Agentic Delivery Harness Implementation Plan
 
-- **Status:** Candidate for cold plan challenge; not implementation authorization
+- **Status:** Parent-owned implementation plan; awaiting Implementation Authorization
 - **Date:** 2026-07-18
 - **Accepted design:** `docs/superpowers/specs/2026-07-18-agentic-delivery-harness-north-star.md`
-- **Accepted semantic design commit:** `1fdebf33af509061ae593796e532dcc4b1a93a9e`
+- **Cold-accepted semantic design commit:** `1fdebf33af509061ae593796e532dcc4b1a93a9e`
+- **User-authorized design amendment:** Minimum sufficient test evidence; no test-volume gate
 - **Accepted metadata/design branch base:** `b0e66e5`
 - **Phase 1 safety checkpoint under reconciliation:** `790bf679466b3738e422b3eb23a951a92a239a6f`
 - **Original product baseline:** v1.39.0 at `df7396f677c026cd8bfdf2d0e9baca29e5a03791`
@@ -29,9 +30,10 @@ The plugin does not orchestrate its own amendment. One parent owner uses this co
 ordinary commits, repository tests, and cold read-only reviewers. Do not create amendment `.tasks/`, proof/report
 sidecars, dashboards, event ledgers, or a second orchestration service.
 
-After this plan receives cold acceptance, present one implementation authorization. During execution, pause only
-for a product/design change, new protected side effect, unsafe state, or the accepted stopping rule. Phase reviews
-are autonomous quality checks, not new user gates.
+The north-star design already has cold acceptance. This parent-owned decomposition does not enter another planning
+review loop. Present one implementation authorization before source edits. During execution, pause only for a
+product/design change, new protected side effect, unsafe state, or the accepted stopping rule. Phase reviews are
+autonomous quality checks, not new user gates.
 
 ## Simplicity Budget
 
@@ -141,6 +143,32 @@ Use one freeze-scoped directory, derived from a helper-validated freeze ID:
 Pre-freeze package/boundary receipts remain existing package reports `B[i]`. The freeze object lives in the compact
 Lifecycle State; no separate graph store is added.
 
+## Minimum Sufficient Testing Contract
+
+Canonical ownership begins in `references/work-packages.md` because package Verification Expectations define done
+before an implementer writes tests. `generic-testing.md` supplies selection technique; planner/dispatch/verifier/
+review/audit contracts reference the package rule rather than duplicating it.
+
+Package acceptance requires the smallest credible evidence set for accepted observable behavior, materially
+relevant forbidden/failure outcomes, triggered risks, consumed contracts, and distinct regressions. One causal test
+may prove multiple requirements/rows. Once these obligations and required commands pass, the implementer stops
+adding tests.
+
+Do not create tests for speculative permutations, duplicate layers, trivial wiring/type guarantees, private details
+already covered through behavior, or report-row population. Do not add a new harness/fixture abstraction when
+existing facilities can prove the behavior.
+
+Replace `### Test Review Scope` changed-population census with `### Selected Causal Evidence`: selected typed
+anchors, behavior/risk proven, sufficiency rationale, mock/fixture/substitute disclosure, and fresh command result.
+No test count, test LOC, test-to-production ratio, coverage percentage, review percentage, or suite-volume field is
+allowed as an acceptance gate. Existing tests are not rejected or removed solely for volume.
+
+Verifier/reviewer blocking is limited to concrete test/evidence defects: false positives, incorrect or weakened
+assertions, hidden skip/focus/xfail, flaky/inconclusive results, unsafe side effects, materially unacceptable
+required runtime, or a changed shared harness/configuration that undermines confidence. Package verification deeply
+checks selected causal evidence, code review checks only correctness/trust risks in changed tests, and audit
+selectively falsifies high-value claims without reviewing the suite.
+
 ## Phase 1 Reconciliation
 
 ### Retain
@@ -163,6 +191,8 @@ Lifecycle State; no separate graph store is added.
 - Universal package verification becomes `boundary | final` routing.
 - Sibling final review/audit becomes low combined or standard/high serial assurance.
 - Owner context-only continuation gains one compact CAS-checkpointed snapshot.
+- Work-package/testing/report/helper contracts replace exhaustive test census and one-test-per-row incentives with
+  minimum sufficient Selected Causal Evidence.
 
 ### Remove
 
@@ -173,7 +203,8 @@ Lifecycle State; no separate graph store is added.
 - child-owned repair/final continuation;
 - sibling review/audit over a state likely to change;
 - release-default sidecar/checkpoint deletion;
-- broad concurrent sidecar `git add -A`.
+- broad concurrent sidecar `git add -A`;
+- test count/LOC/ratio/coverage gates, exhaustive changed-test census, and test-code perfection review.
 
 ## Implementation Slices and Commits
 
@@ -192,7 +223,7 @@ its focused tests before the next slice.
 
 **Work**
 
-- Encode all 21 accepted scenarios with initial-state class, seed, expected first-detection stage/class, maximum
+- Encode all 22 accepted scenarios with initial-state class, seed, expected first-detection stage/class, maximum
   formal prompts, repair-wave expectation, and terminal result.
 - Add fixture-schema and uniqueness tests.
 - Add deterministic temporary-Git drills for sidecar-only roots, non-force code-before-sidecar publication windows,
@@ -258,6 +289,9 @@ its focused tests before the next slice.
 - Separate safe disposable spike actions from protected discovery actions.
 - Require complete prerequisite disposition, actual-path seams, broad-regression placement, envelope/baseline split,
   assurance/routing proposal, and Planner self-challenge.
+- Make Verification Expectations describe minimum confidence obligations and cheapest credible evidence—not test
+  inventories; consolidate overlapping obligations and permit one causal test to prove several rows.
+- Add the explicit test-authoring stop rule to `generic-testing.md` and planner/package-agent contracts.
 - Start and persist the finite preauthorization budget at planning handoff.
 - Keep Slices authoritative where useful; do not add another requirement ledger.
 
@@ -342,8 +376,10 @@ its focused tests before the next slice.
 
 - Define `low | standard | high`, promotion precedence, `boundary | final`, and distinct receipt ownership once.
 - Require `B[i]` before dependent/consumed boundary unlock.
+- Make work-package acceptance own minimum sufficient testing and replace Test Review Scope with Selected Causal
+  Evidence in package-verification contracts/reports.
 - Permit coherent final-routed leaf work without a fabricated package report.
-- Keep standard default and high named-risk triggers; file/call count never lowers assurance.
+- Keep standard default and high named-risk triggers; file/call/test count never lowers assurance.
 
 **Exit**
 
@@ -364,11 +400,14 @@ its focused tests before the next slice.
 **Work**
 
 - Extend strict registry/package parsing for profile, mode, and conditional report path.
+- Replace Changed Population/count/depth/exemplar census validators with compact Selected Causal Evidence grammar
+  and safe typed anchors; semantic sufficiency remains verifier-owned.
 - `validate-package-complete` requires report/state binding only for `boundary`; `final` requires valid stable proof
   and defers semantic closure explicitly.
 - `validate-final` validates all pre-freeze inputs and the selected package equation without pretending final
   assurance has run.
-- Reject high/consumed packages routed incorrectly, substitute reports, unknown modes, and profile downgrade.
+- Reject high/consumed packages routed incorrectly, substitute reports, unknown modes, and profile downgrade;
+  never reject based on test volume.
 
 **Exit**
 
@@ -394,6 +433,8 @@ its focused tests before the next slice.
 
 - Implement low `F → C → V`, standard `F → R → U → V`, high `F → R → S[*] → U → V` ordering.
 - Assign every package/final specialist to exactly one side of `F` and one named lens.
+- Limit package verifier test inspection to selected causal evidence and trust-affecting harness/config changes;
+  limit code review to concrete correctness/evidence/runtime risks; audit never rereviews the suite.
 - Make code review reach closure before standard/high audit dispatch.
 - Keep all verifier/auditor roles read-only and return-only; Delivery Owner alone repairs/continues.
 - Persist freeze-scoped outputs and final notification without adding a receipt registry.
@@ -497,7 +538,7 @@ its focused tests before the next slice.
 - Document Conceptualize → preflight → plan challenge → one authorization → autonomous delivery → adaptive
   assurance → notification.
 - Remove obsolete claims about Gate 1, universal verifiers, sibling final checks, and default sidecar deletion.
-- Run all 21 candidate scenarios in fresh OpenAI agent contexts and compare with v1.39 baseline observations.
+- Run all 22 candidate scenarios in fresh OpenAI agent contexts and compare with v1.39 baseline observations.
 - Record only concise observed metrics in the final implementation report; do not add a dashboard/ledger artifact.
 
 **Exit**
@@ -514,7 +555,7 @@ its focused tests before the next slice.
 | Static contracts | Existing and updated prompt-surface tests; never sufficient alone |
 | Mechanical schemas | `test_sliceproof.py` malformed/valid profile, state, freeze, receipt, path, digest, budget cases |
 | Git behavior | Temporary repositories for sidecar-only migration, non-force checkpoint ordering, crash windows, retention |
-| Agent behavior | Fixed 21-scenario fresh OpenAI packets with stage/class/prompt/call/repair oracles |
+| Agent behavior | Fixed 22-scenario fresh OpenAI packets with stage/class/prompt/call/repair oracles, including minimum-sufficient test selection |
 | Quality comparison | v1.39 baseline vs candidate: earlier upstream detection, no later serious detection, zero serious escapes |
 | Scope/integrity | affected skill audits, line caps, changed-path allowlist, Markdown links, `git diff --check` |
 | Independent assurance | Phase A/B/C cold reviews plus final full-diff review and final completion audit |
@@ -531,6 +572,8 @@ its focused tests before the next slice.
 - One repair maximum per canonical cluster; failed closure opens the circuit.
 - Clean low flow after discovery: Planner, Plan Reviewer, Implementer, combined final verifier.
 - Cold continuation succeeds at every declared quiescent checkpoint without hidden chat or local-only code.
+- Test count, LOC, ratio, coverage, and suite volume never gate acceptance; already-large valid suites are not
+  rejected or cleaned up solely for size.
 
 ## Phase Review and Stopping Rules
 
@@ -555,13 +598,12 @@ Allowed implementation paths are limited to:
 No plugin metadata/version bump, unrelated skill cleanup, new executable, dependency, provider/model rule, merge,
 release, tag, branch deletion, force action, or target-branch change is in scope.
 
-## Plan Acceptance and Implementation Authorization
+## Implementation Authorization
 
-Before source edits:
+The accepted north-star and this parent-owned decomposition are now the authority for the implementation decision;
+do not start another plan-review cycle. Before source edits:
 
-1. run a cold OpenAI plan challenger against this plan, accepted design, Phase 1 diff, helper surfaces, and caps;
-2. resolve one bounded serious finding set and obtain final Sol `ACCEPT`;
-3. checkpoint the exact accepted plan commit;
-4. present one Implementation Authorization covering this full A/B/C plan, expected commits, in-scope writes/tests,
-   local commands, bounded agent reviews, and excluded remote/destructive actions;
-5. implementation begins only after `Approve and auto-resolve`.
+1. checkpoint this user-authorized testing amendment and report the exact commit;
+2. present one Implementation Authorization covering the full A/B/C plan, expected commits, in-scope writes/tests,
+   local commands, bounded phase reviews, and excluded remote/destructive actions;
+3. implementation begins only after `Approve and auto-resolve`.

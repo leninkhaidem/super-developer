@@ -4,6 +4,7 @@
 - **Date:** 2026-07-18
 - **Accepted semantic state:** `1fdebf33af509061ae593796e532dcc4b1a93a9e`
 - **Cold acceptance:** architecture `ACCEPT` (`#4b2472c0`); comprehensive Sol `ACCEPT` (`#18550bca`)
+- **User-authorized amendment:** Minimum sufficient test evidence; no test-volume gate
 - **User-confirmed invariant:** Every planned feature retains a portable artifact sidecar.
 - **Existing foundation under reconciliation:** `790bf679466b3738e422b3eb23a951a92a239a6f`
 
@@ -402,6 +403,41 @@ Parallelism is used only for genuinely independent ownership. The Delivery Owner
 finalized package paths at quiescent wave boundaries with path-specific staging and remote-parent CAS; it never
 captures another active package through broad staging.
 
+## Minimum Sufficient Test Evidence
+
+Work-package acceptance owns test sufficiency before implementation begins. Verification Expectations describe the
+observable behavior, distinct failure mechanism, triggered risk, and cheapest credible evidence level; they do not
+prescribe an exhaustive test inventory. One causal test may satisfy multiple related requirements, Slice rows, or
+expectations. A matrix row may reuse decisive evidence and never creates a requirement for another test.
+
+The implementation owner writes the smallest maintainable set that establishes:
+
+1. each accepted observable behavior through its actual production path;
+2. each materially relevant forbidden/failure outcome;
+3. each triggered security, privacy, safety, data, concurrency, lifecycle, compatibility, or public-contract risk;
+4. each meaningful consumed/integration contract at its owning layer; and
+5. a regression for a distinct discovered defect mechanism when needed.
+
+Once those obligations have credible causal evidence and required commands pass, test authoring stops. Do not add
+tests for speculative permutations, duplicate confidence at several layers, trivial wiring/type guarantees,
+private implementation details already covered by behavior, or merely to populate proof/report rows. Reuse existing
+fixtures/harnesses and do not introduce new test infrastructure unless the accepted behavior cannot otherwise be
+proven.
+
+Test count, changed test lines, test-to-production ratio, coverage percentage, and suite volume are neither gates
+nor required report fields. Existing tests are not rejected, deleted, or sent through cleanup solely because they
+are numerous. They block only for a concrete defect such as false-positive evidence, incorrect assertions,
+flakiness/inconclusive outcome, hidden skip/focus/weakening, unsafe side effects, materially unacceptable required
+runtime, or a harness/configuration change that undermines confidence.
+
+Package reports replace exhaustive changed-population `Test Review Scope` census with `Selected Causal Evidence`:
+selected test/observation anchors, behavior/risk proven, why the set is sufficient, relevant mock/fixture/substitute
+disclosure, and fresh command result. Package verifiers inspect that evidence deeply plus any changed harness/config
+that affects its trustworthiness; they do not rereview all test lines or demand test-code perfection. Code review
+inspects tests only for production/evidence correctness, regression, flakiness, unsafe/shared harness, or material
+runtime risk. Audit consumes selected evidence and selectively falsifies high-value claims; it does not review the
+test suite.
+
 ## Stage 9 — Risk-Adaptive Independent Assurance
 
 `standard` is the default. `low` must satisfy every eligibility condition. Any high trigger wins. The accepted
@@ -662,8 +698,9 @@ prompts, and terminal verdict.
 
 Run baseline and candidate with fresh agent contexts and fixed packets. Record delegated calls by role, formal user
 prompts, technical questions, preauthorization correction/spike waves and issued budget, post-handoff repair waves,
-closure checks, stage of first correct detection, false blockers, terminal result, and exact commits. Static prompt-token assertions and helper fixtures support contract coverage but
-do not count as behavioral evidence.
+closure checks, stage of first correct detection, false blockers, terminal result, and exact commits. Do not record
+or gate on test count, test LOC, test-to-production ratio, coverage percentage, or suite volume. Static prompt-token
+assertions and helper fixtures support contract coverage but do not count as behavioral evidence.
 
 Candidate acceptance requires:
 
@@ -709,8 +746,8 @@ exact contracts must be reconciled, not merely supplemented.
 - convergence contract: separate human envelope from technical-plan revisions; persist cluster identity/strikes and
   define initial rejection → one repair → one closure → circuit;
 - package lifecycle, work packages, artifact schemas, and `sliceproof.py`: encode profile/package routing, run
-  selected boundary verification before dependency unlock, and validate profile-specific completion without fake
-  universal reports;
+  selected boundary verification before dependency unlock, validate profile-specific completion without fake
+  universal reports, and replace exhaustive Test Review Scope census with Selected Causal Evidence;
 - final lifecycle: replace sibling review/audit with combined low or serial standard/high receipts bound to one
   immutable freeze;
 - artifact-store/Slice/tool/helper contracts: retire current-root planned-feature authority, add safe legacy import,
@@ -730,7 +767,9 @@ exact contracts must be reconciled, not merely supplemented.
 - cluster or budget identity that resets through a new signature, agent, host, package label, or commit;
 - current-root planned authority, broad concurrent sidecar staging, sidecar-first publication, local-only referenced
   code, release-default ref deletion, hidden-chat continuation, or floating state;
-- assurance justified only by file/call count or semantic proof inferred from helper/prose/matrices.
+- assurance justified only by file/call count or semantic proof inferred from helper/prose/matrices;
+- test count/LOC/ratio/coverage gates, one-test-per-row incentives, exhaustive changed-test census, test-code
+  perfection review, or rejection/cleanup solely because many tests exist.
 
 ## Recommended Delivery Phases
 
@@ -786,6 +825,7 @@ stage/class, permitted calls/prompts, and terminal verdict.
 | 19 | Low/standard/high final receipt graphs | Validator accepts only the declared acyclic predecessor order and rejects circular, cross-freeze, missing, duplicate-role, or summary-as-proof receipts |
 | 20 | Existing current-root artifacts or first remote sidecar push | Planned lifecycle requires safe migration to sidecar; exact namespaced initial CAS push has explicit portability authority; no silent current-root fallback |
 | 21 | Target merge/release or unplanned protected action | Completion notifies once; protected operation cannot inherit sidecar portability or implementation auto-resolve authority |
+| 22 | Package has overlapping obligations or an already-large valid test suite | Planner selects minimum sufficient causal evidence; one test may prove related obligations; no volume gate or cleanup; only concrete test/evidence defects block |
 
 ## Challenger Acceptance Standard
 
@@ -799,4 +839,5 @@ Approve only if the lifecycle and non-waivable scenarios are achievable without:
 - duplicate assurance ownership or a specialist on both sides of the freeze;
 - resetting profile, cluster, monotonic budget/deadline, or ownership across hosts/agents/commits;
 - current-root planned authority, unauthorized initial sidecar publication, or deferred Phase-A/B portability;
+- test volume/count/LOC/ratio/coverage gates or exhaustive test-suite rereview;
 - claiming quality from call reduction, token checks, helpers, or prose without the fixed behavioral corpus.
