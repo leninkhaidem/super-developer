@@ -1,14 +1,11 @@
 # Slice-First Planned-Feature Artifacts
-
 ## Boundary
-
 This reference owns artifact roles and file shapes. `artifact-store.md` owns sidecar authority, roots, migration,
-permission, and checkpoint order. Slice authority lives in `conceptualize-slice-authority.md`; sizing in
-`work-packages.md`; completion/freshness in `package-lifecycle.md`; commands in `tool-usage.md`. Pass
-`plugins/super-developer/references/package-verification-report.md` directly to package verifiers.
-
+permission, and checkpoint order. Slice authority lives in `conceptualize-slice-authority.md`; sizing/test
+acceptance in `work-packages.md`; profile/routing in `assurance-routing.md`; completion/freshness in
+`package-lifecycle.md`; commands in `tool-usage.md`. Pass
+`plugins/super-developer/references/package-verification-report.md` only to a `boundary` verifier.
 ## Artifact Set
-
 All paths are relative to the distinct namespaced artifact root; source/test paths resolve under the code root.
 Equal/current roots fail closed for planned authority; legacy copies are migration input only.
 
@@ -16,7 +13,7 @@ Equal/current roots fail closed for planned authority; legacy copies are migrati
 - `.tasks/<feature>/SPEC.md` — accepted requirements, constraints, and verification summary.
 - `.tasks/<feature>/tasks.json` — lightweight registry only.
 - `.tasks/<feature>/packages/<WP-ID>.md` — assignment; `proofs/<WP-ID>.proof.md` — closure evidence.
-- `.tasks/<feature>/reports/<WP-ID>.package-verification.md` — independent package receipt and deliverable completeness matrix.
+- `.tasks/<feature>/reports/<WP-ID>.package-verification.md` — pre-freeze `B[i]` only for `boundary`; absent for `final`.
 - `.tasks/<feature>/semgrep/*.{semgrep.json,semgrep-summary.json}` — optional local package/integration evidence.
 - `.tasks/<feature>/reviews/review-code-state.json` — governance readiness for audit handoff.
 - `.tasks/<feature>/lifecycle-state.json` — subordinate mechanical CAS continuation snapshot, never product authority,
@@ -101,20 +98,28 @@ predecessors, verdicts, freeze equations, Verification Summary, or `completed` s
 ## Lightweight Registry
 
 `tasks.json` remains bookkeeping only: no scope prose, assignment detail, proof/report body, lifecycle/history,
-commands, findings, or task bodies. Required fields are `feature`, `title`, `status`, `spec_path`,
-`authoritative_slices`, and non-empty `work_packages`; package entries require `id`, `path`, `proof_path`,
-`report_path`, `status`, and `depends_on`. Paths are safe artifact-root-relative POSIX paths; package IDs are
-contiguous `WP<N>`, dependencies declared/acyclic, and statuses retain their controlled values.
-`authoritative_slices` may be empty only for an Index-only plan with no independent Slice obligation.
-`assurance_profile` and package `verification_mode` are optional forward-compatible fields in this slice;
-unknown values fail.
+commands, findings, or task bodies. Required top-level fields are `feature`, `title`, `status`, `spec_path`,
+`authoritative_slices`, `assurance_profile` (`low|standard|high`), and non-empty `work_packages`. Every package
+requires `id`, `path`, `proof_path`, `verification_mode` (`boundary|final`), `report_path`, `status`, and
+`depends_on`. `report_path` is a safe artifact-root-relative report path for `boundary` and exactly `null` for
+`final`; substitutes are invalid. Paths are safe artifact-root-relative POSIX paths; IDs are contiguous `WP<N>`,
+dependencies declared/acyclic, and statuses controlled. `authoritative_slices` may be empty only for Index-only
+plans. B2 adds strict helper parsing; B1 authors must follow this shape and must not fabricate final reports.
 
 ## Package Markdown and Proof
 
 Package Markdown is a cold-readable assignment with `## Scope`, `## Assigned Slices`, `## Primary Paths`,
-`## Verification Expectations`, `## Proof`, `## Package Verification Report`, and `## Dependencies`. Assigned Slice
-H3s split into `Must satisfy` closure rows and required-reading `Context only` rows; context alone creates no proof
-row unless another package owns it.
+`## Verification Expectations`, `## Proof`, `## Independent Verification`, and `## Dependencies`:
+
+```md
+## Independent Verification
+- Mode: `boundary | final`
+- Report: `<safe path> | None — final assurance`
+- Rationale: <named boundary/risk reason>
+```
+
+Mode/report must equal registry values. Assigned Slice H3s split into `Must satisfy` closure rows and required-
+reading `Context only`; context alone creates no proof row unless another package owns it.
 
 Proof Markdown requires package/slice scope, Slice and expectation closure tables, commands, files, gaps/deviations,
 and completion statement. Closure values are `PASS`, `DEFERRED`, or `N/A`; `OPEN`, `GAP`, placeholders,
@@ -123,22 +128,21 @@ requires explicit approval, provenance, and scope; N/A also requires rationale.
 
 ## Package Verification Report
 
-The canonical report starts `## Package Verification: <WP-ID>` and includes ordered `### Verdict`,
-`### Deliverable Completeness Matrix`, `### Triggered Risk Selection Notes`, `### Test Review Scope`,
-`### Slice Closure Review`, and `### Code Review Findings`; FAIL adds findings/guidance. Matrix columns remain
-`Source ID`, `Row Type`, `Deliverable`, `Evidence Type`, `Evidence Refs`, `Exactness / Risk Disposition`, `Verdict`;
-clean completion requires delivered mandatory Slice/`VE-<n>` rows, verifier-selected `RISK-<...>` rows when any,
-and typed non-placeholder code/test/static/command/manual anchors. `missing`, `partial`, `contradicted`, or
-`unverified` blocks; proof prose or Slice Closure Review alone is insufficient.
+Only a `boundary` package has a report and deliverable completeness matrix. It starts `## Package Verification: <WP-ID>` with ordered `### Verdict`,
+`### Deliverable Completeness Matrix`, `### Triggered Risk Selection Notes`, `### Selected Causal Evidence`,
+`### Slice Closure Review`, and `### Code Review Findings`; FAIL adds findings/guidance. The matrix keeps canonical
+columns and delivered mandatory Slice/`VE-<n>`/triggered `RISK-<...>` rows with typed anchors. Selected Causal
+Evidence records typed selected anchors, behavior/risk, sufficiency, substitutes, and fresh command result—never a
+changed-population census or volume gate.
 
 Append helper-emitted `## State Binding` with package/proof paths and digests, Assigned Slices, section-scoped
-`Assigned Slice Digests` (`path|tier|H3-ID=sha256:<64-hex>` separated by `; `), Matrix Source Snapshot over package
-Markdown plus must-satisfy blocks, Worktree, Git Ref, Commit, and Verified At. Hard-tier/current proof/package/code
-or cited-evidence drift loses freshness. `context_only_slice_drift` is non-blocking by default and receives
-affected-surface classification. Helpers validate grammar/bindings, not semantic truth or sufficiency.
+`Assigned Slice Digests` (`path|tier|H3-ID=sha256:<64-hex>` separated by `; `), Matrix Source Snapshot, Worktree,
+Git Ref, Commit, and Verified At. It must preserve exact Stable Candidate Identity, profile/mode, evidence, and
+consumed-contract bindings. Hard-tier/current candidate drift loses freshness. `context_only_slice_drift` is
+non-blocking by default and receives affected-surface classification. Helpers validate grammar/bindings, not
+semantic truth or sufficiency; B2 implements the new conditional grammar.
 
 ## Review-Code Governance State
-
 `.tasks/<feature>/reviews/review-code-state.json` is compact readiness only: feature, pipeline mode/state/time;
 exact refs/commit/diff/file-list/worktree; SPEC/registry/package/proof/report/Slice context and freshness; completed
 lenses; `findings.open_serious: []`; and closure flags for no serious regression, widening, fresh evidence, and

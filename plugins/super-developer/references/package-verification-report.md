@@ -1,11 +1,14 @@
 # Package Verification Report Contract
 
-Boundary: shared durable report, test-review receipt, and deliverable-matrix shape for package verifiers,
-package completion helpers, final auditors, and freshness checks. Reports live under the artifact root; `Worktree` in state
-binding is the reviewed code worktree. Verifiers and final auditors own semantic truthfulness and sufficiency.
+## Boundary
+
+This is the durable pre-freeze `B[i]` report shape for a package routed `boundary`. Package verification exists
+only for a meaningful boundary selected by `assurance-routing.md`; a `final` package has `report_path: null` and no
+fabricated report. Verifiers own semantic truth and sufficiency. Helpers own shape and binding only.
 
 ## Canonical Source Body
-The report at `.tasks/<feature>/reports/<WP-ID>.package-verification.md` starts with this H2 before lifecycle metadata:
+
+The report starts with this H2 before lifecycle metadata:
 
 ```md
 ## Package Verification: <WP-ID>
@@ -17,17 +20,17 @@ PASS | FAIL
 | Source ID | Row Type | Deliverable | Evidence Type | Evidence Refs | Exactness / Risk Disposition | Verdict |
 |---|---|---|---|---|---|---|
 | `<Slice-H3-ID>` | `slice` | <observable deliverable> | `mixed` | `code:plugins/path.py#symbol`; `test:plugins/tests/test_x.py::test_y` | `interface: exact; forbidden-behavior falsified by test:...` | `delivered` |
-| `VE-1` | `verification-expectation` | <package expectation from Markdown order> | `static` | `static:plugins/ref.md#section` | `expectation covered; no interface` | `delivered` |
-| `RISK-lifecycle-1` | `triggered-risk` | <applicable risk scenario> | `command` | `command:proof#Commands Run:pytest-targeted` | `triggered because ...; result ...` | `delivered` |
+| `VE-1` | `verification-expectation` | <expectation> | `static` | `static:plugins/ref.md#section` | `expectation covered; no interface` | `delivered` |
+| `RISK-lifecycle-1` | `triggered-risk` | <risk scenario> | `command` | `command:proof#Commands Run:targeted` | `triggered because ...; result ...` | `delivered` |
 
 ### Triggered Risk Selection Notes
-- Applied: `<RISK-ID>` because <scope/slice/diff/expectation/failure-mode rationale>.
+- Applied: `<RISK-ID>` because <scope/Slice/diff/expectation/failure rationale>.
 - Not applicable: <nearby high-signal probe> because <concise rationale>.
 
-### Test Review Scope
-| Surface | Changed Population | Review Depth | Baseline Review | Deep Triggers | Selected Exemplars | Sampling Rationale | Generator / Input / Provenance | Evidence Refs |
-|---|---|---|---|---|---|---|---|---|
-| `tests` | `count: 12; scope: parser success and malformed-receipt cases` | `sampled` | `complete: assertions, paths, state effects, and fresh commands checked; no skip changes found` | `none: package-local parser cases are not sensitive or sole evidence` | `selected: valid, malformed, and unsupported receipt cases` | `strategy: semantic behavior and oracle-shape strata` | `not-applicable: hand-authored tests contain no generated output` | `test:plugins/tests/test_x.py::test_y` |
+### Selected Causal Evidence
+| Evidence Anchor | Evidence Type | Behavior / Risk Proven | Causal Sufficiency | Substitutes / Fixtures | Fresh Command Result |
+|---|---|---|---|---|---|
+| `test:plugins/tests/test_x.py::test_y` | `test` | <observable/forbidden behavior or named risk> | <why this forces the actual path and is sufficient, including rows jointly covered> | <mocks, fixtures, hooks, synthetic inputs, or `none`> | `command:proof#Commands Run:targeted` — PASS, <fresh observed result> |
 
 ### Slice Closure Review
 | Slice ID | Proof status | Evidence sufficient? | Notes |
@@ -37,83 +40,56 @@ PASS | FAIL
 ### Code Review Findings
 - None.
 ```
-For failures, add `### Blocking Findings` and `### Repair Guidance` under the same H2. A `PASS` requires a
-present, clean `### Deliverable Completeness Matrix` and valid `### Test Review Scope`; Slice closure prose
-alone is insufficient.
 
-## Copy-Safe Authoring
-Copy the canonical H2/H3 labels, table headers, controlled values, and field prefixes exactly; do not paraphrase
-mechanically required fields. For an interface row, copy the affirmative form
-`interface: exact; forbidden-behavior falsified by <typed evidence ref>`. Do not substitute negative wording
-such as `not violated` or `not falsified`, which is ambiguous and fails closed. Generate State Binding with the
-helper and paste it verbatim; prose may explain evidence only outside mechanically controlled cells/fields.
+For failures add `### Blocking Findings` and `### Repair Guidance`. `PASS` requires a clean matrix and a
+non-placeholder `### Selected Causal Evidence` section. Slice closure prose alone is insufficient.
 
-## Matrix Row Contract
-Core columns are fixed exactly as shown: `Source ID`, `Row Type`, `Deliverable`, `Evidence Type`, `Evidence Refs`, `Exactness / Risk Disposition`, and `Verdict`.
-Controlled verdicts are `delivered`, `missing`, `partial`, `contradicted`, and `unverified`. A matrix indexes
-requirements-first code/test evidence after semantic inspection; it never defines tests or proves its own rows. Clean verification requires every mandatory row present, `delivered`, and backed by decisive non-placeholder evidence; any missing or dirty row blocks completion.
-Mandatory rows come from:
-1. Assigned package `Must satisfy` Slice H3 IDs, using each exact H3 ID as `Source ID` and row type `slice`.
-2. Package Markdown `## Verification Expectations`, using stable `VE-<n>` IDs in listed order and row type `verification-expectation`. If an expectation is materially proven by a Slice row, keep the `VE-<n>` row and cross-reference that evidence rather than omitting it.
-3. Triggered risk rows are verifier-selected, using explicit `RISK-<slug-or-n>` IDs and row type `triggered-risk` with rationale/disposition. Selection comes from package scope, assigned Slices, changed code/diff/tests, verification expectations, and known failure modes; planner seeds do not limit discovery, and non-applicable probes must not become checklist noise.
-## Test Review Scope Receipt
-The package verifier records one row per changed category in the package-owned reviewed delta: `tests`, `harnesses/helpers`, `mocks/fixtures`, `generators/snapshots`, `test-discovery/CI/coverage/build-config`, or the controlled catch-all `other-test-relevant`.
-Group by semantic population and account for every package-owned changed path. Clean depths are only `baseline-only`, `sampled`, and `deep`; `not-reviewed` and `unreviewed` are invalid.
-Use `other-test-relevant` only when no existing surface category accurately fits. It is valid only at `deep`: its `scope:` must name exact paths or a precise path group, its `triggered:` value must explain why classification is novel or ambiguous, and its typed evidence must anchor the inspected surface. It cannot avoid generator/provenance rules or stand in for another known category. This catch-all improves representability; it does not provide a mechanical exhaustive-discovery guarantee for current or future test-relevant paths.
-Every ordinary row uses this exact field grammar (whitespace and harmless punctuation normalization may vary; prefixes and semantics may not):
-- `Changed Population`: `count: <positive integer>; scope: <specific non-placeholder description>`.
-- `Baseline Review`: `complete: <specific non-placeholder checks/results>`.
-- `Deep Triggers`: for `deep`, `triggered: <specific non-placeholder trigger>`; for `baseline-only` or `sampled`, `none: <specific reason>`.
-- `Selected Exemplars`: for `sampled`, `selected: <specific exemplars>`; otherwise, `not-applicable: <specific reason>`.
-- `Sampling Rationale`: for `sampled`, `strategy: <specific semantic selection rationale>`; otherwise, `not-applicable: <specific reason>`.
-- `Generator / Input / Provenance`: `generators/snapshots` requires `generator: <specific>; inputs: <specific>; provenance: <specific>`; other surfaces allow that triple or `not-applicable: <specific reason>`.
-- `Evidence Refs`: one or more typed anchors from the evidence-reference grammar below.
-Baseline checks/results cover assertion weakening/deletion, skip/focus/xfail changes, broad tolerances or matchers, path execution/discrimination, mock/fixture/global-state effects, forced production-path discrimination, real collaborator outcomes, ordering/state effects, forbidden outcomes, substitute disclosures, fresh commands/evidence, and generated provenance where applicable.
-`deep` is required for proof-critical or sole evidence; security/privacy/safety/data/migration/concurrency/public-contract seams; shared harness/helper/config; weakened assertions or skips; missing provenance; contradictions or stale evidence; cross-package seams; and tests-as-deliverable.
-Sampling is semantic, never percentage-based: partition by behavior/contract, oracle shape, helper/mock stack, and generator provenance/risk.
-Generated output is sampleable only after its generator, inputs, and provenance are reviewed. Budget exhaustion causes semantic batching or
-widening, never reduced rigor or fixed-percentage quotas.
-Only the constrained whole-receipt absence is allowed. For no applicable surface, use exactly one row with `Surface`, `Changed Population`, and `Selected Exemplars` set to `none`, `Review Depth` set to `no-applicable-surface`, every other narrative field set to `not-applicable: <specific reason>`, and typed classification evidence.
-It cannot coexist with another row. Explicit `not-reviewed`/`unreviewed` and unresolved marker forms anywhere in the section are invalid.
-Mechanical validation owns the exact grammar, positive count, controlled surface/depth values, non-placeholder
-payloads, strict table shape (exactly one unfenced contiguous Markdown table with a matching-width delimiter,
-exact-arity rows, and no extra pipe fragments/tables), and typed-reference safety. Copy required prefixes from
-this contract rather than paraphrasing them.
-It does not infer semantic truth from arbitrary prose or decide whether a claim is honest, contradictory, or
-sufficient. Thus `Review status: baseline review was not performed` fails the required `complete:` grammar,
-while a syntactically valid but dishonest `complete:` claim is for the verifier/reviewer/auditor to reject;
-legitimate negative results inside `complete:` remain valid.
-Final pipeline review validates each fresh receipt against its package-owned reviewed delta and reconciles the union of fresh package receipts against the integrated diff. It separately reviews integration-only or merge-resolution test-relevant changes at a canonical depth, then widens for triggers/anomalies. It must explicitly inspect and escalate every `other-test-relevant` row, decide whether the known taxonomy should be extended, and never treat a catch-all row as proof that all future test-relevant paths were discovered.
-Audit applies the same targeted reconciliation and catch-all escalation boundary while selectively falsifying rather than rereviewing every test. Reports without the receipt are invalid and must be refreshed; there is no silent format bypass.
-## Evidence Reference Rules
-`Evidence Type` is one of `code`, `test`, `static`, `command`, `manual`, or `mixed`. `Evidence Refs` are semicolon-separated typed anchors:
-- `code:<repo-relative-path>[#symbol-or-lines]`, `test:<repo-relative-path>[::test-or-#lines]`, and `static:<repo-relative-path>#section` point to safe existing repo paths; no absolute paths, traversal, fabricated files, or vague-only anchors.
-- `command:proof#Commands Run:<label>` or `command:verification-output:<repo-relative-path>#<label>` links to proof command rows or durable verifier output records.
-- `manual:scenario=<specific scenario>; observed=<specific result>` records manual evidence without pretending it is mechanically executable.
-Mechanical helpers reject unsafe, nonexistent, placeholder, fabricated, or structurally vague anchors but do not judge causality. Labels, counters,
-cache hits, synthetic outcomes, row counts, or proof wording alone cannot prove a behavior-sensitive deliverable.
+## Matrix Rows
 
-## Exactness and Risk Disposition
-Interface-bearing Slice rows must use the affirmative copy-safe clause
-`interface: exact; forbidden-behavior falsified by <typed evidence ref>` in `Exactness / Risk Disposition`.
-Other exactness verdicts are `ambiguous`, `partial`, `contradicted`, or `over-broad`; only `exact` with
-affirmative forbidden-behavior falsification can support `delivered`. Triggered-risk rows record why the probe
-was triggered, what was checked, and its disposition.
+Core columns and controlled verdicts are fixed: `delivered`, `missing`, `partial`, `contradicted`, or `unverified`.
+Mandatory rows use each exact H3 ID assigned under `Must satisfy` (`slice`), stable package-order `VE-<n>` IDs
+(`verification-expectation`), and verifier-selected applicable `RISK-<slug-or-n>` IDs (`triggered-risk`). Verifier
+selection is independent: planner seeds do not limit discovery; non-applicable probes must not become checklist noise. Keep a `VE-<n>` row when it
+shares decisive evidence with another row and cross-reference rather than inventing another test.
 
-## State Binding
-Append lifecycle metadata after the source body so helpers and final auditors can consume it without hidden
-chat context. Generate the block with `emit-state-binding`, paste it verbatim, and do not hand-compute
-digests. Paths below are artifact-root-relative except `Worktree`, which is an absolute code worktree.
-`Worktree` records where review happened for human/audit context; mechanical file-evidence resolution uses
-the orchestrator-supplied `--code-root`, not this field, so the two must stay consistent.
+A matrix indexes requirements-first code/test evidence after semantic inspection; it neither defines tests nor
+proves its own rows. Every mandatory row must be `delivered` with decisive typed evidence. Interface rows use
+`interface: exact; forbidden-behavior falsified by <typed evidence ref>`; ambiguous negative wording fails closed.
 
-```bash
-python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" emit-state-binding \
-  --artifact-root "$ARTIFACT_ROOT" --code-root "$CODE_ROOT" \
-  ".tasks/<feature>/tasks.json" --package <WP-ID> \
-  --worktree "<absolute reviewed worktree root>" --git-ref "<reviewed branch/ref/commit>" \
-  --commit "<reviewed commit hash>" --verified-at "<ISO-8601 timestamp>"
-```
+## Selected Causal Evidence Contract
+
+Select the smallest credible set under `work-packages.md`. Each row requires:
+
+- a safe typed anchor to the selected test or observation;
+- the accepted behavior, forbidden outcome, consumed contract, or triggered risk proven;
+- why it forces the actual production path, would fail when the invariant breaks, and is sufficient alone or with
+  named companion rows;
+- relevant mock, fixture, hook, cache, generated input, synthetic outcome, or other substitute disclosure; and
+- a fresh typed command anchor, PASS/FAIL outcome, and concise observed result.
+
+One anchor may prove multiple related matrix rows. Deeply inspect selected evidence and any changed harness,
+fixture, generator, discovery, CI, coverage, build, or test configuration that can affect its trustworthiness.
+Concrete false positives, wrong/weakened assertions, hidden skip/focus/xfail, flakiness/inconclusive results,
+unsafe side effects, materially unacceptable required runtime, or trust-undermining shared harness/config changes
+block. Do not census changed test populations, require exemplars by category, rereview the suite, demand test-code
+perfection, or gate/report test count, changed test lines, ratio, coverage, review percentage, or suite volume.
+Existing tests are never rejected or removed solely for volume.
+
+## Evidence References
+
+`Evidence Type` is `code`, `test`, `static`, `command`, `manual`, or `mixed`. Semicolon-separated typed anchors are:
+
+- `code:<repo-relative-path>[#symbol-or-lines]`, `test:<repo-relative-path>[::test-or-#lines]`, or
+  `static:<repo-relative-path>#section`;
+- `command:proof#Commands Run:<label>` or `command:verification-output:<repo-relative-path>#<label>`;
+- `manual:scenario=<specific scenario>; observed=<specific result>`.
+
+Reject unsafe, nonexistent, placeholder, fabricated, or structurally vague anchors. Labels, counters, cache hits,
+synthetic outcomes, matrix rows, or proof wording alone cannot prove behavior.
+
+## Exact State Binding
+
+Generate this block with `emit-state-binding`, paste it verbatim, and do not hand-compute digests:
 
 ```md
 ## State Binding
@@ -122,29 +98,29 @@ python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" emit-state-binding
 - Package Markdown Digest: `sha256:<digest>`
 - Proof: `.tasks/<feature>/proofs/<WP-ID>.proof.md`
 - Proof Digest: `sha256:<digest>`
-- Assigned Slices: `<comma-separated repo-relative Slice paths in lexicographic order, or none>`
+- Assigned Slices: `<safe sorted paths, or none>`
 - Assigned Slice Digests: `path|tier|H3-ID=sha256:<64-hex>; ...` or `none`
-- Matrix Source Snapshot: `sha256:<digest over package Markdown plus must_satisfy section blocks only>`
-- Worktree: `<absolute reviewed worktree root>`
-- Git Ref: `<reviewed branch/ref/commit>`
-- Commit: `<reviewed commit hash>`
+- Matrix Source Snapshot: `sha256:<digest>`
+- Authorization / Effective Digest: `<authorization-id> | sha256:<digest>`
+- Assurance Profile / Verification Mode: `low|standard|high | boundary`
+- Worktree: `<absolute reviewed code worktree>`
+- Git Ref: `<reviewed ref/commit>`
+- Commit / Tree: `<reviewed commit hash> | <tree hash>`
+- Base / Diff Identity: `<base commit> | sha256:<canonical diff digest>`
+- Runtime Evidence Digests: `<safe path>=sha256:<digest>; ...` or `none`
+- Consumed Contract Digests: `<contract-id>=sha256:<digest>; ...` or `none`
 - Verified At: `<ISO-8601 timestamp>`
 ```
 
-`Assigned Slice Digests` is one parser-safe line of `path|tier|H3-ID=sha256:<64-hex>` entries separated
-by `; `, sorted by Slice path, then `must_satisfy` before `context_only`, then H3 ID. Assigned Slice paths
-used in this grammar must not contain `|`, `=`, or the delimiter sequence `; `; helper validation fails
-closed before emitting or accepting a binding when an assigned path contains those grammar delimiters.
-`Matrix Source Snapshot` covers package Markdown plus `must_satisfy` section blocks only; `context_only`
-sections live only in `Assigned Slice Digests`. Missing, extra, duplicate, malformed, unknown-path/H3, invalid-tier,
-invalid-digest, or encoded-tier-mismatch entries fail closed before drift classification. Valid
-`context_only` digest drift emits a non-blocking `context_only_slice_drift` advisory; `must_satisfy`
-drift remains a hard freshness error.
+B2 extends `emit-state-binding` to emit all fields above from explicit candidate inputs; B1 does not hand-compute
+or omit them. The command keeps explicit roots/package and `--worktree`, `--git-ref`, `--commit`, `--verified-at`.
+Assigned Slice Digest entries separated by `; ` sort by path, then `must_satisfy` before `context_only`, then H3 ID.
+Assigned paths must not contain `|`, `=`, or the delimiter sequence `; `; grammar delimiters fail closed before
+drift classification. Matrix Source Snapshot covers package Markdown plus must_satisfy section blocks only.
+Malformed/current hard-tier, package, proof, selected-evidence, cited-output, profile/mode, consumed-contract, or
+reviewed-code drift invalidates `B[i]`. `context_only_slice_drift` is non-blocking by default and receives
+affected-surface classification. Binding-only refresh requires identical semantic inputs, claims, method, and
+execution evidence. Optional helper-bound Semgrep evidence may follow when enabled.
 
-Changing package Markdown verification expectations, assigned `must_satisfy` section content, proof
-content, cited verification output, Test Review Scope inputs/receipt, artifact root selection, or reviewed
-code invalidates the report until refreshed. `context_only` section drift is routed as an advisory for
-affected-surface classification unless
-reviewer/auditor judgment escalates material risk. Optional `## Semgrep Evidence` may follow when
-enabled/contracted, with helper-produced artifact-root raw/summary paths, digests, scan scope, and bounded
-summary.
+B2 will mechanically parse the new evidence section and conditional routing; B1 does not claim that the current
+helper already enforces it.

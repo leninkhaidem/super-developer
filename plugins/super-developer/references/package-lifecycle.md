@@ -1,150 +1,124 @@
-# Package Lifecycle, Proof, and Report Freshness
+# Package Lifecycle, Candidate, Proof, and Receipt Freshness
+
 ## Boundary
-This reference owns package completion, proof creation/refresh, verification reports, freshness, and non-bypass semantics. Artifact shapes live in `slice-first-artifacts.md`; package sizing lives in `work-packages.md`; command shapes live in `tool-usage.md`.
-## Status Signals
-Registry status is routing only and proves no correctness. Lifecycle package states and every normal successor are
-the explicit matrix in `slice-first-artifacts.md`: blocked resolution and `invalidated|stabilized|verified → in_progress`
-repair remain legal; `in_progress|stabilized|verified|done|invalidated → pending` requires a reviewed effective-digest
-replan. Dashboards expose only mechanical status/dependency/proof/report/helper signals.
-## Proof Ownership
-Each package has one artifact-root proof Markdown file declared in the registry and package Markdown:
-`.tasks/<feature>/proofs/<WP-ID>.proof.md`.
-Package agents fill or refresh only their assigned proof file and package commits. They do not mark packages done, finalize features, edit unrelated proof files, or reconcile a central evidence ledger.
-Proof Markdown owns package evidence for assigned `Must satisfy` H3 IDs and package verification expectations. `PASS` in a proof row is a package-agent claim, not package acceptance.
-When Semgrep is enabled or contracted for a package, raw and summary outputs live under the artifact-root
-`.tasks/<feature>/semgrep/` and proofs/reports cite paths and digests. These files do not replace
-proof/report judgment.
 
-## Pre-Dispatch Proof Creation
-Before dispatching a package, create the declared proof placeholder:
-```bash
-python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" create-proof \
-  --artifact-root "$ARTIFACT_ROOT" --code-root "$CODE_ROOT" \
-  ".tasks/<feature>/tasks.json" --package WP1
-```
-`create-proof` writes the declared proof under the artifact root, generates closure rows for assigned
-`Must satisfy` H3 IDs, and records `Context only` IDs as scope context without closure rows.
-Overwrite safety: missing proof creates a placeholder; an existing exact placeholder is idempotent;
-edited or filled proof fails closed unless `--force --approved-replacement` includes approval, provenance,
-and scope and preserves prior content as described in `tool-usage.md`. Filled evidence must never be silently erased.
+This reference owns stabilization, Stable Candidate Identity, proof/receipt freshness, completion, and unlock
+mechanics. Shapes live in `slice-first-artifacts.md`; sizing and minimum-sufficient test acceptance in
+`work-packages.md`; routing/receipt ownership in `assurance-routing.md`; commands in `tool-usage.md`.
 
-## Package Agent Closure
-A package agent cannot claim completion until proof Markdown shows:
-- every assigned `Must satisfy` H3 ID in `## Slice Closure Table`;
-- concrete implementation and verification evidence for every required row;
-- `PASS` for every required row, or explicitly approved `DEFERRED`/`N/A` where allowed;
-- every package verification expectation covered in `## Acceptance / Verification Closure`;
-- exact command/static/manual evidence in `## Commands Run` and `## Files Changed / Inspected`;
-- no unresolved `TODO`, `OPEN`, or `GAP` markers;
-- no unresolved Slice plan defect, context-only misuse, or contradiction with assigned Slices.
+## Status and Proof
 
-## Mechanical Validation
-When a package agent returns, run:
-```bash
-python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-proof \
-  --artifact-root "$ARTIFACT_ROOT" --code-root "$CODE_ROOT" \
-  ".tasks/<feature>/tasks.json" --package WP1
-```
-Reject proof handoff when validation reports missing sections, rows, evidence, expectation closure, unsupported statuses, unresolved markers, unsafe paths, or missing proof files. Mechanical validation is necessary, never sufficient.
+Registry status is routing only and proves no correctness. Lifecycle successors are the explicit matrix in
+`slice-first-artifacts.md`. Blocked resolution and `invalidated|stabilized|verified → in_progress` repair are legal;
+`in_progress|stabilized|verified|done|invalidated → pending` requires a reviewed effective-digest replan.
 
-## Completion Gate
-A package may become `done` only after all are true:
-1. package Markdown assignment validates mechanically;
-2. proof Markdown validates mechanically and closes every required Slice row and verification expectation;
-3. required commands or inspections are recorded in proof evidence;
-4. the package implementer supplied the required completion statement and `SELF_REVIEW` evidence;
-5. no unresolved Slice plan defect, unapproved gap/deviation, or authority-boundary blocker remains;
-6. independent package verification returned `PASS` with a clean deliverable matrix and canonical Test Review Scope receipt bound to proof/source/code state;
-7. `validate-package-complete` succeeds for the selected package after the report exists and before accepting/merging as complete, marking `done`, unlocking dependents, or final readiness handoff;
-8. repairs and delta verification are closed;
-9. post-merge or integration changes did not stale proof/report/matrix evidence, or freshness was restored.
-Run the pre-done helper as:
+Each package has one artifact-root proof `.tasks/<feature>/proofs/<WP-ID>.proof.md`. Package agents fill only their
+proof and assigned code. `PASS` proof rows are implementer claims, not independent acceptance. Before dispatch use
+`sliceproof.py create-proof` with explicit artifact/code roots; existing filled proof is never overwritten without
+approved replacement/provenance. When Semgrep is enabled, helper-produced raw/summary evidence under the artifact
+root may be cited but never replaces judgment.
+
+A stabilization claim requires every assigned `Must satisfy` H3 and `VE-<n>` expectation closed with concrete
+implementation/verification evidence; screened commands/inspections and files recorded; no unresolved
+`TODO|OPEN|GAP`, unapproved deferral/N/A, Slice plan defect, context-only misuse, or contradiction; and implementer
+completion plus `SELF_REVIEW`. Run `validate-proof`; helper success is necessary, never sufficient.
+
+## Stable Candidate Identity
+
+After behavior, causal evidence, earliest credible affected broad regression, full owned-diff inspection, proof,
+and cleanup stabilize, freeze one immutable package candidate. Its identity is authorization/effective digest;
+code commit/tree and base/diff identity; package/Slice semantic inputs; proof and runtime-evidence digests;
+profile/mode; and consumed-contract digests. Verifier output is excluded. The implementer returns this exact tuple.
+Any bound input change invalidates the candidate and affected receipt.
+
+## Mode-Specific Completion
+
+Use `assurance-routing.md` to select exactly one mode:
+
+- **`boundary`**: one independent verifier for the meaningful boundary writes fresh `PASS` B[i] at the non-null
+  report path, with clean matrix, `Selected Causal Evidence`, and exact candidate/proof/
+  State Binding plus consumed-contract digests. Then run `validate-package-complete`.
+- **`final`**: allowed only for a coherent leaf with no dependent or independently consumed material contract and
+  no package-bound high-risk lens. `report_path` is null. Do not dispatch package verification or fabricate a
+  report; retain valid proof/candidate identity and explicit final-assurance deferral. Final semantic closure is
+  owned directly by final assurance.
+
+A boundary package may become `done` only after assignment/proof validation, required commands, `SELF_REVIEW`, no
+authority blocker, fresh exact `PASS B[i]`, clean `validate-package-complete`, repair/delta closure, merge
+freshness, and checkpoint eligibility. A final package may become implementation-`done` after the same gates except
+report/verifier, but feature completion remains blocked until its final assurance owner passes.
+
+Before B2, helpers still implement the older universal shape. B2 will make completion branch on mode and parse
+Selected Causal Evidence. During B1, never fabricate a report or treat helper behavior as routing proof. The
+mode-specific command remains:
 ```bash
 python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-package-complete \
   --artifact-root "$ARTIFACT_ROOT" --code-root "$CODE_ROOT" \
   ".tasks/<feature>/tasks.json" --package <WP-ID>
 ```
-Dependent packages stay blocked until each source package has a fresh `PASS` report and clean `validate-package-complete` result. A registry `done` status, proof rows, self-review, or helper success alone cannot prove semantic completion.
+
+## Dependency and Material-Contract Unlock
+
+A producer with a dependent routes `boundary`. No dependent dispatch or independently consumed material contract
+unlocks until its exact candidate and consumed-contract digests have fresh `PASS B[i]` and clean
+`validate-package-complete`; registry `done`, proof rows, `SELF_REVIEW`, helper success alone, merge ancestry, or a
+`final` receipt cannot unlock it. This is a pre-freeze input, not a post-freeze substitute.
 
 ## Freshness Rules
-Classify what changed semantically before selecting refresh or rerun scope; a changed file or commit alone is
-not the classification. Distinguish these surfaces:
 
-- product/assignment inputs: SPEC, package/Slice obligations, expectations, approvals, and source bindings;
-- production code, generated runtime artifacts, public docs/contracts, and integration or merge edits;
-- test source, assertions/oracles, harnesses/helpers, fixtures/mocks, generators, and test configuration;
-- proof/report claims: implementer `SELF_REVIEW`, repair `REPAIR_SELF_REVIEW`, statuses, matrices, risk dispositions, Test Review Scope, and evidence-sufficiency claims;
-- execution evidence: command outputs, logs, observations, captured artifacts, timestamps, and Semgrep evidence;
-- report metadata: ref/commit/worktree/time/digest bindings that do not alter a claim or evidence body.
+Classify semantic impact, not file/commit count:
 
-Route metadata-only drift to binding-only refresh when semantic inputs, claims—including implementer `SELF_REVIEW` and repair `REPAIR_SELF_REVIEW`—and execution evidence are identical.
-For evidence-only change, inspect provenance and the bound command/harness, prerequisites, environment,
-assertions, cleanup, and redaction. Rebind only when regenerated evidence has identical bound semantic inputs and
-method and a valid, non-contradictory outcome. Failed, inconclusive, or contradictory evidence blocks and routes
-to diagnosis and affected verification; it never permits PASS rebinding. Bounded semantic-input, claim,
-population, or contract changes may use fresh focused verification. Use full verification when a population or
-contract change is material, unbounded, sensitive, shared, or uncertain, or impact crosses package/integration
-boundaries. Fail closed when classification or carried inputs are uncertain. Keep the rationale in existing
-orchestrator state or proof/report/review/audit artifacts—never a new receipt, field, or lifecycle tier.
+- product/assignment inputs: SPEC, package/Slice obligations, expectations, approval, profile/mode/contracts;
+- production/public/generated/integration code;
+- selected test/observation, assertion/oracle, harness/helper, fixture/mock, generator, and test configuration;
+- proof/report claims including `SELF_REVIEW`, matrix/risk, and Selected Causal Evidence sufficiency;
+- command/runtime/Semgrep evidence; or report metadata only.
 
-## Finding Classification, Impact, and Circuit
-Load `orchestration-convergence.md`; keep provisional classification in orchestrator state and repair/verifier packets,
-never a registry field or standalone impact receipt. Classify every finding before repair.
-Requirement gaps return for authority; architecture invalidation opens design reassessment;
-implementation/integration defects may receive bounded repair; test-fidelity/evidence defects repair their seam;
-confidence enhancements are non-blocking unless tied to an accepted contract or demonstrated serious risk.
-A serious cluster is invariant/contract + mechanism + architectural surface + verification signature. The first
-failed closure permits one repair; the second stops automatic repair. New agent/model/prompt/commit/status/report/
-matrix state does not reset it. Treat `depends_on` as a sequencing lower bound, never impact proof.
-Record package Markdown/digest, assigned Slice source/digest, matrix source snapshot, and matrix evidence anchors;
-inspect producing prerequisites, consumers in any lifecycle state, and shared surfaces not represented by a dependency edge until no new affected surface appears. Failure, commit existence, merge ancestry, or
-dependency reachability alone does not stale a package; classify uncertainty as unbounded.
-After repair, reclassify the actual code diff, invalidate affected reports, establish actual-path targeted and broad
-regression evidence, refresh proof/commands, and reclassify the final code/proof/command-evidence state until stable.
-Only then use fresh focused verification for bounded impact; widen for material/shared/sensitive/uncertain impact,
-then run `validate-package-complete` and affected final checks. Never accept intermediate evidence.
+Metadata-only rebinding requires identical semantic inputs, claims, method, and execution evidence. Evidence-only
+change requires verifier inspection of provenance, command/harness, prerequisites, environment, assertions,
+cleanup, redaction, and a valid non-contradictory result. Failed/inconclusive evidence blocks. Bounded semantic
+changes receive fresh focused verification; material, shared, sensitive, cross-boundary, or uncertain impact
+widens. Profile/routing/high-trigger change invalidates affected candidates and requires reviewed promotion.
+Keep rationale in existing state/proof/report artifacts—never a new receipt, registry field, or ledger.
 
-## Report Freshness
-Reports bind package/proof/Slice sources, matrix snapshot, reviewed code and execution evidence, verifier/time,
-verdict/findings, Test Review Scope, and optional Semgrep evidence. Missing, failed, stale, malformed, dirty, or
-contradicted bindings block completion. Existing reports without the receipt must be refreshed; no silent bypass applies.
+For impact, load `orchestration-convergence.md`. Canonical serious-cluster identity includes only the accepted
+invariant/contract, failure mechanism, and architectural surface; agent, signature, label, commit, and timeout are
+not identity. Keep provisional classification in
+orchestrator state and repair/verifier packets, never a registry field or standalone impact receipt. `depends_on` is a sequencing lower
+bound, not impact proof. Record package Markdown/digest, assigned Slice source/digest, matrix source snapshot, and
+matrix evidence anchors; inspect producing prerequisites, consumers in any lifecycle state, and shared surfaces
+not represented by a dependency edge until no new affected surface appears. Failure, commit existence, merge ancestry, or dependency reachability alone does not stale a package; classify uncertainty as unbounded.
+
+After repair, reclassify the actual code diff, invalidate affected receipts, run actual-production-path targeted
+and earliest credible affected broad regression before refreshing proof/commands, and reclassify the final
+code/proof/command-evidence state until stable. Run `validate-proof`, then fresh focused verification for bounded
+impact or widen for material/shared/sensitive/uncertain impact; only afterward run `validate-package-complete`.
+Never accept intermediate evidence. Initial independent rejection is strike 1 and its failed closure is strike 2;
+do not wait for a “first failed closure” to allow repair or a “second failed closure” to stop.
+
+## Exact Receipt Freshness
+
+`B[i]` binds Stable Candidate Identity, package/proof/Slice and matrix snapshots, selected causal anchors and command
+outputs, consumed-contract digests, verifier/time/verdict/findings, and optional Semgrep evidence. Missing, failed,
+stale, malformed, dirty, contradicted, or mode-incompatible bindings block. `must_satisfy` drift is hard;
 `context_only_slice_drift` is non-blocking by default but requires affected-surface classification.
-Binding-only refresh is allowed only under the metadata route above. Evidence-only changes use the guarded
-route; invalid outcomes block rather than becoming a PASS binding. Bounded semantic changes may use focused
-package verification. Material, unbounded, sensitive, shared, or uncertain population or contract changes require full package verification.
 
 ## Final Readiness
-Before final review-code or audit, every package in every included task set must have:
 
-- valid package Markdown and mechanically valid proof Markdown;
-- no unresolved `GAP`, `OPEN`, `TODO`, unapproved `DEFERRED`, unsupported `N/A`, or Slice plan defect;
-- a fresh `PASS` package verification report with clean deliverable matrix and canonical Test Review Scope receipt;
-- a clean `validate-package-complete` result for the current proof/package/report/Slice state;
-- closed repair/delta verification and a clean integration worktree for the intended final state.
+Every included package needs valid assignment/proof, no unresolved markers/plan defect, closed repairs, a clean
+integration worktree, and mode-correct completion: fresh exact `B[i]` plus helper result for `boundary`; stable
+candidate with null report and explicit direct-final owner for `final`. Run package checks and root-aware
+`validate-final` for every included artifact set. For stacked readiness identify the top integrated state and all
+base/follow-up task/Slice artifact sets; do not audit only a follow-up when base deliverables are included.
 
-Run package completion checks for every package, then run root-aware `sliceproof.py validate-final` for each
-included artifact root/task set. For bounded stacked readiness, the packet must identify the top integrated
-worktree/code state and all relevant task/Slice artifact sets; do not audit only a follow-up task set when the top state includes base feature deliverables; stop if included sets are unknown or omit base deliverables.
+Role ownership is non-duplicative. Package verification owns only its named pre-freeze boundary. Final review owns
+integration and direct semantic coverage for `final`; specialists and audit keep their named lenses. Freeze exact
+integrated code, semantic artifacts, runtime evidence, profile/routing, and fresh `B[*]`. Any frozen-input change
+invalidates downstream outputs. B3/B4 implement the final serial equations; until then do not represent the legacy
+sibling checks as satisfying the new graph. Semantic truthfulness remains with package verification and final audit.
+Declare readiness only when package evidence, review-code readiness and final audit PASS are bound to the same top state.
 
-Role ownership is non-duplicative. Package verification owns local claims, evidence, and package-owned test
-deltas. Final review trusts fresh package-local work and owns seams, integration-only/merge changes, and
-contradictions; specialists run only for triggered sensitive surfaces. Audit reconciles completeness and
-selectively falsifies high-value claims rather than wholesale rereview. Together they validate each fresh
-receipt against its package-owned reviewed delta, reconcile the union against the integrated diff, and classify
-integration-only test-relevant changes.
+## Observability
 
-## Evidence Freeze and End-to-End Final Loop
-1. Finish implementation and repairs; close package completion gates.
-2. Run affected focused checks and integrated checks, then finalize runtime evidence, cleanup, and termination.
-3. Refresh affected proofs/reports, validate, and freeze exact integrated-code, artifact, and runtime-evidence inputs consumed by final checks.
-4. Run final review-code and final audit as sibling checks against the same top state and freeze. Their generated
-   reports and governance state are outputs, not freeze inputs; audit receives review-code output or `none`.
-5. Batch findings and delegate repairs. Any frozen-input change invalidates the binding, including metadata-only or evidence-only change.
-   Classify freshness to select rebind, evidence-focused, focused, or full work; refresh state and freeze again before affected final checks.
-6. Declare readiness only when package evidence, review-code readiness and final audit PASS are clean for the
-   same frozen inputs; helpers, registry mutations, manual proof edits, or dashboards cannot bypass these gates.
-
-## Observability and Dashboard Rule
-Non-gating traces may surface version; stage/package/wave timing; command identity/scope/outcome/cleanup;
-readiness, freshness, rerun reason/scope, and repair identity/progress. Dashboards may also show mechanical
-lifecycle signals. Neither may mutate state, be required as proof, or present timing/mechanics as completion.
+Non-gating traces may show version, timing, commands, cleanup, freshness/rerun reason, and repair identity/progress.
+Neither may mutate state, be required as proof, or present mechanics as completion.

@@ -2,7 +2,7 @@
 
 ## Boundary
 
-This reference owns package semantics: sizing, dependency, assignment, parallelism, primary paths, and verification expectations. Artifact shapes live in `slice-first-artifacts.md`; completion/freshness gates live in `package-lifecycle.md`; command safety lives in `tool-usage.md`.
+This reference owns package semantics: sizing, dependency, assignment, parallelism, primary paths, and the canonical minimum-sufficient test acceptance rule. Artifact shapes live in `slice-first-artifacts.md`; completion/freshness gates live in `package-lifecycle.md`; profile and `boundary|final` routing live in `assurance-routing.md`; command safety lives in `tool-usage.md`.
 
 ## Core Principle
 
@@ -19,7 +19,7 @@ are not packages unless they create substantial reusable verification or test in
 - **Registry:** package list, paths, status signals, and dependency IDs only.
 - **Package Markdown:** authoritative package assignment.
 - **Proof Markdown:** package closure evidence.
-- **Package verification report:** independent state-bound verification receipt.
+- **Package verification report:** pre-freeze independent state-bound receipt only when routing selects `boundary`.
 
 Registry status and helper results are signals, not proof.
 
@@ -32,33 +32,25 @@ A good package is:
 - small enough for one agent to implement, verify, and repair through one coherent state/evidence boundary;
 - independently mergeable, with explicit initial paths, assigned Slice obligations, and verification expectations.
 
-Before finalizing the boundary, assess semantic closure complexity:
-
-- obligation breadth, caller contracts, and independently observable outcomes;
-- runtime surfaces/environments and distinct evidence or approval boundaries;
-- changed harness/helper/fixture populations and the review depth they trigger;
-- setup, isolation, teardown, cleanup, external preconditions, and shared-resource constraints;
-- expected command cost, serial/fail-fast behavior, and broad-check placement;
-- proof/report refresh fanout when implementation or evidence changes;
-- empirical uncertainty that prevents a safe implementation or verification commitment.
-
-Split when one agent cannot close those dimensions coherently. Keep work together when splitting would
-multiply shared harness ownership, duplicate evidence, or add more fixed gate cost than it removes. Counts of
+Before finalizing the boundary, assess semantic closure complexity: obligation breadth and caller contracts;
+runtime surfaces/environments and evidence boundaries; harness/helper/fixture populations; setup, isolation,
+cleanup, and shared resources; command cost and broad-check placement; proof/report refresh fanout; and unresolved
+empirical uncertainty. Split when one agent cannot close one coherent state/evidence boundary. Keep work together
+when splitting multiplies shared ownership, duplicate evidence, or fixed proof/report/verification cost. Counts of
 files, scenarios, or commands are warning signals, never universal thresholds. Route unresolved empirical
-uncertainty to a spike instead of guessing package boundaries. Avoid tiny packages unless risk or isolation
-justifies their fixed lifecycle cost.
+uncertainty to a spike instead of guessing package boundaries.
 
 ## IDs and Dependencies
 
 Package IDs use contiguous `WP<N>` values (`WP1`, `WP2`, ...). Renumber when packages are reordered, split, or merged so the sequence has no gaps.
 
-Dependencies are ID-only in both the registry `depends_on` array and package Markdown
-`## Dependencies`; they must agree. They are durable sequencing prerequisites and a lower bound on
-readiness, not an impact or staleness graph. Put non-obvious rationale in existing package `Notes`, naming
-consumed output, contract, or evidence; runtime overlap, failure, or a desired rerun alone does not create an
-edge. A package is externally blocked until each dependency has a fresh `PASS` package verification report
-and clean `validate-package-complete`; registry `done` or proof rows alone do not unlock dependents.
-Internal sequencing is handled by the package agent.
+Dependencies are ID-only in registry `depends_on` and package `## Dependencies`; they must agree. They are durable
+sequencing prerequisites and a lower bound on readiness, not an impact or staleness graph. Put non-obvious
+rationale in existing package `Notes`, naming consumed output, contract, or evidence; runtime overlap, failure, or a desired
+rerun alone does not create an edge. A producer with a dependent must route `boundary`. The dependent stays locked
+until the exact Stable Candidate Identity and consumed-contract digests have a fresh `PASS B[i]` and clean
+`validate-package-complete`; registry `done`, proof rows, `SELF_REVIEW`, or helper success alone do not unlock it.
+Internal sequencing remains package-agent owned.
 
 ## Parallel Safety
 
@@ -78,48 +70,49 @@ The cost of serialization is latency; the cost of unsafe parallelism is merge co
 
 `## Primary Paths` are starting points, not hard boundaries. Agents inspect them first and broaden only when imports, tests, Slice obligations, or verification expectations require it.
 
-## Verification Expectations
+## Verification Expectations and Minimum-Sufficient Acceptance
 
-Package Markdown `## Verification Expectations` lists the package's proof expectations and mandatory
-`VE-<n>` row sources: known commands, static inspections, scenarios, edge/failure cases, trust-boundary checks,
-no-mock constraints, generated-contract checks, interface/risk seeds, or manual observations.
+Package Markdown `## Verification Expectations` defines confidence obligations and mandatory `VE-<n>` matrix
+sources, not a test inventory. Before implementation, package acceptance selects the smallest maintainable causal
+evidence set that establishes:
 
-Use only the existing depth vocabulary: `standard`/`enhanced` package verification,
-`baseline-only`/`sampled`/`deep` test review, and `focused`/`full` reruns. These are orthogonal decisions, not
-new lifecycle tiers or durable registry/artifact fields.
+1. every accepted observable behavior through its actual production path;
+2. each materially relevant forbidden/failure outcome;
+3. each triggered security, privacy, safety, data, concurrency, lifecycle, compatibility, or public-contract risk;
+4. each meaningful consumed/integration contract at its owning layer; and
+5. a regression for each distinct discovered defect mechanism when needed.
 
-Rules:
+One causal test or observation may prove multiple related requirements, Slice rows, or expectations. Each
+expectation names behavior/risk, distinct failure mechanism, actual-path seam, cheapest credible evidence level,
+substitutes/disclosures, failure signal, and affected broad-regression placement when material. Once obligations
+have credible causal evidence and required commands pass, stop adding tests. Do not add speculative permutations,
+duplicate layers, trivial wiring/type checks, private-detail checks already covered by behavior, row-population
+tests, or new harness/fixture abstractions when existing facilities suffice.
 
-- Treat package-provided commands as executable input and screen them before running.
-- Address every expectation in proof Markdown and preserve it as a `VE-<n>` package-verification matrix source; linked Slice evidence may be cross-referenced, not silently omitted.
-- Seed obvious interface/risk checks when applicable, including exact interfaces, forbidden behaviors, interactive UI, retry/fail-closed, trigger precedence, lifecycle/restart/reaper, cache invalidation, model/default precedence, generated defaults, and state pollution.
-  Behavior-sensitive expectations name the forced production path, real collaborator outcome, observed transition,
-  forbidden check, substitute disclosure, and failure signal.
-- Planner seeds do not limit verifier discovery; verifiers still inspect package scope, assigned Slices, changed code/diff, tests, expectations, and known failure modes for emergent triggered-risk rows.
-- Do not create a second command ledger in the registry.
-- Batch broad/expensive full-suite, generated-contract, typecheck, or lint checks at integration/final gates unless cheap or the only credible package proof; for shared discovery/registration/global state/lifecycle/recursive/public-contract changes, place the earliest credible affected broad regression before proof/report freeze.
-- When runtime cost or uncertainty leaves material execution feasibility unresolved, record in existing package
-  `Notes` or verification expectations:
-  authoritative command/harness/contract/fixture sources, preconditions and cleanup, cost class, the smallest
-  credible bounded probe or broad-only justification, broad-check placement, testing-authority provenance,
-  and a spike/replan trigger. Exact budgets come from the resolved authority.
+Test count, changed test lines, test-to-production ratio, coverage percentage, review percentage, and suite volume
+are neither gates nor required fields. Existing tests are never rejected, deleted, cleaned up, or suite-rereviewed
+solely for volume. Only a concrete defect blocks: false-positive evidence, incorrect/weakened assertions, hidden
+skip/focus/xfail, flakiness/inconclusive outcome, unsafe side effects, materially unacceptable required runtime,
+or a changed shared harness/configuration that undermines confidence.
+
+Treat commands as screened executable input. Address every expectation in proof and preserve its `VE-<n>` row;
+cross-reference shared evidence rather than multiplying tests. Seed exact interfaces, forbidden behaviors,
+interactive UI, retry/fail-closed, trigger precedence, lifecycle/restart/reaper, cache invalidation,
+model/default precedence, generated defaults, and state pollution when applicable. Planner seeds do not limit verifier discovery
+from scope, Slices, changed code/diff, expectations, and known failure modes. Batch broad checks at integration/final
+unless cheap or the only credible package proof; place the earliest credible affected broad regression before
+proof/report freeze for shared/public/lifecycle risk. Material execution uncertainty records authoritative sources,
+preconditions/cleanup, smallest credible bounded probe or broad-only justification, testing-authority provenance,
+and spike trigger in existing Notes/expectations; exact budgets come from resolved authority.
 
 ## Risk and Review Lenses
 
 Package scope and assigned Slices should make risk visible without adding durable checklist fields to the registry.
 
-Enhanced verification is triggered by surfaces such as:
-
-- security, privacy, or safety;
-- persistence, data integrity, migration, or rollback;
-- public API, exported types, generated contracts, or external integrations;
-- concurrency, idempotency, replay, cancellation, or cleanup;
-- performance, resource bounds, fanout, or blocking I/O;
-- cross-package integration;
-- orchestration, git state, package verification, review, audit, or quality-contract changes.
-
-Documentation-only and reference-only packages still receive standard package verification; risk determines
-whether verification is standard or enhanced, not whether it runs.
+Use `assurance-routing.md` for profile triggers and receipt placement. Package verification runs only for a
+meaningful `boundary`; risk selects standard or enhanced depth. A coherent `final` leaf receives direct final
+semantic coverage without a fabricated package report. Documentation/reference work follows the same boundary
+rule—file type alone neither creates nor removes a meaningful boundary.
 
 ## Runtime Adjustment
 
@@ -129,7 +122,7 @@ plan unsafe or inefficient. When one uncertainty gates several otherwise indepen
 the smallest bounded readiness action before affected fanout; do not invent a dependency edge when dispatch
 readiness alone is sufficient. State the reason before dispatch.
 
-If adjustment changes package scope, Slice H3 assignment, dependencies, proof path, report path, or approved deferrals, route through artifact repair or explicit user approval. Do not silently downgrade verification depth while a triggering risk remains.
+If adjustment changes package scope, Slice H3 assignment, dependencies, proof path, mode/report path, profile, or approved deferrals, route through a reviewed effective-digest amendment or user approval when the envelope changes. Runtime risk promotes; never silently downgrade while a trigger remains.
 
 ## Anti-Patterns
 

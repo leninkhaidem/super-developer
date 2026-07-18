@@ -55,10 +55,10 @@ architecture debate, implementation transcript, lifecycle ledger, or a replaceme
 protected activation, verification topology, budgets, deterministic mutation boundary>
 
 ## Assurance Profile
-- Profile proposal: `low | standard | high`
-- Rationale: <named risk/eligibility>
-- Package routing: `<WP-ID>: boundary | final` — <named boundary/risk reason>
-- Promotion trigger: <runtime discovery that invalidates this proposal>
+- Profile: `low | standard | high` — <classification rationale under canonical assurance routing>
+- Package routing: `<WP-ID>: boundary | final` — <named boundary/risk and one independent owner/lens/freeze side>
+- Consumed-contract unlocks: <producer → dependent/consumer, exact contract digest source, required `B[i]`>
+- Promotion trigger: <runtime discovery that invalidates candidate/profile/routing and advances reviewed baseline>
 
 ## Execution Readiness and Auto-Resolve
 - Prerequisite summary: <all required ready or exact protected activation; `blocked` prevents readiness>
@@ -97,9 +97,11 @@ protected activation, verification topology, budgets, deterministic mutation bou
   disclosed and excluded.
 - Production seams name the actual path and causal observation. Broad placement names the earliest credible owning
   layer for shared/public/lifecycle risk.
-- Assurance/routing is a named proposal in existing plan authority, not a new ledger.
-- Verification Expectations remain in package files and describe confidence obligations plus cheapest credible
-  causal evidence, not a test list. One test may prove multiple related rows.
+- Assurance/routing follows the parent-supplied canonical routing contract, not a new ledger. `tasks.json` requires
+  top-level `assurance_profile`; every package requires `verification_mode`, with a safe report path for `boundary`
+  and `null` for `final`. A final-routed leaf never receives a fabricated report.
+- Verification Expectations follow the minimum-sufficient acceptance rule in the work-package contract: confidence
+  obligations plus cheapest credible causal evidence, not a test list. One test may prove multiple related rows.
 
 ## Manifest and Purity Rules
 

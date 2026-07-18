@@ -23,9 +23,10 @@ unreserved command, or repair the packet from hidden assumptions.
 
 Load only the parent-labeled contract needed at the action point: artifact storage for roots/ref/slug; Slice and
 Conceptualize authority for inventory/projection; preflight evidence before shaping; SPEC template before SPEC;
-clean-code/work-package contracts for boundaries; canonical artifact/authoring contracts before registry/package
-files; validation before writes/claims; testing authority for triggered feasibility; tool safety for command
-ambiguity; Semgrep policy only when enabled. Do not discover supporting references through this worker contract.
+clean-code/work-package contracts for boundaries and minimum-sufficient acceptance; canonical assurance routing;
+artifact/authoring contracts before registry/package files; validation before writes/claims; testing authority for
+triggered feasibility; tool safety for command ambiguity; Semgrep policy only when enabled. Do not discover
+supporting references through this worker contract.
 
 ## Workflow
 
@@ -42,9 +43,14 @@ ambiguity; Semgrep policy only when enabled. Do not discover supporting referenc
 4. Shape coherent packages using semantic closure complexity and fixed gate cost, not numeric thresholds. Name
    owned behavior, actual production path, consumed contracts, integration owner, primary paths, dependencies,
    prerequisite activation, cleanup, and earliest credible affected broad regression.
-5. Propose `low|standard|high` feature assurance and `boundary|final` per-package routing. Use `standard` by default;
-   name each lower/higher-risk reason and every consumed/public/shared/sensitive boundary needing verification
-   before dependent consumption. This is plan authority/proposal; do not invent a separate routing ledger.
+5. Apply the canonical assurance contract once: `standard` by default, strict evidence for `low`, and high-trigger
+   precedence. Runtime discovery promotes. Write required top-level `assurance_profile`; for every package write
+   `verification_mode: boundary|final` and a safe `report_path` only for `boundary` (`null` for `final`). Package
+   Markdown uses `## Independent Verification` with Mode, Report, and named Rationale. Route every producer with a
+   dependent or independently consumed material contract to `boundary`; name its contract-digest source, `B[i]`
+   owner/lens, and pre-consumption unlock. A coherent leaf may use `final` without a fabricated report. Assign each
+   assurance lens to exactly one owner and one side of freeze. This canonical shape supersedes pre-B2
+   unconditional-report examples; do not invent a routing ledger.
 6. Write Verification Expectations as minimum confidence obligations, not test inventories. Each states accepted
    observable or materially relevant forbidden behavior, the distinct failure mechanism/triggered risk, actual
    production-path seam, cheapest credible causal evidence level, substitutes/disclosures, and failure signal.
@@ -70,14 +76,11 @@ ambiguity; Semgrep policy only when enabled. Do not discover supporting referenc
 
 ## Minimum-Sufficient Test Rule
 
-Plan the smallest maintainable causal evidence set for accepted observable behavior, materially relevant
-forbidden/failure outcomes, triggered security/privacy/safety/data/concurrency/lifecycle/compatibility/public-contract
-risks, meaningful consumed contracts, and distinct discovered defect mechanisms. Once these obligations are
-credibly demonstrated and required commands pass, test authoring stops. Test count, test LOC, test-to-production
-ratio, coverage percentage, and suite volume are never gates. Do not demand exhaustive suite review. Existing tests
-block only for a concrete defect: false-positive evidence, incorrect/weakened assertions, hidden skip/focus/xfail,
-flakiness/inconclusive outcome, unsafe side effects, materially unacceptable required runtime, or a changed
-harness/configuration that undermines confidence.
+`work-packages.md` is canonical. Apply its smallest-causal-set obligations and stop rule; do not restate them in
+SPEC/package prose. Verification Expectations name behavior/risk, distinct mechanism, actual path, cheapest
+credible evidence, substitutes, failure signal, and broad placement. One causal test may prove multiple rows.
+Never gate on count, changed test lines, test-to-production ratio, coverage, review percentage, or suite volume;
+never demand exhaustive suite review or reject/clean up existing tests solely for volume.
 
 ## Output
 

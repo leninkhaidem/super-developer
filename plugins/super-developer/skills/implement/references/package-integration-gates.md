@@ -1,15 +1,11 @@
 # Implement Package Integration Gates
 Load after package agents return and before accepting, merging, marking `done`, dispatching downstream packages, or final readiness. This reference owns package return acceptance, proof validation, holistic package verification, merge/freshness gates, repair routing, and final handoff.
-
 The `worktree` skill owns git command runbooks, root-worktree safety, branch/ref invariants, sidecar
 checkpoints, cleanup, feature push, and target-merge boundaries. This reference owns when those operations
 are allowed. Artifact checks read/write the artifact root; source validation runs in package or integration
 code worktrees.
-
 ## Package Return Checkpoint
-
 For each returned package:
-
 1. Validate the package-agent report, required `SELF_REVIEW`, targeted verification evidence, proof Markdown updates, mock/stub disclosures, and Slice authority/plan-defect assessment.
 2. Run mechanical proof validation from the code root with explicit roots:
 
@@ -29,35 +25,38 @@ For each returned package:
    or raw JSON dumps are invalid proof. Semgrep findings remain advisory unless
    verifier/reviewer/skeptic authority marks a material package risk.
 5. Prefer committing/stabilizing the package branch before holistic package verification so a `PASS` report binds directly to an exact commit/ref. Do not commit ignored `.tasks` proof/report artifacts.
-6. Run one holistic package verifier for every returned package. Use `plugins/super-developer/skills/implement/references/package-verification.md` as the verifier contract; dispatch through the verifier packet in `plugins/super-developer/skills/implement/references/package-dispatch.md`.
-7. Store the verifier PASS/FAIL report at the declared artifact-root report path such as
-   `.tasks/<feature>/reports/<WP-ID>.package-verification.md`. The report must bind artifact evidence to
-   the reviewed package code state and contain the verifier-owned canonical `### Test Review Scope` receipt for that package-owned reviewed delta.
-8. Reject missing, failed, stale, schema-mismatched, placeholder, dirty-matrix, test-scope-omitting, or pre-repair package verification reports; reports without the required receipt must be refreshed with no bypass.
-9. Run the pre-done completion helper after the report exists and before accepting/merging as complete,
+6. Freeze the exact Stable Candidate Identity: authorization/effective digest, code commit/tree and base/diff,
+   semantic package/Slice inputs, proof/runtime-evidence digests, profile/mode, and consumed-contract digests.
+7. For `boundary`, run one verifier for the named meaningful lens and store `B[i]` at its safe report path. Require
+   fresh PASS, clean matrix, `### Selected Causal Evidence`, and exact candidate/proof/State Binding; reject stale,
+   placeholder, dirty, contradictory, pre-repair, mode-mismatched, or higher-trigger `PROFILE_INVALID` returns.
+8. For `final`, require a coherent leaf, `report_path: null`, and explicit direct-final owner. Do not dispatch
+   package verification or fabricate/substitute a report.
+9. Run the pre-done helper after a boundary report or final stabilization and before accepting/merging as complete,
    marking `done`, unlocking dependents, or final readiness handoff:
-
    ```bash
    python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-package-complete \
      --artifact-root "$ARTIFACT_ROOT" --code-root "$CODE_ROOT" \
      ".tasks/<feature>/tasks.json" --package <WP-ID>
    ```
-
-10. Treat helper success as a mechanical signal only; semantic truthfulness remains with package verification and final audit. Capture JSON advisories; route `context_only_slice_drift` to affected-surface classification as non-blocking by default, while verifier/reviewer authority may escalate material risk.
-11. Confirm package branches did not force-add or commit ignored `.tasks` proof/report artifacts. If they did,
+   B2 will implement mode branching; during B1, never fabricate a report or treat current helper behavior as
+   routing proof. Helper success is a mechanical signal only; semantic truthfulness remains with package verification and final audit. Route `context_only_slice_drift` as non-blocking by default to affected-surface
+   classification; verifier/reviewer authority may escalate material risk.
+10. Confirm package branches did not force-add or commit ignored `.tasks` proof/report artifacts. If they did,
     preserve artifacts in the artifact root, repair the branch to code/doc changes only, and keep the package incomplete.
-12. Merge each accepted package branch at most once through the integration worktree using the `worktree` skill.
-13. After merge, verify package branch ancestry, integration-worktree cleanliness, artifact-root handoff, and
+11. Merge each accepted package branch at most once through the integration worktree using the `worktree` skill.
+12. After merge, verify package branch ancestry, integration-worktree cleanliness, artifact-root handoff, and
     post-merge freshness. Classify production, test/oracle/harness, claim, execution-evidence, and metadata
     changes through the shared semantic rubric; run only its affected proof, verification, and
     `validate-package-complete` route before completion.
-14. Before the package-delivery boundary completes, checkpoint sidecar artifacts after proof/report/review
-    updates are written. Push only `origin artifacts/<feature>` from `.worktrees/<feature>/artifacts`; do not
-    push `feature/<feature>` or `wp/<feature>/<WP-ID>` as an artifact side effect.
+13. Before the package-delivery boundary completes, checkpoint sidecar artifacts after proof/report/review
+    updates are written. Through `worktree`, use only the captured exact authorized artifact endpoint and
+    `refs/heads/artifacts/<feature>`; do not push feature/package refs as an artifact side effect.
 
-Mark a package `done` only after proof validation, verification expectations, package verification PASS, clean
-`validate-package-complete`, ignored `.tasks` handling, post-merge freshness, sidecar checkpoint eligibility,
-repair/delta closure, and Slice plan-defect gates all pass.
+Mark `boundary` done only after proof, expectations, exact `PASS B[i]`, clean `validate-package-complete`, ignored
+`.tasks` handling, merge freshness, checkpoint, repair, and plan-defect gates pass. A `final` leaf may become
+implementation-done after the same gates without report/verifier, but feature completion waits for direct final
+semantic PASS. No dependent or independently consumed material contract may unlock from `final`.
 
 ## Slice Plan-Defect Gate
 
@@ -71,15 +70,19 @@ A Slice plan defect is any package/repair/verifier report showing assigned Slice
 Slice plan defects are blockers, not advisory notes. Resolve by projecting the requirement into normal plan artifacts, recording explicit user-approved scope/override metadata, or correcting Slice/package assignment state. Do not accept PASS package verification, mark `done`, or unlock dependents while unresolved.
 
 ## Report Shape and Freshness
-Package verification reports use the source-aligned shape from `plugins/super-developer/skills/implement/references/package-verification.md`: `## Package Verification: <WP-ID>` with H3 `Verdict`, `Deliverable Completeness Matrix`, `Triggered Risk Selection Notes`, `Test Review Scope`, `Slice Closure Review`, `Code Review Findings`, and failure-only `Blocking Findings` / `Repair Guidance`. If lifecycle metadata is kept, add it separately as `## State Binding` after the source report body.
+Boundary reports use `## Package Verification: <WP-ID>` with `Verdict`, `Deliverable Completeness Matrix`,
+`Triggered Risk Selection Notes`, `Selected Causal Evidence`, `Slice Closure Review`, `Code Review Findings`, and
+failure-only findings/guidance. `## State Binding` follows the source body. It preserves exact Stable Candidate
+Identity and consumed-contract digests; a final report is invalid.
 
 Apply the shared semantic freshness rubric and keep its rationale in existing orchestrator/proof/report/review
 state, never a new receipt. Binding-only refresh requires identical semantic inputs, claims, and evidence. For
 evidence-only refresh, rebind only when verifier-inspected regenerated evidence has identical bound semantic
 inputs/method and a valid, non-contradictory outcome. Failed, inconclusive, or contradictory evidence routes to
 diagnosis and affected verification, never PASS rebinding. Bounded production, test/oracle/harness,
-proof/report-claim, population, or contract changes may use focused verification. Material, unbounded, sensitive,
-shared, or uncertain population or contract changes, and cross-package changes, require full verification.
+proof/report-claim, selected-evidence, or contract changes may use focused verification. Material, unbounded,
+sensitive, shared, or uncertain contract/trust-seam changes and cross-package changes require full verification.
+No count, LOC, ratio, coverage, review-percentage, or suite-volume gate selects depth.
 `must_satisfy` drift and malformed bindings fail closed; `context_only_slice_drift` remains non-blocking
 classification input by default.
 
@@ -90,14 +93,13 @@ Requirement gaps return for authority; architecture invalidation stops for reass
 are report-only unless tied to an accepted contract or demonstrated serious risk.
 For an eligible first-closure defect:
 1. map its invariant/mechanism and affected packages/Slices/rows/evidence/contracts;
-2. assign one logical primary implementation owner; prefer session resume, otherwise rehydrate one successor with
-   prior outcomes/strikes; never run concurrent owners or reset because identity changed;
+2. assign one logical primary implementation owner; a successor inherits outcomes/strikes; never run concurrent owners;
 3. reproduce and repair one coherent root cause, then reclassify the actual diff and invalidate affected reports;
-4. establish actual-production-path targeted evidence and the earliest credible affected broad regression before
-   refreshing proof/command evidence;
-5. refresh affected proof state, run `validate-proof`, then use focused verification only for bounded impact;
-   widen for material/shared/sensitive/uncertain impact. The verifier writes the fresh report and bindings;
-6. only after the fresh report run `validate-package-complete`.
+4. establish actual-production-path targeted evidence and earliest credible affected broad regression before refreshing proof/command evidence;
+5. refresh affected proof state, run `validate-proof`, then focused verification only for bounded impact; widen for
+   material/shared/sensitive/uncertain impact. For boundary the verifier writes the fresh report and bindings;
+   for final re-stabilize the candidate for its direct-final owner;
+6. only after the fresh report (boundary) or stable final candidate run `validate-package-complete`.
 The second failed closure for the same cluster opens the circuit for design reassessment. Renamed attempts, new
 agents/models/prompts/commits/status/reports, or more matrix rows do not reset it. While open, stop affected work;
 continuation requires explicit authority plus changed accepted design or decisive evidence.
@@ -107,15 +109,11 @@ Resolve mechanical conflicts only in the integration worktree and never switch t
 
 ## Final Readiness Handoff
 
-Before moving to final `review-code` and `audit`, every package must have:
-
-- valid proof Markdown with no unresolved `GAP`, `OPEN`, `TODO`, unapproved `DEFERRED`, or unsupported `N/A`;
-- required command/manual evidence recorded in proof Markdown;
-- fresh PASS package verification report with clean matrix and canonical Test Review Scope receipt for the package-owned reviewed delta, bound to current proof/package/Slice/code state;
-- clean `validate-package-complete` for the current package state;
-- no unresolved Slice plan defects;
-- integration worktree clean for the intended final state;
-- package branches merged once and retained until cleanup gates pass.
+Before final assurance every package needs valid proof with no unresolved marker/deferral; required command/manual
+evidence; clean mode-specific `validate-package-complete`; no Slice plan defect; clean integrated state; and merged
+branches retained. `boundary` additionally needs fresh exact `PASS B[i]` with clean matrix and Selected Causal
+Evidence. `final` needs stable candidate identity, null report, and named direct-final owner—never a fabricated
+package report.
 
 For bounded stacked-feature readiness, build a packet naming the top integrated worktree/code state and every relevant task/Slice artifact set; each included set must have clean package completion and `validate-final` prerequisites before readiness claims. Do not audit only a follow-up task set when the top branch includes base feature deliverables; stop when included sets are unknown or out of scope.
 
@@ -134,13 +132,14 @@ python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-final \
   ".tasks/<feature>/tasks.json"
 ```
 
-Freeze exact integrated-code, artifact, and runtime-evidence inputs consumed by final checks.
-Run sibling final `review-code`/`audit` against it; outputs are not freeze inputs. Any frozen-input change invalidates the binding.
-Classify freshness to select rebind, evidence-focused, focused, or full work, then establish a new freeze before affected final checks.
+Freeze exact integrated code, semantic artifacts, runtime evidence, profile/routing, and fresh `B[*]`; verifier
+outputs are not candidate inputs. Every assurance assignment has one owner, named non-overlapping lens, and one
+side of freeze. Any frozen-input change invalidates downstream binding. B3 implements low combined and serial
+standard/high final dispatch; do not represent legacy sibling review/audit as satisfying the new graph.
 
 After review-code readiness and final audit PASS are recorded in the artifact root, run the final sidecar
-checkpoint through the `worktree` skill before target merge/cleanup eligibility. This checkpoint pushes only
-`origin artifacts/<feature>` and never merges the sidecar branch. Sidecar cleanup is routed to the
+checkpoint through `worktree` before target merge/cleanup eligibility. Use only the captured exact authorized
+artifact endpoint and ref; never merge the sidecar branch. Sidecar cleanup is routed to the
 `worktree`/`release` boundary after final target merge/push and exact user approval.
 
 Declare readiness only when package evidence, review-code readiness, and final audit PASS are clean for the

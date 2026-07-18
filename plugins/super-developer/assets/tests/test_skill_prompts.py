@@ -1439,140 +1439,118 @@ class SkillPromptSurfaceTests(unittest.TestCase):
         self.assertIn("RISK-<...>", risks)
         self.assertIn("rationale/disposition", risks)
 
-    def test_test_review_scope_receipt_is_fail_closed_and_pipeline_owned(self) -> None:
-        contract = read_repo("plugins/super-developer/references/package-verification-report.md")
-        verifier = read_repo("plugins/super-developer/skills/implement/references/package-verification.md")
-        artifacts = read_repo("plugins/super-developer/references/slice-first-artifacts.md")
-        dispatch = read_repo("plugins/super-developer/skills/implement/references/package-dispatch.md")
-        gates = read_repo("plugins/super-developer/skills/implement/references/package-integration-gates.md")
+    def test_b1_adh02_standard_routes_meaningful_boundary_before_consumption(self) -> None:
+        routing = read_repo("plugins/super-developer/references/assurance-routing.md")
+        planner = read_repo(
+            "plugins/super-developer/skills/implementation-plan/references/planner-agent-contract.md"
+        )
+        gates = read_repo(
+            "plugins/super-developer/skills/implement/references/package-integration-gates.md"
+        )
+        compact = compact_text("\n".join([routing, planner, gates]))
+        for token in [
+            "`standard` is the default",
+            "meaningful internal boundaries",
+            "A coherent leaf package may route `final`",
+            "producer with a dependent",
+            "fresh `PASS B[i]`",
+            "pre-consumption unlock",
+            "exactly one owner and one side of freeze",
+        ]:
+            self.assertIn(token, compact)
+        self.assertLess(
+            compact_text(routing).index("fresh `PASS B[i]`"),
+            compact_text(routing).index("Registry `done`, proof, `SELF_REVIEW`"),
+        )
+
+    def test_b1_adh10_dependency_unlock_binds_exact_candidate_and_contract(self) -> None:
+        routing = read_repo("plugins/super-developer/references/assurance-routing.md")
         lifecycle = read_repo("plugins/super-developer/references/package-lifecycle.md")
-        tool_usage = read_repo("plugins/super-developer/references/tool-usage.md")
-        review_skill = read_repo("plugins/super-developer/skills/review-code/SKILL.md")
-        pipeline = read_repo("plugins/super-developer/skills/review-code/references/pipeline-report.md")
-        audit_skill = read_repo("plugins/super-developer/skills/audit/SKILL.md")
-        audit_contract = read_repo("plugins/super-developer/skills/audit/references/audit-subagent-contract.md")
-        contract_compact = compact_text(contract)
-        pipeline_compact = compact_text(pipeline)
-        audit_contract_compact = compact_text(audit_contract)
-
+        dispatch = read_repo(
+            "plugins/super-developer/skills/implement/references/package-dispatch.md"
+        )
+        combined = compact_text("\n".join([routing, lifecycle, dispatch]))
         for token in [
-            "### Test Review Scope",
-            "Changed Population",
-            "Review Depth",
-            "Baseline Review",
-            "Deep Triggers",
-            "Selected Exemplars",
-            "Sampling Rationale",
-            "Generator / Input / Provenance",
-            "harnesses/helpers",
-            "mocks/fixtures",
-            "generators/snapshots",
-            "test-discovery/CI/coverage/build-config",
-            "`other-test-relevant`",
-            "only when no existing surface category accurately fits",
-            "valid only at `deep`",
-            "`scope:` must name exact paths or a precise path group",
-            "`triggered:` value must explain why classification is novel or ambiguous",
-            "typed evidence must anchor the inspected surface",
-            "cannot avoid generator/provenance rules or stand in for another known category",
-            "improves representability",
-            "does not provide a mechanical exhaustive-discovery guarantee",
-            "`baseline-only`, `sampled`, and `deep`",
-            "`not-reviewed` and `unreviewed` are invalid",
-            "`count: <positive integer>; scope: <specific non-placeholder description>`",
-            "`complete: <specific non-placeholder checks/results>`",
-            "`triggered: <specific non-placeholder trigger>`",
-            "`none: <specific reason>`",
-            "`selected: <specific exemplars>`",
-            "`strategy: <specific semantic selection rationale>`",
-            "`generator: <specific>; inputs: <specific>; provenance: <specific>`",
-            "assertion weakening/deletion",
-            "skip/focus/xfail",
-            "path execution/discrimination",
-            "mock/fixture/global-state effects",
-            "security/privacy/safety/data/migration/concurrency/public-contract seams",
-            "shared harness/helper/config",
-            "tests-as-deliverable",
-            "behavior/contract, oracle shape, helper/mock stack",
-            "Generated output is sampleable only after its generator, inputs, and provenance are reviewed",
-            "package-owned reviewed delta",
-            "Only the constrained whole-receipt absence is allowed",
-            "no-applicable-surface",
-            "exactly one unfenced contiguous Markdown table",
-            "matching-width delimiter",
-            "exact-arity rows",
-            "no extra pipe fragments/tables",
-            "union of fresh package receipts",
-            "integration-only or merge-resolution test-relevant changes",
-            "semantic batching or widening",
-            "never reduced rigor or fixed-percentage quotas",
-            "Mechanical validation owns the exact grammar, positive count, controlled surface/depth values",
-            "does not infer semantic truth from arbitrary prose",
-            "Review status: baseline review was not performed",
-            "dishonest `complete:` claim is for the verifier/reviewer/auditor to reject",
-            "legitimate negative results inside `complete:` remain valid",
-            "Reports without the receipt are invalid and must be refreshed",
-            "no silent format bypass",
+            "Stable Candidate Identity",
+            "code commit/tree and base/diff identity",
+            "proof and selected runtime-evidence digests",
+            "profile/mode",
+            "consumed-contract digests",
+            "fresh `PASS B[i]`",
+            "registry `done`",
+            "proof rows",
+            "`SELF_REVIEW`",
+            "helper success alone",
+            "does not unlock dependents",
         ]:
-            self.assertIn(token, contract_compact)
+            self.assertIn(token, combined)
+        self.assertIn("exact Stable Candidate Identity and consumed-contract digests", compact_text(dispatch))
 
-        for text in [verifier, artifacts, dispatch, gates, lifecycle, tool_usage]:
-            with self.subTest(package_owner=text[:40]):
-                self.assertIn("Test Review Scope", text)
-        self.assertIn("Own package-local test review for the package-owned reviewed delta", verifier)
-        self.assertIn("Mechanical validation checks grammar, positive count, controlled values", verifier)
-        self.assertIn("you own contradictions, semantic sufficiency, and the truth of every `complete:` claim", verifier)
-        self.assertIn("regardless of changes owned by other packages or later integration", verifier)
-        self.assertIn("Use `other-test-relevant` conservatively only when no known category accurately fits", verifier)
-        self.assertIn("always review it at `deep`", verifier)
-        self.assertIn("never use it to evade generator/provenance rules or a known category", verifier)
-        self.assertIn("missing old-shape receipts must be refreshed, not bypassed", dispatch)
-        self.assertIn("reports without the required receipt must be refreshed with no bypass", gates)
-        self.assertIn("Existing reports without the receipt must be refreshed; no silent bypass applies", lifecycle)
-
-        self.assertIn("baseline-only, sampled, or deep", review_skill)
-        self.assertIn("`not-reviewed`/`unreviewed` cannot support clean", review_skill)
-        self.assertIn("each fresh package `### Test Review Scope` receipt against its package-owned reviewed delta", review_skill)
-        self.assertIn("union of fresh package receipts against the integrated diff", review_skill)
-        self.assertIn("integration-only or merge-resolution test-relevant changes", review_skill)
+    def test_b1_adh12_high_trigger_promotes_instead_of_passing(self) -> None:
+        routing = read_repo("plugins/super-developer/references/assurance-routing.md")
+        verifier = read_repo(
+            "plugins/super-developer/skills/implement/references/package-verification.md"
+        )
+        compact = compact_text(routing)
+        self.assertIn("Precedence is `high > standard > low`", compact)
         for token in [
-            "each fresh `### Test Review Scope` against its package-owned reviewed delta",
-            "Reconcile the union of fresh package receipts against the integrated diff",
-            "integration-only or merge-resolution test-relevant changes",
-            "Mechanical receipt validation proves grammar, counts, controlled values, placeholders, table shape, and typed refs only",
-            "reviewers own semantic contradictions, dishonest `complete:` claims, and evidence sufficiency",
-            "Explicitly inspect and escalate every `other-test-relevant` row",
-            "decide whether the known taxonomy should be extended",
-            "never treat the catch-all as proof that all future test-relevant paths were discovered",
-            "Trust coherent package-local depth; widen only for canonical deep triggers",
-            "semantic batching/widening",
-            "Reports lacking the required receipt must be refreshed without a bypass",
+            "One high trigger wins",
+            "Runtime discovery never bypasses this order",
+            "invalidates the affected Stable Candidate Identity",
+            "promotes the Technical Plan Baseline",
+            "advances the Effective Authorization Digest and checkpoint",
+            "returns `PROFILE_INVALID`, never `PASS`",
+            "Downgrade requires a newly reviewed baseline and Effective Authorization Digest",
+            "ask the user only if envelope, material-risk acceptance, protected effects, covered actions, or budgets change",
         ]:
-            self.assertIn(token, pipeline_compact)
+            self.assertIn(token, compact)
+        self.assertIn("return `PROFILE_INVALID`", verifier)
+        self.assertIn("never PASS,\ndowngrade, self-promote", verifier)
 
-        self.assertIn("canonical `### Test Review Scope` receipt", audit_skill)
-        self.assertIn("test-scope-omitting", audit_skill)
-        self.assertIn("each receipt against its package-owned reviewed delta", audit_skill)
-        self.assertIn("union of fresh package receipts against the integrated diff", audit_skill)
+    def test_b1_adh22_uses_selected_causal_evidence_without_volume_gate(self) -> None:
+        affected = [
+            "plugins/super-developer/references/assurance-routing.md",
+            "plugins/super-developer/references/work-packages.md",
+            "plugins/super-developer/references/package-lifecycle.md",
+            "plugins/super-developer/references/package-verification-report.md",
+            "plugins/super-developer/references/slice-first-artifacts.md",
+            "plugins/super-developer/skills/implement/references/package-dispatch.md",
+            "plugins/super-developer/skills/implement/references/package-integration-gates.md",
+            "plugins/super-developer/skills/implement/references/package-verification.md",
+            "plugins/super-developer/skills/implementation-plan/references/spec-template.md",
+            "plugins/super-developer/skills/implementation-plan/references/planner-agent-contract.md",
+        ]
+        texts = {path: read_repo(path) for path in affected}
+        work_packages = compact_text(texts[affected[1]])
+        report = compact_text(texts[affected[3]])
+        verifier = compact_text(texts[affected[7]])
         for token in [
-            "Test Review Scope receipt against its package-owned reviewed delta",
-            "not a full second package verifier or test rereview",
-            "union of fresh package receipts against the integrated diff",
-            "mechanical receipt pass proves only grammar/count/value/placeholder/table/ref validity",
-            "auditor judgment owns contradictions, dishonest `complete:` claims, and semantic sufficiency",
-            "Explicitly inspect and escalate every `other-test-relevant` row under this same targeted reconciliation boundary",
-            "verify that no known category or generator/provenance rule was bypassed",
-            "decide whether the known taxonomy should be extended",
-            "never treat the catch-all as proof that all future test-relevant paths were discovered",
-            "integration-only or merge-resolution test-relevant changes",
-            "[TEST-REVIEW-SCOPE]",
+            "canonical minimum-sufficient test acceptance rule",
+            "smallest maintainable causal evidence set",
+            "One causal test or observation may prove multiple related requirements",
+            "stop adding tests",
+            "Only a concrete defect blocks",
         ]:
-            self.assertIn(token, audit_contract_compact)
-
-        self.assertNotIn("When the integrated diff has no applicable surface", contract)
-        self.assertNotIn("Validate each `### Test Review Scope` against the integrated diff", pipeline)
-        self.assertNotIn("receipt against the integrated diff", review_skill)
-        self.assertNotIn("falsify Test Review Scope against the integrated diff", audit_contract)
+            self.assertIn(token, work_packages)
+        for token in [
+            "### Selected Causal Evidence",
+            "Evidence Anchor",
+            "Behavior / Risk Proven",
+            "Causal Sufficiency",
+            "Substitutes / Fixtures",
+            "Fresh Command Result",
+            "Do not census changed test populations",
+            "rereview the suite",
+        ]:
+            self.assertIn(token, report)
+        self.assertIn("Build `### Selected Causal Evidence`, not an exhaustive changed-population census", verifier)
+        self.assertIn("Do not rereview the suite", verifier)
+        for path in affected:
+            with self.subTest(path=path):
+                self.assertLessEqual(len(texts[path].splitlines()), 150, path)
+        b1_contracts = "\n".join(texts[path] for path in affected)
+        self.assertNotIn("### Test Review Scope", b1_contracts)
+        self.assertNotIn("Changed Population", b1_contracts)
 
     def test_section_scoped_state_binding_prompt_contract_is_guarded(self) -> None:
         contract = read_repo("plugins/super-developer/references/package-verification-report.md")
@@ -1772,14 +1750,13 @@ class SkillPromptSurfaceTests(unittest.TestCase):
         ]:
             self.assertIn(token, verifier_compact)
         focused_start = verifier.index("Focused re-verification is")
-        focused_end = verifier.index("\n\nAfter repair", focused_start)
+        focused_end = verifier.index("\n\nRequire the repair owner", focused_start)
         focused_rule = compact_text(verifier[focused_start:focused_end]).lower()
         self.assertIn(
-            "widen to full verification when that confirmation fails, obligation or test-review populations "
-            "materially change, impact crosses package/contract-wide or sensitive boundaries, or scope cannot "
-            "be bounded",
+            "widen for material/shared/sensitive/ cross-contract or uncertain impact",
             focused_rule,
         )
+        self.assertNotIn("test-review populations", focused_rule)
 
         repair = gates[gates.index("## Rejection and Repair"):gates.index("## Conflict Handling")]
         repair_compact = compact_text(repair).lower()
@@ -1792,7 +1769,7 @@ class SkillPromptSurfaceTests(unittest.TestCase):
             "run `validate-proof`",
             "focused verification only for bounded impact",
             "the verifier writes the fresh report",
-            "only after the fresh report run `validate-package-complete`",
+            "only after the fresh report (boundary) or stable final candidate run `validate-package-complete`",
         ]
         for earlier, later in zip(ordered, ordered[1:]):
             self.assertLess(repair_compact.index(earlier), repair_compact.index(later))
@@ -2305,7 +2282,8 @@ class SkillPromptSurfaceTests(unittest.TestCase):
             "confidence-enhancement",
             "failure mechanism",
             "architectural surface",
-            "verification signature",
+            "accepted invariant/contract",
+            "agent, signature, label, commit, and timeout are not identity",
             "first failed closure",
             "second failed closure",
             "explicit user approval",
