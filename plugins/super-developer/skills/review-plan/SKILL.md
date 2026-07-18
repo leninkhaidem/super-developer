@@ -53,9 +53,10 @@ supports approved changes to new or existing systems with exact mode-specific ow
 7. Only after an initial clean review, validate execution readiness: exact candidate commit/tree; base commit and
    clean-status digest; dependencies; tools/environments; safe probes; package order; and each prerequisite as
    `proven-ready`, exact `protected-activation-required`, or `blocked`. Required blocked state prevents the gate.
-8. Construct the compact authorization `inputs` snapshot: exact `artifact_tree` and `base_commit`; canonical
-   digests `clean_status`, `dependencies`, `routing`, `actions`, `budget_authority`, and `amendment_policy`.
-   Verify base/artifact objects and initial tree relation; set `initial_digest` to canonical JSON digest of exactly
+8. Construct the compact authorization `inputs` snapshot: exact `artifact_commit`, `artifact_tree`, and
+   `base_commit`; canonical digests `clean_status`, `dependencies`, `routing`, `actions`, `budget_authority`, and
+   `amendment_policy`. Require the artifact commit in the artifact root, with its named tree, equal to the accepted
+   checkpoint and exact reviewed predecessor candidate. Set `initial_digest` to the canonical JSON digest of exactly
    `inputs`, with initial effective digest equal. Load `../implement/references/execution-contract.md`; present the
    reviewed surface and exactly `Approve and auto-resolve`, `Request changes`, and `Abort`.
 9. On `Approve and auto-resolve`, create the sole immutable authorization ID; apply only declared deterministic
@@ -64,8 +65,9 @@ supports approved changes to new or existing systems with exact mode-specific ow
 
 ## Nested Amendment Branch — Return Only
 
-7. Require the existing authorization and unchanged envelope, inputs/initial digest, covered/protected actions and
-   exact endpoints, amendment policy, and budget authority. Validate only affected technical readiness as cold
+7. Require the existing authorization and unchanged envelope, initial inputs (including artifact commit/tree),
+   initial digest, covered/protected actions and exact endpoints, amendment policy, and budget authority. Validate
+   only affected technical readiness as cold
    evidence; never re-enter readiness as a fresh user gate.
 8. Require a distinct reviewed descendant artifact checkpoint on the exact sidecar lineage. Construct one cold
    amendment receipt binding authorization ID, immutable-input digest, parent effective digest/artifact, new

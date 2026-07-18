@@ -653,6 +653,7 @@ NULLABLE_TOKEN_SCHEMA = ("nullable", TOKEN_SCHEMA)
 NULLABLE_DIGEST_SCHEMA = ("nullable", DIGEST_SCHEMA)
 NULLABLE_SHA_SCHEMA = ("nullable", SHA_SCHEMA)
 AUTHORIZATION_INPUTS_SCHEMA = {
+    "artifact_commit": SHA_SCHEMA,
     "artifact_tree": SHA_SCHEMA,
     "base_commit": SHA_SCHEMA,
     "clean_status": DIGEST_SCHEMA,
@@ -893,7 +894,17 @@ def validate_lifecycle_state_data(
         if authorization["initial_digest"] != canonical_json_digest(inputs):
             errors.append(f"{label}.authorization.initial_digest: must equal the canonical inputs digest")
         if verify_git_objects:
+            artifact_input_tree = git_commit_tree(
+                artifact_root,
+                inputs["artifact_commit"],
+                f"{label}.authorization.inputs.artifact_commit",
+                errors,
+            )
             require_git_tree(artifact_root, inputs["artifact_tree"], f"{label}.authorization.inputs.artifact_tree", errors)
+            if artifact_input_tree is not None and artifact_input_tree != inputs["artifact_tree"]:
+                errors.append(
+                    f"{label}.authorization.inputs.artifact_tree: does not match authorization artifact commit tree"
+                )
             require_git_commit(code_root, inputs["base_commit"], f"{label}.authorization.inputs.base_commit", errors)
         profile = state.get("assurance_profile")
         modes = state.get("package_modes")
@@ -904,6 +915,10 @@ def validate_lifecycle_state_data(
         if not packages:
             errors.append(f"{label}.packages: authorized state requires at least one package")
         if authorization["effective_digest"] == authorization["initial_digest"]:
+            if inputs["artifact_commit"] != artifact["sha"]:
+                errors.append(
+                    f"{label}.authorization.inputs.artifact_commit: must match the initial artifact checkpoint commit"
+                )
             if inputs["artifact_tree"] != artifact["tree"]:
                 errors.append(
                     f"{label}.authorization.inputs.artifact_tree: must match the initial artifact checkpoint tree"
@@ -1237,10 +1252,16 @@ def compare_lifecycle_states(previous: dict[str, Any], current: dict[str, Any]) 
                 for field in ("assurance_profile", "package_modes"):
                     if current.get(field) != previous.get(field):
                         errors.append(f"lifecycle transition: authorized {field} changed without technical amendment")
-    elif current_authorized and (
-        current_auth["effective_digest"] != current_auth["initial_digest"] or current_auth.get("amendment_link") is not None
-    ):
-        errors.append("lifecycle transition: initial authorization must start at its initial digest without amendment history")
+    elif current_authorized:
+        if (
+            current_auth["effective_digest"] != current_auth["initial_digest"]
+            or current_auth.get("amendment_link") is not None
+        ):
+            errors.append("lifecycle transition: initial authorization must start at its initial digest without amendment history")
+        if current_auth["inputs"]["artifact_commit"] != current["last_verified"]["artifact_sha"]:
+            errors.append(
+                "lifecycle transition: initial authorization artifact_commit must match the exact reviewed predecessor candidate"
+            )
 
     errors.extend(compare_lifecycle_budgets(previous["budgets"], current["budgets"]))
     previous_packages, current_packages = previous["packages"], current["packages"]

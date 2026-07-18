@@ -373,7 +373,7 @@ class SkillPromptSurfaceTests(unittest.TestCase):
 
         # Initial digest is reproducible; nested mode preserves lineage and returns before continuation.
         for field in [
-            "artifact_tree", "base_commit", "clean_status", "dependencies", "routing", "actions",
+            "artifact_commit", "artifact_tree", "base_commit", "clean_status", "dependencies", "routing", "actions",
             "budget_authority", "amendment_policy",
         ]:
             self.assertIn(field, combined)

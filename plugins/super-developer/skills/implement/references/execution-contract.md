@@ -33,8 +33,8 @@ Reviewed Technical Plan Baseline:
 
 Exact state and Authorization Digest inputs:
   distinct artifact/code roots; artifact ref/candidate commit+tree; base commit: <exact verified objects>
-  immutable inputs snapshot: <artifact_tree, base_commit, clean_status, dependencies, routing, actions,
-    budget_authority, amendment_policy; last six are canonical digests>
+  immutable inputs snapshot: <artifact_commit, artifact_tree, base_commit, clean_status, dependencies, routing,
+    actions, budget_authority, amendment_policy; last six are canonical digests>
   initial digest: <canonical JSON digest of exactly inputs>; initial effective digest: <equal value>
   Lifecycle State path/generation/digest/last-verified predecessor: <derived path + exact values>
   packages, worktrees, proof/report paths and expected deterministic mutations: <exact safe values>
@@ -112,7 +112,7 @@ Choices:
 
 ## Pipeline:
 
-1. validate Lifecycle State/predecessor plus canonical immutable inputs, objects/tree, authorization checkpoint,
+1. validate state/predecessor, canonical immutable inputs, exact input commit/tree, and authorization checkpoint;
    cheap freshness guard, then covered protected activation
 2. create/resume authorized worktrees and dispatch ready package owners
 3. stabilize production behavior and actual-path causal tests before proof conclusions
@@ -120,7 +120,7 @@ Choices:
 5. perform package verification, completion validation, merge, and code-before-sidecar checkpoints
 6. finish integrated checks/evidence and run root-aware final validation; freeze exact inputs
 7. invoke `review-code` and `audit` only as return-only independent checks against that freeze
-8. for amendment invoke nested `review-plan`, validate its cold receipt/effective digest, checkpoint; then batch findings, delegate repairs
+8. amendment: retain inputs; validate nested receipt/link; advance checkpoint; batch findings, delegate repairs
    only for eligible clusters, rerun affected checks, and establish a new freeze
 9. after clean review-code/audit acceptance, run listed final checkpoint and push the feature branch if covered
 
@@ -132,8 +132,8 @@ boundaries; routine in-scope failure is returned to the Delivery Owner for bound
 
 ## Lifecycle Helper Boundary
 Run `sliceproof.py validate-lifecycle-state` with distinct roots, derived `--feature`, and full `--previous-commit`
-after generation 1. It validates generation-1 null topology, local objects/tree/digests, immutable authorization,
-artifact ancestry on exact sidecar lineage, monotonic state, and predecessor. Exact-endpoint remote reachability/CAS
+after generation 1. It validates generation-1 null topology, exact input artifact commit/tree/predecessor,
+immutable authorization, lineage, monotonic state, and predecessor. Exact-endpoint remote reachability/CAS
 stays in the worktree contract; the helper never reserves, transitions, dispatches, pushes, or proves completion.
 
 ## Activation Guard

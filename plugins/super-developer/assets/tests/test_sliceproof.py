@@ -257,6 +257,7 @@ class SliceproofFixture:
             "generation": state["generation"], "units": {"delegated_calls": 1},
         }
         inputs = {
+            "artifact_commit": state["artifact_checkpoint"]["sha"],
             "artifact_tree": state["artifact_checkpoint"]["tree"],
             "base_commit": self.git_at(self.repo, "rev-parse", "HEAD"),
             "clean_status": self.digest_text("clean status"),
@@ -1137,12 +1138,26 @@ class SliceproofTests(unittest.TestCase):
                 ["git", "mktree"], cwd=fixture.artifact_root, input="", check=True,
                 text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
             ).stdout.strip()
+            alternate_commit = fixture.git_at(
+                fixture.artifact_root,
+                "commit-tree", alternate_tree, "-p", generation_one, "-m", "alternate input tree",
+            )
 
             cases = [
                 (
                     "canonical inputs digest",
                     lambda state: state["authorization"].__setitem__("initial_digest", fixture.digest_text("wrong")),
                     "canonical inputs digest",
+                ),
+                (
+                    "artifact commit object",
+                    lambda state: state["authorization"]["inputs"].__setitem__("artifact_commit", alternate_tree),
+                    "local git inspection failed",
+                ),
+                (
+                    "artifact commit tree relation",
+                    lambda state: state["authorization"]["inputs"].__setitem__("artifact_commit", alternate_commit),
+                    "authorization artifact commit tree",
                 ),
                 (
                     "artifact tree object",
@@ -1215,6 +1230,42 @@ class SliceproofTests(unittest.TestCase):
             self.assertIn(
                 "initial authorization must start at its initial digest",
                 "\n".join(SLICEPROOF.compare_lifecycle_states(initial, invalid_initial)),
+            )
+        finally:
+            fixture.cleanup()
+
+    def test_initial_authorization_rejects_older_same_tree_commit_substitution(self) -> None:
+        fixture = SliceproofFixture(separate_roots=True)
+        try:
+            fixture.init_lifecycle_git_roots()
+            initial = fixture.lifecycle_state()
+            fixture.write_lifecycle(initial)
+            older_commit = fixture.commit_lifecycle("generation one")
+            tree = fixture.git_at(fixture.artifact_root, "rev-parse", f"{older_commit}^{{tree}}")
+            reviewed_commit = fixture.git_at(
+                fixture.artifact_root,
+                "commit-tree", tree, "-p", older_commit, "-m", "reviewed same-tree candidate",
+            )
+            fixture.git_at(fixture.artifact_root, "reset", "--hard", reviewed_commit)
+            self.assertEqual(tree, fixture.git_at(fixture.artifact_root, "rev-parse", f"{reviewed_commit}^{{tree}}"))
+
+            authorized = fixture.authorized_lifecycle_state(initial, reviewed_commit)
+            fixture.write_lifecycle(authorized)
+            accepted = fixture.validate_lifecycle(reviewed_commit)
+            self.assertEqual(0, accepted.returncode, accepted.stdout + accepted.stderr)
+
+            substituted = copy.deepcopy(authorized)
+            substituted["artifact_checkpoint"]["sha"] = older_commit
+            substituted["authorization"]["inputs"]["artifact_commit"] = older_commit
+            digest = SLICEPROOF.canonical_json_digest(substituted["authorization"]["inputs"])
+            substituted["authorization"]["initial_digest"] = digest
+            substituted["authorization"]["effective_digest"] = digest
+            fixture.write_lifecycle(substituted)
+            rejected = fixture.validate_lifecycle(reviewed_commit)
+            self.assertNotEqual(0, rejected.returncode, rejected.stdout + rejected.stderr)
+            self.assertIn(
+                "must match the exact reviewed predecessor candidate",
+                "\n".join(json.loads(rejected.stderr)["errors"]),
             )
         finally:
             fixture.cleanup()

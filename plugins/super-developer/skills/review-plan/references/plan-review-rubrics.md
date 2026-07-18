@@ -87,12 +87,13 @@ In `initial` mode, before returning `NONE`, prove the proposed one decision surf
   profile/routing; covered actions; amendment policy; expected deterministic mutations; and finite budget authority;
 - one authorized configured push endpoint per relevant root plus each exact ref, readiness result, activation
   probe/remedy, covered write/command/test/repair/rerun/checkpoint, exclusion, and escalation trigger; and
-- compact `inputs`: exact `artifact_tree`/`base_commit` and digests `clean_status`, `dependencies`, `routing`,
-  `actions`, `budget_authority`, `amendment_policy`; canonical initial digest is exactly its JSON digest.
+- compact `inputs`: exact `artifact_commit`/`artifact_tree`/`base_commit` and digests `clean_status`, `dependencies`,
+  `routing`, `actions`, `budget_authority`, `amendment_policy`; canonical initial digest is exactly its JSON digest.
 
-Verify base/artifact objects and initial tree relation. Reject preliminary/later approval, routine re-prompts,
-multiple/implicit endpoints, or sidecar permission expansion. Only initial clean review can support the one choices
-and creation of an authorization ID.
+Verify the artifact-root commit has its named tree and equals the initial checkpoint/reviewed predecessor; verify
+base. Amendments retain initial inputs while their link advances the checkpoint. Reject preliminary/later approval,
+routine re-prompts, multiple/implicit endpoints, or sidecar permission expansion. Only initial clean review supports
+the choices and creation of an authorization ID.
 
 ## Nested Amendment and Slice Plane
 

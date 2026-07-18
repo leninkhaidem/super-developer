@@ -78,8 +78,8 @@ impossible.
 derives `.tasks/<feature>/lifecycle-state.json` and accepts no caller-selected state path. Generation 1 has no
 predecessor argument and cannot replace existing committed history. Every later snapshot names `last_verified`
 and is checked with the exact full `--previous-commit` containing that prior state. The helper reads local Git
-objects, verifies the committed regular blob/linear predecessor, exact authorization objects/tree relation, and
-that every artifact checkpoint is an ancestor of the exact sidecar HEAD/predecessor lineage; then it emits
+objects, verifies the committed regular blob/linear predecessor and exact authorization input commit/tree relation,
+and requires every artifact checkpoint on the exact sidecar HEAD/predecessor lineage; then it emits
 canonical digests. It never fetches, pushes, reserves budget, changes owner/stage/status, dispatches, proves remote
 reachability, or establishes semantic completion.
 

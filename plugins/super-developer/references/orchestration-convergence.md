@@ -52,12 +52,13 @@ deployment, destructive/external effects, or new dependencies/services/credentia
 protected.
 
 Only an **initial** clean review may present these choices. `review-plan` constructs one compact exact `inputs`
-snapshot: reviewed `artifact_tree`, `base_commit`, and digests `clean_status`, `dependencies`, `routing`, `actions`,
-`budget_authority`, and `amendment_policy`. It verifies the objects/tree relation and computes `initial_digest` as
-the canonical JSON digest of exactly that snapshot. Approval creates one immutable authorization ID, with initial
-effective digest equal to initial digest; `review-plan` records/checkpoints the snapshot, deterministic reviewed
-status, and exact accepted artifact commit. `implement` becomes Delivery Owner only after verification. There is no
-later execution decision.
+snapshot: reviewed `artifact_commit`, `artifact_tree`, `base_commit`, and digests `clean_status`, `dependencies`,
+`routing`, `actions`, `budget_authority`, and `amendment_policy`. The artifact commit is the exact reviewed
+predecessor candidate/checkpoint and has the named tree. `initial_digest` is the canonical JSON digest of exactly
+that immutable snapshot. Approval creates one authorization ID, with initial effective digest equal to initial
+digest; amendments retain initial inputs while their link advances the artifact checkpoint. `review-plan`
+records/checkpoints the snapshot and exact accepted artifact commit. `implement` becomes Delivery Owner only after
+verification. There is no later execution decision.
 
 ## Freshness, Activation, and Amendments
 

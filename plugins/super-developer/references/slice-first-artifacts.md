@@ -50,14 +50,16 @@ receipts are empty. Initial publication with a code ref is invalid. Later code c
 Implementation Authorization.
 
 Authorization is all null before authorization and complete afterward. Its one immutable `inputs` object has exact
-`artifact_tree` and `base_commit`, plus SHA-256 `clean_status`, `dependencies` (dependency/prerequisite snapshot),
-`routing`, `actions`, `budget_authority`, and `amendment_policy`. It contains digests, not copied plan/action text.
-`initial_digest` equals canonical sorted-key compact UTF-8 JSON SHA-256 of exactly `inputs`; initial
-`effective_digest` equals it. The helper verifies exact base/artifact objects, the initial tree/checkpoint relation,
+`artifact_commit`, `artifact_tree`, and `base_commit`, plus SHA-256 `clean_status`, `dependencies`
+(dependency/prerequisite snapshot), `routing`, `actions`, `budget_authority`, and `amendment_policy`. It contains
+digests, not copied plan/action text. `initial_digest` equals canonical sorted-key compact UTF-8 JSON SHA-256 of
+exactly `inputs`; initial `effective_digest` equals it. The helper requires `artifact_commit` to be an exact commit
+in the artifact root with tree `artifact_tree`; at initial authorization it equals the artifact checkpoint and exact
+reviewed predecessor (`last_verified.artifact_sha`/`--previous-commit`). It also verifies the exact base commit,
 initial routing against required `assurance_profile` plus complete `package_modes`, and fixed budget authority.
-`routing` digests exactly those two lifecycle values. `budget_authority` digests each budget's `maxima`, `started_at`,
+`routing` digests those lifecycle values. `budget_authority` digests each budget's `maxima`, `started_at`,
 `deadline_at`, plus control-plane `maximum`; mutable issued/reservation usage is excluded. ID, inputs, and initial
-digest are immutable.
+digest are immutable; amendments retain them while `amendment_link` advances the artifact checkpoint.
 
 `amendment_link` is non-null only in the snapshot whose effective digest changes; it contains
 `parent_effective_digest`, cold-reviewed `amendment_digest`, and exact current `artifact_sha`. The artifact must be
