@@ -2222,6 +2222,7 @@ class SliceproofTests(unittest.TestCase):
                     "generation": 2,
                 },
             })
+            parked["owner"]["disposition"] = "stopped"
             fixture.write_lifecycle(parked)
             accepted_park = fixture.validate_lifecycle(generation_two)
             self.assertEqual(0, accepted_park.returncode, accepted_park.stdout + accepted_park.stderr)
@@ -2239,6 +2240,17 @@ class SliceproofTests(unittest.TestCase):
                 "next_legal_actions": parked["resume"]["next_legal_actions"],
                 "disposition": "active",
                 "resume": None,
+                "owner": {
+                    "token": "owner-2",
+                    "host": "host-b",
+                    "disposition": "active",
+                    "takeover": {
+                        "previous_token": parked["owner"]["token"],
+                        "previous_host": parked["owner"]["host"],
+                        "previous_generation": parked["generation"],
+                        "evidence_digest": SLICEPROOF.canonical_json_digest(parked),
+                    },
+                },
                 "last_verified": {
                     "artifact_ref": "refs/heads/artifacts/fixture",
                     "artifact_sha": generation_three,
@@ -2250,9 +2262,36 @@ class SliceproofTests(unittest.TestCase):
             accepted_resume = fixture.validate_lifecycle(generation_three)
             self.assertEqual(0, accepted_resume.returncode, accepted_resume.stdout + accepted_resume.stderr)
             self.assertEqual("active", json.loads(accepted_resume.stdout)["disposition"])
+            self.assertEqual(("owner-2", "host-b"), (
+                resumed["owner"]["token"], resumed["owner"]["host"],
+            ))
             for field in SLICEPROOF.CONTINUITY_PRESERVED_FIELDS:
                 self.assertEqual(parked.get(field), resumed.get(field), field)
-            generation_four = fixture.commit_lifecycle("resume only recorded stage and actions")
+
+            same_owner = copy.deepcopy(resumed)
+            same_owner["owner"] = {
+                **parked["owner"],
+                "disposition": "active",
+            }
+            self.assertEqual([], SLICEPROOF.compare_lifecycle_states(parked, same_owner))
+
+            malformed_takeovers = {
+                "token": lambda state: state["owner"]["takeover"].__setitem__("previous_token", "impostor"),
+                "host": lambda state: state["owner"]["takeover"].__setitem__("previous_host", "impostor-host"),
+                "generation": lambda state: state["owner"]["takeover"].__setitem__("previous_generation", 2),
+                "evidence": lambda state: state["owner"]["takeover"].__setitem__(
+                    "evidence_digest", fixture.digest_text("unbound parked evidence")
+                ),
+            }
+            for field, mutate in malformed_takeovers.items():
+                with self.subTest(malformed_takeover=field):
+                    invalid = copy.deepcopy(resumed)
+                    mutate(invalid)
+                    self.assertIn(
+                        "exact stopped-owner takeover provenance",
+                        "\n".join(SLICEPROOF.compare_lifecycle_states(parked, invalid)),
+                    )
+            generation_four = fixture.commit_lifecycle("resume by exact stopped-owner takeover")
 
             cancelled = copy.deepcopy(resumed)
             cancelled.update({
@@ -2271,6 +2310,13 @@ class SliceproofTests(unittest.TestCase):
             fixture.write_lifecycle(cancelled)
             accepted_cancel = fixture.validate_lifecycle(generation_four)
             self.assertEqual(0, accepted_cancel.returncode, accepted_cancel.stdout + accepted_cancel.stderr)
+
+            mutated_cancel_owner = copy.deepcopy(cancelled)
+            mutated_cancel_owner["owner"] = copy.deepcopy(parked["owner"])
+            self.assertIn(
+                "cancel must preserve owner exactly",
+                "\n".join(SLICEPROOF.compare_lifecycle_states(resumed, mutated_cancel_owner)),
+            )
 
             malformed = {
                 "resume mutation": (
@@ -2313,6 +2359,7 @@ class SliceproofTests(unittest.TestCase):
                 "next_legal_actions": ["resume", "cancel"],
                 "resume": {"stage": "planning", "next_legal_actions": ["plan-review"]},
             })
+            preauth_park["owner"]["disposition"] = "stopped"
             disposition_errors: list[str] = []
             SLICEPROOF.validate_lifecycle_disposition_state(
                 preauth_park,
@@ -2356,12 +2403,126 @@ class SliceproofTests(unittest.TestCase):
 
             replacement_artifact_ref = "refs/heads/artifacts/fixture-next"
             replacement_code_ref = "refs/heads/checkpoints/fixture-next/baseline/g1"
-            fixture.git_at(fixture.artifact_root, "update-ref", replacement_artifact_ref, generation_two)
-            fixture.git_at(fixture.repo, "update-ref", replacement_code_ref, fixture.report_commit)
-            artifact_tree = fixture.git_at(
-                fixture.artifact_root, "rev-parse", f"{generation_two}^{{tree}}"
+            replacement_artifact_repo = fixture.workspace / "replacement-artifacts"
+            replacement_artifact_remote = fixture.workspace / "replacement-artifacts.git"
+            replacement_code_repo = fixture.workspace / "replacement-code"
+            replacement_code_remote = fixture.workspace / "replacement-code.git"
+
+            def git_result(root: Path, *args: str) -> subprocess.CompletedProcess[str]:
+                return subprocess.run(
+                    ["git", *args], cwd=root, check=False, text=True,
+                    stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                )
+
+            def remote_sha(endpoint: Path, ref: str) -> str | None:
+                result = subprocess.run(
+                    ["git", "ls-remote", "--heads", "--", str(endpoint), ref],
+                    check=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                )
+                line = result.stdout.strip()
+                return line.split()[0] if line else None
+
+            replacement_artifact_repo.mkdir()
+            fixture.git_at(replacement_artifact_repo, "init", "-b", "main")
+            fixture.git_at(replacement_artifact_repo, "config", "user.email", "sliceproof@example.invalid")
+            fixture.git_at(replacement_artifact_repo, "config", "user.name", "Replacement Fixture")
+            fixture.git_at(replacement_artifact_repo, "config", "commit.gpgsign", "false")
+            subprocess.run(
+                ["git", "init", "--bare", str(replacement_artifact_remote)], check=True, text=True,
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE,
             )
 
+            replacement_path = (
+                replacement_artifact_repo / ".tasks" / "fixture-next" / "lifecycle-state.json"
+            )
+            replacement_path.parent.mkdir(parents=True)
+            replacement_initial = fixture.lifecycle_state()
+            replacement_initial["feature"] = "fixture-next"
+            replacement_initial["owner"].update({
+                "token": "replacement-owner", "host": "replacement-host",
+            })
+            replacement_initial["artifact_checkpoint"]["ref"] = replacement_artifact_ref
+            replacement_path.write_text(json.dumps(replacement_initial, indent=2) + "\n", encoding="utf-8")
+            fixture.git_at(replacement_artifact_repo, "add", ".")
+            fixture.git_at(replacement_artifact_repo, "commit", "-m", "replacement generation one")
+            replacement_generation_one = fixture.git_at(replacement_artifact_repo, "rev-parse", "HEAD")
+            replacement_generation_one_tree = fixture.git_at(
+                replacement_artifact_repo, "rev-parse", "HEAD^{tree}"
+            )
+
+            replacement_first_package = copy.deepcopy(replacement_initial)
+            replacement_first_package.update({
+                "generation": 2,
+                "artifact_checkpoint": {
+                    "ref": replacement_artifact_ref,
+                    "sha": replacement_generation_one,
+                    "tree": replacement_generation_one_tree,
+                },
+                "packages": {"WP1": {"state": "pending", "wave": None}},
+                "last_verified": {
+                    "artifact_ref": replacement_artifact_ref,
+                    "artifact_sha": replacement_generation_one,
+                    "state_digest": SLICEPROOF.canonical_json_digest(replacement_initial),
+                    "generation": 1,
+                },
+            })
+            replacement_path.write_text(
+                json.dumps(replacement_first_package, indent=2) + "\n", encoding="utf-8"
+            )
+            fixture.git_at(replacement_artifact_repo, "add", ".")
+            fixture.git_at(replacement_artifact_repo, "commit", "-m", "append replacement WP1")
+            replacement_generation_two = fixture.git_at(replacement_artifact_repo, "rev-parse", "HEAD")
+
+            replacement_pending = copy.deepcopy(replacement_first_package)
+            replacement_pending.update({
+                "generation": 3,
+                "packages": {
+                    "WP1": {"state": "pending", "wave": None},
+                    "WP2": {"state": "pending", "wave": None},
+                },
+                "last_verified": {
+                    "artifact_ref": replacement_artifact_ref,
+                    "artifact_sha": replacement_generation_two,
+                    "state_digest": SLICEPROOF.canonical_json_digest(replacement_first_package),
+                    "generation": 2,
+                },
+            })
+            replacement_path.write_text(json.dumps(replacement_pending, indent=2) + "\n", encoding="utf-8")
+            fixture.git_at(replacement_artifact_repo, "add", ".")
+            fixture.git_at(replacement_artifact_repo, "commit", "-m", "bind mapped pending replacement WP2")
+            replacement_artifact_sha = fixture.git_at(replacement_artifact_repo, "rev-parse", "HEAD")
+            replacement_artifact_tree = fixture.git_at(
+                replacement_artifact_repo, "rev-parse", "HEAD^{tree}"
+            )
+
+            self.assertNotEqual(generation_two, replacement_artifact_sha)
+            self.assertIsNone(remote_sha(replacement_artifact_remote, replacement_artifact_ref))
+            fixture.git_at(
+                replacement_artifact_repo, "push", "--", str(replacement_artifact_remote),
+                f"{replacement_artifact_sha}:{replacement_artifact_ref}",
+            )
+            self.assertEqual(
+                replacement_artifact_sha,
+                remote_sha(replacement_artifact_remote, replacement_artifact_ref),
+            )
+
+            self.assertNotEqual(
+                0, git_result(fixture.artifact_root, "show-ref", "--verify", replacement_artifact_ref).returncode
+            )
+            fixture.git_at(
+                fixture.artifact_root, "fetch", "--no-tags", "--",
+                str(replacement_artifact_remote), replacement_artifact_ref,
+            )
+            self.assertEqual(
+                replacement_artifact_sha,
+                fixture.git_at(fixture.artifact_root, "rev-parse", "FETCH_HEAD"),
+            )
+            fixture.git_at(
+                fixture.artifact_root, "update-ref", replacement_artifact_ref, replacement_artifact_sha
+            )
+            old_artifact_tree = fixture.git_at(
+                fixture.artifact_root, "rev-parse", f"{generation_two}^{{tree}}"
+            )
             superseded = copy.deepcopy(active)
             superseded.update({
                 "generation": 3,
@@ -2372,7 +2533,7 @@ class SliceproofTests(unittest.TestCase):
                 "artifact_checkpoint": {
                     "ref": "refs/heads/artifacts/fixture",
                     "sha": generation_two,
-                    "tree": artifact_tree,
+                    "tree": old_artifact_tree,
                 },
                 "packages": {
                     "WP1": {"state": "invalidated", "wave": None},
@@ -2394,10 +2555,10 @@ class SliceproofTests(unittest.TestCase):
                     "baseline": {
                         "artifact": {
                             "ref": replacement_artifact_ref,
-                            "sha": generation_two,
-                            "tree": artifact_tree,
+                            "sha": replacement_artifact_sha,
+                            "tree": replacement_artifact_tree,
                         },
-                        "code": {"ref": replacement_code_ref, "sha": fixture.report_commit},
+                        "code": None,
                     },
                     "package_map": [{"source": "WP1", "target": "WP2"}],
                 },
@@ -2463,6 +2624,264 @@ class SliceproofTests(unittest.TestCase):
                         verify_git_objects=False,
                     )
                     self.assertIn(expected, "\n".join(transition_errors + state_errors))
+
+            same_old_commit = copy.deepcopy(superseded)
+            same_old_commit["supersession"]["baseline"]["artifact"] = {
+                "ref": replacement_artifact_ref,
+                "sha": generation_two,
+                "tree": old_artifact_tree,
+            }
+            fixture.git_at(fixture.artifact_root, "update-ref", replacement_artifact_ref, generation_two)
+            same_old_errors = SLICEPROOF.validate_lifecycle_state_data(
+                same_old_commit,
+                artifact_root=fixture.artifact_root,
+                code_root=fixture.repo,
+                feature="fixture",
+                verify_files=False,
+                verify_git_objects=True,
+            )
+            self.assertIn("not the old feature commit", "\n".join(same_old_errors))
+            fixture.git_at(
+                fixture.artifact_root, "update-ref", replacement_artifact_ref, replacement_artifact_sha
+            )
+
+            with self.subTest(replacement_code_binding="baseline supplied but State checkpoint null"):
+                replacement_code_repo.mkdir()
+                fixture.git_at(replacement_code_repo, "init", "-b", "main")
+                fixture.git_at(replacement_code_repo, "config", "user.email", "sliceproof@example.invalid")
+                fixture.git_at(replacement_code_repo, "config", "user.name", "Replacement Fixture")
+                fixture.git_at(replacement_code_repo, "config", "commit.gpgsign", "false")
+                subprocess.run(
+                    ["git", "init", "--bare", str(replacement_code_remote)], check=True, text=True,
+                    stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                )
+                (replacement_code_repo / "replacement.txt").write_text(
+                    "optional replacement code baseline\n", encoding="utf-8"
+                )
+                fixture.git_at(replacement_code_repo, "add", ".")
+                fixture.git_at(replacement_code_repo, "commit", "-m", "optional replacement code baseline")
+                replacement_code_sha = fixture.git_at(replacement_code_repo, "rev-parse", "HEAD")
+                self.assertNotEqual(fixture.report_commit, replacement_code_sha)
+                self.assertIsNone(remote_sha(replacement_code_remote, replacement_code_ref))
+                fixture.git_at(
+                    replacement_code_repo, "push", "--", str(replacement_code_remote),
+                    f"{replacement_code_sha}:{replacement_code_ref}",
+                )
+                self.assertEqual(replacement_code_sha, remote_sha(replacement_code_remote, replacement_code_ref))
+                fixture.git_at(
+                    fixture.repo, "fetch", "--no-tags", "--",
+                    str(replacement_code_remote), replacement_code_ref,
+                )
+                self.assertEqual(replacement_code_sha, fixture.git_at(fixture.repo, "rev-parse", "FETCH_HEAD"))
+                fixture.git_at(fixture.repo, "update-ref", replacement_code_ref, replacement_code_sha)
+
+                unbound_code_baseline = copy.deepcopy(superseded)
+                unbound_code_baseline["supersession"]["baseline"]["code"] = {
+                    "ref": replacement_code_ref,
+                    "sha": replacement_code_sha,
+                }
+                unbound_code_errors = SLICEPROOF.validate_lifecycle_state_data(
+                    unbound_code_baseline,
+                    artifact_root=fixture.artifact_root,
+                    code_root=fixture.repo,
+                    feature="fixture",
+                    verify_files=False,
+                    verify_git_objects=True,
+                )
+                self.assertIn(
+                    "replacement code checkpoint must exactly equal baseline code provenance",
+                    "\n".join(unbound_code_errors),
+                )
+                fixture.git_at(fixture.repo, "update-ref", "-d", replacement_code_ref)
+                missing_direct_errors = SLICEPROOF.validate_lifecycle_state_data(
+                    unbound_code_baseline,
+                    artifact_root=fixture.artifact_root,
+                    code_root=fixture.repo,
+                    feature="fixture",
+                    verify_files=False,
+                    verify_git_objects=True,
+                )
+                self.assertIn("exact direct ref is missing", "\n".join(missing_direct_errors))
+                fixture.git_at(fixture.repo, "update-ref", replacement_code_ref, replacement_code_sha)
+
+            with self.subTest(replacement_baseline="nested supersession rejects before object recursion"):
+                nested = copy.deepcopy(superseded)
+                nested.update({
+                    "generation": 4,
+                    "feature": "fixture-next",
+                    "artifact_checkpoint": {
+                        "ref": replacement_artifact_ref,
+                        "sha": replacement_generation_one,
+                        "tree": replacement_generation_one_tree,
+                    },
+                    "code_checkpoint": None,
+                    "supersession": {
+                        "feature": "fixture-next-next",
+                        "baseline": {
+                            "artifact": {
+                                "ref": "refs/heads/artifacts/fixture-next-next",
+                                "sha": "a" * 40,
+                                "tree": "b" * 40,
+                            },
+                            "code": None,
+                        },
+                        "package_map": [{"source": "WP1", "target": "WP2"}],
+                    },
+                    "last_verified": {
+                        "artifact_ref": replacement_artifact_ref,
+                        "artifact_sha": replacement_artifact_sha,
+                        "state_digest": SLICEPROOF.canonical_json_digest(replacement_pending),
+                        "generation": 3,
+                    },
+                })
+                nested["authorization"]["amendment_link"] = None
+                self.assertEqual([], SLICEPROOF.validate_lifecycle_state_data(
+                    nested,
+                    artifact_root=fixture.artifact_root,
+                    code_root=fixture.repo,
+                    feature="fixture-next",
+                    verify_files=False,
+                    verify_git_objects=False,
+                ))
+                replacement_path.write_text(json.dumps(nested, indent=2) + "\n", encoding="utf-8")
+                fixture.git_at(replacement_artifact_repo, "add", ".")
+                fixture.git_at(replacement_artifact_repo, "commit", "-m", "malformed nested supersession")
+                nested_sha = fixture.git_at(replacement_artifact_repo, "rev-parse", "HEAD")
+                nested_tree = fixture.git_at(replacement_artifact_repo, "rev-parse", "HEAD^{tree}")
+                fixture.git_at(
+                    fixture.artifact_root, "fetch", "--no-tags", "--", str(replacement_artifact_repo), "HEAD"
+                )
+                fixture.git_at(fixture.artifact_root, "update-ref", replacement_artifact_ref, nested_sha)
+                nested_outer = copy.deepcopy(superseded)
+                nested_outer["supersession"]["baseline"]["artifact"].update({
+                    "sha": nested_sha, "tree": nested_tree,
+                })
+                nested_errors = "\n".join(SLICEPROOF.validate_lifecycle_state_data(
+                    nested_outer,
+                    artifact_root=fixture.artifact_root,
+                    code_root=fixture.repo,
+                    feature="fixture",
+                    verify_files=False,
+                    verify_git_objects=True,
+                ))
+                self.assertIn("replacement baseline must be active with null supersession", nested_errors)
+                self.assertNotIn("exact direct ref is missing", nested_errors)
+                fixture.git_at(replacement_artifact_repo, "reset", "--hard", replacement_artifact_sha)
+                fixture.git_at(
+                    fixture.artifact_root, "update-ref", replacement_artifact_ref, replacement_artifact_sha
+                )
+
+            tampered_digest = copy.deepcopy(replacement_pending)
+            tampered_digest.update({
+                "generation": 4,
+                "last_verified": {
+                    "artifact_ref": replacement_artifact_ref,
+                    "artifact_sha": replacement_artifact_sha,
+                    "state_digest": fixture.digest_text("tampered replacement predecessor"),
+                    "generation": 3,
+                },
+            })
+            replacement_path.write_text(json.dumps(tampered_digest, indent=2) + "\n", encoding="utf-8")
+            fixture.git_at(replacement_artifact_repo, "add", ".")
+            fixture.git_at(replacement_artifact_repo, "commit", "-m", "tamper predecessor digest")
+            tampered_digest_sha = fixture.git_at(replacement_artifact_repo, "rev-parse", "HEAD")
+            tampered_digest_tree = fixture.git_at(replacement_artifact_repo, "rev-parse", "HEAD^{tree}")
+            fixture.git_at(
+                replacement_artifact_repo, "push", "--", str(replacement_artifact_remote),
+                f"{tampered_digest_sha}:{replacement_artifact_ref}",
+            )
+            fixture.git_at(
+                fixture.artifact_root, "fetch", "--no-tags", "--",
+                str(replacement_artifact_remote), replacement_artifact_ref,
+            )
+            fixture.git_at(fixture.artifact_root, "update-ref", replacement_artifact_ref, tampered_digest_sha)
+            tampered_digest_state = copy.deepcopy(superseded)
+            tampered_digest_state["supersession"]["baseline"]["artifact"].update({
+                "sha": tampered_digest_sha,
+                "tree": tampered_digest_tree,
+            })
+            tampered_digest_errors = SLICEPROOF.validate_lifecycle_state_data(
+                tampered_digest_state,
+                artifact_root=fixture.artifact_root,
+                code_root=fixture.repo,
+                feature="fixture",
+                verify_files=False,
+                verify_git_objects=True,
+            )
+            self.assertIn(
+                "last_verified.state_digest does not match the predecessor blob",
+                "\n".join(tampered_digest_errors),
+            )
+
+            missing_target = copy.deepcopy(tampered_digest)
+            missing_target.update({
+                "generation": 5,
+                "packages": {
+                    "WP1": {"state": "pending", "wave": None},
+                    "WP3": {"state": "pending", "wave": None},
+                },
+                "last_verified": {
+                    "artifact_ref": replacement_artifact_ref,
+                    "artifact_sha": tampered_digest_sha,
+                    "state_digest": SLICEPROOF.canonical_json_digest(tampered_digest),
+                    "generation": 4,
+                },
+            })
+            replacement_path.write_text(json.dumps(missing_target, indent=2) + "\n", encoding="utf-8")
+            fixture.git_at(replacement_artifact_repo, "add", ".")
+            fixture.git_at(replacement_artifact_repo, "commit", "-m", "omit mapped replacement target")
+            missing_target_sha = fixture.git_at(replacement_artifact_repo, "rev-parse", "HEAD")
+            missing_target_tree = fixture.git_at(replacement_artifact_repo, "rev-parse", "HEAD^{tree}")
+            fixture.git_at(
+                replacement_artifact_repo, "push", "--", str(replacement_artifact_remote),
+                f"{missing_target_sha}:{replacement_artifact_ref}",
+            )
+            self.assertEqual(missing_target_sha, remote_sha(replacement_artifact_remote, replacement_artifact_ref))
+            missing_target_state = copy.deepcopy(superseded)
+            missing_target_state["supersession"]["baseline"]["artifact"].update({
+                "sha": missing_target_sha, "tree": missing_target_tree,
+            })
+            unfetched_errors = SLICEPROOF.validate_lifecycle_state_data(
+                missing_target_state,
+                artifact_root=fixture.artifact_root,
+                code_root=fixture.repo,
+                feature="fixture",
+                verify_files=False,
+                verify_git_objects=True,
+            )
+            self.assertIn("must resolve locally to the exact checkpoint sha", "\n".join(unfetched_errors))
+            fixture.git_at(
+                fixture.artifact_root, "fetch", "--no-tags", "--",
+                str(replacement_artifact_remote), replacement_artifact_ref,
+            )
+            self.assertEqual(missing_target_sha, fixture.git_at(fixture.artifact_root, "rev-parse", "FETCH_HEAD"))
+            fixture.git_at(fixture.artifact_root, "update-ref", replacement_artifact_ref, missing_target_sha)
+            missing_target_errors = SLICEPROOF.validate_lifecycle_state_data(
+                missing_target_state,
+                artifact_root=fixture.artifact_root,
+                code_root=fixture.repo,
+                feature="fixture",
+                verify_files=False,
+                verify_git_objects=True,
+            )
+            self.assertIn("missing mapped pending targets ['WP2']", "\n".join(missing_target_errors))
+
+            mutated_owner = copy.deepcopy(superseded)
+            mutated_owner["owner"] = {
+                "token": "replacement-owner",
+                "host": "replacement-host",
+                "disposition": "active",
+                "takeover": {
+                    "previous_token": active["owner"]["token"],
+                    "previous_host": active["owner"]["host"],
+                    "previous_generation": active["generation"],
+                    "evidence_digest": SLICEPROOF.canonical_json_digest(active),
+                },
+            }
+            self.assertIn(
+                "supersede must preserve owner exactly",
+                "\n".join(SLICEPROOF.compare_lifecycle_states(active, mutated_owner)),
+            )
 
             duplicate_target = copy.deepcopy(superseded)
             duplicate_target["supersession"]["package_map"].append({
@@ -2817,7 +3236,7 @@ class SliceproofTests(unittest.TestCase):
                             "previous_token": previous["owner"]["token"],
                             "previous_host": previous["owner"]["host"],
                             "previous_generation": previous["generation"],
-                            "evidence_digest": fixture.digest_text("resume final assurance"),
+                            "evidence_digest": SLICEPROOF.canonical_json_digest(previous),
                         },
                     }
                 return state
@@ -3394,7 +3813,7 @@ class SliceproofTests(unittest.TestCase):
                 "token": "owner-2", "host": "host-b", "disposition": "active",
                 "takeover": {
                     "previous_token": "owner-1", "previous_host": "host-a", "previous_generation": 2,
-                    "evidence_digest": fixture.digest_text("prior owner stopped"),
+                    "evidence_digest": SLICEPROOF.canonical_json_digest(authorized),
                 },
             }
             amended["artifact_checkpoint"] = {

@@ -1,5 +1,4 @@
 # Artifact Store Boundary
-
 ## Boundary
 
 This reference owns planned-feature artifact authority, root separation, portability permission, migration, and
@@ -80,22 +79,23 @@ cannot name `resume`; parked actions are ordered `resume`, `cancel`, then `super
 completed states are terminal with no next action. B3/B4 still own semantic completion and no state infers it.
 
 - **Park:** only a quiescent checkpoint may become `parked`. Record the exact prior stage and ordered legal actions;
-  preserve authorization ID/inputs/effective digest, owner identity/takeover, artifact/code refs, fixed maxima,
-  issued usage/deadlines, role consumption, package IDs/states, wave, clusters/strikes, freeze, receipts, and routing.
-  No active/control reservation or active wave survives, and park never infers package or final completion.
-- **Resume:** legal only after the worktree playbook fetches and verifies the exact committed remotely authoritative
-  parked checkpoint and every named direct code ref. One CAS generation restores only its recorded stage/actions and
-  preserves all authority/mechanical state. Later local commits/files/receipts are untrusted recovery input.
-- **Cancel:** creates a quiescent terminal `cancelled` snapshot with no action while preserving authority, evidence,
-  code/artifact refs, budgets, owners, packages, clusters, freeze/receipts, and mapping. It authorizes no cleanup,
-  deletion, target/protected effect, or completion claim.
-- **Supersede:** creates a quiescent terminal `superseded` snapshot naming a distinct safe replacement feature plus
-  exact direct artifact/code baseline provenance and a durable old→new package map. Old entries/IDs remain; mapped
-  old candidates invalidate and replacement IDs append above the prior maximum as pending. The map is canonical,
-  monotonic, acyclic, one-source-per-target, and references existing old/new IDs. Introduction/change requires a
-  cold-reviewed effective-digest amendment and routing invalidation. It grants the replacement no inherited
-  authority, action, cleanup, package/final completion, or target effect. Ordinary park/resume/cancel cannot alter it.
-
+  preserve owner token, host, and prior takeover while changing only its disposition to `stopped`. Preserve authorization
+  ID/inputs/effective digest, refs, fixed maxima, issued usage/deadlines, role consumption, package IDs/states,
+  wave, clusters/strikes, freeze/receipts, and routing. No reservation/active wave or completion inference survives.
+- **Resume:** after the runbook verifies the exact remote parked snapshot and direct refs, one CAS generation restores
+  only its stage/actions. The same stopped token/host may become active with prior takeover unchanged; a different
+  token/host requires takeover provenance equal to the parked token, host, generation, and canonical state digest.
+  Preserve all other authority/mechanics. Later local commits/files/receipts are untrusted recovery input.
+- **Cancel:** creates quiescent terminal `cancelled` with no action while preserving exact owner, authority, evidence,
+  refs, budgets, packages, clusters, freeze/receipts, and mapping. It authorizes no cleanup, deletion,
+  target/protected effect, owner mutation, or completion claim.
+- **Supersede:** creates terminal `superseded` only after independently authorized replacement artifact and any
+  non-null code endpoints yield fetched exact direct refs/SHAs. Its distinct artifact commit must contain a
+  regular active, non-superseding Lifecycle State whose sole-parent predecessor/digest/transition validate, binding
+  targets pending without old authority/completion. Its code checkpoint must exactly equal nullable code provenance.
+  Persist a canonical monotonic acyclic one-source-per-target map: old IDs remain/invalidate and targets append above
+  the prior maximum as pending. A cold-reviewed amendment/routing invalidation is required. It grants the replacement no inherited
+  authority, action, cleanup, completion, or target effect. Ordinary park/resume/cancel cannot alter it.
 ## Mechanical Validation Boundary
 
 `sliceproof.py validate-lifecycle-state` requires explicit distinct Git worktree roots and a safe `--feature`; it
@@ -104,9 +104,10 @@ predecessor argument and cannot replace existing committed history. Every later 
 and is checked with the exact full `--previous-commit` containing that prior state. The helper reads local Git
 objects, verifies the committed regular blob/linear predecessor and authorization commit/tree relation, and
 requires every bound code/artifact ref to be a direct raw ref at the exact SHA—never symbolic, peeled-only, missing,
-or mismatched—on the exact sidecar/checkpoint lineage; then it emits
-canonical digests. It never fetches, pushes, reserves budget, changes owner/stage/status, dispatches, proves remote
-reachability, or establishes semantic completion.
+or mismatched—on the exact sidecar/checkpoint lineage. Supersession first requires an active/null-supersession
+replacement blob, then verifies its parent, predecessor shape/quiescence/digest, transition/ancestry, targets, and exact
+nullable code binding. The helper emits canonical digests; it never fetches, pushes, reserves budget, changes owner/stage/status,
+dispatches, proves remote reachability, or establishes semantic completion.
 
 A legacy current-root import initializes generation 1 only in the new empty sidecar after provenance/revalidation.
 A pre-existing partial sidecar state is not schema-v1 authority and has no silent upgrader; it requires an explicit
@@ -130,15 +131,15 @@ nested subdirectory roots never form a successful compatibility gate.
   files, commit from that parent, non-force CAS-push only `artifacts/<feature>`, and verify it.
 - Never reference local-only code, reuse/move a checkpoint ref, force push, publish sidecar first, or use broad
   staging. An orphan code checkpoint after a crash is ignored until a verified sidecar references it.
-- Resume follows only the exact remotely verified parked snapshot—the last quiescent CAS snapshot—and its recorded stage/actions. It verifies
-  sidecar parent/CAS, owner, deadline, budgets/usage, packages, clusters/strikes, freeze/receipts, and every named
-  direct code ref/SHA before one lifecycle-only CAS transition. Quarantine later clean local state only under an
-  immutable CAS-created untrusted ref; dirty roots, collisions, ambiguity, capability/ref/endpoint mismatch, or no exact checkpoint stop.
+- Resume follows only the exact remotely verified parked snapshot—the last quiescent CAS snapshot—and its recorded stage/actions. Verify the stopped
+  owner, parent/CAS, deadline, budgets, packages, clusters, freeze/receipts, and every direct code ref/SHA; then use a
+  lifecycle-only CAS to activate either that owner or an exact digest-bound takeover. Quarantine later clean local
+  state under an immutable untrusted ref; dirty roots, collisions, ambiguity, or endpoint/ref mismatch stops.
 
 ## Release Retention Boundary
 
-The remotely verified final `V` on `refs/heads/artifacts/<feature>` and every immutable
-`refs/heads/checkpoints/<feature>/...` ref named by final Lifecycle State, `F`, or `V` are portable authority/evidence.
+After fresh successful `validate-agentic-completion`, the resolved index-only `V` on
+`refs/heads/artifacts/<feature>` and each immutable final Lifecycle/`F`/`V` checkpoint ref are portable evidence.
 Retain those remote refs through and after release by default. Portability, implementation, target, publish, or
 ordinary cleanup authority never implies deletion. Preserve and verify `V` and every required object before local or
 remote evidence cleanup; deleting its only resolvable authority is forbidden. Only a separate explicit post-sync

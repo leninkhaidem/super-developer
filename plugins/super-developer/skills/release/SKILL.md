@@ -28,13 +28,15 @@ is retained by default; an explicitly requested cleanup uses a separate post-syn
 - Retain the remote `artifacts/<feature>` sidecar and every final Lifecycle State, `F`, or `V`-referenced immutable
   `refs/heads/checkpoints/<feature>/...` ref through and after release by default. They are portable authority and
   evidence, not ordinary cleanup candidates.
-- For planned features, the initial contract inventories and freshly verifies exact final `V`, sidecar ref/SHA,
-  and every required code ref/SHA. It records retain/deferred evidence cleanup and grants no evidence deletion.
+- `V` is an index with no verdict and proves nothing. For planned features, inventory its path/digest/bound `F`
+  only after fresh successful read-only `sliceproof.py validate-agentic-completion` on exact fetched roots/state.
+- Bind the artifact endpoint and each code endpoint independently in their owning roots. Assert each configured push
+  endpoint unchanged; sidecar reads use only artifact endpoint and checkpoint reads only their code endpoint.
 - Present a separate **Portable Evidence Retention/Cleanup Decision** only when cleanup was explicitly requested,
   and only after final target/base sync plus exact tag/GitHub release state when publishing. Recommend retain.
 - Without an explicit evidence-cleanup request, `prepare-only` and `publish` retain and report all exact evidence
   refs; do not add a routine retention prompt.
-- Preserve and verify `V` and every ref/object it requires before any local or remote evidence cleanup. Never delete
+- Preserve and resolve index-only `V` plus every ref/object it names before evidence cleanup. Never delete
   the only resolvable portable authority/evidence; remote deletion requires a verified equivalent preservation.
 - Ordinary local feature/worktree and remote feature-branch cleanup remains exact, ancestry/inclusion-checked,
   race-aware, and separate from evidence cleanup.
@@ -50,21 +52,22 @@ is retained by default; an explicitly requested cleanup uses a separate post-syn
 1. Resolve mode, feature branch, repository, base push target, and publish-only version/GitHub target.
 2. Detect base from current `main`/`master`, then `origin/HEAD` if it resolves to either, then the only local
    `main`/`master`; ask if ambiguous.
-3. Load `../../references/artifact-store.md` for a planned feature. Preflight base freshness/divergence, worktree
-   cleanliness, publish version/tag context, feature inclusion, ordinary cleanup candidates, changelog format,
-   publish auth/state, and the exact remotely resolvable final evidence inventory.
-4. Load `references/release-git-safety.md` before relying on remote refs, final evidence, tags/releases, feature
-   merge, publish, resume state, or cleanup.
-5. Stop before approval on stale/diverged/unverifiable state, unrelated changes, ambiguous targets, conflicting
-   version/tag/release state, or missing/mismatched final `V`, sidecar SHA, or required checkpoint ref/SHA for a
-   claimed planned-feature completion.
-6. Load `references/release-contract.md`; present the initial contract with evidence retention and exact independent
-   action boundaries. Ask once unless the current turn already approved that full contract.
+3. For a planned feature, load `../../references/artifact-store.md`; preflight base/publish/cleanup state and resolve
+   exact clean artifact/code roots, full refs/SHAs, and independently authorized artifact/code push endpoints.
+4. Load `references/release-git-safety.md`. In each owning root capture/assert its endpoint, directly query/fetch only
+   its refs, reject cross-endpoint names, materialize exact direct refs/HEADs, then run read-only
+   `sliceproof.py validate-agentic-completion --artifact-root <absolute> --code-root <absolute> --feature <feature>`.
+5. Stop before approval if validation fails or the predecessor graph, final state, endpoint, ref/SHA, root cleanliness,
+   base/version/tag/release state, target, or required object is missing, stale, ambiguous, or mismatched.
+6. Only after that success load `references/release-contract.md`; inventory index-only `V` path/digest/bound `F`,
+   exact split endpoints/refs, retention, and independent actions. Ask once unless already fully approved.
 7. Execute only contracted release actions:
    - merge from a base/target worktree with `--no-ff`, unless exact ancestry proves already merged;
    - load `references/changelog-and-release-notes.md` for changelog or release-note changes;
    - make only listed changelog/docs/version edits and run listed validation checks;
    - commit the exact prep state, using `release: vX.Y.Z` only for publish unless convention differs;
+   - re-fetch from each owning endpoint and repeat completion validation before the first action and whenever any
+     artifact/code root, endpoint, ref, object, or relevant state could have changed; failure blocks all release action;
    - revalidate clean state, final diff, evidence inventory, and publish-only absence/resume identity;
    - push base, fetch, and verify local base, `origin/<base>`, and intended commit match;
    - for `publish`, only after base sync create/push the annotated tag and create the GitHub release, then verify
@@ -78,8 +81,8 @@ is retained by default; an explicitly requested cleanup uses a separate post-syn
 
 ## Stop if
 
-- Any mode, repository, base, feature, endpoint, cleanup candidate, version, publish target, or required evidence
-  identity is ambiguous, stale, missing, changed, or unverifiable.
+- Any mode, repository, base, feature, owning endpoint, cleanup candidate, version, publish target, required object,
+  predecessor graph, or fresh completion-validation identity is ambiguous, stale, missing, changed, or unverifiable.
 - An action is outside its exact approval boundary; an initial contract is treated as evidence-deletion authority;
   or a cleanup decision is offered before final sync/publish verification or without an explicit cleanup request.
 - Cleanup names an in-use/dirty or unverified item, sweeps a namespace, force-rewrites, lacks expected SHAs or
@@ -90,5 +93,5 @@ is retained by default; an explicitly requested cleanup uses a separate post-syn
 ## Output
 
 Return mode/version action, base and commit, post-push sync, tag/release/URL state, ordinary cleanup, and completed
-side effects. For planned features, report exact final `V`, sidecar ref/SHA, required code refs/SHAs, retention or
-separately approved cleanup result, blockers, and remaining manual follow-up.
+side effects. For planned features, report validation result plus index-only `V` path/digest/bound `F`, artifact
+endpoint/ref/SHA, each code endpoint/ref/SHA, retention or separately approved cleanup, blockers, and follow-up.

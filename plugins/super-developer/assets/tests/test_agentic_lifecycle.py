@@ -645,7 +645,10 @@ class AgenticLifecycleOracleTests(unittest.TestCase):
                 "disposition": "parked",
                 "next_legal_actions": ["resume", "cancel", "supersede"],
                 "resume": {"stage": "package-wave-quiescent", "next_legal_actions": ["dispatch"]},
-                "owner": {"token": "owner-a", "host": "host-a", "takeover": None},
+                "owner": {
+                    "token": "owner-a", "host": "host-a",
+                    "disposition": "stopped", "takeover": None,
+                },
                 "authorization": {"id": "auth-1", "effective_digest": "sha256:" + "1" * 64},
                 "code_checkpoint": {"ref": checkpoint_ref, "sha": code_sha},
                 "budgets": {
@@ -718,6 +721,40 @@ class AgenticLifecycleOracleTests(unittest.TestCase):
             run_git(cold_code, "update-ref", checkpoint_ref, code_sha)
             self.assertEqual(code_sha, run_git(cold_code, "show-ref", "--verify", "--hash", checkpoint_ref).stdout.strip())
             self.assertEqual(code_sha, remote_ref(code_remote, authoritative["code_checkpoint"]["ref"]))
+
+            resumed = json.loads(json.dumps(authoritative))
+            resumed.update({
+                "generation": 8,
+                "stage": authoritative["resume"]["stage"],
+                "disposition": "active",
+                "next_legal_actions": authoritative["resume"]["next_legal_actions"],
+                "resume": None,
+                "owner": {
+                    "token": "owner-b",
+                    "host": "host-b",
+                    "disposition": "active",
+                    "takeover": {
+                        "previous_token": authoritative["owner"]["token"],
+                        "previous_host": authoritative["owner"]["host"],
+                        "previous_generation": authoritative["generation"],
+                        "evidence_digest": canonical_digest(authoritative),
+                    },
+                },
+            })
+            write_lifecycle_state(cold_sidecar, resumed)
+            resumed_sha = commit_all(cold_sidecar, "cold cross-host resume by exact takeover")
+            self.assertEqual(parked_sha, remote_ref(sidecar_remote, artifact_ref))
+            run_git(cold_sidecar, "push", "--", captured_endpoint, f"{resumed_sha}:{artifact_ref}")
+            self.assertEqual(resumed_sha, remote_ref(sidecar_remote, artifact_ref))
+            self.assertEqual(
+                ("owner-a", "host-a", 7, canonical_digest(authoritative)),
+                (
+                    resumed["owner"]["takeover"]["previous_token"],
+                    resumed["owner"]["takeover"]["previous_host"],
+                    resumed["owner"]["takeover"]["previous_generation"],
+                    resumed["owner"]["takeover"]["evidence_digest"],
+                ),
+            )
 
 
 if __name__ == "__main__":

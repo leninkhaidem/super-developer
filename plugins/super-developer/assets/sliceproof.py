@@ -1029,6 +1029,8 @@ def validate_lifecycle_disposition_state(
     elif disposition == "parked":
         if stage != "parked" or state["quiescent"] is not True:
             errors.append(f"{label}: parked disposition requires parked stage and quiescent true")
+        if state["owner"]["disposition"] != "stopped":
+            errors.append(f"{label}.owner.disposition: parked state requires a stopped logical owner")
         expected_actions = list(PARKED_NEXT_ACTIONS)
         if state["authorization"]["id"] is None:
             expected_actions.remove("supersede")
@@ -1155,6 +1157,220 @@ def validate_lifecycle_disposition_state(
 
     if any(not visit(package_id) for package_id in adjacency):
         errors.append(f"{label}.supersession.package_map: replacement mapping must be acyclic")
+
+    if verify_git_objects and baseline_artifact["ref"] == expected_artifact_ref:
+        validate_replacement_baseline_lifecycle(
+            state,
+            artifact_root=artifact_root,
+            code_root=code_root,
+            replacement_feature=replacement_feature,
+            baseline_artifact=baseline_artifact,
+            mapped_targets=set(targets),
+            errors=errors,
+        )
+
+
+def load_regular_committed_json_blob(
+    root: Path,
+    commit: str,
+    path: str,
+    label: str,
+    errors: list[str],
+) -> dict[str, Any] | None:
+    try:
+        tree_line = git_output(root, ["ls-tree", commit, "--", path], label).strip()
+    except SliceproofError as exc:
+        errors.extend(exc.errors)
+        return None
+    fields = tree_line.split(None, 3)
+    if len(fields) != 4 or fields[0] not in {"100644", "100755"} or fields[1] != "blob" or fields[3] != path:
+        errors.append(f"{label}: expected a regular committed JSON blob at {path!r}")
+        return None
+    try:
+        value = load_strict_json_text(
+            git_output(root, ["show", f"{commit}:{path}"], label),
+            label,
+        )
+    except SliceproofError as exc:
+        errors.extend(exc.errors)
+        return None
+    if not isinstance(value, dict):
+        errors.append(f"{label}: root must be an object")
+        return None
+    return value
+
+
+def validate_replacement_baseline_lifecycle(
+    superseded_state: dict[str, Any],
+    *,
+    artifact_root: Path,
+    code_root: Path,
+    replacement_feature: str,
+    baseline_artifact: dict[str, str],
+    mapped_targets: set[str],
+    errors: list[str],
+) -> None:
+    label = "lifecycle-state.json.supersession.baseline.artifact"
+    old_commits = {superseded_state["artifact_checkpoint"]["sha"]}
+    verified = superseded_state.get("last_verified")
+    if isinstance(verified, dict):
+        old_commits.add(verified.get("artifact_sha"))
+    if baseline_artifact["sha"] in old_commits:
+        errors.append(
+            f"{label}.sha: replacement baseline must be a distinct replacement commit, not the old feature commit"
+        )
+        return
+
+    path = f".tasks/{replacement_feature}/lifecycle-state.json"
+    replacement = load_regular_committed_json_blob(
+        artifact_root,
+        baseline_artifact["sha"],
+        path,
+        f"{label}: replacement Lifecycle State",
+        errors,
+    )
+    if replacement is None:
+        return
+    replacement_errors = validate_lifecycle_state_data(
+        replacement,
+        artifact_root=artifact_root,
+        code_root=code_root,
+        feature=replacement_feature,
+        verify_files=False,
+        verify_git_objects=False,
+    )
+    errors.extend(f"{label}: replacement snapshot: {error}" for error in replacement_errors)
+    if replacement_errors:
+        return
+    if replacement["disposition"] != "active" or replacement["supersession"] is not None:
+        errors.append(f"{label}: replacement baseline must be active with null supersession")
+        return
+    object_errors = validate_lifecycle_state_data(
+        replacement,
+        artifact_root=artifact_root,
+        code_root=code_root,
+        feature=replacement_feature,
+        verify_files=False,
+        verify_git_objects=True,
+    )
+    errors.extend(f"{label}: replacement object snapshot: {error}" for error in object_errors)
+    if object_errors:
+        return
+    replacement_generation = replacement["generation"]
+    if replacement_generation == 1 and mapped_targets:
+        errors.append(f"{label}: mapped targets require a committed post-generation-1 replacement transition")
+    if replacement_generation == 1:
+        return
+    replacement_code = replacement["code_checkpoint"]
+    baseline_code = superseded_state["supersession"]["baseline"]["code"]
+    if replacement_code != baseline_code:
+        errors.append(f"{label}: replacement code checkpoint must exactly equal baseline code provenance")
+
+    transition_label = f"{label}: replacement transition"
+    verified = replacement["last_verified"]
+    try:
+        parents = git_output(
+            artifact_root,
+            ["rev-list", "--parents", "-n", "1", baseline_artifact["sha"]],
+            transition_label,
+        ).split()
+    except SliceproofError as exc:
+        errors.extend(exc.errors)
+        return
+    if len(parents) != 2 or parents[1] != verified["artifact_sha"]:
+        errors.append(
+            f"{transition_label}: baseline commit must have last_verified.artifact_sha as its sole parent"
+        )
+        return
+
+    predecessor = load_regular_committed_json_blob(
+        artifact_root,
+        verified["artifact_sha"],
+        path,
+        f"{transition_label}: predecessor Lifecycle State",
+        errors,
+    )
+    if predecessor is None:
+        return
+    predecessor_errors = validate_lifecycle_state_data(
+        predecessor,
+        artifact_root=artifact_root,
+        code_root=code_root,
+        feature=replacement_feature,
+        verify_files=False,
+        verify_git_objects=False,
+    )
+    errors.extend(f"{transition_label}: predecessor snapshot: {error}" for error in predecessor_errors)
+    if predecessor_errors:
+        return
+    predecessor_artifact = predecessor["artifact_checkpoint"]
+    if predecessor_artifact["sha"] is not None:
+        predecessor_tree = git_commit_tree(
+            artifact_root,
+            predecessor_artifact["sha"],
+            f"{transition_label}: predecessor artifact_checkpoint.sha",
+            errors,
+        )
+        if predecessor_tree is not None and predecessor_tree != predecessor_artifact["tree"]:
+            errors.append(f"{transition_label}: predecessor artifact checkpoint tree does not match its commit")
+    if predecessor["quiescent"] is not True:
+        errors.append(f"{transition_label}: predecessor must be quiescent")
+    if verified["state_digest"] != canonical_json_digest(predecessor):
+        errors.append(f"{transition_label}: last_verified.state_digest does not match the predecessor blob")
+    errors.extend(f"{transition_label}: {error}" for error in compare_lifecycle_states(predecessor, replacement))
+    errors.extend(
+        f"{transition_label}: {error}"
+        for error in validate_artifact_checkpoint_ancestry(artifact_root, predecessor, replacement)
+    )
+    errors.extend(
+        f"{transition_label}: {error}"
+        for error in validate_artifact_checkpoint_lineage(
+            artifact_root,
+            predecessor["artifact_checkpoint"]["sha"],
+            verified["artifact_sha"],
+            "predecessor artifact checkpoint",
+        )
+    )
+    errors.extend(
+        f"{transition_label}: {error}"
+        for error in validate_artifact_checkpoint_lineage(
+            artifact_root,
+            replacement["artifact_checkpoint"]["sha"],
+            baseline_artifact["sha"],
+            "replacement artifact checkpoint",
+        )
+    )
+
+    replacement_packages = replacement["packages"]
+    missing_targets = sorted(mapped_targets - set(replacement_packages), key=package_id_order)
+    non_pending_targets = sorted(
+        target for target in mapped_targets & set(replacement_packages)
+        if replacement_packages[target] != {"state": "pending", "wave": None}
+    )
+    if missing_targets:
+        errors.append(f"{label}: replacement Lifecycle State is missing mapped pending targets {missing_targets}")
+    if non_pending_targets:
+        errors.append(
+            f"{label}: replacement Lifecycle State must bind mapped targets pending with no wave; got {non_pending_targets}"
+        )
+
+    old_authorization = superseded_state["authorization"]
+    replacement_authorization = replacement["authorization"]
+    inherited = [
+        field for field in ("id", "initial_digest", "effective_digest")
+        if old_authorization[field] is not None
+        and replacement_authorization[field] == old_authorization[field]
+    ]
+    if inherited:
+        errors.append(f"{label}: replacement Lifecycle State inherits old authorization fields {inherited}")
+    if replacement["freeze"] is not None or replacement["receipts"]:
+        errors.append(f"{label}: replacement baseline cannot inherit freeze or final-assurance receipts")
+    completed_packages = sorted(
+        package_id for package_id, package in replacement_packages.items()
+        if package["state"] in {"verified", "done"}
+    )
+    if completed_packages:
+        errors.append(f"{label}: replacement baseline cannot inherit package completion {completed_packages}")
 
 
 def validate_lifecycle_state_data(
@@ -1972,7 +2188,6 @@ def validate_predecessor_topology(
 
 
 CONTINUITY_PRESERVED_FIELDS = (
-    "owner",
     "artifact_checkpoint",
     "code_checkpoint",
     "authorization",
@@ -2042,6 +2257,16 @@ def compare_lifecycle_dispositions(
         }
         if current["resume"] != expected_resume:
             errors.append("lifecycle transition: park must record the exact prior resume stage and ordered actions")
+        old_owner, parked_owner = previous["owner"], current["owner"]
+        if (
+            parked_owner["token"] != old_owner["token"]
+            or parked_owner["host"] != old_owner["host"]
+            or parked_owner["takeover"] != old_owner["takeover"]
+            or parked_owner["disposition"] != "stopped"
+        ):
+            errors.append(
+                "lifecycle transition: park must preserve owner token/host/takeover and stop the logical owner"
+            )
         errors.extend(compare_preserved_lifecycle_fields(
             previous, current, CONTINUITY_PRESERVED_FIELDS, "park"
         ))
@@ -2054,6 +2279,16 @@ def compare_lifecycle_dispositions(
             errors.append("lifecycle transition: resume must restore only the parked stage and ordered actions")
         if current["quiescent"] is not True:
             errors.append("lifecycle transition: resume starts from the verified quiescent checkpoint")
+        old_owner, resumed_owner = previous["owner"], current["owner"]
+        if old_owner["disposition"] != "stopped" or resumed_owner["disposition"] != "active":
+            errors.append("lifecycle transition: resume requires a stopped owner to become active")
+        if resumed_owner["token"] == old_owner["token"] and (
+            resumed_owner["host"] != old_owner["host"]
+            or resumed_owner["takeover"] != old_owner["takeover"]
+        ):
+            errors.append(
+                "lifecycle transition: same-owner resume must preserve exact host and prior takeover provenance"
+            )
         errors.extend(compare_preserved_lifecycle_fields(
             previous, current, CONTINUITY_PRESERVED_FIELDS, "resume"
         ))
@@ -2063,7 +2298,7 @@ def compare_lifecycle_dispositions(
         if current["resume"] != previous["resume"]:
             errors.append("lifecycle transition: cancel cannot mutate the parked resume point")
         errors.extend(compare_preserved_lifecycle_fields(
-            previous, current, CONTINUITY_PRESERVED_FIELDS, "cancel"
+            previous, current, ("owner", *CONTINUITY_PRESERVED_FIELDS), "cancel"
         ))
         return errors
     if new == "superseded" and old in {"active", "parked"}:
@@ -2214,9 +2449,13 @@ def compare_lifecycle_states(previous: dict[str, Any], current: dict[str, Any]) 
             and takeover.get("previous_token") == previous_owner["token"]
             and takeover.get("previous_host") == previous_owner["host"]
             and takeover.get("previous_generation") == previous["generation"]
+            and takeover.get("evidence_digest") == canonical_json_digest(previous)
         )
         if not valid_takeover:
-            errors.append("lifecycle transition: owner/host change requires exact stopped-owner takeover provenance")
+            errors.append(
+                "lifecycle transition: owner/host change requires exact stopped-owner takeover provenance "
+                "bound to the predecessor evidence digest"
+            )
 
     if previous["artifact_checkpoint"]["ref"] != current["artifact_checkpoint"]["ref"]:
         errors.append("lifecycle transition: artifact checkpoint ref is immutable")

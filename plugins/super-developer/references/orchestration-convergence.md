@@ -90,14 +90,14 @@ preserved evidence, invalidation, and any old→new package map; no child restar
 
 ## Owner Continuity Dispositions
 Only the Delivery Owner may checkpoint `park`, `resume`, `cancel`, or `supersede` through the compact Lifecycle
-State. Park first quiesces and records the exact return stage/actions while preserving authorization, owner,
-maxima/issued/deadline, role consumption, packages, clusters/strikes, freeze/receipts, and refs; it never means done.
-Resume requires the worktree runbook's exact remote parked checkpoint/ref verification, restores only that recorded
-stage/actions by generation/CAS, and cannot adopt later local state, reset mechanics, take over by elapsed time, or
-run active-active. Completed is terminal and cannot resume; Cancel is terminal/no-action and preserves state without cleanup or protected authority.
-Supersede is terminal/no-action: a cold-reviewed effective-digest amendment names distinct replacement baseline
-provenance and an acyclic monotonic old→new map; old IDs remain/invalidate, new IDs append pending, and replacement
-authority/completion never inherits. Ordinary park/resume/cancel cannot change the map.
+State. Park quiesces, records return stage/actions, preserves owner token/host/prior takeover but marks it stopped,
+and preserves authorization, budgets/deadline/role use, packages, clusters, freeze/receipts, refs, and routing.
+After exact remote verification, resume CAS-activates that owner or a different token/host only with takeover bound
+to the parked token, host, generation, and canonical digest; it cannot use lease time, later local state, reset, or
+active-active. Completed cannot resume; Cancel is terminal/no-action and preserves exact owner/state without cleanup.
+Supersede is terminal/no-action: first fetch exact authorized replacement artifact and any non-null code refs. The
+active/null-supersession replacement State transition/digest must validate, bind mapped IDs pending, and equal nullable
+code provenance without old authority/completion. Persist baselines/map; ordinary transitions cannot mutate them.
 
 ## Final Assurance Continuation
 Package verifiers and package-bound specialists return pre-freeze `B[i]` for one named package/contract lens; they

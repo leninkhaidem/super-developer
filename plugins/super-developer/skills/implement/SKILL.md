@@ -57,7 +57,8 @@ package proof/verification, integration, bounded repairs, risk-adaptive final as
    integration/package code worktrees without switching the root. For resume, require its runbook to fetch/verify
    the exact remote sidecar and every named direct code ref; prove parked quiescence, owner, CAS parent, deadline,
    budgets/usage, packages, clusters/strikes, freeze/receipts, and clean roots; quarantine later clean local state
-   only under immutable CAS-created untrusted refs. Stop on collision rather than use local-only, degraded, ambiguous, active-active, or lease-time fallback.
+   only under immutable CAS-created untrusted refs. Require the parked stopped owner; activate the same token/host or
+   use exact token/host/generation/state-digest takeover. Stop on local-only, impersonation, active-active, lease, or collision fallback.
    Creation and later checkpoint commands must match the covered refs/paths and non-force policy exactly.
 5. Load `references/package-dispatch.md`; run conditional readiness, retire shared uncertainty before fanout, and
    choose the largest safe useful ready batch. If a plan-owned empirical blocker appears, pause affected dispatch,
@@ -81,11 +82,11 @@ package proof/verification, integration, bounded repairs, risk-adaptive final as
 9. Merge accepted package branches through the integration worktree, checkpoint exact finalized code before
    path-specific sidecar state at authorized package boundaries, retain worktrees until cleanup gates pass, and
    continue downstream packages within budgets. To park, first reach a clean quiescent remote checkpoint, record
-   its exact resume stage/ordered actions, and preserve every authority/mechanical field. Resume restores only that
-   point by one generation/CAS. Cancel writes a quiescent terminal no-action snapshot and returns without cleanup,
-   deletion, target/protected effect, or completion inference. Supersede only through a cold-reviewed effective-
-   digest amendment: preserve old packages, append pending WP IDs, invalidate mapped old candidates, and persist
-   safe replacement baseline provenance plus the monotonic acyclic map; never continue the replacement or inherit authority.
+   its exact resume stage/actions, stop but preserve owner token/host/takeover, and preserve every other field. Resume
+   restores that point by one CAS, reactivating the owner or exact digest-bound takeover. Cancel preserves exact owner
+   and state without cleanup/protected/completion effects. Before supersede CAS, use `worktree` to fetch the authorized
+   replacement artifact plus any non-null code ref. Require an active/non-superseding State transition/digest, pending targets,
+   and exact nullable code binding; persist those baselines and map without inherited authority/completion.
 10. At final readiness, finish checks/evidence, validate package completion and `sliceproof.py validate-final`, then
     freeze exact integrated-code/artifact/runtime-evidence inputs as `F`. Dispatch only the profile equation from
     `../../references/assurance-routing.md`: low one combined cold verifier returning `C` with explicit code-risk

@@ -245,7 +245,10 @@ class SkillPromptSurfaceTests(unittest.TestCase):
             initial.index('git push -- "$ARTIFACT_PUSH_ENDPOINT"'),
         )
         self.assertNotIn("git push origin", initial)
+        self.assertIn('REMOTE_OUTPUT="$(git ls-remote --heads -- "$ARTIFACT_PUSH_ENDPOINT"', initial)
         self.assertLess(initial.index("git add --"), initial.index("git commit"))
+        for token in ["FINALIZED_PATHS", "EXPECTED", "STAGED", 'git diff --cached --quiet && exit 1']:
+            self.assertIn(token, initial)
         self.assertIn("refs/heads/artifacts/<feature>", initial)
         self.assertNotRegex(initial, r"git add (?:-A|--all|\.)")
         self.assertNotRegex(initial, r"git push[^\n]*--force")
@@ -263,8 +266,15 @@ class SkillPromptSurfaceTests(unittest.TestCase):
             checkpoint.index('git push -- "$CODE_PUSH_ENDPOINT" "$CODE_REF:$CODE_REF"'),
         )
         self.assertIn("refs/heads/checkpoints/<feature>/<slot>/g<generation>", checkpoint)
-        self.assertIn("FINALIZED_PATHS", checkpoint)
+        self.assertIn('cd "$ARTIFACT_ROOT"; test -z "$(git status --porcelain)"', checkpoint)
+        self.assertLess(
+            checkpoint.index('test "$(git ls-remote --heads -- "$ARTIFACT_PUSH_ENDPOINT"'),
+            checkpoint.index("validate-lifecycle-state"),
+        )
+        for token in ["FINALIZED_PATHS", "EXPECTED", "STAGED"]:
+            self.assertIn(token, checkpoint)
         self.assertNotRegex(checkpoint, r"git add (?:-A|--all|\.)")
+        self.assertNotRegex(checkpoint, r"git push[^\n]*--force")
         self.assertIn("last quiescent CAS snapshot", store)
         for path, text in texts.items():
             self.assertLessEqual(len(text.splitlines()), 150, path)
@@ -281,17 +291,22 @@ class SkillPromptSurfaceTests(unittest.TestCase):
         cas = "git update-ref --no-deref --stdin"
         symbolic = 'git symbolic-ref -q "$CODE_REF"'
         exact = 'test "$(git show-ref --verify --hash "$CODE_REF")" = "$CODE_SHA"'
-        for section in (checkpoint, resume):
-            self.assertNotIn("ZERO=", section)
-            self.assertIn("printf 'create %s %s", section)
-            self.assertLess(section.index(symbolic), section.index(cas))
-            self.assertLess(section.index(cas), section.rindex(exact))
+        self.assertNotIn("ZERO=", checkpoint)
+        self.assertIn("printf 'create %s %s", checkpoint)
+        self.assertGreaterEqual(checkpoint.count(symbolic), 2)
+        self.assertLess(checkpoint.index(symbolic), checkpoint.index(cas))
+        self.assertLess(checkpoint.index(cas), checkpoint.rindex(symbolic))
+        self.assertLess(checkpoint.rindex(symbolic), checkpoint.rindex(exact))
         self.assertLess(
             checkpoint.index(cas),
             checkpoint.index('git push -- "$CODE_PUSH_ENDPOINT" "$CODE_REF:$CODE_REF"'),
         )
-        self.assertLess(resume.index("git fetch --no-tags"), resume.index(cas))
-        self.assertIn("symbolic checkpoint ref", resume)
+        self.assertLess(
+            resume.index('git fetch --no-tags -- "$ARTIFACT_PUSH_ENDPOINT"'),
+            resume.index("For every named direct code ref"),
+        )
+        self.assertIn("call\n`verify_remote_direct_ref`", resume)
+        self.assertIn("symbolic direct ref", workflow)
         self.assertLessEqual(len(workflow.splitlines()), 150)
 
         def extract_cas(section: str) -> str:
@@ -304,9 +319,13 @@ class SkillPromptSurfaceTests(unittest.TestCase):
             return "\n".join(lines[start:end + 1])
 
         checkpoint_cas = extract_cas(checkpoint)
-        self.assertEqual(checkpoint_cas, extract_cas(resume))
-
         workflow_lines = workflow.splitlines()
+        direct_start = workflow_lines.index("verify_remote_direct_ref() {")
+        direct_end = workflow_lines.index("}", direct_start)
+        direct_helper = "\n".join(workflow_lines[direct_start:direct_end + 1])
+        self.assertLess(direct_helper.index('git symbolic-ref -q "$ref"'), direct_helper.index(cas))
+        self.assertLess(direct_helper.index(cas), direct_helper.rindex('git show-ref --verify --hash "$ref"'))
+
         recovery_start = workflow_lines.index("create_untrusted_recovery_ref() {")
         recovery_end = workflow_lines.index("}", recovery_start)
         recovery_helper = "\n".join(workflow_lines[recovery_start:recovery_end + 1])
@@ -317,11 +336,13 @@ class SkillPromptSurfaceTests(unittest.TestCase):
         self.assertIn("git update-ref --no-deref --stdin", recovery_helper)
         quarantine_lines = [
             line for line in resume.splitlines()
-            if 'create_untrusted_recovery_ref "$RECOVERY_REF"' in line
+            if "create_untrusted_recovery_ref refs/recovery-untrusted/" in line
         ]
-        self.assertEqual(2, len(quarantine_lines))
-        for line in quarantine_lines:
-            self.assertLess(line.index("create_untrusted_recovery_ref"), line.index("git reset --hard"))
+        self.assertEqual(1, len(quarantine_lines))
+        self.assertLess(
+            quarantine_lines[0].index("create_untrusted_recovery_ref"),
+            quarantine_lines[0].index("git reset --hard"),
+        )
 
         with tempfile.TemporaryDirectory() as tmp:
             repo = Path(tmp)
@@ -445,10 +466,10 @@ class SkillPromptSurfaceTests(unittest.TestCase):
         ]:
             self.assertIn(token, combined)
 
-        resume = workflow[workflow.index("## Safe Resume and Stops"):]
+        resume = compact_text(workflow[workflow.index("## Safe Resume and Stops"):])
         self.assertLess(
             resume.index('git fetch --no-tags -- "$ARTIFACT_PUSH_ENDPOINT"'),
-            resume.index('git fetch --no-tags -- "$CODE_PUSH_ENDPOINT"'),
+            resume.index("For every named direct code ref"),
         )
         for token in [
             "committed remotely authoritative `parked`/quiescent snapshot",
@@ -456,16 +477,34 @@ class SkillPromptSurfaceTests(unittest.TestCase):
             "every named direct code ref", "exact owner/no concurrent claimant",
             "fixed maxima/issued usage and role consumption", "recorded resume point",
             "Re-read the remote sidecar parent", "restore only recorded stage/actions",
+            "same token/host", "parked token, host, generation, and canonical state digest",
             "No active-active, lease-time takeover, local-only fallback",
             "unsupported Git, remote, atomic non-force ref, or direct-ref capability",
             "no exact parked checkpoint",
         ]:
             self.assertIn(token, resume)
+
+        supersede = compact_text(workflow[workflow.index("## Supersede Baseline Before Terminal CAS"):])
+        self.assertLess(
+            supersede.index("REPLACEMENT_ARTIFACT_PUSH_ENDPOINT"),
+            supersede.index("REPLACEMENT_CODE_PUSH_ENDPOINT"),
+        )
+        for token in [
+            "replacement artifact and any non-null code endpoint independently",
+            "verify_remote_direct_ref", "endpoint values remain in authorization/covered actions",
+            'if [ -n "${REPLACEMENT_CODE_REF:-}" ]',
+            "absent/local-only/unfetched/symbolic/mismatched refs", "same-old commits",
+            "active/null-supersession replacement State", "parent/digest/transition/ancestry",
+            "mapped targets", "exact null-or-object code equality",
+            "Only then re-check old endpoint/parent", "commit/non-force push/verify terminal `superseded`",
+        ]:
+            self.assertIn(token, supersede)
         for text in (store, convergence, implement, workflow, artifacts):
             self.assertLessEqual(len(text.splitlines()), 150)
 
     def test_c2_release_retention_uses_a_separate_optional_cleanup_contract(self) -> None:
         contract = read_repo("plugins/super-developer/skills/release/references/release-contract.md")
+        safety = read_repo("plugins/super-developer/skills/release/references/release-git-safety.md")
         skill = read_repo("plugins/super-developer/skills/release/SKILL.md")
         initial_at = contract.index("## Initial Release Contract Template")
         decision_at = contract.index("## Portable Evidence Retention/Cleanup Decision")
@@ -474,11 +513,32 @@ class SkillPromptSurfaceTests(unittest.TestCase):
 
         initial = compact_text(contract[initial_at:decision_at])
         evidence = initial[initial.index("Planned-feature final evidence:"):initial.index("Merge and commit:")]
-        self.assertIn("Final V: <ID/path, digest, verdict, and bound F", evidence)
-        self.assertIn("refs/heads/artifacts/<feature> at exact SHA", evidence)
-        self.assertIn("refs/heads/checkpoints/<feature>/... at exact SHA", evidence)
+        self.assertIn("Index-only V: <path, digest, bound F; no verdict", evidence)
+        self.assertIn("unchanged artifact endpoint + sidecar full ref/SHA", evidence)
+        self.assertIn("each code root + unchanged code endpoint", evidence)
+        self.assertIn("sidecar queried/fetched only at artifact endpoint", evidence)
+        self.assertIn("Completion validation: <exact read-only command, successful result", evidence)
         self.assertIn("Disposition: retain through and after release", evidence)
         self.assertIn("Portable evidence deletion: none", initial)
+
+        combined_release = compact_text("\n".join([skill, contract, safety]))
+        self.assertIn("`V` is an index with no verdict and proves nothing", combined_release)
+        self.assertNotIn("digest, verdict, and bound F", combined_release)
+        self.assertIn("validate-agentic-completion", combined_release)
+        self.assertIn("missing predecessor graph blocks", combined_release)
+        safety_compact = compact_text(safety)
+        self.assertIn("Never query a sidecar at a code endpoint", safety_compact)
+        self.assertIn("checkpoint at the artifact endpoint", safety_compact)
+        self.assertIn("fresh validator establishes the exact PASS receipt graph", safety_compact)
+        self.assertIn("index-only `V` alone proves nothing", safety_compact)
+        self.assertLess(safety.index('git fetch --no-tags -- "$ARTIFACT_ENDPOINT"'), safety.index('git fetch --no-tags -- "$CODE_ENDPOINT"'))
+        self.assertLess(safety.index('git fetch --no-tags -- "$CODE_ENDPOINT"'), safety.index("validate-agentic-completion"))
+        for token in [
+            "assert_endpoint_unchanged", "ARTIFACT_ENDPOINT", "CODE_ENDPOINT",
+            "before contract approval", "again before the first release action",
+            "whenever roots, status, endpoint config, refs, objects, or relevant state could change",
+        ]:
+            self.assertIn(token, safety)
 
         decision = compact_text(contract[decision_at:ordinary_at])
         eligibility = decision[:decision.index("```md")]
@@ -709,7 +769,7 @@ class SkillPromptSurfaceTests(unittest.TestCase):
         ]
         self.assertTrue(remote_commands)
         for line in remote_commands:
-            self.assertRegex(line, r'"\$(?:ARTIFACT|CODE)_PUSH_ENDPOINT"', line)
+            self.assertRegex(line, r'"\$(?:(?:ARTIFACT|CODE)_PUSH_ENDPOINT|endpoint)"', line)
             self.assertNotRegex(line, r"\bgit (?:ls-remote|push|fetch)[^\n]*\borigin\b", line)
         self.assertIn("zero/multiple/changed endpoint", workflow)
         self.assertIn("Remote reachability belongs here", workflow)

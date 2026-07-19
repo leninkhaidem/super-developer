@@ -9,8 +9,10 @@ Owns initial release approval and the optional later portable-evidence decision.
 - List each edit, check, merge, commit, push, sync check, publish action, feature deletion, and local cleanup as an
   exact boundary. Merge never implies push, tag, GitHub release, deletion, or cleanup.
 - Keep checks to commands; list changelog/docs/version edits as planned changes.
-- For a planned feature, freshly verify and list final `V`, its sidecar ref/SHA, and every checkpoint ref/SHA
-  required by final Lifecycle State, `F`, or `V`; record portable evidence as retained/deferred.
+- Before planned-feature approval, require fresh successful read-only `validate-agentic-completion` on exact fetched
+  artifact/code state. `V` is index-only: list only path/digest/bound `F`, never request a verdict or treat it as proof.
+- Bind artifact and code endpoints separately per owning root/ref; unchanged endpoint checks and reads cannot cross.
+  Record every final Lifecycle/`F`/`V` checkpoint ref/SHA and retain/defer portable evidence cleanup.
 - Initial approval never authorizes portable-evidence deletion. It cannot inherit that authority from Sidecar
   Portability Authorization, Implementation auto-resolve, merge/push, tag/release, or ordinary cleanup.
 - `prepare-only` integrates with `--no-ff`, updates `Unreleased`, and pushes base, but never bumps versions,
@@ -25,7 +27,7 @@ Owns initial release approval and the optional later portable-evidence decision.
 ## Release Contract Approval Required
 
 Mode: publish | prepare-only
-Repository/endpoint: <repository and exact origin push endpoint>
+Repository/target endpoint: <repository and exact target push endpoint>
 Base branch: <base>
 Feature branch: <feature branch or none>
 
@@ -42,12 +44,13 @@ Release checks:
 - <validation command or documented check>
 
 Planned-feature final evidence:
-- Status: <planned feature with exact completed evidence | standalone/no planned-feature claim>
-- Final V: <ID/path, digest, verdict, and bound F; or not applicable>
-- Remote sidecar: <refs/heads/artifacts/<feature> at exact SHA; or not applicable>
-- Required immutable code refs/SHAs: <every final Lifecycle/F/V-referenced
-  refs/heads/checkpoints/<feature>/... at exact SHA; or not applicable>
-- Fresh verification: <exact push endpoint, observed sidecar/ref SHAs, V/object resolution result>
+- Status: <fresh validator success | standalone/no planned-feature claim>
+- Completion validation: <exact read-only command, successful result, exact fetched artifact/code state>
+- Index-only V: <path, digest, bound F; no verdict; or not applicable>
+- Artifact authority: <artifact root + unchanged artifact endpoint + sidecar full ref/SHA>
+- Code authority: <each code root + unchanged code endpoint + required full checkpoint ref/SHA>
+- Endpoint isolation: <sidecar queried/fetched only at artifact endpoint; each checkpoint only at owning code endpoint>
+- Freshness: <when endpoints/refs were rechecked and validation repeated; any state-change trigger>
 - Disposition: retain through and after release; portable-evidence cleanup deferred and not authorized here
 
 Merge and commit:
@@ -94,8 +97,9 @@ Verified final release state:
 - Publish state: <tag/ref/peeled SHA and GitHub release identity, or prepare-only/not applicable>
 
 Protected evidence inventory:
-- Final V: <ID/path/digest, sidecar ref/SHA, bound F>
-- Required objects: <every Lifecycle/F/V-required ref/SHA and resolution result>
+- Index-only V: <path/digest, bound F, artifact endpoint + sidecar ref/SHA; no verdict>
+- Required objects: <each owning code endpoint + Lifecycle/F/V-required ref/SHA and resolution result>
+- Fresh completion validation: <successful repeated read-only command over preserved exact roots/state>
 
 Choose one:
 - retain (recommended): keep every remote sidecar/checkpoint ref through and after release
@@ -105,8 +109,8 @@ Delete choice, if selected:
 - Equivalent durable preservation: <exact retained immutable location(s) proving V and every required object resolve>
 - Remote deletions: <every exact push endpoint + full ref + freshly observed expected SHA; no wildcard/namespace>
 - Local evidence actions: <every exact clean worktree path and direct ref/SHA to remove, or none>
-- Pre-delete checks: <fresh endpoint/ref/SHA and preservation verification immediately before each action>
-- Post-delete checks: <independent absence checks plus re-verification of V and every preserved required object>
+- Pre-delete checks: <fresh owning endpoint/ref/SHA, endpoint-unchanged assertion, preservation, validation>
+- Post-delete checks: <endpoint-isolated absence checks plus repeated completion validation of preserved state>
 - Excluded: target action, tag/release change, remote feature deletion, force rewrite, namespace sweep,
   implicit deletion
 - Stop: any changed/missing/mismatched state or failed action retains remaining safety refs and is reported

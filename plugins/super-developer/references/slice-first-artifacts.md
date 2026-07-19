@@ -82,8 +82,8 @@ same-effective-digest package successors are explicit:
 | `invalidated` | `invalidated`, `in_progress`, `blocked` |
 Thus blocked resolution and explicit repair progression remain legal; resetting a progressed state to `pending`
 additionally requires a reviewed effective-digest change. IDs never disappear or renumber: replacements append above the prior maximum and an acyclic old→new map under a reviewed effective-digest amendment; mapped old candidates invalidate and targets start pending. `last_verified` later binds the exact
-quiescent prior commit/state digest/generation. Authorized state requires `assurance_profile`, package-complete
-`package_modes` (`boundary|final`), and canonical ordered assignments; ordinary park/resume/cancel preserves routing and mapping exactly.
+quiescent prior commit/state digest/generation. Authorized routing stays package-complete and canonical. Park stops
+but preserves token/host/takeover; resume activates it or an exact digest-bound takeover; cancel preserves owner/map.
 Each serious cluster stores canonical identity text `accepted_invariant`, `root_mechanism`, `architectural_surface`;
 `id` is the canonical JSON digest of exactly those fields. It separately stores append-only `observed_signatures`,
 all observed classes, any selected observed class at the strongest precedence rank, its route, strike 1–2,
