@@ -125,6 +125,9 @@ def valid_lifecycle_state() -> dict:
         "stage": "planning",
         "quiescent": True,
         "next_legal_actions": ["plan-review"],
+        "disposition": "active",
+        "resume": None,
+        "supersession": None,
         "owner": {"token": "owner-a", "host": "host-a", "disposition": "active", "takeover": None},
         "artifact_checkpoint": {"ref": "refs/heads/artifacts/fixture", "sha": None, "tree": None},
         "code_checkpoint": None,
@@ -601,7 +604,7 @@ class AgenticLifecycleOracleTests(unittest.TestCase):
             self.assertNotEqual("local-unverified", last_verified["stage"])
             self.assertEqual(remote_before, remote_ref(remote, "refs/heads/main"))
 
-    def test_cold_resume_drill(self) -> None:
+    def test_cold_resume_rejects_later_local_state_and_uses_exact_remote_park(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             code_remote = root / "code.git"
@@ -620,41 +623,92 @@ class AgenticLifecycleOracleTests(unittest.TestCase):
             (code_owner / "product.txt").write_text("quiescent candidate\n", encoding="utf-8")
             code_sha = commit_all(code_owner, "quiescent candidate")
             checkpoint_ref = "refs/heads/checkpoints/fixture/wave-1/g7"
-            run_git(code_owner, "push", "origin", f"HEAD:{checkpoint_ref}")
+            code_endpoint = resolve_push_endpoint(code_owner, str(code_remote))
+            run_git(code_owner, "push", "--", code_endpoint, f"HEAD:{checkpoint_ref}")
             self.assertEqual(code_sha, remote_ref(code_remote, checkpoint_ref))
 
-            state = {
+            parked = {
                 "schema_version": 1,
                 "generation": 7,
                 "feature": "fixture",
                 "quiescent": True,
-                "stage": "package-wave-quiescent",
-                "next_legal_actions": ["resume-owner-cas"],
-                "owner": {"token": "owner-a", "disposition": "stopped"},
+                "stage": "parked",
+                "disposition": "parked",
+                "next_legal_actions": ["resume", "cancel", "supersede"],
+                "resume": {"stage": "package-wave-quiescent", "next_legal_actions": ["dispatch"]},
+                "owner": {"token": "owner-a", "host": "host-a", "takeover": None},
+                "authorization": {"id": "auth-1", "effective_digest": "sha256:" + "1" * 64},
                 "code_checkpoint": {"ref": checkpoint_ref, "sha": code_sha},
                 "budgets": {
+                    "max_calls": 8,
                     "issued_calls": 4,
                     "issued_repair_waves": 1,
                     "deadline_at": "2026-07-18T16:00:00Z",
                 },
-                "clusters": [{"id": "REQ-1|mechanism|surface", "strikes": 1}],
+                "packages": {"WP1": {"state": "stabilized"}},
+                "clusters": [{"id": "cluster-1", "strikes": 1}],
+                "receipts": [],
             }
-            write_lifecycle_state(sidecar_owner, state)
-            commit_all(sidecar_owner, "publish quiescent state")
-            run_git(sidecar_owner, "push", "-u", "origin", "main")
+            write_lifecycle_state(sidecar_owner, parked)
+            parked_sha = commit_all(sidecar_owner, "publish remotely authoritative park")
+            artifact_ref = "refs/heads/artifacts/fixture"
+            sidecar_endpoint = resolve_push_endpoint(sidecar_owner, str(sidecar_remote))
+            run_git(sidecar_owner, "push", "--", sidecar_endpoint, f"{parked_sha}:{artifact_ref}")
 
             run_git(root, "clone", str(sidecar_remote), str(cold_sidecar))
-            resumed = json.loads((cold_sidecar / ".tasks" / "fixture" / "lifecycle-state.json").read_text())
-            self.assertEqual(state, resumed)
-            self.assertTrue(resumed["quiescent"])
-            self.assertEqual(1, resumed["clusters"][0]["strikes"])
-            self.assertEqual(4, resumed["budgets"]["issued_calls"])
-            self.assertNotEqual("completed", resumed["stage"])
+            run_git(cold_sidecar, "config", "user.email", "cold@example.invalid")
+            run_git(cold_sidecar, "config", "user.name", "Cold Resume")
+            run_git(cold_sidecar, "checkout", "-b", "local-copy", "origin/artifacts/fixture")
+            later_local = json.loads(json.dumps(parked))
+            later_local.update({
+                "generation": 8,
+                "stage": "completed",
+                "disposition": "completed",
+                "next_legal_actions": [],
+            })
+            write_lifecycle_state(cold_sidecar, later_local)
+            local_sha = commit_all(cold_sidecar, "untrusted later local completion")
+            self.assertNotEqual(local_sha, parked_sha)
+            self.assertEqual("", run_git(cold_sidecar, "status", "--porcelain").stdout)
 
-            run_git(root, "clone", str(code_remote), str(cold_code))
-            run_git(cold_code, "fetch", "origin", checkpoint_ref)
+            captured_endpoint = resolve_push_endpoint(cold_sidecar, str(sidecar_remote))
+            advertised = remote_ref(sidecar_remote, artifact_ref)
+            self.assertEqual(parked_sha, advertised)
+            run_git(cold_sidecar, "fetch", "--no-tags", "--", captured_endpoint, artifact_ref)
+            fetched = run_git(cold_sidecar, "rev-parse", "FETCH_HEAD").stdout.strip()
+            self.assertEqual(advertised, fetched)
+            self.assertNotEqual(local_sha, fetched, "later local commit cannot become resume authority")
+            quarantine_ref = "refs/recovery-untrusted/fixture/local-later"
+            created = subprocess.run(
+                ["git", "update-ref", "--no-deref", "--stdin"],
+                cwd=cold_sidecar,
+                input=f"create {quarantine_ref} {local_sha}\n",
+                check=False,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+            self.assertEqual(0, created.returncode, created.stdout + created.stderr)
+            run_git(cold_sidecar, "reset", "--hard", fetched)
+
+            authoritative = json.loads(
+                (cold_sidecar / ".tasks" / "fixture" / "lifecycle-state.json").read_text()
+            )
+            self.assertEqual(parked, authoritative)
+            self.assertEqual("parked", authoritative["disposition"])
+            self.assertTrue(authoritative["quiescent"])
+            self.assertEqual(1, authoritative["clusters"][0]["strikes"])
+            self.assertEqual(4, authoritative["budgets"]["issued_calls"])
+            self.assertEqual(local_sha, run_git(cold_sidecar, "rev-parse", quarantine_ref).stdout.strip())
+
+            init_repo(cold_code)
+            run_git(cold_code, "remote", "add", "origin", str(code_remote))
+            captured_code_endpoint = resolve_push_endpoint(cold_code, str(code_remote))
+            run_git(cold_code, "fetch", "--no-tags", "--", captured_code_endpoint, checkpoint_ref)
             self.assertEqual(code_sha, run_git(cold_code, "rev-parse", "FETCH_HEAD").stdout.strip())
-            self.assertEqual(code_sha, remote_ref(code_remote, resumed["code_checkpoint"]["ref"]))
+            run_git(cold_code, "update-ref", checkpoint_ref, code_sha)
+            self.assertEqual(code_sha, run_git(cold_code, "show-ref", "--verify", "--hash", checkpoint_ref).stdout.strip())
+            self.assertEqual(code_sha, remote_ref(code_remote, authoritative["code_checkpoint"]["ref"]))
 
 
 if __name__ == "__main__":

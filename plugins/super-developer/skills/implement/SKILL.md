@@ -20,6 +20,9 @@ package proof/verification, integration, bounded repairs, risk-adaptive final as
 - Only the Delivery Owner dispatches, advances, classifies findings, selects reassessment/repair, preserves logical
   owner and cluster state, freezes, transitions, checkpoints, and notifies. Every verifier, reviewer, auditor, and
   specialist is read-only and return-only; no child dispatches another role or repairs; no child restarts implementation.
+- Treat `park`, `resume`, `cancel`, and `supersede` as owner-only Lifecycle State transitions, never new authority.
+  Resume is accepted only from the exact fetched/verified remotely authoritative parked checkpoint; a generic
+  quiescent/local checkpoint, elapsed lease, later local commit/file/receipt, or second active owner cannot resume.
 - The main agent orchestrates; package agents implement/repair production, tests, docs, and evidence.
 - Carry artifact-root/code-root separately and require each to equal its own exact Git top-level. Package Markdown
   defines assignments before authorization; authorized Lifecycle State/digest controls their canonical list, and
@@ -51,8 +54,11 @@ package proof/verification, integration, bounded repairs, risk-adaptive final as
    checkpoint success. If no covered remedy succeeds, return one precise prerequisite escalation; never introduce
    a new dependency, service, credential, permission, architecture choice, or external effect.
 4. After the guard and activation pass, use `worktree` for authorized setup/resume of the artifact sidecar plus
-   integration/package code worktrees without switching the root. Creation and later checkpoint commands must
-   match the covered refs/paths and non-force policy exactly.
+   integration/package code worktrees without switching the root. For resume, require its runbook to fetch/verify
+   the exact remote sidecar and every named direct code ref; prove parked quiescence, owner, CAS parent, deadline,
+   budgets/usage, packages, clusters/strikes, freeze/receipts, and clean roots; quarantine later clean local state
+   only under immutable CAS-created untrusted refs. Stop on collision rather than use local-only, degraded, ambiguous, active-active, or lease-time fallback.
+   Creation and later checkpoint commands must match the covered refs/paths and non-force policy exactly.
 5. Load `references/package-dispatch.md`; run conditional readiness, retire shared uncertainty before fanout, and
    choose the largest safe useful ready batch. If a plan-owned empirical blocker appears, pause affected dispatch,
    invoke `spike-to-plan`, then route evidence through `implementation-plan` and `review-plan` in nested-amendment
@@ -74,7 +80,12 @@ package proof/verification, integration, bounded repairs, risk-adaptive final as
    rerun only affected gates. Routine repair, tests, reruns, and evidence refresh never re-prompt.
 9. Merge accepted package branches through the integration worktree, checkpoint exact finalized code before
    path-specific sidecar state at authorized package boundaries, retain worktrees until cleanup gates pass, and
-   continue downstream packages within budgets.
+   continue downstream packages within budgets. To park, first reach a clean quiescent remote checkpoint, record
+   its exact resume stage/ordered actions, and preserve every authority/mechanical field. Resume restores only that
+   point by one generation/CAS. Cancel writes a quiescent terminal no-action snapshot and returns without cleanup,
+   deletion, target/protected effect, or completion inference. Supersede only through a cold-reviewed effective-
+   digest amendment: preserve old packages, append pending WP IDs, invalidate mapped old candidates, and persist
+   safe replacement baseline provenance plus the monotonic acyclic map; never continue the replacement or inherit authority.
 10. At final readiness, finish checks/evidence, validate package completion and `sliceproof.py validate-final`, then
     freeze exact integrated-code/artifact/runtime-evidence inputs as `F`. Dispatch only the profile equation from
     `../../references/assurance-routing.md`: low one combined cold verifier returning `C` with explicit code-risk
@@ -87,7 +98,7 @@ package proof/verification, integration, bounded repairs, risk-adaptive final as
 11. Batch returned findings and auto-resolve eligible repairs within authorization. Any frozen-input change creates
     a new `F`; after a review repair obtain `R` PASS/closure on that new freeze before dispatching any specialist or
     audit. Use semantic freshness for rerun scope. Once all profile-required outputs PASS for one `F`, create and
-    CAS-checkpoint `V` through existing sidecar state, then notify completion. Run only listed feature-push actions;
+    CAS-checkpoint `V` through existing sidecar state, then notify completion; completed is terminal and cannot resume. Run only listed feature-push actions;
     target/release/protected actions remain separate.
 
 ## Load if needed
@@ -115,10 +126,12 @@ package proof/verification, integration, bounded repairs, risk-adaptive final as
   or any target merge/push, force, tag, release, deployment, delete, or branch cleanup.
 - A required package gate/evidence/report is stale or failed; class/cluster is unknown; architecture has no credible
   envelope-preserving alternative; circuit is open; or concurrent owners claim one surface.
+- Resume lacks one exact remote parked checkpoint/direct ref, clean root, unchanged single endpoint, supported Git/
+  remote/ref capability, unambiguous owner/CAS/deadline/budget/cluster state, or exact recorded stage/actions.
 
 ## Output
 
 Return authorization/effective digest and exact checkpoint, caller/return stage, freshness/activation/readiness,
 package and logical-owner state, finding batches/clusters/strikes, budgets, proof/report freshness, bounded command
 outcomes, non-gating stage timing when available, verification/freeze results, commits/branches/checkpoints/pushes,
-blockers, exclusions, and next legal action.
+blockers, exclusions, lifecycle disposition/resume point/replacement map when any, and next legal action.

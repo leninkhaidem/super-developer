@@ -18,28 +18,24 @@ or a later config change. Assertions re-read config only to compare; they never 
 captured value as one quoted argv value—never the remote name—for `ls-remote`, `push`, `fetch`, and post-check:
 ```bash
 capture_push_endpoint() {
-  local name="$1" authorized="$2" output
-  local -a endpoints
-  output="$(git remote get-url --push --all "$name")" || return 1
-  mapfile -t endpoints <<<"$output"
-  test "${#endpoints[@]}" -eq 1 && test -n "${endpoints[0]}"
-  test "${endpoints[0]}" = "$authorized"
+  local name="$1" authorized="$2" output; local -a endpoints
+  output="$(git remote get-url --push --all "$name")" || return 1; mapfile -t endpoints <<<"$output"
+  test "${#endpoints[@]}" -eq 1 && test -n "${endpoints[0]}" && test "${endpoints[0]}" = "$authorized"
   printf '%s' "${endpoints[0]}"
 }
-assert_push_endpoint_unchanged() {
-  test "$(capture_push_endpoint "$1" "$2")" = "$2"
+assert_push_endpoint_unchanged() { test "$(capture_push_endpoint "$1" "$2")" = "$2"; }
+create_untrusted_recovery_ref() {
+  local ref="$1" sha="$2"
+  if git symbolic-ref -q "$ref" >/dev/null; then echo "symbolic recovery-ref collision" >&2; return 1; else test "$?" -eq 1; fi
+  if git show-ref --verify --quiet "$ref"; then echo "existing recovery-ref collision" >&2; return 1; else test "$?" -eq 1; fi
+  printf 'create %s %s\n' "$ref" "$sha" | git update-ref --no-deref --stdin
+  if git symbolic-ref -q "$ref" >/dev/null; then return 1; else test "$?" -eq 1; fi; test "$(git show-ref --verify --hash "$ref")" = "$sha"
 }
 ```
 A fetch URL is not evidence about a distinct `pushurl`. Do not let endpoint aliases, rewrites, or fallback remote
 selection cross the authorization boundary.
 ## Layout and Local Sidecar Setup
-```text
-.worktrees/<feature>/
-  artifacts/   # artifacts/<feature>; artifact root
-  wp-WP1/      # wp/<feature>/WP1; package code root
-  merge/       # feature/<feature>; integration code root
-```
-Create before artifact writes; destination absent/empty, Git >=2.42, ref absent:
+Under `.worktrees/<feature>/`, use `artifacts/` for the sidecar, `wp-<WP-ID>/` for package code, and `merge/` for integration. Create before artifact writes; destination absent/empty, Git >=2.42, ref absent:
 ```bash
 set -euo pipefail
 cd "$PROJECT_ROOT"
@@ -128,21 +124,25 @@ approved status mutation. No force, mutable ref reuse, sidecar-first publication
 staging, or cross-endpoint verification.
 
 ## Safe Resume and Stops
-
-Fetch/verify the exact authorized artifact ref/SHA, derive its sole parent after generation 1, and validate Lifecycle
-State. Remote reachability belongs here, not to the helper. For each code checkpoint, fetch its authorized endpoint/ref, verify `FETCH_HEAD`, then materialize
-or verify the local direct ref by expected-old CAS before trusting it:
-
+Resume is legal only from one committed remotely authoritative `parked`/quiescent snapshot. Remote reachability belongs here, not to the helper. Capture one unchanged authorized endpoint per root; fetch/verify the exact sidecar ref first, never a local branch. Roots must be clean; quarantine a later clean local commit under an immutable CAS-created local-only untrusted ref, then reset to `FETCH_HEAD` without adopting any file/receipt:
 ```bash
 set -euo pipefail
-cd "$CODE_ROOT"; CODE_PUSH_ENDPOINT="$(capture_push_endpoint origin "$AUTHORIZED_CODE_PUSH_ENDPOINT")"
+cd "$ARTIFACT_ROOT"; test -z "$(git status --porcelain)"; ARTIFACT_PUSH_ENDPOINT="$(capture_push_endpoint origin "$AUTHORIZED_ARTIFACT_PUSH_ENDPOINT")"; ARTIFACT_REF=refs/heads/artifacts/<feature>
+assert_push_endpoint_unchanged origin "$ARTIFACT_PUSH_ENDPOINT"; mapfile -t REMOTE < <(git ls-remote --heads -- "$ARTIFACT_PUSH_ENDPOINT" "$ARTIFACT_REF"); test "${#REMOTE[@]}" -eq 1; REMOTE_SHA="${REMOTE[0]%%[[:space:]]*}"
+assert_push_endpoint_unchanged origin "$ARTIFACT_PUSH_ENDPOINT"; git fetch --no-tags -- "$ARTIFACT_PUSH_ENDPOINT" "$ARTIFACT_REF"; test "$(git rev-parse FETCH_HEAD)" = "$REMOTE_SHA"
+LOCAL_SHA="$(git rev-parse HEAD)"; if [ "$LOCAL_SHA" != "$REMOTE_SHA" ]; then RECOVERY_REF=refs/recovery-untrusted/<feature>/g<local-generation>; create_untrusted_recovery_ref "$RECOVERY_REF" "$LOCAL_SHA"; git reset --hard "$REMOTE_SHA"; fi
+```
+Read stage/actions and all refs only from that committed blob. Prove `parked`, quiescence, exact owner/no concurrent claimant, CAS parent/generation, deadline, fixed maxima/issued usage and role consumption, no reservation/active wave, package IDs/states, clusters/strikes, freeze/receipts, routing/map, and recorded resume point. For every named direct code ref (including replacement baseline provenance when present), repeat this exact fetch/direct-ref block before trust:
+```bash
+set -euo pipefail
+cd "$CODE_ROOT"; test -z "$(git status --porcelain)"; CODE_PUSH_ENDPOINT="$(capture_push_endpoint origin "$AUTHORIZED_CODE_PUSH_ENDPOINT")"
 assert_push_endpoint_unchanged origin "$CODE_PUSH_ENDPOINT"; git fetch --no-tags -- "$CODE_PUSH_ENDPOINT" "$CODE_REF"; test "$(git rev-parse FETCH_HEAD)" = "$CODE_SHA"
 if git symbolic-ref -q "$CODE_REF" >/dev/null; then echo "symbolic checkpoint ref" >&2; exit 1; else test "$?" -eq 1; fi
 if git show-ref --verify --quiet "$CODE_REF"; then test "$(git show-ref --verify --hash "$CODE_REF")" = "$CODE_SHA";
 else test "$?" -eq 1; printf 'create %s %s\n' "$CODE_REF" "$CODE_SHA" | git update-ref --no-deref --stdin; fi
 if git symbolic-ref -q "$CODE_REF" >/dev/null; then exit 1; else test "$?" -eq 1; fi; test "$(git show-ref --verify --hash "$CODE_REF")" = "$CODE_SHA"
+LOCAL_CODE_SHA="$(git rev-parse HEAD)"; if [ "$LOCAL_CODE_SHA" != "$CODE_SHA" ]; then RECOVERY_REF=refs/recovery-untrusted/<feature>/code-g<local-generation>; create_untrusted_recovery_ref "$RECOVERY_REF" "$LOCAL_CODE_SHA"; git reset --hard "$CODE_SHA"; fi
 git cat-file -e "$CODE_SHA^{commit}"; git merge-base --is-ancestor "$BASE_SHA" "$CODE_SHA"
 ```
-
-Ignore orphan/later local state. Stop on zero/multiple/changed endpoint, unsafe/equal root, current-root authority, migration,
-ref/path, cleanliness, permission/parent/CAS/staging/SHA/ancestry mismatch, or target/force/release/cleanup effects.
+Materialize code only at verified SHAs, then run `validate-lifecycle-state` against the parked blob's exact `last_verified` parent. Re-read the remote sidecar parent before the lifecycle-only resume CAS; restore only recorded stage/actions while preserving owner/authority/budgets/packages/clusters/refs/receipts/map. No active-active, lease-time takeover, local-only fallback, or degraded best-effort coordinator.
+Stop on zero/multiple/changed endpoint or missing remote ref; unsupported Git, remote, atomic non-force ref, or direct-ref capability; dirty/unsafe/equal roots; current-root/migration ambiguity; symbolic/missing/mismatched ref, SHA, ancestry, owner, deadline, budget, cluster, parent or CAS; no exact parked checkpoint; or target/force/release/delete/cleanup effects.

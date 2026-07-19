@@ -305,6 +305,24 @@ class SkillPromptSurfaceTests(unittest.TestCase):
 
         checkpoint_cas = extract_cas(checkpoint)
         self.assertEqual(checkpoint_cas, extract_cas(resume))
+
+        workflow_lines = workflow.splitlines()
+        recovery_start = workflow_lines.index("create_untrusted_recovery_ref() {")
+        recovery_end = workflow_lines.index("}", recovery_start)
+        recovery_helper = "\n".join(workflow_lines[recovery_start:recovery_end + 1])
+        self.assertNotIn("ZERO", recovery_helper)
+        self.assertIn("symbolic recovery-ref collision", recovery_helper)
+        self.assertIn("existing recovery-ref collision", recovery_helper)
+        self.assertIn("printf 'create %s %s", recovery_helper)
+        self.assertIn("git update-ref --no-deref --stdin", recovery_helper)
+        quarantine_lines = [
+            line for line in resume.splitlines()
+            if 'create_untrusted_recovery_ref "$RECOVERY_REF"' in line
+        ]
+        self.assertEqual(2, len(quarantine_lines))
+        for line in quarantine_lines:
+            self.assertLess(line.index("create_untrusted_recovery_ref"), line.index("git reset --hard"))
+
         with tempfile.TemporaryDirectory() as tmp:
             repo = Path(tmp)
             subprocess.run(["git", "init", "-b", "main"], cwd=repo, check=True, capture_output=True)
@@ -349,6 +367,102 @@ class SkillPromptSurfaceTests(unittest.TestCase):
                 "refs/heads/main",
                 subprocess.check_output(["git", "symbolic-ref", ref], cwd=repo, text=True).strip(),
             )
+
+            def run_recovery(recovery_ref: str, recovery_sha: str = first) -> subprocess.CompletedProcess[str]:
+                return subprocess.run(
+                    [
+                        "bash", "-c",
+                        f"set -euo pipefail\n{recovery_helper}\n"
+                        'create_untrusted_recovery_ref "$RECOVERY_REF" "$RECOVERY_SHA"',
+                    ],
+                    cwd=repo,
+                    env={
+                        "PATH": "/usr/bin:/bin",
+                        "RECOVERY_REF": recovery_ref,
+                        "RECOVERY_SHA": recovery_sha,
+                    },
+                    text=True,
+                    capture_output=True,
+                )
+
+            recovery_ref = "refs/recovery-untrusted/fixture/artifact-g2"
+            self.assertEqual(0, run_recovery(recovery_ref).returncode)
+            self.assertEqual(
+                first,
+                subprocess.check_output(
+                    ["git", "show-ref", "--verify", "--hash", recovery_ref],
+                    cwd=repo,
+                    text=True,
+                ).strip(),
+            )
+            self.assertNotEqual(0, run_recovery(recovery_ref, second).returncode)
+            self.assertEqual(
+                first,
+                subprocess.check_output(
+                    ["git", "show-ref", "--verify", "--hash", recovery_ref],
+                    cwd=repo,
+                    text=True,
+                ).strip(),
+            )
+            symbolic_recovery = "refs/recovery-untrusted/fixture/code-symbolic"
+            subprocess.run(
+                ["git", "symbolic-ref", symbolic_recovery, "refs/heads/main"],
+                cwd=repo,
+                check=True,
+            )
+            self.assertNotEqual(0, run_recovery(symbolic_recovery).returncode)
+            self.assertEqual(
+                "refs/heads/main",
+                subprocess.check_output(
+                    ["git", "symbolic-ref", symbolic_recovery], cwd=repo, text=True
+                ).strip(),
+            )
+
+    def test_c1_portable_lifecycle_dispositions_and_remote_resume_fail_closed(self) -> None:
+        store = read_repo("plugins/super-developer/references/artifact-store.md")
+        convergence = read_repo("plugins/super-developer/references/orchestration-convergence.md")
+        implement = read_repo("plugins/super-developer/skills/implement/SKILL.md")
+        workflow = read_repo(
+            "plugins/super-developer/skills/worktree/references/feature-package-workflow.md"
+        )
+        artifacts = read_repo("plugins/super-developer/references/slice-first-artifacts.md")
+        combined = compact_text("\n".join([store, convergence, implement, workflow, artifacts]))
+
+        for token in [
+            "active|parked|cancelled|superseded|completed",
+            "completed states are terminal with no next action",
+            "completed is terminal and cannot resume",
+            "exact prior stage and ordered legal actions",
+            "authorization ID/inputs/effective digest",
+            "fixed maxima", "issued usage/deadlines", "role consumption",
+            "package IDs/states", "clusters/strikes", "freeze/receipts",
+            "Later local commits/files/receipts are untrusted recovery input",
+            "quiescent terminal `cancelled`", "authorizes no cleanup",
+            "monotonic", "acyclic", "one-source-per-target",
+            "append above the prior maximum as pending",
+            "grants the replacement no inherited authority",
+            "Ordinary park/resume/cancel cannot alter it",
+        ]:
+            self.assertIn(token, combined)
+
+        resume = workflow[workflow.index("## Safe Resume and Stops"):]
+        self.assertLess(
+            resume.index('git fetch --no-tags -- "$ARTIFACT_PUSH_ENDPOINT"'),
+            resume.index('git fetch --no-tags -- "$CODE_PUSH_ENDPOINT"'),
+        )
+        for token in [
+            "committed remotely authoritative `parked`/quiescent snapshot",
+            "never a local branch", "refs/recovery-untrusted/",
+            "every named direct code ref", "exact owner/no concurrent claimant",
+            "fixed maxima/issued usage and role consumption", "recorded resume point",
+            "Re-read the remote sidecar parent", "restore only recorded stage/actions",
+            "No active-active, lease-time takeover, local-only fallback",
+            "unsupported Git, remote, atomic non-force ref, or direct-ref capability",
+            "no exact parked checkpoint",
+        ]:
+            self.assertIn(token, resume)
+        for text in (store, convergence, implement, workflow, artifacts):
+            self.assertLessEqual(len(text.splitlines()), 150)
 
     def test_compact_lifecycle_and_direct_ref_contracts_are_explicit(self) -> None:
         artifacts = compact_text(read_repo("plugins/super-developer/references/slice-first-artifacts.md"))

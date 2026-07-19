@@ -384,6 +384,7 @@ class SliceproofFixture:
         specialist_lenses: list[str] | None = None,
         clusters: list[dict] | None = None,
         completion_at: str = "2026-07-18T14:05:00Z",
+        terminal: bool = True,
         graph_mutator=None,
     ) -> dict:
         if self.artifact_root == self.repo:
@@ -466,10 +467,17 @@ class SliceproofFixture:
 
         state = copy.deepcopy(charged_state)
         state["generation"] += 1
-        state["stage"] = "completed"
         state["quiescent"] = True
-        state["next_legal_actions"] = []
-        state["owner"]["disposition"] = "released"
+        if terminal:
+            state["stage"] = "completed"
+            state["next_legal_actions"] = []
+            state["disposition"] = "completed"
+            state["owner"]["disposition"] = "released"
+        else:
+            state["stage"] = "final-assurance"
+            state["next_legal_actions"] = ["record-final-assurance"]
+            state["disposition"] = "active"
+            state["owner"]["disposition"] = "stopped"
         state["budgets"]["active_reservation"] = None
         state["wave"] = None
         state["serious_clusters"] = copy.deepcopy(clusters or [])
@@ -662,6 +670,9 @@ class SliceproofFixture:
             "stage": "planning",
             "quiescent": True,
             "next_legal_actions": ["plan-review"],
+            "disposition": "active",
+            "resume": None,
+            "supersession": None,
             "owner": {
                 "token": "owner-1", "host": "host-a", "disposition": "active", "takeover": None,
             },
@@ -1749,7 +1760,7 @@ class SliceproofTests(unittest.TestCase):
         finally:
             fixture.cleanup()
 
-    def test_lifecycle_schema_has_no_history_or_completion_semantics(self) -> None:
+    def test_lifecycle_has_no_history_or_completion_inference_and_completed_is_terminal(self) -> None:
         fixture = SliceproofFixture(separate_roots=True)
         try:
             fixture.init_lifecycle_git_roots()
@@ -1772,10 +1783,29 @@ class SliceproofTests(unittest.TestCase):
             mechanically_completed = fixture.authorized_lifecycle_state(initial, previous_commit)
             mechanically_completed["stage"] = "completed"
             mechanically_completed["next_legal_actions"] = []
+            mechanically_completed["disposition"] = "completed"
             # Pending package, active owner, no freeze, and no final receipts are intentionally outside A4 semantics.
             fixture.write_lifecycle(mechanically_completed)
             accepted = fixture.validate_lifecycle(previous_commit)
             self.assertEqual(0, accepted.returncode, accepted.stdout + accepted.stderr)
+            self.assertEqual("pending", mechanically_completed["packages"]["WP1"]["state"])
+
+            forbidden_resume = copy.deepcopy(mechanically_completed)
+            forbidden_resume.update({
+                "generation": 3,
+                "stage": "authorized",
+                "disposition": "active",
+                "next_legal_actions": ["activate"],
+            })
+            for successor in sorted(SLICEPROOF.LIFECYCLE_DISPOSITIONS):
+                with self.subTest(completed_successor=successor):
+                    forbidden_resume["disposition"] = successor
+                    self.assertIn(
+                        "completed lifecycle disposition is terminal and immutable",
+                        "\n".join(SLICEPROOF.compare_lifecycle_dispositions(
+                            mechanically_completed, forbidden_resume, False
+                        )),
+                    )
         finally:
             fixture.cleanup()
 
@@ -2153,6 +2183,323 @@ class SliceproofTests(unittest.TestCase):
         finally:
             fixture.cleanup()
 
+    def test_c1_park_resume_and_cancel_preserve_exact_compact_snapshot(self) -> None:
+        fixture = SliceproofFixture(separate_roots=True)
+        try:
+            fixture.init_lifecycle_git_roots()
+            initial = fixture.lifecycle_state()
+            fixture.write_lifecycle(initial)
+            fixture.git_at(fixture.artifact_root, "add", ".")
+            fixture.git_at(fixture.artifact_root, "commit", "-m", "portable generation one")
+            generation_one = fixture.git_at(fixture.artifact_root, "rev-parse", "HEAD")
+
+            active = fixture.authorized_lifecycle_state(initial, generation_one)
+            active["budgets"]["active_reservation"] = None
+            active["code_checkpoint"] = fixture.publish_code_checkpoint(
+                "refs/heads/checkpoints/fixture/integration/g2", fixture.report_commit
+            )
+            active["serious_clusters"] = [fixture.serious_cluster()]
+            fixture.write_lifecycle(active)
+            accepted_active = fixture.validate_lifecycle(generation_one)
+            self.assertEqual(0, accepted_active.returncode, accepted_active.stdout + accepted_active.stderr)
+            generation_two = fixture.commit_lifecycle("authorized quiescent checkpoint")
+
+            parked = copy.deepcopy(active)
+            parked.update({
+                "generation": 3,
+                "stage": "parked",
+                "quiescent": True,
+                "next_legal_actions": ["resume", "cancel", "supersede"],
+                "disposition": "parked",
+                "resume": {
+                    "stage": active["stage"],
+                    "next_legal_actions": active["next_legal_actions"],
+                },
+                "last_verified": {
+                    "artifact_ref": "refs/heads/artifacts/fixture",
+                    "artifact_sha": generation_two,
+                    "state_digest": SLICEPROOF.canonical_json_digest(active),
+                    "generation": 2,
+                },
+            })
+            fixture.write_lifecycle(parked)
+            accepted_park = fixture.validate_lifecycle(generation_two)
+            self.assertEqual(0, accepted_park.returncode, accepted_park.stdout + accepted_park.stderr)
+            park_payload = json.loads(accepted_park.stdout)
+            self.assertEqual(("parked", parked["resume"]), (
+                park_payload["disposition"], park_payload["resume"],
+            ))
+            generation_three = fixture.commit_lifecycle("park exact checkpoint")
+
+            resumed = copy.deepcopy(parked)
+            resumed.update({
+                "generation": 4,
+                "stage": parked["resume"]["stage"],
+                "quiescent": True,
+                "next_legal_actions": parked["resume"]["next_legal_actions"],
+                "disposition": "active",
+                "resume": None,
+                "last_verified": {
+                    "artifact_ref": "refs/heads/artifacts/fixture",
+                    "artifact_sha": generation_three,
+                    "state_digest": SLICEPROOF.canonical_json_digest(parked),
+                    "generation": 3,
+                },
+            })
+            fixture.write_lifecycle(resumed)
+            accepted_resume = fixture.validate_lifecycle(generation_three)
+            self.assertEqual(0, accepted_resume.returncode, accepted_resume.stdout + accepted_resume.stderr)
+            self.assertEqual("active", json.loads(accepted_resume.stdout)["disposition"])
+            for field in SLICEPROOF.CONTINUITY_PRESERVED_FIELDS:
+                self.assertEqual(parked.get(field), resumed.get(field), field)
+            generation_four = fixture.commit_lifecycle("resume only recorded stage and actions")
+
+            cancelled = copy.deepcopy(resumed)
+            cancelled.update({
+                "generation": 5,
+                "stage": "cancelled",
+                "quiescent": True,
+                "next_legal_actions": [],
+                "disposition": "cancelled",
+                "last_verified": {
+                    "artifact_ref": "refs/heads/artifacts/fixture",
+                    "artifact_sha": generation_four,
+                    "state_digest": SLICEPROOF.canonical_json_digest(resumed),
+                    "generation": 4,
+                },
+            })
+            fixture.write_lifecycle(cancelled)
+            accepted_cancel = fixture.validate_lifecycle(generation_four)
+            self.assertEqual(0, accepted_cancel.returncode, accepted_cancel.stdout + accepted_cancel.stderr)
+
+            malformed = {
+                "resume mutation": (
+                    lambda state: state["budgets"]["implementation"]["issued"].__setitem__("command_units", 1),
+                    "resume must preserve budgets exactly",
+                ),
+                "package completion inference": (
+                    lambda state: state["packages"]["WP1"].__setitem__("state", "done"),
+                    "resume must preserve packages exactly",
+                ),
+                "cluster reset": (
+                    lambda state: state.__setitem__("serious_clusters", []),
+                    "resume must preserve serious_clusters exactly",
+                ),
+                "wrong restored action": (
+                    lambda state: state.__setitem__("next_legal_actions", ["dispatch"]),
+                    "resume must restore only",
+                ),
+            }
+            for name, (mutate, expected) in malformed.items():
+                with self.subTest(name=name):
+                    invalid = copy.deepcopy(resumed)
+                    mutate(invalid)
+                    self.assertIn(expected, "\n".join(SLICEPROOF.compare_lifecycle_states(parked, invalid)))
+
+            reset = copy.deepcopy(cancelled)
+            reset["generation"] += 1
+            reset["stage"] = "authorized"
+            reset["next_legal_actions"] = ["activate"]
+            reset["disposition"] = "active"
+            self.assertIn(
+                "cancelled lifecycle disposition is terminal and immutable",
+                "\n".join(SLICEPROOF.compare_lifecycle_states(cancelled, reset)),
+            )
+
+            preauth_park = copy.deepcopy(initial)
+            preauth_park.update({
+                "stage": "parked",
+                "disposition": "parked",
+                "next_legal_actions": ["resume", "cancel"],
+                "resume": {"stage": "planning", "next_legal_actions": ["plan-review"]},
+            })
+            disposition_errors: list[str] = []
+            SLICEPROOF.validate_lifecycle_disposition_state(
+                preauth_park,
+                artifact_root=fixture.artifact_root,
+                code_root=fixture.repo,
+                feature="fixture",
+                verify_git_objects=False,
+                errors=disposition_errors,
+            )
+            self.assertEqual([], disposition_errors)
+            preauth_park["next_legal_actions"].append("supersede")
+            disposition_errors = []
+            SLICEPROOF.validate_lifecycle_disposition_state(
+                preauth_park,
+                artifact_root=fixture.artifact_root,
+                code_root=fixture.repo,
+                feature="fixture",
+                verify_git_objects=False,
+                errors=disposition_errors,
+            )
+            self.assertIn("ordered legal actions", "\n".join(disposition_errors))
+        finally:
+            fixture.cleanup()
+
+    def test_c1_supersede_appends_mapped_ids_without_renumber_or_completion_inference(self) -> None:
+        fixture = SliceproofFixture(separate_roots=True)
+        try:
+            fixture.init_lifecycle_git_roots()
+            initial = fixture.lifecycle_state()
+            fixture.write_lifecycle(initial)
+            fixture.git_at(fixture.artifact_root, "add", ".")
+            fixture.git_at(fixture.artifact_root, "commit", "-m", "portable generation one")
+            generation_one = fixture.git_at(fixture.artifact_root, "rev-parse", "HEAD")
+            active = fixture.authorized_lifecycle_state(initial, generation_one)
+            active["budgets"]["active_reservation"] = None
+            active["code_checkpoint"] = fixture.publish_code_checkpoint(
+                "refs/heads/checkpoints/fixture/integration/g2", fixture.report_commit
+            )
+            fixture.write_lifecycle(active)
+            generation_two = fixture.commit_lifecycle("authorized replacement source")
+
+            replacement_artifact_ref = "refs/heads/artifacts/fixture-next"
+            replacement_code_ref = "refs/heads/checkpoints/fixture-next/baseline/g1"
+            fixture.git_at(fixture.artifact_root, "update-ref", replacement_artifact_ref, generation_two)
+            fixture.git_at(fixture.repo, "update-ref", replacement_code_ref, fixture.report_commit)
+            artifact_tree = fixture.git_at(
+                fixture.artifact_root, "rev-parse", f"{generation_two}^{{tree}}"
+            )
+
+            superseded = copy.deepcopy(active)
+            superseded.update({
+                "generation": 3,
+                "stage": "superseded",
+                "quiescent": True,
+                "next_legal_actions": [],
+                "disposition": "superseded",
+                "artifact_checkpoint": {
+                    "ref": "refs/heads/artifacts/fixture",
+                    "sha": generation_two,
+                    "tree": artifact_tree,
+                },
+                "packages": {
+                    "WP1": {"state": "invalidated", "wave": None},
+                    "WP2": {"state": "pending", "wave": None},
+                },
+                "package_modes": {"WP1": "boundary", "WP2": "boundary"},
+                "package_assignments": [
+                    active["package_assignments"][0],
+                    {
+                        "package": "WP2",
+                        "mode": "boundary",
+                        "owner": "package-verifier",
+                        "lens": "replacement-contract",
+                        "side": "pre-freeze",
+                    },
+                ],
+                "supersession": {
+                    "feature": "fixture-next",
+                    "baseline": {
+                        "artifact": {
+                            "ref": replacement_artifact_ref,
+                            "sha": generation_two,
+                            "tree": artifact_tree,
+                        },
+                        "code": {"ref": replacement_code_ref, "sha": fixture.report_commit},
+                    },
+                    "package_map": [{"source": "WP1", "target": "WP2"}],
+                },
+                "last_verified": {
+                    "artifact_ref": "refs/heads/artifacts/fixture",
+                    "artifact_sha": generation_two,
+                    "state_digest": SLICEPROOF.canonical_json_digest(active),
+                    "generation": 2,
+                },
+            })
+            amendment_link = {
+                "parent_effective_digest": active["authorization"]["effective_digest"],
+                "amendment_digest": fixture.digest_text("reviewed supersession and routing invalidation"),
+                "artifact_sha": generation_two,
+            }
+            superseded["authorization"]["amendment_link"] = amendment_link
+            superseded["authorization"]["effective_digest"] = (
+                SLICEPROOF.technical_amendment_effective_digest(
+                    amendment_link["parent_effective_digest"],
+                    amendment_link["amendment_digest"],
+                    amendment_link["artifact_sha"],
+                )
+            )
+            fixture.write_lifecycle(superseded)
+            accepted = fixture.validate_lifecycle(generation_two)
+            self.assertEqual(0, accepted.returncode, accepted.stdout + accepted.stderr)
+            self.assertEqual({"WP1", "WP2"}, set(superseded["packages"]))
+            self.assertEqual("invalidated", superseded["packages"]["WP1"]["state"])
+            self.assertEqual("pending", superseded["packages"]["WP2"]["state"])
+
+            cases = {
+                "renumber old package": (
+                    lambda state: state["packages"].pop("WP1"),
+                    "cannot be removed or renumbered",
+                ),
+                "mapping without amendment": (
+                    lambda state: state["authorization"].update({
+                        "effective_digest": active["authorization"]["effective_digest"],
+                        "amendment_link": None,
+                    }),
+                    "requires a reviewed effective-digest amendment",
+                ),
+                "old candidate not invalidated": (
+                    lambda state: state["packages"]["WP1"].__setitem__("state", "pending"),
+                    "mapped old package must be invalidated",
+                ),
+                "replacement completion inference": (
+                    lambda state: state["packages"]["WP2"].__setitem__("state", "done"),
+                    "replacement package must append as pending",
+                ),
+            }
+            for name, (mutate, expected) in cases.items():
+                with self.subTest(name=name):
+                    invalid = copy.deepcopy(superseded)
+                    mutate(invalid)
+                    transition_errors = SLICEPROOF.compare_lifecycle_states(active, invalid)
+                    state_errors = SLICEPROOF.validate_lifecycle_state_data(
+                        invalid,
+                        artifact_root=fixture.artifact_root,
+                        code_root=fixture.repo,
+                        feature="fixture",
+                        verify_files=False,
+                        verify_git_objects=False,
+                    )
+                    self.assertIn(expected, "\n".join(transition_errors + state_errors))
+
+            duplicate_target = copy.deepcopy(superseded)
+            duplicate_target["supersession"]["package_map"].append({
+                "source": "WP1", "target": "WP2",
+            })
+            duplicate_errors = SLICEPROOF.validate_lifecycle_state_data(
+                duplicate_target,
+                artifact_root=fixture.artifact_root,
+                code_root=fixture.repo,
+                feature="fixture",
+                verify_files=False,
+                verify_git_objects=False,
+            )
+            self.assertIn("each target must have exactly one source", "\n".join(duplicate_errors))
+
+            cyclic = copy.deepcopy(superseded)
+            cyclic["supersession"]["package_map"].append({"source": "WP2", "target": "WP1"})
+            cyclic_errors = SLICEPROOF.validate_lifecycle_state_data(
+                cyclic,
+                artifact_root=fixture.artifact_root,
+                code_root=fixture.repo,
+                feature="fixture",
+                verify_files=False,
+                verify_git_objects=False,
+            )
+            self.assertIn("replacement mapping must be acyclic", "\n".join(cyclic_errors))
+
+            mapping_reset = copy.deepcopy(superseded)
+            mapping_reset["generation"] += 1
+            mapping_reset["supersession"]["package_map"] = []
+            self.assertIn(
+                "replacement mapping is monotonic and cannot mutate or reset",
+                "\n".join(SLICEPROOF.compare_lifecycle_states(superseded, mapping_reset)),
+            )
+        finally:
+            fixture.cleanup()
+
     def test_b4_accepts_compact_low_standard_and_high_completion_graphs(self) -> None:
         cases = [
             ("low", None, ["C", "V"]),
@@ -2441,7 +2788,7 @@ class SliceproofTests(unittest.TestCase):
     def test_cross_freeze_receipts_require_new_cumulative_role_capacity(self) -> None:
         fixture = SliceproofFixture(separate_roots=True)
         try:
-            first = fixture.write_agentic_completion("standard")
+            first = fixture.write_agentic_completion("standard", terminal=False)
             first_commit = fixture.git_at(fixture.artifact_root, "rev-parse", "HEAD")
             self.assertEqual(
                 {"C": 0, "R": 1, "S": 0, "U": 1},
@@ -2454,6 +2801,7 @@ class SliceproofTests(unittest.TestCase):
                 state["stage"] = "final-assurance"
                 state["quiescent"] = True
                 state["next_legal_actions"] = ["record-final-assurance"]
+                state["disposition"] = "active"
                 state["last_verified"] = {
                     "artifact_ref": "refs/heads/artifacts/fixture",
                     "artifact_sha": previous_commit,

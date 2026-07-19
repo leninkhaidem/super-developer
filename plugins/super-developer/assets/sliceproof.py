@@ -56,8 +56,11 @@ AUTHORIZED_LIFECYCLE_STAGES = {
     "authorized", "activation", "package-wave", "package-wave-quiescent", "integration",
     "technical-reassessment", "technical-plan-review", "final-assurance", "completed",
 }
-NEUTRAL_LIFECYCLE_STAGES = {"blocked", "needs-decision"}
+NEUTRAL_LIFECYCLE_STAGES = {"blocked", "needs-decision", "parked", "cancelled", "superseded"}
 LIFECYCLE_STAGES = PREAUTH_LIFECYCLE_STAGES | AUTHORIZED_LIFECYCLE_STAGES | NEUTRAL_LIFECYCLE_STAGES
+RESUMABLE_LIFECYCLE_STAGES = LIFECYCLE_STAGES - {"completed", "parked", "cancelled", "superseded"}
+LIFECYCLE_DISPOSITIONS = {"active", "parked", "cancelled", "superseded", "completed"}
+PARKED_NEXT_ACTIONS = ("resume", "cancel", "supersede")
 PREAUTH_BUDGET_STAGES = PREAUTH_LIFECYCLE_STAGES - {"conceptualization", "conceptualization-checkpoint"}
 OWNER_DISPOSITIONS = {"unassigned", "active", "stopped", "released"}
 PACKAGE_LIFECYCLE_STATES = {"pending", "in_progress", "stabilized", "verified", "done", "blocked", "invalidated"}
@@ -702,6 +705,10 @@ def cmd_validate_lifecycle_state(args: argparse.Namespace) -> dict[str, Any]:
         "generation": generation,
         "stage": state["stage"],
         "quiescent": state["quiescent"],
+        "disposition": state["disposition"],
+        "next_legal_actions": state["next_legal_actions"],
+        "resume": state["resume"],
+        "supersession": state["supersession"],
         "state_digest": canonical_json_digest(state),
         "previous_commit": previous_commit,
         "previous_state_digest": previous_digest,
@@ -739,6 +746,7 @@ PACKAGE_ID_SCHEMA = ("pattern", PACKAGE_ID_RE, "WP<N> package id")
 WAVE_ID_SCHEMA = ("pattern", WAVE_ID_RE, "wave-<slug>")
 FREEZE_ID_SCHEMA = ("pattern", FREEZE_ID_RE, "freeze-<slug>")
 LENS_SCHEMA = ("pattern", LENS_RE, "lowercase path-safe lens")
+FEATURE_SCHEMA = ("pattern", FEATURE_RE, "lowercase feature slug")
 POSITIVE_INT_SCHEMA = ("rule", lambda value: type(value) is int and value > 0, "positive integer")
 NONNEGATIVE_INT_SCHEMA = ("rule", lambda value: type(value) is int and value >= 0, "non-negative integer")
 NULLABLE_TOKEN_SCHEMA = ("nullable", TOKEN_SCHEMA)
@@ -822,6 +830,19 @@ LIFECYCLE_JSON_SCHEMA = {
     "stage": ("enum", LIFECYCLE_STAGES),
     "quiescent": bool,
     "next_legal_actions": ("list", ACTION_SCHEMA),
+    "disposition": ("enum", LIFECYCLE_DISPOSITIONS),
+    "resume": ("nullable", {
+        "stage": ("enum", RESUMABLE_LIFECYCLE_STAGES),
+        "next_legal_actions": ("list", ACTION_SCHEMA),
+    }),
+    "supersession": ("nullable", {
+        "feature": FEATURE_SCHEMA,
+        "baseline": {
+            "artifact": {"ref": str, "sha": SHA_SCHEMA, "tree": SHA_SCHEMA},
+            "code": ("nullable", {"ref": str, "sha": SHA_SCHEMA}),
+        },
+        "package_map": ("list", {"source": PACKAGE_ID_SCHEMA, "target": PACKAGE_ID_SCHEMA}),
+    }),
     "owner": {
         "token": NULLABLE_TOKEN_SCHEMA,
         "host": NULLABLE_TOKEN_SCHEMA,
@@ -971,6 +992,171 @@ def validate_json_shape(value: Any, schema: Any, label: str, errors: list[str]) 
                 validate_json_shape(value[key], schema[2], f"{label}.{key}", errors)
 
 
+def validate_lifecycle_disposition_state(
+    state: dict[str, Any],
+    *,
+    artifact_root: Path,
+    code_root: Path,
+    feature: str,
+    verify_git_objects: bool,
+    errors: list[str],
+) -> None:
+    label = "lifecycle-state.json"
+    disposition = state["disposition"]
+    stage = state["stage"]
+    actions = state["next_legal_actions"]
+    resume = state["resume"]
+    supersession = state["supersession"]
+
+    if resume is not None:
+        resume_actions = resume["next_legal_actions"]
+        if not resume_actions or len(resume_actions) != len(set(resume_actions)) or len(resume_actions) > 8:
+            errors.append(
+                f"{label}.resume.next_legal_actions: expected a non-empty ordered unique list bounded to eight"
+            )
+        if "resume" in resume_actions:
+            errors.append(f"{label}.resume.next_legal_actions: an active resume point cannot name resume")
+
+    if disposition == "active":
+        if stage not in RESUMABLE_LIFECYCLE_STAGES:
+            errors.append(f"{label}: active disposition requires a resumable active stage")
+        if not actions:
+            errors.append(f"{label}.next_legal_actions: active state requires at least one action")
+        if "resume" in actions:
+            errors.append(f"{label}.next_legal_actions: resume is legal only while parked")
+        if resume is not None or supersession is not None:
+            errors.append(f"{label}: active state cannot retain resume or supersession metadata")
+    elif disposition == "parked":
+        if stage != "parked" or state["quiescent"] is not True:
+            errors.append(f"{label}: parked disposition requires parked stage and quiescent true")
+        expected_actions = list(PARKED_NEXT_ACTIONS)
+        if state["authorization"]["id"] is None:
+            expected_actions.remove("supersede")
+        if actions != expected_actions:
+            errors.append(
+                f"{label}.next_legal_actions: parked state requires ordered legal actions {expected_actions!r}"
+            )
+        if resume is None:
+            errors.append(f"{label}.resume: parked state requires the exact prior stage and actions")
+        if supersession is not None:
+            errors.append(f"{label}.supersession: parked state cannot already name a replacement")
+    elif disposition == "cancelled":
+        if stage != "cancelled" or state["quiescent"] is not True or actions:
+            errors.append(f"{label}: cancelled disposition requires cancelled quiescent terminal state with no action")
+        if supersession is not None:
+            errors.append(f"{label}.supersession: cancelled state cannot name a replacement")
+    elif disposition == "superseded":
+        if stage != "superseded" or state["quiescent"] is not True or actions:
+            errors.append(f"{label}: superseded disposition requires superseded quiescent terminal state with no action")
+        if supersession is None:
+            errors.append(f"{label}.supersession: superseded state requires replacement provenance and package map")
+    elif disposition == "completed":
+        if stage != "completed" or state["quiescent"] is not True or actions:
+            errors.append(f"{label}: completed disposition requires completed quiescent terminal state with no action")
+        if resume is not None or supersession is not None:
+            errors.append(f"{label}: completed state cannot retain resume or supersession metadata")
+
+    if disposition in {"parked", "cancelled", "superseded"}:
+        if state["budgets"]["active_reservation"] is not None:
+            errors.append(f"{label}: quiescent continuity disposition cannot retain an active reservation")
+        if state["budgets"]["control_plane_reserve"]["reservation"] is not None:
+            errors.append(f"{label}: quiescent continuity disposition cannot retain a control-plane reservation")
+        wave = state["wave"]
+        if wave is not None and wave["state"] in {"reserved", "active"}:
+            errors.append(f"{label}.wave: quiescent continuity disposition cannot retain reserved or active work")
+
+    if supersession is None:
+        return
+    replacement_feature = supersession["feature"]
+    if replacement_feature == feature:
+        errors.append(f"{label}.supersession.feature: replacement feature must differ from the superseded feature")
+    baseline = supersession["baseline"]
+    baseline_artifact = baseline["artifact"]
+    expected_artifact_ref = f"refs/heads/artifacts/{replacement_feature}"
+    if baseline_artifact["ref"] != expected_artifact_ref:
+        errors.append(
+            f"{label}.supersession.baseline.artifact.ref: expected {expected_artifact_ref!r}"
+        )
+    elif verify_git_objects:
+        tree = git_commit_tree(
+            artifact_root,
+            baseline_artifact["sha"],
+            f"{label}.supersession.baseline.artifact.sha",
+            errors,
+        )
+        if tree is not None and tree != baseline_artifact["tree"]:
+            errors.append(f"{label}.supersession.baseline.artifact.tree: does not match baseline commit tree")
+        require_git_ref_at_commit(
+            artifact_root,
+            baseline_artifact["ref"],
+            baseline_artifact["sha"],
+            f"{label}.supersession.baseline.artifact.ref",
+            errors,
+        )
+
+    baseline_code = baseline["code"]
+    if baseline_code is not None:
+        if immutable_checkpoint_ref_generation(baseline_code["ref"], replacement_feature) is None:
+            errors.append(
+                f"{label}.supersession.baseline.code.ref: expected immutable replacement checkpoint ref"
+            )
+        elif verify_git_objects:
+            require_git_ref_at_commit(
+                code_root,
+                baseline_code["ref"],
+                baseline_code["sha"],
+                f"{label}.supersession.baseline.code.ref",
+                errors,
+            )
+
+    package_map = supersession["package_map"]
+    if not package_map:
+        errors.append(f"{label}.supersession.package_map: expected at least one old-to-new package edge")
+        return
+    ordered = sorted(
+        package_map,
+        key=lambda edge: (package_id_order(edge["source"]), package_id_order(edge["target"])),
+    )
+    if package_map != ordered:
+        errors.append(f"{label}.supersession.package_map: edges must use canonical package-id order")
+    targets = [edge["target"] for edge in package_map]
+    if len(targets) != len(set(targets)):
+        errors.append(f"{label}.supersession.package_map: each target must have exactly one source")
+    package_ids = set(state["packages"])
+    adjacency: dict[str, set[str]] = {}
+    for edge in package_map:
+        source, target = edge["source"], edge["target"]
+        if source not in package_ids or target not in package_ids:
+            errors.append(f"{label}.supersession.package_map: every source and target must exist in packages")
+            continue
+        if source == target:
+            errors.append(f"{label}.supersession.package_map: source and target must differ")
+        adjacency.setdefault(source, set()).add(target)
+        if state["packages"][source]["state"] != "invalidated":
+            errors.append(f"{label}.packages.{source}.state: mapped old package must be invalidated")
+        target_state = state["packages"][target]
+        if target_state != {"state": "pending", "wave": None}:
+            errors.append(f"{label}.packages.{target}: replacement package must append as pending with no wave")
+
+    visiting: set[str] = set()
+    visited: set[str] = set()
+
+    def visit(package_id: str) -> bool:
+        if package_id in visiting:
+            return False
+        if package_id in visited:
+            return True
+        visiting.add(package_id)
+        if any(not visit(target) for target in adjacency.get(package_id, set())):
+            return False
+        visiting.remove(package_id)
+        visited.add(package_id)
+        return True
+
+    if any(not visit(package_id) for package_id in adjacency):
+        errors.append(f"{label}.supersession.package_map: replacement mapping must be acyclic")
+
+
 def validate_lifecycle_state_data(
     state: Any,
     *,
@@ -992,8 +1178,14 @@ def validate_lifecycle_state_data(
     actions = state["next_legal_actions"]
     if len(actions) != len(set(actions)) or len(actions) > 8:
         errors.append(f"{label}.next_legal_actions: actions must be unique and bounded to eight")
-    if not actions and stage != "completed":
-        errors.append(f"{label}.next_legal_actions: non-completed state requires at least one action")
+    validate_lifecycle_disposition_state(
+        state,
+        artifact_root=artifact_root,
+        code_root=code_root,
+        feature=feature,
+        verify_git_objects=verify_git_objects,
+        errors=errors,
+    )
     portability = state["portability_authorization"]
     if not portability.strip() or len(portability) > 512:
         errors.append(f"{label}.portability_authorization: expected concise non-empty source text")
@@ -1052,6 +1244,14 @@ def validate_lifecycle_state_data(
         errors.append(f"{label}.authorization: must be empty before authorization")
     if stage in AUTHORIZED_LIFECYCLE_STAGES and not authorization_complete:
         errors.append(f"{label}.authorization: complete lineage is required at stage {stage!r}")
+    resume = state["resume"]
+    if resume is not None:
+        if resume["stage"] in PREAUTH_LIFECYCLE_STAGES and authorization_complete:
+            errors.append(f"{label}.resume.stage: preauthorization resume point cannot carry implementation authority")
+        if resume["stage"] in AUTHORIZED_LIFECYCLE_STAGES and not authorization_complete:
+            errors.append(f"{label}.resume.stage: authorized resume point requires complete authorization")
+    if state["disposition"] == "superseded" and not authorization_complete:
+        errors.append(f"{label}.authorization: supersession requires complete reviewed authorization lineage")
     if authorization_complete and artifact["sha"] is None:
         errors.append(f"{label}.artifact_checkpoint: authorized state requires exact commit and tree")
     if code is not None and not authorization_complete:
@@ -1139,6 +1339,11 @@ def validate_lifecycle_state_data(
             "artifact_checkpoint": artifact["sha"] is not None or artifact["tree"] is not None,
             "code_checkpoint": code is not None,
             "authorization": any(value is not None for value in auth_values) or amendment is not None,
+            "continuity": (
+                state["disposition"] != "active"
+                or state["resume"] is not None
+                or state["supersession"] is not None
+            ),
             "role_call_consumption": any(state["budgets"]["role_call_consumption"].values()),
             "packages": bool(packages),
             "package_assignments": bool(assignments),
@@ -1293,6 +1498,14 @@ def validate_lifecycle_transition_authority(
         code_root,
         inferred_previous,
         relative_path,
+        state,
+    ))
+    transition_errors.extend(validate_continuity_transition_paths(
+        artifact_root,
+        code_root,
+        inferred_previous,
+        relative_path,
+        previous,
         state,
     ))
     transition_errors.extend(validate_artifact_checkpoint_ancestry(artifact_root, previous, state))
@@ -1758,6 +1971,220 @@ def validate_predecessor_topology(
         ])
 
 
+CONTINUITY_PRESERVED_FIELDS = (
+    "owner",
+    "artifact_checkpoint",
+    "code_checkpoint",
+    "authorization",
+    "budgets",
+    "packages",
+    "wave",
+    "serious_clusters",
+    "freeze",
+    "receipts",
+    "portability_authorization",
+    "assurance_profile",
+    "package_modes",
+    "package_assignments",
+)
+
+
+def compare_preserved_lifecycle_fields(
+    previous: dict[str, Any],
+    current: dict[str, Any],
+    fields: tuple[str, ...],
+    transition: str,
+) -> list[str]:
+    errors: list[str] = []
+    for field in fields:
+        if field == "authorization":
+            keys = ("id", "initial_digest", "effective_digest", "inputs")
+            changed = any(previous[field][key] != current[field][key] for key in keys)
+        else:
+            changed = previous.get(field) != current.get(field)
+        if changed:
+            preserved = "authorization ID/inputs/digests" if field == "authorization" else field
+            errors.append(f"lifecycle transition: {transition} must preserve {preserved} exactly")
+    return errors
+
+
+def continuity_predecessor_errors(previous: dict[str, Any], transition: str) -> list[str]:
+    errors: list[str] = []
+    if previous["quiescent"] is not True:
+        errors.append(f"lifecycle transition: {transition} requires a quiescent predecessor checkpoint")
+    if previous["budgets"]["active_reservation"] is not None:
+        errors.append(f"lifecycle transition: {transition} cannot abandon an active reservation")
+    if previous["budgets"]["control_plane_reserve"]["reservation"] is not None:
+        errors.append(f"lifecycle transition: {transition} cannot abandon a control-plane reservation")
+    wave = previous["wave"]
+    if wave is not None and wave["state"] in {"reserved", "active"}:
+        errors.append(f"lifecycle transition: {transition} cannot abandon reserved or active wave work")
+    return errors
+
+
+def compare_lifecycle_dispositions(
+    previous: dict[str, Any],
+    current: dict[str, Any],
+    authorization_changed: bool,
+) -> list[str]:
+    errors: list[str] = []
+    old = previous["disposition"]
+    new = current["disposition"]
+    if old in {"cancelled", "superseded", "completed"}:
+        return [f"lifecycle transition: {old} lifecycle disposition is terminal and immutable"]
+    if old == new == "active":
+        return errors
+    if old == "active" and new == "parked":
+        errors.extend(continuity_predecessor_errors(previous, "park"))
+        expected_resume = {
+            "stage": previous["stage"],
+            "next_legal_actions": previous["next_legal_actions"],
+        }
+        if current["resume"] != expected_resume:
+            errors.append("lifecycle transition: park must record the exact prior resume stage and ordered actions")
+        errors.extend(compare_preserved_lifecycle_fields(
+            previous, current, CONTINUITY_PRESERVED_FIELDS, "park"
+        ))
+        return errors
+    if old == "parked" and new == "active":
+        expected = previous["resume"]
+        if expected is None or (
+            current["stage"], current["next_legal_actions"]
+        ) != (expected["stage"], expected["next_legal_actions"]):
+            errors.append("lifecycle transition: resume must restore only the parked stage and ordered actions")
+        if current["quiescent"] is not True:
+            errors.append("lifecycle transition: resume starts from the verified quiescent checkpoint")
+        errors.extend(compare_preserved_lifecycle_fields(
+            previous, current, CONTINUITY_PRESERVED_FIELDS, "resume"
+        ))
+        return errors
+    if new == "cancelled" and old in {"active", "parked"}:
+        errors.extend(continuity_predecessor_errors(previous, "cancel"))
+        if current["resume"] != previous["resume"]:
+            errors.append("lifecycle transition: cancel cannot mutate the parked resume point")
+        errors.extend(compare_preserved_lifecycle_fields(
+            previous, current, CONTINUITY_PRESERVED_FIELDS, "cancel"
+        ))
+        return errors
+    if new == "superseded" and old in {"active", "parked"}:
+        errors.extend(continuity_predecessor_errors(previous, "supersede"))
+        if current["resume"] != previous["resume"]:
+            errors.append("lifecycle transition: supersede cannot mutate the parked resume point")
+        if not authorization_changed:
+            errors.append(
+                "lifecycle transition: supersession mapping requires a reviewed effective-digest amendment"
+            )
+        preserved = (
+            "owner",
+            "code_checkpoint",
+            "budgets",
+            "wave",
+            "serious_clusters",
+            "freeze",
+            "receipts",
+            "portability_authorization",
+            "assurance_profile",
+        )
+        errors.extend(compare_preserved_lifecycle_fields(previous, current, preserved, "supersede"))
+        errors.extend(compare_supersession_packages(previous, current))
+        return errors
+    if old == "active" and new == "completed":
+        return errors
+    errors.append(f"lifecycle transition: impossible disposition change {old!r} to {new!r}")
+    return errors
+
+
+def compare_supersession_packages(
+    previous: dict[str, Any], current: dict[str, Any]
+) -> list[str]:
+    errors: list[str] = []
+    supersession = current["supersession"]
+    if supersession is None:
+        return ["lifecycle transition: supersede requires durable replacement provenance"]
+    old_packages = previous["packages"]
+    new_packages = current["packages"]
+    old_ids = set(old_packages)
+    appended_ids = set(new_packages) - old_ids
+    mapping = supersession["package_map"]
+    sources = {edge["source"] for edge in mapping}
+    targets = {edge["target"] for edge in mapping}
+    if not old_ids or not appended_ids:
+        errors.append("lifecycle transition: supersede requires existing old packages and appended replacements")
+    if any(source not in old_ids for source in sources):
+        errors.append("lifecycle transition: replacement mapping sources must be existing old package IDs")
+    if targets != appended_ids:
+        errors.append("lifecycle transition: replacement mapping targets must be exactly the appended package IDs")
+    for package_id in sorted(old_ids, key=package_id_order):
+        old_package = old_packages[package_id]
+        new_package = new_packages.get(package_id)
+        if new_package is None:
+            continue
+        if package_id in sources:
+            if new_package["state"] != "invalidated" or new_package["wave"] != old_package["wave"]:
+                errors.append(
+                    f"lifecycle transition: mapped old package {package_id} must remain present and become invalidated"
+                )
+        elif new_package != old_package:
+            errors.append(f"lifecycle transition: unmapped old package {package_id} must remain unchanged")
+    for package_id in sorted(appended_ids, key=package_id_order):
+        if new_packages[package_id] != {"state": "pending", "wave": None}:
+            errors.append(
+                f"lifecycle transition: appended replacement {package_id} must start pending without completion inference"
+            )
+    old_modes = previous.get("package_modes", {})
+    new_modes = current.get("package_modes", {})
+    if any(new_modes.get(package_id) != mode for package_id, mode in old_modes.items()):
+        errors.append("lifecycle transition: supersede cannot rewrite old package routing")
+    old_assignments = {
+        item["package"]: item for item in previous.get("package_assignments", [])
+    }
+    new_assignments = {
+        item["package"]: item for item in current.get("package_assignments", [])
+    }
+    if any(new_assignments.get(package_id) != assignment for package_id, assignment in old_assignments.items()):
+        errors.append("lifecycle transition: supersede cannot rewrite old package assignments")
+    return errors
+
+
+def compare_immutable_package_ids(
+    previous: dict[str, Any],
+    current: dict[str, Any],
+    previous_authorized: bool,
+    authorization_changed: bool,
+) -> list[str]:
+    old_ids = set(previous["packages"])
+    new_ids = set(current["packages"])
+    errors: list[str] = []
+    removed = sorted(old_ids - new_ids, key=package_id_order)
+    if removed:
+        errors.append(f"lifecycle transition: immutable package IDs cannot be removed or renumbered; missing {removed}")
+    appended = sorted(new_ids - old_ids, key=package_id_order)
+    if appended:
+        if previous_authorized and not authorization_changed:
+            errors.append("lifecycle transition: package append requires a reviewed effective-digest amendment")
+        start = max((package_id_order(package_id) for package_id in old_ids), default=0) + 1
+        expected = [f"WP{number}" for number in range(start, start + len(appended))]
+        if appended != expected:
+            errors.append(
+                f"lifecycle transition: new package IDs must append contiguously above prior IDs; expected {expected}"
+            )
+        if any(current["packages"][package_id]["state"] != "pending" for package_id in appended):
+            errors.append("lifecycle transition: appended package IDs must start pending without completion inference")
+    old_map = (
+        previous["supersession"]["package_map"]
+        if previous.get("supersession") is not None else []
+    )
+    new_map = (
+        current["supersession"]["package_map"]
+        if current.get("supersession") is not None else []
+    )
+    if old_map and new_map[:len(old_map)] != old_map:
+        errors.append("lifecycle transition: replacement mapping is monotonic and cannot mutate or reset")
+    if old_map != new_map and previous_authorized and not authorization_changed:
+        errors.append("lifecycle transition: replacement mapping change requires a reviewed effective-digest amendment")
+    return errors
+
+
 def compare_lifecycle_states(previous: dict[str, Any], current: dict[str, Any]) -> list[str]:
     errors: list[str] = []
     if current["generation"] != previous["generation"] + 1:
@@ -1853,8 +2280,12 @@ def compare_lifecycle_states(previous: dict[str, Any], current: dict[str, Any]) 
                 f"got non-pending packages {introduced_non_pending}"
             )
 
+    errors.extend(compare_lifecycle_dispositions(previous, current, authorization_changed))
     errors.extend(compare_lifecycle_budgets(previous["budgets"], current["budgets"]))
     previous_packages, current_packages = previous["packages"], current["packages"]
+    errors.extend(compare_immutable_package_ids(
+        previous, current, previous_authorized, authorization_changed
+    ))
     if previous_authorized and not authorization_changed and set(previous_packages) != set(current_packages):
         errors.append("lifecycle transition: authorized package membership changed without technical amendment")
     errors.extend(compare_package_states(previous_packages, current_packages, authorization_changed))
@@ -2109,6 +2540,67 @@ def validate_artifact_checkpoint_ancestry(
         return ["lifecycle transition: artifact checkpoint cannot move to a non-descendant commit"]
     detail = result.stderr.strip() or f"exit {result.returncode}"
     return [f"lifecycle transition: unable to verify artifact checkpoint ancestry: {detail}"]
+
+
+def validate_continuity_transition_paths(
+    artifact_root: Path,
+    code_root: Path,
+    previous_commit: str,
+    lifecycle_path: str,
+    previous: dict[str, Any],
+    current: dict[str, Any],
+) -> list[str]:
+    old, new = previous["disposition"], current["disposition"]
+    transition = None
+    if old == "active" and new == "parked":
+        transition = "park"
+    elif old == "parked" and new == "active":
+        transition = "resume"
+    elif old in {"active", "parked"} and new == "cancelled":
+        transition = "cancel"
+    if transition is None:
+        return []
+
+    label = f"lifecycle transition: {transition} continuity checkpoint"
+    errors: list[str] = []
+    try:
+        changed_output = git_output(
+            artifact_root,
+            ["diff", "--name-only", "--no-renames", previous_commit, "--"],
+            label,
+        )
+        untracked_output = git_output(
+            artifact_root,
+            ["ls-files", "--others", "--exclude-standard"],
+            label,
+        )
+    except SliceproofError as exc:
+        return exc.errors
+    changed = {path for path in changed_output.splitlines() if path}
+    changed.update(path for path in untracked_output.splitlines() if path)
+    if changed != {lifecycle_path}:
+        errors.append(
+            f"{label} may change only {lifecycle_path}; observed paths {sorted(changed)}"
+        )
+    try:
+        status = git_output(
+            code_root,
+            ["status", "--porcelain=v1", "--untracked-files=all"],
+            label,
+        )
+    except SliceproofError as exc:
+        errors.extend(exc.errors)
+    else:
+        if status:
+            errors.append(f"{label} requires a clean code root; later local files are untrusted")
+    checkpoint = current["code_checkpoint"]
+    if checkpoint is not None:
+        errors.extend(validate_worktree_head_and_clean(
+            code_root,
+            checkpoint["sha"],
+            f"{label}: exact referenced code checkpoint",
+        ))
+    return errors
 
 
 def validate_control_only_transition_paths(
@@ -2892,8 +3384,8 @@ def validate_agentic_completion_data(
 ) -> tuple[list[str], dict[str, Any]]:
     label = "validate-agentic-completion"
     errors: list[str] = []
-    if state["stage"] != "completed":
-        errors.append(f"{label}: Lifecycle State stage must be 'completed'")
+    if state["stage"] != "completed" or state["disposition"] != "completed":
+        errors.append(f"{label}: Lifecycle State stage/disposition must be 'completed'")
     if state["quiescent"] is not True:
         errors.append(f"{label}: completed state must be quiescent")
     if state["next_legal_actions"]:

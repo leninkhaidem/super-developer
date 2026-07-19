@@ -22,7 +22,7 @@ The helper derives the path from `--feature`; no state path field or CLI path is
 ```json
 {
   "schema_version": 1, "generation": 1, "feature": "feature-slug",
-  "stage": "conceptualization-checkpoint", "quiescent": true, "next_legal_actions": ["preflight"],
+  "stage": "conceptualization-checkpoint", "quiescent": true, "next_legal_actions": ["preflight"], "disposition": "active", "resume": null, "supersession": null,
   "owner": {"token": "owner-token", "host": "host-token", "disposition": "active", "takeover": null},
   "artifact_checkpoint": {"ref": "refs/heads/artifacts/feature-slug", "sha": null, "tree": null},
   "code_checkpoint": null,
@@ -36,7 +36,7 @@ The helper derives the path from `--feature`; no state path field or CLI path is
 ```
 Controlled stages cover conceptualization/checkpoint, preflight, planning/review/readiness/authorization-pending,
 authorized/activation/package-wave/quiescent/integration, technical reassessment/review, final assurance,
-completed, blocked, and needs-decision. Generation 1 is initial topology: artifact SHA/tree, code, all
+completed/blocked/needs-decision plus parked/cancelled/superseded dispositions. Generation 1 is initial topology: artifact SHA/tree, code, all
 authorization fields including `inputs`/amendment, freeze, and last-verified are null; packages, canonical
 `package_assignments`, wave, clusters, and receipts are empty, and C/R/S/U role-call consumption is zero. Initial publication with a code ref is invalid. Later code checkpoints require complete
 Implementation Authorization.
@@ -81,9 +81,9 @@ same-effective-digest package successors are explicit:
 | `blocked` | `blocked`, `pending`, `in_progress`, `invalidated` |
 | `invalidated` | `invalidated`, `in_progress`, `blocked` |
 Thus blocked resolution and explicit repair progression remain legal; resetting a progressed state to `pending`
-additionally requires a reviewed effective-digest change. `last_verified` is null only at generation 1 and later binds the exact
+additionally requires a reviewed effective-digest change. IDs never disappear or renumber: replacements append above the prior maximum and an acyclic old→new map under a reviewed effective-digest amendment; mapped old candidates invalidate and targets start pending. `last_verified` later binds the exact
 quiescent prior commit/state digest/generation. Authorized state requires `assurance_profile`, package-complete
-`package_modes` (`boundary|final`), and the canonical ordered package assignment list; any routing change requires an effective-digest transition and affected-candidate invalidation.
+`package_modes` (`boundary|final`), and canonical ordered assignments; ordinary park/resume/cancel preserves routing and mapping exactly.
 Each serious cluster stores canonical identity text `accepted_invariant`, `root_mechanism`, `architectural_surface`;
 `id` is the canonical JSON digest of exactly those fields. It separately stores append-only `observed_signatures`,
 all observed classes, any selected observed class at the strongest precedence rank, its route, strike 1–2,

@@ -1,14 +1,12 @@
 # Planned-Feature Orchestration Convergence
 
 ## Boundary
-
 This reference owns Human Authorization Envelope separation, technical-plan amendments, the one Implementation
 Authorization, finite budgets, planned-feature continuation, finding classification, serious-cluster state,
 logical ownership, and behavior-before-evidence ordering. Other references own artifact, command, worktree,
 verification, review, and audit mechanics.
 
 ## Human Envelope and Technical Baseline
-
 - **Human Authorization Envelope:** user-owned outcomes, scope/exclusions, product/interface invariants, accepted
   material risks, protected effects, and spending/command/time bounds. Agents cannot alter it.
 - **Technical Plan Baseline:** versioned architecture, packages/consumed contracts, commands/writes/cleanup,
@@ -21,7 +19,6 @@ architecture, feasibility, package, command, or verification corrections return 
 cold review without a user prompt. Slices/SPEC/package authority remains canonical; add no decision ledger.
 
 ## Preauthorization Budget
-
 At the Conceptualize-to-planning handoff, initialize or resume one finite budget in
 `.tasks/<feature>/lifecycle-state.json`: at most eight total delegated planning/review/specialist calls, two total
 planner-correction waves, two total spike waves (one per empirical cluster), a finite command maximum, and an
@@ -33,7 +30,6 @@ focused user decision may establish a new finite preauthorization budget; that d
 implementation. No event ledger is added.
 
 ## One Implementation Authorization
-
 Cold plan challenge and execution-readiness validation precede the user decision. One decision surface presents:
 
 - the complete Human Authorization Envelope and reviewed initial Technical Plan Baseline;
@@ -65,7 +61,6 @@ records/checkpoints the snapshot and exact accepted artifact commit. `implement`
 verification. There is no later execution decision.
 
 ## Freshness, Activation, and Amendments
-
 Immediately before product writes or package fanout, run a cheap equality guard over immutable authorization ID,
 inputs/initial digest, effective digest, accepted artifact commit/tree, base code/status digest,
 dependency/prerequisite snapshot, profile/routing, covered actions, authorized endpoints, and only expected
@@ -83,22 +78,28 @@ validates that receipt, checkpoints state, and resumes. Envelope, protected-acti
 budget-authority change stops for focused authority instead.
 
 ## Delivery Owner and Child Envelope
-
 Only the Delivery Owner advances the post-checkpoint lifecycle, chooses repair or reassessment, preserves active
 authorization/circuit state, and declares completion. A child performs bounded work and returns; it never invokes
 the next stage, restarts `implement`, or treats inherited authorization as continuation authority.
 
 Every nested call/return names caller and exact `return_to` stage; `create|amend|resume`; accepted artifact/code
-state; envelope and current baseline identity; inherited covered/excluded actions and finite open items; budgets;
-cluster/strike state when relevant; and terminal disposition `done|blocked|needs_decision|architecture_invalidated|parked`.
-The child planner/reviewer does not start or resume implementation itself.
+state; envelope/baseline, covered/excluded actions, finite open items, budgets and cluster/strike context; and terminal disposition return
+`done|blocked|needs_decision|architecture_invalidated|parked|cancelled|superseded`.
+The child planner/reviewer does not start or resume implementation itself. An amendment returns exact old/new commits, affected authority/surfaces,
+preserved evidence, invalidation, and any old→new package map; no child restarts implementation.
 
-A focused amendment returns old and new accepted commits; affected requirements/Slices/packages/assignments,
-production/test surfaces, proof/report/evidence/freeze inputs; evidence-backed preserved state; and old-to-new
-package mapping. No child restarts implementation.
+## Owner Continuity Dispositions
+Only the Delivery Owner may checkpoint `park`, `resume`, `cancel`, or `supersede` through the compact Lifecycle
+State. Park first quiesces and records the exact return stage/actions while preserving authorization, owner,
+maxima/issued/deadline, role consumption, packages, clusters/strikes, freeze/receipts, and refs; it never means done.
+Resume requires the worktree runbook's exact remote parked checkpoint/ref verification, restores only that recorded
+stage/actions by generation/CAS, and cannot adopt later local state, reset mechanics, take over by elapsed time, or
+run active-active. Completed is terminal and cannot resume; Cancel is terminal/no-action and preserves state without cleanup or protected authority.
+Supersede is terminal/no-action: a cold-reviewed effective-digest amendment names distinct replacement baseline
+provenance and an acyclic monotonic old→new map; old IDs remain/invalidate, new IDs append pending, and replacement
+authority/completion never inherits. Ordinary park/resume/cancel cannot change the map.
 
 ## Final Assurance Continuation
-
 Package verifiers and package-bound specialists return pre-freeze `B[i]` for one named package/contract lens; they
 cannot claim final-state coverage. After the Delivery Owner creates `F`, every assurance child is cold, read-only,
 return-only, and assigned one named non-overlapping lens. It never repairs, transitions, freezes, dispatches
