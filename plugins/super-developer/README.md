@@ -1,6 +1,8 @@
 # Super Developer
 
-Super Developer is a portable coding-assistant workflow, packaged as a Claude Code plugin, for moving from exploration to Slice-first planning, isolated implementation, bounded code review, final audit, documentation, and release preparation.
+Super Developer is a portable coding-assistant workflow, packaged as a Claude Code plugin, for moving from
+exploration through implementation-ready planning, autonomous delivery, risk-adaptive assurance, documentation,
+and release preparation.
 
 One plugin. 15 skills. No manual git juggling.
 
@@ -8,85 +10,121 @@ One plugin. 15 skills. No manual git juggling.
 
 ## What It Does
 
-Super Developer replaces scattered prompts with a file-backed workflow. New and existing-system changes use one
-fresh Slice-first planned-feature artifact model:
+Super Developer replaces scattered prompts with one file-backed journey for New and existing-system changes:
 
 ```text
-conceptualize -> design/feasibility preflight -> implementation-plan -> cold review-plan
-                                                                     |
-                                                                     v
-                                                    ONE Implementation Authorization
-                                                                     |
-                                                                     v
-                                  Delivery Owner -> autonomous package delivery
-                                                                     |
-                                                                     v
-                                      risk-adaptive assurance -> verified notification
+Conceptualize
+  -> requirement / architecture / feasibility / prerequisite / production-path preflight
+  -> implementation-ready plan + cold challenge
+  -> exactly ONE Implementation Authorization
+  -> Delivery Owner autonomous package delivery / repair / checkpoints
+  -> boundary B[i] when pre-consumption trust is required; otherwise final routing
+  -> immutable final freeze F
+  -> low F -> C(code-risk PASS, completion PASS) -> V
+     standard F -> R(PASS/closure) -> U(PASS, F, R) -> V
+     high F -> R(PASS/closure) -> S[*](each PASS, F, R) -> U(PASS, F, R, S[*]) -> V
+  -> checkpoint index-only V -> verified notification
 ```
 
-Validated Slices are product/design authority only. Workflow, tool, git, proof, review, and audit authority stays in the plugin instructions and shared references.
+Preflight resolves missing requirements and triggered architecture, feasibility, prerequisite, and real
+production-path verification seams before authorization; protected activation is checked before product writes or
+fanout. Cold `review-plan` challenges the implementation-ready package topology, evidence plan, routing, and finite
+budgets. Its clean initial result presents the sole authorization. There is no later implementation decision.
 
-In planned-feature mode, `implement` becomes Delivery Owner only after the exact one-authorization checkpoint.
-Nested spike, technical-plan amendment, cold amendment review, code-review, and audit roles return a bounded
-receipt/disposition to that owner; they never restart or advance the parent lifecycle, mint another authorization,
-or present another implementation gate. Serious findings are classified before repair.
-Architecture invalidation returns to focused reassessment, and a second failed closure for the same accepted
-invariant, failure mechanism, and architectural surface stops automatic repair rather than changing agents and retrying.
+After authorization, `implement` is the Delivery Owner. It autonomously dispatches and stabilizes packages,
+classifies and batches covered repairs, reruns affected evidence, and publishes code-before-sidecar checkpoints.
+Nested envelope-preserving amendments return cold receipts to the same owner; no child restarts delivery or mints
+new authority. Budgets and C/R/S/U call consumption are cumulative across agents, resumes, repairs, and freezes.
+An initial serious rejection is strike 1; a failed closure for the same accepted invariant, root mechanism, and
+architectural surface is strike 2 and opens the automatic-repair circuit.
 
-Triggered Design Preflight projects authority, transition, publication, losing-owner, cancellation, credential,
-and actual-path test invariants into existing SPEC, Slice, and package artifacts. Verification then reads accepted
-obligations, production paths, and causal observations before implementer proof and matrix reconciliation. Matrices
-index evidence rather than define it; named shared-risk changes require affected broad regression before proof/report
-freeze or refresh.
+Assurance follows meaningful risk and consumption boundaries, never file, test, or agent count. `boundary`
+packages receive a pre-freeze independent `B[i]`; coherent leaves route directly to final assurance without a
+fabricated report. Final assurance is exactly one serial profile equation over immutable `F`. All C/R/S/U roles
+are cold, read-only, and return-only. `V` only indexes the same-freeze outputs and deviations; it proves nothing by
+itself. The Delivery Owner checkpoints `V`, validates the graph, and then notifies.
+
+Validated Slices remain product/design authority only. Workflow, tool, Git, proof, and assurance authority stays in
+the plugin instructions and shared references.
+
+---
+
+## Portable Authority and Continuity
+
+Every planned feature uses a mandatory portable orphan `artifacts/<feature>` sidecar at a resolved Git worktree
+root distinct from the code root. `.planning/`, `.tasks/`, proofs, receipts, and Lifecycle State exist only there;
+current-root copies are migration input, never planned-feature authority. Code is checkpointed first under direct,
+immutable `refs/heads/checkpoints/<feature>/<slot>/g<generation>` refs, then referenced by a non-force sidecar CAS
+checkpoint. A symbolic, moved, local-only, missing, or mismatched ref fails closed.
+
+`.tasks/<feature>/lifecycle-state.json` is a compact exact current snapshot: disposition/stage, immutable
+authorization lineage, owner, direct refs, fixed maxima and issued usage, packages, serious clusters, freeze, and
+current receipt pointers. Git history is the history; Lifecycle State is not an event log, semantic proof, or
+permission. Super Developer adds no dashboard, evaluation ledger, state service, or second completion system.
+
+Cold interruption handling uses only verified portable state:
+
+- **Park** records one quiescent remote checkpoint and its exact resume point without resetting authority or budgets.
+- **Resume** fetches that parked sidecar and every named direct code ref; later local state is untrusted recovery input.
+- **Cancel** records a terminal no-action snapshot and grants no cleanup or completion claim.
+- **Supersede** records a cold-reviewed replacement and immutable old-to-new package map; it grants no inherited authority.
+- **Completed** is terminal and cannot resume.
 
 ---
 
 ## Planned-Feature Artifact Model
 
-Every planned feature uses a mandatory portable `artifacts/<feature>` sidecar at a Git root distinct from the code
-root. Its `.tasks/<feature>/` namespace points to optional sidecar `.planning/<feature>/` Slice material; current-root
-copies are legacy migration input, never planned-feature authority.
-
 | Artifact | Purpose |
 |---|---|
 | `.planning/<feature>/index.md` | Optional Conceptualize workspace entry point. |
 | `.planning/<feature>/slices/*.md` | Optional authoritative product/design Slices. |
-| `.tasks/<feature>/SPEC.md` | Accepted requirements, constraints, non-goals, Slice inventory, and verification summary. |
-| `.tasks/<feature>/tasks.json` | Lightweight registry only: feature metadata, package paths, proof paths, report paths, status, and dependencies. |
-| `.tasks/<feature>/packages/<WP-ID>.md` | Work-package assignment: scope, Slice obligations, primary paths, verification expectations, proof/report paths, dependencies. |
-| `.tasks/<feature>/proofs/<WP-ID>.proof.md` | Package-agent closure evidence for Slice rows and verification expectations. |
-| `.tasks/<feature>/reports/<WP-ID>.package-verification.md` | Independent package verification receipt bound to proof digest and reviewed state. |
-| `.tasks/<feature>/reviews/review-code-state.json` | Review-code governance readiness for audit handoff. |
-| `.tasks/<feature>/lifecycle-state.json` | Compact CAS continuation state: authorization lineage, checkpoints, budgets, packages, and current receipts; not a history ledger. |
+| `.tasks/<feature>/SPEC.md` | Accepted source baseline, requirements, constraints, architecture invariants, non-goals, and verification summary. |
+| `.tasks/<feature>/tasks.json` | Bookkeeping only: profile, package paths, modes, status, and dependencies. |
+| `.tasks/<feature>/packages/<WP-ID>.md` | Work-package assignment, consumed contracts, evidence expectations, and boundary/final routing. |
+| `.tasks/<feature>/proofs/<WP-ID>.proof.md` | Implementer closure claims and observed package evidence. |
+| `.tasks/<feature>/reports/<WP-ID>.package-verification.md` | Conditional pre-freeze `B[i]` for `boundary`; absent with a null report path for `final`. |
+| `.tasks/<feature>/semgrep/*` | Optional local helper-produced package/integration evidence. |
+| `.tasks/<feature>/assurance/<freeze-id>/` | Immutable `F` plus same-freeze C or R/S/U outputs and index-only `V`. |
+| `.tasks/<feature>/reviews/review-code-state.json` | Optional governance context only; never final authority or lifecycle state. |
+| `.tasks/<feature>/lifecycle-state.json` | Compact CAS continuation snapshot and current receipt pointers; never a history ledger. |
 
-`tasks.json` is bookkeeping. Package Markdown owns assignment, proof Markdown owns closure evidence, package reports own independent verification receipt state, review-code state owns final-review readiness, and audit owns the final PASS/FAIL judgment.
+Package evidence uses minimum-sufficient **Selected Causal Evidence**: each chosen typed anchor names the
+behavior/risk, why it is sufficient, substitutes or fixtures, and a fresh command result. One causal test may support
+related obligations. Counts, LOC, ratios, coverage percentages, suite volume, labels, matrices, and helper success
+never establish semantic sufficiency; matrices index reviewed evidence instead of defining it.
 
 ---
 
 ## `sliceproof.py` Helper Contract
 
-`plugins/super-developer/assets/sliceproof.py` is the only planned-feature mechanical helper. It validates paths and artifact mechanics; it does not run tests, judge implementation sufficiency, write review readiness, or replace package verification, review-code, or audit.
-
-Run with explicit distinct artifact/code roots (arguments shortened below only after those variables are resolved):
+`plugins/super-developer/assets/sliceproof.py` is the only planned-feature mechanical helper. Use explicit absolute,
+distinct artifact/code roots:
 
 ```bash
 ROOTS=(--artifact-root "$ARTIFACT_ROOT" --code-root "$CODE_ROOT")
 python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-plan "${ROOTS[@]}" ".tasks/<feature>/tasks.json"
 python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" create-proof "${ROOTS[@]}" ".tasks/<feature>/tasks.json" --package WP1
 python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-proof "${ROOTS[@]}" ".tasks/<feature>/tasks.json" --package WP1
+python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-package-complete "${ROOTS[@]}" ".tasks/<feature>/tasks.json" --package WP1
+python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-final "${ROOTS[@]}" ".tasks/<feature>/tasks.json"
 python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-lifecycle-state "${ROOTS[@]}" --feature <feature> --previous-commit <prior-sha> # omit predecessor at generation 1
+python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-agentic-completion "${ROOTS[@]}" --feature <feature>
 ```
 
-Command boundaries:
+- `validate-plan`, `create-proof`, and `validate-proof` check safe artifact mechanics and package closure shape.
+- `validate-package-complete` branches by mode: exact `B[i]` binding for `boundary`, or null-report direct-final
+  deferral for `final`; it runs before package `done` and proves no semantics.
+- `validate-final` is the **pre-freeze** package-equation check. It requires done packages and mode-correct package
+  evidence, but does not claim post-freeze assurance ran.
+- `validate-lifecycle-state` checks exact compact local topology, immutable lineage, predecessor ancestry, direct
+  refs, monotonic budgets, packages, and transitions. Remote reachability/CAS remains worktree-owned.
+- `validate-agentic-completion` is the **post-freeze** read-only graph check after `V` is checkpointed. It validates
+  one profile equation and same-freeze lineage before notification.
 
-- `validate-plan`: checks the registry, package Markdown, safe paths, dependencies, and declared Slice H3 IDs.
-- `create-proof`: creates the declared proof Markdown placeholder and refuses silent overwrite of edited evidence.
-- `validate-proof`: checks required proof sections, closure rows, command/file evidence, blocking markers, and approved deferrals.
-- `validate-final`: checks all packages are done, all proofs pass mechanically, and reports bind current evidence.
-- `validate-lifecycle-state`: checks compact local topology, immutable authorization inputs/effective lineage,
-  checkpoint ancestry, budgets, and package transitions; exact-endpoint remote reachability stays worktree-owned.
-
-See [`references/tool-usage.md`](references/tool-usage.md), [`references/slice-first-artifacts.md`](references/slice-first-artifacts.md), and [`references/package-lifecycle.md`](references/package-lifecycle.md) for the detailed boundaries.
+The helper does not run tests, judge causal sufficiency, perform assurance, mutate lifecycle state, fetch, push, or
+replace C/R/S/U verdicts. See [`references/tool-usage.md`](references/tool-usage.md),
+[`references/slice-first-artifacts.md`](references/slice-first-artifacts.md), and
+[`references/package-lifecycle.md`](references/package-lifecycle.md) for detailed boundaries.
 
 ---
 
@@ -172,12 +210,12 @@ Semgrep findings preserve Semgrep severity but are advisory by default. They do 
 | Skill | What It Does | Usage |
 |---|---|---|
 | **conceptualize** | Runs an optional one-question-at-a-time exploration, maintains an ignored workspace Index, and writes focused Slices only when useful. | Standalone + pre-planning |
-| **implementation-plan** | Creates `SPEC.md`, the lightweight registry, package Markdown, proof paths, report paths, and proof placeholders from approved requirements, Slices, or spike evidence. | Pipeline + standalone |
+| **implementation-plan** | Runs requirement/architecture/feasibility/prerequisite/production-path preflight, then creates the implementation-ready SPEC, registry, routed packages, proof paths, and conditional report paths. | Pipeline + standalone |
 | **skill-authoring** | Creates or revises compact skills with on-demand references and a mid-tier-agent followability gate. | Standalone + internal |
-| **review-plan** | Validates planned-feature artifacts, Slice coverage, package assignment, proof/report expectations, and approved deferrals before implementation. | Pipeline + standalone |
-| **implement** | Owns planned-feature progression and orchestrates package worktrees, package agents, behavior-first verification, classified repair, integration checkpoints, review-code, and audit handoff. | Pipeline + standalone |
-| **review-code** | Runs bounded PR, local, or planned-feature pipeline code review with dynamic risk lenses, Skeptic verification for serious findings, and governed fix verification where the mode permits fixes. | Pipeline + standalone + PR review |
-| **audit** | Final read-only planned-feature completeness gate over accepted artifacts, proof Markdown, package reports, optional review-code context, and integrated code state. | Final gate + standalone |
+| **review-plan** | Cold-challenges package authority, feasibility, evidence, routing, and budgets; its clean initial result presents the sole Implementation Authorization. | Pipeline + standalone |
+| **implement** | Delivery Owner after authorization: autonomous package delivery, classified repair, code/sidecar checkpoints, boundary/final routing, final freeze, assurance dispatch, `V`, and notification. | Pipeline |
+| **review-code** | Reviews PR/local diffs, or returns planned-feature `C` (low) or `R` (standard/high) for one immutable freeze; pipeline mode never claims completion authority. | Pipeline + standalone + PR review |
+| **audit** | Returns standard/high completion receipt `U` only after same-freeze `R` PASS (and required high `S[*]`); never a standalone universal final decision. | Pipeline standard/high only |
 | **spike-to-plan** | Runs empirical feasibility spikes before planning and routes accepted evidence into durable planning artifacts. | Planning hook |
 | **diagnose-and-fix** | Diagnoses issues evidence-first, reports findings for approval, then routes approved fixes through worktree or implementation-plan. | Standalone |
 | **testing** | Establishes or updates reusable project testing workflow docs, then routes test authoring, alteration, and execution through the approved workflow. | Standalone |
@@ -193,7 +231,7 @@ Semgrep findings preserve Semgrep severity but are advisory by default. They do 
 
 | Mode | Trigger | Boundary |
 |---|---|---|
-| **Planned-feature pipeline** | Explicit or inherited feature context plus `.tasks/<feature>/` artifacts and reviewed implementation state. | Consumes package proof/report signals, records audit readiness, and routes serious fixes through proof/report freshness rules. |
+| **Planned-feature pipeline** | Explicit feature context plus a Delivery-Owner-supplied immutable `F` and current package evidence. | Returns low `C` or standard/high `R`; never records completion readiness, dispatches later roles, repairs, or creates `V`. |
 | **PR** | PR URL, `owner/repo#N`, or `#N` in a repository with `gh` available. | Review-only for code changes; GitHub side effects require the PR action gate. |
 | **Local** | No planned-feature context and no PR identifier. | Reviews one complete caller-bound or locally captured state: committed base-to-HEAD plus staged, unstaged, and untracked files together. Repairs require the local action gate, owning repair contract when supplied, rebinding, and fix verification. |
 
@@ -216,11 +254,21 @@ project/                               # user-owned root; do not switch branches
 
 Key rules:
 
-- The orchestrator owns branch/worktree creation, merges, cleanup, and approved pushes.
+- The Delivery Owner owns branch/worktree creation, merges, checkpoints, cleanup, and authorized pushes.
 - Package agents edit only their assigned package worktree and proof Markdown handoff.
-- Every covered sidecar/code/feature push must use its one captured exact authorized push endpoint and ref.
+- Every covered sidecar/code/feature push uses one unchanged captured push endpoint and exact non-force ref.
+- Code checkpoints are published and verified before path-specific sidecar CAS commits reference them.
 - Target/main merge or push always requires separate explicit approval.
 - Cleanup requires merge-base proof and clean worktrees.
+
+### Release retention
+
+The remotely verified sidecar containing final `V` and every immutable checkpoint ref named by Lifecycle State,
+`F`, or `V` are retained through and after release by default. Target delivery, publishing, ordinary feature
+cleanup, Sidecar Portability Authorization, and Implementation Authorization never imply their deletion. Portable
+evidence cleanup occurs only when explicitly requested, after final target sync, under a separate exact decision
+that first proves equivalent durable preservation and then verifies every deletion. Otherwise release reports the
+retained refs without another prompt.
 
 ---
 
@@ -263,8 +311,8 @@ feasibility preflight. Cold `review-plan` challenges and resolves technical defe
 presents the sole **Implementation Authorization**: **Approve and auto-resolve**, **Request changes**, or **Abort**.
 Approval checkpoints one immutable authorization ID/input snapshot. `implement` then owns autonomous delivery;
 nested envelope-preserving amendments return cold receipts under that same ID, while envelope/protected/budget
-changes stop for one focused authority decision. Independent assurance returns the verified result or one precise
-escalation—there is no later implementation approval.
+changes stop for one focused authority decision. Boundary receipts and final assurance return to that owner, which
+checkpoints index-only `V`, validates completion, and notifies—there is no later implementation approval.
 
 Useful standalone prompts:
 
@@ -274,7 +322,6 @@ Useful standalone prompts:
 > Spike this feature assumption before planning
 > Review this PR: owner/repo#42
 > Review my code
-> Audit the auth-system feature
 > Spike and fix this regression
 > Establish this project's testing workflow for browser E2E
 > Add test coverage for this behavior using the approved testing workflow
@@ -390,10 +437,11 @@ plugins/super-developer/
 |---|---|
 | Slice-first planning | Slices capture durable product/design understanding while control-plane authority stays out of Slice text. |
 | Progressive disclosure | `SKILL.md` files route and guard; detailed contracts load only at action points. |
-| Package delegation | Work packages are large enough for useful sub-agent execution and small enough for focused proof/report verification. |
-| Independent verification | Package reports, review-code readiness, and audit each protect a different gate. None replaces another. |
-| Read-only dashboards | Status views show mechanical signals without mutating lifecycle state or claiming semantic completion. |
-| Explicit git authority | Feature pushes, target merges, cleanup, and release operations happen only under their named contracts. |
+| Package delegation | Work packages are large enough for useful execution; only meaningful consumed/risk boundaries add `B[i]`. |
+| Minimum-sufficient evidence | Selected causal anchors prove accepted behavior and risk; volume and matrices never substitute for judgment. |
+| Risk-adaptive final assurance | Immutable `F` follows exactly low C, serial standard R/U, or serial high R/S/U before index-only `V`. |
+| Portable bounded continuity | Compact Lifecycle State plus direct immutable refs supports cold park/resume/cancel/supersede without a dashboard, ledger, or state service. |
+| Explicit Git authority | Feature pushes, target merges, cleanup, and release operations happen only under their named contracts; portable evidence is retained by default. |
 
 ---
 

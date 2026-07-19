@@ -3,16 +3,16 @@
   "corpus_id": "agentic-delivery-harness-core-acceptance",
   "oracle_revisions": {
     "v1_39": {
-      "label": "v1.39.0 baseline",
+      "label": "Historical v1.39.0 baseline (non-current)",
       "commit": "df7396f677c026cd8bfdf2d0e9baca29e5a03791"
     },
     "phase_1": {
-      "label": "Phase 1 safety checkpoint",
+      "label": "Historical Phase 1 safety checkpoint (non-current)",
       "commit": "790bf679466b3738e422b3eb23a951a92a239a6f"
     },
     "candidate": {
-      "label": "accepted north-star candidate",
-      "commit": "1fdebf33af509061ae593796e532dcc4b1a93a9e"
+      "label": "Implemented behavioral candidate oracle (C2 checkpoint)",
+      "commit": "81a6e172a751246d3a0b78660c8882dec24d5f0c"
     }
   },
   "scenarios": [

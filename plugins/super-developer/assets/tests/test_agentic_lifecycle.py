@@ -230,6 +230,15 @@ class AgenticLifecycleOracleTests(unittest.TestCase):
                 self.assertIsInstance(candidate["maximum_formal_prompts"], int)
                 self.assertIsNotNone(candidate["repair_wave_expectation"]["maximum"])
 
+    def test_oracle_revisions_label_historical_observations_and_behavioral_candidate(self) -> None:
+        revisions = load_scenarios()["oracle_revisions"]
+        self.assertRegex(revisions["v1_39"]["label"], r"(?i)historical.*non-current")
+        self.assertRegex(revisions["phase_1"]["label"], r"(?i)historical.*non-current")
+        self.assertRegex(revisions["candidate"]["label"], r"(?i)implemented behavioral candidate oracle.*C2")
+        self.assertEqual("df7396f677c026cd8bfdf2d0e9baca29e5a03791", revisions["v1_39"]["commit"])
+        self.assertEqual("790bf679466b3738e422b3eb23a951a92a239a6f", revisions["phase_1"]["commit"])
+        self.assertEqual("81a6e172a751246d3a0b78660c8882dec24d5f0c", revisions["candidate"]["commit"])
+
     def test_scenario_manifest_identity_and_seed_fields_are_unique(self) -> None:
         scenarios = load_scenarios()["scenarios"]
         for field_getter in (

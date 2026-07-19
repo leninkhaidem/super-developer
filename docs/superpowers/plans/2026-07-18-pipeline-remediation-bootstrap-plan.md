@@ -1,27 +1,42 @@
 # Super Developer Pipeline Remediation Bootstrap Plan
 
-**Status:** Proposed execution plan; requires approval before source edits
-**Source baseline:** `docs/superpowers/specs/2026-07-18-super-developer-pipeline-orchestration-baseline.md`
-**Target baseline:** Super Developer v1.39.0 (`df7396f`)
-**Execution model:** Parent-owned bootstrap process; the installed Super Developer planning, implementation, review, audit, and release pipelines are not used to amend themselves
+**Status:** SUPERSEDED — read-only historical provenance; not an executable plan
+**Superseded by:** the accepted [Agentic Delivery Harness North Star](../specs/2026-07-18-agentic-delivery-harness-north-star.md) and [Agentic Delivery Harness Implementation Plan](2026-07-18-agentic-delivery-harness-implementation.md)
+**Historical source baseline:** `docs/superpowers/specs/2026-07-18-super-developer-pipeline-orchestration-baseline.md`
+**Historical target baseline:** Super Developer v1.39.0 (`df7396f`)
+**Historical execution model:** Parent-owned bootstrap process used to preserve Phase 1 provenance
 
-## Goal
+> This document records the original bootstrap reasoning and Phase 1 observations. It grants no current authority,
+> approval, action, or next step. Do not execute its phases, checklists, review protocol, or recommended action.
+> Current behavior and implementation authority come only from the superseding north-star and implementation plan.
 
-Repair the orchestration, evidence, repair-loop, lifecycle, and release gaps documented in the baseline without importing the current plugin's failure modes into its own amendment process.
+| Superseded section | Current disposition |
+|---|---|
+| P1-D7 and every “Gate 2” reference | Historical accepted-state experiment; non-current and non-executable. |
+| Phase 2 package-verifier proposal | Historical universal-verifier comparison; current `B[i]` is conditional on a meaningful boundary. |
+| Phase 2 final review/audit proposal | Historical sibling-final-check comparison; current final assurance uses the serial profile equations. |
+| Phase 3 release/cleanup proposal | Historical cleanup exploration; current release retains portable sidecar/checkpoint evidence by default. |
 
-The work is delivered in three phases:
+## Historical Goal
+
+The bootstrap sought to repair the orchestration, evidence, repair-loop, lifecycle, and release gaps documented in
+the baseline without importing the then-current plugin's failure modes into its own amendment process.
+
+The work was framed in three historical phases:
 
 1. **Convergence hardening:** stop non-progressing repair cycles and move architecture/evidence discovery earlier.
 2. **Assurance and verification-loop simplification:** reduce redundant verification and repair-loop amplification while preserving independent defect detection and the mandatory sidecar artifact model.
 3. **Lifecycle durability:** make amendment, resume, audit, evidence retention, and release exact-state coherent.
 
-All three phases are in program scope. Each phase must be independently reviewable and releasable; later phases do not block the first convergence fix.
+All three phases were in the bootstrap program scope. Each was intended to be independently reviewable and
+releasable; later proposals did not block the first convergence fix.
 
 ---
 
-## Bootstrap Rules
+## Historical Bootstrap Rules
 
-These rules govern this remediation instead of the plugin under repair.
+These rules governed the original remediation instead of the plugin under repair. They are retained for provenance,
+not present-day execution.
 
 1. **One parent owner.** The current parent agent owns design interpretation, sequencing, file changes, state, and stop decisions.
 2. **No plugin self-orchestration.** Do not invoke the installed `implementation-plan`, `review-plan`, `implement`, `review-code`, `audit`, `worktree`, or `release` skills as lifecycle controllers for this remediation.
@@ -36,7 +51,7 @@ These rules govern this remediation instead of the plugin under repair.
 
 ---
 
-## Finding Classification Used During Remediation
+## Historical Finding Classification Used During Remediation
 
 | Class | Meaning | Action |
 |---|---|---|
@@ -60,7 +75,7 @@ requirement/scope decision
 
 ---
 
-# Phase 1 — Convergence Hardening
+# Historical Phase 1 — Convergence Hardening (provenance only)
 
 ## Objective
 
@@ -189,9 +204,9 @@ For concurrency, shared state, credentials/privacy, cancellation, replay, lifecy
 
 Persist these invariants in existing SPEC constraints/acceptance criteria, Slice interface contracts where applicable, and package Notes/verification expectations. Do not add an architecture ledger.
 
-### P1-D7. Exact Gate-2 state
+### P1-D7. Historical exact Gate-2 state (non-current)
 
-Gate 2 approves:
+In the Phase 1 bootstrap experiment, Gate 2 approved:
 
 1. the validated artifact candidate; and
 2. the sole expected `status → reviewed` mutation.
@@ -366,7 +381,7 @@ Do not modify `sliceproof.py` or `semgrep_rules.py` behavior in Phase 1.
 - Strike 2 for the same serious cluster stops automatic repair.
 - Logical owner replacement preserves prior attempts and strikes.
 - Triggered architecture work has durable, testable invariants in existing artifacts.
-- Gate 2 is bound to an exact reviewed artifact SHA.
+- Historically, Gate 2 was bound to an exact reviewed artifact SHA; this is not current authorization terminology.
 - Behavior-sensitive PASS evidence demonstrates the real production path.
 - Broad affected regression precedes proof/report freeze for named shared-risk surfaces.
 - Proof/report refresh happens after behavioral closure.
@@ -376,9 +391,12 @@ Do not modify `sliceproof.py` or `semgrep_rules.py` behavior in Phase 1.
 
 ---
 
-# Phase 2 — Assurance and Verification-Loop Simplification
+# Historical Phase 2 Proposal — Assurance and Verification-Loop Simplification (do not execute)
 
-## Objective
+> This proposal is preserved to explain the transition away from universal package verification and sibling final
+> review/audit checks. It is not the implemented routing contract.
+
+## Historical Objective
 
 Reduce repeated verification, repair, and re-verification work while preserving the Phase 1 stopping rules,
 independent defect detection, exact-state binding, deliverable quality, and the mandatory artifact sidecar used
@@ -433,9 +451,13 @@ for durable cross-system handoff.
 
 ---
 
-# Phase 3 — Lifecycle Durability and Release Continuity
+# Historical Phase 3 Proposal — Lifecycle Durability and Release Continuity (do not execute)
 
-## Objective
+> This proposal's release and cleanup discussion is historical. The implemented contract retains final portable
+> sidecar/checkpoint evidence through and after release by default; deletion requires a separate exact post-sync
+> retention decision and equivalent durable preservation.
+
+## Historical Objective
 
 Make amendment, interruption, evidence retention, final audit, and release operate over exact durable state without rebuilding context from chat.
 
@@ -463,9 +485,10 @@ Make amendment, interruption, evidence retention, final audit, and release opera
 
 ---
 
-# Independent Review Protocol
+# Historical Independent Review Protocol (do not execute)
 
-Independent review is intentionally bounded and does not use the plugin's review pipeline.
+This protocol described the bootstrap evaluation process. It is intentionally preserved, but the superseding
+implementation plan owns current review and audit routing.
 
 ## Design review
 
@@ -498,9 +521,9 @@ After Phase 3:
 
 ---
 
-# Execution Preconditions
+# Historical Execution Preconditions (completed record; do not execute)
 
-Before Phase 1 source edits:
+The original checklist before Phase 1 source edits was:
 
 - [ ] User approves this bootstrap plan and Phase 1 scope.
 - [ ] Choose an isolated feature branch/worktree based on current `main`.
@@ -514,9 +537,9 @@ No remote push, target merge, cleanup, release, or publication is implied by pla
 
 ---
 
-# Stop Conditions
+# Historical Stop Conditions (provenance only)
 
-Stop implementation and return to the user when:
+The original bootstrap stopped implementation and returned to the user when:
 
 - a proposed fix requires a new product/workflow behavior not settled by the baseline or this plan;
 - a Phase 1 change begins implementing Phase 2/3 scope without necessity;
@@ -530,9 +553,10 @@ Stop implementation and return to the user when:
 
 ---
 
-# Recommended Next Action
+# Historical Recommended Next Action (superseded; do not execute)
 
-Approve this bootstrap plan for **Phase 1 only**. After approval:
+The original recommendation was to approve this bootstrap plan for **Phase 1 only**. It is retained solely to
+explain the Phase 1 lineage. At the time, the proposed steps after approval were:
 
 1. remove or retain the empty aborted sidecar according to the user's explicit choice;
 2. create one isolated Phase 1 feature worktree directly from current `main`;

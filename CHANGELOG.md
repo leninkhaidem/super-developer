@@ -7,16 +7,17 @@ The format is based on Keep a Changelog.
 ## [Unreleased]
 
 ### Added
-- Added a canonical planned-feature convergence contract with one Delivery Owner, explicit child return dispositions, exact accepted-state binding, and a same-risk-cluster two-strike circuit.
-- Added triggered architecture invariants for authority, transitions, publication, losing owners, cancellation, replay, credentials, actual-path test seams, and broad-regression tripwires without adding a separate ledger.
+- Added the end-to-end agentic delivery journey: requirement and technical preflight, one implementation authorization, Delivery-Owner package delivery, risk-adaptive assurance, and verified notification.
+- Added a mandatory distinct portable sidecar with compact exact lifecycle snapshots, immutable code checkpoints, cold park/resume/cancel/supersede transitions, and safe continuation across agent or host changes.
 
 ### Changed
-- Changed nested spike, planning, plan-review, code-review, and audit roles to return control instead of recursively advancing implementation.
-- Changed package verification, pipeline review, and audit to inspect accepted obligations, bound production paths, and causal observations before implementer claims and matrix reconciliation.
-- Changed repair closure to classify findings first and run actual-path targeted evidence plus affected broad regression before proof/report refresh and final freeze.
+- Changed assurance to use independent package verification only at meaningful boundaries, then one immutable final freeze with combined low assurance or serial standard/high review, specialist, and completion lenses.
+- Changed verification to select minimum-sufficient causal evidence and affected regression seams instead of treating test volume, matrices, helper status, or exhaustive rereview as proof.
+- Changed release handling to retain the final sidecar and required checkpoint refs by default; portable-evidence cleanup now requires a separate exact post-sync decision.
 
 ### Fixed
-- Fixed architecture invalidations being routed as ordinary repairs, owner/model replacement resetting repair progress, and labels, counters, cache hits, or proof wording being accepted as standalone behavioral evidence.
+- Fixed recursive lifecycle ownership and non-converging repair by preserving cumulative budgets and strike state, returning every child to one Delivery Owner, and opening the circuit after a failed same-mechanism closure.
+- Fixed current-root authority, local-only resume, checkpoint publication races, and stale final receipts with distinct-root validation, code-before-sidecar CAS ordering, and same-freeze completion checks.
 
 ## [v1.39.0] - 2026-07-15
 

@@ -729,6 +729,29 @@ class SkillPromptSurfaceTests(unittest.TestCase):
         self.assertIn("ONE Implementation Authorization", readme)
         self.assertIn("nested envelope-preserving amendments return cold receipts", compact_text(readme))
 
+    def test_readme_journey_is_current_and_bootstrap_is_historical(self) -> None:
+        readme = compact_text(read_repo("plugins/super-developer/README.md"))
+        self.assertRegex(
+            readme,
+            r"Conceptualize.*preflight.*implementation-ready plan \+ cold challenge.*exactly ONE Implementation Authorization.*Delivery Owner autonomous package delivery / repair / checkpoints.*boundary B\[i\].*immutable final freeze F.*checkpoint index-only V.*verified notification",
+        )
+        self.assertRegex(
+            readme,
+            r"low F -> C\(code-risk PASS, completion PASS\) -> V.*standard F -> R\(PASS/closure\) -> U\(PASS, F, R\) -> V.*high F -> R\(PASS/closure\) -> S\[\*\]\(each PASS, F, R\) -> U\(PASS, F, R, S\[\*\]\) -> V",
+        )
+        self.assertIn("retained through and after release by default", readme)
+        self.assertNotIn("audit owns the final PASS/FAIL judgment", readme)
+
+        bootstrap = read_repo(
+            "docs/superpowers/plans/2026-07-18-pipeline-remediation-bootstrap-plan.md"
+        )
+        self.assertRegex(bootstrap, r"(?s)Status:.*SUPERSEDED.*read-only historical provenance.*not an executable plan")
+        for historical_surface in ["Gate 2", "universal-verifier", "sibling-final-check", "release/cleanup"]:
+            self.assertRegex(
+                bootstrap,
+                rf"(?i){re.escape(historical_surface)}[^\n]*historical|historical[^\n]*{re.escape(historical_surface)}",
+            )
+
     def test_obsolete_or_unsafe_terms_are_only_negative_guidance(self) -> None:
         for path in prompt_surface_paths():
             text = path.read_text(encoding="utf-8")
