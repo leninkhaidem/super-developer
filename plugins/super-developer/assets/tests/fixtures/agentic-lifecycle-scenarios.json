@@ -11,8 +11,8 @@
       "commit": "790bf679466b3738e422b3eb23a951a92a239a6f"
     },
     "candidate": {
-      "label": "Implemented behavioral candidate oracle (C2 checkpoint)",
-      "commit": "81a6e172a751246d3a0b78660c8882dec24d5f0c"
+      "label": "Evaluated behavioral candidate checkpoint",
+      "commit": "6f4b91dc0def05709adefd12b5790840711e2016"
     }
   },
   "scenarios": [
