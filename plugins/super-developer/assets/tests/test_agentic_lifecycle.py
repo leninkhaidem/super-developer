@@ -147,7 +147,7 @@ def valid_lifecycle_state() -> dict:
             },
             "implementation": None,
             "active_reservation": None,
-            "control_plane_reserve": {"maximum": 1, "issued": 0},
+            "control_plane_reserve": {"maximum": 1, "issued": 0, "reservation": None},
         },
         "packages": {}, "wave": None, "serious_clusters": [],
         "freeze": None, "receipts": [], "last_verified": None,

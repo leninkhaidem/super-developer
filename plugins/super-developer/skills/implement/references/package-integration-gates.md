@@ -141,10 +141,10 @@ risk; audit reconciles outcomes and selectively falsifies high-value claims with
 read-only/return-only; only the Delivery Owner dispatches, repairs, freezes, transitions, persists, checkpoints, and
 notifies. Never dispatch review and audit concurrently. Review repair invalidates old `F/R`; create a new `F` and
 obtain `R` PASS/closure before standard/high specialist or audit dispatch.
-Persist freeze-scoped `C/R/S/U/V` in existing sidecar paths/Lifecycle State, not a new registry, ledger, or platform.
-After required PASS outputs, checkpoint `V` through `worktree`; only then notify. Keep target push/merge, release,
-cleanup, force, deploy, and other protected actions separately authorized. Readiness requires package evidence and
-profile-required PASS outputs plus `V` bound to the same `F`.
-
+Persist canonical freeze-scoped JSON under `.tasks/<feature>/assurance/<freeze-id>/`, not a registry/ledger. After
+PASS outputs, checkpoint index-only V, then run `python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-agentic-completion`
+with `--artifact-root "$ARTIFACT_ROOT" --code-root "$CODE_ROOT" --feature <feature>`; reject lineage/drift/graph/budget/cluster/deadline faults.
+Readiness requires package evidence and profile-required PASS outputs plus `V` bound to the same `F`.
+Validator PASS precedes notification; protected target/release actions stay separately authorized.
 ## Status Output
 Status summaries should include package ID/title, proof path and validation result, package verification report path, matrix cleanliness, `validate-package-complete` result as mechanical signals only, package branch/worktree, integration state, Slice plan-defect status, repair/follow-up state, next gate, and any blockers.

@@ -438,7 +438,7 @@ class SkillPromptSurfaceTests(unittest.TestCase):
         self.assertIn('"validate-lifecycle-state"', helper)
         self.assertIn("canonical_json_digest", helper)
         self.assertNotIn("technical_amendments", helper)
-        self.assertNotIn("verification-summary", helper)
+        self.assertIn('"validate-agentic-completion"', helper)
         self.assertNotIn('["push"', helper)
         self.assertNotIn('["fetch"', helper)
         self.assertNotIn('["ls-remote"', helper)

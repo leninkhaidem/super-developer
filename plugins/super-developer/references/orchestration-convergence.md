@@ -102,25 +102,26 @@ another assurance role, checkpoints, or notifies.
 
 The Delivery Owner alone runs the selected serial graph: low `F→C(two explicit PASS verdicts)→V`; standard
 `F→R(PASS/closure)→U(PASS, F, R)→V`; high `F→R(PASS/closure)→S[*] (each named lens PASS, F, R)→U(PASS,
-F, R, S[*])→V`. Low uses one combined verifier and no separate reviewer, auditor, or specialist. Standard/high
-never dispatch audit alongside review; high specialists and audit wait for `R` PASS. If review returns a serious
-finding, finish owner repair and affected checks, create a new `F`, and obtain review PASS/closure before any later
-role starts. Persist returned outputs in existing sidecar/state paths, not a receipt ledger or registry. The Delivery
-Owner checkpoints `V` before completion notification; protected target/release actions remain separately authorized.
+F, R, S[*])→V`. Low has no R/S/U; standard has no C/S; high has no C. Standard/high audit waits for clean R;
+high's zero-or-more S lenses are unique/planned and bind F+R. A finding completes owner repair/affected checks before a new F/R.
+Persist canonical `.tasks/<feature>/assurance/<freeze-id>/` JSON, never a registry/ledger. V is an index, supplies no
+PASS, and names every exact clean predecessor. Checkpoint V, run read-only
+`sliceproof.py validate-agentic-completion` against explicit distinct roots, then notify; protected actions stay separate.
 
 ## Finding Classification and Circuit
 
-Classify every serious finding before repair: `requirement-gap`, `architecture-invalidation`,
-`implementation-defect`, `integration-regression`, `test-fidelity-gap`, `evidence-stale-or-contradicted`, or
-`confidence-enhancement`. Mixed findings use that authority order. Envelope gaps return to the user; architecture
-invalidation returns to bounded technical reassessment when an envelope-preserving alternative is credible;
-eligible implementation/integration/test defects auto-resolve within listed budgets.
+Classify all observations before repair with precedence: human-envelope `requirement-gap` >
+`architecture-invalidation` > `implementation-defect|integration-regression` >
+`test-fidelity-gap|evidence-stale-or-contradicted` > `confidence-enhancement`. Route respectively to user,
+technical reassessment, closure repair, test repair/evidence refresh, or report-only; lower classes cannot hide a
+higher rank, while either observed class in an equal-rank group may be selected with its matching route.
 
-A serious-cluster identity is accepted invariant/contract + failure mechanism + architectural surface. The initial
-independent rejection is strike 1 and permits one root-cause repair; failed affected closure is strike 2 and opens
-the circuit. A new agent, model, prompt, commit, status, report, matrix row, signature, package label, timeout, or
-wording change never resets it. Continuing an open circuit requires explicit user approval naming new information
-and a new finite bound.
+A serious-cluster identity is the canonical digest of only accepted invariant/contract + root mechanism + architectural
+surface. Keep signatures separately and append-only. A new agent, model, prompt, commit, status, report, matrix row,
+signature, package label, timeout, or wording change cannot reset identity or totals. Eligible initial rejection is strike 1 and
+permits exactly one root-cause repair plus one affected closure by the logical owner/successor: PASS closes at
+strike 1; FAIL is strike 2 and circuit-open immediately. Repair/closure and terminal lineage are immutable;
+continuation requires explicit user approval naming new information and a new finite bound.
 
 Keep one logical primary implementation owner per package/surface. Prefer resume; otherwise rehydrate one successor
 with exact authorization, invariants, worktree, outcomes, cluster/strikes, and next action. Independent assurance
@@ -134,4 +135,7 @@ credible affected broad regression, then refresh proof/report and freeze. Test v
 
 Stop for envelope ambiguity/change, protected or unlisted action, blocked prerequisite, exact-state/ownership loss,
 unknown class/cluster, budget/deadline exhaustion, open circuit, no credible envelope-preserving design, concurrent
-owner, or evidence unable to force the claimed production path.
+owner, or evidence unable to force the claimed production path. On exhaustion, ownership loss, or CAS loss, only
+the one-unit control reserve may record allowlisted ownership/parent checks and safe-checkpoint or last-verified
+escalation. If ownership/expected parent is unsafe, do not mutate/take over: remain non-completed, report the exact
+`last_verified` checkpoint/conflict, and treat later observations as untrusted.

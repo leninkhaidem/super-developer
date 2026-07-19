@@ -24,15 +24,18 @@ The repair agent must:
 6. Accept only `implementation-defect`, `integration-regression`, or a production-relevant `test-fidelity-gap`;
    return requirement gaps and architecture invalidation without edits; confidence enhancements are report-only.
 7. For post-merge package-verification repairs, work in the integration worktree when assigned there and do not broaden into other packages except for the minimum shared-contract edits explicitly authorized in the packet.
-8. Stabilize code and actual-path tests first. Update only affected proof rows after targeted evidence and the
-   earliest credible affected broad regression pass or a bounded substitute is justified.
+8. Stabilize code/actual-path tests first. Rerun and update only affected surfaces/rows; widen to full verification
+   for material, shared, sensitive, cross-boundary, or uncertain impact. Require targeted evidence plus the earliest
+   credible affected broad regression before evidence refresh; never rerun unchanged unaffected scope by default.
 9. Run safe assigned commands plus targeted and affected broad checks needed for delta closure. Apply packet command identity,
    timeout, progress/completion, termination, and cleanup rules. Timeout or uncertain cleanup is non-pass. Return
    after a failed bounded stage; do not repeat unchanged work or inflate a timeout. Within an eligible first-repair
    cycle whose circuit remains closed, a changed strategy may authorize one bounded probe with a distinct identity/expected signal.
    An open circuit never authorizes another repair command. Identity, commit, status, or report
    metadata alone is not progress; a relevant state/evidence/design delta must close or narrow the gate.
-   Owner identity changes never reset strikes; a second failed closure returns for reassessment.
+   Owner identity changes never reset strikes. Agent/model/prompt/commit/signature/package-label/timeout changes
+   never reset the invariant + root-mechanism + architectural-surface cluster; one failed affected closure is strike
+   2/circuit-open and returns for reassessment.
 10. When the repair changes implementation behavior, tests, proofs, or risk evidence, perform the compact repair self-review below before handoff. Pure mechanical stale-state refresh may report rechecked evidence instead.
 11. Never create worktrees, branches, perform merge operations, mark packages done, edit proof/report
     lifecycle state by hand, treat review state as proof, checkpoint sidecars, or force-add/commit ignored

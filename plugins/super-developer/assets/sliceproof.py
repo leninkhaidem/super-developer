@@ -2,8 +2,8 @@
 """Mechanical helper for Slice-first planned-feature artifacts.
 
 The helper performs deterministic structure, path-safety, proof-closure,
-report-binding, and local lifecycle/predecessor checks. It does not judge
-semantic quality, run tests, mutate lifecycle/package state, dispatch work,
+report-binding, lifecycle/predecessor, and freeze-receipt completion checks.
+It does not judge semantic quality, run tests, mutate lifecycle/package state, dispatch work,
 perform remote Git effects, or replace review/audit gates.
 """
 
@@ -33,6 +33,8 @@ SAFE_GIT_REF_RE = re.compile(r"^(?!/)(?!.*(?:\.\.|//|@\{|[\\ ~^:?*\[]))[A-Za-z0-
 ACTION_RE = re.compile(r"^[a-z][a-z0-9-]{0,63}$")
 COUNTER_RE = re.compile(r"^[a-z][a-z0-9_-]{0,63}$")
 WAVE_ID_RE = re.compile(r"^wave-[a-z0-9][a-z0-9-]*$")
+FREEZE_ID_RE = re.compile(r"^freeze-[a-z0-9][a-z0-9-]{0,63}$")
+LENS_RE = re.compile(r"^[a-z][a-z0-9-]{0,63}$")
 SEMGREP_DIGEST_RE = re.compile(r"^(?:sha256:)?([0-9a-fA-F]{64})$")
 STATUS_VALUES = {"pending", "in_progress", "done", "blocked"}
 FEATURE_STATUS_VALUES = {"planned", "reviewed", "in_progress", "completed", "blocked", "on_hold"}
@@ -71,7 +73,43 @@ PACKAGE_STATE_TRANSITIONS = {
 REPLAN_RESET_STATES = {"in_progress", "stabilized", "verified", "done", "invalidated"}
 ROUTING_CANDIDATE_STATES = {"in_progress", "stabilized", "verified", "done"}
 WAVE_STATES = {"reserved", "active", "quiescent", "completed", "blocked"}
-CLUSTER_DISPOSITIONS = {"repair-eligible", "closed", "circuit-open"}
+CLUSTER_CLASSES = {
+    "requirement-gap",
+    "architecture-invalidation",
+    "implementation-defect",
+    "integration-regression",
+    "test-fidelity-gap",
+    "evidence-stale-or-contradicted",
+    "confidence-enhancement",
+}
+CLUSTER_CLASS_PRECEDENCE_RANK = {
+    "requirement-gap": 0,
+    "architecture-invalidation": 1,
+    "implementation-defect": 2,
+    "integration-regression": 2,
+    "test-fidelity-gap": 3,
+    "evidence-stale-or-contradicted": 3,
+    "confidence-enhancement": 4,
+}
+CLUSTER_ROUTES = {
+    "requirement-gap": "human-envelope",
+    "architecture-invalidation": "technical-reassessment",
+    "implementation-defect": "closure-repair",
+    "integration-regression": "closure-repair",
+    "test-fidelity-gap": "closure-repair",
+    "evidence-stale-or-contradicted": "evidence-refresh",
+    "confidence-enhancement": "report-only",
+}
+CLUSTER_DISPOSITIONS = {"repair-eligible", "closure-pending", "routed", "closed", "circuit-open"}
+ASSURANCE_RECEIPT_ROLES = {"C", "R", "S", "U", "V"}
+FIXED_RECEIPT_LENSES = {
+    "C": "combined-low-assurance",
+    "R": "integrated-code-risk",
+    "U": "accepted-outcome-reconciliation",
+    "V": "verification-summary",
+}
+CONTROL_PLANE_OPERATIONS = {"safe-checkpoint", "last-verified"}
+CONTROL_PLANE_REASONS = {"budget-exhausted", "ownership-unavailable", "cas-unavailable"}
 PREAUTH_REQUIRED_COUNTERS = {"delegated_calls", "planner_correction_waves", "spike_waves", "command_units"}
 IMPLEMENTATION_REQUIRED_COUNTERS = {"repair_waves", "delegated_calls", "command_units", "cost_units"}
 REQUIRED_PACKAGE_SECTIONS = {
@@ -407,13 +445,13 @@ def main(argv: list[str] | None = None) -> int:
         result = args.func(args)
     except SliceproofError as exc:
         payload: dict[str, Any] = {"ok": False, "command": args.command, "errors": exc.errors}
-        if args.command in {"validate-package-complete", "validate-final"} or exc.advisories:
+        if args.command in {"validate-package-complete", "validate-final", "validate-agentic-completion"} or exc.advisories:
             payload["advisories"] = exc.advisories
         write_json(sys.stderr, payload)
         return 1
     except (OSError, UnicodeError) as exc:
         payload = {"ok": False, "command": args.command, "errors": [f"{args.command}: I/O error: {exc}"]}
-        if args.command in {"validate-package-complete", "validate-final"}:
+        if args.command in {"validate-package-complete", "validate-final", "validate-agentic-completion"}:
             payload["advisories"] = []
         write_json(sys.stderr, payload)
         return 1
@@ -488,6 +526,18 @@ def build_parser() -> argparse.ArgumentParser:
     )
     validate_final.add_argument("tasks", type=Path, help="Path to .tasks/<feature>/tasks.json under the artifact root.")
     validate_final.set_defaults(func=cmd_validate_final)
+
+    validate_completion = subparsers.add_parser(
+        "validate-agentic-completion",
+        parents=[root_options],
+        help="Validate a checkpointed, freeze-scoped final receipt graph without mutating state.",
+    )
+    validate_completion.add_argument(
+        "--feature",
+        required=True,
+        help="Feature slug used to derive Lifecycle State, freeze, and receipt paths.",
+    )
+    validate_completion.set_defaults(func=cmd_validate_agentic_completion)
 
     emit_state_binding = subparsers.add_parser(
         "emit-state-binding",
@@ -632,6 +682,8 @@ ACTION_SCHEMA = ("pattern", ACTION_RE, "safe action token")
 COUNTER_SCHEMA = ("pattern", COUNTER_RE, "safe counter token")
 PACKAGE_ID_SCHEMA = ("pattern", PACKAGE_ID_RE, "WP<N> package id")
 WAVE_ID_SCHEMA = ("pattern", WAVE_ID_RE, "wave-<slug>")
+FREEZE_ID_SCHEMA = ("pattern", FREEZE_ID_RE, "freeze-<slug>")
+LENS_SCHEMA = ("pattern", LENS_RE, "lowercase path-safe lens")
 POSITIVE_INT_SCHEMA = ("rule", lambda value: type(value) is int and value > 0, "positive integer")
 NONNEGATIVE_INT_SCHEMA = ("rule", lambda value: type(value) is int and value >= 0, "non-negative integer")
 NULLABLE_TOKEN_SCHEMA = ("nullable", TOKEN_SCHEMA)
@@ -654,6 +706,49 @@ BUDGET_SCHEMA = ("nullable", {
     "started_at": str,
     "deadline_at": str,
 })
+ARTIFACT_DIGEST_ENTRY_SCHEMA = {"path": str, "digest": DIGEST_SCHEMA}
+SEMANTIC_ARTIFACT_ENTRY_SCHEMA = {
+    "kind": ("enum", {"spec", "registry", "package", "proof", "boundary-report", "slice"}),
+    "path": str,
+    "digest": DIGEST_SCHEMA,
+}
+BOUNDARY_RECEIPT_SCHEMA = {
+    "package": PACKAGE_ID_SCHEMA,
+    "path": str,
+    "digest": DIGEST_SCHEMA,
+}
+FREEZE_FILE_SCHEMA = {
+    "schema_version": ("rule", lambda value: type(value) is int and value == 1, "1"),
+    "kind": ("enum", {"agentic-freeze"}),
+    "id": FREEZE_ID_SCHEMA,
+    "authorization": {"id": TOKEN_SCHEMA, "effective_digest": DIGEST_SCHEMA},
+    "code": {
+        "checkpoint_ref": str,
+        "commit": SHA_SCHEMA,
+        "tree": SHA_SCHEMA,
+        "base_commit": SHA_SCHEMA,
+        "raw_diff_digest": DIGEST_SCHEMA,
+        "clean_status_digest": DIGEST_SCHEMA,
+    },
+    "semantic_artifacts": ("list", SEMANTIC_ARTIFACT_ENTRY_SCHEMA),
+    "runtime_evidence": ("list", ARTIFACT_DIGEST_ENTRY_SCHEMA),
+    "assurance": {
+        "profile": ("enum", ASSURANCE_PROFILES),
+        "package_modes": ("map", PACKAGE_ID_SCHEMA, ("enum", PACKAGE_VERIFICATION_MODES)),
+        "required_boundary_receipts": ("list", BOUNDARY_RECEIPT_SCHEMA),
+        "specialist_lenses": ("list", LENS_SCHEMA),
+    },
+    "serious_clusters_digest": DIGEST_SCHEMA,
+    "command_results": ("list", ARTIFACT_DIGEST_ENTRY_SCHEMA),
+    "frozen_at": str,
+}
+PREDECESSOR_POINTER_SCHEMA = {
+    "role": ("enum", {"F", "C", "R", "S", "U"}),
+    "lens": LENS_SCHEMA,
+    "path": str,
+    "digest": DIGEST_SCHEMA,
+}
+
 LIFECYCLE_JSON_SCHEMA = {
     "schema_version": ("rule", lambda value: type(value) is int and value == 1, "1"),
     "generation": POSITIVE_INT_SCHEMA,
@@ -695,7 +790,19 @@ LIFECYCLE_JSON_SCHEMA = {
             "generation": POSITIVE_INT_SCHEMA,
             "units": ("map", COUNTER_SCHEMA, POSITIVE_INT_SCHEMA),
         }),
-        "control_plane_reserve": {"maximum": NONNEGATIVE_INT_SCHEMA, "issued": NONNEGATIVE_INT_SCHEMA},
+        "control_plane_reserve": {
+            "maximum": NONNEGATIVE_INT_SCHEMA,
+            "issued": NONNEGATIVE_INT_SCHEMA,
+            "reservation": ("nullable", {
+                "id": TOKEN_SCHEMA,
+                "generation": POSITIVE_INT_SCHEMA,
+                "operation": ("enum", CONTROL_PLANE_OPERATIONS),
+                "reason": ("enum", CONTROL_PLANE_REASONS),
+                "expected_parent": SHA_SCHEMA,
+                "checkpoint_digest": NULLABLE_DIGEST_SCHEMA,
+                "conflict_digest": NULLABLE_DIGEST_SCHEMA,
+            }),
+        },
     },
     "packages": ("map", PACKAGE_ID_SCHEMA, {
         "state": ("enum", PACKAGE_LIFECYCLE_STATES), "wave": ("nullable", WAVE_ID_SCHEMA),
@@ -708,12 +815,34 @@ LIFECYCLE_JSON_SCHEMA = {
     }),
     "serious_clusters": ("list", {
         "id": DIGEST_SCHEMA,
+        "accepted_invariant": str,
+        "root_mechanism": str,
+        "architectural_surface": str,
+        "observed_signatures": ("list", DIGEST_SCHEMA),
+        "observed_classes": ("list", ("enum", CLUSTER_CLASSES)),
+        "class": ("enum", CLUSTER_CLASSES),
+        "route": ("enum", set(CLUSTER_ROUTES.values())),
         "strikes": ("enum", {1, 2}),
         "disposition": ("enum", CLUSTER_DISPOSITIONS),
+        "repair": ("nullable", {
+            "root_cause_digest": DIGEST_SCHEMA,
+            "affected_surface_digest": DIGEST_SCHEMA,
+        }),
+        "closure": ("nullable", {
+            "verdict": ("enum", {"PASS", "FAIL"}),
+            "affected_surface_digest": DIGEST_SCHEMA,
+            "evidence_digest": DIGEST_SCHEMA,
+        }),
     }),
-    "freeze": ("nullable", {"id": TOKEN_SCHEMA, "digest": DIGEST_SCHEMA}),
+    "freeze": ("nullable", {
+        "id": FREEZE_ID_SCHEMA, "path": str, "digest": DIGEST_SCHEMA,
+    }),
     "receipts": ("list", {
-        "role": ACTION_SCHEMA, "path": str, "digest": DIGEST_SCHEMA, "freeze_digest?": NULLABLE_DIGEST_SCHEMA,
+        "role": ("enum", ASSURANCE_RECEIPT_ROLES),
+        "lens": LENS_SCHEMA,
+        "path": str,
+        "digest": DIGEST_SCHEMA,
+        "freeze_digest": DIGEST_SCHEMA,
     }),
     "last_verified": ("nullable", {
         "artifact_ref": str,
@@ -957,14 +1086,14 @@ def validate_lifecycle_state_data(
             elif package["wave"] == wave["id"] and package_id not in wave["packages"]:
                 errors.append(f"{label}.wave.packages: missing package {package_id!r} that points to current wave")
 
-    cluster_ids = [cluster["id"] for cluster in state["serious_clusters"]]
-    if len(cluster_ids) != len(set(cluster_ids)):
-        errors.append(f"{label}.serious_clusters: duplicate cluster id")
+    validate_serious_clusters(state["serious_clusters"], errors)
     for package_id in state.get("package_modes", {}):
         if package_id not in packages:
             errors.append(f"{label}.package_modes.{package_id}: package is not present in lifecycle packages")
 
-    validate_receipt_pointers(state["receipts"], artifact_root, feature, errors, verify_files)
+    validate_receipt_pointers(
+        state["freeze"], state["receipts"], artifact_root, feature, errors, verify_files
+    )
     verified = state["last_verified"]
     if generation == 1 and verified is not None:
         errors.append(f"{label}.last_verified: generation 1 must use null")
@@ -1080,9 +1209,102 @@ def validate_lifecycle_transition_authority(
         ])
     transition_errors = compare_lifecycle_states(previous, state)
     transition_errors.extend(validate_artifact_checkpoint_ancestry(artifact_root, previous, state))
+    transition_errors.extend(validate_assurance_paths_append_only(artifact_root, feature, inferred_previous))
+    transition_errors.extend(validate_new_assurance_pointer_paths(
+        artifact_root, inferred_previous, previous, state
+    ))
     if transition_errors:
         raise SliceproofError(transition_errors)
     return generation, inferred_previous, previous_digest
+
+
+def canonical_serious_cluster_id(cluster: dict[str, Any]) -> str:
+    return canonical_json_digest({
+        "accepted_invariant": cluster["accepted_invariant"],
+        "architectural_surface": cluster["architectural_surface"],
+        "root_mechanism": cluster["root_mechanism"],
+    })
+
+
+def validate_serious_clusters(clusters: list[dict[str, Any]], errors: list[str]) -> None:
+    label = "lifecycle-state.json.serious_clusters"
+    ids = [cluster["id"] for cluster in clusters]
+    if len(ids) != len(set(ids)):
+        errors.append(f"{label}: duplicate canonical cluster id")
+    for index, cluster in enumerate(clusters):
+        item_label = f"{label}[{index}]"
+        for field in ("accepted_invariant", "root_mechanism", "architectural_surface"):
+            value = cluster[field]
+            if not value or value != value.strip() or len(value) > 512:
+                errors.append(f"{item_label}.{field}: expected concise canonical non-blank text")
+        if cluster["id"] != canonical_serious_cluster_id(cluster):
+            errors.append(
+                f"{item_label}.id: must derive only from accepted_invariant, root_mechanism, and architectural_surface"
+            )
+        signatures = cluster["observed_signatures"]
+        if not signatures or len(signatures) != len(set(signatures)):
+            errors.append(f"{item_label}.observed_signatures: expected non-empty unique observations")
+        observed_classes = cluster["observed_classes"]
+        if not observed_classes or len(observed_classes) != len(set(observed_classes)):
+            errors.append(f"{item_label}.observed_classes: expected non-empty unique classes")
+        else:
+            strongest_rank = min(CLUSTER_CLASS_PRECEDENCE_RANK[name] for name in observed_classes)
+            selected = cluster["class"]
+            if selected not in observed_classes or CLUSTER_CLASS_PRECEDENCE_RANK[selected] != strongest_rank:
+                errors.append(f"{item_label}.class: must be an observed class at the strongest precedence rank")
+        expected_route = CLUSTER_ROUTES[cluster["class"]]
+        if cluster["route"] != expected_route:
+            errors.append(f"{item_label}.route: class {cluster['class']!r} requires {expected_route!r}")
+
+        strikes = cluster["strikes"]
+        disposition = cluster["disposition"]
+        repair = cluster["repair"]
+        closure = cluster["closure"]
+        if closure is not None and repair is not None and (
+            closure["affected_surface_digest"] != repair["affected_surface_digest"]
+        ):
+            errors.append(f"{item_label}.closure: must bind the repair's exact affected surface")
+        if expected_route == "closure-repair":
+            valid_phase = (
+                (strikes, disposition, repair is None, closure is None) == (1, "repair-eligible", True, True)
+                or (strikes, disposition, repair is not None, closure is None)
+                == (1, "closure-pending", True, True)
+                or (
+                    strikes == 1
+                    and disposition == "closed"
+                    and repair is not None
+                    and closure is not None
+                    and closure["verdict"] == "PASS"
+                )
+                or (
+                    strikes == 2
+                    and disposition == "circuit-open"
+                    and repair is not None
+                    and closure is not None
+                    and closure["verdict"] == "FAIL"
+                )
+            )
+            if not valid_phase:
+                errors.append(
+                    f"{item_label}: closure repair permits one strike-1 repair/PASS closure or strike-2 circuit-open"
+                )
+        else:
+            valid_phase = (
+                strikes == 1
+                and repair is None
+                and (
+                    (disposition == "routed" and closure is None)
+                    or (
+                        disposition == "closed"
+                        and (
+                            (expected_route == "report-only" and closure is None)
+                            or (closure is not None and closure["verdict"] == "PASS")
+                        )
+                    )
+                )
+            )
+            if not valid_phase:
+                errors.append(f"{item_label}: non-repair route cannot consume a repair or closure strike")
 
 
 def validate_lifecycle_budget_invariants(
@@ -1117,6 +1339,56 @@ def validate_lifecycle_budget_invariants(
     control = budgets["control_plane_reserve"]
     if control["maximum"] != 1 or control["issued"] > 1:
         errors.append(f"{label}.control_plane_reserve: expected fixed maximum 1 and issued 0 or 1")
+    control_reservation = control["reservation"]
+    if control_reservation is not None:
+        if control["issued"] != 1:
+            errors.append(f"{label}.control_plane_reserve.reservation: must consume the one control unit")
+        if control_reservation["generation"] != state["generation"]:
+            errors.append(f"{label}.control_plane_reserve.reservation.generation: must equal Lifecycle State generation")
+        if state["stage"] not in {"blocked", "needs-decision"}:
+            errors.append(f"{label}.control_plane_reserve.reservation: escalation requires blocked or needs-decision")
+        if state["budgets"]["active_reservation"] is not None:
+            errors.append(f"{label}.control_plane_reserve.reservation: cannot coexist with a semantic reservation")
+        if state["last_verified"] is None:
+            errors.append(f"{label}.control_plane_reserve.reservation: requires exact last_verified fallback")
+        elif control_reservation["expected_parent"] != state["last_verified"]["artifact_sha"]:
+            errors.append(f"{label}.control_plane_reserve.reservation.expected_parent: must equal last_verified artifact sha")
+        operation = control_reservation["operation"]
+        checkpoint = control_reservation["checkpoint_digest"]
+        conflict = control_reservation["conflict_digest"]
+        if operation == "safe-checkpoint":
+            if checkpoint is None or conflict is not None or state["owner"]["disposition"] != "active":
+                errors.append(
+                    f"{label}.control_plane_reserve.reservation: safe-checkpoint requires active ownership, checkpoint digest, and no conflict"
+                )
+        elif checkpoint is not None or conflict is None:
+            errors.append(
+                f"{label}.control_plane_reserve.reservation: last-verified requires conflict digest and no checkpoint mutation"
+            )
+        if control_reservation["reason"] in {"ownership-unavailable", "cas-unavailable"} and operation != "last-verified":
+            errors.append(
+                f"{label}.control_plane_reserve.reservation: ownership/CAS loss must use last-verified without takeover"
+            )
+        if control_reservation["reason"] == "budget-exhausted":
+            implementation = budgets["implementation"]
+            exhausted = implementation is not None and any(
+                maximum > 0 and implementation["issued"][counter] == maximum
+                for counter, maximum in implementation["maxima"].items()
+            )
+            if not exhausted:
+                errors.append(f"{label}.control_plane_reserve.reservation: budget-exhausted requires an exhausted counter")
+
+    implementation = budgets["implementation"]
+    profile = state.get("assurance_profile")
+    if implementation is not None and profile in ASSURANCE_PROFILES:
+        repair_maximum = implementation["maxima"].get("repair_waves")
+        if profile == "low" and repair_maximum is not None and repair_maximum > 1:
+            errors.append(f"{label}.implementation.maxima.repair_waves: low profile maximum is 1")
+        if profile == "standard" and repair_maximum is not None and repair_maximum > 2:
+            errors.append(f"{label}.implementation.maxima.repair_waves: standard profile maximum is 2")
+        has_root_cause_repair = any(cluster["repair"] is not None for cluster in state["serious_clusters"])
+        if has_root_cause_repair and implementation["issued"].get("repair_waves", 0) < 1:
+            errors.append(f"{label}.implementation.issued.repair_waves: cluster repair must consume a wave")
 
     reservation = budgets["active_reservation"]
     if reservation is None:
@@ -1139,37 +1411,95 @@ def validate_lifecycle_budget_invariants(
             errors.append(f"{label}.active_reservation.units.{counter}: reservation is not already charged")
 
 
+def canonical_freeze_directory(feature: str, freeze_id: str) -> str:
+    return f".tasks/{feature}/assurance/{freeze_id}"
+
+
+def canonical_freeze_path(feature: str, freeze_id: str) -> str:
+    return f"{canonical_freeze_directory(feature, freeze_id)}/freeze.json"
+
+
+def canonical_receipt_path(feature: str, freeze_id: str, role: str, lens: str) -> str:
+    base = canonical_freeze_directory(feature, freeze_id)
+    if role == "C":
+        return f"{base}/combined.json"
+    if role == "R":
+        return f"{base}/review.json"
+    if role == "S":
+        return f"{base}/specialists/{lens}.json"
+    if role == "U":
+        return f"{base}/audit.json"
+    if role == "V":
+        return f"{base}/verification-summary.json"
+    raise ValueError(f"unsupported assurance receipt role {role!r}")
+
+
 def validate_receipt_pointers(
+    freeze: dict[str, Any] | None,
     receipts: list[dict[str, Any]],
     artifact_root: Path,
     feature: str,
     errors: list[str],
     verify_files: bool,
 ) -> None:
-    label = "lifecycle-state.json.receipts"
-    seen: set[tuple[str, str]] = set()
+    label = "lifecycle-state.json"
+    if freeze is None:
+        if receipts:
+            errors.append(f"{label}.receipts: receipt pointers require a freeze")
+        return
+    expected_freeze_path = canonical_freeze_path(feature, freeze["id"])
+    try:
+        repo_relative_path(freeze["path"], f"{label}.freeze.path")
+    except SliceproofError as exc:
+        errors.extend(exc.errors)
+    if freeze["path"] != expected_freeze_path:
+        errors.append(f"{label}.freeze.path: expected canonical path {expected_freeze_path!r}")
+    elif verify_files:
+        validate_pointer_file(artifact_root, freeze["path"], freeze["digest"], f"{label}.freeze", errors)
+
+    seen_roles: set[str] = set()
+    seen_lenses: set[str] = set()
     for index, receipt in enumerate(receipts):
-        item_label = f"{label}[{index}]"
+        item_label = f"{label}.receipts[{index}]"
+        role, lens = receipt["role"], receipt["lens"]
+        if role in seen_roles and role != "S":
+            errors.append(f"{label}.receipts: duplicate singleton role {role}")
+        seen_roles.add(role)
+        if lens in seen_lenses:
+            errors.append(f"{label}.receipts: duplicate receipt lens {lens!r}")
+        seen_lenses.add(lens)
+        fixed_lens = FIXED_RECEIPT_LENSES.get(role)
+        if fixed_lens is not None and lens != fixed_lens:
+            errors.append(f"{item_label}.lens: role {role} requires {fixed_lens!r}")
+        if role == "S" and lens in set(FIXED_RECEIPT_LENSES.values()):
+            errors.append(f"{item_label}.lens: specialist cannot reuse a canonical final-role lens")
+        expected_path = canonical_receipt_path(feature, freeze["id"], role, lens)
         try:
-            path = repo_relative_path(receipt["path"], f"{item_label}.path")
+            repo_relative_path(receipt["path"], f"{item_label}.path")
         except SliceproofError as exc:
             errors.extend(exc.errors)
-            continue
-        if len(path.parts) < 3 or path.parts[:2] != (".tasks", feature):
-            errors.append(f"{item_label}.path: must remain under .tasks/{feature}/")
-            continue
-        key = (receipt["role"], receipt["path"])
-        if key in seen:
-            errors.append(f"{label}: duplicate role/path pointer {key!r}")
-        seen.add(key)
-        if verify_files:
-            try:
-                receipt_path = resolve_authority_file(artifact_root, receipt["path"], f"{item_label}.path")
-            except SliceproofError as exc:
-                errors.extend(exc.errors)
-            else:
-                if digest_bytes(receipt_path.read_bytes()) != receipt["digest"]:
-                    errors.append(f"{item_label}.digest: does not match current receipt file")
+        if receipt["path"] != expected_path:
+            errors.append(f"{item_label}.path: expected canonical path {expected_path!r}")
+        elif verify_files:
+            validate_pointer_file(artifact_root, receipt["path"], receipt["digest"], item_label, errors)
+        if receipt["freeze_digest"] != freeze["digest"]:
+            errors.append(f"{item_label}.freeze_digest: must match the active freeze")
+
+
+def validate_pointer_file(
+    artifact_root: Path,
+    path: str,
+    expected_digest: str,
+    label: str,
+    errors: list[str],
+) -> None:
+    try:
+        pointer_path = resolve_authority_file(artifact_root, path, f"{label}.path")
+    except SliceproofError as exc:
+        errors.extend(exc.errors)
+        return
+    if digest_bytes(pointer_path.read_bytes()) != expected_digest:
+        errors.append(f"{label}.digest: does not match current file")
 
 
 def technical_amendment_effective_digest(parent: str, amendment: str, artifact_sha: str) -> str:
@@ -1395,22 +1725,65 @@ def compare_lifecycle_states(previous: dict[str, Any], current: dict[str, Any]) 
 
     previous_clusters = {item["id"]: item for item in previous["serious_clusters"]}
     current_clusters = {item["id"]: item for item in current["serious_clusters"]}
+    for cluster_id in sorted(set(current_clusters) - set(previous_clusters)):
+        new_cluster = current_clusters[cluster_id]
+        if new_cluster["strikes"] != 1:
+            errors.append(f"lifecycle transition: new serious cluster {cluster_id} must start at strike 1")
+        if new_cluster["route"] == "closure-repair" and (
+            new_cluster["disposition"] != "repair-eligible"
+            or new_cluster["repair"] is not None
+            or new_cluster["closure"] is not None
+        ):
+            errors.append(
+                f"lifecycle transition: new eligible serious cluster {cluster_id} starts with exactly one repair authorization"
+            )
     for cluster_id, old in previous_clusters.items():
         new = current_clusters.get(cluster_id)
         if new is None:
             errors.append(f"lifecycle transition: serious cluster {cluster_id} cannot disappear")
             continue
+        for field in ("accepted_invariant", "root_mechanism", "architectural_surface"):
+            if new[field] != old[field]:
+                errors.append(f"lifecycle transition: serious cluster {cluster_id} canonical identity is immutable")
+        if new["observed_signatures"][:len(old["observed_signatures"])] != old["observed_signatures"]:
+            errors.append(f"lifecycle transition: serious cluster {cluster_id} observed signatures are append-only")
+        if new["observed_classes"][:len(old["observed_classes"])] != old["observed_classes"]:
+            errors.append(f"lifecycle transition: serious cluster {cluster_id} observed classes are append-only")
         if new["strikes"] < old["strikes"]:
             errors.append(f"lifecycle transition: serious cluster {cluster_id} strikes cannot decrease")
-        if old["disposition"] in {"closed", "circuit-open"} and new["disposition"] != old["disposition"]:
-            errors.append(f"lifecycle transition: serious cluster {cluster_id} terminal disposition is immutable")
+        if old["repair"] is not None and new["repair"] != old["repair"]:
+            errors.append(f"lifecycle transition: serious cluster {cluster_id} has exactly one immutable repair")
+        if old["closure"] is not None and new["closure"] != old["closure"]:
+            errors.append(f"lifecycle transition: serious cluster {cluster_id} has exactly one immutable closure")
+        if old["disposition"] in {"closed", "circuit-open"} and new != old:
+            errors.append(
+                f"lifecycle transition: serious cluster {cluster_id} terminal disposition is immutable; terminal lineage cannot change"
+            )
 
-    if previous["freeze"] == current["freeze"]:
-        old_receipts = {(item["role"], item["path"]): item for item in previous["receipts"]}
-        new_receipts = {(item["role"], item["path"]): item for item in current["receipts"]}
+    old_freeze, new_freeze = previous["freeze"], current["freeze"]
+    if old_freeze is not None and new_freeze is None:
+        errors.append("lifecycle transition: freeze pointer cannot disappear")
+    elif old_freeze is not None and new_freeze is not None and old_freeze["id"] == new_freeze["id"]:
+        if old_freeze != new_freeze:
+            errors.append("lifecycle transition: same-freeze pointer cannot mutate")
+        old_receipts = {(item["role"], item["lens"]): item for item in previous["receipts"]}
+        new_receipts = {(item["role"], item["lens"]): item for item in current["receipts"]}
         for key, old in old_receipts.items():
             if new_receipts.get(key) != old:
                 errors.append(f"lifecycle transition: receipt pointer {key!r} cannot mutate under the same freeze")
+    elif old_freeze is not None and new_freeze is not None and old_freeze["path"] == new_freeze["path"]:
+        errors.append("lifecycle transition: a new freeze requires a new canonical path")
+
+    control_reservation = current["budgets"]["control_plane_reserve"]["reservation"]
+    if control_reservation is not None and control_reservation["operation"] == "last-verified":
+        if current["owner"] != previous["owner"] or current["owner"].get("takeover") != previous["owner"].get("takeover"):
+            errors.append("lifecycle transition: last-verified escalation cannot mutate ownership or take over")
+        preserved_fields = (
+            "artifact_checkpoint", "code_checkpoint", "authorization", "packages", "wave",
+            "serious_clusters", "freeze", "receipts", "assurance_profile", "package_modes",
+        )
+        if any(current.get(field) != previous.get(field) for field in preserved_fields):
+            errors.append("lifecycle transition: last-verified escalation cannot mutate semantic/checkpoint state")
     return errors
 
 
@@ -1527,6 +1900,64 @@ def validate_artifact_checkpoint_ancestry(
     return [f"lifecycle transition: unable to verify artifact checkpoint ancestry: {detail}"]
 
 
+def validate_assurance_paths_append_only(
+    artifact_root: Path, feature: str, previous_commit: str
+) -> list[str]:
+    pathspec = f".tasks/{feature}/assurance"
+    try:
+        changed = git_output(
+            artifact_root,
+            ["diff", "--name-status", "--no-renames", previous_commit, "--", pathspec],
+            "lifecycle transition: freeze-scoped paths",
+        )
+    except SliceproofError as exc:
+        return exc.errors
+    errors: list[str] = []
+    for line in changed.splitlines():
+        fields = line.split("\t", 1)
+        if len(fields) != 2 or fields[0] != "A":
+            errors.append(
+                "lifecycle transition: freeze-scoped files are append-only across freezes; "
+                f"observed {line!r}"
+            )
+    return errors
+
+
+def validate_new_assurance_pointer_paths(
+    artifact_root: Path,
+    previous_commit: str,
+    previous: dict[str, Any],
+    current: dict[str, Any],
+) -> list[str]:
+    candidates: list[str] = []
+    old_freeze, new_freeze = previous["freeze"], current["freeze"]
+    if new_freeze is not None and (old_freeze is None or new_freeze["id"] != old_freeze["id"]):
+        candidates.append(new_freeze["path"])
+    old_nodes = {
+        (item["role"], item["lens"]): item["path"] for item in previous["receipts"]
+    }
+    candidates.extend(
+        item["path"] for item in current["receipts"]
+        if old_nodes.get((item["role"], item["lens"])) != item["path"]
+    )
+    errors: list[str] = []
+    for path in sorted(set(candidates)):
+        try:
+            existing = git_output(
+                artifact_root,
+                ["ls-tree", previous_commit, "--", path],
+                "lifecycle transition: new freeze-scoped path",
+            ).strip()
+        except SliceproofError as exc:
+            errors.extend(exc.errors)
+            continue
+        if existing:
+            errors.append(
+                f"lifecycle transition: new freeze/receipt pointer cannot reuse prior path {path!r}"
+            )
+    return errors
+
+
 def checkpoint_ref_generation(ref: str) -> int:
     return int(ref.rsplit("/g", 1)[1])
 
@@ -1554,6 +1985,18 @@ def compare_lifecycle_budgets(previous: dict[str, Any], current: dict[str, Any])
         errors.append("lifecycle transition: control-plane reserve maximum is fixed")
     if new_control["issued"] < old_control["issued"]:
         errors.append("lifecycle transition: control-plane reserve issued usage cannot decrease")
+    old_control_reservation = old_control.get("reservation")
+    new_control_reservation = new_control.get("reservation")
+    if (
+        old_control_reservation is not None
+        and new_control_reservation is not None
+        and old_control_reservation["id"] == new_control_reservation["id"]
+        and old_control_reservation != new_control_reservation
+    ):
+        errors.append("lifecycle transition: control-plane reservation cannot mutate under the same id")
+    if old_control_reservation is None and new_control_reservation is not None:
+        if new_control["issued"] - old_control["issued"] != 1:
+            errors.append("lifecycle transition: control-plane reservation must consume the one issued unit")
 
     old_reservation, new_reservation = previous.get("active_reservation"), current.get("active_reservation")
     if old_reservation and new_reservation and old_reservation["id"] == new_reservation["id"]:
@@ -1728,6 +2171,10 @@ def parse_aware_iso8601(value: Any, label: str, errors: list[str]) -> datetime |
         errors.append(f"{label}: expected timezone-aware ISO-8601 timestamp")
         return None
     return parsed
+
+
+def canonical_json_bytes(value: Any) -> bytes:
+    return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8") + b"\n"
 
 
 def canonical_json_digest(value: Any) -> str:
@@ -1985,6 +2432,576 @@ def cmd_validate_final(args: argparse.Namespace) -> dict[str, Any]:
         "post_freeze_assurance_validated": False,
         "advisories": advisories,
     }
+
+
+def cmd_validate_agentic_completion(args: argparse.Namespace) -> dict[str, Any]:
+    if args.artifact_root is None or args.code_root is None:
+        raise SliceproofError([
+            "validate-agentic-completion: --artifact-root and --code-root are required"
+        ])
+    if not FEATURE_RE.fullmatch(args.feature):
+        raise SliceproofError(["--feature: expected lowercase slug with letters, digits, and hyphens"])
+    cwd = Path.cwd().resolve(strict=False)
+    artifact_root = resolve_cli_root(args.artifact_root, cwd, "--artifact-root")
+    code_root = resolve_cli_root(args.code_root, cwd, "--code-root")
+    if artifact_root == code_root:
+        raise SliceproofError(["validate-agentic-completion: artifact root and code root must be distinct"])
+    require_exact_git_root(artifact_root, "artifact root")
+    require_exact_git_root(code_root, "code root")
+
+    state_relative = f".tasks/{args.feature}/lifecycle-state.json"
+    state_path = resolve_authority_file(artifact_root, state_relative, "Lifecycle State")
+    state = load_strict_json_file(state_path, "Lifecycle State")
+    if not isinstance(state, dict):
+        raise SliceproofError(["Lifecycle State: root must be an object"])
+    generation, previous_commit, _previous_digest = validate_lifecycle_transition_authority(
+        state,
+        artifact_root=artifact_root,
+        code_root=code_root,
+        feature=args.feature,
+        relative_path=state_relative,
+        previous_commit=None,
+        infer_previous=True,
+    )
+
+    prefreeze = cmd_validate_final(argparse.Namespace(
+        tasks=Path(f".tasks/{args.feature}/tasks.json"),
+        artifact_root=artifact_root,
+        code_root=code_root,
+    ))
+    registry, _packages = load_and_validate_plan(
+        Path(f".tasks/{args.feature}/tasks.json"),
+        artifact_root=artifact_root,
+        code_root=code_root,
+    )
+    errors, result = validate_agentic_completion_data(
+        state,
+        registry=registry,
+        artifact_root=artifact_root,
+        code_root=code_root,
+        state_relative=state_relative,
+    )
+    if errors:
+        raise SliceproofError(errors, prefreeze.get("advisories", []))
+    return {
+        "artifact_root": str(artifact_root),
+        "code_root": str(code_root),
+        "feature": args.feature,
+        "schema_version": state["schema_version"],
+        "generation": generation,
+        "previous_commit": previous_commit,
+        "profile": state["assurance_profile"],
+        "freeze": result["freeze"],
+        "lifecycle_artifact_checkpoint": result["lifecycle_artifact_checkpoint"],
+        "verification_summary_checkpoint": result["verification_summary_checkpoint"],
+        "code_checkpoint": result["code_checkpoint"],
+        "receipts": result["receipts"],
+        "completion_timestamp": result["completion_timestamp"],
+        "semantic_artifact_count": result["semantic_artifact_count"],
+        "pre_freeze_package_equation_validated": True,
+        "post_freeze_assurance_validated": True,
+        "advisories": prefreeze.get("advisories", []),
+    }
+
+
+def validate_agentic_completion_data(
+    state: dict[str, Any],
+    *,
+    registry: Registry,
+    artifact_root: Path,
+    code_root: Path,
+    state_relative: str,
+) -> tuple[list[str], dict[str, Any]]:
+    label = "validate-agentic-completion"
+    errors: list[str] = []
+    if state["stage"] != "completed":
+        errors.append(f"{label}: Lifecycle State stage must be 'completed'")
+    if state["quiescent"] is not True:
+        errors.append(f"{label}: completed state must be quiescent")
+    if state["next_legal_actions"]:
+        errors.append(f"{label}: completed state cannot name a next lifecycle action")
+    if state["budgets"]["active_reservation"] is not None:
+        errors.append(f"{label}: completion cannot retain an active semantic reservation")
+    if state["budgets"]["control_plane_reserve"]["reservation"] is not None:
+        errors.append(f"{label}: completion cannot be an escalation reservation")
+    if state["wave"] is not None and state["wave"]["state"] != "completed":
+        errors.append(f"{label}: completion cannot retain an active or blocked wave")
+    incomplete = sorted(
+        package_id for package_id, package in state["packages"].items()
+        if package["state"] != "done"
+    )
+    if incomplete:
+        errors.append(f"{label}: all lifecycle packages must be done; incomplete {incomplete}")
+    open_clusters = sorted(
+        cluster["id"] for cluster in state["serious_clusters"]
+        if cluster["disposition"] != "closed"
+    )
+    if open_clusters:
+        errors.append(f"{label}: serious clusters must be closed with no open circuit; open {open_clusters}")
+
+    freeze_pointer = state["freeze"]
+    if freeze_pointer is None:
+        errors.append(f"{label}: completed state requires an immutable freeze pointer")
+        return errors, {}
+    freeze = load_canonical_assurance_json(
+        artifact_root, freeze_pointer["path"], "freeze F", errors
+    )
+    if freeze is None:
+        return errors, {}
+    validate_json_shape(freeze, FREEZE_FILE_SCHEMA, "freeze F", errors)
+    if errors:
+        return errors, {}
+    if freeze_pointer["digest"] != digest_bytes(canonical_json_bytes(freeze)):
+        errors.append(f"{label}: Lifecycle State freeze digest does not bind canonical F")
+    if freeze["id"] != freeze_pointer["id"]:
+        errors.append(f"{label}: freeze id does not match Lifecycle State pointer")
+
+    authorization = state["authorization"]
+    if freeze["authorization"] != {
+        "id": authorization["id"], "effective_digest": authorization["effective_digest"]
+    }:
+        errors.append(f"{label}: freeze authorization lineage does not match Lifecycle State")
+    assurance = freeze["assurance"]
+    if assurance["profile"] != state["assurance_profile"]:
+        errors.append(f"{label}: freeze profile does not match Lifecycle State")
+    if assurance["package_modes"] != state["package_modes"]:
+        errors.append(f"{label}: freeze package modes do not match Lifecycle State")
+
+    manifest, manifest_errors = expected_semantic_artifact_manifest(registry)
+    errors.extend(manifest_errors)
+    if freeze["semantic_artifacts"] != manifest:
+        errors.append(
+            f"{label}: freeze semantic artifact manifest must exactly bind SPEC/registry/packages/proofs/"
+            "boundary reports/Slices and exclude Lifecycle State/post-freeze outputs"
+        )
+    boundary_receipts = expected_boundary_receipts(registry, errors)
+    if assurance["required_boundary_receipts"] != boundary_receipts:
+        errors.append(f"{label}: freeze required B[*] pointers do not match boundary package routing")
+    post_paths = {receipt["path"] for receipt in state["receipts"]}
+    if any(item["path"] in post_paths for item in assurance["required_boundary_receipts"]):
+        errors.append(f"{label}: a receipt role cannot appear on both sides of F")
+
+    validate_freeze_artifact_digests(
+        artifact_root,
+        freeze["runtime_evidence"],
+        "freeze F.runtime_evidence",
+        errors,
+        require_nonempty=False,
+    )
+    validate_freeze_artifact_digests(
+        artifact_root,
+        freeze["command_results"],
+        "freeze F.command_results",
+        errors,
+        require_nonempty=True,
+    )
+    evidence_paths = [item["path"] for item in freeze["runtime_evidence"]]
+    command_paths = [item["path"] for item in freeze["command_results"]]
+    semantic_paths = {item["path"] for item in freeze["semantic_artifacts"]}
+    if set(evidence_paths) & set(command_paths):
+        errors.append(f"{label}: runtime evidence and command-result paths must have one canonical owner")
+    if semantic_paths & (set(evidence_paths) | set(command_paths)):
+        errors.append(f"{label}: semantic artifacts and execution outputs must have distinct manifest roles")
+    if freeze["serious_clusters_digest"] != canonical_json_digest(state["serious_clusters"]):
+        errors.append(f"{label}: freeze serious cluster digest does not match terminal cluster state")
+
+    code = freeze["code"]
+    validate_completion_code_identity(state, code, code_root, errors)
+    frozen_at = parse_aware_iso8601(freeze["frozen_at"], "freeze F.frozen_at", errors)
+    graph, completion_at = validate_completion_receipt_graph(
+        state,
+        freeze,
+        artifact_root,
+        frozen_at,
+        errors,
+    )
+    implementation_budget = state["budgets"]["implementation"]
+    if implementation_budget is None:
+        errors.append(f"{label}: finite implementation budget is required")
+    else:
+        if freeze["command_results"] and implementation_budget["issued"]["command_units"] < 1:
+            errors.append(f"{label}: bound command results must consume finite implementation command units")
+        if state["receipts"] and implementation_budget["issued"]["delegated_calls"] < 1:
+            errors.append(f"{label}: final assurance receipts must consume finite delegated-call units")
+    if implementation_budget is not None and completion_at is not None:
+        started_at = parse_aware_iso8601(
+            implementation_budget["started_at"],
+            "lifecycle-state.json.budgets.implementation.started_at",
+            errors,
+        )
+        deadline_at = parse_aware_iso8601(
+            implementation_budget["deadline_at"],
+            "lifecycle-state.json.budgets.implementation.deadline_at",
+            errors,
+        )
+        if started_at is not None and frozen_at is not None and frozen_at < started_at:
+            errors.append(f"{label}: F timestamp predates implementation authorization")
+        if started_at is not None and completion_at < started_at:
+            errors.append(f"{label}: V completion timestamp predates implementation authorization")
+        if deadline_at is not None and completion_at > deadline_at:
+            errors.append(f"{label}: V completion timestamp exceeds the fixed authorized deadline")
+
+    validate_verification_summary_checkpoint(
+        state,
+        artifact_root,
+        state_relative,
+        freeze_pointer,
+        freeze,
+        graph,
+        errors,
+    )
+    artifact_head = git_output(
+        artifact_root, ["rev-parse", "HEAD^{commit}"], "validate-agentic-completion: artifact HEAD"
+    ).strip()
+    artifact_tree = git_output(
+        artifact_root, ["rev-parse", "HEAD^{tree}"], "validate-agentic-completion: artifact tree"
+    ).strip()
+    return errors, {
+        "freeze": freeze_pointer,
+        "lifecycle_artifact_checkpoint": state["artifact_checkpoint"],
+        "verification_summary_checkpoint": {
+            "ref": state["artifact_checkpoint"]["ref"],
+            "commit": artifact_head,
+            "tree": artifact_tree,
+        },
+        "code_checkpoint": freeze["code"],
+        "receipts": [
+            {"role": item["role"], "lens": item["lens"], "path": item["path"], "digest": item["digest"]}
+            for item in state["receipts"]
+        ],
+        "completion_timestamp": None if completion_at is None else completion_at.isoformat(),
+        "semantic_artifact_count": len(manifest),
+    }
+
+
+def expected_semantic_artifact_manifest(registry: Registry) -> tuple[list[dict[str, str]], list[str]]:
+    entries: list[tuple[str, str]] = [
+        ("spec", registry.data["spec_path"]),
+        ("registry", f".tasks/{registry.feature}/tasks.json"),
+    ]
+    entries.extend(("slice", path) for path in registry.authoritative_slices)
+    for package in registry.packages:
+        entries.extend((("package", package.path), ("proof", package.proof_path)))
+        if package.verification_mode == "boundary" and package.report_path is not None:
+            entries.append(("boundary-report", package.report_path))
+    result: list[dict[str, str]] = []
+    errors: list[str] = []
+    for kind, path in sorted(entries, key=lambda item: (item[0], item[1])):
+        try:
+            artifact = resolve_authority_file(registry.root, path, f"semantic artifact {path}")
+        except SliceproofError as exc:
+            errors.extend(exc.errors)
+            continue
+        result.append({"kind": kind, "path": path, "digest": digest_bytes(artifact.read_bytes())})
+    return result, errors
+
+
+def expected_boundary_receipts(registry: Registry, errors: list[str]) -> list[dict[str, str]]:
+    result: list[dict[str, str]] = []
+    for package in registry.packages:
+        if package.verification_mode != "boundary" or package.report_path is None:
+            continue
+        try:
+            report = resolve_authority_file(
+                registry.root, package.report_path, f"boundary receipt {package.package_id}"
+            )
+        except SliceproofError as exc:
+            errors.extend(exc.errors)
+            continue
+        result.append({
+            "package": package.package_id,
+            "path": package.report_path,
+            "digest": digest_bytes(report.read_bytes()),
+        })
+    return sorted(result, key=lambda item: item["package"])
+
+
+def validate_freeze_artifact_digests(
+    artifact_root: Path,
+    entries: list[dict[str, str]],
+    label: str,
+    errors: list[str],
+    *,
+    require_nonempty: bool,
+) -> None:
+    if require_nonempty and not entries:
+        errors.append(f"{label}: expected at least one bound command result")
+    paths = [item["path"] for item in entries]
+    if paths != sorted(paths) or len(paths) != len(set(paths)):
+        errors.append(f"{label}: paths must be unique and canonically sorted")
+    for index, item in enumerate(entries):
+        item_label = f"{label}[{index}]"
+        if item["path"].endswith("/lifecycle-state.json") or "/assurance/" in item["path"]:
+            errors.append(f"{item_label}.path: Lifecycle State and post-freeze outputs are excluded")
+            continue
+        validate_pointer_file(artifact_root, item["path"], item["digest"], item_label, errors)
+
+
+def validate_completion_code_identity(
+    state: dict[str, Any], code: dict[str, str], code_root: Path, errors: list[str]
+) -> None:
+    label = "validate-agentic-completion: freeze code"
+    checkpoint = state["code_checkpoint"]
+    if checkpoint is None or (
+        code["checkpoint_ref"] != checkpoint["ref"] or code["commit"] != checkpoint["sha"]
+    ):
+        errors.append(f"{label}: must equal the exact Lifecycle State code checkpoint/ref")
+    require_git_commit(code_root, code["commit"], f"{label}.commit", errors)
+    require_git_commit(code_root, code["base_commit"], f"{label}.base_commit", errors)
+    require_git_tree(code_root, code["tree"], f"{label}.tree", errors)
+    actual_tree = git_commit_tree(code_root, code["commit"], f"{label}.commit", errors)
+    if actual_tree is not None and actual_tree != code["tree"]:
+        errors.append(f"{label}.tree: does not match exact code commit")
+    require_git_ref_at_commit(
+        code_root, code["checkpoint_ref"], code["commit"], f"{label}.checkpoint_ref", errors
+    )
+    errors.extend(validate_worktree_head_and_clean(code_root, code["commit"], label))
+    try:
+        clean = git_output_bytes(
+            code_root,
+            ["status", "--porcelain=v1", "-z", "--untracked-files=all"],
+            label,
+        )
+        if clean:
+            errors.append(f"{label}: exact clean-status identity is not clean")
+        if digest_bytes(clean) != code["clean_status_digest"]:
+            errors.append(f"{label}.clean_status_digest: does not match current exact status")
+        if raw_git_diff_identity(
+            code_root, code["base_commit"], code["commit"], f"{label}.raw_diff_digest"
+        ) != code["raw_diff_digest"]:
+            errors.append(f"{label}.raw_diff_digest: does not match exact base-to-commit raw diff")
+        ancestry = git_process(
+            code_root, ["merge-base", "--is-ancestor", code["base_commit"], code["commit"]], label
+        )
+        if ancestry.returncode != 0:
+            errors.append(f"{label}.base_commit: must be an ancestor of the frozen commit")
+    except SliceproofError as exc:
+        errors.extend(exc.errors)
+
+
+def load_canonical_assurance_json(
+    artifact_root: Path, path: str, label: str, errors: list[str]
+) -> dict[str, Any] | None:
+    try:
+        resolved = resolve_authority_file(artifact_root, path, label)
+        raw = resolved.read_bytes()
+        data = load_strict_json_text(raw.decode("utf-8"), label)
+    except (SliceproofError, UnicodeError) as exc:
+        if isinstance(exc, SliceproofError):
+            errors.extend(exc.errors)
+        else:
+            errors.append(f"{label}: expected UTF-8 canonical JSON")
+        return None
+    if not isinstance(data, dict):
+        errors.append(f"{label}: root must be an object")
+        return None
+    if raw != canonical_json_bytes(data):
+        errors.append(f"{label}: file must use canonical sorted-key compact JSON with one trailing newline")
+    return data
+
+
+def predecessor_pointer(role: str, lens: str, path: str, digest: str) -> dict[str, str]:
+    return {"role": role, "lens": lens, "path": path, "digest": digest}
+
+
+def validate_completion_receipt_graph(
+    state: dict[str, Any],
+    freeze: dict[str, Any],
+    artifact_root: Path,
+    frozen_at: datetime | None,
+    errors: list[str],
+) -> tuple[list[dict[str, Any]], datetime | None]:
+    label = "validate-agentic-completion: receipt graph"
+    profile = freeze["assurance"]["profile"]
+    lenses = freeze["assurance"]["specialist_lenses"]
+    if lenses != sorted(lenses) or len(lenses) != len(set(lenses)):
+        errors.append(f"{label}: specialist lenses must be unique and canonically sorted")
+    if any(lens in set(FIXED_RECEIPT_LENSES.values()) for lens in lenses):
+        errors.append(f"{label}: specialist lenses cannot overlap canonical C/R/U/V ownership")
+    if profile != "high" and lenses:
+        errors.append(f"{label}: only high profile may own final specialist lenses")
+
+    expected_nodes: list[tuple[str, str]]
+    if profile == "low":
+        expected_nodes = [("C", FIXED_RECEIPT_LENSES["C"]), ("V", FIXED_RECEIPT_LENSES["V"])]
+    elif profile == "standard":
+        expected_nodes = [
+            ("R", FIXED_RECEIPT_LENSES["R"]),
+            ("U", FIXED_RECEIPT_LENSES["U"]),
+            ("V", FIXED_RECEIPT_LENSES["V"]),
+        ]
+    else:
+        expected_nodes = [
+            ("R", FIXED_RECEIPT_LENSES["R"]),
+            *(("S", lens) for lens in lenses),
+            ("U", FIXED_RECEIPT_LENSES["U"]),
+            ("V", FIXED_RECEIPT_LENSES["V"]),
+        ]
+    actual_nodes = [(item["role"], item["lens"]) for item in state["receipts"]]
+    if actual_nodes != expected_nodes:
+        errors.append(
+            f"{label}: {profile} profile requires exact roles/lenses {expected_nodes!r}; got {actual_nodes!r}"
+        )
+
+    freeze_pointer = predecessor_pointer(
+        "F", "freeze", state["freeze"]["path"], state["freeze"]["digest"]
+    )
+    pointer_by_node = {
+        (item["role"], item["lens"]): predecessor_pointer(
+            item["role"], item["lens"], item["path"], item["digest"]
+        )
+        for item in state["receipts"]
+    }
+    receipt_data: dict[tuple[str, str], dict[str, Any]] = {}
+    receipt_times: dict[tuple[str, str], datetime] = {}
+    graph: list[dict[str, Any]] = []
+    for pointer in state["receipts"]:
+        node = (pointer["role"], pointer["lens"])
+        data = load_canonical_assurance_json(artifact_root, pointer["path"], f"receipt {node}", errors)
+        if data is None:
+            continue
+        if digest_bytes(canonical_json_bytes(data)) != pointer["digest"]:
+            errors.append(f"receipt {node}: pointer digest does not match canonical receipt")
+        schema = receipt_file_schema(pointer["role"])
+        before_shape = len(errors)
+        validate_json_shape(data, schema, f"receipt {node}", errors)
+        if len(errors) != before_shape:
+            continue
+        if data["role"] != pointer["role"] or data["lens"] != pointer["lens"]:
+            errors.append(f"receipt {node}: file role/lens does not match Lifecycle State pointer")
+        if data["freeze_id"] != freeze["id"] or data["freeze_digest"] != state["freeze"]["digest"]:
+            errors.append(f"receipt {node}: cross-freeze binding is forbidden")
+        if data["authorization"] != freeze["authorization"]:
+            errors.append(f"receipt {node}: authorization lineage does not match F")
+        recorded = parse_aware_iso8601(data["recorded_at"], f"receipt {node}.recorded_at", errors)
+        if recorded is not None:
+            receipt_times[node] = recorded
+        receipt_data[node] = data
+        graph.append(data)
+
+    def pointer(role: str, lens: str) -> dict[str, str] | None:
+        value = pointer_by_node.get((role, lens))
+        if value is None:
+            errors.append(f"{label}: missing predecessor pointer {(role, lens)!r}")
+        return value
+
+    expected_predecessors: dict[tuple[str, str], list[dict[str, str] | None]] = {}
+    if profile == "low":
+        expected_predecessors[("C", FIXED_RECEIPT_LENSES["C"])] = [freeze_pointer]
+        expected_predecessors[("V", FIXED_RECEIPT_LENSES["V"])] = [
+            freeze_pointer, pointer("C", FIXED_RECEIPT_LENSES["C"])
+        ]
+    else:
+        review = pointer("R", FIXED_RECEIPT_LENSES["R"])
+        expected_predecessors[("R", FIXED_RECEIPT_LENSES["R"])] = [freeze_pointer]
+        specialist_pointers = [pointer("S", lens) for lens in lenses]
+        for lens in lenses:
+            expected_predecessors[("S", lens)] = [freeze_pointer, review]
+        audit_predecessors = [freeze_pointer, review, *specialist_pointers]
+        expected_predecessors[("U", FIXED_RECEIPT_LENSES["U"])] = audit_predecessors
+        expected_predecessors[("V", FIXED_RECEIPT_LENSES["V"])] = [
+            *audit_predecessors, pointer("U", FIXED_RECEIPT_LENSES["U"])
+        ]
+
+    for node, data in receipt_data.items():
+        expected = expected_predecessors.get(node)
+        if expected is None or any(item is None for item in expected) or data["predecessors"] != expected:
+            errors.append(
+                f"receipt {node}.predecessors: must name exact acyclic same-freeze predecessors; "
+                "circular/postdecessor/summary substitution is forbidden"
+            )
+        if node[0] == "C":
+            if data["verdicts"] != {"code_risk": "PASS", "completion": "PASS"}:
+                errors.append(f"receipt {node}: low C requires two explicit PASS verdicts")
+        elif node[0] in {"R", "S", "U"} and data["verdict"] != "PASS":
+            errors.append(f"receipt {node}: semantic predecessor must be PASS")
+        recorded = receipt_times.get(node)
+        if recorded is not None and frozen_at is not None and recorded < frozen_at:
+            errors.append(f"receipt {node}.recorded_at: cannot predate F")
+        if recorded is not None and expected is not None:
+            for predecessor in expected:
+                if predecessor is None or predecessor["role"] == "F":
+                    continue
+                predecessor_time = receipt_times.get((predecessor["role"], predecessor["lens"]))
+                if predecessor_time is not None and recorded < predecessor_time:
+                    errors.append(f"receipt {node}.recorded_at: cannot predate a required predecessor")
+        if node[0] == "V":
+            for field in ("deviations", "limitations"):
+                if any(not item.strip() or len(item) > 512 for item in data[field]):
+                    errors.append(f"receipt {node}.{field}: expected concise non-blank index entries")
+
+    summary_node = ("V", FIXED_RECEIPT_LENSES["V"])
+    return graph, receipt_times.get(summary_node)
+
+
+def receipt_file_schema(role: str) -> dict[str, Any]:
+    schema: dict[str, Any] = {
+        "schema_version": ("rule", lambda value: type(value) is int and value == 1, "1"),
+        "role": ("enum", {role}),
+        "lens": LENS_SCHEMA,
+        "freeze_id": FREEZE_ID_SCHEMA,
+        "freeze_digest": DIGEST_SCHEMA,
+        "authorization": {"id": TOKEN_SCHEMA, "effective_digest": DIGEST_SCHEMA},
+        "predecessors": ("list", PREDECESSOR_POINTER_SCHEMA),
+        "recorded_at": str,
+    }
+    if role == "C":
+        schema["verdicts"] = {
+            "code_risk": ("enum", {"PASS", "FAIL", "PROFILE_INVALID"}),
+            "completion": ("enum", {"PASS", "FAIL", "PROFILE_INVALID"}),
+        }
+    elif role in {"R", "S", "U"}:
+        schema["verdict"] = ("enum", {"PASS", "FAIL"})
+    elif role == "V":
+        schema["deviations"] = ("list", str)
+        schema["limitations"] = ("list", str)
+    return schema
+
+
+def validate_verification_summary_checkpoint(
+    state: dict[str, Any],
+    artifact_root: Path,
+    state_relative: str,
+    freeze_pointer: dict[str, str],
+    freeze: dict[str, Any],
+    graph: list[dict[str, Any]],
+    errors: list[str],
+) -> None:
+    label = "validate-agentic-completion: artifact V checkpoint"
+    try:
+        head = git_output(artifact_root, ["rev-parse", "HEAD^{commit}"], label).strip()
+    except SliceproofError as exc:
+        errors.extend(exc.errors)
+        return
+    errors.extend(validate_worktree_head_and_clean(artifact_root, head, label))
+    require_git_ref_at_commit(
+        artifact_root,
+        state["artifact_checkpoint"]["ref"],
+        head,
+        f"{label}.artifact_ref",
+        errors,
+    )
+    paths = [
+        state_relative,
+        freeze_pointer["path"],
+        *(item["path"] for item in state["receipts"]),
+        *(item["path"] for item in freeze["semantic_artifacts"]),
+        *(item["path"] for item in freeze["runtime_evidence"]),
+        *(item["path"] for item in freeze["command_results"]),
+    ]
+    for path in paths:
+        try:
+            current = resolve_authority_file(artifact_root, path, f"{label}: {path}").read_bytes()
+            committed = git_output_bytes(
+                artifact_root, ["show", f"{head}:{path}"], f"{label}: committed {path}"
+            )
+        except SliceproofError as exc:
+            errors.extend(exc.errors)
+            continue
+        if current != committed:
+            errors.append(f"{label}: current {path} must equal its exact committed V-checkpoint file")
+    if not any(item.get("role") == "V" for item in graph):
+        errors.append(f"{label}: checkpoint must contain the index-only V receipt before notification")
 
 
 def validate_final_report_absence(registry: Registry, package: RegistryPackage) -> list[str]:
