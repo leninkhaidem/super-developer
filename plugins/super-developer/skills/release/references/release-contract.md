@@ -1,147 +1,124 @@
 # Release Contract
 
-Owns the one approval packet for a release attempt. Load before the first release side effect.
+Owns initial release approval and the optional later portable-evidence decision.
 
-## Contract Rules
+## Initial Contract Rules
 
-- Present the contract every time. Skip only the approval prompt when the current turn already
-  unambiguously approves the full listed lifecycle.
-- The contract must list every side effect: file edits, merge, commits, base push, post-push base
-  sync verification, tag creation/push, GitHub release, artifact-sidecar actions, and local/remote cleanup.
-- Keep release checks to validation commands. List changelog, docs, and version edits as planned file changes, not checks.
-- If state changes, changelog format choice is missing, or a new action is needed, stop for a revised contract.
-- Remote feature or sidecar branch deletion requires the exact `origin/<branch>` ref to be listed
-  in the contract; approving that contract approves the listed deletion.
-- `prepare-only` integrates the feature into the base branch, updates `Unreleased`, pushes the base branch,
-  and deletes/removes exact eligible feature refs/worktrees and artifact sidecar candidates after verification.
-- `prepare-only` never bumps versions, creates/pushes/moves tags, or creates/updates a GitHub release.
-- Local, remote, and sidecar cleanup require the target/base push to be complete; otherwise keep the safety-net refs/worktrees.
-- Default cleanup is delete/remove. List `keep` only for a hard blocker or explicit user keep request.
-- Sidecar cleanup is separate from deliverable feature cleanup but defaults to exact
-  removal/deletion when eligible; never merge `artifacts/<feature>` into the base branch.
+- Present before every release side effect; skip its prompt only when the current turn unambiguously approves every
+  listed action and target.
+- List each edit, check, merge, commit, push, sync check, publish action, feature deletion, and local cleanup as an
+  exact boundary. Merge never implies push, tag, GitHub release, deletion, or cleanup.
+- Keep checks to commands; list changelog/docs/version edits as planned changes.
+- For a planned feature, freshly verify and list final `V`, its sidecar ref/SHA, and every checkpoint ref/SHA
+  required by final Lifecycle State, `F`, or `V`; record portable evidence as retained/deferred.
+- Initial approval never authorizes portable-evidence deletion. It cannot inherit that authority from Sidecar
+  Portability Authorization, Implementation auto-resolve, merge/push, tag/release, or ordinary cleanup.
+- `prepare-only` integrates with `--no-ff`, updates `Unreleased`, and pushes base, but never bumps versions,
+  creates/pushes/moves tags, or creates/updates a GitHub release.
+- Eligible local code/worktree and remote feature-branch cleanup may remain default exact cleanup after target sync.
+  Portable sidecar/checkpoint refs are not ordinary cleanup candidates.
+- State change, missing format choice, or a new action requires a revised contract.
 
-## Required Fields
-
-Use this structure, adapted to observed repository state:
+## Initial Release Contract Template
 
 ```md
 ## Release Contract Approval Required
 
 Mode: publish | prepare-only
-
-Base branch:
-- <base-branch>
-
-Feature branch:
-- <feature-branch or none>
-
-Default cleanup policy:
-- Delete/remove all eligible exact feature branch/worktree and artifact sidecar candidates after post-push sync.
-- Keep only: <hard blockers or explicit user keep request; otherwise none>
+Repository/endpoint: <repository and exact origin push endpoint>
+Base branch: <base>
+Feature branch: <feature branch or none>
 
 Version action:
-- prepare-only: no version bump, no tag, no GitHub release
-- publish: vX.Y.Z
-- Reason: <patch/minor/major reason, publish only>
+- prepare-only: no version bump, tag, or GitHub release
+- publish: vX.Y.Z because <patch/minor/major reason>
 
 Planned file changes:
-- Changelog: <prepare-only: update/create [Unreleased]; publish: move [Unreleased]/release diff into vX.Y.Z;
-  latest-format compatibility; format choice; grouping/classification style; human-readable note plan>
-- README/docs: <update/skip and why>
-- Version files: <publish exact files to update; prepare-only none>
+- Changelog: <Unreleased/versioned action, format choice, note plan>
+- README/docs: <exact paths or none>
+- Version files: <publish-only exact paths or none>
 
-Release checks to run:
-- <validation command or documented check>
+Release checks:
 - <validation command or documented check>
 
-Merge/release strategy:
-- Merge <feature-branch> into <base-branch> with --no-ff, unless already merged
-- Worktree: <existing base worktree or exact temporary target-merge worktree>
-- Commit: <prepare-only integration/changelog commit message or publish release commit `release: vX.Y.Z`>
-- Annotated tag: vX.Y.Z if publishing; none in prepare-only
+Planned-feature final evidence:
+- Status: <planned feature with exact completed evidence | standalone/no planned-feature claim>
+- Final V: <ID/path, digest, verdict, and bound F; or not applicable>
+- Remote sidecar: <refs/heads/artifacts/<feature> at exact SHA; or not applicable>
+- Required immutable code refs/SHAs: <every final Lifecycle/F/V-referenced
+  refs/heads/checkpoints/<feature>/... at exact SHA; or not applicable>
+- Fresh verification: <exact push endpoint, observed sidecar/ref SHAs, V/object resolution result>
+- Disposition: retain through and after release; portable-evidence cleanup deferred and not authorized here
 
-Remote actions:
-- Push <base-branch> to origin after merge/checks
-- Post-push sync verification: fetch remote refs, then verify local <base-branch>,
-  origin/<base-branch>, and the intended commit all match; stop on mismatch without force-reset or
-  root branch switching
-- Push tag vX.Y.Z to origin, if publishing
-- Create GitHub release for vX.Y.Z, if publishing
-- Delete remote feature branch: <origin/<feature-branch> after pushed-base inclusion verification, or keep because ... / no candidate found>
-- Delete remote artifact sidecar: <origin/artifacts/<feature> after exact contract listing and target push sync, or keep because ... / no candidate found>
+Merge and commit:
+- Merge <feature> into <base> with --no-ff unless already included
+- Worktree: <exact existing or temporary base worktree>
+- Commit: <exact prepare message | release: vX.Y.Z>
 
-Resume state:
-- Existing prepare/release commit, tag, or GitHub release: <none or exact matching state>
+Independent release action boundaries:
+- Target merge: <exact action>
+- Target push: <push base to exact endpoint>
+- Post-push sync: <fetch and prove local base, origin/base, and intended commit equal>
+- Tag: <publish-only exact annotated tag creation/push | none>
+- GitHub release: <publish-only exact repository/tag action | none>
+- Remote feature deletion: <exact refs/heads/<feature> and expected SHA after fresh inclusion proof | keep/none>
+- Portable evidence deletion: none; retain exact sidecar/checkpoint refs above
 
-Artifact sidecar:
-- Ref/worktree: <artifacts/<feature> at .worktrees/<feature>/artifacts, or none>
-- Final checkpoint: <pushed to origin artifacts/<feature> before target merge, not applicable, or blocker>
-- Cleanup disposition: <default remove local worktree | delete local ref | delete remote ref | keep because ...; exact list>
+Independent local cleanup boundary:
+- Code worktrees: <exact clean paths to remove after inclusion | keep/none>
+- Feature branch: <exact local branch to delete after inclusion | keep/none>
+- Evidence worktree/refs: retain; any cleanup is deferred to a separate evidence decision
 
-Cleanup candidates:
-- Delete local feature branch: <feature-branch by default after ancestry proof, or keep because ...>
-- Delete remote feature branch: <origin/<feature-branch> by default after remote inclusion proof, or keep because ...>
-- Remove local code worktree(s): <exact clean paths by default, or keep because ...>
-- Remove local artifact worktree: <.worktrees/<feature>/artifacts by default when clean, or keep because ...>
-- Delete local artifact ref: <artifacts/<feature> by default, or keep because ...>
-- Delete remote artifact ref: <origin/artifacts/<feature> by default after fresh remote verification, or keep because ...>
+Resume state: <none or exact matching commit/tag/release/cleanup state>
+Stop conditions: <specific blockers, including evidence mismatch>
 
-Stop conditions:
-- <specific blocker>
-- <specific blocker>
-
-Approve this Release Contract? Reply with one:
-- approve
-- reject
+Approve this Release Contract? Reply: approve | reject
 ```
 
 ## Changelog Format Choice
 
-When the latest released changelog section does not already use the proposed lightweight format, include one choice in the contract:
+For an incompatible, ambiguous, or absent latest format, choose: adopt lightweight for this section, preserve the
+existing format, or skip. Never rewrite history unless the contract names it.
+
+## Portable Evidence Retention/Cleanup Decision
+
+This is not part of initial Release Contract approval. Present it only after (1) the user explicitly requested
+portable-evidence cleanup, (2) target/base local and remote SHAs are exact after fresh sync, and (3) for `publish`,
+the tag target and GitHub release state are exact. Otherwise retain and report evidence without prompting.
 
 ```md
-Changelog format decision:
-- Latest release format: <compatible | incompatible | ambiguous | no changelog>
-- Proposed action: adopt lightweight format for this prepare/release section | preserve existing format for this prepare/release | skip changelog update
+## Portable Evidence Retention/Cleanup Decision Required
+
+Verified final release state:
+- Target/base: <endpoint, ref, local SHA, remote SHA, intended SHA>
+- Publish state: <tag/ref/peeled SHA and GitHub release identity, or prepare-only/not applicable>
+
+Protected evidence inventory:
+- Final V: <ID/path/digest, sidecar ref/SHA, bound F>
+- Required objects: <every Lifecycle/F/V-required ref/SHA and resolution result>
+
+Choose one:
+- retain (recommended): keep every remote sidecar/checkpoint ref through and after release
+- delete only listed evidence after verified equivalent preservation
+
+Delete choice, if selected:
+- Equivalent durable preservation: <exact retained immutable location(s) proving V and every required object resolve>
+- Remote deletions: <every exact push endpoint + full ref + freshly observed expected SHA; no wildcard/namespace>
+- Local evidence actions: <every exact clean worktree path and direct ref/SHA to remove, or none>
+- Pre-delete checks: <fresh endpoint/ref/SHA and preservation verification immediately before each action>
+- Post-delete checks: <independent absence checks plus re-verification of V and every preserved required object>
+- Excluded: target action, tag/release change, remote feature deletion, force rewrite, namespace sweep,
+  implicit deletion
+- Stop: any changed/missing/mismatched state or failed action retains remaining safety refs and is reported
+
+Approve this separate decision? Reply: retain | approve exact deletion | reject
 ```
 
-If the lightweight format is chosen, use it for the current `Unreleased` or versioned section.
-Do not rewrite historical release sections unless the contract explicitly names that migration.
+Deletion is forbidden without independent preservation or when final `V` or a required object would become
+unresolvable. Approval covers only listed endpoint/ref/SHA and local actions; it never expands by inference.
 
-## Remote Cleanup Rules
+## Ordinary Feature Cleanup
 
-When a remote feature branch exists and is not hard-blocked or explicitly kept:
-
-```md
-Remote feature branch cleanup:
-- Delete `origin/<feature-branch>` after `<base-branch>` is pushed and fresh remote inclusion verification passes.
-- If verification fails, keep `origin/<feature-branch>` and stop cleanup.
-```
-
-If the user explicitly asks to keep the remote feature branch or a hard blocker prevents deletion, list it as intentionally skipped:
-
-```md
-Remote feature branch cleanup:
-- Keep `origin/<feature-branch>` because <explicit user request | named blocker>.
-```
-
-If no remote feature branch exists:
-
-```md
-Remote feature branch cleanup:
-- No remote feature branch candidate found.
-```
-
-## Artifact Sidecar Cleanup Rules
-
-Default sidecar cleanup runs only after the target/base push and sync verification complete:
-
-```md
-Artifact sidecar cleanup:
-- Remove local artifact worktree `.worktrees/<feature>/artifacts`: <default delete | keep because ...>
-- Delete local sidecar branch `artifacts/<feature>`: <default delete | keep because ...>
-- Delete remote sidecar branch `origin/artifacts/<feature>`: <default delete | keep because ...>
-```
-
-List a sidecar action as kept only for an explicit user keep request or hard blocker. If contracted
-cleanup fails, stop and report the remaining blocker instead of leaving the sidecar silently stale.
+Remote feature deletion remains separate: freshly verify expected SHA and remote-base inclusion, delete only that
+ref, then verify absence. Local code cleanup requires clean exact worktrees and ancestry. Any failed check keeps the
+candidate and stops cleanup; never force or sweep.

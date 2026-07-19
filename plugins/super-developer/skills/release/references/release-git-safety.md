@@ -1,47 +1,54 @@
 # Release Git Safety
 
-Owns release-specific remote freshness, resume validation, merge worktree, tag/release checks, sidecar state, and cleanup safety.
+Owns release-specific remote freshness, exact-state resume, merge worktrees, publish checks, and the distinct safety
+rules for ordinary feature cleanup and portable-evidence retention/cleanup.
 
-## Remote Freshness
+## Remote Freshness and Evidence Identity
 
-Before contract approval when pushing, checking remote tags, publishing, or deleting remote branches:
+Before approval when pushing, publishing, or deleting an ordinary remote feature branch:
 
 ```bash
 git fetch --prune --tags origin
 git ls-remote --heads --tags origin
 ```
 
-Stop if remote state cannot be refreshed or verified for a push/delete/publish contract. Re-fetch before remote feature or sidecar deletion.
-Use remote-tracking refs only after refresh. Never infer deletion safety from stale `origin/*` refs.
+Use remote-tracking refs only after refresh. Stop if the push endpoint or state cannot be verified. Re-fetch
+immediately before remote feature deletion; never infer safety from stale `origin/*`.
 
-For `publish`, preflight GitHub state:
+For planned-feature evidence, resolve one exact push endpoint and query each full ref directly:
 
 ```bash
-gh auth status
-gh repo view --json nameWithOwner
-gh release view vX.Y.Z --json tagName,targetCommitish,isDraft,isPrerelease,url  # ok to fail when absent
+git ls-remote --heads -- "$EVIDENCE_ENDPOINT" refs/heads/artifacts/<feature>
+git ls-remote --heads -- "$EVIDENCE_ENDPOINT" \
+  refs/heads/checkpoints/<feature>/<slot>/g<generation>  # repeat for each exact required ref
 ```
 
-Stop if auth, repo identity, existing release state, or target commit is ambiguous.
+Match the final sidecar SHA and every final Lifecycle State/`F`/`V`-required checkpoint ref/SHA. Fetch only exact
+required refs to verify that final `V` and all named objects resolve. Missing, symbolic-only local, unexpected,
+changed, duplicate-endpoint, or mismatched state stops. Reading evidence grants no deletion authority.
+
+For `publish`, also verify `gh auth status`, repository identity, and exact existing/absent release state. Stop if
+credentials, repository, tag target, draft/prerelease state, or release identity is ambiguous.
 
 ## Resume Matrix
 
-If any release step already exists, verify exact identity before resuming:
+Verify exact identity before resuming any existing step:
 
-- Prepare integration commit exists: merge contents, `Unreleased` changelog entries, docs, checks, pushed-base state, and cleanup state match the contract.
-- Publish release commit exists: version files, changelog/docs, release notes, and checks match intended `vX.Y.Z`.
-- Local tag exists: `git rev-parse vX.Y.Z^{}` equals the intended publish commit.
-- Remote tag exists: `git ls-remote --tags origin refs/tags/vX.Y.Z` target or peeled target equals the intended publish commit.
-- GitHub release exists: tag, target commitish/tag target, draft/prerelease state, and notes match the contract.
-- Base branch already pushed: `origin/<base>` contains the intended prepare/publish commit.
-- Artifact sidecar cleanup exists: final checkpoint, contracted exact cleanup/default-keep list, and target/base push sync match the contract.
+- prepare commit: merge contents, `Unreleased`, docs, checks, pushed-base state, and ordinary cleanup match;
+- publish commit: version files, changelog/docs, notes, and checks match intended `vX.Y.Z`;
+- local/remote annotated tag: peeled target equals the intended publish commit;
+- GitHub release: repository, tag/target, draft/prerelease state, and notes match;
+- pushed base: local base, `origin/<base>`, and intended commit are equal;
+- planned evidence: final `V`, sidecar ref/SHA, required code refs/SHAs, and retention state match the contract;
+- any separate evidence decision: final sync/publish snapshot and preservation/deletion results match exactly.
 
-Stop on any mismatch. Do not move tags, overwrite releases, force-push, or force-delete unless a new explicit contract names that destructive action.
+Stop on mismatch. Never move tags, overwrite releases, reset/force-push base, or infer permission from an earlier
+Sidecar Portability Authorization, Implementation authorization, release action, or cleanup.
 
 ## Merge Worktree
 
-Never switch the user-owned root worktree. Merge the feature branch into the base branch from a worktree already on the base ref.
-If none exists, create an exact temporary target-merge worktree named in the contract, for example:
+Never switch the user-owned root worktree. Use an existing base worktree or create the exact temporary target-merge
+worktree named in the contract:
 
 ```bash
 git worktree add .worktrees/<feature-or-release>/target-merge <base-branch>
@@ -49,86 +56,73 @@ cd .worktrees/<feature-or-release>/target-merge
 git merge --no-ff <feature-branch> -m "<contracted merge message>"
 ```
 
-Use a prepare-style message for `prepare-only` and `release: vX.Y.Z` only for publish prep unless repo convention differs.
-If the feature is already merged, verify ancestry instead of merging:
-
-```bash
-git merge-base --is-ancestor <feature-branch> <base-branch>
-```
-
-Resolve conflicts only within the contracted merge worktree. Stop if the conflict requires product/design decisions or uncontracted code changes.
+If already merged, prove `git merge-base --is-ancestor <feature> <base>`. Resolve conflicts only within contracted
+scope; stop when resolution needs product/design or other uncontracted changes.
 
 ## Base Push and Publish Checks
 
-Before pushing the base branch, verify:
+Before base push, verify the contracted base worktree/ref, clean state, intended commit, final diff, changelog/docs,
+publish-only version/notes, tag/release absence or resume match, and planned evidence inventory. `prepare-only` must
+have no version/tag/release action.
 
-- base worktree is clean and on the contracted base branch;
-- intended prepare/publish commit is `HEAD` or otherwise exactly named in the contract;
-- final diff, changelog, docs, and publish-only version files/release notes match the contract;
-- `prepare-only` made no version bump, tag, or GitHub release change;
-- local/remote tags and GitHub release are absent for a new publish, or existing state passes the resume matrix;
-- any sidecar cleanup candidate is listed for default delete/remove or kept with an explicit reason.
-
-After any successful base push, refresh refs and verify local/remote base sync before tag/release creation or cleanup:
+After base push, fetch and require all three SHAs to match:
 
 ```bash
 git fetch --prune --tags origin
 git rev-parse <base-branch>
 git rev-parse origin/<base-branch>
-git rev-parse HEAD  # or the exact intended prepare/publish commit named in the contract
+git rev-parse <intended-prepare-or-publish-commit>
 ```
 
-The local base ref, `origin/<base>`, and intended prepare/publish commit must match. Stop on mismatch and report completed side effects.
-Do not force-reset, force-push, switch the user-owned root worktree, or silently repair the local branch to make verification pass.
+Stop on mismatch without repair by root switch, reset, or force. `prepare-only` may then run contracted ordinary
+cleanup. `publish` may create/push the annotated tag and GitHub release only after sync, must verify both exactly,
+and may then run ordinary cleanup. No portable-evidence decision is eligible before these applicable final checks.
+Do not prompt for that decision unless evidence cleanup was explicitly requested; otherwise retain and report refs.
 
-For `prepare-only`, push the base branch, run post-push sync verification, then run contracted cleanup. Do not create or update tags or GitHub releases.
-For `publish`, push base first, run post-push sync verification, create/push the annotated tag,
-create the GitHub release, then run contracted cleanup for exact feature/sidecar candidates when applicable.
-If any push, sync verification, publish, or cleanup step fails, stop and report completed side effects. Do not continue cleanup automatically.
+## Ordinary Feature and Local Code Cleanup
 
-## Cleanup Safety
+Initial Release Contract approval may cover only exact ordinary candidates: local code worktrees, local feature
+branch, temporary target worktree, and remote feature branch. It never covers sidecar/checkpoint evidence.
 
-Cleanup can run only for exact candidates named in the approved Release Contract.
-The contract should delete/remove eligible feature code and artifact sidecar candidates by default; keep only with a named blocker or explicit user request.
-Local feature branch/worktree cleanup requires the feature branch to be included in the target/base ref and the required target/base push to be complete.
-Artifact sidecar cleanup requires final target/base push sync, exact contract listing, and no active package/integration/review/audit work needing the sidecar.
-Keep a target/base worktree available until local branch deletion finishes.
-
-For local cleanup:
+For local cleanup, prove inclusion, enumerate worktrees, and inspect each exact candidate:
 
 ```bash
 git merge-base --is-ancestor <feature-branch> <base-branch-or-origin/base>
 git worktree list --porcelain
 git status --short  # in each candidate worktree
-git worktree remove <exact-worktree-path>
+git worktree remove <exact-clean-code-worktree>
 git branch -d <feature-branch>
-git worktree remove <exact-temporary-target-worktree>
 ```
 
-Stop on dirty worktrees, checked-out branches without removable worktrees, failed ancestry, or branch deletion refusal. Do not force-remove by default.
-Never delete unrelated branches/worktrees or sweep by namespace.
+Stop on dirty/in-use worktrees, failed ancestry, or deletion refusal; do not force-remove or sweep. Keep a base
+worktree until local branch deletion completes.
 
-For contracted artifact sidecar cleanup, run only the contract-listed subset:
-
-```bash
-git status --short  # in .worktrees/<feature>/artifacts before local removal
-git worktree remove .worktrees/<feature>/artifacts
-git branch -D artifacts/<feature>
-git push origin --delete artifacts/<feature>
-```
-
-`artifacts/<feature>` is an orphan branch, so local `-D` is allowed only when that exact sidecar ref
-was listed in the approved Release Contract after final target/base push. Remote sidecar deletion is not
-ancestry-based; prove fresh remote state and exact contract listing instead. Never merge `artifacts/<feature>` into the base branch.
-
-Remote feature branch deletion is the default for feature releases, but allowed only when the exact
-`origin/<feature-branch>` ref is named in the contract.
-After base push and fresh fetch, prove inclusion before deleting:
+For an exact contracted remote feature ref, refresh, match its expected SHA, prove remote inclusion, delete only it,
+and verify absence:
 
 ```bash
+git fetch --prune origin
 git merge-base --is-ancestor origin/<feature-branch> origin/<base-branch>
 git push origin --delete <feature-branch>
+git ls-remote --exit-code --heads origin refs/heads/<feature-branch>  # must report absent
 ```
 
-If remote feature deletion verification fails, keep the remote branch and report it as remaining manual follow-up.
-If approved sidecar deletion fails, keep the remaining sidecar ref/worktree and report the blocker.
+Any mismatch/failure keeps the branch and stops remaining cleanup.
+
+## Portable Evidence Retention/Cleanup Safety
+
+Default and recommended disposition is to retain the remote sidecar and every required checkpoint ref through and
+after release. Before any local or remote evidence cleanup, resolve final `V` from the sidecar and verify every
+Lifecycle/`F`/`V`-required object at its exact retained ref/SHA. The initial Release Contract cannot override this.
+
+Run evidence cleanup only from an approved separate post-sync decision. It must name every exact endpoint, full
+remote ref, expected SHA, equivalent durable preservation location, local evidence worktree/direct-ref action, and
+pre/post verification. Verify preservation first. Deleting the only resolvable final `V` or required object is
+forbidden. Remove a local evidence worktree/ref only after portable preservation is verified and only at its exact
+clean path/ref/expected SHA.
+
+Immediately before each remote delete, query the exact endpoint/ref and require the expected SHA; delete that one
+full ref without rewrite, then independently query absence and re-resolve `V` plus every preserved object. Never use
+a wildcard, namespace sweep, target/tag/release action, implicit candidate, or force rewrite. A changed remote,
+rejected delete, failed absence check, or preservation mismatch stops all remaining cleanup, retains safety refs,
+and reports completed effects and blockers.

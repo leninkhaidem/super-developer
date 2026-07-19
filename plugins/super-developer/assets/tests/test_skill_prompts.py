@@ -464,6 +464,38 @@ class SkillPromptSurfaceTests(unittest.TestCase):
         for text in (store, convergence, implement, workflow, artifacts):
             self.assertLessEqual(len(text.splitlines()), 150)
 
+    def test_c2_release_retention_uses_a_separate_optional_cleanup_contract(self) -> None:
+        contract = read_repo("plugins/super-developer/skills/release/references/release-contract.md")
+        skill = read_repo("plugins/super-developer/skills/release/SKILL.md")
+        initial_at = contract.index("## Initial Release Contract Template")
+        decision_at = contract.index("## Portable Evidence Retention/Cleanup Decision")
+        ordinary_at = contract.index("## Ordinary Feature Cleanup")
+        self.assertEqual([initial_at, decision_at, ordinary_at], sorted([initial_at, decision_at, ordinary_at]))
+
+        initial = compact_text(contract[initial_at:decision_at])
+        evidence = initial[initial.index("Planned-feature final evidence:"):initial.index("Merge and commit:")]
+        self.assertIn("Final V: <ID/path, digest, verdict, and bound F", evidence)
+        self.assertIn("refs/heads/artifacts/<feature> at exact SHA", evidence)
+        self.assertIn("refs/heads/checkpoints/<feature>/... at exact SHA", evidence)
+        self.assertIn("Disposition: retain through and after release", evidence)
+        self.assertIn("Portable evidence deletion: none", initial)
+
+        decision = compact_text(contract[decision_at:ordinary_at])
+        eligibility = decision[:decision.index("```md")]
+        requested_at = eligibility.index("user explicitly requested")
+        synced_at = eligibility.index("exact after fresh sync")
+        published_at = eligibility.index("GitHub release state are exact")
+        self.assertLess(requested_at, synced_at)
+        self.assertLess(synced_at, published_at)
+        self.assertIn("Equivalent durable preservation:", decision)
+
+        release_steps = compact_text(skill[skill.index("## Do"):skill.index("## Stop if")])
+        no_request_at = release_steps.index("If no evidence cleanup was requested")
+        self.assertIn("without prompting", release_steps[no_request_at:])
+        ordinary = contract[ordinary_at:]
+        self.assertIn("Remote feature deletion remains separate", ordinary)
+        self.assertNotIn("portable-evidence", ordinary.lower())
+
     def test_compact_lifecycle_and_direct_ref_contracts_are_explicit(self) -> None:
         artifacts = compact_text(read_repo("plugins/super-developer/references/slice-first-artifacts.md"))
         tools = compact_text(read_repo("plugins/super-developer/references/tool-usage.md"))

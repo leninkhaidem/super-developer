@@ -135,6 +135,15 @@ nested subdirectory roots never form a successful compatibility gate.
   direct code ref/SHA before one lifecycle-only CAS transition. Quarantine later clean local state only under an
   immutable CAS-created untrusted ref; dirty roots, collisions, ambiguity, capability/ref/endpoint mismatch, or no exact checkpoint stop.
 
+## Release Retention Boundary
+
+The remotely verified final `V` on `refs/heads/artifacts/<feature>` and every immutable
+`refs/heads/checkpoints/<feature>/...` ref named by final Lifecycle State, `F`, or `V` are portable authority/evidence.
+Retain those remote refs through and after release by default. Portability, implementation, target, publish, or
+ordinary cleanup authority never implies deletion. Preserve and verify `V` and every required object before local or
+remote evidence cleanup; deleting its only resolvable authority is forbidden. Only a separate explicit post-sync
+retention decision may name exact deletion plus verified equivalent durable preservation and pre/post verification.
+
 Use absolute `--artifact-root` and `--code-root` helper arguments. The code root is the package worktree for package
 checks and the integration/top worktree for final checks. `context_only_slice_drift` remains non-blocking by default
 and must still receive affected-surface classification.
