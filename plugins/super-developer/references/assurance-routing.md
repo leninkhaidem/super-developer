@@ -29,9 +29,9 @@ Runtime discovery never bypasses this order. A higher trigger invalidates the af
 profile/routing, and receipt graph. The Delivery Owner promotes the Technical Plan Baseline, obtains affected cold
 review, advances the Effective Authorization Digest and checkpoint, and rebuilds affected candidates/receipts.
 Proceed without the user only while envelope, protected effects, covered actions, and budgets remain authorized.
-A verifier seeing a higher trigger returns `PROFILE_INVALID`, never `PASS`. Downgrade requires a newly reviewed
-baseline and Effective Authorization Digest; ask the user only if envelope, material-risk acceptance, protected
-effects, covered actions, or budgets change.
+A verifier seeing a higher trigger returns `PROFILE_INVALID`, never `PASS`. Any rank decrease requires a fresh
+reviewed baseline and new user authorization. A technical amendment or candidate invalidation under the existing
+authorization lineage can promote assurance but can never authorize a downgrade.
 
 ## Package Modes and Unlock
 
@@ -57,9 +57,13 @@ candidate inputs.
 
 `B[i]` preserves the canonical State Binding fields and adds no substitute identity: its package/proof/Slice,
 matrix-source, worktree/ref/commit, evidence, profile/mode, and consumed-contract bindings must resolve to that
-same candidate. Any bound-input change invalidates the receipt; binding-only refresh is allowed only when semantic
-inputs, claims, method, and evidence are identical. Pre-freeze receipts become inputs to the Final Freeze `F`.
-Post-freeze outputs never redefine or retroactively validate a candidate.
+same candidate. In authoritative sidecar mode its Git Ref is the exact immutable namespaced checkpoint ref from
+immediate completion. Historical consumption resolves candidate objects and that ref in the supplied code
+repository, does not require the old descriptive Worktree path to exist, and requires the candidate to be an
+ancestor of the consumer and final integration checkpoints. Any bound-input change invalidates the receipt;
+binding-only refresh is allowed only when semantic inputs, claims, method, and evidence are identical. Pre-freeze
+receipts become inputs to the Final Freeze `F`. Post-freeze outputs never redefine or retroactively validate a
+candidate.
 
 ## One Owner, Lens, and Side of Freeze
 
@@ -73,6 +77,15 @@ Every assurance assignment names exactly one owner, one non-overlapping lens, an
 | final specialist / `S[j]` | one named integrated high-risk lens absent from package/code-review ownership | post-freeze, after `R` |
 | completion auditor / `U` | accepted-outcome/envelope reconciliation over clean predecessors | post-freeze |
 | Delivery Owner | classification, routing, repair, checkpointing, lifecycle | no semantic verdict |
+
+Package Markdown encodes each row with the controlled grammar `Owner: <owner>; Lens: <lens>; Side: <side>; Reason:
+<specific reason>`. At authorization, the canonical package-id-ordered `{package,mode,owner,lens,side}` list is copied
+into Lifecycle State and included with profile/modes in the immutable routing digest. Boundary owners are `package-verifier|package-specialist` on `pre-freeze`; final owners are low
+`C/combined-low-assurance`, standard/high `R/integrated-code-risk`, or planned high `S/<named-lens>` on
+`post-freeze`. Package/plan gates require exact Lifecycle/Markdown agreement; `F` copies the exact package/owner/lens/side assignments
+from Lifecycle authority, not a fresh package interpretation. Assignment changes require reviewed effective-digest amendment and affected-candidate
+invalidation. Multiple final packages may share one identical post-freeze `R` or `S` owner/lens assignment; specialist lenses are deduplicated in F and every `S` is
+planned. A pre-freeze lens cannot repeat, change owner, or recur post-freeze; no role/lens can own both sides.
 
 A package specialist assigned to `B[i]` is pre-freeze only and cannot claim final-state coverage. A final specialist
 is post-freeze only. Audit does not repeat package, code-review, or specialist lenses. Verification Summary `V`
@@ -89,8 +102,11 @@ After the Delivery Owner freezes final inputs as `F`, it dispatches exactly the 
 - **High:** `F → R(PASS/closure) → S[*] (each PASS, F, R) → U(PASS, F, R, S[*]) → V`. Each `S[j]` owns one
   named non-overlapping integrated lens and starts only after `R` PASS.
 
-All verifiers, reviewers, auditors, and specialists are cold, read-only, return-only roles. They do not dispatch,
-repair, freeze, transition, checkpoint, notify, or invoke a successor. Only the Delivery Owner does those things.
+All verifiers, reviewers, auditors, and specialists are cold, read-only, return-only roles. Before each C/R/S/U
+call, the Delivery Owner persists a new matching role/delegated-call reservation and issued delta. A later return
+advances that role's cumulative consumption and adds its current-freeze receipt; consumption never resets across
+freezes or exceeds predecessor issuance. Failed/abandoned calls may consume without a PASS receipt. Roles do not
+dispatch, repair, freeze, transition, checkpoint, notify, or invoke a successor; only the Delivery Owner does.
 A code-review repair invalidates `R` and `F`; the Delivery Owner finishes repair and required checks, creates a new
 `F`, and obtains `R` PASS/closure before any standard/high `S[j]` or `U` starts. Review and audit never run concurrently.
 Returned `C/R/S/U` and `V` bind one freeze. Persist them through existing sidecar paths and Lifecycle State only;
@@ -100,5 +116,5 @@ do not add a receipt registry, ledger, or orchestration platform.
 
 The helper requires profile/mode and conditional report paths, parses Selected Causal Evidence, binds boundary
 receipts to explicit candidate/contract inputs, and validates the selected pre-freeze package equation. It rejects
-final substitutes and controlled Lifecycle State routing mismatch. Helper acceptance never establishes semantic
-sufficiency or validates the post-freeze DAG; B4 owns executable final receipt validation.
+final substitutes, noncanonical/drifting controlled assignments, and controlled Lifecycle State routing mismatch.
+Helper acceptance never establishes semantic sufficiency or validates the post-freeze DAG; B4 owns executable final receipt validation.

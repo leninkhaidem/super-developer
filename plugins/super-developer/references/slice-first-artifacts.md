@@ -19,7 +19,6 @@ Equal/current roots fail closed for planned authority; legacy copies are migrati
   semantic proof, an event log, or permission to perform its named next action.
 ## Compact Lifecycle State — Schema 1
 The helper derives the path from `--feature`; no state path field or CLI path is accepted. Required top-level keys:
-
 ```json
 {
   "schema_version": 1, "generation": 1, "feature": "feature-slug",
@@ -35,12 +34,11 @@ The helper derives the path from `--feature`; no state path field or CLI path is
   "last_verified": null, "portability_authorization": "explicit instruction or durable preference"
 }
 ```
-
 Controlled stages cover conceptualization/checkpoint, preflight, planning/review/readiness/authorization-pending,
 authorized/activation/package-wave/quiescent/integration, technical reassessment/review, final assurance,
 completed, blocked, and needs-decision. Generation 1 is initial topology: artifact SHA/tree, code, all
-authorization fields including `inputs`/amendment, freeze, and last-verified are null; packages, wave, clusters, and
-receipts are empty. Initial publication with a code ref is invalid. Later code checkpoints require complete
+authorization fields including `inputs`/amendment, freeze, and last-verified are null; packages, canonical
+`package_assignments`, wave, clusters, and receipts are empty, and C/R/S/U role-call consumption is zero. Initial publication with a code ref is invalid. Later code checkpoints require complete
 Implementation Authorization.
 Authorization is all null before authorization and complete afterward. Its one immutable `inputs` object has exact
 `artifact_commit`, `artifact_tree`, and `base_commit`, plus SHA-256 `clean_status`, `dependencies`
@@ -49,8 +47,8 @@ digests, not copied plan/action text. `initial_digest` equals canonical sorted-k
 exactly `inputs`; initial `effective_digest` equals it. The helper requires `artifact_commit` to be an exact commit
 in the artifact root with tree `artifact_tree`; at initial authorization it equals the artifact checkpoint and exact
 reviewed predecessor (`last_verified.artifact_sha`/`--previous-commit`). It also verifies the exact base commit,
-initial routing against required `assurance_profile` plus complete `package_modes`, and fixed budget authority.
-`routing` digests those lifecycle values. `budget_authority` digests each budget's `maxima`, `started_at`,
+initial routing against required `assurance_profile`, complete `package_modes`, canonical package-complete
+`package_assignments`, and fixed budget authority. `routing` digests all three routing values. `budget_authority` digests each budget's `maxima`, `started_at`,
 `deadline_at`, plus control-plane `maximum`; mutable issued/reservation usage is excluded. ID, inputs, and initial
 digest are immutable; amendments retain them while `amendment_link` advances the artifact checkpoint.
 `amendment_link` is non-null only in the snapshot whose effective digest changes; it contains
@@ -59,16 +57,20 @@ a distinct reviewed descendant checkpoint on the exact sidecar lineage. Effectiv
 those values (key `technical_amendment_digest`). The next unchanged snapshot clears the link; Git preserves prior
 links and no sequence/history array is allowed. Canonical state/prior digests use the same JSON rule.
 Budget `maxima`/`issued` use identical non-empty safe counter keys: finite preauthorization planning/correction/
-spike/command and implementation `repair_waves`, delegated-call, command, and cost totals. Values are non-negative;
-issued never decreases or exceeds fixed maxima/times. Each budget has absolute timezone-aware `started_at`/
-`deadline_at`; an active reservation names owner/budget/generation and positive units already charged. Repair-wave
+spike/command and implementation `repair_waves`, total `delegated_calls`, `combined_low_calls`, `code_review_calls`,
+`final_specialist_calls`, `completion_audit_calls`, command, and cost totals. Values stay nonnegative; issued never
+falls or exceeds maxima. Issued/reserved total calls cover the corresponding role-call sums. Maxima cover selected-
+equation roles, not mutually exclusive unused roles. Completion requires exact graph minimums; one call cannot
+authorize multiple roles. Exact C/R/S/U `role_call_consumption` starts at zero, is monotonic across freezes, and never exceeds issued role calls. Every new receipt advances its role only after predecessor issuance; failed/abandoned calls may consume capacity without a PASS receipt, while current graph pointers may change but consumption never resets. Times are timezone-aware; an active reservation names owner/budget/generation. Repair-wave
 maximum is low ≤1, standard ≤2, and an explicit finite integer for high. The separate fixed control reserve is 0/1.
 Its optional one-unit `reservation{id,generation,operation,reason,expected_parent,checkpoint_digest,conflict_digest}`
-is only `safe-checkpoint|last-verified` for budget exhaustion or ownership/CAS loss, cannot coexist with semantic work,
-and never authorizes calls, commands, repair, tests, evidence, mutation, or takeover.
+is only `safe-checkpoint|last-verified` for budget exhaustion or ownership/CAS loss and cannot coexist with semantic
+work. Either operation preserves semantic/checkpoint state and semantic budgets, changing only Lifecycle State;
+code, evidence, receipt, and semantic-artifact paths cannot progress. `safe-checkpoint` preserves the exact active
+owner. Ownership/CAS-unavailable `last-verified` neither mutates ownership nor takes over. The reserve never
+authorizes calls, commands, repair, tests, evidence, or semantic mutation.
 `packages` maps `WP<N>` to current `state`/`wave`; `wave` names current id/generation/state/package ids. Allowed
 same-effective-digest package successors are explicit:
-
 | From | Allowed next state (including self) |
 |---|---|
 | `pending` | `pending`, `in_progress`, `blocked`, `invalidated` |
@@ -80,8 +82,8 @@ same-effective-digest package successors are explicit:
 | `invalidated` | `invalidated`, `in_progress`, `blocked` |
 Thus blocked resolution and explicit repair progression remain legal; resetting a progressed state to `pending`
 additionally requires a reviewed effective-digest change. `last_verified` is null only at generation 1 and later binds the exact
-quiescent prior commit/state digest/generation. Authorized state requires `assurance_profile` plus package-complete
-`package_modes` (`boundary|final`); routing/membership change requires an effective-digest transition.
+quiescent prior commit/state digest/generation. Authorized state requires `assurance_profile`, package-complete
+`package_modes` (`boundary|final`), and the canonical ordered package assignment list; any routing change requires an effective-digest transition and affected-candidate invalidation.
 Each serious cluster stores canonical identity text `accepted_invariant`, `root_mechanism`, `architectural_surface`;
 `id` is the canonical JSON digest of exactly those fields. It separately stores append-only `observed_signatures`,
 all observed classes, any selected observed class at the strongest precedence rank, its route, strike 1–2,
@@ -90,8 +92,9 @@ disposition, and at most one immutable `repair{root_cause_digest,affected_surfac
 FAIL opens the circuit at 2, and terminal lineage is immutable.
 `freeze` is null or `{id,path,digest}` at `.tasks/<feature>/assurance/<freeze-id>/freeze.json`. Canonical F binds
 schema/kind/id, authorization ID/effective digest, code checkpoint ref/commit/tree/base/raw-diff/clean-status,
-exact typed semantic manifest, runtime and command-result path/digests, profile/modes, exact boundary `B[*]`, sorted
-zero-or-more high specialist lenses, cluster digest, and `frozen_at`. The semantic manifest is exactly SPEC, registry,
+exact typed semantic manifest, runtime and command-result path/digests, profile/modes, exact controlled Lifecycle
+State `{package,mode,owner,lens,side}` assignments (which package Markdown must match), exact boundary `B[*]`, sorted unique
+planned high-final `S` lenses, cluster digest, and `frozen_at`. The semantic manifest is exactly SPEC, registry,
 packages, proofs, boundary reports, and Slices—never Lifecycle State or `C/R/S/U/V`.
 Receipt pointers are `{role,lens,path,digest,freeze_digest}`. Canonical same-freeze JSON paths are `combined.json`,
 `review.json`, `specialists/<lens>.json`, `audit.json`, and `verification-summary.json`; files bind authorization/F,
@@ -112,18 +115,17 @@ plans. The helper parses this shape strictly and rejects final report substitute
 ## Package Markdown and Proof
 Package Markdown is a cold-readable assignment with `## Scope`, `## Assigned Slices`, `## Primary Paths`,
 `## Verification Expectations`, `## Proof`, `## Independent Verification`, and `## Dependencies`:
-
 ```md
 ## Independent Verification
 - Mode: `boundary | final`
 - Report: `<safe path> | None — final assurance`
-- Rationale: <named boundary/risk reason>
+- Rationale: Owner: <owner>; Lens: <lowercase-token>; Side: <pre-freeze|post-freeze>; Reason: <specific reason>
 ```
-
-Mode/report must equal registry values. Rationale names the boundary/risk for `boundary`; `final` explicitly says
-semantic verification is deferred to final assurance and uses `Owner: <direct-final role>` (plus `lens: <risk>` for
-high). Assigned H3s split into `Must satisfy` closure rows and required-reading `Context only`.
-
+Mode/report must equal registry values. Boundary uses owner `package-verifier|package-specialist`, a named unique
+lens, and `pre-freeze`; its Reason names the boundary/risk. Final uses `post-freeze`, explicit final-assurance
+deferral, and low `C/combined-low-assurance`, standard/high `R/integrated-code-risk`, or planned high `S/<lens>`.
+No boundary lens, final owner, or lens may occur on both sides. Assigned H3s split into `Must satisfy` closure rows
+and required-reading `Context only`.
 Proof Markdown requires package/slice scope, Slice and expectation closure tables, commands, files, gaps/deviations,
 and completion statement. Closure values are `PASS`, `DEFERRED`, or `N/A`; `OPEN`, `GAP`, placeholders,
 missing/duplicate/unexpected rows, or unapproved deferral/N/A/gap text fail closed. Deferral/N/A/gap metadata
@@ -135,7 +137,6 @@ Only a `boundary` package has a report and deliverable completeness matrix. It s
 columns and delivered mandatory Slice/`VE-<n>`/triggered `RISK-<...>` rows with typed anchors. Selected Causal
 Evidence records typed selected anchors, behavior/risk, sufficiency, substitutes, and fresh command result—never a
 changed-population census or volume gate.
-
 Append helper-emitted `## State Binding` with existing package/proof/Slice/matrix fields plus authorization/
 effective digest, profile/mode, worktree/ref, commit/tree, base/diff, runtime-evidence and consumed-contract
 digests, and verified-at. Slice digest entries use `path|tier|H3-ID=sha256:<64-hex>` separated by `; `. Hard-tier/

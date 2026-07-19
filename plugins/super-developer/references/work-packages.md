@@ -122,7 +122,9 @@ plan unsafe or inefficient. When one uncertainty gates several otherwise indepen
 the smallest bounded readiness action before affected fanout; do not invent a dependency edge when dispatch
 readiness alone is sufficient. State the reason before dispatch.
 
-If adjustment changes package scope, Slice H3 assignment, dependencies, proof path, mode/report path, profile, or approved deferrals, route through a reviewed effective-digest amendment or user approval when the envelope changes. Runtime risk promotes; never silently downgrade while a trigger remains.
+If adjustment changes package scope, Slice assignment, dependencies, proof/report paths, or approved deferrals,
+route through reviewed amendment or user approval when the envelope changes. Profile promotion may use amendment;
+any rank decrease requires a fresh reviewed baseline and new user authorization, never the existing lineage.
 
 ## Anti-Patterns
 

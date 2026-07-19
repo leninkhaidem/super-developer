@@ -104,7 +104,7 @@ Generate this block with `emit-state-binding`, paste it verbatim, and do not han
 - Authorization / Effective Digest: `<authorization-id> | sha256:<digest>`
 - Assurance Profile / Verification Mode: `low|standard|high | boundary`
 - Worktree: `<absolute reviewed code worktree>`
-- Git Ref: `<reviewed ref/commit>`
+- Git Ref: `refs/heads/checkpoints/<feature>/<slot>/g<generation>`
 - Commit / Tree: `<reviewed commit hash> | <tree hash>`
 - Base / Diff Identity: `<base commit> | sha256:<raw-diff-identity digest>`
 - Runtime Evidence Digests: `<safe path>=sha256:<digest>; ...` or `none`
@@ -116,8 +116,10 @@ Generate this block with `emit-state-binding`, paste it verbatim, and do not han
 `--assurance-profile`, `--verification-mode`, `--worktree`, `--git-ref`, `--commit`, `--tree`, `--base-commit`,
 `--diff-digest`, repeatable runtime/contract digest flags, and `--verified-at`. Candidate commit/base must be real
 commits in the code repository, base must be an ancestor, tree must be the candidate commit's exact tree, and Git
-Ref must resolve to that commit. For immediate planned checks, Worktree equals the supplied code root with clean
-HEAD at that candidate; final revalidation retains exact historical refs while binding a clean integration checkpoint.
+Ref must resolve to that commit in the supplied code repository. In authoritative sidecar mode it is the exact
+immutable namespaced checkpoint ref that Lifecycle State bound at immediate completion. Immediate checks require
+Worktree to equal the supplied code root with clean HEAD at that candidate. Historical consumer/final validation
+uses candidate objects/ref and ancestry to the current checkpoint; the old descriptive Worktree path need not exist.
 Diff Identity is exactly `sha256:` plus lowercase SHA-256 of the raw stdout bytes from
 `git -C <code-root> diff --raw --no-renames --no-ext-diff --no-textconv --no-abbrev -z <base-commit> <candidate-commit> --`; no text decoding,
 path normalization, rename detection, or trailing newline is added. Pass explicit `none` for empty digest sets;

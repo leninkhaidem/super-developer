@@ -67,7 +67,7 @@ The initial finalized path set includes the safe `.planning/<feature>/` inventor
 and `.tasks/<feature>/lifecycle-state.json`. Initialize the schema-v1 compact current snapshot from
 `slice-first-artifacts.md`: generation 1, derived feature/path/ref, current stage/quiescence/action, explicit owner
 state, null artifact SHA/tree, code, authorization inputs/lineage/amendment, freeze and last-verified pointers, and
-empty package/wave/cluster/receipt state. Record the portability-authorization source. Start finite
+empty package/assignment/wave/cluster/receipt state and zero cumulative C/R/S/U consumption. Record the portability-authorization source. Start finite
 preauthorization state only at the planning handoff; implementation state remains `null` until authorization. Git
 history is the history: never add events/transcripts. Generation-1 validation makes publication with code refs
 impossible.
@@ -78,15 +78,17 @@ impossible.
 derives `.tasks/<feature>/lifecycle-state.json` and accepts no caller-selected state path. Generation 1 has no
 predecessor argument and cannot replace existing committed history. Every later snapshot names `last_verified`
 and is checked with the exact full `--previous-commit` containing that prior state. The helper reads local Git
-objects, verifies the committed regular blob/linear predecessor and exact authorization input commit/tree relation,
-and requires every artifact checkpoint on the exact sidecar HEAD/predecessor lineage; then it emits
+objects, verifies the committed regular blob/linear predecessor and authorization commit/tree relation, and
+requires every bound code/artifact ref to be a direct raw ref at the exact SHA—never symbolic, peeled-only, missing,
+or mismatched—on the exact sidecar/checkpoint lineage; then it emits
 canonical digests. It never fetches, pushes, reserves budget, changes owner/stage/status, dispatches, proves remote
 reachability, or establishes semantic completion.
 
 A legacy current-root import initializes generation 1 only in the new empty sidecar after provenance/revalidation.
 A pre-existing partial sidecar state is not schema-v1 authority and has no silent upgrader; it requires an explicit
-reviewed migration rather than history reset or guessed fields. Existing non-lifecycle helper commands retain
-compatibility behavior, but planned lifecycle authority requires exact roots, state, and predecessor binding.
+reviewed migration rather than history reset or guessed fields. Every planned helper command requires explicit
+absolute distinct artifact/code roots, each equal to its own Git `rev-parse --show-toplevel`; omitted, equal, or
+nested subdirectory roots never form a successful compatibility gate.
 
 ## Publication and Resume Invariants
 
@@ -97,14 +99,16 @@ compatibility behavior, but planned lifecycle authority requires exact roots, st
 - Later code checkpoints use unique immutable refs
   `refs/heads/checkpoints/<feature>/<slot>/g<generation>`. Complete Implementation Authorization—not sidecar
   permission—must cover their creation and exact push endpoint. Resolve one endpoint independently in each code or
-  artifact root and use it consistently for remote reads/writes; push clean code non-force, fetch, and verify SHA.
+  artifact root and use it consistently for remote reads/writes. Before push, create/verify the exact local direct
+  checkpoint ref with expected-old `update-ref --no-deref` CAS; push clean code non-force, fetch, and verify SHA.
 - At a quiescent checkpoint: verify owner/generation/budgets/remote parents/finalized paths; publish/verify code
   first; update Lifecycle State, validate against the exact expected committed parent, path-stage finalized sidecar
   files, commit from that parent, non-force CAS-push only `artifacts/<feature>`, and verify it.
 - Never reference local-only code, reuse/move a checkpoint ref, force push, publish sidecar first, or use broad
   staging. An orphan code checkpoint after a crash is ignored until a verified sidecar references it.
-- Resume fetches the sidecar and every referenced code ref/SHA, verifies exact reachability, and continues only from
-  the last quiescent CAS snapshot. Later local commits/files are untrusted recovery input. Ownership, budgets,
+- Resume fetches the sidecar and every referenced code ref/SHA, rejects a symbolic or mismatched local checkpoint
+  ref, and materializes a missing direct ref with the same expected-old CAS before continuing from the last quiescent CAS snapshot.
+  Later local commits/files are untrusted recovery input. Ownership, budgets,
   deadlines, strikes, and completion never reset or infer `done`.
 
 Use absolute `--artifact-root` and `--code-root` helper arguments. The code root is the package worktree for package

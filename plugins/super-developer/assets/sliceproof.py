@@ -108,10 +108,38 @@ FIXED_RECEIPT_LENSES = {
     "U": "accepted-outcome-reconciliation",
     "V": "verification-summary",
 }
+ASSURANCE_ASSIGNMENT_OWNERS = {"package-verifier", "package-specialist", "C", "R", "S"}
+ASSURANCE_ASSIGNMENT_SIDES = {"pre-freeze", "post-freeze"}
 CONTROL_PLANE_OPERATIONS = {"safe-checkpoint", "last-verified"}
 CONTROL_PLANE_REASONS = {"budget-exhausted", "ownership-unavailable", "cas-unavailable"}
 PREAUTH_REQUIRED_COUNTERS = {"delegated_calls", "planner_correction_waves", "spike_waves", "command_units"}
-IMPLEMENTATION_REQUIRED_COUNTERS = {"repair_waves", "delegated_calls", "command_units", "cost_units"}
+FINAL_ASSURANCE_CALL_COUNTERS = {
+    "C": "combined_low_calls",
+    "R": "code_review_calls",
+    "S": "final_specialist_calls",
+    "U": "completion_audit_calls",
+}
+PROFILE_FINAL_EQUATION_ROLES = {
+    "low": ("C",),
+    "standard": ("R", "U"),
+    "high": ("R", "S", "U"),
+}
+PROFILE_REQUIRED_FINAL_ROLES = {
+    "low": ("C",),
+    "standard": ("R", "U"),
+    "high": ("R", "U"),
+}
+ROLE_SCOPED_CALL_COUNTERS = tuple(FINAL_ASSURANCE_CALL_COUNTERS.values())
+IMPLEMENTATION_REQUIRED_COUNTERS = {
+    "repair_waves",
+    "delegated_calls",
+    "combined_low_calls",
+    "code_review_calls",
+    "final_specialist_calls",
+    "completion_audit_calls",
+    "command_units",
+    "cost_units",
+}
 REQUIRED_PACKAGE_SECTIONS = {
     "Scope",
     "Assigned Slices",
@@ -339,6 +367,14 @@ class SliceRef:
 
 
 @dataclass(frozen=True)
+class AssuranceAssignment:
+    owner: str
+    lens: str
+    side: str
+    reason: str
+
+
+@dataclass(frozen=True)
 class PackageMarkdown:
     package_id: str
     title: str
@@ -350,6 +386,7 @@ class PackageMarkdown:
     verification_mode: str
     report_path: str | None
     verification_rationale: str
+    assurance_assignment: AssuranceAssignment
     dependencies: list[str]
 
     @property
@@ -417,6 +454,7 @@ class ControlledRouting:
     effective_digest: str
     assurance_profile: str
     package_modes: dict[str, str]
+    package_assignments: list[dict[str, str]]
     package_states: dict[str, str]
     code_checkpoint_ref: str | None
     code_checkpoint_sha: str | None
@@ -589,30 +627,47 @@ def add_root_options(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--artifact-root",
         type=Path,
-        help="Root for .planning/.tasks artifacts; compatibility default is cwd, but lifecycle validation requires it.",
+        help="Required absolute distinct sidecar root for .planning/.tasks planned-feature artifacts.",
     )
     parser.add_argument(
         "--code-root",
         type=Path,
-        help="Root for source/test evidence; compatibility default is cwd, but lifecycle validation requires it.",
+        help="Required absolute distinct code worktree root for source/test evidence.",
     )
 
 
-def cmd_validate_lifecycle_state(args: argparse.Namespace) -> dict[str, Any]:
-    if args.artifact_root is None or args.code_root is None:
+def require_planned_cli_roots(args: argparse.Namespace) -> tuple[Path, Path]:
+    command = args.command
+    missing = [flag for flag, value in (
+        ("--artifact-root", args.artifact_root),
+        ("--code-root", args.code_root),
+    ) if value is None]
+    if missing:
         raise SliceproofError([
-            "validate-lifecycle-state: --artifact-root and --code-root are required for planned-feature authority"
+            f"{command}: explicit absolute --artifact-root and --code-root are required; missing {', '.join(missing)}"
         ])
-    if not FEATURE_RE.fullmatch(args.feature):
-        raise SliceproofError(["--feature: expected lowercase slug with letters, digits, and hyphens"])
-
+    if not args.artifact_root.is_absolute() or not args.code_root.is_absolute():
+        raise SliceproofError([
+            f"{command}: --artifact-root and --code-root must both be absolute paths"
+        ])
     cwd = Path.cwd().resolve(strict=False)
     artifact_root = resolve_cli_root(args.artifact_root, cwd, "--artifact-root")
     code_root = resolve_cli_root(args.code_root, cwd, "--code-root")
     if artifact_root == code_root:
-        raise SliceproofError(["validate-lifecycle-state: artifact root and code root must be distinct"])
-    require_exact_git_root(artifact_root, "artifact root")
-    require_exact_git_root(code_root, "code root")
+        raise SliceproofError([
+            f"{command}: artifact root and code root must be distinct; same-root files are migration input only"
+        ])
+    require_exact_git_root(artifact_root, "artifact root", command=command)
+    require_exact_git_root(code_root, "code root", command=command)
+    args.artifact_root = artifact_root
+    args.code_root = code_root
+    return artifact_root, code_root
+
+
+def cmd_validate_lifecycle_state(args: argparse.Namespace) -> dict[str, Any]:
+    artifact_root, code_root = require_planned_cli_roots(args)
+    if not FEATURE_RE.fullmatch(args.feature):
+        raise SliceproofError(["--feature: expected lowercase slug with letters, digits, and hyphens"])
 
     relative_path = f".tasks/{args.feature}/lifecycle-state.json"
     state = load_strict_json_file(resolve_authority_file(artifact_root, relative_path, "Lifecycle State"), "Lifecycle State")
@@ -706,6 +761,9 @@ BUDGET_SCHEMA = ("nullable", {
     "started_at": str,
     "deadline_at": str,
 })
+ROLE_CALL_CONSUMPTION_SCHEMA = {
+    role: NONNEGATIVE_INT_SCHEMA for role in FINAL_ASSURANCE_CALL_COUNTERS
+}
 ARTIFACT_DIGEST_ENTRY_SCHEMA = {"path": str, "digest": DIGEST_SCHEMA}
 SEMANTIC_ARTIFACT_ENTRY_SCHEMA = {
     "kind": ("enum", {"spec", "registry", "package", "proof", "boundary-report", "slice"}),
@@ -716,6 +774,13 @@ BOUNDARY_RECEIPT_SCHEMA = {
     "package": PACKAGE_ID_SCHEMA,
     "path": str,
     "digest": DIGEST_SCHEMA,
+}
+PACKAGE_ASSURANCE_ASSIGNMENT_SCHEMA = {
+    "package": PACKAGE_ID_SCHEMA,
+    "mode": ("enum", PACKAGE_VERIFICATION_MODES),
+    "owner": ("enum", ASSURANCE_ASSIGNMENT_OWNERS),
+    "lens": LENS_SCHEMA,
+    "side": ("enum", ASSURANCE_ASSIGNMENT_SIDES),
 }
 FREEZE_FILE_SCHEMA = {
     "schema_version": ("rule", lambda value: type(value) is int and value == 1, "1"),
@@ -735,6 +800,7 @@ FREEZE_FILE_SCHEMA = {
     "assurance": {
         "profile": ("enum", ASSURANCE_PROFILES),
         "package_modes": ("map", PACKAGE_ID_SCHEMA, ("enum", PACKAGE_VERIFICATION_MODES)),
+        "package_assignments": ("list", PACKAGE_ASSURANCE_ASSIGNMENT_SCHEMA),
         "required_boundary_receipts": ("list", BOUNDARY_RECEIPT_SCHEMA),
         "specialist_lenses": ("list", LENS_SCHEMA),
     },
@@ -783,6 +849,7 @@ LIFECYCLE_JSON_SCHEMA = {
     "budgets": {
         "preauthorization": BUDGET_SCHEMA,
         "implementation": BUDGET_SCHEMA,
+        "role_call_consumption": ROLE_CALL_CONSUMPTION_SCHEMA,
         "active_reservation": ("nullable", {
             "id": TOKEN_SCHEMA,
             "owner_token": TOKEN_SCHEMA,
@@ -853,6 +920,7 @@ LIFECYCLE_JSON_SCHEMA = {
     "portability_authorization": str,
     "assurance_profile?": ("enum", ASSURANCE_PROFILES),
     "package_modes?": ("map", PACKAGE_ID_SCHEMA, ("enum", PACKAGE_VERIFICATION_MODES)),
+    "package_assignments": ("list", PACKAGE_ASSURANCE_ASSIGNMENT_SCHEMA),
 }
 
 
@@ -1010,6 +1078,9 @@ def validate_lifecycle_state_data(
     validate_lifecycle_budget_invariants(state, authorization_complete, errors)
 
     packages, wave = state["packages"], state["wave"]
+    assignments = state["package_assignments"]
+    if not authorization_complete and assignments != []:
+        errors.append(f"{label}.package_assignments: must be empty before authorization")
     if authorization_complete:
         inputs = authorization["inputs"]
         if authorization["initial_digest"] != canonical_json_digest(inputs):
@@ -1033,6 +1104,13 @@ def validate_lifecycle_state_data(
             errors.append(f"{label}.assurance_profile: required after authorization")
         if not isinstance(modes, dict) or not modes or set(modes) != set(packages):
             errors.append(f"{label}.package_modes: authorized state must bind every lifecycle package exactly")
+        if profile in ASSURANCE_PROFILES and isinstance(modes, dict):
+            errors.extend(validate_assurance_assignment_values(
+                assignments,
+                profile=profile,
+                package_modes=modes,
+                label=f"{label}.package_assignments",
+            ))
         if not packages:
             errors.append(f"{label}.packages: authorized state requires at least one package")
         if profile == "low" and isinstance(modes, dict) and (
@@ -1049,7 +1127,7 @@ def validate_lifecycle_state_data(
                     f"{label}.authorization.inputs.artifact_tree: must match the initial artifact checkpoint tree"
                 )
             if profile is not None and isinstance(modes, dict):
-                routing = canonical_json_digest({"assurance_profile": profile, "package_modes": modes})
+                routing = assurance_routing_digest(profile, modes, assignments)
                 if inputs["routing"] != routing:
                     errors.append(f"{label}.authorization.inputs.routing: does not match initial lifecycle routing")
         expected_budget_authority = authorization_budget_authority_digest(state["budgets"])
@@ -1061,7 +1139,9 @@ def validate_lifecycle_state_data(
             "artifact_checkpoint": artifact["sha"] is not None or artifact["tree"] is not None,
             "code_checkpoint": code is not None,
             "authorization": any(value is not None for value in auth_values) or amendment is not None,
+            "role_call_consumption": any(state["budgets"]["role_call_consumption"].values()),
             "packages": bool(packages),
+            "package_assignments": bool(assignments),
             "wave": wave is not None,
             "serious_clusters": bool(state["serious_clusters"]),
             "freeze": state["freeze"] is not None,
@@ -1208,6 +1288,13 @@ def validate_lifecycle_transition_authority(
             "lifecycle-state.json.last_verified.state_digest: does not match the committed predecessor state"
         ])
     transition_errors = compare_lifecycle_states(previous, state)
+    transition_errors.extend(validate_control_only_transition_paths(
+        artifact_root,
+        code_root,
+        inferred_previous,
+        relative_path,
+        state,
+    ))
     transition_errors.extend(validate_artifact_checkpoint_ancestry(artifact_root, previous, state))
     transition_errors.extend(validate_assurance_paths_append_only(artifact_root, feature, inferred_previous))
     transition_errors.extend(validate_new_assurance_pointer_paths(
@@ -1380,6 +1467,32 @@ def validate_lifecycle_budget_invariants(
 
     implementation = budgets["implementation"]
     profile = state.get("assurance_profile")
+    if implementation is not None and authorization_complete:
+        maxima = implementation["maxima"]
+        issued = implementation["issued"]
+        issued_role_calls = sum(issued.get(counter, 0) for counter in ROLE_SCOPED_CALL_COUNTERS)
+        if issued.get("delegated_calls", 0) < issued_role_calls:
+            errors.append(
+                f"{label}.implementation.issued.delegated_calls: must cover the sum of issued "
+                f"role-scoped calls ({issued.get('delegated_calls', 0)} < {issued_role_calls})"
+            )
+        if profile in PROFILE_FINAL_EQUATION_ROLES:
+            for role in PROFILE_REQUIRED_FINAL_ROLES[profile]:
+                counter = FINAL_ASSURANCE_CALL_COUNTERS[role]
+                if maxima.get(counter, 0) < 1:
+                    errors.append(
+                        f"{label}.implementation.maxima.{counter}: {profile} final equation requires at least 1"
+                    )
+            equation_counters = [
+                FINAL_ASSURANCE_CALL_COUNTERS[role]
+                for role in PROFILE_FINAL_EQUATION_ROLES[profile]
+            ]
+            equation_maximum = sum(maxima.get(counter, 0) for counter in equation_counters)
+            if maxima.get("delegated_calls", 0) < equation_maximum:
+                errors.append(
+                    f"{label}.implementation.maxima.delegated_calls: must cover the selected {profile} "
+                    f"final-equation role maxima ({maxima.get('delegated_calls', 0)} < {equation_maximum})"
+                )
     if implementation is not None and profile in ASSURANCE_PROFILES:
         repair_maximum = implementation["maxima"].get("repair_waves")
         if profile == "low" and repair_maximum is not None and repair_maximum > 1:
@@ -1389,6 +1502,25 @@ def validate_lifecycle_budget_invariants(
         has_root_cause_repair = any(cluster["repair"] is not None for cluster in state["serious_clusters"])
         if has_root_cause_repair and implementation["issued"].get("repair_waves", 0) < 1:
             errors.append(f"{label}.implementation.issued.repair_waves: cluster repair must consume a wave")
+
+    consumption = budgets["role_call_consumption"]
+    current_receipt_counts = {
+        role: sum(receipt["role"] == role for receipt in state["receipts"])
+        for role in FINAL_ASSURANCE_CALL_COUNTERS
+    }
+    for role, counter in FINAL_ASSURANCE_CALL_COUNTERS.items():
+        consumed = consumption[role]
+        issued = 0 if implementation is None else implementation["issued"].get(counter, 0)
+        if consumed > issued:
+            errors.append(
+                f"{label}.role_call_consumption.{role}: consumed calls exceed issued {counter} "
+                f"({consumed} > {issued})"
+            )
+        if current_receipt_counts[role] > consumed:
+            errors.append(
+                f"{label}.role_call_consumption.{role}: current receipt graph requires at least "
+                f"{current_receipt_counts[role]} consumed calls"
+            )
 
     reservation = budgets["active_reservation"]
     if reservation is None:
@@ -1404,6 +1536,14 @@ def validate_lifecycle_budget_invariants(
         return
     if not reservation["units"]:
         errors.append(f"{label}.active_reservation.units: expected non-empty counter object")
+    reserved_role_calls = sum(
+        reservation["units"].get(counter, 0) for counter in ROLE_SCOPED_CALL_COUNTERS
+    )
+    if reserved_role_calls and reservation["units"].get("delegated_calls", 0) < reserved_role_calls:
+        errors.append(
+            f"{label}.active_reservation.units.delegated_calls: must cover the sum of reserved "
+            f"role-scoped calls ({reservation['units'].get('delegated_calls', 0)} < {reserved_role_calls})"
+        )
     for counter, amount in reservation["units"].items():
         if counter not in selected["issued"]:
             errors.append(f"{label}.active_reservation.units.{counter}: unsupported budget counter")
@@ -1507,6 +1647,18 @@ def technical_amendment_effective_digest(parent: str, amendment: str, artifact_s
         "artifact_sha": artifact_sha,
         "parent_effective_digest": parent,
         "technical_amendment_digest": amendment,
+    })
+
+
+def assurance_routing_digest(
+    profile: str,
+    package_modes: dict[str, str],
+    package_assignments: list[dict[str, str]],
+) -> str:
+    return canonical_json_digest({
+        "assurance_profile": profile,
+        "package_modes": package_modes,
+        "package_assignments": package_assignments,
     })
 
 
@@ -1774,16 +1926,45 @@ def compare_lifecycle_states(previous: dict[str, Any], current: dict[str, Any]) 
     elif old_freeze is not None and new_freeze is not None and old_freeze["path"] == new_freeze["path"]:
         errors.append("lifecycle transition: a new freeze requires a new canonical path")
 
+    errors.extend(validate_role_call_consumption_transition(previous, current))
+
     control_reservation = current["budgets"]["control_plane_reserve"]["reservation"]
-    if control_reservation is not None and control_reservation["operation"] == "last-verified":
-        if current["owner"] != previous["owner"] or current["owner"].get("takeover") != previous["owner"].get("takeover"):
-            errors.append("lifecycle transition: last-verified escalation cannot mutate ownership or take over")
+    if control_reservation is not None:
+        operation = control_reservation["operation"]
         preserved_fields = (
             "artifact_checkpoint", "code_checkpoint", "authorization", "packages", "wave",
             "serious_clusters", "freeze", "receipts", "assurance_profile", "package_modes",
+            "package_assignments",
         )
         if any(current.get(field) != previous.get(field) for field in preserved_fields):
-            errors.append("lifecycle transition: last-verified escalation cannot mutate semantic/checkpoint state")
+            errors.append(
+                f"lifecycle transition: {operation} control-only escalation cannot mutate semantic/checkpoint state"
+            )
+        if (
+            any(
+                current["budgets"][name] != previous["budgets"][name]
+                for name in ("preauthorization", "implementation")
+            )
+            or current["budgets"]["role_call_consumption"]
+            != previous["budgets"]["role_call_consumption"]
+        ):
+            errors.append(
+                f"lifecycle transition: {operation} control-only escalation cannot issue or mutate semantic budgets"
+            )
+        if operation == "safe-checkpoint":
+            if current["owner"] != previous["owner"] or current["owner"]["disposition"] != "active":
+                errors.append(
+                    "lifecycle transition: safe-checkpoint escalation must preserve the exact active owner"
+                )
+        elif current["owner"] != previous["owner"]:
+            errors.append("lifecycle transition: last-verified escalation cannot mutate ownership or take over")
+        if (
+            control_reservation["reason"] in {"ownership-unavailable", "cas-unavailable"}
+            and current["owner"] != previous["owner"]
+        ):
+            errors.append(
+                "lifecycle transition: ownership/CAS-unavailable escalation cannot take over ownership"
+            )
     return errors
 
 
@@ -1799,16 +1980,37 @@ def compare_assurance_routing(
     new_profile = current.get("assurance_profile")
     old_modes = previous.get("package_modes", {})
     new_modes = current.get("package_modes", {})
+    old_assignments = {
+        item["package"]: item for item in previous.get("package_assignments", [])
+    }
+    new_assignments = {
+        item["package"]: item for item in current.get("package_assignments", [])
+    }
     profile_changed = old_profile != new_profile
     changed_mode_ids = {
         package_id
         for package_id in set(old_modes) | set(new_modes)
         if old_modes.get(package_id) != new_modes.get(package_id)
     }
-    if not profile_changed and not changed_mode_ids:
+    changed_assignment_ids = {
+        package_id
+        for package_id in set(old_assignments) | set(new_assignments)
+        if old_assignments.get(package_id) != new_assignments.get(package_id)
+    }
+    if not profile_changed and not changed_mode_ids and not changed_assignment_ids:
         return []
 
     errors: list[str] = []
+    if (
+        profile_changed
+        and old_profile in ASSURANCE_PROFILE_RANK
+        and new_profile in ASSURANCE_PROFILE_RANK
+        and ASSURANCE_PROFILE_RANK[new_profile] < ASSURANCE_PROFILE_RANK[old_profile]
+    ):
+        errors.append(
+            "lifecycle transition: assurance profile downgrade is forbidden under the existing authorization "
+            "lineage; it requires a fresh reviewed baseline and new user authorization"
+        )
     if not authorization_changed:
         if profile_changed:
             direction = "changed"
@@ -1825,9 +2027,18 @@ def compare_assurance_routing(
             errors.append(
                 "lifecycle transition: package verification mode change requires a reviewed effective-digest amendment"
             )
+        if changed_assignment_ids:
+            errors.append(
+                "lifecycle transition: package assurance assignment change requires a reviewed "
+                "effective-digest amendment"
+            )
         return errors
 
-    affected = set(previous.get("packages", {})) if profile_changed else changed_mode_ids
+    affected = (
+        set(previous.get("packages", {}))
+        if profile_changed
+        else changed_mode_ids | changed_assignment_ids
+    )
     for package_id in sorted(affected & set(previous.get("packages", {})) & set(current.get("packages", {}))):
         old_state = previous["packages"][package_id]["state"]
         new_state = current["packages"][package_id]["state"]
@@ -1900,6 +2111,62 @@ def validate_artifact_checkpoint_ancestry(
     return [f"lifecycle transition: unable to verify artifact checkpoint ancestry: {detail}"]
 
 
+def validate_control_only_transition_paths(
+    artifact_root: Path,
+    code_root: Path,
+    previous_commit: str,
+    lifecycle_path: str,
+    state: dict[str, Any],
+) -> list[str]:
+    reservation = state["budgets"]["control_plane_reserve"]["reservation"]
+    if reservation is None:
+        return []
+    label = f"lifecycle transition: {reservation['operation']} control-only escalation"
+    errors: list[str] = []
+    try:
+        changed_output = git_output(
+            artifact_root,
+            ["diff", "--name-only", "--no-renames", previous_commit, "--"],
+            label,
+        )
+        untracked_output = git_output(
+            artifact_root,
+            ["ls-files", "--others"],
+            label,
+        )
+    except SliceproofError as exc:
+        return exc.errors
+    changed = {path for path in changed_output.splitlines() if path}
+    changed.update(path for path in untracked_output.splitlines() if path)
+    unexpected = sorted(changed - {lifecycle_path})
+    if unexpected:
+        errors.append(
+            f"{label} may change only {lifecycle_path}; unexpected changed paths {unexpected}"
+        )
+    if lifecycle_path not in changed:
+        errors.append(f"{label} must change only the derived Lifecycle State path")
+
+    try:
+        code_status = git_output(
+            code_root,
+            ["status", "--porcelain=v1", "--untracked-files=all"],
+            label,
+        )
+    except SliceproofError as exc:
+        errors.extend(exc.errors)
+    else:
+        if code_status:
+            errors.append(f"{label} cannot progress code or code-root evidence")
+    checkpoint = state.get("code_checkpoint")
+    if checkpoint is not None:
+        errors.extend(validate_worktree_head_and_clean(
+            code_root,
+            checkpoint["sha"],
+            f"{label}: code checkpoint",
+        ))
+    return errors
+
+
 def validate_assurance_paths_append_only(
     artifact_root: Path, feature: str, previous_commit: str
 ) -> list[str]:
@@ -1958,8 +2225,68 @@ def validate_new_assurance_pointer_paths(
     return errors
 
 
+def validate_role_call_consumption_transition(
+    previous: dict[str, Any],
+    current: dict[str, Any],
+) -> list[str]:
+    errors: list[str] = []
+    previous_consumption = previous["budgets"]["role_call_consumption"]
+    current_consumption = current["budgets"]["role_call_consumption"]
+    previous_implementation = previous["budgets"].get("implementation")
+    previous_issued = (
+        previous_implementation["issued"] if previous_implementation is not None else {}
+    )
+
+    previous_freeze = previous["freeze"]
+    current_freeze = current["freeze"]
+    same_freeze = (
+        previous_freeze is not None
+        and current_freeze is not None
+        and previous_freeze["id"] == current_freeze["id"]
+    )
+    previous_nodes = (
+        {(receipt["role"], receipt["lens"]) for receipt in previous["receipts"]}
+        if same_freeze
+        else set()
+    )
+    added_receipts = {role: 0 for role in FINAL_ASSURANCE_CALL_COUNTERS}
+    for receipt in current["receipts"]:
+        role = receipt["role"]
+        if role in added_receipts and (role, receipt["lens"]) not in previous_nodes:
+            added_receipts[role] += 1
+
+    for role, counter in FINAL_ASSURANCE_CALL_COUNTERS.items():
+        old_consumed = previous_consumption[role]
+        new_consumed = current_consumption[role]
+        if new_consumed < old_consumed:
+            errors.append(
+                f"lifecycle transition: role_call_consumption.{role} cannot decrease"
+            )
+            continue
+        consumed_delta = new_consumed - old_consumed
+        if consumed_delta and new_consumed > previous_issued.get(counter, 0):
+            errors.append(
+                f"lifecycle transition: role_call_consumption.{role}={new_consumed} exceeds "
+                f"predecessor-issued {counter}={previous_issued.get(counter, 0)}"
+            )
+        if added_receipts[role] > consumed_delta:
+            errors.append(
+                f"lifecycle transition: {added_receipts[role]} new {role} receipt(s) require matching "
+                f"new role-call consumption after predecessor issuance; delta is {consumed_delta}"
+            )
+    return errors
+
+
 def checkpoint_ref_generation(ref: str) -> int:
     return int(ref.rsplit("/g", 1)[1])
+
+
+def immutable_checkpoint_ref_generation(ref: str, feature: str) -> int | None:
+    match = re.fullmatch(
+        rf"refs/heads/checkpoints/{re.escape(feature)}/[A-Za-z0-9][A-Za-z0-9-]*/g([1-9]\d*)",
+        ref,
+    )
+    return None if match is None else int(match.group(1))
 
 
 def compare_lifecycle_budgets(previous: dict[str, Any], current: dict[str, Any]) -> list[str]:
@@ -1999,6 +2326,9 @@ def compare_lifecycle_budgets(previous: dict[str, Any], current: dict[str, Any])
             errors.append("lifecycle transition: control-plane reservation must consume the one issued unit")
 
     old_reservation, new_reservation = previous.get("active_reservation"), current.get("active_reservation")
+    new_reservation_created = new_reservation is not None and (
+        old_reservation is None or old_reservation["id"] != new_reservation["id"]
+    )
     if old_reservation and new_reservation and old_reservation["id"] == new_reservation["id"]:
         if old_reservation != new_reservation:
             errors.append("lifecycle transition: active reservation cannot mutate under the same id")
@@ -2012,6 +2342,43 @@ def compare_lifecycle_budgets(previous: dict[str, Any], current: dict[str, Any])
                     errors.append(
                         f"lifecycle transition: reservation {counter} must be charged by this generation's issued delta"
                     )
+
+    old_implementation = previous.get("implementation")
+    new_implementation = current.get("implementation")
+    old_role_issued = old_implementation["issued"] if old_implementation is not None else {}
+    new_role_issued = new_implementation["issued"] if new_implementation is not None else {}
+    role_deltas = {
+        counter: new_role_issued.get(counter, 0) - old_role_issued.get(counter, 0)
+        for counter in ROLE_SCOPED_CALL_COUNTERS
+    }
+    positive_role_deltas = {
+        counter: delta for counter, delta in role_deltas.items() if delta > 0
+    }
+    if positive_role_deltas:
+        matching_reservation = (
+            new_reservation_created
+            and new_reservation is not None
+            and new_reservation["budget"] == "implementation"
+        )
+        if not matching_reservation:
+            errors.append(
+                "lifecycle transition: positive role-call issued delta requires a newly created "
+                "matching implementation reservation"
+            )
+        else:
+            units = new_reservation["units"]
+            for counter, delta in positive_role_deltas.items():
+                if units.get(counter, 0) != delta:
+                    errors.append(
+                        f"lifecycle transition: new reservation {counter} units must exactly match "
+                        f"issued delta {delta}"
+                    )
+            role_delta_total = sum(positive_role_deltas.values())
+            if units.get("delegated_calls", 0) < role_delta_total:
+                errors.append(
+                    "lifecycle transition: new role-call reservation must charge delegated_calls "
+                    "by at least the role delta sum"
+                )
     return errors
 
 
@@ -2092,10 +2459,15 @@ def git_head_or_none(root: Path) -> str | None:
     ])
 
 
-def require_exact_git_root(root: Path, label: str) -> None:
-    top = git_output(root, ["rev-parse", "--show-toplevel"], f"validate-lifecycle-state: {label}").strip()
+def require_exact_git_root(
+    root: Path,
+    label: str,
+    *,
+    command: str = "validate-lifecycle-state",
+) -> None:
+    top = git_output(root, ["rev-parse", "--show-toplevel"], f"{command}: {label}").strip()
     if Path(top).resolve(strict=False) != root:
-        raise SliceproofError([f"validate-lifecycle-state: {label} must be an exact Git worktree root"])
+        raise SliceproofError([f"{command}: {label} must equal its own exact Git worktree root"])
 
 
 def git_common_dir(root: Path, label: str) -> Path:
@@ -2120,13 +2492,21 @@ def require_git_ref_at_commit(
     label: str,
     errors: list[str],
 ) -> None:
-    try:
-        actual = git_output(root, ["rev-parse", "--verify", f"{ref}^{{commit}}"], label).strip()
-    except SliceproofError as exc:
-        errors.extend(exc.errors)
-        return
-    if actual != sha:
-        errors.append(f"{label}: must resolve locally to the exact checkpoint sha")
+    symbolic = git_process(root, ["symbolic-ref", "-q", ref], label)
+    if symbolic.returncode == 0:
+        errors.append(f"{label}: must be a direct ref; symbolic refs are forbidden")
+    elif symbolic.returncode != 1:
+        detail = symbolic.stderr.strip() or symbolic.stdout.strip() or f"exit {symbolic.returncode}"
+        errors.append(f"{label}: direct-ref inspection failed: {detail}")
+
+    direct = git_process(root, ["show-ref", "--verify", "--hash", ref], label)
+    if direct.returncode != 0:
+        detail = direct.stderr.strip() or direct.stdout.strip() or f"exit {direct.returncode}"
+        errors.append(f"{label}: exact direct ref is missing or unreadable: {detail}")
+    elif direct.stdout.strip() != sha:
+        errors.append(f"{label}: must resolve locally to the exact checkpoint sha as a direct ref")
+
+    require_git_commit(root, sha, f"{label}: bound sha", errors)
 
 
 def git_commit_tree(root: Path, sha: str, label: str, errors: list[str]) -> str | None:
@@ -2187,6 +2567,7 @@ def digest_bytes(value: bytes) -> str:
 
 
 def cmd_validate_plan(args: argparse.Namespace) -> dict[str, Any]:
+    require_planned_cli_roots(args)
     registry, packages = load_and_validate_plan(args.tasks, artifact_root=args.artifact_root, code_root=args.code_root)
     return {
         "tasks": str(args.tasks),
@@ -2205,6 +2586,7 @@ def cmd_validate_plan(args: argparse.Namespace) -> dict[str, Any]:
 
 
 def cmd_create_proof(args: argparse.Namespace) -> dict[str, Any]:
+    require_planned_cli_roots(args)
     if args.approved_replacement and not args.force:
         raise SliceproofError(["create-proof: --approved-replacement requires --force"])
     if args.approved_replacement is not None and not has_approval_provenance_scope(args.approved_replacement):
@@ -2279,6 +2661,7 @@ def cmd_create_proof(args: argparse.Namespace) -> dict[str, Any]:
 
 
 def cmd_validate_proof(args: argparse.Namespace) -> dict[str, Any]:
+    require_planned_cli_roots(args)
     state = load_package_state(args.tasks, args.package, artifact_root=args.artifact_root, code_root=args.code_root)
     errors = validate_proof_markdown(state.proof_path, state.package_md)
     if errors:
@@ -2292,6 +2675,7 @@ def cmd_validate_proof(args: argparse.Namespace) -> dict[str, Any]:
 
 
 def cmd_validate_package_complete(args: argparse.Namespace) -> dict[str, Any]:
+    require_planned_cli_roots(args)
     state = load_package_state(args.tasks, args.package, artifact_root=args.artifact_root, code_root=args.code_root)
     errors = validate_proof_markdown(state.proof_path, state.package_md)
     dependency_result = validate_direct_dependency_unlocks(state)
@@ -2338,6 +2722,7 @@ def cmd_validate_package_complete(args: argparse.Namespace) -> dict[str, Any]:
 
 
 def cmd_emit_state_binding(args: argparse.Namespace) -> RawText:
+    require_planned_cli_roots(args)
     state = load_package_state(args.tasks, args.package, artifact_root=args.artifact_root, code_root=args.code_root)
     if state.package.verification_mode != "boundary":
         raise SliceproofError([
@@ -2367,6 +2752,7 @@ def cmd_emit_state_binding(args: argparse.Namespace) -> RawText:
 
 
 def cmd_validate_final(args: argparse.Namespace) -> dict[str, Any]:
+    require_planned_cli_roots(args)
     registry, packages = load_and_validate_plan(args.tasks, artifact_root=args.artifact_root, code_root=args.code_root)
     errors: list[str] = validate_controlled_integration_checkpoint(registry, "validate-final")
     advisories: list[dict[str, Any]] = []
@@ -2435,20 +2821,9 @@ def cmd_validate_final(args: argparse.Namespace) -> dict[str, Any]:
 
 
 def cmd_validate_agentic_completion(args: argparse.Namespace) -> dict[str, Any]:
-    if args.artifact_root is None or args.code_root is None:
-        raise SliceproofError([
-            "validate-agentic-completion: --artifact-root and --code-root are required"
-        ])
+    artifact_root, code_root = require_planned_cli_roots(args)
     if not FEATURE_RE.fullmatch(args.feature):
         raise SliceproofError(["--feature: expected lowercase slug with letters, digits, and hyphens"])
-    cwd = Path.cwd().resolve(strict=False)
-    artifact_root = resolve_cli_root(args.artifact_root, cwd, "--artifact-root")
-    code_root = resolve_cli_root(args.code_root, cwd, "--code-root")
-    if artifact_root == code_root:
-        raise SliceproofError(["validate-agentic-completion: artifact root and code root must be distinct"])
-    require_exact_git_root(artifact_root, "artifact root")
-    require_exact_git_root(code_root, "code root")
-
     state_relative = f".tasks/{args.feature}/lifecycle-state.json"
     state_path = resolve_authority_file(artifact_root, state_relative, "Lifecycle State")
     state = load_strict_json_file(state_path, "Lifecycle State")
@@ -2465,11 +2840,12 @@ def cmd_validate_agentic_completion(args: argparse.Namespace) -> dict[str, Any]:
     )
 
     prefreeze = cmd_validate_final(argparse.Namespace(
+        command="validate-final",
         tasks=Path(f".tasks/{args.feature}/tasks.json"),
         artifact_root=artifact_root,
         code_root=code_root,
     ))
-    registry, _packages = load_and_validate_plan(
+    registry, package_markdowns = load_and_validate_plan(
         Path(f".tasks/{args.feature}/tasks.json"),
         artifact_root=artifact_root,
         code_root=code_root,
@@ -2480,6 +2856,7 @@ def cmd_validate_agentic_completion(args: argparse.Namespace) -> dict[str, Any]:
         artifact_root=artifact_root,
         code_root=code_root,
         state_relative=state_relative,
+        package_markdowns=package_markdowns,
     )
     if errors:
         raise SliceproofError(errors, prefreeze.get("advisories", []))
@@ -2511,6 +2888,7 @@ def validate_agentic_completion_data(
     artifact_root: Path,
     code_root: Path,
     state_relative: str,
+    package_markdowns: dict[str, PackageMarkdown],
 ) -> tuple[list[str], dict[str, Any]]:
     label = "validate-agentic-completion"
     errors: list[str] = []
@@ -2566,6 +2944,28 @@ def validate_agentic_completion_data(
         errors.append(f"{label}: freeze profile does not match Lifecycle State")
     if assurance["package_modes"] != state["package_modes"]:
         errors.append(f"{label}: freeze package modes do not match Lifecycle State")
+    markdown_assignments = expected_package_assurance_assignments(registry, package_markdowns)
+    controlled_assignments = state["package_assignments"]
+    if markdown_assignments != controlled_assignments:
+        errors.append(
+            f"{label}: current package Markdown assignments do not match controlled Lifecycle State"
+        )
+    if assurance["package_assignments"] != controlled_assignments:
+        errors.append(
+            f"{label}: freeze package assignments must exactly match controlled Lifecycle State"
+        )
+    boundary_lenses = {
+        item["lens"] for item in controlled_assignments if item["side"] == "pre-freeze"
+    }
+    planned_specialist_lenses = planned_final_specialist_lenses(controlled_assignments)
+    if assurance["specialist_lenses"] != planned_specialist_lenses:
+        errors.append(
+            f"{label}: final specialist lenses must exactly equal planned high final owner S assignments"
+        )
+    post_freeze_lenses = set(FIXED_RECEIPT_LENSES.values()) | set(assurance["specialist_lenses"])
+    overlap = sorted(boundary_lenses & post_freeze_lenses)
+    if overlap:
+        errors.append(f"{label}: assurance lens cannot appear on both sides of F: {overlap}")
 
     manifest, manifest_errors = expected_semantic_artifact_manifest(registry)
     errors.extend(manifest_errors)
@@ -2619,10 +3019,25 @@ def validate_agentic_completion_data(
     if implementation_budget is None:
         errors.append(f"{label}: finite implementation budget is required")
     else:
-        if freeze["command_results"] and implementation_budget["issued"]["command_units"] < 1:
+        issued = implementation_budget["issued"]
+        if freeze["command_results"] and issued["command_units"] < 1:
             errors.append(f"{label}: bound command results must consume finite implementation command units")
-        if state["receipts"] and implementation_budget["issued"]["delegated_calls"] < 1:
-            errors.append(f"{label}: final assurance receipts must consume finite delegated-call units")
+        exact_graph_calls = {
+            counter: sum(item["role"] == role for item in state["receipts"])
+            for role, counter in FINAL_ASSURANCE_CALL_COUNTERS.items()
+        }
+        for counter, required_calls in exact_graph_calls.items():
+            if issued[counter] < required_calls:
+                errors.append(
+                    f"{label}: implementation issued {counter} must cover the exact final receipt graph "
+                    f"({issued[counter]} issued, {required_calls} required)"
+                )
+        role_calls_issued = sum(issued[counter] for counter in exact_graph_calls)
+        if issued["delegated_calls"] < role_calls_issued:
+            errors.append(
+                f"{label}: total delegated_calls must cover all issued role-scoped assurance calls; "
+                "one call cannot authorize multiple C/R/S/U roles"
+            )
     if implementation_budget is not None and completion_at is not None:
         started_at = parse_aware_iso8601(
             implementation_budget["started_at"],
@@ -3153,6 +3568,17 @@ def load_and_validate_plan(
                 continue
             packages[package.package_id] = package_md
             errors.extend(validate_package_markdown(registry, package, package_md))
+        if len(packages) == len(registry.packages):
+            errors.extend(validate_package_assurance_assignments(registry, packages))
+            controlled, controlled_errors = load_controlled_routing(registry)
+            errors.extend(controlled_errors)
+            if controlled is not None and (
+                expected_package_assurance_assignments(registry, packages)
+                != controlled.package_assignments
+            ):
+                errors.append(
+                    "assurance routing: package Markdown assignments do not match controlled Lifecycle State"
+                )
     if errors:
         raise SliceproofError(errors)
     return registry, packages
@@ -3385,11 +3811,7 @@ def validate_registry(registry: Registry) -> list[str]:
 
 
 def load_controlled_routing(registry: Registry) -> tuple[ControlledRouting | None, list[str]]:
-    """Load authority only from a distinct-root planned sidecar.
-
-    Same-root/default-root operation remains compatibility mode. A colocated
-    lifecycle-shaped file is deliberately not a source of planned authority.
-    """
+    """Load authority only from an explicit distinct-root planned sidecar."""
     if not registry.planned_sidecar:
         return None, []
 
@@ -3426,6 +3848,7 @@ def load_controlled_routing(registry: Registry) -> tuple[ControlledRouting | Non
     effective_digest = authorization["effective_digest"]
     profile = state["assurance_profile"]
     modes = state["package_modes"]
+    assignments = state["package_assignments"]
     package_states = {
         package_id: package_state["state"]
         for package_id, package_state in state["packages"].items()
@@ -3448,13 +3871,14 @@ def load_controlled_routing(registry: Registry) -> tuple[ControlledRouting | Non
             "assurance routing: registry verification_mode values do not match controlled Lifecycle State package_modes"
         )
     return ControlledRouting(
-        authorization_id,
-        effective_digest,
-        profile,
-        modes,
-        package_states,
-        code_checkpoint_ref,
-        code_checkpoint_sha,
+        authorization_id=authorization_id,
+        effective_digest=effective_digest,
+        assurance_profile=profile,
+        package_modes=modes,
+        package_assignments=assignments,
+        package_states=package_states,
+        code_checkpoint_ref=code_checkpoint_ref,
+        code_checkpoint_sha=code_checkpoint_sha,
     ), errors
 
 
@@ -3499,14 +3923,11 @@ def validate_controlled_stable_candidate(
     package: RegistryPackage,
     *,
     candidate_commit: str | None,
+    candidate_ref: str | None = None,
     label: str,
     require_done: bool = False,
     require_current_candidate: bool = True,
 ) -> list[str]:
-    """Fail closed only for explicit, distinct-root planned sidecars.
-
-    Same-root/default-root use is a legacy compatibility mode and is not Lifecycle State authority.
-    """
     if not registry.planned_sidecar:
         return []
     controlled, errors = load_controlled_routing(registry)
@@ -3524,23 +3945,39 @@ def validate_controlled_stable_candidate(
         )
     if controlled.code_checkpoint_sha is None or controlled.code_checkpoint_ref is None:
         errors.append(f"{label}: controlled code checkpoint is required for a stable package candidate")
-    else:
-        require_git_commit(
+        return errors
+
+    require_git_commit(
+        registry.code_root,
+        controlled.code_checkpoint_sha,
+        f"{label}: controlled code checkpoint sha",
+        errors,
+    )
+    if candidate_commit is not None:
+        ancestry = git_process(
+            registry.code_root,
+            ["merge-base", "--is-ancestor", candidate_commit, controlled.code_checkpoint_sha],
+            f"{label}: boundary candidate ancestry",
+        )
+        if ancestry.returncode == 1:
+            errors.append(
+                f"{label}: boundary candidate commit must be an ancestor of the current consumer/integration checkpoint"
+            )
+        elif ancestry.returncode != 0:
+            detail = ancestry.stderr.strip() or ancestry.stdout.strip() or f"exit {ancestry.returncode}"
+            errors.append(f"{label}: unable to verify boundary candidate ancestry: {detail}")
+    if require_current_candidate:
+        if candidate_commit is not None and candidate_commit != controlled.code_checkpoint_sha:
+            errors.append(f"{label}: boundary report commit must match the controlled code checkpoint")
+        if candidate_ref is not None and candidate_ref != controlled.code_checkpoint_ref:
+            errors.append(
+                f"{label}: boundary report Git Ref must match the exact controlled immutable code checkpoint ref"
+            )
+        errors.extend(validate_worktree_head_and_clean(
             registry.code_root,
             controlled.code_checkpoint_sha,
-            f"{label}: controlled code checkpoint sha",
-            errors,
-        )
-        if require_current_candidate:
-            if candidate_commit is not None and candidate_commit != controlled.code_checkpoint_sha:
-                errors.append(
-                    f"{label}: boundary report commit must match the controlled code checkpoint"
-                )
-            errors.extend(validate_worktree_head_and_clean(
-                registry.code_root,
-                controlled.code_checkpoint_sha,
-                f"{label}: controlled code root/package worktree",
-            ))
+            f"{label}: controlled code root/package worktree",
+        ))
     return errors
 
 
@@ -3605,7 +4042,7 @@ def parse_package_markdown(path: Path, package_id: str) -> PackageMarkdown:
     primary_paths = parse_bullets(sections["Primary Paths"], unwrap_path=True)
     verification_expectations = parse_bullets(sections["Verification Expectations"], unwrap_path=False)
     proof_paths = parse_bullets(sections["Proof"], unwrap_path=True)
-    verification_mode, report_path, verification_rationale, verification_errors = (
+    verification_mode, report_path, verification_rationale, assurance_assignment, verification_errors = (
         parse_independent_verification(path, sections["Independent Verification"])
     )
     errors.extend(verification_errors)
@@ -3634,6 +4071,7 @@ def parse_package_markdown(path: Path, package_id: str) -> PackageMarkdown:
         verification_mode=verification_mode,
         report_path=report_path,
         verification_rationale=verification_rationale,
+        assurance_assignment=assurance_assignment,
         dependencies=dependencies,
     )
 
@@ -3641,7 +4079,7 @@ def parse_package_markdown(path: Path, package_id: str) -> PackageMarkdown:
 def parse_independent_verification(
     path: Path,
     body: str,
-) -> tuple[str, str | None, str, list[str]]:
+) -> tuple[str, str | None, str, AssuranceAssignment, list[str]]:
     label = f"{path}: ## Independent Verification"
     expected_fields = ["Mode", "Report", "Rationale"]
     fields: dict[str, str] = {}
@@ -3698,9 +4136,37 @@ def parse_independent_verification(
             errors.append(f"{label} boundary Report requires a safe package verification report path")
 
     rationale = normalize_markdown_scalar(fields.get("Rationale", ""))
-    if not is_specific_evidence_payload(rationale, allow_none=False):
-        errors.append(f"{label} Rationale must be a non-placeholder named boundary/risk or final-owner rationale")
-    return mode, report_path, rationale, errors
+    assignment, assignment_errors = parse_assurance_assignment(rationale, f"{label} Rationale")
+    errors.extend(assignment_errors)
+    if assignment is None:
+        assignment = AssuranceAssignment("", "", "", "")
+    return mode, report_path, rationale, assignment, errors
+
+
+def parse_assurance_assignment(
+    rationale: str,
+    label: str,
+) -> tuple[AssuranceAssignment | None, list[str]]:
+    match = re.fullmatch(
+        r"Owner: (?P<owner>package-verifier|package-specialist|C|R|S); "
+        r"Lens: (?P<lens>[a-z][a-z0-9-]{0,63}); "
+        r"Side: (?P<side>pre-freeze|post-freeze); Reason: (?P<reason>.+)",
+        rationale,
+    )
+    if match is None:
+        return None, [
+            f"{label} must use 'Owner: <package-verifier|package-specialist|C|R|S>; "
+            "Lens: <lowercase-token>; Side: <pre-freeze|post-freeze>; Reason: <specific reason>'"
+        ]
+    reason = match.group("reason").strip()
+    if not is_specific_evidence_payload(reason, allow_none=False):
+        return None, [f"{label} Reason must be a specific non-placeholder value"]
+    return AssuranceAssignment(
+        owner=match.group("owner"),
+        lens=match.group("lens"),
+        side=match.group("side"),
+        reason=reason,
+    ), []
 
 
 def validate_independent_verification_rationale(
@@ -3709,47 +4175,158 @@ def validate_independent_verification_rationale(
     package_md: PackageMarkdown,
 ) -> list[str]:
     label = f"{package.path}: ## Independent Verification Rationale"
-    rationale = package_md.verification_rationale
-    if not is_specific_evidence_payload(rationale, allow_none=False):
-        return [f"{label} must be non-placeholder"]
-    lowered = rationale.lower()
+    assignment = package_md.assurance_assignment
+    reason = assignment.reason.lower()
+    errors: list[str] = []
     if package.verification_mode == "boundary":
+        if assignment.owner not in {"package-verifier", "package-specialist"}:
+            errors.append(f"{label} boundary assignment owner must be package-verifier or package-specialist")
+        if assignment.side != "pre-freeze":
+            errors.append(f"{label} boundary assignment side must be pre-freeze")
+        if assignment.lens in set(FIXED_RECEIPT_LENSES.values()):
+            errors.append(f"{label} boundary lens cannot reuse a controlled post-freeze lens")
         if not re.search(
             r"\b(?:boundary|depend(?:ent|ency)?|consum(?:e|ed|er|ption)|contract|risk|specialist|"
             r"shared|public|sensitive|lifecycle)\b",
-            lowered,
+            reason,
         ):
-            return [f"{label} must name the consumed boundary, contract, or package-bound risk"]
-        return []
+            errors.append(f"{label} Reason must name the consumed boundary, contract, or package-bound risk")
+        return errors
 
-    errors: list[str] = []
-    if "final assurance" not in lowered or re.search(r"\bdefer(?:red|ral|s|ring)?\b", lowered) is None:
-        errors.append(f"{label} must explicitly defer semantic verification to final assurance")
-    owner_match = re.search(
-        r"(?:(?:direct[- ]final|final assurance)\s+)?owner\s*:\s*([^;,.]+)",
-        rationale,
-        re.IGNORECASE,
-    )
-    owned_by_match = re.search(r"\bfinal assurance\b.{0,80}\bowned by\s+([^;,.]+)", rationale, re.IGNORECASE)
-    owner_value = owner_match.group(1) if owner_match is not None else (
-        owned_by_match.group(1) if owned_by_match is not None else ""
-    )
-    if not is_specific_evidence_payload(owner_value, allow_none=False):
-        errors.append(f"{label} must name an explicit direct-final owner")
-    if registry.assurance_profile == "high":
-        lens_match = re.search(r"\blens\s*:\s*([^;,.]+)", rationale, re.IGNORECASE)
-        named_lens = re.search(
-            r"\b(security|privacy|safety|data(?: integrity)?|migration|rollback|concurrency|idempotency|"
-            r"replay|cancellation|cleanup|operational|performance|resource|public|external)\s+lens\b",
-            rationale,
-            re.IGNORECASE,
-        )
-        lens_value = lens_match.group(1) if lens_match is not None else (
-            named_lens.group(1) if named_lens is not None else ""
-        )
-        if not is_specific_evidence_payload(lens_value, allow_none=False):
-            errors.append(f"{label} must name the high-risk final-assurance lens")
+    if assignment.side != "post-freeze":
+        errors.append(f"{label} final assignment side must be post-freeze")
+    if "final assurance" not in reason or re.search(r"\bdefer(?:red|ral|s|ring)?\b", reason) is None:
+        errors.append(f"{label} Reason must explicitly defer semantic verification to final assurance")
+    expected: set[tuple[str, str]]
+    if registry.assurance_profile == "low":
+        expected = {("C", FIXED_RECEIPT_LENSES["C"])}
+    elif registry.assurance_profile == "standard":
+        expected = {("R", FIXED_RECEIPT_LENSES["R"])}
+    else:
+        expected = {("R", FIXED_RECEIPT_LENSES["R"]), ("S", assignment.lens)}
+    if (assignment.owner, assignment.lens) not in expected:
+        if registry.assurance_profile == "high" and assignment.owner == "S":
+            errors.append(f"{label} high final-specialist lens requires exact owner S and its named lens")
+        else:
+            allowed = "C/combined-low-assurance" if registry.assurance_profile == "low" else (
+                "R/integrated-code-risk" if registry.assurance_profile == "standard" else
+                "R/integrated-code-risk or S/<planned-lens>"
+            )
+            errors.append(
+                f"{label} {registry.assurance_profile} final assignment requires controlled owner/lens {allowed}"
+            )
+    if assignment.owner == "S" and registry.assurance_profile != "high":
+        errors.append(f"{label} final-specialist owner S requires high assurance")
+    if assignment.owner == "S" and assignment.lens in set(FIXED_RECEIPT_LENSES.values()):
+        errors.append(f"{label} final-specialist lens cannot reuse a canonical final-role lens")
     return errors
+
+
+def package_id_order(package_id: str) -> int:
+    return int(package_id.removeprefix("WP"))
+
+
+def validate_assignment_lens_reuse(
+    assignments: list[dict[str, str]],
+    label: str,
+) -> list[str]:
+    errors: list[str] = []
+    lens_owners: dict[str, tuple[str, str, str]] = {}
+    for assignment in assignments:
+        identity = (assignment["owner"], assignment["lens"], assignment["side"])
+        previous = lens_owners.get(assignment["lens"])
+        if previous is None:
+            lens_owners[assignment["lens"]] = (
+                assignment["package"], assignment["owner"], assignment["side"]
+            )
+            continue
+        previous_package, previous_owner, previous_side = previous
+        same_post_freeze_assignment = (
+            assignment["side"] == "post-freeze"
+            and (previous_owner, assignment["lens"], previous_side) == identity
+        )
+        if not same_post_freeze_assignment:
+            errors.append(
+                f"{label}: lens {assignment['lens']!r} is assigned to both "
+                f"{previous_package} ({previous_side}) and {assignment['package']} ({assignment['side']})"
+            )
+    return errors
+
+
+def validate_assurance_assignment_values(
+    assignments: list[dict[str, str]],
+    *,
+    profile: str,
+    package_modes: dict[str, str],
+    label: str,
+) -> list[str]:
+    errors: list[str] = []
+    expected_packages = sorted(package_modes, key=package_id_order)
+    actual_packages = [item["package"] for item in assignments]
+    if actual_packages != expected_packages:
+        errors.append(f"{label}: must be a canonical package-complete list ordered by package id")
+    for index, item in enumerate(assignments):
+        item_label = f"{label}[{index}]"
+        mode = package_modes.get(item["package"])
+        if item["mode"] != mode:
+            errors.append(f"{item_label}.mode: must match controlled package mode")
+        owner, lens, side = item["owner"], item["lens"], item["side"]
+        if mode == "boundary":
+            if owner not in {"package-verifier", "package-specialist"} or side != "pre-freeze":
+                errors.append(f"{item_label}: boundary requires a package verifier/specialist on pre-freeze")
+            if lens in set(FIXED_RECEIPT_LENSES.values()):
+                errors.append(f"{item_label}.lens: boundary cannot reuse a controlled post-freeze lens")
+        elif mode == "final":
+            allowed = {("R", FIXED_RECEIPT_LENSES["R"])}
+            if profile == "low":
+                allowed = {("C", FIXED_RECEIPT_LENSES["C"])}
+            elif profile == "high":
+                allowed.add(("S", lens))
+            if side != "post-freeze" or (owner, lens) not in allowed:
+                errors.append(f"{item_label}: final owner/lens/side does not match {profile} routing")
+            if owner == "S" and lens in set(FIXED_RECEIPT_LENSES.values()):
+                errors.append(f"{item_label}.lens: final specialist cannot reuse a canonical role lens")
+    errors.extend(validate_assignment_lens_reuse(assignments, label))
+    return errors
+
+
+def validate_package_assurance_assignments(
+    registry: Registry,
+    packages: dict[str, PackageMarkdown],
+) -> list[str]:
+    assignments = expected_package_assurance_assignments(registry, packages)
+    return validate_assignment_lens_reuse(assignments, "assurance assignments")
+
+
+def package_assurance_assignment_value(
+    package: RegistryPackage,
+    package_md: PackageMarkdown,
+) -> dict[str, str]:
+    assignment = package_md.assurance_assignment
+    return {
+        "package": package.package_id,
+        "mode": package.verification_mode,
+        "owner": assignment.owner,
+        "lens": assignment.lens,
+        "side": assignment.side,
+    }
+
+
+def expected_package_assurance_assignments(
+    registry: Registry,
+    packages: dict[str, PackageMarkdown],
+) -> list[dict[str, str]]:
+    return [
+        package_assurance_assignment_value(package, packages[package.package_id])
+        for package in sorted(registry.packages, key=lambda item: package_id_order(item.package_id))
+    ]
+
+
+def planned_final_specialist_lenses(assignments: list[dict[str, str]]) -> list[str]:
+    return sorted({
+        item["lens"] for item in assignments
+        if item["mode"] == "final" and item["owner"] == "S" and item["side"] == "post-freeze"
+    })
 
 
 def validate_package_markdown(registry: Registry, package: RegistryPackage, package_md: PackageMarkdown) -> list[str]:
@@ -4758,13 +5335,19 @@ def validate_path_evidence_ref(
     elif is_report_section_placeholder_body(anchor):
         errors.append(f"{report_path}: {row_label} {ref_type} evidence anchor must be non-placeholder")
     try:
-        resolve_safe_path(
-            root,
-            path_value,
-            f"{report_path}: {row_label} {ref_type} evidence path",
-            must_exist_file=True,
-            root_label="code root",
-        )
+        if candidate_commit is None:
+            resolve_safe_path(
+                root,
+                path_value,
+                f"{report_path}: {row_label} {ref_type} evidence path",
+                must_exist_file=True,
+                root_label="code root",
+            )
+        else:
+            repo_relative_path(
+                path_value,
+                f"{report_path}: {row_label} {ref_type} evidence path",
+            )
     except SliceproofError as exc:
         errors.extend(exc.errors)
     else:
@@ -5430,36 +6013,39 @@ def validate_candidate_git_identity(
     ):
         return errors
 
-    unresolved_worktree = Path(worktree)
-    try:
-        reviewed_worktree = unresolved_worktree.resolve(strict=True)
-    except OSError as exc:
-        return [f"{label}: Worktree must be an existing exact Git worktree root: {exc}"]
-    if reviewed_worktree != unresolved_worktree or not reviewed_worktree.is_dir():
-        return [f"{label}: Worktree must be an existing exact Git worktree root"]
-
+    reviewed_worktree: Path | None = None
     try:
         code_top = Path(git_output(
             registry.code_root,
             ["rev-parse", "--show-toplevel"],
             f"{label}: code repository",
         ).strip()).resolve(strict=False)
-        worktree_top = Path(git_output(
-            reviewed_worktree,
-            ["rev-parse", "--show-toplevel"],
-            f"{label}: Worktree",
-        ).strip()).resolve(strict=False)
         if code_top != registry.code_root:
             errors.append(f"{label}: code root must be an exact Git worktree root")
-        if worktree_top != reviewed_worktree:
-            errors.append(f"{label}: Worktree must be an existing exact Git worktree root")
-        if registry.planned_sidecar and not historical_candidate and reviewed_worktree != registry.code_root:
-            errors.append(f"{label}: Worktree must equal the exact supplied code root/package worktree")
-        if git_common_dir(registry.code_root, f"{label}: code repository") != git_common_dir(
-            reviewed_worktree,
-            f"{label}: Worktree",
-        ):
-            errors.append(f"{label}: Worktree must belong to the code repository")
+        if not historical_candidate:
+            unresolved_worktree = Path(worktree)
+            try:
+                reviewed_worktree = unresolved_worktree.resolve(strict=True)
+            except OSError as exc:
+                errors.append(f"{label}: Worktree must be an existing exact Git worktree root: {exc}")
+            else:
+                if reviewed_worktree != unresolved_worktree or not reviewed_worktree.is_dir():
+                    errors.append(f"{label}: Worktree must be an existing exact Git worktree root")
+                else:
+                    worktree_top = Path(git_output(
+                        reviewed_worktree,
+                        ["rev-parse", "--show-toplevel"],
+                        f"{label}: Worktree",
+                    ).strip()).resolve(strict=False)
+                    if worktree_top != reviewed_worktree:
+                        errors.append(f"{label}: Worktree must be an existing exact Git worktree root")
+                    if registry.planned_sidecar and reviewed_worktree != registry.code_root:
+                        errors.append(f"{label}: Worktree must equal the exact supplied code root/package worktree")
+                    if git_common_dir(registry.code_root, f"{label}: code repository") != git_common_dir(
+                        reviewed_worktree,
+                        f"{label}: Worktree",
+                    ):
+                        errors.append(f"{label}: Worktree must belong to the code repository")
     except SliceproofError as exc:
         errors.extend(exc.errors)
     if errors:
@@ -5486,14 +6072,14 @@ def validate_candidate_git_identity(
         detail = ancestry.stderr.strip() or ancestry.stdout.strip() or f"exit {ancestry.returncode}"
         errors.append(f"{label}: candidate ancestry local git inspection failed: {detail}")
 
+    require_git_ref_at_commit(
+        registry.code_root,
+        git_ref,
+        candidate.commit,
+        f"{label}: Git Ref",
+        errors,
+    )
     try:
-        resolved_ref = git_output(
-            reviewed_worktree,
-            ["rev-parse", "--verify", f"{git_ref}^{{commit}}"],
-            f"{label}: Git Ref",
-        ).strip()
-        if resolved_ref != candidate.commit:
-            errors.append(f"{label}: Git Ref must resolve to the exact candidate commit")
         expected_diff = raw_git_diff_identity(
             registry.code_root,
             candidate.base_commit,
@@ -5506,7 +6092,7 @@ def validate_candidate_git_identity(
             )
     except SliceproofError as exc:
         errors.extend(exc.errors)
-    if registry.planned_sidecar and not historical_candidate:
+    if registry.planned_sidecar and not historical_candidate and reviewed_worktree is not None:
         errors.extend(validate_worktree_head_and_clean(
             reviewed_worktree,
             candidate.commit,
@@ -5542,6 +6128,15 @@ def validate_candidate_binding(
         errors.append(f"{label}: Verification Mode does not match registry verification_mode")
     if package.verification_mode != "boundary":
         errors.append(f"{label}: State Binding is a boundary receipt only; final mode cannot substitute it")
+    if is_report_binding_placeholder_text(git_ref):
+        errors.append(f"{label} Git Ref must be non-placeholder")
+    elif not SAFE_GIT_REF_RE.fullmatch(git_ref):
+        errors.append(f"{label}: Git Ref must use safe Git ref syntax")
+    elif registry.planned_sidecar and immutable_checkpoint_ref_generation(git_ref, registry.feature) is None:
+        errors.append(
+            f"{label}: Git Ref must be an immutable namespaced checkpoint ref under "
+            f"refs/heads/checkpoints/{registry.feature}/<slot>/g<generation>"
+        )
     for field, value in (
         ("Commit", candidate.commit),
         ("Tree", candidate.tree),
@@ -5578,6 +6173,7 @@ def validate_candidate_binding(
         registry,
         package,
         candidate_commit=candidate.commit,
+        candidate_ref=git_ref,
         label=label,
         require_done=final_validation,
         require_current_candidate=not final_validation,

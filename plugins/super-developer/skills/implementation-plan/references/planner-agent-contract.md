@@ -46,7 +46,8 @@ supporting references through this worker contract.
 5. Apply the canonical assurance contract once: `standard` by default, strict evidence for `low`, and high-trigger
    precedence. Runtime discovery promotes. Write required top-level `assurance_profile`; for every package write
    `verification_mode: boundary|final` and a safe `report_path` only for `boundary` (`null` for `final`). Package
-   Markdown uses `## Independent Verification` with Mode, Report, and named Rationale. Route every producer with a
+   Markdown uses `## Independent Verification` with Mode, Report, and the controlled owner/lens/side/reason
+   Rationale grammar. Route every producer with a
    dependent or independently consumed material contract to `boundary`; name its contract-digest source, `B[i]`
    owner/lens, and pre-consumption unlock. A coherent leaf may use `final` without a fabricated report. Assign each
    assurance lens to exactly one owner and one side of freeze. This canonical shape supersedes pre-B2

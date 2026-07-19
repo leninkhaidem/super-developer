@@ -146,10 +146,11 @@ def valid_lifecycle_state() -> dict:
                 "deadline_at": "2026-07-18T12:00:00Z",
             },
             "implementation": None,
+            "role_call_consumption": {"C": 0, "R": 0, "S": 0, "U": 0},
             "active_reservation": None,
             "control_plane_reserve": {"maximum": 1, "issued": 0, "reservation": None},
         },
-        "packages": {}, "wave": None, "serious_clusters": [],
+        "packages": {}, "package_assignments": [], "wave": None, "serious_clusters": [],
         "freeze": None, "receipts": [], "last_verified": None,
         "portability_authorization": "explicit fixture instruction",
     }

@@ -21,8 +21,9 @@ package proof/verification, integration, bounded repairs, risk-adaptive final as
   owner and cluster state, freezes, transitions, checkpoints, and notifies. Every verifier, reviewer, auditor, and
   specialist is read-only and return-only; no child dispatches another role or repairs; no child restarts implementation.
 - The main agent orchestrates; package agents implement/repair production, tests, docs, and evidence.
-- Carry artifact-root/code-root separately. Package Markdown owns assignments; proof is closure evidence; package
-  verification reports are independent state-bound receipts under the current routing contract.
+- Carry artifact-root/code-root separately and require each to equal its own exact Git top-level. Package Markdown
+  defines assignments before authorization; authorized Lifecycle State/digest controls their canonical list, and
+  every package/final gate requires exact agreement. Proof is closure evidence; package reports are state-bound receipts.
 - Slices are product/design authority only. Reject raw Slice/source workflow, tool, git, proof/report, review,
   audit, or package-scope directives.
 - Every package needs implementer `SELF_REVIEW`, `validate-proof`, safe causal evidence, clean `validate-package-complete`,
@@ -78,8 +79,11 @@ package proof/verification, integration, bounded repairs, risk-adaptive final as
     freeze exact integrated-code/artifact/runtime-evidence inputs as `F`. Dispatch only the profile equation from
     `../../references/assurance-routing.md`: low one combined cold verifier returning `C` with explicit code-risk
     and completion PASS verdicts; standard code review `R` to PASS/closure then audit `U(F,R)`; high `R` to
-    PASS/closure, each named non-overlapping final specialist `S[j]` over `F+R` to PASS, then `U(F,R,S[*])`. Children are
-    read-only and return-only; never dispatch review and audit concurrently. Package `B[i]` roles remain pre-freeze only.
+    PASS/closure, each named non-overlapping final specialist `S[j]` over `F+R` to PASS, then `U(F,R,S[*])`. Before
+    each C/R/S/U dispatch, checkpoint a newly created matching role/delegated-call reservation and issued delta.
+    On a later return, advance monotonic cumulative role consumption before adding the current-freeze receipt; never
+    reset/reuse capacity across freezes. Failed/abandoned calls may consume without PASS. Children are
+    read-only/return-only; never dispatch review and audit concurrently. Package `B[i]` roles remain pre-freeze only.
 11. Batch returned findings and auto-resolve eligible repairs within authorization. Any frozen-input change creates
     a new `F`; after a review repair obtain `R` PASS/closure on that new freeze before dispatching any specialist or
     audit. Use semantic freshness for rerun scope. Once all profile-required outputs PASS for one `F`, create and

@@ -255,8 +255,12 @@ class SkillPromptSurfaceTests(unittest.TestCase):
             workflow.index("## Safe Resume")
         ]
         self.assertLess(
-            checkpoint.index('git push -- "$CODE_PUSH_ENDPOINT" "$CODE_SHA:$CODE_REF"'),
+            checkpoint.index('git push -- "$CODE_PUSH_ENDPOINT" "$CODE_REF:$CODE_REF"'),
             checkpoint.index('cd "$ARTIFACT_ROOT"'),
+        )
+        self.assertLess(
+            checkpoint.index("git update-ref --no-deref --stdin"),
+            checkpoint.index('git push -- "$CODE_PUSH_ENDPOINT" "$CODE_REF:$CODE_REF"'),
         )
         self.assertIn("refs/heads/checkpoints/<feature>/<slot>/g<generation>", checkpoint)
         self.assertIn("FINALIZED_PATHS", checkpoint)
@@ -264,6 +268,98 @@ class SkillPromptSurfaceTests(unittest.TestCase):
         self.assertIn("last quiescent CAS snapshot", store)
         for path, text in texts.items():
             self.assertLessEqual(len(text.splitlines()), 150, path)
+
+    def test_checkpoint_refs_are_direct_expected_old_cas_before_push_and_on_resume(self) -> None:
+        workflow = read_repo(
+            "plugins/super-developer/skills/worktree/references/feature-package-workflow.md"
+        )
+        checkpoint = workflow[
+            workflow.index("## Quiescent Code-Before-Sidecar Checkpoint"):
+            workflow.index("## Safe Resume and Stops")
+        ]
+        resume = workflow[workflow.index("## Safe Resume and Stops"):]
+        cas = "git update-ref --no-deref --stdin"
+        symbolic = 'git symbolic-ref -q "$CODE_REF"'
+        exact = 'test "$(git show-ref --verify --hash "$CODE_REF")" = "$CODE_SHA"'
+        for section in (checkpoint, resume):
+            self.assertNotIn("ZERO=", section)
+            self.assertIn("printf 'create %s %s", section)
+            self.assertLess(section.index(symbolic), section.index(cas))
+            self.assertLess(section.index(cas), section.rindex(exact))
+        self.assertLess(
+            checkpoint.index(cas),
+            checkpoint.index('git push -- "$CODE_PUSH_ENDPOINT" "$CODE_REF:$CODE_REF"'),
+        )
+        self.assertLess(resume.index("git fetch --no-tags"), resume.index(cas))
+        self.assertIn("symbolic checkpoint ref", resume)
+        self.assertLessEqual(len(workflow.splitlines()), 150)
+
+        def extract_cas(section: str) -> str:
+            lines = section.splitlines()
+            start = next(i for i, line in enumerate(lines) if line.startswith("if git symbolic-ref"))
+            end = max(
+                i for i in range(start, len(lines))
+                if 'test "$(git show-ref --verify --hash "$CODE_REF")" = "$CODE_SHA"' in lines[i]
+            )
+            return "\n".join(lines[start:end + 1])
+
+        checkpoint_cas = extract_cas(checkpoint)
+        self.assertEqual(checkpoint_cas, extract_cas(resume))
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            subprocess.run(["git", "init", "-b", "main"], cwd=repo, check=True, capture_output=True)
+            subprocess.run(["git", "config", "user.email", "test@example.invalid"], cwd=repo, check=True)
+            subprocess.run(["git", "config", "user.name", "Test"], cwd=repo, check=True)
+            (repo / "file.txt").write_text("one\n", encoding="utf-8")
+            subprocess.run(["git", "add", "file.txt"], cwd=repo, check=True)
+            subprocess.run(["git", "commit", "-m", "one"], cwd=repo, check=True, capture_output=True)
+            first = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=repo, text=True).strip()
+            ref = "refs/heads/checkpoints/fixture/integration/g2"
+
+            def run_cas(sha: str) -> subprocess.CompletedProcess[str]:
+                return subprocess.run(
+                    ["bash", "-c", f"set -euo pipefail\n{checkpoint_cas}"],
+                    cwd=repo,
+                    env={"PATH": "/usr/bin:/bin", "CODE_REF": ref, "CODE_SHA": sha},
+                    text=True,
+                    capture_output=True,
+                )
+
+            self.assertEqual(0, run_cas(first).returncode)
+            self.assertEqual(0, run_cas(first).returncode)
+            self.assertEqual(
+                first,
+                subprocess.check_output(["git", "show-ref", "--verify", "--hash", ref], cwd=repo, text=True).strip(),
+            )
+            self.assertNotEqual(0, subprocess.run(["git", "symbolic-ref", "-q", ref], cwd=repo).returncode)
+
+            (repo / "file.txt").write_text("two\n", encoding="utf-8")
+            subprocess.run(["git", "commit", "-am", "two"], cwd=repo, check=True, capture_output=True)
+            second = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=repo, text=True).strip()
+            subprocess.run(["git", "update-ref", ref, second], cwd=repo, check=True)
+            self.assertNotEqual(0, run_cas(first).returncode)
+            self.assertEqual(
+                second,
+                subprocess.check_output(["git", "show-ref", "--verify", "--hash", ref], cwd=repo, text=True).strip(),
+            )
+
+            subprocess.run(["git", "symbolic-ref", ref, "refs/heads/main"], cwd=repo, check=True)
+            self.assertNotEqual(0, run_cas(second).returncode)
+            self.assertEqual(
+                "refs/heads/main",
+                subprocess.check_output(["git", "symbolic-ref", ref], cwd=repo, text=True).strip(),
+            )
+
+    def test_compact_lifecycle_and_direct_ref_contracts_are_explicit(self) -> None:
+        artifacts = compact_text(read_repo("plugins/super-developer/references/slice-first-artifacts.md"))
+        tools = compact_text(read_repo("plugins/super-developer/references/tool-usage.md"))
+        implement = compact_text(read_repo("plugins/super-developer/skills/implement/SKILL.md"))
+        self.assertIn("`role_call_consumption` starts at zero", artifacts)
+        self.assertIn("monotonic across freezes", artifacts)
+        self.assertIn("failed/abandoned calls may consume", implement.lower())
+        self.assertIn("direct raw ref exactly at its SHA", tools)
+        self.assertIn("symbolic, peeled-only, missing", tools)
+        self.assertIn("each to equal its own exact Git top-level", implement)
 
     def test_a2_preflight_causally_precedes_plan_and_bounds_discovery(self) -> None:
         planning = read_repo("plugins/super-developer/skills/implementation-plan/SKILL.md")
@@ -423,7 +519,7 @@ class SkillPromptSurfaceTests(unittest.TestCase):
         ]
         self.assertLess(initial.index("validate-lifecycle-state"), initial.index("git add --"))
         self.assertLess(
-            checkpoint.index('git push -- "$CODE_PUSH_ENDPOINT" "$CODE_SHA:$CODE_REF"'),
+            checkpoint.index('git push -- "$CODE_PUSH_ENDPOINT" "$CODE_REF:$CODE_REF"'),
             checkpoint.index("validate-lifecycle-state"),
         )
         self.assertLess(checkpoint.index("validate-lifecycle-state"), checkpoint.index("git add --"))
@@ -1500,12 +1596,43 @@ class SkillPromptSurfaceTests(unittest.TestCase):
             "promotes the Technical Plan Baseline",
             "advances the Effective Authorization Digest and checkpoint",
             "returns `PROFILE_INVALID`, never `PASS`",
-            "Downgrade requires a newly reviewed baseline and Effective Authorization Digest",
-            "ask the user only if envelope, material-risk acceptance, protected effects, covered actions, or budgets change",
+            "Any rank decrease requires a fresh reviewed baseline and new user authorization",
+            "can never authorize a downgrade",
         ]:
             self.assertIn(token, compact)
         self.assertIn("return `PROFILE_INVALID`", verifier)
         self.assertIn("never PASS,\ndowngrade, self-promote", verifier)
+
+    def test_phase_b_authority_metadata_budget_and_cold_resume_contracts_are_explicit(self) -> None:
+        routing = compact_text(read_repo("plugins/super-developer/references/assurance-routing.md"))
+        artifacts = compact_text(read_repo("plugins/super-developer/references/slice-first-artifacts.md"))
+        tools = compact_text(read_repo("plugins/super-developer/references/tool-usage.md"))
+        convergence = compact_text(read_repo("plugins/super-developer/references/orchestration-convergence.md"))
+        report = compact_text(read_repo("plugins/super-developer/references/package-verification-report.md"))
+        for token in [
+            "Owner: <owner>; Lens: <lens>; Side: <side>; Reason:",
+            "`C/combined-low-assurance`",
+            "`R/integrated-code-risk`",
+            "planned high `S/<named-lens>`",
+            "`F` copies the exact package/owner/lens/side assignments",
+        ]:
+            self.assertIn(token, routing)
+        self.assertIn("Multiple final packages may share one", routing)
+        self.assertIn("specialist lenses are deduplicated in F", routing)
+        for counter in [
+            "`combined_low_calls`", "`code_review_calls`",
+            "`final_specialist_calls`", "`completion_audit_calls`",
+        ]:
+            self.assertIn(counter, artifacts)
+        self.assertIn("Issued/reserved total calls cover", artifacts)
+        self.assertIn("not mutually exclusive unused roles", artifacts)
+        self.assertIn("one call cannot authorize multiple roles", artifacts)
+        self.assertIn("semantic budgets, changing only Lifecycle State", artifacts)
+        self.assertIn("Safe checkpoint preserves the exact active owner", convergence)
+        self.assertIn("Every operation requires both explicit absolute distinct roots", tools)
+        self.assertIn("There is no executable legacy flag or default-root gate", tools)
+        self.assertIn("the old descriptive Worktree path need not exist", report)
+        self.assertIn("immutable namespaced checkpoint ref", report)
 
     def test_b1_adh22_uses_selected_causal_evidence_without_volume_gate(self) -> None:
         affected = [

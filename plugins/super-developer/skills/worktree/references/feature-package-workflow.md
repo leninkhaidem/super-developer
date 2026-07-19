@@ -1,7 +1,6 @@
 # Feature Package Workflow
 Use for planned-feature sidecar, package, integration, and checkpoint work. The parent-supplied artifact-store
 contract owns authority, roots, migration, permission, and state; this file alone owns Git/CAS commands.
-
 ## Contract
 - Sidecar: orphan `refs/heads/artifacts/<feature>` at `.worktrees/<feature>/artifacts`; artifacts only.
 - Feature: `refs/heads/feature/<feature>` at `.worktrees/<feature>/merge`; package:
@@ -12,14 +11,11 @@ contract owns authority, roots, migration, permission, and state; this file alon
 - Sidecar Portability Authorization covers the exact artifact ref **and push endpoint** for discovery/planning.
   Implementation Authorization separately covers every exact code/artifact/feature push endpoint and ref. Neither
   covers target/release/force/delete operations.
-
 ## Exact Push Endpoint Fence
-
 For every root that will read or write a remote ref, authorization names one exact configured push endpoint. In
 that root capture the operational endpoint once; reject no endpoint, multiple endpoints, an authorization mismatch,
 or a later config change. Assertions re-read config only to compare; they never replace the capture. Keep using the
 captured value as one quoted argv value—never the remote name—for `ls-remote`, `push`, `fetch`, and post-check:
-
 ```bash
 capture_push_endpoint() {
   local name="$1" authorized="$2" output
@@ -34,21 +30,16 @@ assert_push_endpoint_unchanged() {
   test "$(capture_push_endpoint "$1" "$2")" = "$2"
 }
 ```
-
 A fetch URL is not evidence about a distinct `pushurl`. Do not let endpoint aliases, rewrites, or fallback remote
 selection cross the authorization boundary.
-
 ## Layout and Local Sidecar Setup
-
 ```text
 .worktrees/<feature>/
   artifacts/   # artifacts/<feature>; artifact root
   wp-WP1/      # wp/<feature>/WP1; package code root
   merge/       # feature/<feature>; integration code root
 ```
-
 Create before artifact writes; destination absent/empty, Git >=2.42, ref absent:
-
 ```bash
 set -euo pipefail
 cd "$PROJECT_ROOT"
@@ -57,15 +48,11 @@ mkdir -p .worktrees/<feature>
 git show-ref --verify --quiet refs/heads/artifacts/<feature> && exit 1 || test $? -eq 1
 git worktree add --orphan -b artifacts/<feature> .worktrees/<feature>/artifacts
 ```
-
 Legacy import creates this empty sidecar first, records provenance, and never moves source.
-
 ## Initial Authorized Sidecar Publication
-
 Prove Sidecar Portability Authorization for the exact endpoint/ref and generation-1 initial/null topology. Stage
 only finalized Slices/Index, migration provenance when any, and Lifecycle State; initial publication cannot contain
 a code checkpoint.
-
 ```bash
 set -euo pipefail
 cd "$PROJECT_ROOT/.worktrees/<feature>/artifacts"
@@ -95,17 +82,13 @@ test "$(git rev-parse FETCH_HEAD)" = "$SIDECAR_SHA"
 assert_push_endpoint_unchanged origin "$ARTIFACT_PUSH_ENDPOINT"
 test "$(git ls-remote --heads -- "$ARTIFACT_PUSH_ENDPOINT" "$ARTIFACT_REF" | awk 'NR==1 {print $1}')" = "$SIDECAR_SHA"
 ```
-
 ## Feature and Package Setup
-
 Create `feature/<feature>` from the authorized base, package branches/worktrees from accepted predecessors, and
 `.worktrees/<feature>/merge` as the top code state for integration. Branch dependents only after prerequisite
 acceptance; merge there with `git merge wp/<feature>/<WP-ID> --no-edit`. Stacked readiness names every
 base/follow-up artifact set. Any feature publication uses its own captured, authorized endpoint
 and exact ref; target merge/push and sidecar cleanup remain separate.
-
 ## Quiescent Code-Before-Sidecar Checkpoint
-
 Verify owner/generation/budgets, clean code, exact authorized endpoints/remote parents, and finalized paths. In one
 shell, capture `CODE_PUSH_ENDPOINT` in the code root and `ARTIFACT_PUSH_ENDPOINT` in the artifact root with the
 fence above. For each endpoint, assert unchanged immediately before every command below:
@@ -114,10 +97,14 @@ fence above. For each endpoint, assert unchanged immediately before every comman
 set -euo pipefail
 cd "$CODE_ROOT"; CODE_PUSH_ENDPOINT="$(capture_push_endpoint origin "$AUTHORIZED_CODE_PUSH_ENDPOINT")"; test -z "$(git status --porcelain)"
 CODE_SHA="$(git rev-parse HEAD)"; CODE_REF=refs/heads/checkpoints/<feature>/<slot>/g<generation>
-assert_push_endpoint_unchanged origin "$CODE_PUSH_ENDPOINT"; test -z "$(git ls-remote --heads -- "$CODE_PUSH_ENDPOINT" "$CODE_REF")"
-assert_push_endpoint_unchanged origin "$CODE_PUSH_ENDPOINT"; git push -- "$CODE_PUSH_ENDPOINT" "$CODE_SHA:$CODE_REF"
-assert_push_endpoint_unchanged origin "$CODE_PUSH_ENDPOINT"; git fetch --no-tags -- "$CODE_PUSH_ENDPOINT" "$CODE_REF"
-test "$(git rev-parse FETCH_HEAD)" = "$CODE_SHA"
+assert_push_endpoint_unchanged origin "$CODE_PUSH_ENDPOINT"; REMOTE_SHA="$(git ls-remote --heads -- "$CODE_PUSH_ENDPOINT" "$CODE_REF" | awk 'NR==1 {print $1}')"
+if [ -n "$REMOTE_SHA" ] && [ "$REMOTE_SHA" != "$CODE_SHA" ]; then echo "immutable remote checkpoint mismatch" >&2; exit 1; fi
+if git symbolic-ref -q "$CODE_REF" >/dev/null; then echo "symbolic checkpoint ref" >&2; exit 1; else test "$?" -eq 1; fi
+if git show-ref --verify --quiet "$CODE_REF"; then test "$(git show-ref --verify --hash "$CODE_REF")" = "$CODE_SHA";
+else test "$?" -eq 1; printf 'create %s %s\n' "$CODE_REF" "$CODE_SHA" | git update-ref --no-deref --stdin; fi
+if git symbolic-ref -q "$CODE_REF" >/dev/null; then exit 1; else test "$?" -eq 1; fi; test "$(git show-ref --verify --hash "$CODE_REF")" = "$CODE_SHA"
+assert_push_endpoint_unchanged origin "$CODE_PUSH_ENDPOINT"; git push -- "$CODE_PUSH_ENDPOINT" "$CODE_REF:$CODE_REF"
+assert_push_endpoint_unchanged origin "$CODE_PUSH_ENDPOINT"; git fetch --no-tags -- "$CODE_PUSH_ENDPOINT" "$CODE_REF"; test "$(git rev-parse FETCH_HEAD)" = "$CODE_SHA"
 assert_push_endpoint_unchanged origin "$CODE_PUSH_ENDPOINT"; test "$(git ls-remote --heads -- "$CODE_PUSH_ENDPOINT" "$CODE_REF" | awk 'NR==1 {print $1}')" = "$CODE_SHA"
 cd "$ARTIFACT_ROOT"; ARTIFACT_PUSH_ENDPOINT="$(capture_push_endpoint origin "$AUTHORIZED_ARTIFACT_PUSH_ENDPOINT")"
 ARTIFACT_REF=refs/heads/artifacts/<feature>; EXPECTED_PARENT=<last-verified-sidecar-sha>
@@ -142,9 +129,20 @@ staging, or cross-endpoint verification.
 
 ## Safe Resume and Stops
 
-Capture and authorize one exact artifact endpoint, fetch/verify its ref/SHA, derive the sole parent after generation
-1, and validate Lifecycle State. Then independently capture/authorize the code endpoint and fetch/verify every
-named code ref/SHA. Remote reachability belongs here, not to the helper. Ignore orphan checkpoints and later local
-state. Stop on zero/multiple/changed endpoint; unsafe/equal root; current-root authority; incomplete migration;
-ref/path collision; dirty code; permission/parent/CAS/staging/SHA mismatch; non-descendant artifact state; or any
-target, force, release/tag, cleanup, or deletion request.
+Fetch/verify the exact authorized artifact ref/SHA, derive its sole parent after generation 1, and validate Lifecycle
+State. Remote reachability belongs here, not to the helper. For each code checkpoint, fetch its authorized endpoint/ref, verify `FETCH_HEAD`, then materialize
+or verify the local direct ref by expected-old CAS before trusting it:
+
+```bash
+set -euo pipefail
+cd "$CODE_ROOT"; CODE_PUSH_ENDPOINT="$(capture_push_endpoint origin "$AUTHORIZED_CODE_PUSH_ENDPOINT")"
+assert_push_endpoint_unchanged origin "$CODE_PUSH_ENDPOINT"; git fetch --no-tags -- "$CODE_PUSH_ENDPOINT" "$CODE_REF"; test "$(git rev-parse FETCH_HEAD)" = "$CODE_SHA"
+if git symbolic-ref -q "$CODE_REF" >/dev/null; then echo "symbolic checkpoint ref" >&2; exit 1; else test "$?" -eq 1; fi
+if git show-ref --verify --quiet "$CODE_REF"; then test "$(git show-ref --verify --hash "$CODE_REF")" = "$CODE_SHA";
+else test "$?" -eq 1; printf 'create %s %s\n' "$CODE_REF" "$CODE_SHA" | git update-ref --no-deref --stdin; fi
+if git symbolic-ref -q "$CODE_REF" >/dev/null; then exit 1; else test "$?" -eq 1; fi; test "$(git show-ref --verify --hash "$CODE_REF")" = "$CODE_SHA"
+git cat-file -e "$CODE_SHA^{commit}"; git merge-base --is-ancestor "$BASE_SHA" "$CODE_SHA"
+```
+
+Ignore orphan/later local state. Stop on zero/multiple/changed endpoint, unsafe/equal root, current-root authority, migration,
+ref/path, cleanliness, permission/parent/CAS/staging/SHA/ancestry mismatch, or target/force/release/cleanup effects.

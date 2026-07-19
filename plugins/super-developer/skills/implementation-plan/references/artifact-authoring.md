@@ -5,8 +5,9 @@
 - Apply the packet-supplied canonical artifact model; return `BLOCKED` if its labeled path is missing.
 - Write `.tasks/`, Slice inventory, and proof/report declarations under artifact root; source/test paths stay
   code-root-relative. Do not add a requirement, architecture, prerequisite, routing, test, or event ledger.
-- `tasks.json` is lightweight bookkeeping. Package Markdown owns assignment and confidence obligations; proof and
-  independent report content is produced later.
+- `tasks.json` is lightweight bookkeeping. Package Markdown defines assignment/confidence obligations; Lifecycle
+  `package_assignments` stays empty preauthorization and becomes their canonical digest-bound list at authorization.
+  Proof and independent report content is produced later.
 
 ## Registry Shape
 
@@ -59,7 +60,7 @@ traversal, home, drive-qualified, empty-segment, symlink-escape, or out-of-root 
 ## Independent Verification
 - Mode: `boundary`
 - Report: `.tasks/<feature-name>/reports/WP1.package-verification.md`
-- Rationale: <named boundary/contract/risk reason>
+- Rationale: Owner: package-verifier; Lens: <named-lens>; Side: pre-freeze; Reason: <boundary/risk reason>
 
 ## Dependencies
 - None.
@@ -69,9 +70,12 @@ traversal, home, drive-qualified, empty-segment, symlink-escape, or out-of-root 
 ```
 
 Required sections are `Scope`, `Assigned Slices`, `Primary Paths`, `Verification Expectations`, `Proof`,
-`Independent Verification`, and `Dependencies`. For `final`, registry report is `null`, Markdown Report is
-`None — final assurance`, and Rationale includes deferral plus `Owner: <role>` (`lens: <risk>` for high).
-`Notes` is optional. With Slices, use:
+`Independent Verification`, and `Dependencies`. Rationale always uses exact ordered
+`Owner: <owner>; Lens: <lowercase-token>; Side: <side>; Reason: <specific reason>` grammar. Boundary owner is
+`package-verifier|package-specialist` on `pre-freeze`. For `final`, registry report is `null`, Markdown Report is
+`None — final assurance`, Reason explicitly defers to final assurance, side is `post-freeze`, and owner/lens is low
+`C/combined-low-assurance`, standard/high `R/integrated-code-risk`, or planned high `S/<named-lens>`. `Notes` is
+optional. With Slices, use:
 
 ```md
 ### `.planning/<concept-slug>/slices/<slice-name>.md`
@@ -111,7 +115,7 @@ spike/replan trigger; exact budgets come from the resolved authority. A required
 
 Use `standard` unless named evidence supports `low` or triggers `high`. Use `boundary` for independently consumed
 or material shared/public/sensitive/lifecycle boundaries; otherwise a coherent leaf may use `final`. Profile/mode/
-conditional report must match registry, package Markdown, and controlled Lifecycle State.
+conditional report and owner/lens/side must match registry, package Markdown, and authorized Lifecycle State.
 
 ## Semgrep Expectations
 

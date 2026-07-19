@@ -49,14 +49,14 @@ Do not create/overwrite artifacts until all applicable gates pass.
   Readiness and Auto-Resolve, Work Packages, references, and approved exclusions/deferrals.
 - Envelope and baseline do not duplicate or blur authority. Preauthorization budget references current Lifecycle
   State rather than copying history. Required prerequisites have complete dispositions.
-- Production paths/seams and broad placement are credible; profile/routing has named boundary/risk rationale.
+- Production paths/seams and broad placement are credible; every route has controlled owner/lens/side/reason metadata.
 - Contains no invented behavior/target, raw secret/PII, code/pseudo-code/line number, proof row, test inventory,
   review finding, transcript, debate, or new ledger. Manifests remain path-only.
 
 ## Package Markdown
 
 - H1 and required sections are present: `Scope`, `Assigned Slices`, `Primary Paths`, `Verification Expectations`,
-  `Proof`, `Independent Verification`, `Dependencies`; mode/report/rationale and dependencies agree with registry.
+  `Proof`, `Independent Verification`, `Dependencies`; mode/report/assignment and dependencies agree with registry.
 - Scope names owned behavior, actual production path, caller/consumed contracts, exclusions, triggered invariants,
   and external surfaces. Audience-visible text checks reject internal workflow leakage while allowing legitimate
   domain/API/SDK/operator/developer-diagnostic or escaped user/provider terms.

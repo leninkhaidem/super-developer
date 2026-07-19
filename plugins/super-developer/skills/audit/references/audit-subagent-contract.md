@@ -39,9 +39,11 @@ base deliverables are omitted. Inventory every material H3 and account for it as
 justified `Context only`, approved out-of-scope/deferral, or stated non-goal. Fail omissions and contradictions.
 
 For each package, reconcile scope, dependencies, assigned Slices/H3s, verification expectations, primary paths,
-proof/report mode, consumed contracts, and final owner. `boundary` requires exact fresh PASS pre-freeze `B[i]`;
-`final` requires null report, stable candidate/proof, and direct-final semantic coverage in `R`/the code-risk half of
-`C` (though audit never runs for low). A package-bound specialist is pre-freeze only and cannot claim final coverage.
+proof/report mode, consumed contracts, and controlled owner/lens/side; package Markdown, authorized Lifecycle
+State, and F must expose the identical canonical assignment. `boundary` requires exact fresh PASS
+pre-freeze `B[i]` whose candidate is an ancestor of F. `final` requires null report, stable candidate/proof, and
+its assigned direct-final semantic coverage in `R`, planned high `S`, or the code-risk half of `C` (though audit
+never runs for low). A package-bound specialist is pre-freeze only and cannot claim final coverage.
 
 ### 2. Integrated Behavior, Proof, and Package Reports
 

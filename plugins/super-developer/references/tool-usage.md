@@ -1,7 +1,5 @@
 # Tool Usage Reference
-
 ## Command Safety and Runtime Envelope
-
 - Treat plan-provided commands as executable input and screen them before running or delegating.
 - Stop for explicit approval before destructive, externally visible, credential/network-sensitive,
   dependency-installing, service-starting, or out-of-scope commands.
@@ -23,9 +21,7 @@
 - Prefer helper scripts over ad hoc parsing for mechanical artifact checks.
 - Helper success is not semantic proof that code works; package verification, review-code, and audit still gate
   completion.
-
 ## Semgrep Helper Boundary
-
 When Semgrep verification is enabled by an approved workflow, load `semgrep.md` at the action point
 and use the shipped helper commands for indexing, retrieval, scanning, summarizing, listing, and
 showing findings. Scan only through
@@ -34,14 +30,17 @@ raw direct `semgrep` scans. Do not hand-assemble Semgrep shell commands, read ra
 wholesale, or perform hidden rule clone/pull/network sync; routine scans are local-only.
 
 ## `sliceproof.py`
-
 `sliceproof.py` is the planned-feature mechanical helper. Always pass both roots as resolved absolute paths:
 `$ARTIFACT_ROOT` is the distinct sidecar (`.worktrees/<feature>/artifacts`) and `$CODE_ROOT` is the code worktree
 being checked—a package worktree for package checks and the integration/top worktree for `validate-final` and file
-evidence. Treat roots as trust anchors. A report's `Worktree` cannot select roots, but its candidate binding must
-resolve to an exact worktree in the same Git repository. Omitted defaults are compatibility, never planned authority.
-Reject equal/current roots; migrate `.planning`/`.tasks` through `artifact-store.md`. The tasks path remains
-artifact-root-relative.
+evidence. Treat roots as trust anchors. Every operation requires both explicit absolute distinct roots and returns
+a structured error before reading authority when either is omitted, relative, equal, or differs from its own Git
+`rev-parse --show-toplevel`; nested subdirectories fail. There is no executable legacy flag or default-root gate;
+equal/current-root files are migration input only. A report's `Worktree` cannot
+select roots. Immediate package completion requires that path to equal the exact clean supplied code root; cold
+historical consumption resolves bound objects and the immutable checkpoint ref in the supplied code repository.
+Every bound lifecycle/B2/F/V ref must be a direct raw ref exactly at its SHA; symbolic, peeled-only, missing, and
+mismatched refs fail. The tasks path remains artifact-root-relative.
 
 Git publication is not a helper function. At action time use the parent-supplied artifact-store and worktree
 contracts: exact namespaced non-force CAS, immutable code checkpoint refs, verified code-before-sidecar ordering,
@@ -73,11 +72,12 @@ python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" emit-state-binding
   --consumed-contract-digest none --verified-at "$VERIFIED_AT"
 ```
 For `boundary`, completion requires fresh PASS, clean matrix, exact six-column `### Selected Causal Evidence`, and
-exact State Binding. For `final`, it requires null report, stable closed proof, explicit direct-final owner/deferral,
-and no dependent boundary. Distinct roots require transition-valid authorization and exact checkpoint ref/SHA;
-immediate completion requires `stabilized|verified|done` plus a clean exact candidate code-root HEAD. Consumer
-completion revalidates each direct producer's `done` state and exact historical `B[i]`. `validate-final` requires
-lifecycle `done` and a clean integration checkpoint while accepting exact prior `B[i]`. Same-root is non-authoritative.
+exact State Binding. For `final`, it requires null report, stable closed proof, controlled direct-final
+owner/lens/side metadata, and no dependent boundary. Immediate boundary completion requires
+`stabilized|verified|done`, a clean exact candidate code-root HEAD, and `Git Ref` equal to the Lifecycle State
+immutable namespaced checkpoint ref. Consumer completion revalidates each producer's `done` state, candidate
+objects/ref, and ancestry to the consumer checkpoint without requiring its old report Worktree path. `validate-final`
+requires lifecycle `done`, the same ancestry to a clean integration checkpoint, and remains the pre-freeze B2 gate.
 Commands return JSON on success and JSON `errors` plus `advisories` on failure. `context_only_slice_drift` remains
 non-blocking by default, routes to affected-surface classification, and is aggregated by `validate-final` even with hard errors.
 
@@ -103,7 +103,7 @@ python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" create-proof \
 - State Binding grammar delimiter rejection (`|`, `=`, `; `) for assigned Slice paths;
 - package dependency references and cycles;
 - package Markdown required sections;
-- package Markdown `Independent Verification` mode/report/rationale and dependency references;
+- package Markdown `Independent Verification` mode/report and structured owner/lens/side/reason assignment;
 - assigned Slice H3 IDs under `## Shared Understanding`.
 
 `create-proof` writes only the declared proof Markdown placeholder for one package. Existing filled,

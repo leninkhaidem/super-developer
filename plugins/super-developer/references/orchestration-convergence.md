@@ -37,15 +37,19 @@ implementation. No event ledger is added.
 Cold plan challenge and execution-readiness validation precede the user decision. One decision surface presents:
 
 - the complete Human Authorization Envelope and reviewed initial Technical Plan Baseline;
-- exact artifact candidate tree/commit, base code commit and clean-status digest, dependency/prerequisite
-  snapshot, assurance profile/routing, package/receipt topology, and expected deterministic mutations;
+- exact artifact tree/commit, base/clean-status, dependency/prerequisite snapshot, assurance profile/modes,
+  canonical package/owner/lens/side assignments, receipt topology, and deterministic mutations;
 - exact covered writes, commands, tests, repairs, reruns, evidence refresh, cleanup, delivery checkpoints and
   listed non-force refs plus the single authorized configured push endpoint for each relevant root, each under
   finite call/repair-wave/command/cost/time budgets;
 - `proven-ready` results and exact `protected-activation-required` probes/remedies; and
 - exclusions, escalation conditions, allowed technical-amendment policy, and the canonical Authorization Digest.
 
-The choices are exactly **Approve and auto-resolve**, **Request changes**, and **Abort**. Approval authorizes all
+The choices are exactly **Approve and auto-resolve**, **Request changes**, and **Abort**. The implementation budget
+retains total delegated calls and separately caps combined-low, code-review, final-specialist, and completion-audit
+calls. Total issued calls cover role calls; reserve/issue precedes later cumulative role consumption and receipt.
+Consumption is monotonic across freezes, cannot exceed issuance, and may advance without PASS for abandoned calls. Profile maxima fit the selected final equation
+without requiring unused-role maxima. Final completion still proves exact graph-role minimums. Approval authorizes all
 listed in-scope delivery actions without routine testing, repair, evidence, checkpoint, or handoff re-prompts. It
 does not inherit Sidecar Portability Authorization or authorize target merge/push, force, tag, release, deletion,
 deployment, destructive/external effects, or new dependencies/services/credentials. Those remain separately
@@ -114,7 +118,9 @@ Classify all observations before repair with precedence: human-envelope `require
 `architecture-invalidation` > `implementation-defect|integration-regression` >
 `test-fidelity-gap|evidence-stale-or-contradicted` > `confidence-enhancement`. Route respectively to user,
 technical reassessment, closure repair, test repair/evidence refresh, or report-only; lower classes cannot hide a
-higher rank, while either observed class in an equal-rank group may be selected with its matching route.
+higher rank, while either observed class in an equal-rank group may be selected with its matching route. Assurance
+may promote through reviewed technical amendment; any rank decrease needs a fresh reviewed baseline and new user
+authorization and is forbidden inside the existing authorization lineage.
 
 A serious-cluster identity is the canonical digest of only accepted invariant/contract + root mechanism + architectural
 surface. Keep signatures separately and append-only. A new agent, model, prompt, commit, status, report, matrix row,
@@ -137,5 +143,7 @@ Stop for envelope ambiguity/change, protected or unlisted action, blocked prereq
 unknown class/cluster, budget/deadline exhaustion, open circuit, no credible envelope-preserving design, concurrent
 owner, or evidence unable to force the claimed production path. On exhaustion, ownership loss, or CAS loss, only
 the one-unit control reserve may record allowlisted ownership/parent checks and safe-checkpoint or last-verified
-escalation. If ownership/expected parent is unsafe, do not mutate/take over: remain non-completed, report the exact
-`last_verified` checkpoint/conflict, and treat later observations as untrusted.
+escalation. Either operation preserves semantic/checkpoint state and budgets and may change only Lifecycle State—
+never code, evidence, receipts, or semantic artifacts. Safe checkpoint preserves the exact active owner. If
+ownership/expected parent is unsafe, do not mutate/take over: remain non-completed, report the exact `last_verified`
+checkpoint/conflict, and treat later observations as untrusted.

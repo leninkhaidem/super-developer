@@ -30,8 +30,8 @@ Return completion receipt `U` for one immutable standard/high freeze. Low assura
 Require one feature or bounded stack packet with one top integrated worktree/code state plus one or more related task/Slice artifact sets.
 The self-contained packet contains:
 
-- caller/return, standard/high profile, authorization/effective digest, exact freeze manifest/digest, code ref/commit,
-  base/target/diff identity, artifact roots, and frozen runtime-evidence digests;
+- caller/return, standard/high profile, authorization/effective digest, controlled canonical package assignments,
+  exact matching freeze manifest/digest, code ref/commit, base/target/diff identity, roots, and evidence digests;
 - each SPEC, registry, package, proof, declared boundary report, authoritative Slice, package completion result, and
   passing root-aware `validate-final` result for the exact frozen inputs;
 - PASS `R` bound to `F`; for high, the complete planned set of named non-overlapping PASS `S[*]` bound to `F+R`;
@@ -45,8 +45,8 @@ specialist, role/lens overlap, or any predecessor that does not bind the exact f
 1. Load `references/audit-subagent-contract.md` and the shared authority/artifact contracts listed there. Validate
    packet paths and predecessor digests before substantive inspection.
 2. Confirm each included artifact set has mode-correct package completion and a passing `validate-final` for the same
-   artifact/code roots. `boundary` needs fresh PASS `B[i]`; `final` needs stable proof/candidate, null report, and
-   direct-final ownership. Treat `context_only_slice_drift` as non-blocking by default but include it in
+   artifact/code roots. `boundary` needs fresh PASS ancestor `B[i]`; `final` needs stable proof/candidate, null
+   report, and direct-final ownership. Treat `context_only_slice_drift` as non-blocking by default but include it in
    affected-surface classification; escalate only concrete material risk.
 3. Establish accepted obligations from SPEC/registry/package/Slices, inspect frozen production diff/actual paths,
    then causal selected tests/runtime observations, and only then proof/report/matrix conclusions.

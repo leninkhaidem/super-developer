@@ -27,12 +27,12 @@ Human Authorization Envelope:
 Reviewed Technical Plan Baseline:
   baseline identity: <digest/version>
   architecture invariants and package/consumed-contract order: <exact anchors/topology>
-  assurance profile/routing and receipt topology: <profile, package modes, lenses>
+  assurance routing/receipt topology: <profile, package modes, canonical package/owner/lens/side assignments>
   verification/evidence/cleanup strategy: <reviewed minimum sufficient checks>
   allowed amendment policy: <envelope-preserving technical corrections + affected cold re-review only>
 
 Exact state and Authorization Digest inputs:
-  distinct artifact/code roots; artifact ref/candidate commit+tree; base commit: <exact verified objects>
+  distinct artifact/code roots, each its own exact Git top-level; artifact ref/candidate commit+tree; base commit: <exact verified objects>
   immutable inputs snapshot: <artifact_commit, artifact_tree, base_commit, clean_status, dependencies, routing,
     actions, budget_authority, amendment_policy; last six are canonical digests>
   initial digest: <canonical JSON digest of exactly inputs>; initial effective digest: <equal value>
@@ -68,7 +68,7 @@ Covered writes and actions:
   listed pushes: <one exact configured endpoint per root + exact non-force sidecar/code/feature argv or none>
 
 Finite autonomous budgets:
-  delegated calls by role: <maxima>
+  calls: <delegated/role maxima; reserve→issue→later consume/receipt; cumulative C/R/S/U consumption never resets>
   repair waves and canonical-cluster closure: <finite maxima; initial rejection + one repair + closure>
   command/cost units: <finite maxima>
   started_at/deadline_at: <fixed values>

@@ -37,7 +37,10 @@ Use `assurance-routing.md` to select exactly one mode:
 
 - **`boundary`**: one independent read-only verifier returns fresh `PASS` B[i] for the meaningful boundary; the
   Delivery Owner persists it at the non-null report path. Require clean matrix, `Selected Causal Evidence`, exact
-  candidate/proof/State Binding, and consumed-contract digests. Then run `validate-package-complete`.
+  candidate/proof/State Binding, consumed-contract digests, and the Lifecycle State immutable checkpoint ref.
+  Immediate completion binds the exact clean package code root; later consumers resolve candidate objects/ref in
+  their supplied repository, tolerate an absent old Worktree path, and prove ancestry to their checkpoint. Then run
+  `validate-package-complete`.
 - **`final`**: allowed only for a coherent leaf with no dependent or independently consumed material contract and
   no package-bound high-risk lens. `report_path` is null. Do not dispatch package verification or fabricate a
   report; retain valid proof/candidate identity and explicit final-assurance deferral. Final semantic closure is
@@ -105,8 +108,8 @@ stale, malformed, dirty, contradicted, or mode-incompatible bindings block. `mus
 ## Final Readiness
 
 Every included package needs valid assignment/proof, no unresolved markers/plan defect, closed repairs, a clean
-integration worktree, and mode-correct completion: fresh exact `B[i]` plus helper result for `boundary`; stable
-candidate with null report and explicit direct-final owner for `final`. Run package checks and root-aware
+integration worktree, and mode-correct completion: fresh exact ancestor `B[i]` plus helper result for `boundary`;
+stable candidate with null report and controlled final assignment for `final`. Run package checks and root-aware
 `validate-final` for every included artifact set. For stacked readiness identify the top integrated state and all
 base/follow-up task/Slice artifact sets; do not audit only a follow-up when base deliverables are included.
 
@@ -119,9 +122,12 @@ high-value claims without rereviewing the suite.
 
 Freeze exact integrated code, semantic artifacts, runtime evidence, profile/routing, and fresh `B[*]` as `F`.
 Dispatch only the serial equation in `assurance-routing.md`: low `F→C→V`, standard `F→R→U→V`, or high
-`F→R→S[*]→U→V`. Any frozen-input change invalidates downstream outputs. A review repair must finish and create a
-new freeze before review closure; standard/high audit or final specialists start only after `R` PASS for that freeze.
-Declare readiness only when all profile-required PASS outputs and `V` bind the same top state.
+`F→R→S[*]→U→V`. Before each C/R/S/U call, persist its new role/delegated-call reservation and issued delta. A
+later return advances cumulative role consumption before adding the current-freeze receipt; a new freeze cannot
+reuse consumed capacity, while failed/abandoned calls may consume without PASS. Any frozen-input change invalidates
+outputs. A review repair must finish and create a new freeze before review closure; standard/high audit or final
+specialists start only after `R` PASS for that freeze. Declare readiness only when all profile-required PASS outputs and `V`
+bind the same top state.
 
 ## Observability
 

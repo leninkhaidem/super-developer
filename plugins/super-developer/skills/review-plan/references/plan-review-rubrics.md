@@ -59,7 +59,8 @@ For every triggered profile, check:
   safe baseline probes, package order, covered writes/actions, and expected deterministic mutations are known;
 - each prerequisite is `proven-ready`, `protected-activation-required` with exact probe/remedy/failure consequence,
   or `blocked`; a blocked required prerequisite cannot reach authorization; and
-- command, delegated-call, repair-wave, cost, time, rerun, evidence, checkpoint, and cleanup budgets are finite.
+- command, total/role-scoped call, repair-wave, cost, time, rerun, evidence, checkpoint, and cleanup budgets
+  are finite.
 
 ## Artifact QA
 
@@ -83,8 +84,8 @@ Check that:
 In `initial` mode, before returning `NONE`, prove the proposed one decision surface can name exactly:
 
 - complete Human Authorization Envelope and reviewed initial Technical Plan Baseline;
-- artifact candidate tree/commit; base commit/clean-status digest; dependency/prerequisite snapshot; assurance
-  profile/routing; covered actions; amendment policy; expected deterministic mutations; and finite budget authority;
+- artifact candidate tree/commit; base/clean-status; dependency/prerequisite snapshot; assurance profile, modes,
+  canonical package/owner/lens/side assignments; covered actions, mutations, amendment policy, and budget authority;
 - one authorized configured push endpoint per relevant root plus each exact ref, readiness result, activation
   probe/remedy, covered write/command/test/repair/rerun/checkpoint, exclusion, and escalation trigger; and
 - compact `inputs`: exact `artifact_commit`/`artifact_tree`/`base_commit` and digests `clean_status`, `dependencies`,
@@ -101,7 +102,7 @@ In `nested-amendment` mode, require the existing Delivery Owner/return stage, im
 parent effective digest/artifact, and unchanged envelope, covered/protected actions/endpoints, amendment policy,
 and budget authority. The new artifact is a distinct reviewed descendant on the exact sidecar lineage. Require a
 cold receipt binding parent/new baseline/artifact/tree, affected/preserved state, routing, invalidation/mapping, and
-verdict; its canonical digest plus exact parent/artifact derives the effective digest. Reject choices, a new/replaced
+verdict; assignment changes invalidate affected candidates. Its digest plus exact parent/artifact derives the effective digest. Reject choices, a new/replaced
 ID, fresh-gate readiness, lifecycle checkpointing by review-plan, or direct implementation continuation.
 
 For either mode, the candidate handback starts from the old accepted commit and accounts for affected
