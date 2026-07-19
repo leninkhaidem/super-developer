@@ -246,9 +246,12 @@ class SkillPromptSurfaceTests(unittest.TestCase):
         )
         self.assertNotIn("git push origin", initial)
         self.assertIn('REMOTE_OUTPUT="$(git ls-remote --heads -- "$ARTIFACT_PUSH_ENDPOINT"', initial)
-        self.assertLess(initial.index("git add --"), initial.index("git commit"))
-        for token in ["FINALIZED_PATHS", "EXPECTED", "STAGED", 'git diff --cached --quiet && exit 1']:
+        self.assertLess(initial.index("stage_exact_finalized_paths"), initial.index("git commit"))
+        for token in ["FINALIZED_PATHS", "stage_exact_finalized_paths", "git diff --cached --quiet --"]:
             self.assertIn(token, initial)
+        inventory = workflow[workflow.index("stage_exact_finalized_paths() ("):workflow.index("## Layout and Local Sidecar Setup")]
+        for token in ["EXPECTED", "TRACKED", "UNTRACKED", "DIRTY", "STAGED", "--no-renames", "-z", "cmp -s", "git add --"]:
+            self.assertIn(token, inventory)
         self.assertIn("refs/heads/artifacts/<feature>", initial)
         self.assertNotRegex(initial, r"git add (?:-A|--all|\.)")
         self.assertNotRegex(initial, r"git push[^\n]*--force")
@@ -266,18 +269,79 @@ class SkillPromptSurfaceTests(unittest.TestCase):
             checkpoint.index('git push -- "$CODE_PUSH_ENDPOINT" "$CODE_REF:$CODE_REF"'),
         )
         self.assertIn("refs/heads/checkpoints/<feature>/<slot>/g<generation>", checkpoint)
-        self.assertIn('cd "$ARTIFACT_ROOT"; test -z "$(git status --porcelain)"', checkpoint)
+        self.assertIn('cd "$ARTIFACT_ROOT"; git diff --cached --quiet --', checkpoint)
+        self.assertNotIn('cd "$ARTIFACT_ROOT"; test -z "$(git status', checkpoint)
         self.assertLess(
             checkpoint.index('test "$(git ls-remote --heads -- "$ARTIFACT_PUSH_ENDPOINT"'),
             checkpoint.index("validate-lifecycle-state"),
         )
-        for token in ["FINALIZED_PATHS", "EXPECTED", "STAGED"]:
+        for token in ["FINALIZED_PATHS", "stage_exact_finalized_paths"]:
             self.assertIn(token, checkpoint)
         self.assertNotRegex(checkpoint, r"git add (?:-A|--all|\.)")
         self.assertNotRegex(checkpoint, r"git push[^\n]*--force")
         self.assertIn("last quiescent CAS snapshot", store)
         for path, text in texts.items():
             self.assertLessEqual(len(text.splitlines()), 150, path)
+
+    def test_sidecar_finalized_path_inventory_is_nul_safe_and_rejects_unrelated_dirty_state(self) -> None:
+        workflow = read_repo(
+            "plugins/super-developer/skills/worktree/references/feature-package-workflow.md"
+        )
+        lines = workflow.splitlines()
+        start = lines.index("stage_exact_finalized_paths() (")
+        end = next(index for index in range(start + 1, len(lines)) if lines[index] == ")")
+        helper = "\n".join(lines[start:end + 1])
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            subprocess.run(["git", "init", "-b", "main"], cwd=repo, check=True, capture_output=True)
+            subprocess.run(["git", "config", "user.email", "test@example.invalid"], cwd=repo, check=True)
+            subprocess.run(["git", "config", "user.name", "Test"], cwd=repo, check=True)
+            (repo / "tracked.txt").write_text("base\n", encoding="utf-8")
+            subprocess.run(["git", "add", "tracked.txt"], cwd=repo, check=True)
+            subprocess.run(["git", "commit", "-m", "base"], cwd=repo, check=True, capture_output=True)
+
+            def run_inventory(*paths: str) -> subprocess.CompletedProcess[str]:
+                return subprocess.run(
+                    [
+                        "bash", "-c",
+                        f"set -euo pipefail\n{helper}\nstage_exact_finalized_paths \"$@\"",
+                        "inventory", *paths,
+                    ],
+                    cwd=repo,
+                    env={"PATH": "/usr/bin:/bin"},
+                    text=True,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                )
+
+            newline_path = "nested/line\nbreak.json"
+            (repo / "tracked.txt").write_text("final\n", encoding="utf-8")
+            (repo / newline_path).parent.mkdir(parents=True)
+            (repo / newline_path).write_text("{}\n", encoding="utf-8")
+            accepted = run_inventory("tracked.txt", newline_path)
+            self.assertEqual(0, accepted.returncode, accepted.stdout + accepted.stderr)
+            staged = subprocess.check_output(
+                ["git", "diff", "--cached", "--name-only", "-z"], cwd=repo
+            ).split(b"\0")
+            self.assertEqual({b"tracked.txt", newline_path.encode()}, {item for item in staged if item})
+
+            subprocess.run(["git", "reset", "--hard", "HEAD"], cwd=repo, check=True, capture_output=True)
+            untracked = repo / newline_path
+            if untracked.exists():
+                untracked.unlink()
+            (repo / "tracked.txt").write_text("final\n", encoding="utf-8")
+            (repo / "authorized.json").write_text("{}\n", encoding="utf-8")
+            (repo / "unrelated.txt").write_text("must reject\n", encoding="utf-8")
+            rejected = run_inventory("tracked.txt", "authorized.json")
+            self.assertNotEqual(0, rejected.returncode)
+            self.assertEqual(
+                b"",
+                subprocess.check_output(["git", "diff", "--cached", "--name-only", "-z"], cwd=repo),
+            )
+
+            subprocess.run(["git", "add", "tracked.txt"], cwd=repo, check=True)
+            prestaged = run_inventory("tracked.txt", "authorized.json", "unrelated.txt")
+            self.assertNotEqual(0, prestaged.returncode)
 
     def test_checkpoint_refs_are_direct_expected_old_cas_before_push_and_on_resume(self) -> None:
         workflow = read_repo(
@@ -305,7 +369,7 @@ class SkillPromptSurfaceTests(unittest.TestCase):
             resume.index('git fetch --no-tags -- "$ARTIFACT_PUSH_ENDPOINT"'),
             resume.index("For every named direct code ref"),
         )
-        self.assertIn("call\n`verify_remote_direct_ref`", resume)
+        self.assertIn("named direct code ref call `verify_remote_direct_ref`", compact_text(resume))
         self.assertIn("symbolic direct ref", workflow)
         self.assertLessEqual(len(workflow.splitlines()), 150)
 
@@ -723,12 +787,12 @@ class SkillPromptSurfaceTests(unittest.TestCase):
             workflow.index("## Quiescent Code-Before-Sidecar Checkpoint"):
             workflow.index("## Safe Resume")
         ]
-        self.assertLess(initial.index("validate-lifecycle-state"), initial.index("git add --"))
+        self.assertLess(initial.index("validate-lifecycle-state"), initial.index("stage_exact_finalized_paths"))
         self.assertLess(
             checkpoint.index('git push -- "$CODE_PUSH_ENDPOINT" "$CODE_REF:$CODE_REF"'),
             checkpoint.index("validate-lifecycle-state"),
         )
-        self.assertLess(checkpoint.index("validate-lifecycle-state"), checkpoint.index("git add --"))
+        self.assertLess(checkpoint.index("validate-lifecycle-state"), checkpoint.index("stage_exact_finalized_paths"))
         self.assertIn(
             "Exact-endpoint remote reachability/CAS stays in the worktree contract",
             compact_text(texts[affected[3]]),
@@ -2465,6 +2529,39 @@ class SkillPromptSurfaceTests(unittest.TestCase):
         self.assertIn("do not impose universal serialization", generic_compact)
         self.assertIn("Return after each failure", delegation)
         self.assertIn("relevant state/evidence/strategy delta", delegation)
+
+    def test_one_implementation_gate_can_cover_exact_planned_dependency_actions(self) -> None:
+        implement = compact_text(read_repo("plugins/super-developer/skills/implement/SKILL.md")).lower()
+        contract = compact_text(read_repo(
+            "plugins/super-developer/skills/implement/references/execution-contract.md"
+        )).lower()
+        review = compact_text(read_repo("plugins/super-developer/skills/review-plan/SKILL.md")).lower()
+        rubric = compact_text(read_repo(
+            "plugins/super-developer/skills/review-plan/references/plan-review-rubrics.md"
+        )).lower()
+        combined = " ".join([implement, contract, review, rubric])
+        for token in [
+            "dependency/manifest/lockfile/service/permission action",
+            "reviewed technical baseline",
+            "readiness/dependency snapshot",
+            "covered writes/actions",
+            "protected effects/probes/remedies",
+            "immutable `dependencies` + `actions` digests",
+            "reviewed prose alone is insufficient",
+            "unlisted/new/drifted dependency, credential, service, permission",
+            "never invent or store credentials",
+        ]:
+            self.assertIn(token, combined)
+        self.assertNotIn("new dependency/service/permission or dependency manifest/lockfile change: not authorized", contract)
+        for protected in ["target/main merge or push", "force/delete/tag/release", "existing-system contract change"]:
+            self.assertIn(protected, contract)
+        for rel in [
+            "plugins/super-developer/skills/implement/SKILL.md",
+            "plugins/super-developer/skills/implement/references/execution-contract.md",
+            "plugins/super-developer/skills/review-plan/SKILL.md",
+            "plugins/super-developer/skills/review-plan/references/plan-review-rubrics.md",
+        ]:
+            self.assertLessEqual(len(read_repo(rel).splitlines()), 150, rel)
 
     def test_pipeline_delivery_owner_call_return_is_canonical(self) -> None:
         convergence = read_repo("plugins/super-developer/references/orchestration-convergence.md")

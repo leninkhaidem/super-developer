@@ -1,13 +1,10 @@
 # Slice-First Planned-Feature Artifacts
 ## Boundary
-This reference owns artifact roles and file shapes. `artifact-store.md` owns sidecar authority, roots, migration,
-permission, and checkpoint order. Slice authority lives in `conceptualize-slice-authority.md`; sizing/test
-acceptance in `work-packages.md`; profile/routing in `assurance-routing.md`; completion/freshness in
-`package-lifecycle.md`; commands in `tool-usage.md`. Pass
-`plugins/super-developer/references/package-verification-report.md` only to a `boundary` verifier.
+This reference owns artifact roles/shapes. `artifact-store.md` owns sidecar authority, roots, migration, permission,
+and checkpoint order; Slice authority, sizing, routing, freshness, and commands live in their named shared
+references. Pass `plugins/super-developer/references/package-verification-report.md` only to a `boundary` verifier.
 ## Artifact Set
-All paths are relative to the distinct namespaced artifact root; source/test paths resolve under the code root.
-Equal/current roots fail closed for planned authority; legacy copies are migration input only.
+Paths are relative to the distinct artifact root; source/test paths use code root. Equal/current roots fail closed; legacy copies are migration input only.
 - `.planning/<feature>/slices/*.md` — authoritative product/design Slices when present.
 - `.tasks/<feature>/SPEC.md` — accepted requirements, constraints, and verification summary.
 - `.tasks/<feature>/tasks.json` — lightweight registry only.
@@ -15,10 +12,9 @@ Equal/current roots fail closed for planned authority; legacy copies are migrati
 - `.tasks/<feature>/reports/<WP-ID>.package-verification.md` — pre-freeze `B[i]` only for `boundary`; absent for `final`.
 - `.tasks/<feature>/semgrep/*.{semgrep.json,semgrep-summary.json}` — optional local package/integration evidence.
 - `.tasks/<feature>/reviews/review-code-state.json` — governance readiness for audit handoff.
-- `.tasks/<feature>/lifecycle-state.json` — subordinate mechanical CAS continuation snapshot, never product authority,
-  semantic proof, an event log, or permission to perform its named next action.
+- `.tasks/<feature>/lifecycle-state.json` — mechanical CAS snapshot, never product authority, proof, event log, or permission.
 ## Compact Lifecycle State — Schema 1
-The helper derives the path from `--feature`; no state path field or CLI path is accepted. Required top-level keys:
+The helper derives the path from `--feature`; no state path/CLI path is accepted. Required top-level keys:
 ```json
 {
   "schema_version": 1, "generation": 1, "feature": "feature-slug",
@@ -51,11 +47,13 @@ initial routing against required `assurance_profile`, complete `package_modes`, 
 `package_assignments`, and fixed budget authority. `routing` digests all three routing values. `budget_authority` digests each budget's `maxima`, `started_at`,
 `deadline_at`, plus control-plane `maximum`; mutable issued/reservation usage is excluded. ID, inputs, and initial
 digest are immutable; amendments retain them while `amendment_link` advances the artifact checkpoint.
-`amendment_link` is non-null only in the snapshot whose effective digest changes; it contains
-`parent_effective_digest`, cold-reviewed `amendment_digest`, and exact current `artifact_sha`. The artifact must be
-a distinct reviewed descendant checkpoint on the exact sidecar lineage. Effective digest is canonical SHA-256 over
-those values (key `technical_amendment_digest`). The next unchanged snapshot clears the link; Git preserves prior
-links and no sequence/history array is allowed. Canonical state/prior digests use the same JSON rule.
+`amendment_link` exists only for its digest transition and binds parent, receipt path/digest/commit/tree (current
+checkpoint), and reviewed commit/tree. The regular canonical committed `.tasks/<feature>/reviews/amendments/<reviewed-commit>.json`
+receipt lives in a distinct later checkpoint, avoiding self-reference, and binds schema/kind, ID + initial/input
+digest, parent artifact, distinct reviewed descendant commit/tree, unchanged dependency/action/budget/policy digests, routing,
+exact invalidated/added IDs, `cold-plan-reviewer`/`technical-amendment`, PASS, and timestamp. Effective digest hashes parent + receipt digest +
+reviewed commit. Validate content/objects on the exact sidecar lineage and authority; reject missing/FAIL/cross-parent/ID/stale/drift.
+Clear next generation; Git retains history and no sequence/history array is allowed.
 Budget `maxima`/`issued` use identical non-empty safe counter keys: finite preauthorization planning/correction/
 spike/command and implementation `repair_waves`, total `delegated_calls`, `combined_low_calls`, `code_review_calls`,
 `final_specialist_calls`, `completion_audit_calls`, command, and cost totals. Values stay nonnegative; issued never
@@ -63,7 +61,9 @@ falls or exceeds maxima. Issued/reserved total calls cover the corresponding rol
 equation roles, not mutually exclusive unused roles. Completion requires exact graph minimums; one call cannot
 authorize multiple roles. Exact C/R/S/U `role_call_consumption` starts at zero, is monotonic across freezes, and never exceeds issued role calls. Every new receipt advances its role only after predecessor issuance; failed/abandoned calls may consume capacity without a PASS receipt, while current graph pointers may change but consumption never resets. Times are timezone-aware; an active reservation names owner/budget/generation. Repair-wave
 maximum is low ≤1, standard ≤2, and an explicit finite integer for high. The separate fixed control reserve is 0/1.
-Its optional one-unit `reservation{id,generation,operation,reason,expected_parent,checkpoint_digest,conflict_digest}`
+An active reservation optionally binds one assurance call `{role,lens,freeze,predecessors}` or repair-wave cluster
+set. Each call issues one role/delegated unit in its own checkpoint; its return binds reservation ID/generation/
+commit/state digest. Control `reservation{id,generation,operation,reason,expected_parent,checkpoint_digest,conflict_digest}`
 is only `safe-checkpoint|last-verified` for budget exhaustion or ownership/CAS loss and cannot coexist with semantic
 work. Either operation preserves semantic/checkpoint state and semantic budgets, changing only Lifecycle State;
 code, evidence, receipt, and semantic-artifact paths cannot progress. `safe-checkpoint` preserves the exact active
@@ -87,22 +87,22 @@ but preserves token/host/takeover; resume activates it or an exact digest-bound 
 Each serious cluster stores canonical identity text `accepted_invariant`, `root_mechanism`, `architectural_surface`;
 `id` is the canonical JSON digest of exactly those fields. It separately stores append-only `observed_signatures`,
 all observed classes, any selected observed class at the strongest precedence rank, its route, strike 1–2,
-disposition, and at most one immutable `repair{root_cause_digest,affected_surface_digest}` plus matching
-`closure{verdict,affected_surface_digest,evidence_digest}`. Eligible clusters start strike 1; PASS closes at 1,
-FAIL opens the circuit at 2, and terminal lineage is immutable.
+disposition, immutable repair root/surface + reservation ID/generation/commit/state digest, and closure verdict/
+surface + evidence path/digest/commit. Closure-repair starts repair-eligible; other routes start routed. Human gaps
+cannot close; technical reassessment needs its PASS amendment/invalidation; evidence refresh needs predecessor-fresh
+committed/current evidence; report-only needs no repair. Each batch gets a new exact-cluster reservation; PASS
+closes strike 1, FAIL opens strike 2, and terminal lineage is immutable.
 `freeze` is null or `{id,path,digest}` at `.tasks/<feature>/assurance/<freeze-id>/freeze.json`. Canonical F binds
 schema/kind/id, authorization ID/effective digest, code checkpoint ref/commit/tree/base/raw-diff/clean-status,
 exact typed semantic manifest, runtime and command-result path/digests, profile/modes, exact controlled Lifecycle
 State `{package,mode,owner,lens,side}` assignments (which package Markdown must match), exact boundary `B[*]`, sorted unique
 planned high-final `S` lenses, cluster digest, and `frozen_at`. The semantic manifest is exactly SPEC, registry,
 packages, proofs, boundary reports, and Slices—never Lifecycle State or `C/R/S/U/V`.
-Receipt pointers are `{role,lens,path,digest,freeze_digest}`. Canonical same-freeze JSON paths are `combined.json`,
-`review.json`, `specialists/<lens>.json`, `audit.json`, and `verification-summary.json`; files bind authorization/F,
-exact predecessor pointers, `recorded_at`, and role verdict(s). V has only deviations/limitations, never semantic
-PASS. Existing freeze files are append-only; same-freeze pointers cannot mutate. Lifecycle `artifact_checkpoint`
-SHA/tree remains the effective-authorization semantic checkpoint, exposed as `lifecycle_artifact_checkpoint`;
-mutable artifact ref/HEAD carries self-containing V and is verified as `verification_summary_checkpoint`. A4 keeps
-shape/transition semantics; B3/B4 own read-only completion validation with explicit roots/feature/profile equation.
+Receipt pointers are `{role,lens,path,digest,freeze_digest}` at canonical same-freeze paths. C/R/S/U bind F,
+predecessors, verdict, timestamp, and reservation ID/generation/committed SHA/state digest. Fully validate the
+reservation/issuance/return States on final HEAD's first-parent chain, predecessor presence, absence, and consumption. V is non-call index only; paths are append-only.
+Lifecycle `artifact_checkpoint` stays the effective-authorization checkpoint (`lifecycle_artifact_checkpoint`);
+mutable HEAD carries V (`verification_summary_checkpoint`). B3/B4 own read-only completion validation with explicit roots/profile.
 ## Lightweight Registry
 `tasks.json` remains bookkeeping only: no scope prose, assignment detail, proof/report body, lifecycle/history,
 commands, findings, or task bodies. Required top-level fields are `feature`, `title`, `status`, `spec_path`,

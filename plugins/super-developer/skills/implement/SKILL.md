@@ -43,16 +43,21 @@ package proof/verification, integration, bounded repairs, risk-adaptive final as
    `references/execution-contract.md`. Validate the receipt: canonical immutable input snapshot/initial digest,
    ID/effective digest, exact accepted artifact commit/tree and object relation, base commit object/status digest,
    dependencies, profile/routing, finite budget authority, covered actions, one authorized push endpoint per
-   relevant root, exclusions, and caller/`return_to`. Run `sliceproof.py validate-plan` and lifecycle validation.
+   relevant root, exclusions, and caller/`return_to`. An exact dependency/manifest/lockfile/service/permission
+   action is covered only if the reviewed technical baseline, readiness/dependency snapshot, covered writes/actions,
+   applicable protected effects/probes/remedies, and immutable `dependencies` + `actions` digests all enumerate it.
+   Reviewed prose alone is insufficient. Run `sliceproof.py validate-plan` and lifecycle validation.
 2. Immediately before product writes/fanout, run the exact freshness guard. Unlisted artifact/code/dependency/
    prerequisite/profile/routing/action/endpoint drift fails closed. For an envelope-preserving correction, invoke
-   cold `review-plan` explicitly in `nested-amendment` mode with this Delivery Owner/return stage and immutable
-   authorization lineage. Require its cold receipt to preserve ID/inputs/initial digest, name the current parent
-   effective digest and a distinct reviewed descendant artifact, and recompute the amendment/next-effective digest.
-   Only after that validation checkpoint the one-generation link and resume. Envelope/protected/budget change stops.
+   invoke cold `review-plan` explicitly in `nested-amendment` mode with Owner/return and immutable lineage. Require the reviewed
+   descendant artifact first, then a distinct receipt checkpoint containing canonical derived-path JSON. Load its
+   regular blob and verify ID/input, parent, reviewed commit/tree, immutable digests, routing/invalidation,
+   `cold-plan-reviewer`/`technical-amendment`, PASS, timestamp, objects, and linear lineage. Only after that validation checkpoint, derive effective digest
+   from parent + receipt digest + reviewed commit; checkpoint the one-generation link, then clear it. Envelope/protected/budget change stops.
 3. Run each exact `protected-activation-required` probe before product writes/fanout. Use only a listed remedy and
-   checkpoint success. If no covered remedy succeeds, return one precise prerequisite escalation; never introduce
-   a new dependency, service, credential, permission, architecture choice, or external effect.
+   checkpoint success. If no covered remedy succeeds, return one precise prerequisite escalation. Stop for any
+   unlisted/new/drifted dependency, credential, service, permission, external effect, endpoint, or manifest/lockfile
+   action. Never invent or store credentials; exact planned actions alone may proceed.
 4. After the guard and activation pass, use `worktree` for authorized setup/resume of the artifact sidecar plus
    integration/package code worktrees without switching the root. For resume, require its runbook to fetch/verify
    the exact remote sidecar and every named direct code ref; prove parked quiescence, owner, CAS parent, deadline,
@@ -74,11 +79,12 @@ package proof/verification, integration, bounded repairs, risk-adaptive final as
    and ignored `.tasks` handling. Apply the explicit lifecycle package transition matrix; advanced/invalidated state
    returns to `pending` only through a reviewed effective-digest replan, while blocked resolution/repair stays legal.
    Mark done/unlock/merge only after all package gates pass.
-8. Classify findings through the convergence contract. Envelope gaps stop; envelope-preserving architecture
-   invalidation returns to bounded technical reassessment/cold review; confidence enhancements do not block. Batch
-   eligible implementation/integration/test clusters and use `references/repair-agent-contract.md` for one
-   logical-owner repair. Run actual-path targeted and affected broad regression before proof/report refresh, then
-   rerun only affected gates. Routine repair, tests, reruns, and evidence refresh never re-prompt.
+8. Classify findings through convergence. New repair clusters enter repair-eligible; other routes enter routed.
+   Human gaps block; architecture closes only through its PASS amendment/invalidation; evidence refresh needs a
+   predecessor-fresh safe committed/current digest; report-only needs no repair. Each closure-repair batch gets a
+   newly charged exact-cluster reservation; persist its commit/generation/state digest in repair data and clear only
+   after every bound exact-surface PASS/FAIL evidence. Later clusters need another wave. Run targeted then affected
+   broad regression before proof refresh; routine covered repair/evidence never re-prompts.
 9. Merge accepted package branches through the integration worktree, checkpoint exact finalized code before
    path-specific sidecar state at authorized package boundaries, retain worktrees until cleanup gates pass, and
    continue downstream packages within budgets. To park, first reach a clean quiescent remote checkpoint, record
@@ -92,10 +98,11 @@ package proof/verification, integration, bounded repairs, risk-adaptive final as
     `../../references/assurance-routing.md`: low one combined cold verifier returning `C` with explicit code-risk
     and completion PASS verdicts; standard code review `R` to PASS/closure then audit `U(F,R)`; high `R` to
     PASS/closure, each named non-overlapping final specialist `S[j]` over `F+R` to PASS, then `U(F,R,S[*])`. Before
-    each C/R/S/U dispatch, checkpoint a newly created matching role/delegated-call reservation and issued delta.
-    On a later return, advance monotonic cumulative role consumption before adding the current-freeze receipt; never
-    reset/reuse capacity across freezes. Failed/abandoned calls may consume without PASS. Children are
-    read-only/return-only; never dispatch review and audit concurrently. Package `B[i]` roles remain pre-freeze only.
+    each C/R/S/U dispatch, checkpoint one new role/delegated-call reservation bound to F and exact predecessors; F
+    must exist in its predecessor. A return binds reservation ID/generation/committed SHA/state digest; fully
+    validate reservation/issuance/return semantics on final HEAD's first-parent chain and older-ID absence, then
+    consume the call. Never batch/reuse/cross-freeze;
+    failed/abandoned calls may consume without PASS. V is non-call. Children stay read-only/return-only.
 11. Batch returned findings and auto-resolve eligible repairs within authorization. Any frozen-input change creates
     a new `F`; after a review repair obtain `R` PASS/closure on that new freeze before dispatching any specialist or
     audit. Use semantic freshness for rerun scope. Once all profile-required outputs PASS for one `F`, create and
@@ -123,8 +130,9 @@ package proof/verification, integration, bounded repairs, risk-adaptive final as
   missing, unsafe, stale, contradictory, exhausted, or outside scope.
 - Freshness or protected activation fails without an exact covered technical route/remedy.
 - Correct work requires Human Authorization Envelope change, scope/risk/budget expansion, an existing-system
-  contract change not explicitly approved, new dependency/service/credential, destructive/external effect,
-  or any target merge/push, force, tag, release, deployment, delete, or branch cleanup.
+  contract change not explicitly approved, an unlisted/new/drifted dependency, credential, service, permission,
+  external effect, endpoint, or manifest/lockfile action, or any target merge/push, force, tag, release,
+  deployment, delete, or branch cleanup.
 - A required package gate/evidence/report is stale or failed; class/cluster is unknown; architecture has no credible
   envelope-preserving alternative; circuit is open; or concurrent owners claim one surface.
 - Resume lacks one exact remote parked checkpoint/direct ref, clean root, unchanged single endpoint, supported Git/

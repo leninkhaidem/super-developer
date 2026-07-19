@@ -7,11 +7,12 @@ lens includes deliverable-matrix reconciliation without taking another role's sc
 
 ## Packet and First Reads
 
-Require caller/return; standard/high profile; authorization/effective digest; exact `F`; frozen code/base/diff,
-semantic-artifact manifest, runtime evidence, profile/routing and `B[*]`; PASS `R`; required high PASS `S[*]`; closed
-clusters; and safe artifact/output paths. `R` binds `F`; every `S[j]` binds `F+R`, names one non-overlapping
-integrated lens, and appears only for high. Reject missing, non-PASS, duplicate-lens, cross-freeze, circular,
-postdecessor, concurrent review/audit dispatch, or low-profile packets.
+Require caller/return; standard/high; authorization/F/code/evidence/routing/`B[*]`; PASS R; high PASS S[*]; closed
+clusters; safe paths; and exact active U reservation ID/generation/committed SHA/state digest with F/R/S predecessor
+pointers. Fully validate reservation/issuance/return States on final HEAD's first-parent chain; predecessors existed,
+U did not, and its ID has no older reservation use; prove one U issuance. R
+binds F; each high S binds F+R. Reject non-PASS, duplicate, cross-freeze, circular/postdecessor, batch/reused call,
+concurrent review/audit, or low profile.
 
 Read from files in this order:
 

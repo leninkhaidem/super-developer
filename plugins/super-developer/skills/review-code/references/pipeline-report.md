@@ -6,9 +6,9 @@ specialist, auditor, or verifier. In particular, do not delegate from review-cod
 
 ## Assignment
 
-The packet names caller/return, profile, one named lens, `F`, frozen input manifest/digests, code/base/diff identity,
-artifact/runtime-evidence paths, package modes and `B[*]`, cluster state, and output path owned by the Delivery Owner.
-Reject unsafe, missing, ambiguous, stale, cross-freeze, or extra-role packets.
+The packet names caller/return, profile, one lens, `F`, inputs/code/evidence, modes/`B[*]`, clusters, output path,
+and exact reservation ID/generation/SHA/state digest + predecessors. Fully validate reservation/issuance/return
+States on final HEAD's first-parent chain and older-ID absence; F/predecessors existed and this return did not.
 
 - **Low:** act once as Combined Low Verifier for lens `combined-low-assurance`; return `C` with separate explicit
   `code-risk: PASS|FAIL|PROFILE_INVALID` and `completion: PASS|FAIL|PROFILE_INVALID` verdicts. Do not create `R`,
@@ -64,7 +64,7 @@ sensitive/shared/public/lifecycle, consumed-contract, or other higher-profile tr
 
 Return one structured, freeze-scoped result:
 
-- role, named lens, profile, authorization/effective digest, `F` digest, frozen code/artifact/evidence identities;
+- role/lens/profile, authorization/F/code/evidence and exact reservation ID/generation/commit/state digest;
 - `C`'s two verdicts or `R`'s one verdict;
 - inspected scope and decisive evidence pointers; package evidence trusted/reopened and why;
 - all serious findings in one batch with class, accepted invariant, root mechanism, architectural surface,

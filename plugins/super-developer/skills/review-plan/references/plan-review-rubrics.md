@@ -55,10 +55,11 @@ For every triggered profile, check:
 - cost or breadth alone does not trigger a profile;
 - the command is bounded, deterministic where controllable, cleanup-aware, and tied to a progress/completion
   signal; unresolved empirical behavior requires spike routing rather than implementation-time guessing;
-- exact base code commit and clean-status digest, candidate artifact identity, dependencies, tools/environments,
-  safe baseline probes, package order, covered writes/actions, and expected deterministic mutations are known;
-- each prerequisite is `proven-ready`, `protected-activation-required` with exact probe/remedy/failure consequence,
-  or `blocked`; a blocked required prerequisite cannot reach authorization; and
+- exact base/status, artifact identity, tools/environments, package order, writes/actions, and mutations are known;
+- every planned dependency/manifest/lockfile/service/permission action is enumerated in the technical baseline,
+  readiness/dependency snapshot, covered writes/actions, applicable protected effects/probes/remedies, and proposed
+  immutable `dependencies` + `actions` digests; reviewed prose alone is insufficient;
+- each prerequisite is `proven-ready`, exact `protected-activation-required`, or `blocked`; blocked cannot authorize; and
 - command, total/role-scoped call, repair-wave, cost, time, rerun, evidence, checkpoint, and cleanup budgets
   are finite.
 
@@ -98,12 +99,13 @@ the choices and creation of an authorization ID.
 
 ## Nested Amendment and Slice Plane
 
-In `nested-amendment` mode, require the existing Delivery Owner/return stage, immutable ID/inputs/initial digest,
-parent effective digest/artifact, and unchanged envelope, covered/protected actions/endpoints, amendment policy,
-and budget authority. The new artifact is a distinct reviewed descendant on the exact sidecar lineage. Require a
-cold receipt binding parent/new baseline/artifact/tree, affected/preserved state, routing, invalidation/mapping, and
-verdict; assignment changes invalidate affected candidates. Its digest plus exact parent/artifact derives the effective digest. Reject choices, a new/replaced
-ID, fresh-gate readiness, lifecycle checkpointing by review-plan, or direct implementation continuation.
+In `nested-amendment`, require Owner/return, immutable ID/inputs/initial digest, parent digest/artifact, unchanged
+envelope/actions/endpoints/policy/budget, and a distinct reviewed descendant. Require a later-checkpoint canonical
+receipt at the derived amendment path—never self-referential—binding schema/kind, ID/input, parent, reviewed
+commit/tree, unchanged action/dependency/budget/policy digests, old/new routing, exact invalidated/added IDs,
+canonical `cold-plan-reviewer`/`technical-amendment`, PASS, and timestamp. Effective digest uses parent + receipt digest + reviewed commit. Reject arbitrary
+text digests, missing/FAIL/cross-parent/ID/stale/non-descendant receipts, authority drift, choices, fresh-gate
+readiness, review-plan lifecycle checkpointing, or continuation.
 
 For either mode, the candidate handback starts from the old accepted commit and accounts for affected
 requirements/Slices/packages/assignments, production/test surfaces, stale proofs/reports/execution evidence/freeze

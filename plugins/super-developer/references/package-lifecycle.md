@@ -95,8 +95,11 @@ After repair, reclassify the actual code diff, invalidate affected receipts, run
 and earliest credible affected broad regression before refreshing proof/commands, and reclassify the final
 code/proof/command-evidence state until stable. Run `validate-proof`, then fresh focused verification for bounded
 impact or widen for material/shared/sensitive/uncertain impact; only afterward run `validate-package-complete`.
-Never accept intermediate evidence. Initial independent rejection is strike 1 and its failed closure is strike 2;
-do not wait for a “first failed closure” to allow repair or a “second failed closure” to stop.
+Never accept intermediate evidence. New closure-repair starts strike-1 repair-eligible; every other route starts routed without repair/closure. Human
+gaps block completion; technical reassessment needs its PASS amendment/invalidation; evidence refresh needs a safe
+committed/current predecessor-fresh digest; report-only may close without repair. Each repair batch increments its
+wave and checkpoints an exact-cluster reservation; later clusters need another. Clear only after all bound exact-
+surface evidence: PASS closes strike 1, FAIL opens strike 2. Do not wait for a “first failed closure” to allow repair or a “second failed closure” to stop.
 
 ## Exact Receipt Freshness
 
@@ -121,13 +124,11 @@ specialists and audit retain distinct named lenses. Audit reconciles accepted ou
 high-value claims without rereviewing the suite.
 
 Freeze exact integrated code, semantic artifacts, runtime evidence, profile/routing, and fresh `B[*]` as `F`.
-Dispatch only the serial equation in `assurance-routing.md`: low `F→C→V`, standard `F→R→U→V`, or high
-`F→R→S[*]→U→V`. Before each C/R/S/U call, persist its new role/delegated-call reservation and issued delta. A
-later return advances cumulative role consumption before adding the current-freeze receipt; a new freeze cannot
-reuse consumed capacity, while failed/abandoned calls may consume without PASS. Any frozen-input change invalidates
-outputs. A review repair must finish and create a new freeze before review closure; standard/high audit or final
-specialists start only after `R` PASS for that freeze. Declare readiness only when all profile-required PASS outputs and `V`
-bind the same top state.
+Dispatch low `F→C→V`, standard `F→R→U→V`, or high `F→R→S[*]→U→V`. Before each C/R/S/U, checkpoint one
+new role/delegated-call reservation bound to already-committed F and exact predecessors. S waits for PASS R; U for
+PASS R + planned PASS S. Return binds reservation ID/generation/commit/state digest; fully validate reservation,
+issuance, and return States on final HEAD's first-parent chain, predecessor presence/return absence, then consume. Failed/abandoned calls may consume
+without PASS; V is non-call. Frozen change requires new F; all profile-required PASS outputs and `V` bind the same top state.
 
 ## Observability
 

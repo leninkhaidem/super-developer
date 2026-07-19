@@ -50,9 +50,10 @@ supports approved changes to new or existing systems with exact mode-specific ow
 
 ## Initial Branch — The One Gate
 
-7. Only after an initial clean review, validate execution readiness: exact candidate commit/tree; base commit and
-   clean-status digest; dependencies; tools/environments; safe probes; package order; and each prerequisite as
-   `proven-ready`, exact `protected-activation-required`, or `blocked`. Required blocked state prevents the gate.
+7. Only after an initial clean review, validate execution readiness: exact candidate commit/tree; base/status;
+   tools/environments; safe probes; package order; and each dependency/manifest/lockfile/service/permission action
+   as `proven-ready`, exact `protected-activation-required` with effects/probes/remedies, or `blocked`. Enumerate each
+   action in the technical baseline, readiness/dependency snapshot, and covered writes/actions; blocked prevents the gate.
 8. Construct the compact authorization `inputs` snapshot: exact `artifact_commit`, `artifact_tree`, and
    `base_commit`; canonical digests `clean_status`, `dependencies`, `routing`, `actions`, `budget_authority`, and
    `amendment_policy`. Require the artifact commit in the artifact root, with its named tree, equal to the accepted
@@ -65,17 +66,18 @@ supports approved changes to new or existing systems with exact mode-specific ow
 
 ## Nested Amendment Branch — Return Only
 
-7. Require the existing authorization and unchanged envelope, initial inputs (including artifact commit/tree),
-   initial digest, covered/protected actions and exact endpoints, amendment policy, and budget authority. Validate
-   only affected technical readiness as cold
-   evidence; never re-enter readiness as a fresh user gate.
-8. Require a distinct reviewed descendant artifact checkpoint on the exact sidecar lineage. Construct one cold
-   amendment receipt binding authorization ID, immutable-input digest, parent effective digest/artifact, new
-   baseline/artifact/tree, affected/preserved-state handback, routing, and cold verdict. Canonically digest the
-   receipt and derive the next effective digest from parent + amendment digest + exact new artifact SHA.
-9. Return the receipt and handback to the existing Delivery Owner. A nested review never invokes `implement`.
-   Never present authorization choices, create/replace an ID, checkpoint lifecycle state, or resume.
-   The Delivery Owner validates receipt/effective digest and owns the checkpoint/continuation.
+7. Require unchanged envelope, ID, initial inputs/digest, covered/protected actions/endpoints, amendment policy,
+   and budget authority. Validate affected readiness only; never re-enter a fresh user gate.
+8. First checkpoint the distinct reviewed descendant technical artifact/tree. Then create canonical JSON at derived
+   `.tasks/<feature>/reviews/amendments/<reviewed-commit>.json`, binding schema/kind; ID + initial/input digest;
+   parent effective digest/artifact; reviewed commit/tree; unchanged actions/dependencies/budget/policy digests;
+   previous/new routing; exact invalidated/added IDs; `cold-plan-reviewer`/`technical-amendment`; PASS and timestamp. Commit that receipt in a
+   distinct descendant checkpoint so it never names its own commit. Digest its canonical bytes;
+   derive the next effective digest from exact parent + receipt digest + reviewed artifact commit.
+9. Return receipt path/digest/checkpoint/tree, reviewed commit/tree, and handback to the existing Delivery Owner.
+   A nested review never invokes `implement`. Never present authorization choices, create an ID, checkpoint
+   Lifecycle State, or resume. The Delivery Owner validates the committed regular blob, objects/linear lineage,
+   routing/invalidation, and unchanged authority, then owns continuation.
 
 ## Stop if
 

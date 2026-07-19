@@ -1,11 +1,9 @@
 # Planned-Feature Orchestration Convergence
-
 ## Boundary
 This reference owns Human Authorization Envelope separation, technical-plan amendments, the one Implementation
 Authorization, finite budgets, planned-feature continuation, finding classification, serious-cluster state,
 logical ownership, and behavior-before-evidence ordering. Other references own artifact, command, worktree,
 verification, review, and audit mechanics.
-
 ## Human Envelope and Technical Baseline
 - **Human Authorization Envelope:** user-owned outcomes, scope/exclusions, product/interface invariants, accepted
   material risks, protected effects, and spending/command/time bounds. Agents cannot alter it.
@@ -47,9 +45,9 @@ calls. Total issued calls cover role calls; reserve/issue precedes later cumulat
 Consumption is monotonic across freezes, cannot exceed issuance, and may advance without PASS for abandoned calls. Profile maxima fit the selected final equation
 without requiring unused-role maxima. Final completion still proves exact graph-role minimums. Approval authorizes all
 listed in-scope delivery actions without routine testing, repair, evidence, checkpoint, or handoff re-prompts. It
-does not inherit Sidecar Portability Authorization or authorize target merge/push, force, tag, release, deletion,
-deployment, destructive/external effects, or new dependencies/services/credentials. Those remain separately
-protected.
+does not inherit Sidecar Portability or target/release/force/delete authority. Exact preplanned dependency/
+manifest/service/permission actions require baseline + readiness snapshot + writes/actions + protected probes/
+remedies and both immutable digests; prose alone never suffices. Unlisted/new/drifted items or credentials stop.
 
 Only an **initial** clean review may present these choices. `review-plan` constructs one compact exact `inputs`
 snapshot: reviewed `artifact_commit`, `artifact_tree`, `base_commit`, and digests `clean_status`, `dependencies`,
@@ -67,15 +65,15 @@ dependency/prerequisite snapshot, profile/routing, covered actions, authorized e
 deterministic worktree/status mutations. Unlisted drift fails closed and returns through affected technical
 review; ask the user only if protected authority or the Human Authorization Envelope changes.
 
-Then run each listed protected activation probe. A listed remedy may auto-resolve; otherwise return one precise
-prerequisite escalation before product writes. For a later envelope-preserving correction, the Delivery Owner
-invokes `review-plan` in **nested amendment** mode with its return stage, existing ID/inputs/initial digest, parent
-effective digest, and parent artifact. Nested review never offers choices, creates/replaces an ID, or enters fresh
-gate readiness. It returns one cold amendment receipt binding unchanged envelope/inputs, parent/new baseline,
-distinct reviewed descendant artifact checkpoint/tree, affected invalidation, routing, and cold verdict. Its
-canonical amendment digest plus exact parent/artifact computes the next effective digest. The Delivery Owner
-validates that receipt, checkpoints state, and resumes. Envelope, protected-action/endpoint, covered-action, or
-budget-authority change stops for focused authority instead.
+Run listed activation probes; otherwise escalate before writes. For an envelope-preserving correction the Owner
+invokes nested `review-plan` with return stage, immutable ID/inputs/initial digest, parent effective digest/artifact.
+Nested review returns no choice/ID: it commits canonical JSON under derived `reviews/amendments/` after the distinct
+reviewed descendant commit, avoiding self-reference. The receipt binds schema/kind, ID/input digest, parent
+artifact/digest, reviewed commit/tree, unchanged action/dependency/budget/policy digests, old/new routing, exact
+invalidated/added IDs, exact `cold-plan-reviewer`/`technical-amendment` ownership, PASS, and timestamp. Lifecycle links receipt path/digest/checkpoint and
+reviewed commit/tree; effective digest hashes parent + receipt digest + reviewed commit. Load the regular canonical
+blob, verify objects/linear lineage/authority/routing/invalidation, checkpoint the one-generation link, then clear
+it. Reject missing/FAIL/cross-parent/ID/stale/non-descendant/drift. Protected/action/budget change needs authority.
 
 ## Delivery Owner and Child Envelope
 Only the Delivery Owner advances the post-checkpoint lifecycle, chooses repair or reassessment, preserves active
@@ -105,16 +103,15 @@ cannot claim final-state coverage. After the Delivery Owner creates `F`, every a
 return-only, and assigned one named non-overlapping lens. It never repairs, transitions, freezes, dispatches
 another assurance role, checkpoints, or notifies.
 
-The Delivery Owner alone runs the selected serial graph: low `F→C(two explicit PASS verdicts)→V`; standard
-`F→R(PASS/closure)→U(PASS, F, R)→V`; high `F→R(PASS/closure)→S[*] (each named lens PASS, F, R)→U(PASS,
-F, R, S[*])→V`. Low has no R/S/U; standard has no C/S; high has no C. Standard/high audit waits for clean R;
-high's zero-or-more S lenses are unique/planned and bind F+R. A finding completes owner repair/affected checks before a new F/R.
-Persist canonical `.tasks/<feature>/assurance/<freeze-id>/` JSON, never a registry/ledger. V is an index, supplies no
-PASS, and names every exact clean predecessor. Checkpoint V, run read-only
-`sliceproof.py validate-agentic-completion` against explicit distinct roots, then notify; protected actions stay separate.
+The Owner runs low `F→C(two PASS)→V`, standard `F→R(PASS)→U(F,R)→V`, or high
+`F→R(PASS)→S[*](F,R)→U(F,R,S[*])→V`. Before each C/R/S/U, a dedicated checkpoint issues one role/delegated
+unit and active reservation bound to F/exact predecessors; F already exists. S waits for PASS R; U waits for PASS R
+and every planned PASS S. A return binds reservation ID/generation/committed SHA/state digest; fully validate the
+reservation/issuance/return States on final HEAD's first-parent chain, then consume the call. Failed/abandoned calls may consume
+without PASS. No batch/reuse/cross-freeze; V is non-call index. Persist canonical freeze paths, run read-only
+`validate-agentic-completion`, then notify. A finding finishes repair/checks before a new F/R.
 
 ## Finding Classification and Circuit
-
 Classify all observations before repair with precedence: human-envelope `requirement-gap` >
 `architecture-invalidation` > `implementation-defect|integration-regression` >
 `test-fidelity-gap|evidence-stale-or-contradicted` > `confidence-enhancement`. Route respectively to user,
@@ -123,12 +120,15 @@ higher rank, while either observed class in an equal-rank group may be selected 
 may promote through reviewed technical amendment; any rank decrease needs a fresh reviewed baseline and new user
 authorization and is forbidden inside the existing authorization lineage.
 
-A serious-cluster identity is the canonical digest of only accepted invariant/contract + root mechanism + architectural
-surface. Keep signatures separately and append-only. A new agent, model, prompt, commit, status, report, matrix row,
-signature, package label, timeout, or wording change cannot reset identity or totals. Eligible initial rejection is strike 1 and
-permits exactly one root-cause repair plus one affected closure by the logical owner/successor: PASS closes at
-strike 1; FAIL is strike 2 and circuit-open immediately. Repair/closure and terminal lineage are immutable;
-continuation requires explicit user approval naming new information and a new finite bound.
+A serious-cluster identity is the canonical digest of accepted invariant/contract + failure mechanism +
+architectural surface. Observations append; a new agent, model, prompt, commit, status, report, matrix row, signature,
+package label, or timeout never resets identity. New closure-repair enters strike-1 repair-eligible; human-envelope, technical-reassessment, evidence-refresh, and
+report-only enter routed without repair/closure. Human gaps cannot close or complete this authorization. Technical
+reassessment closes only with its validated PASS amendment receipt and invalidation; evidence refresh needs a safe
+committed/current digest fresh from predecessor; report-only may close without repair. Every closure-repair batch
+increments `repair_waves` and checkpoints a new exact-cluster reservation; later clusters need a later delta and
+an ID absent from every historical active reservation, including abandoned waves. Clear only after every bound cluster has immutable exact-surface evidence: PASS closes
+strike 1, FAIL opens strike 2. Persist reservation commit/generation/state digest; terminal lineage is immutable and continuation requires explicit user approval.
 
 Keep one logical primary implementation owner per package/surface. Prefer resume; otherwise rehydrate one successor
 with exact authorization, invariants, worktree, outcomes, cluster/strikes, and next action. Independent assurance

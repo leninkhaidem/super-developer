@@ -3,20 +3,16 @@
 This path owns execution-readiness and covered-action content for the sole Implementation Authorization.
 `review-plan` presents it after cold review; `implement` consumes the checkpointed receipt and never presents
 another decision surface.
-
 ## Source and Decision Rule
 Derive fields from reviewed artifacts, resolved testing authority, readiness, Git state, budgets, and instructions.
 Unknown fields or blocked required prerequisites prevent the decision.
-
 Only initial clean `review-plan` offers **Approve and auto-resolve**, **Request changes**, and **Abort**. Approval
 begins delivery after the exact checkpoint and covers listed routine actions without later prompts. Nested-amendment
 review returns a cold receipt to the existing Delivery Owner; it never offers choices, creates an ID, or re-enters
 gate readiness. No per-stage or downstream implementation choice is added.
 ## Canonical Decision Surface
-
 ```text
 Implementation Authorization for <feature>
-
 Human Authorization Envelope:
   outcomes and observable behavior: <exact accepted summary/requirement anchors>
   product/interface invariants: <exact anchors>
@@ -27,6 +23,7 @@ Human Authorization Envelope:
 Reviewed Technical Plan Baseline:
   baseline identity: <digest/version>
   architecture invariants and package/consumed-contract order: <exact anchors/topology>
+  planned dependency/manifest/lockfile/service/permission actions: <exact identities, paths/effects, or none>
   assurance routing/receipt topology: <profile, package modes, canonical package/owner/lens/side assignments>
   verification/evidence/cleanup strategy: <reviewed minimum sufficient checks>
   allowed amendment policy: <envelope-preserving technical corrections + affected cold re-review only>
@@ -45,10 +42,10 @@ Execution readiness:
   tools and non-protected environments: <proven-ready results>
   safe baseline/readiness probes: <bounded command/result>
   package dependencies/integration order: <coherent result>
-  prerequisites:
-    - <name>: <proven-ready | protected-activation-required>
-      provenance/snapshot: <source-bound identity>
-      activation probe/remedy/failure consequence: <exact covered values or n/a>
+  prerequisites/dependency snapshot:
+    - <dependency|manifest|lockfile|service|permission>: <proven-ready | protected-activation-required>
+      provenance/snapshot and planned action: <source-bound exact identity/effect>
+      protected effect/probe/remedy/failure consequence: <exact covered values or n/a>
   blocked/optional capability: <none, or optional disclosed and excluded; required blocked prevents this surface>
 
 Testing authority:
@@ -60,6 +57,7 @@ Testing authority:
 Covered writes and actions:
   production/docs: <exact paths/categories>
   tests/oracles/fixtures/harness/config: <exact paths/categories>
+  planned dependencies/manifests/lockfiles/services/permissions: <exact writes/actions/effects/probes/remedies or none>
   artifacts/evidence/freeze-scoped assurance outputs: <existing sidecar paths/categories; no new receipt registry>
   commands/tests/runtime observations: <exact commands/categories and safety bounds>
   package waves/eligible repairs: <scope; one logical owner; batched root causes>
@@ -84,8 +82,8 @@ Excluded/protected actions:
   initial Sidecar Portability Authorization: separate planning-only authority; not inherited here
   target/main merge or push: not authorized
   force/delete/tag/release/deploy/branch cleanup: not authorized
-  destructive, credentialed, shared-service, or external effect not exactly listed: not authorized
-  new dependency/service/permission or dependency manifest/lockfile change: not authorized
+  unlisted/new/drifted dependency, credential, service, permission, external effect, endpoint, or manifest/lockfile action: not authorized
+  credentials: never invented, copied into artifacts/state, or stored; only an exact approved source/probe may be referenced
   existing-system contract change not explicitly approved by the Human Authorization Envelope: not authorized
 
 Choices:
@@ -96,8 +94,10 @@ Choices:
 
 ## Covered-Action Rules
 
-- New dependencies/services and dependency manifest/lockfile changes are outside auto-resolve and require their
-  own focused authority; reviewed plan text alone never authorizes them.
+- One gate may cover an exact dependency/manifest/lockfile/service/permission action known before authorization
+  only when the reviewed Technical Baseline, readiness/dependency snapshot, covered writes/actions, applicable
+  protected effects/probes/remedies, and immutable `dependencies` + `actions` digests all enumerate it. Reviewed
+  prose alone is insufficient; any unlisted/new/drifted item, credential, effect, endpoint, or action stops.
 - Delivery checkpoint authority is separate from Sidecar Portability Authorization. For each relevant root,
   require one configured push endpoint, bind it in covered actions, capture it once, reject zero/multiple/change,
   and use that exact argv for `ls-remote`, `push`, `fetch`, and post-check. A distinct fetch URL proves nothing.

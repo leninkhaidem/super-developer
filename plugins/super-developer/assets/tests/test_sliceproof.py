@@ -6,7 +6,6 @@ import importlib.util
 import json
 import os
 import re
-import shutil
 import subprocess
 import sys
 import tempfile
@@ -424,79 +423,20 @@ class SliceproofFixture:
                 self.report_text(proof, assurance_profile=profile), encoding="utf-8"
             )
         self.write_controlled_completion(
-            package_states={"WP1": "done"},
-            package_modes=modes,
-            assurance_profile=profile,
+            package_states={"WP1": "done"}, package_modes=modes, assurance_profile=profile
         )
         done_state = json.loads(self.lifecycle_path.read_text(encoding="utf-8"))
         done_commit = self.commit_lifecycle("controlled done state")
-
-        role_counts = {
-            "combined_low_calls": 1 if profile == "low" else 0,
-            "code_review_calls": 0 if profile == "low" else 1,
-            "final_specialist_calls": len(requested_specialists) if profile == "high" else 0,
-            "completion_audit_calls": 0 if profile == "low" else 1,
-        }
-        charged_state = copy.deepcopy(done_state)
-        charged_state["generation"] += 1
-        charged_state["stage"] = "final-assurance"
-        charged_state["next_legal_actions"] = ["record-final-assurance"]
-        charged_state["budgets"]["implementation"]["issued"].update(role_counts)
-        charged_state["budgets"]["implementation"]["issued"]["command_units"] = 1
-        role_call_total = sum(role_counts.values())
-        charged_state["budgets"]["implementation"]["issued"]["delegated_calls"] = 1 + role_call_total
-        reservation_units = {
-            counter: amount for counter, amount in role_counts.items() if amount
-        }
-        reservation_units.update({"delegated_calls": role_call_total, "command_units": 1})
-        charged_state["budgets"]["active_reservation"] = {
-            "id": "reservation-final-assurance",
-            "owner_token": charged_state["owner"]["token"],
-            "budget": "implementation",
-            "generation": charged_state["generation"],
-            "units": reservation_units,
-        }
-        charged_state["last_verified"] = {
-            "artifact_ref": "refs/heads/artifacts/fixture",
-            "artifact_sha": done_commit,
-            "state_digest": SLICEPROOF.canonical_json_digest(done_state),
-            "generation": done_state["generation"],
-        }
-        self.write_lifecycle(charged_state)
-        charged_commit = self.commit_lifecycle("reserve final assurance calls")
-
-        state = copy.deepcopy(charged_state)
-        state["generation"] += 1
-        state["quiescent"] = True
-        if terminal:
-            state["stage"] = "completed"
-            state["next_legal_actions"] = []
-            state["disposition"] = "completed"
-            state["owner"]["disposition"] = "released"
-        else:
-            state["stage"] = "final-assurance"
-            state["next_legal_actions"] = ["record-final-assurance"]
-            state["disposition"] = "active"
-            state["owner"]["disposition"] = "stopped"
-        state["budgets"]["active_reservation"] = None
-        state["wave"] = None
-        state["serious_clusters"] = copy.deepcopy(clusters or [])
-        state["last_verified"] = {
-            "artifact_ref": "refs/heads/artifacts/fixture",
-            "artifact_sha": charged_commit,
-            "state_digest": SLICEPROOF.canonical_json_digest(charged_state),
-            "generation": charged_state["generation"],
-        }
+        registry, package_markdowns = SLICEPROOF.load_and_validate_plan(
+            Path(".tasks/fixture/tasks.json"),
+            artifact_root=self.artifact_root,
+            code_root=self.repo,
+        )
 
         runtime_path = ".tasks/fixture/evidence/runtime.json"
         command_path = ".tasks/fixture/evidence/commands.json"
         runtime_digest = self.write_canonical_json(runtime_path, {"result": "PASS"})
         command_digest = self.write_canonical_json(command_path, {"command": "focused", "result": "PASS"})
-        registry, _packages = SLICEPROOF.load_and_validate_plan(
-            Path(".tasks/fixture/tasks.json"),
-            artifact_root=self.artifact_root,
-            code_root=self.repo,
-        )
         manifest, manifest_errors = SLICEPROOF.expected_semantic_artifact_manifest(registry)
         if manifest_errors:
             raise AssertionError(manifest_errors)
@@ -504,6 +444,20 @@ class SliceproofFixture:
         boundary_receipts = SLICEPROOF.expected_boundary_receipts(registry, boundary_errors)
         if boundary_errors:
             raise AssertionError(boundary_errors)
+
+        state = copy.deepcopy(done_state)
+        state["generation"] += 1
+        state["stage"] = "final-assurance"
+        state["next_legal_actions"] = ["record-final-assurance"]
+        state["budgets"]["active_reservation"] = None
+        state["budgets"]["implementation"]["issued"]["command_units"] = 1
+        state["serious_clusters"] = copy.deepcopy(clusters or [])
+        state["last_verified"] = {
+            "artifact_ref": "refs/heads/artifacts/fixture",
+            "artifact_sha": done_commit,
+            "state_digest": SLICEPROOF.canonical_json_digest(done_state),
+            "generation": done_state["generation"],
+        }
         freeze_id = f"freeze-{profile}"
         freeze_path = SLICEPROOF.canonical_freeze_path("fixture", freeze_id)
         checkpoint = state["code_checkpoint"]
@@ -531,7 +485,7 @@ class SliceproofFixture:
                 "profile": profile,
                 "package_modes": modes,
                 "package_assignments": SLICEPROOF.expected_package_assurance_assignments(
-                    registry, _packages
+                    registry, package_markdowns
                 ),
                 "required_boundary_receipts": boundary_receipts,
                 "specialist_lenses": requested_specialists,
@@ -542,20 +496,73 @@ class SliceproofFixture:
         }
         freeze_digest = self.write_canonical_json(freeze_path, freeze)
         state["freeze"] = {"id": freeze_id, "path": freeze_path, "digest": freeze_digest}
-        freeze_predecessor = SLICEPROOF.predecessor_pointer(
-            "F", "freeze", freeze_path, freeze_digest
-        )
-        receipt_files: dict[str, dict] = {}
-        pointers: list[dict] = []
+        state["receipts"] = []
+        self.write_lifecycle(state)
+        self.git_at(self.artifact_root, "add", runtime_path, command_path, freeze_path, ".tasks/fixture/lifecycle-state.json")
+        self.git_at(self.artifact_root, "commit", "-m", f"checkpoint {profile} F")
+        previous_commit = self.git_at(self.artifact_root, "rev-parse", "HEAD")
 
-        def add_receipt(
-            role: str,
-            lens: str,
-            predecessors: list[dict],
-            recorded_at: str,
-        ) -> dict:
-            path = SLICEPROOF.canonical_receipt_path("fixture", freeze_id, role, lens)
-            data = {
+        if profile == "low":
+            calls = [("C", "combined-low-assurance", "2026-07-18T14:01:00Z")]
+        else:
+            calls = [("R", "integrated-code-risk", "2026-07-18T14:01:00Z")]
+            calls.extend(
+                ("S", lens, f"2026-07-18T14:0{index}:00Z")
+                for index, lens in enumerate(requested_specialists, start=2)
+            )
+            calls.append(("U", "accepted-outcome-reconciliation", "2026-07-18T14:04:00Z"))
+
+        receipt_files: dict[str, dict] = {}
+        for call_index, (role, lens, recorded_at) in enumerate(calls, start=1):
+            predecessors: list[dict] = []
+            predecessor_errors: list[str] = []
+            predecessors = SLICEPROOF.expected_assurance_call_predecessors(
+                state, role, lens, predecessor_errors
+            )
+            if predecessor_errors:
+                raise AssertionError(predecessor_errors)
+            issued = copy.deepcopy(state)
+            issued["generation"] += 1
+            issued["last_verified"] = {
+                "artifact_ref": "refs/heads/artifacts/fixture",
+                "artifact_sha": previous_commit,
+                "state_digest": SLICEPROOF.canonical_json_digest(state),
+                "generation": state["generation"],
+            }
+            counter = SLICEPROOF.FINAL_ASSURANCE_CALL_COUNTERS[role]
+            issued_usage = issued["budgets"]["implementation"]["issued"]
+            issued_usage[counter] += 1
+            issued_usage["delegated_calls"] += 1
+            reservation_id = f"call-{call_index}-{role.lower()}-{lens}"
+            issued["budgets"]["active_reservation"] = {
+                "id": reservation_id,
+                "owner_token": issued["owner"]["token"],
+                "budget": "implementation",
+                "generation": issued["generation"],
+                "units": {"delegated_calls": 1, counter: 1},
+                "assurance_call": {
+                    "role": role,
+                    "lens": lens,
+                    "freeze_id": freeze_id,
+                    "freeze_digest": freeze_digest,
+                    "predecessors": predecessors,
+                },
+            }
+            self.write_lifecycle(issued)
+            issued_commit = self.commit_lifecycle(f"reserve {profile} {role} call")
+
+            returned = copy.deepcopy(issued)
+            returned["generation"] += 1
+            returned["budgets"]["active_reservation"] = None
+            returned["budgets"]["role_call_consumption"][role] += 1
+            returned["last_verified"] = {
+                "artifact_ref": "refs/heads/artifacts/fixture",
+                "artifact_sha": issued_commit,
+                "state_digest": SLICEPROOF.canonical_json_digest(issued),
+                "generation": issued["generation"],
+            }
+            receipt_path = SLICEPROOF.canonical_receipt_path("fixture", freeze_id, role, lens)
+            receipt = {
                 "schema_version": 1,
                 "role": role,
                 "lens": lens,
@@ -563,88 +570,99 @@ class SliceproofFixture:
                 "freeze_digest": freeze_digest,
                 "authorization": freeze["authorization"],
                 "predecessors": predecessors,
+                "reservation": {
+                    "id": reservation_id,
+                    "generation": issued["generation"],
+                    "artifact_commit": issued_commit,
+                    "state_digest": SLICEPROOF.canonical_json_digest(issued),
+                },
                 "recorded_at": recorded_at,
             }
             if role == "C":
-                data["verdicts"] = {"code_risk": "PASS", "completion": "PASS"}
-            elif role in {"R", "S", "U"}:
-                data["verdict"] = "PASS"
+                receipt["verdicts"] = {"code_risk": "PASS", "completion": "PASS"}
             else:
-                data["deviations"] = []
-                data["limitations"] = []
-            digest = self.write_canonical_json(path, data)
+                receipt["verdict"] = "PASS"
+            receipt_digest = self.write_canonical_json(receipt_path, receipt)
             pointer = {
                 "role": role,
                 "lens": lens,
-                "path": path,
-                "digest": digest,
+                "path": receipt_path,
+                "digest": receipt_digest,
                 "freeze_digest": freeze_digest,
             }
-            receipt_files[path] = data
-            pointers.append(pointer)
-            return SLICEPROOF.predecessor_pointer(role, lens, path, digest)
+            returned["receipts"].append(pointer)
+            receipt_files[receipt_path] = receipt
+            self.write_lifecycle(returned)
+            self.git_at(self.artifact_root, "add", receipt_path, ".tasks/fixture/lifecycle-state.json")
+            self.git_at(self.artifact_root, "commit", "-m", f"return {profile} {role} receipt")
+            previous_commit = self.git_at(self.artifact_root, "rev-parse", "HEAD")
+            state = returned
 
-        if profile == "low":
-            combined = add_receipt(
-                "C", "combined-low-assurance", [freeze_predecessor], "2026-07-18T14:01:00Z"
-            )
-            add_receipt(
-                "V", "verification-summary", [freeze_predecessor, combined], completion_at
-            )
+        final_state = copy.deepcopy(state)
+        final_state["generation"] += 1
+        final_state["quiescent"] = True
+        if terminal:
+            final_state["stage"] = "completed"
+            final_state["next_legal_actions"] = []
+            final_state["disposition"] = "completed"
+            final_state["owner"]["disposition"] = "released"
         else:
-            review = add_receipt(
-                "R", "integrated-code-risk", [freeze_predecessor], "2026-07-18T14:01:00Z"
-            )
-            specialists = []
-            for index, lens in enumerate(freeze["assurance"]["specialist_lenses"], start=2):
-                specialists.append(add_receipt(
-                    "S", lens, [freeze_predecessor, review], f"2026-07-18T14:0{index}:00Z"
-                ))
-            audit = add_receipt(
-                "U",
-                "accepted-outcome-reconciliation",
-                [freeze_predecessor, review, *specialists],
-                "2026-07-18T14:04:00Z",
-            )
-            add_receipt(
-                "V",
-                "verification-summary",
-                [freeze_predecessor, review, *specialists, audit],
-                completion_at,
-            )
-        state["receipts"] = pointers
-        observed_role_counts = {
-            "combined_low_calls": sum(item["role"] == "C" for item in pointers),
-            "code_review_calls": sum(item["role"] == "R" for item in pointers),
-            "final_specialist_calls": sum(item["role"] == "S" for item in pointers),
-            "completion_audit_calls": sum(item["role"] == "U" for item in pointers),
+            final_state["stage"] = "final-assurance"
+            final_state["next_legal_actions"] = ["record-final-assurance"]
+            final_state["disposition"] = "active"
+            final_state["owner"]["disposition"] = "stopped"
+        final_state["budgets"]["active_reservation"] = None
+        final_state["wave"] = None
+        final_state["last_verified"] = {
+            "artifact_ref": "refs/heads/artifacts/fixture",
+            "artifact_sha": previous_commit,
+            "state_digest": SLICEPROOF.canonical_json_digest(state),
+            "generation": state["generation"],
         }
-        if observed_role_counts != role_counts:
-            raise AssertionError((observed_role_counts, role_counts))
-        state["budgets"]["role_call_consumption"].update({
-            role: sum(pointer["role"] == role for pointer in pointers)
-            for role in SLICEPROOF.FINAL_ASSURANCE_CALL_COUNTERS
+        freeze_pointer = SLICEPROOF.predecessor_pointer("F", "freeze", freeze_path, freeze_digest)
+        semantic_pointers = [
+            SLICEPROOF.predecessor_pointer(
+                item["role"], item["lens"], item["path"], item["digest"]
+            )
+            for item in final_state["receipts"]
+        ]
+        summary_path = SLICEPROOF.canonical_receipt_path(
+            "fixture", freeze_id, "V", "verification-summary"
+        )
+        summary = {
+            "schema_version": 1,
+            "role": "V",
+            "lens": "verification-summary",
+            "freeze_id": freeze_id,
+            "freeze_digest": freeze_digest,
+            "authorization": freeze["authorization"],
+            "predecessors": [freeze_pointer, *semantic_pointers],
+            "recorded_at": completion_at,
+            "deviations": [],
+            "limitations": [],
+        }
+        summary_digest = self.write_canonical_json(summary_path, summary)
+        final_state["receipts"].append({
+            "role": "V",
+            "lens": "verification-summary",
+            "path": summary_path,
+            "digest": summary_digest,
+            "freeze_digest": freeze_digest,
         })
-        if graph_mutator is not None:
-            graph_mutator(state, freeze, receipt_files)
+        receipt_files[summary_path] = summary
 
-        freeze_digest = self.write_canonical_json(freeze_path, freeze)
-        state["freeze"]["digest"] = freeze_digest
-        for pointer in state["receipts"]:
+        if graph_mutator is not None:
+            graph_mutator(final_state, freeze, receipt_files)
+        for pointer in final_state["receipts"]:
             data = receipt_files.get(pointer["path"])
             if data is not None:
                 pointer["digest"] = self.write_canonical_json(pointer["path"], data)
-        self.write_lifecycle(state)
+        self.write_lifecycle(final_state)
         self.git_at(self.artifact_root, "add", ".")
         self.git_at(self.artifact_root, "commit", "-m", f"checkpoint {profile} V")
         completion_commit = self.git_at(self.artifact_root, "rev-parse", "HEAD")
-        self.git_at(
-            self.artifact_root,
-            "update-ref",
-            "refs/heads/artifacts/fixture",
-            completion_commit,
-        )
-        return state
+        self.git_at(self.artifact_root, "update-ref", "refs/heads/artifacts/fixture", completion_commit)
+        return final_state
 
     def validate_agentic_completion(self) -> subprocess.CompletedProcess[str]:
         return self.run(
@@ -790,6 +808,107 @@ class SliceproofFixture:
             "generation": previous["generation"],
         }
         return state
+
+    def prepare_technical_amendment(
+        self,
+        previous: dict,
+        previous_commit: str,
+        amended: dict,
+        *,
+        receipt_mutator=None,
+        marker: str = "reviewed technical amendment",
+    ) -> tuple[dict, dict, str, str]:
+        marker_path = self.feature_dir / "reviews" / f"{marker.replace(' ', '-')}.md"
+        marker_path.parent.mkdir(parents=True, exist_ok=True)
+        marker_path.write_text(f"# {marker}\n", encoding="utf-8")
+        self.git_at(self.artifact_root, "add", str(marker_path.relative_to(self.artifact_root)))
+        self.git_at(self.artifact_root, "commit", "-m", marker)
+        reviewed_commit = self.git_at(self.artifact_root, "rev-parse", "HEAD")
+        reviewed_tree = self.git_at(self.artifact_root, "rev-parse", "HEAD^{tree}")
+
+        old_packages, new_packages = previous["packages"], amended["packages"]
+        invalidated = sorted(
+            (
+                package_id for package_id in set(old_packages) & set(new_packages)
+                if old_packages[package_id]["state"] != "invalidated"
+                and new_packages[package_id]["state"] == "invalidated"
+            ),
+            key=SLICEPROOF.package_id_order,
+        )
+        added = sorted(set(new_packages) - set(old_packages), key=SLICEPROOF.package_id_order)
+        inputs = previous["authorization"]["inputs"]
+        receipt = {
+            "schema_version": 1,
+            "kind": "technical-amendment-review",
+            "authorization_id": previous["authorization"]["id"],
+            "initial_digest": previous["authorization"]["initial_digest"],
+            "inputs_digest": SLICEPROOF.canonical_json_digest(inputs),
+            "parent_effective_digest": previous["authorization"]["effective_digest"],
+            "parent_artifact": {
+                "commit": previous["artifact_checkpoint"]["sha"],
+                "tree": previous["artifact_checkpoint"]["tree"],
+            },
+            "reviewed_artifact": {"commit": reviewed_commit, "tree": reviewed_tree},
+            "immutable_digests": {
+                "dependencies": inputs["dependencies"],
+                "actions": inputs["actions"],
+                "budget_authority": inputs["budget_authority"],
+                "amendment_policy": inputs["amendment_policy"],
+            },
+            "routing": {
+                "previous": SLICEPROOF.assurance_routing_digest(
+                    previous["assurance_profile"],
+                    previous["package_modes"],
+                    previous["package_assignments"],
+                ),
+                "new": SLICEPROOF.assurance_routing_digest(
+                    amended["assurance_profile"],
+                    amended["package_modes"],
+                    amended["package_assignments"],
+                ),
+            },
+            "packages": {"invalidated": invalidated, "added": added},
+            "review": {
+                "role": "cold-plan-reviewer",
+                "lens": "technical-amendment",
+                "verdict": "PASS",
+                "reviewed_at": "2026-07-18T13:00:00Z",
+            },
+        }
+        if receipt_mutator is not None:
+            receipt_mutator(receipt)
+        receipt_path = SLICEPROOF.canonical_amendment_receipt_path("fixture", reviewed_commit)
+        receipt_digest = self.write_canonical_json(receipt_path, receipt)
+        self.git_at(self.artifact_root, "add", receipt_path)
+        self.git_at(self.artifact_root, "commit", "-m", f"cold receipt for {marker}")
+        receipt_commit = self.git_at(self.artifact_root, "rev-parse", "HEAD")
+        receipt_tree = self.git_at(self.artifact_root, "rev-parse", "HEAD^{tree}")
+
+        amended["artifact_checkpoint"] = {
+            "ref": "refs/heads/artifacts/fixture",
+            "sha": receipt_commit,
+            "tree": receipt_tree,
+        }
+        link = {
+            "parent_effective_digest": previous["authorization"]["effective_digest"],
+            "receipt_path": receipt_path,
+            "receipt_digest": receipt_digest,
+            "receipt_commit": receipt_commit,
+            "receipt_tree": receipt_tree,
+            "reviewed_artifact_commit": reviewed_commit,
+            "reviewed_artifact_tree": reviewed_tree,
+        }
+        amended["authorization"]["amendment_link"] = link
+        amended["authorization"]["effective_digest"] = SLICEPROOF.technical_amendment_effective_digest(
+            link["parent_effective_digest"], link["receipt_digest"], link["reviewed_artifact_commit"]
+        )
+        amended["last_verified"] = {
+            "artifact_ref": "refs/heads/artifacts/fixture",
+            "artifact_sha": previous_commit,
+            "state_digest": SLICEPROOF.canonical_json_digest(previous),
+            "generation": previous["generation"],
+        }
+        return amended, receipt, reviewed_commit, receipt_commit
 
     def plan(self) -> dict:
         return {
@@ -1700,7 +1819,12 @@ class SliceproofTests(unittest.TestCase):
                 "authorization": lambda state: state["authorization"].__setitem__("id", "auth-1"),
                 "amendment": lambda state: state["authorization"].__setitem__("amendment_link", {
                     "parent_effective_digest": fixture.digest_text("parent"),
-                    "amendment_digest": fixture.digest_text("amendment"), "artifact_sha": "1" * 40,
+                    "receipt_path": SLICEPROOF.canonical_amendment_receipt_path("fixture", "1" * 40),
+                    "receipt_digest": fixture.digest_text("receipt"),
+                    "receipt_commit": "2" * 40,
+                    "receipt_tree": "3" * 40,
+                    "reviewed_artifact_commit": "1" * 40,
+                    "reviewed_artifact_tree": "4" * 40,
                 }),
                 "packages": lambda state: state["packages"].update({
                     "WP1": {"state": "pending", "wave": None},
@@ -2078,21 +2202,6 @@ class SliceproofTests(unittest.TestCase):
             current["stage"] = "package-wave-quiescent"
             current["next_legal_actions"] = ["dispatch"]
             current["budgets"]["active_reservation"] = None
-            affected_digest = fixture.digest_text("affected helper closure")
-            current["budgets"]["implementation"]["issued"]["repair_waves"] = 1
-            current["serious_clusters"][0].update({
-                "strikes": 1,
-                "disposition": "closed",
-                "repair": {
-                    "root_cause_digest": fixture.digest_text("one root-cause repair"),
-                    "affected_surface_digest": affected_digest,
-                },
-                "closure": {
-                    "verdict": "PASS",
-                    "affected_surface_digest": affected_digest,
-                    "evidence_digest": fixture.digest_text("affected closure PASS"),
-                },
-            })
             current["last_verified"] = {
                 "artifact_ref": "refs/heads/artifacts/fixture",
                 "artifact_sha": generation_two,
@@ -2114,7 +2223,7 @@ class SliceproofTests(unittest.TestCase):
                     "id": "reservation-3", "owner_token": "owner-1", "budget": "implementation",
                     "generation": 3, "units": {"delegated_calls": 1},
                 }), "must be charged by this generation"),
-                ("authorization jump", lambda state: state["authorization"].__setitem__("effective_digest", fixture.digest_text("jump")), "requires an exact amendment link"),
+                ("authorization jump", lambda state: state["authorization"].__setitem__("effective_digest", fixture.digest_text("jump")), "requires an exact amendment receipt link"),
                 ("cluster reset", lambda state: state.__setitem__("serious_clusters", []), "serious cluster"),
                 ("checkpoint mutation", lambda state: state["code_checkpoint"].__setitem__("sha", "0" * 40), "immutable code checkpoint ref"),
             ]
@@ -2152,9 +2261,7 @@ class SliceproofTests(unittest.TestCase):
             terminal_cases.append((prior_wave, reset_wave, "active wave cannot reset"))
 
             prior_closed, reopened = copy.deepcopy(current), copy.deepcopy(current)
-            reopened["serious_clusters"][0].update({
-                "strikes": 1, "disposition": "repair-eligible", "repair": None, "closure": None,
-            })
+            prior_closed["serious_clusters"][0]["disposition"] = "closed"
             terminal_cases.append((prior_closed, reopened, "terminal disposition is immutable"))
 
             for previous_state, next_state, expected in terminal_cases:
@@ -2569,17 +2676,12 @@ class SliceproofTests(unittest.TestCase):
                     "generation": 2,
                 },
             })
-            amendment_link = {
-                "parent_effective_digest": active["authorization"]["effective_digest"],
-                "amendment_digest": fixture.digest_text("reviewed supersession and routing invalidation"),
-                "artifact_sha": generation_two,
-            }
-            superseded["authorization"]["amendment_link"] = amendment_link
-            superseded["authorization"]["effective_digest"] = (
-                SLICEPROOF.technical_amendment_effective_digest(
-                    amendment_link["parent_effective_digest"],
-                    amendment_link["amendment_digest"],
-                    amendment_link["artifact_sha"],
+            superseded, _receipt, _reviewed_commit, _receipt_commit = (
+                fixture.prepare_technical_amendment(
+                    active,
+                    generation_two,
+                    superseded,
+                    marker="reviewed supersession and routing invalidation",
                 )
             )
             fixture.write_lifecycle(superseded)
@@ -2626,12 +2728,14 @@ class SliceproofTests(unittest.TestCase):
                     self.assertIn(expected, "\n".join(transition_errors + state_errors))
 
             same_old_commit = copy.deepcopy(superseded)
+            current_old_sha = superseded["artifact_checkpoint"]["sha"]
+            current_old_tree = superseded["artifact_checkpoint"]["tree"]
             same_old_commit["supersession"]["baseline"]["artifact"] = {
                 "ref": replacement_artifact_ref,
-                "sha": generation_two,
-                "tree": old_artifact_tree,
+                "sha": current_old_sha,
+                "tree": current_old_tree,
             }
-            fixture.git_at(fixture.artifact_root, "update-ref", replacement_artifact_ref, generation_two)
+            fixture.git_at(fixture.artifact_root, "update-ref", replacement_artifact_ref, current_old_sha)
             same_old_errors = SLICEPROOF.validate_lifecycle_state_data(
                 same_old_commit,
                 artifact_root=fixture.artifact_root,
@@ -3127,13 +3231,22 @@ class SliceproofTests(unittest.TestCase):
                 "budget": "implementation",
                 "generation": 3,
                 "units": {"delegated_calls": 1, "code_review_calls": 1},
+                "assurance_call": {
+                    "role": "R", "lens": "integrated-code-risk",
+                    "freeze_id": "freeze-lineage", "freeze_digest": fixture.digest_text("freeze"),
+                    "predecessors": [{
+                        "role": "F", "lens": "freeze",
+                        "path": ".tasks/fixture/assurance/freeze-lineage/freeze.json",
+                        "digest": fixture.digest_text("freeze"),
+                    }],
+                },
             }
             self.assertEqual([], SLICEPROOF.compare_lifecycle_budgets(old_budgets, matching))
 
             unreserved = copy.deepcopy(matching)
             unreserved["active_reservation"] = None
             self.assertIn(
-                "positive role-call issued delta requires a newly created matching implementation reservation",
+                "positive final-role issued delta requires a newly created matching assurance-call reservation",
                 "\n".join(SLICEPROOF.compare_lifecycle_budgets(old_budgets, unreserved)),
             )
 
@@ -3148,7 +3261,7 @@ class SliceproofTests(unittest.TestCase):
             reused_old["active_reservation"] = copy.deepcopy(matching["active_reservation"])
             reused = copy.deepcopy(matching)
             self.assertIn(
-                "positive role-call issued delta requires a newly created matching implementation reservation",
+                "positive final-role issued delta requires a newly created matching assurance-call reservation",
                 "\n".join(SLICEPROOF.compare_lifecycle_budgets(reused_old, reused)),
             )
 
@@ -3159,6 +3272,7 @@ class SliceproofTests(unittest.TestCase):
                 "freeze": {"id": "freeze-lineage"},
             }
             same_generation_budgets = copy.deepcopy(matching)
+            same_generation_budgets["active_reservation"] = None
             same_generation_budgets["role_call_consumption"]["R"] = 1
             same_generation_return = {
                 "budgets": same_generation_budgets,
@@ -3166,7 +3280,7 @@ class SliceproofTests(unittest.TestCase):
                 "freeze": {"id": "freeze-lineage"},
             }
             self.assertIn(
-                "role_call_consumption.R=1 exceeds predecessor-issued code_review_calls=0",
+                "final-role consumption/receipt requires the predecessor's active assurance call",
                 "\n".join(
                     SLICEPROOF.validate_role_call_consumption_transition(
                         predecessor, same_generation_return
@@ -3204,122 +3318,66 @@ class SliceproofTests(unittest.TestCase):
         finally:
             fixture.cleanup()
 
-    def test_cross_freeze_receipts_require_new_cumulative_role_capacity(self) -> None:
+    def test_cross_freeze_receipts_require_fresh_serial_call_capacity(self) -> None:
         fixture = SliceproofFixture(separate_roots=True)
         try:
             first = fixture.write_agentic_completion("standard", terminal=False)
             first_commit = fixture.git_at(fixture.artifact_root, "rev-parse", "HEAD")
-            self.assertEqual(
-                {"C": 0, "R": 1, "S": 0, "U": 1},
-                first["budgets"]["role_call_consumption"],
-            )
+            self.assertEqual({"C": 0, "R": 1, "S": 0, "U": 1}, first["budgets"]["role_call_consumption"])
 
-            def advance(previous: dict, previous_commit: str, *, takeover: bool) -> dict:
-                state = copy.deepcopy(previous)
-                state["generation"] += 1
-                state["stage"] = "final-assurance"
-                state["quiescent"] = True
-                state["next_legal_actions"] = ["record-final-assurance"]
-                state["disposition"] = "active"
-                state["last_verified"] = {
-                    "artifact_ref": "refs/heads/artifacts/fixture",
-                    "artifact_sha": previous_commit,
-                    "state_digest": SLICEPROOF.canonical_json_digest(previous),
-                    "generation": previous["generation"],
-                }
-                if takeover:
-                    state["owner"] = {
-                        "token": "owner-2",
-                        "host": "host-b",
-                        "disposition": "active",
-                        "takeover": {
-                            "previous_token": previous["owner"]["token"],
-                            "previous_host": previous["owner"]["host"],
-                            "previous_generation": previous["generation"],
-                            "evidence_digest": SLICEPROOF.canonical_json_digest(previous),
-                        },
-                    }
-                return state
-
-            second_freeze_id = "freeze-standard-2"
-            second_freeze_dir = (
-                fixture.artifact_root
-                / SLICEPROOF.canonical_freeze_directory("fixture", second_freeze_id)
-            )
-
-            def add_second_freeze(state: dict) -> None:
-                freeze_path = SLICEPROOF.canonical_freeze_path("fixture", second_freeze_id)
-                freeze_digest = fixture.write_canonical_json(
-                    freeze_path, {"fixture": "second standard freeze"}
-                )
-                state["freeze"] = {
-                    "id": second_freeze_id,
-                    "path": freeze_path,
-                    "digest": freeze_digest,
-                }
-                state["receipts"] = []
-                for role, lens in (
-                    ("R", "integrated-code-risk"),
-                    ("U", "accepted-outcome-reconciliation"),
-                ):
-                    path = SLICEPROOF.canonical_receipt_path(
-                        "fixture", second_freeze_id, role, lens
-                    )
-                    digest = fixture.write_canonical_json(
-                        path, {"fixture": f"second {role} receipt"}
-                    )
-                    state["receipts"].append({
-                        "role": role,
-                        "lens": lens,
-                        "path": path,
-                        "digest": digest,
-                        "freeze_digest": freeze_digest,
-                    })
-
-            reused = advance(first, first_commit, takeover=True)
-            reused["budgets"]["active_reservation"] = None
-            add_second_freeze(reused)
-            fixture.write_lifecycle(reused)
+            fabricated = copy.deepcopy(first)
+            fabricated["generation"] += 1
+            fabricated["owner"]["disposition"] = "active"
+            fabricated["last_verified"] = {
+                "artifact_ref": "refs/heads/artifacts/fixture",
+                "artifact_sha": first_commit,
+                "state_digest": SLICEPROOF.canonical_json_digest(first),
+                "generation": first["generation"],
+            }
+            fabricated["budgets"]["role_call_consumption"]["R"] += 1
+            fabricated["budgets"]["implementation"]["issued"]["code_review_calls"] += 1
+            fabricated["budgets"]["implementation"]["issued"]["delegated_calls"] += 1
+            fixture.write_lifecycle(fabricated)
             rejected = fixture.validate_lifecycle(first_commit)
             self.assertNotEqual(0, rejected.returncode, rejected.stdout + rejected.stderr)
-            errors = "\n".join(json.loads(rejected.stderr)["errors"])
             self.assertIn(
-                "new R receipt(s) require matching new role-call consumption", errors
-            )
-            self.assertIn(
-                "new U receipt(s) require matching new role-call consumption", errors
+                "predecessor's active assurance call",
+                "\n".join(json.loads(rejected.stderr)["errors"]),
             )
 
-            shutil.rmtree(second_freeze_dir)
-            issued = advance(first, first_commit, takeover=True)
-            issued_usage = issued["budgets"]["implementation"]["issued"]
-            issued_usage["delegated_calls"] += 2
-            issued_usage["code_review_calls"] += 1
-            issued_usage["completion_audit_calls"] += 1
-            issued["budgets"]["active_reservation"] = {
-                "id": "reservation-second-standard",
-                "owner_token": "owner-2",
+            all_roles = copy.deepcopy(first)
+            all_roles["generation"] += 1
+            all_roles["owner"]["disposition"] = "active"
+            all_roles["last_verified"] = fabricated["last_verified"]
+            usage = all_roles["budgets"]["implementation"]["issued"]
+            usage["delegated_calls"] += 2
+            usage["code_review_calls"] += 1
+            usage["completion_audit_calls"] += 1
+            freeze = all_roles["freeze"]
+            all_roles["budgets"]["active_reservation"] = {
+                "id": "forbidden-all-role-call",
+                "owner_token": all_roles["owner"]["token"],
                 "budget": "implementation",
-                "generation": issued["generation"],
+                "generation": all_roles["generation"],
                 "units": {
                     "delegated_calls": 2,
                     "code_review_calls": 1,
                     "completion_audit_calls": 1,
                 },
+                "assurance_call": {
+                    "role": "R",
+                    "lens": "integrated-code-risk",
+                    "freeze_id": freeze["id"],
+                    "freeze_digest": freeze["digest"],
+                    "predecessors": [SLICEPROOF.predecessor_pointer(
+                        "F", "freeze", freeze["path"], freeze["digest"]
+                    )],
+                },
             }
-            fixture.write_lifecycle(issued)
-            reserved = fixture.validate_lifecycle(first_commit)
-            self.assertEqual(0, reserved.returncode, reserved.stdout + reserved.stderr)
-            issued_commit = fixture.commit_lifecycle("reserve second standard assurance")
-
-            returned = advance(issued, issued_commit, takeover=False)
-            returned["budgets"]["active_reservation"] = None
-            returned["budgets"]["role_call_consumption"]["R"] += 1
-            returned["budgets"]["role_call_consumption"]["U"] += 1
-            add_second_freeze(returned)
-            fixture.write_lifecycle(returned)
-            accepted = fixture.validate_lifecycle(issued_commit)
-            self.assertEqual(0, accepted.returncode, accepted.stdout + accepted.stderr)
+            fixture.write_lifecycle(all_roles)
+            rejected = fixture.validate_lifecycle(first_commit)
+            self.assertNotEqual(0, rejected.returncode, rejected.stdout + rejected.stderr)
+            self.assertIn("exactly one R call", rejected.stderr)
         finally:
             fixture.cleanup()
 
@@ -3393,10 +3451,10 @@ class SliceproofTests(unittest.TestCase):
             })
 
         cases = [
-            ("circular", circular, "acyclic same-freeze predecessors"),
-            ("cross-freeze", cross_freeze, "cross-freeze binding"),
-            ("postdecessor", postdecessor, "circular/postdecessor"),
-            ("missing role", missing_role, "exact roles/lenses"),
+            ("circular", circular, "append-only across freezes"),
+            ("cross-freeze", cross_freeze, "append-only across freezes"),
+            ("postdecessor", postdecessor, "append-only across freezes"),
+            ("missing role", missing_role, "cannot mutate under the same freeze"),
             ("extra role", extra_role, "role_call_consumption.C"),
             ("duplicate role", duplicate_role, "duplicate singleton role"),
             ("summary as proof", summary_as_proof, "unsupported field"),
@@ -3422,6 +3480,160 @@ class SliceproofTests(unittest.TestCase):
             self.assertIn("role_call_consumption.S", rejected.stderr)
         finally:
             fixture.cleanup()
+
+    def test_final_assurance_reservation_history_rejects_fabrication_and_cross_freeze(self) -> None:
+        fixture = SliceproofFixture(separate_roots=True)
+        try:
+            state = fixture.write_agentic_completion("standard")
+            accepted = fixture.validate_agentic_completion()
+            self.assertEqual(0, accepted.returncode, accepted.stdout + accepted.stderr)
+            freeze_path = fixture.artifact_root / state["freeze"]["path"]
+            freeze = json.loads(freeze_path.read_text(encoding="utf-8"))
+            review_pointer = next(item for item in state["receipts"] if item["role"] == "R")
+            audit_pointer = next(item for item in state["receipts"] if item["role"] == "U")
+            review_path = fixture.artifact_root / review_pointer["path"]
+            audit_path = fixture.artifact_root / audit_pointer["path"]
+            review = json.loads(review_path.read_text(encoding="utf-8"))
+            audit = json.loads(audit_path.read_text(encoding="utf-8"))
+            self.assertNotEqual(
+                review["reservation"]["artifact_commit"],
+                audit["reservation"]["artifact_commit"],
+            )
+
+            def graph_errors(mutated_state: dict) -> str:
+                errors: list[str] = []
+                SLICEPROOF.validate_completion_receipt_graph(
+                    mutated_state,
+                    freeze,
+                    fixture.artifact_root,
+                    fixture.repo,
+                    SLICEPROOF.parse_aware_iso8601(freeze["frozen_at"], "F", errors),
+                    errors,
+                )
+                return "\n".join(errors)
+
+            cross = copy.deepcopy(state)
+            cross_audit = copy.deepcopy(audit)
+            cross_audit["freeze_id"] = "freeze-other"
+            cross_digest = fixture.write_canonical_json(audit_pointer["path"], cross_audit)
+            next(item for item in cross["receipts"] if item["role"] == "U")["digest"] = cross_digest
+            self.assertIn("cross-freeze binding", graph_errors(cross))
+            fixture.git_at(fixture.artifact_root, "checkout", "--", audit_pointer["path"])
+
+            reused = copy.deepcopy(state)
+            reused_audit = copy.deepcopy(audit)
+            reused_audit["reservation"]["id"] = review["reservation"]["id"]
+            reused_digest = fixture.write_canonical_json(audit_pointer["path"], reused_audit)
+            next(item for item in reused["receipts"] if item["role"] == "U")["digest"] = reused_digest
+            self.assertIn("reservation/call ID is reused", graph_errors(reused))
+            fixture.git_at(fixture.artifact_root, "checkout", "--", audit_pointer["path"])
+
+            fabricated = copy.deepcopy(state)
+            fabricated_audit = copy.deepcopy(audit)
+            fabricated_audit["reservation"] = copy.deepcopy(review["reservation"])
+            fabricated_digest = fixture.write_canonical_json(audit_pointer["path"], fabricated_audit)
+            next(item for item in fabricated["receipts"] if item["role"] == "U")["digest"] = fabricated_digest
+            fabricated_errors = graph_errors(fabricated)
+            self.assertIn("committed active reservation does not match returned receipt", fabricated_errors)
+            fixture.git_at(fixture.artifact_root, "checkout", "--", audit_pointer["path"])
+
+            review_reservation_state = SLICEPROOF.load_historical_lifecycle_state(
+                fixture.artifact_root,
+                "fixture",
+                review["reservation"]["artifact_commit"],
+                "test review reservation",
+                [],
+            )
+            self.assertIsNotNone(review_reservation_state)
+            freeze_commit = review_reservation_state["last_verified"]["artifact_sha"]
+
+            final_branch = fixture.git_at(fixture.artifact_root, "symbolic-ref", "--short", "HEAD")
+            fixture.git_at(fixture.artifact_root, "checkout", "--detach", freeze_commit)
+            invalid_owner_state = copy.deepcopy(review_reservation_state)
+            invalid_owner_state["owner"]["disposition"] = "stopped"
+            fixture.write_lifecycle(invalid_owner_state)
+            fixture.git_at(fixture.artifact_root, "add", ".tasks/fixture/lifecycle-state.json")
+            fixture.git_at(fixture.artifact_root, "commit", "-m", "side-branch invalid call owner")
+            side_reservation_commit = fixture.git_at(fixture.artifact_root, "rev-parse", "HEAD")
+            fixture.git_at(fixture.artifact_root, "checkout", final_branch)
+
+            side_bound = copy.deepcopy(state)
+            side_review = copy.deepcopy(review)
+            side_review["reservation"].update({
+                "artifact_commit": side_reservation_commit,
+                "state_digest": SLICEPROOF.canonical_json_digest(invalid_owner_state),
+            })
+            side_digest = fixture.write_canonical_json(review_pointer["path"], side_review)
+            next(item for item in side_bound["receipts"] if item["role"] == "R")["digest"] = side_digest
+            side_errors = graph_errors(side_bound)
+            self.assertIn("reservation commit is not on final HEAD first-parent lineage", side_errors)
+            self.assertIn("active_reservation: requires and must match active owner", side_errors)
+            fixture.git_at(fixture.artifact_root, "checkout", "--", review_pointer["path"])
+
+            freeze_state = SLICEPROOF.load_historical_lifecycle_state(
+                fixture.artifact_root, "fixture", freeze_commit, "test F state", []
+            )
+            predecessor_errors: list[str] = []
+            SLICEPROOF.expected_assurance_call_predecessors(
+                freeze_state, "U", "accepted-outcome-reconciliation", predecessor_errors
+            )
+            self.assertIn("requires exact predecessor PASS R", "\n".join(predecessor_errors))
+            specialist_errors: list[str] = []
+            SLICEPROOF.expected_assurance_call_predecessors(
+                freeze_state, "S", "privacy", specialist_errors
+            )
+            self.assertIn("requires exact predecessor PASS R", "\n".join(specialist_errors))
+
+            done_commit = freeze_state["last_verified"]["artifact_sha"]
+            done_state = SLICEPROOF.load_historical_lifecycle_state(
+                fixture.artifact_root, "fixture", done_commit, "test pre-F state", []
+            )
+            same_generation = copy.deepcopy(review_reservation_state)
+            same_generation["generation"] = done_state["generation"] + 1
+            same_generation["budgets"]["active_reservation"]["generation"] = same_generation["generation"]
+            same_generation["last_verified"] = {
+                "artifact_ref": "refs/heads/artifacts/fixture",
+                "artifact_sha": done_commit,
+                "state_digest": SLICEPROOF.canonical_json_digest(done_state),
+                "generation": done_state["generation"],
+            }
+            order_errors = SLICEPROOF.validate_assurance_call_transition_paths(
+                fixture.artifact_root,
+                ".tasks/fixture/lifecycle-state.json",
+                done_commit,
+                done_state,
+                same_generation,
+            )
+            self.assertIn("F must already exist unchanged in the predecessor checkpoint", "\n".join(order_errors))
+        finally:
+            fixture.cleanup()
+
+        low = SliceproofFixture(separate_roots=True)
+        try:
+            low_state = low.write_agentic_completion("low")
+            low_freeze = json.loads(
+                (low.artifact_root / low_state["freeze"]["path"]).read_text(encoding="utf-8")
+            )
+            combined_pointer = next(item for item in low_state["receipts"] if item["role"] == "C")
+            combined = json.loads(
+                (low.artifact_root / combined_pointer["path"]).read_text(encoding="utf-8")
+            )
+            combined["verdicts"] = {
+                "code_risk": "PROFILE_INVALID", "completion": "PROFILE_INVALID"
+            }
+            combined_pointer["digest"] = low.write_canonical_json(combined_pointer["path"], combined)
+            errors: list[str] = []
+            SLICEPROOF.validate_completion_receipt_graph(
+                low_state,
+                low_freeze,
+                low.artifact_root,
+                low.repo,
+                SLICEPROOF.parse_aware_iso8601(low_freeze["frozen_at"], "F", errors),
+                errors,
+            )
+            self.assertIn("low C requires two explicit PASS verdicts", "\n".join(errors))
+        finally:
+            low.cleanup()
 
     def test_b4_cluster_identity_precedence_strikes_and_terminal_lineage(self) -> None:
         fixture = SliceproofFixture(separate_roots=True)
@@ -3521,6 +3733,302 @@ class SliceproofTests(unittest.TestCase):
         finally:
             fixture.cleanup()
 
+    def test_route_specific_cluster_closure_and_two_repair_waves_are_causal(self) -> None:
+        fixture = SliceproofFixture(separate_roots=True)
+        try:
+            fixture.init_lifecycle_git_roots()
+            initial = fixture.lifecycle_state()
+            fixture.write_lifecycle(initial)
+            generation_one = fixture.commit_lifecycle("cluster generation one")
+            base = fixture.authorized_lifecycle_state(initial, generation_one)
+            base["stage"] = "package-wave-quiescent"
+            base["next_legal_actions"] = ["repair"]
+            base["budgets"]["active_reservation"] = None
+            first_cluster = fixture.serious_cluster()
+            base["serious_clusters"] = [first_cluster]
+            fixture.write_lifecycle(base)
+            self.assertEqual(0, fixture.validate_lifecycle(generation_one).returncode)
+            base_commit = fixture.commit_lifecycle("first cluster routed")
+
+            def reserve(previous: dict, previous_commit: str, cluster_ids: list[str], wave: int):
+                state = copy.deepcopy(previous)
+                state["generation"] += 1
+                state["last_verified"] = {
+                    "artifact_ref": "refs/heads/artifacts/fixture",
+                    "artifact_sha": previous_commit,
+                    "state_digest": SLICEPROOF.canonical_json_digest(previous),
+                    "generation": previous["generation"],
+                }
+                state["budgets"]["implementation"]["issued"]["repair_waves"] += 1
+                state["budgets"]["active_reservation"] = {
+                    "id": f"repair-wave-{wave}",
+                    "owner_token": state["owner"]["token"],
+                    "budget": "implementation",
+                    "generation": state["generation"],
+                    "units": {"repair_waves": 1},
+                    "repair_wave": {"cluster_ids": sorted(cluster_ids)},
+                }
+                fixture.write_lifecycle(state)
+                checked = fixture.validate_lifecycle(previous_commit)
+                self.assertEqual(0, checked.returncode, checked.stdout + checked.stderr)
+                return state, fixture.commit_lifecycle(f"reserve repair wave {wave}")
+
+            def close(reserved: dict, reservation_commit: str, cluster_ids: list[str], wave: int):
+                evidence_commit = None
+                evidence_by_id = {}
+                for cluster_id in cluster_ids:
+                    affected = fixture.digest_text(f"affected surface wave {wave} {cluster_id}")
+                    path = SLICEPROOF.canonical_cluster_closure_evidence_path("fixture", cluster_id)
+                    evidence = {
+                        "schema_version": 1,
+                        "kind": "cluster-closure",
+                        "cluster_id": cluster_id,
+                        "affected_surface_digest": affected,
+                        "verdict": "PASS",
+                        "recorded_at": f"2026-07-18T13:0{wave}:00Z",
+                    }
+                    digest = fixture.write_canonical_json(path, evidence)
+                    evidence_by_id[cluster_id] = (affected, path, digest)
+                fixture.git_at(
+                    fixture.artifact_root,
+                    "add",
+                    *(path for _affected, path, _digest in evidence_by_id.values()),
+                )
+                fixture.git_at(fixture.artifact_root, "commit", "-m", f"repair wave {wave} closure evidence")
+                evidence_commit = fixture.git_at(fixture.artifact_root, "rev-parse", "HEAD")
+                state = copy.deepcopy(reserved)
+                state["generation"] += 1
+                state["budgets"]["active_reservation"] = None
+                state["last_verified"] = {
+                    "artifact_ref": "refs/heads/artifacts/fixture",
+                    "artifact_sha": reservation_commit,
+                    "state_digest": SLICEPROOF.canonical_json_digest(reserved),
+                    "generation": reserved["generation"],
+                }
+                for cluster in state["serious_clusters"]:
+                    if cluster["id"] not in cluster_ids:
+                        continue
+                    affected, path, digest = evidence_by_id[cluster["id"]]
+                    cluster.update({
+                        "strikes": 1,
+                        "disposition": "closed",
+                        "repair": {
+                            "root_cause_digest": fixture.digest_text(f"root cause wave {wave}"),
+                            "affected_surface_digest": affected,
+                            "reservation_id": reserved["budgets"]["active_reservation"]["id"],
+                            "reservation_generation": reserved["generation"],
+                            "reservation_commit": reservation_commit,
+                            "reservation_state_digest": SLICEPROOF.canonical_json_digest(reserved),
+                        },
+                        "closure": {
+                            "verdict": "PASS",
+                            "affected_surface_digest": affected,
+                            "evidence_path": path,
+                            "evidence_digest": digest,
+                            "evidence_commit": evidence_commit,
+                        },
+                    })
+                fixture.write_lifecycle(state)
+                checked = fixture.validate_lifecycle(reservation_commit)
+                self.assertEqual(0, checked.returncode, checked.stdout + checked.stderr)
+                return state, fixture.commit_lifecycle(f"close repair wave {wave}")
+
+            reserved_one, reservation_one = reserve(base, base_commit, [first_cluster["id"]], 1)
+            closed_one, closed_one_commit = close(reserved_one, reservation_one, [first_cluster["id"]], 1)
+
+            second_cluster = fixture.serious_cluster(
+                signatures=[fixture.digest_text("unrelated second mechanism")]
+            )
+            second_cluster["root_mechanism"] = "a separate integration seam drops the accepted output"
+            second_cluster["id"] = SLICEPROOF.canonical_serious_cluster_id(second_cluster)
+            routed_two = copy.deepcopy(closed_one)
+            routed_two["generation"] += 1
+            routed_two["serious_clusters"].append(second_cluster)
+            routed_two["last_verified"] = {
+                "artifact_ref": "refs/heads/artifacts/fixture",
+                "artifact_sha": closed_one_commit,
+                "state_digest": SLICEPROOF.canonical_json_digest(closed_one),
+                "generation": closed_one["generation"],
+            }
+            fixture.write_lifecycle(routed_two)
+            self.assertEqual(0, fixture.validate_lifecycle(closed_one_commit).returncode)
+            routed_two_commit = fixture.commit_lifecycle("route unrelated second cluster")
+
+            reused = copy.deepcopy(routed_two)
+            reused["generation"] += 1
+            reused["last_verified"] = {
+                "artifact_ref": "refs/heads/artifacts/fixture",
+                "artifact_sha": routed_two_commit,
+                "state_digest": SLICEPROOF.canonical_json_digest(routed_two),
+                "generation": routed_two["generation"],
+            }
+            reused["budgets"]["active_reservation"] = {
+                "id": "repair-wave-reused",
+                "owner_token": reused["owner"]["token"],
+                "budget": "implementation",
+                "generation": reused["generation"],
+                "units": {"repair_waves": 1},
+                "repair_wave": {"cluster_ids": [second_cluster["id"]]},
+            }
+            fixture.write_lifecycle(reused)
+            rejected = fixture.validate_lifecycle(routed_two_commit)
+            self.assertNotEqual(0, rejected.returncode)
+            self.assertIn("requires this generation's repair_waves delta", rejected.stderr)
+
+            reserved_two, reservation_two = reserve(
+                routed_two, routed_two_commit, [second_cluster["id"]], 2
+            )
+            closed_two, _closed_two_commit = close(
+                reserved_two, reservation_two, [second_cluster["id"]], 2
+            )
+            self.assertEqual(2, closed_two["budgets"]["implementation"]["issued"]["repair_waves"])
+            self.assertTrue(all(item["disposition"] == "closed" for item in closed_two["serious_clusters"]))
+
+            human = fixture.serious_cluster(
+                observed_classes=["requirement-gap"], disposition="closed",
+                closure={
+                    "verdict": "PASS", "affected_surface_digest": fixture.digest_text("fake"),
+                    "evidence_path": ".tasks/fixture/evidence/fake.json",
+                    "evidence_digest": fixture.digest_text("fake"), "evidence_commit": generation_one,
+                },
+            )
+            structural_errors: list[str] = []
+            SLICEPROOF.validate_serious_clusters([human], structural_errors)
+            self.assertIn("cannot close in this authorization", "\n".join(structural_errors))
+
+            architecture = fixture.serious_cluster(
+                observed_classes=["architecture-invalidation"], disposition="routed"
+            )
+            preclosed = copy.deepcopy(architecture)
+            preclosed["disposition"] = "closed"
+            preclosed["closure"] = {
+                "verdict": "PASS", "affected_surface_digest": fixture.digest_text("architecture"),
+                "evidence_path": ".tasks/fixture/evidence/fake.json",
+                "evidence_digest": fixture.digest_text("fake"), "evidence_commit": generation_one,
+            }
+            old = {**base, "serious_clusters": []}
+            new = copy.deepcopy(old)
+            new["generation"] += 1
+            new["serious_clusters"] = [preclosed]
+            new["last_verified"] = {
+                "artifact_ref": "refs/heads/artifacts/fixture", "artifact_sha": generation_one,
+                "state_digest": fixture.digest_text("prior"), "generation": old["generation"],
+            }
+            self.assertIn(
+                "new non-repair serious cluster",
+                "\n".join(SLICEPROOF.compare_lifecycle_states(old, new)),
+            )
+            old_arch = {**base, "serious_clusters": [architecture]}
+            new_arch = copy.deepcopy(old_arch)
+            new_arch["serious_clusters"] = [preclosed]
+            self.assertIn(
+                "exact PASS amendment receipt",
+                "\n".join(SLICEPROOF.validate_cluster_transition_evidence(
+                    fixture.artifact_root, base_commit, old_arch, new_arch
+                )),
+            )
+
+            stale_path = ".tasks/fixture/evidence/stale.txt"
+            (fixture.artifact_root / stale_path).parent.mkdir(parents=True, exist_ok=True)
+            (fixture.artifact_root / stale_path).write_text("unchanged\n", encoding="utf-8")
+            fixture.git_at(fixture.artifact_root, "add", stale_path)
+            fixture.git_at(fixture.artifact_root, "commit", "-m", "stale evidence predecessor")
+            stale_commit = fixture.git_at(fixture.artifact_root, "rev-parse", "HEAD")
+            evidence_cluster = fixture.serious_cluster(
+                observed_classes=["evidence-stale-or-contradicted"], disposition="routed"
+            )
+            refreshed = copy.deepcopy(evidence_cluster)
+            refreshed["disposition"] = "closed"
+            refreshed["closure"] = {
+                "verdict": "PASS", "affected_surface_digest": fixture.digest_text("evidence surface"),
+                "evidence_path": stale_path,
+                "evidence_digest": SLICEPROOF.digest_bytes(b"unchanged\n"),
+                "evidence_commit": stale_commit,
+            }
+            stale_errors = SLICEPROOF.validate_cluster_transition_evidence(
+                fixture.artifact_root,
+                stale_commit,
+                {**base, "serious_clusters": [evidence_cluster]},
+                {**base, "serious_clusters": [refreshed]},
+            )
+            self.assertIn("stale versus predecessor", "\n".join(stale_errors))
+        finally:
+            fixture.cleanup()
+
+    def test_repair_wave_rejects_abandoned_historical_reservation_id_reuse(self) -> None:
+        fixture = SliceproofFixture(separate_roots=True)
+        try:
+            fixture.init_lifecycle_git_roots()
+            initial = fixture.lifecycle_state()
+            fixture.write_lifecycle(initial)
+            generation_one = fixture.commit_lifecycle("abandoned-wave generation one")
+            base = fixture.authorized_lifecycle_state(initial, generation_one)
+            base["stage"] = "package-wave-quiescent"
+            base["next_legal_actions"] = ["repair"]
+            base["budgets"]["active_reservation"] = None
+            cluster = fixture.serious_cluster()
+            base["serious_clusters"] = [cluster]
+            fixture.write_lifecycle(base)
+            self.assertEqual(0, fixture.validate_lifecycle(generation_one).returncode)
+            base_commit = fixture.commit_lifecycle("abandoned-wave base")
+
+            abandoned = copy.deepcopy(base)
+            abandoned["generation"] += 1
+            abandoned["budgets"]["implementation"]["issued"]["repair_waves"] = 1
+            abandoned["budgets"]["active_reservation"] = {
+                "id": "abandoned-repair-wave",
+                "owner_token": abandoned["owner"]["token"],
+                "budget": "implementation",
+                "generation": abandoned["generation"],
+                "units": {"repair_waves": 1},
+                "repair_wave": {"cluster_ids": [cluster["id"]]},
+            }
+            abandoned["last_verified"] = {
+                "artifact_ref": "refs/heads/artifacts/fixture",
+                "artifact_sha": base_commit,
+                "state_digest": SLICEPROOF.canonical_json_digest(base),
+                "generation": base["generation"],
+            }
+            fixture.write_lifecycle(abandoned)
+            self.assertEqual(0, fixture.validate_lifecycle(base_commit).returncode)
+            abandoned_commit = fixture.commit_lifecycle("issue abandoned repair wave")
+
+            cleared = copy.deepcopy(abandoned)
+            cleared["generation"] += 1
+            cleared["budgets"]["active_reservation"] = None
+            cleared["last_verified"] = {
+                "artifact_ref": "refs/heads/artifacts/fixture",
+                "artifact_sha": abandoned_commit,
+                "state_digest": SLICEPROOF.canonical_json_digest(abandoned),
+                "generation": abandoned["generation"],
+            }
+            fixture.write_lifecycle(cleared)
+            cleared_commit = fixture.commit_lifecycle("historical abandoned-wave recovery fixture")
+
+            reused = copy.deepcopy(cleared)
+            reused["generation"] += 1
+            reused["budgets"]["implementation"]["issued"]["repair_waves"] = 2
+            reused["budgets"]["active_reservation"] = {
+                "id": "abandoned-repair-wave",
+                "owner_token": reused["owner"]["token"],
+                "budget": "implementation",
+                "generation": reused["generation"],
+                "units": {"repair_waves": 1},
+                "repair_wave": {"cluster_ids": [cluster["id"]]},
+            }
+            reused["last_verified"] = {
+                "artifact_ref": "refs/heads/artifacts/fixture",
+                "artifact_sha": cleared_commit,
+                "state_digest": SLICEPROOF.canonical_json_digest(cleared),
+                "generation": cleared["generation"],
+            }
+            fixture.write_lifecycle(reused)
+            rejected = fixture.validate_lifecycle(cleared_commit)
+            self.assertNotEqual(0, rejected.returncode)
+            self.assertIn("repair reservation ID cannot be reused", rejected.stderr)
+        finally:
+            fixture.cleanup()
+
     def test_b4_exhausted_budget_and_cas_loss_use_control_only_escalation(self) -> None:
         fixture = SliceproofFixture(separate_roots=True)
         try:
@@ -3612,6 +4120,9 @@ class SliceproofTests(unittest.TestCase):
                     generation_one = fixture.git_at(fixture.artifact_root, "rev-parse", "HEAD")
 
                     authorized = fixture.authorized_lifecycle_state(initial, generation_one)
+                    if operation == "safe-checkpoint":
+                        command_max = authorized["budgets"]["implementation"]["maxima"]["command_units"]
+                        authorized["budgets"]["implementation"]["issued"]["command_units"] = command_max
                     fixture.write_lifecycle(authorized)
                     accepted_authorized = fixture.validate_lifecycle(generation_one)
                     self.assertEqual(
@@ -3628,8 +4139,6 @@ class SliceproofTests(unittest.TestCase):
                         exhausted["stage"] = "package-wave-quiescent"
                         exhausted["next_legal_actions"] = ["escalate"]
                         exhausted["budgets"]["active_reservation"] = None
-                        repair_max = exhausted["budgets"]["implementation"]["maxima"]["repair_waves"]
-                        exhausted["budgets"]["implementation"]["issued"]["repair_waves"] = repair_max
                         exhausted["last_verified"] = {
                             "artifact_ref": "refs/heads/artifacts/fixture",
                             "artifact_sha": generation_two,
@@ -3794,9 +4303,9 @@ class SliceproofTests(unittest.TestCase):
         )
         self.assertIn("reviewed effective-digest change", "\n".join(reset_errors))
 
-    def test_amendment_link_is_only_the_current_effective_digest_transition(self) -> None:
-        fixture = SliceproofFixture(separate_roots=True)
-        try:
+    def test_amendment_link_uses_a_committed_cold_receipt_and_clears_next_generation(self) -> None:
+        def prepared_fixture(receipt_mutator=None):
+            fixture = SliceproofFixture(separate_roots=True)
             fixture.init_lifecycle_git_roots()
             initial = fixture.lifecycle_state()
             fixture.write_lifecycle(initial)
@@ -3804,112 +4313,65 @@ class SliceproofTests(unittest.TestCase):
             authorized = fixture.authorized_lifecycle_state(initial, generation_one)
             authorized["budgets"]["active_reservation"] = None
             authorized["owner"]["disposition"] = "stopped"
+            authorized["serious_clusters"] = [fixture.serious_cluster(
+                observed_classes=["architecture-invalidation"], disposition="routed"
+            )]
             fixture.write_lifecycle(authorized)
             generation_two = fixture.commit_lifecycle("generation two")
 
             amended = copy.deepcopy(authorized)
             amended["generation"] = 3
+            amended["stage"] = "technical-plan-review"
+            amended["next_legal_actions"] = ["dispatch"]
             amended["owner"] = {
                 "token": "owner-2", "host": "host-b", "disposition": "active",
                 "takeover": {
-                    "previous_token": "owner-1", "previous_host": "host-a", "previous_generation": 2,
+                    "previous_token": "owner-1", "previous_host": "host-a",
+                    "previous_generation": 2,
                     "evidence_digest": SLICEPROOF.canonical_json_digest(authorized),
                 },
             }
-            amended["artifact_checkpoint"] = {
-                "ref": "refs/heads/artifacts/fixture",
-                "sha": generation_two,
-                "tree": fixture.git_at(fixture.artifact_root, "rev-parse", f"{generation_two}^{{tree}}"),
-            }
-            amendment_digest = fixture.digest_text("current technical amendment")
-            link = {
-                "parent_effective_digest": authorized["authorization"]["effective_digest"],
-                "amendment_digest": amendment_digest,
-                "artifact_sha": generation_two,
-            }
-            amended["authorization"]["amendment_link"] = link
-            amended["authorization"]["effective_digest"] = SLICEPROOF.technical_amendment_effective_digest(
-                link["parent_effective_digest"], link["amendment_digest"], link["artifact_sha"]
-            )
             amended["assurance_profile"] = "high"
             amended["package_modes"] = {"WP1": "final"}
             amended["package_assignments"] = [{
-                "package": "WP1",
-                "mode": "final",
-                "owner": "R",
-                "lens": "integrated-code-risk",
-                "side": "post-freeze",
+                "package": "WP1", "mode": "final", "owner": "R",
+                "lens": "integrated-code-risk", "side": "post-freeze",
             }]
-            amended["last_verified"] = {
-                "artifact_ref": "refs/heads/artifacts/fixture",
-                "artifact_sha": generation_two,
-                "state_digest": SLICEPROOF.canonical_json_digest(authorized),
-                "generation": 2,
-            }
+            amended["packages"]["WP1"]["state"] = "invalidated"
+            amended, receipt, reviewed_commit, receipt_commit = fixture.prepare_technical_amendment(
+                authorized,
+                generation_two,
+                amended,
+                receipt_mutator=receipt_mutator,
+                marker="routing amendment",
+            )
+            link = amended["authorization"]["amendment_link"]
+            amended["serious_clusters"][0].update({
+                "disposition": "closed",
+                "closure": {
+                    "verdict": "PASS",
+                    "affected_surface_digest": fixture.digest_text("architecture invalidation scope"),
+                    "evidence_path": link["receipt_path"],
+                    "evidence_digest": link["receipt_digest"],
+                    "evidence_commit": link["receipt_commit"],
+                },
+            })
             fixture.write_lifecycle(amended)
+            return fixture, authorized, generation_two, amended, receipt, reviewed_commit, receipt_commit
+
+        fixture, authorized, generation_two, amended, receipt, reviewed_commit, receipt_commit = prepared_fixture()
+        try:
             accepted = fixture.validate_lifecycle(generation_two)
             self.assertEqual(0, accepted.returncode, accepted.stdout + accepted.stderr)
+            self.assertNotEqual(reviewed_commit, receipt_commit)
+            self.assertEqual(reviewed_commit, receipt["reviewed_artifact"]["commit"])
+            self.assertEqual(["WP1"], receipt["packages"]["invalidated"])
+            self.assertEqual("PASS", receipt["review"]["verdict"])
 
-            same_checkpoint = copy.deepcopy(amended)
-            same_checkpoint["artifact_checkpoint"] = copy.deepcopy(authorized["artifact_checkpoint"])
-            same_checkpoint["authorization"]["amendment_link"]["artifact_sha"] = authorized[
-                "artifact_checkpoint"
-            ]["sha"]
-            same_checkpoint["authorization"]["effective_digest"] = SLICEPROOF.technical_amendment_effective_digest(
-                link["parent_effective_digest"],
-                link["amendment_digest"],
-                authorized["artifact_checkpoint"]["sha"],
-            )
-            same_errors = "\n".join(SLICEPROOF.compare_lifecycle_states(authorized, same_checkpoint))
-            self.assertIn("requires a distinct artifact checkpoint", same_errors)
-
-            prior_done, reviewed_reset = copy.deepcopy(authorized), copy.deepcopy(amended)
-            prior_done["packages"]["WP1"]["state"] = "done"
-            reviewed_reset["packages"]["WP1"]["state"] = "pending"
-            self.assertFalse(any(
-                "package WP1" in error
-                for error in SLICEPROOF.compare_lifecycle_states(prior_done, reviewed_reset)
-            ))
-
-            for field, replacement in (
-                ("id", "auth-replaced"),
-                ("initial_digest", fixture.digest_text("replaced initial")),
-                ("inputs", {**authorized["authorization"]["inputs"], "actions": fixture.digest_text("changed")}),
-            ):
-                with self.subTest(immutable=field):
-                    changed = copy.deepcopy(amended)
-                    changed["authorization"][field] = replacement
-                    self.assertIn(
-                        f"authorization {field} is immutable",
-                        "\n".join(SLICEPROOF.compare_lifecycle_states(authorized, changed)),
-                    )
-
-            unrelated = copy.deepcopy(amended)
-            tree = fixture.git_at(fixture.artifact_root, "rev-parse", f"{generation_two}^{{tree}}")
-            unrelated_sha = fixture.git_at(
-                fixture.artifact_root, "commit-tree", tree, "-p", generation_two, "-m", "unrelated descendant"
-            )
-            unrelated["artifact_checkpoint"].update({"sha": unrelated_sha, "tree": tree})
-            unrelated["authorization"]["amendment_link"]["artifact_sha"] = unrelated_sha
-            unrelated["authorization"]["effective_digest"] = SLICEPROOF.technical_amendment_effective_digest(
-                link["parent_effective_digest"], link["amendment_digest"], unrelated_sha
-            )
-            fixture.write_lifecycle(unrelated)
-            rejected_ancestry = fixture.validate_lifecycle(generation_two)
-            self.assertNotEqual(0, rejected_ancestry.returncode, rejected_ancestry.stdout + rejected_ancestry.stderr)
-            self.assertEqual(
-                [], SLICEPROOF.validate_artifact_checkpoint_ancestry(fixture.artifact_root, authorized, unrelated),
-                "old-to-new ancestry alone must not accept a side-branch checkpoint",
-            )
-            self.assertIn(
-                "exact sidecar HEAD/predecessor lineage",
-                "\n".join(json.loads(rejected_ancestry.stderr)["errors"]),
-            )
-
-            fixture.write_lifecycle(amended)
-            generation_three = fixture.commit_lifecycle("generation three")
+            generation_three = fixture.commit_lifecycle("generation three amendment transition")
             next_state = copy.deepcopy(amended)
             next_state["generation"] = 4
+            next_state["authorization"]["amendment_link"] = None
             next_state["last_verified"] = {
                 "artifact_ref": "refs/heads/artifacts/fixture",
                 "artifact_sha": generation_three,
@@ -3917,14 +4379,79 @@ class SliceproofTests(unittest.TestCase):
                 "generation": 3,
             }
             fixture.write_lifecycle(next_state)
-            stale_link = fixture.validate_lifecycle(generation_three)
-            self.assertNotEqual(0, stale_link.returncode, stale_link.stdout + stale_link.stderr)
-            self.assertIn("only for this generation", "\n".join(json.loads(stale_link.stderr)["errors"]))
-
-            next_state["authorization"]["amendment_link"] = None
-            fixture.write_lifecycle(next_state)
             cleared = fixture.validate_lifecycle(generation_three)
             self.assertEqual(0, cleared.returncode, cleared.stdout + cleared.stderr)
+
+            stale = copy.deepcopy(next_state)
+            stale["authorization"]["amendment_link"] = copy.deepcopy(amended["authorization"]["amendment_link"])
+            fixture.write_lifecycle(stale)
+            rejected = fixture.validate_lifecycle(generation_three)
+            self.assertNotEqual(0, rejected.returncode)
+            self.assertIn("material checkpoint", rejected.stderr)
+        finally:
+            fixture.cleanup()
+
+        malformed = [
+            ("FAIL verdict", lambda receipt: receipt["review"].__setitem__("verdict", "FAIL"), "expected one of ['PASS']"),
+            ("wrong reviewer role", lambda receipt: receipt["review"].__setitem__("role", "plan-reviewer"), "review.role"),
+            ("wrong reviewer lens", lambda receipt: receipt["review"].__setitem__("lens", "architecture"), "review.lens"),
+            ("cross ID", lambda receipt: receipt.__setitem__("authorization_id", "auth-other"), "authorization_id"),
+            ("cross parent", lambda receipt: receipt.__setitem__("parent_effective_digest", "sha256:" + "9" * 64), "parent_effective_digest"),
+            ("changed dependency authority", lambda receipt: receipt["immutable_digests"].__setitem__("dependencies", "sha256:" + "8" * 64), "immutable_digests"),
+            ("stale invalidation", lambda receipt: receipt["packages"].__setitem__("invalidated", []), "affected package invalidation"),
+        ]
+        for name, mutate, expected in malformed:
+            with self.subTest(name=name):
+                fixture, _authorized, previous_commit, _amended, _receipt, _reviewed, _checkpoint = prepared_fixture(mutate)
+                try:
+                    rejected = fixture.validate_lifecycle(previous_commit)
+                    self.assertNotEqual(0, rejected.returncode, rejected.stdout + rejected.stderr)
+                    self.assertIn(expected, "\n".join(json.loads(rejected.stderr)["errors"]))
+                finally:
+                    fixture.cleanup()
+
+        fixture, _authorized, previous_commit, amended, _receipt, _reviewed, _checkpoint = prepared_fixture()
+        try:
+            link = amended["authorization"]["amendment_link"]
+            (fixture.artifact_root / link["receipt_path"]).unlink()
+            fixture.write_lifecycle(amended)
+            missing = fixture.validate_lifecycle(previous_commit)
+            self.assertNotEqual(0, missing.returncode)
+            self.assertIn("file not found", missing.stderr)
+
+            # A digest-shaped assertion cannot substitute for the committed canonical blob.
+            fixture.git_at(fixture.artifact_root, "checkout", "--", link["receipt_path"])
+            arbitrary = copy.deepcopy(amended)
+            arbitrary["authorization"]["amendment_link"]["receipt_digest"] = "sha256:" + "7" * 64
+            arbitrary["authorization"]["effective_digest"] = SLICEPROOF.technical_amendment_effective_digest(
+                link["parent_effective_digest"], "sha256:" + "7" * 64, link["reviewed_artifact_commit"]
+            )
+            fixture.write_lifecycle(arbitrary)
+            rejected = fixture.validate_lifecycle(previous_commit)
+            self.assertNotEqual(0, rejected.returncode)
+            self.assertIn("does not match canonical committed receipt", rejected.stderr)
+        finally:
+            fixture.cleanup()
+
+        fixture, _authorized, previous_commit, amended, _receipt, _reviewed, _checkpoint = prepared_fixture()
+        try:
+            extra_path = ".tasks/fixture/reviews/amendments/unreviewed-extra.txt"
+            (fixture.artifact_root / extra_path).write_text("not reviewed\n", encoding="utf-8")
+            fixture.git_at(fixture.artifact_root, "add", extra_path)
+            fixture.git_at(fixture.artifact_root, "commit", "-m", "forbidden receipt checkpoint payload")
+            widened_commit = fixture.git_at(fixture.artifact_root, "rev-parse", "HEAD")
+            widened_tree = fixture.git_at(fixture.artifact_root, "rev-parse", "HEAD^{tree}")
+            widened = copy.deepcopy(amended)
+            widened["artifact_checkpoint"].update({"sha": widened_commit, "tree": widened_tree})
+            widened["authorization"]["amendment_link"].update({
+                "receipt_commit": widened_commit,
+                "receipt_tree": widened_tree,
+            })
+            widened["serious_clusters"][0]["closure"]["evidence_commit"] = widened_commit
+            fixture.write_lifecycle(widened)
+            rejected = fixture.validate_lifecycle(previous_commit)
+            self.assertNotEqual(0, rejected.returncode)
+            self.assertIn("receipt checkpoint may add only", rejected.stderr)
         finally:
             fixture.cleanup()
 

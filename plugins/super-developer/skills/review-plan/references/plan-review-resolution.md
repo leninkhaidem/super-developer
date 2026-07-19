@@ -90,9 +90,10 @@ plan-changing prerequisites are resolved, protected activations are exact, and s
 one decision surface. The review-plan orchestrator—not the reviewer—constructs and verifies the compact exact
 `inputs` snapshot, computes its canonical initial digest, presents the one choices, and checkpoints it on approval.
 
-For **nested-amendment** mode, clean means the Human Envelope, immutable input snapshot/ID/initial digest, covered
-and protected actions/endpoints, amendment policy, and budget authority remain unchanged. Bind old/new baseline and
-artifact commits, affected requirements/Slices/packages/assignments, production/test surfaces, stale evidence/
-freeze inputs, preserved state, routing, mapping, and cold verdict into one amendment receipt. Review-plan returns
-its canonical digest, exact parent/artifact, and derived effective digest to the existing Delivery Owner. It never
-presents choices, mints/replaces an ID, checkpoints lifecycle state, or describes this as fresh gate readiness.
+For **nested-amendment**, preserve envelope, ID/inputs/initial digest, actions/endpoints, policy, and budget. Commit
+the reviewed descendant artifact first; then commit a derived-path canonical JSON cold receipt in a later checkpoint
+to avoid self-reference. It binds schema/kind, authority/input and parent artifact/digest, reviewed commit/tree,
+unchanged action/dependency/budget/policy digests, routing, exact invalidated/added IDs,
+`cold-plan-reviewer`/`technical-amendment`, PASS, and time.
+Return both commits/trees, receipt path/digest, and effective digest (parent + receipt digest + reviewed commit).
+Review-plan never presents choices, mints an ID, checkpoints Lifecycle State, or claims fresh-gate readiness.

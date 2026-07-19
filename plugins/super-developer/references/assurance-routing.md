@@ -102,11 +102,12 @@ After the Delivery Owner freezes final inputs as `F`, it dispatches exactly the 
 - **High:** `F → R(PASS/closure) → S[*] (each PASS, F, R) → U(PASS, F, R, S[*]) → V`. Each `S[j]` owns one
   named non-overlapping integrated lens and starts only after `R` PASS.
 
-All verifiers, reviewers, auditors, and specialists are cold, read-only, return-only roles. Before each C/R/S/U
-call, the Delivery Owner persists a new matching role/delegated-call reservation and issued delta. A later return
-advances that role's cumulative consumption and adds its current-freeze receipt; consumption never resets across
-freezes or exceeds predecessor issuance. Failed/abandoned calls may consume without a PASS receipt. Roles do not
-dispatch, repair, freeze, transition, checkpoint, notify, or invoke a successor; only the Delivery Owner does.
+All assurance roles are cold/read-only/return-only. Before each C/R/S/U, the Owner checkpoints exactly one new
+role/delegated-call reservation bound to active F and exact predecessor pointers; F must exist in its predecessor.
+S requires committed PASS R; U requires PASS R + every planned PASS S. A return binds reservation ID/generation/
+committed SHA/state digest, role/lens/F/predecessors; validation fully validates reservation/issuance/return States
+on final HEAD's first-parent chain, proves predecessor blobs existed and return did not, and proves one consumption. No batch/reuse/cross-freeze. Failed/abandoned calls
+may consume without PASS. V is non-call; only the Owner dispatches, repairs, transitions, checkpoints, or notifies.
 A code-review repair invalidates `R` and `F`; the Delivery Owner finishes repair and required checks, creates a new
 `F`, and obtains `R` PASS/closure before any standard/high `S[j]` or `U` starts. Review and audit never run concurrently.
 Returned `C/R/S/U` and `V` bind one freeze. Persist them through existing sidecar paths and Lifecycle State only;

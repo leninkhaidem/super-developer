@@ -103,7 +103,7 @@ CLUSTER_ROUTES = {
     "evidence-stale-or-contradicted": "evidence-refresh",
     "confidence-enhancement": "report-only",
 }
-CLUSTER_DISPOSITIONS = {"repair-eligible", "closure-pending", "routed", "closed", "circuit-open"}
+CLUSTER_DISPOSITIONS = {"repair-eligible", "routed", "closed", "circuit-open"}
 ASSURANCE_RECEIPT_ROLES = {"C", "R", "S", "U", "V"}
 FIXED_RECEIPT_LENSES = {
     "C": "combined-low-assurance",
@@ -822,6 +822,57 @@ PREDECESSOR_POINTER_SCHEMA = {
     "path": str,
     "digest": DIGEST_SCHEMA,
 }
+ASSURANCE_CALL_SCHEMA = {
+    "role": ("enum", set(FINAL_ASSURANCE_CALL_COUNTERS)),
+    "lens": LENS_SCHEMA,
+    "freeze_id": FREEZE_ID_SCHEMA,
+    "freeze_digest": DIGEST_SCHEMA,
+    "predecessors": ("list", PREDECESSOR_POINTER_SCHEMA),
+}
+REPAIR_WAVE_SCHEMA = {
+    "cluster_ids": ("list", DIGEST_SCHEMA),
+}
+RESERVATION_RECEIPT_BINDING_SCHEMA = {
+    "id": TOKEN_SCHEMA,
+    "generation": POSITIVE_INT_SCHEMA,
+    "artifact_commit": SHA_SCHEMA,
+    "state_digest": DIGEST_SCHEMA,
+}
+TECHNICAL_AMENDMENT_RECEIPT_SCHEMA = {
+    "schema_version": ("rule", lambda value: type(value) is int and value == 1, "1"),
+    "kind": ("enum", {"technical-amendment-review"}),
+    "authorization_id": TOKEN_SCHEMA,
+    "initial_digest": DIGEST_SCHEMA,
+    "inputs_digest": DIGEST_SCHEMA,
+    "parent_effective_digest": DIGEST_SCHEMA,
+    "parent_artifact": {"commit": SHA_SCHEMA, "tree": SHA_SCHEMA},
+    "reviewed_artifact": {"commit": SHA_SCHEMA, "tree": SHA_SCHEMA},
+    "immutable_digests": {
+        "dependencies": DIGEST_SCHEMA,
+        "actions": DIGEST_SCHEMA,
+        "budget_authority": DIGEST_SCHEMA,
+        "amendment_policy": DIGEST_SCHEMA,
+    },
+    "routing": {"previous": DIGEST_SCHEMA, "new": DIGEST_SCHEMA},
+    "packages": {
+        "invalidated": ("list", PACKAGE_ID_SCHEMA),
+        "added": ("list", PACKAGE_ID_SCHEMA),
+    },
+    "review": {
+        "role": ("enum", {"cold-plan-reviewer"}),
+        "lens": ("enum", {"technical-amendment"}),
+        "verdict": ("enum", {"PASS"}),
+        "reviewed_at": str,
+    },
+}
+CLUSTER_CLOSURE_EVIDENCE_SCHEMA = {
+    "schema_version": ("rule", lambda value: type(value) is int and value == 1, "1"),
+    "kind": ("enum", {"cluster-closure"}),
+    "cluster_id": DIGEST_SCHEMA,
+    "affected_surface_digest": DIGEST_SCHEMA,
+    "verdict": ("enum", {"PASS", "FAIL"}),
+    "recorded_at": str,
+}
 
 LIFECYCLE_JSON_SCHEMA = {
     "schema_version": ("rule", lambda value: type(value) is int and value == 1, "1"),
@@ -863,8 +914,12 @@ LIFECYCLE_JSON_SCHEMA = {
         "inputs": ("nullable", AUTHORIZATION_INPUTS_SCHEMA),
         "amendment_link": ("nullable", {
             "parent_effective_digest": DIGEST_SCHEMA,
-            "amendment_digest": DIGEST_SCHEMA,
-            "artifact_sha": SHA_SCHEMA,
+            "receipt_path": str,
+            "receipt_digest": DIGEST_SCHEMA,
+            "receipt_commit": SHA_SCHEMA,
+            "receipt_tree": SHA_SCHEMA,
+            "reviewed_artifact_commit": SHA_SCHEMA,
+            "reviewed_artifact_tree": SHA_SCHEMA,
         }),
     },
     "budgets": {
@@ -877,6 +932,8 @@ LIFECYCLE_JSON_SCHEMA = {
             "budget": ("enum", {"preauthorization", "implementation"}),
             "generation": POSITIVE_INT_SCHEMA,
             "units": ("map", COUNTER_SCHEMA, POSITIVE_INT_SCHEMA),
+            "assurance_call?": ASSURANCE_CALL_SCHEMA,
+            "repair_wave?": REPAIR_WAVE_SCHEMA,
         }),
         "control_plane_reserve": {
             "maximum": NONNEGATIVE_INT_SCHEMA,
@@ -915,11 +972,17 @@ LIFECYCLE_JSON_SCHEMA = {
         "repair": ("nullable", {
             "root_cause_digest": DIGEST_SCHEMA,
             "affected_surface_digest": DIGEST_SCHEMA,
+            "reservation_id": TOKEN_SCHEMA,
+            "reservation_generation": POSITIVE_INT_SCHEMA,
+            "reservation_commit": SHA_SCHEMA,
+            "reservation_state_digest": DIGEST_SCHEMA,
         }),
         "closure": ("nullable", {
             "verdict": ("enum", {"PASS", "FAIL"}),
             "affected_surface_digest": DIGEST_SCHEMA,
+            "evidence_path": str,
             "evidence_digest": DIGEST_SCHEMA,
+            "evidence_commit": SHA_SCHEMA,
         }),
     }),
     "freeze": ("nullable", {
@@ -1478,18 +1541,29 @@ def validate_lifecycle_state_data(
         errors.append(f"{label}.authorization.amendment_link: requires complete authorization fields")
     if amendment is not None:
         computed = technical_amendment_effective_digest(
-            amendment["parent_effective_digest"], amendment["amendment_digest"], amendment["artifact_sha"]
+            amendment["parent_effective_digest"],
+            amendment["receipt_digest"],
+            amendment["reviewed_artifact_commit"],
         )
         if authorization["effective_digest"] != computed:
-            errors.append(f"{label}.authorization.effective_digest: does not match current amendment link")
-        if amendment["artifact_sha"] != artifact["sha"]:
-            errors.append(f"{label}.authorization.amendment_link.artifact_sha: must match artifact checkpoint sha")
+            errors.append(f"{label}.authorization.effective_digest: does not match current amendment receipt")
+        if (
+            amendment["receipt_commit"] != artifact["sha"]
+            or amendment["receipt_tree"] != artifact["tree"]
+        ):
+            errors.append(
+                f"{label}.authorization.amendment_link: receipt commit/tree must match artifact checkpoint"
+            )
         if generation == 1:
             errors.append(f"{label}.authorization.amendment_link: generation 1 has no predecessor to amend")
-        if verify_git_objects:
-            require_git_commit(
-                artifact_root, amendment["artifact_sha"], f"{label}.authorization.amendment_link.artifact_sha", errors
-            )
+        validate_technical_amendment_receipt(
+            state,
+            artifact_root=artifact_root,
+            feature=feature,
+            verify_files=verify_files,
+            verify_git_objects=verify_git_objects,
+            errors=errors,
+        )
 
     validate_lifecycle_budget_invariants(state, authorization_complete, errors)
 
@@ -1588,6 +1662,14 @@ def validate_lifecycle_state_data(
                 errors.append(f"{label}.wave.packages: missing package {package_id!r} that points to current wave")
 
     validate_serious_clusters(state["serious_clusters"], errors)
+    validate_cluster_state_bindings(
+        state,
+        artifact_root=artifact_root,
+        feature=feature,
+        verify_files=verify_files,
+        verify_git_objects=verify_git_objects,
+        errors=errors,
+    )
     for package_id in state.get("package_modes", {}):
         if package_id not in packages:
             errors.append(f"{label}.package_modes.{package_id}: package is not present in lifecycle packages")
@@ -1709,6 +1791,15 @@ def validate_lifecycle_transition_authority(
             "lifecycle-state.json.last_verified.state_digest: does not match the committed predecessor state"
         ])
     transition_errors = compare_lifecycle_states(previous, state)
+    transition_errors.extend(validate_technical_amendment_transition(
+        artifact_root, inferred_previous, previous, state
+    ))
+    transition_errors.extend(validate_cluster_transition_evidence(
+        artifact_root, inferred_previous, previous, state
+    ))
+    transition_errors.extend(validate_assurance_call_transition_paths(
+        artifact_root, relative_path, inferred_previous, previous, state
+    ))
     transition_errors.extend(validate_control_only_transition_paths(
         artifact_root,
         code_root,
@@ -1783,8 +1874,6 @@ def validate_serious_clusters(clusters: list[dict[str, Any]], errors: list[str])
         if expected_route == "closure-repair":
             valid_phase = (
                 (strikes, disposition, repair is None, closure is None) == (1, "repair-eligible", True, True)
-                or (strikes, disposition, repair is not None, closure is None)
-                == (1, "closure-pending", True, True)
                 or (
                     strikes == 1
                     and disposition == "closed"
@@ -1804,7 +1893,12 @@ def validate_serious_clusters(clusters: list[dict[str, Any]], errors: list[str])
                 errors.append(
                     f"{item_label}: closure repair permits one strike-1 repair/PASS closure or strike-2 circuit-open"
                 )
-        else:
+        elif expected_route == "human-envelope":
+            if not (
+                strikes == 1 and disposition == "routed" and repair is None and closure is None
+            ):
+                errors.append(f"{item_label}: human-envelope route remains routed and cannot close in this authorization")
+        elif expected_route in {"technical-reassessment", "evidence-refresh"}:
             valid_phase = (
                 strikes == 1
                 and repair is None
@@ -1812,15 +1906,310 @@ def validate_serious_clusters(clusters: list[dict[str, Any]], errors: list[str])
                     (disposition == "routed" and closure is None)
                     or (
                         disposition == "closed"
-                        and (
-                            (expected_route == "report-only" and closure is None)
-                            or (closure is not None and closure["verdict"] == "PASS")
-                        )
+                        and closure is not None
+                        and closure["verdict"] == "PASS"
                     )
                 )
             )
             if not valid_phase:
-                errors.append(f"{item_label}: non-repair route cannot consume a repair or closure strike")
+                errors.append(f"{item_label}: {expected_route} requires routed state or exact PASS route closure")
+        elif not (
+            strikes == 1
+            and repair is None
+            and closure is None
+            and disposition in {"routed", "closed"}
+        ):
+            errors.append(f"{item_label}: report-only may close without semantic repair or closure evidence")
+
+
+def load_historical_lifecycle_state(
+    artifact_root: Path,
+    feature: str,
+    commit: str,
+    label: str,
+    errors: list[str],
+) -> dict[str, Any] | None:
+    path = f".tasks/{feature}/lifecycle-state.json"
+    raw = load_regular_committed_blob(artifact_root, commit, path, label, errors)
+    if raw is None:
+        return None
+    try:
+        state = load_strict_json_text(raw.decode("utf-8"), label)
+    except (SliceproofError, UnicodeError) as exc:
+        if isinstance(exc, SliceproofError):
+            errors.extend(exc.errors)
+        else:
+            errors.append(f"{label}: expected UTF-8 Lifecycle State JSON")
+        return None
+    if not isinstance(state, dict):
+        errors.append(f"{label}: Lifecycle State root must be an object")
+        return None
+    return state
+
+
+def validate_current_matches_committed_blob(
+    artifact_root: Path,
+    path: str,
+    raw: bytes,
+    label: str,
+    errors: list[str],
+) -> None:
+    try:
+        current = resolve_authority_file(artifact_root, path, f"{label}.path").read_bytes()
+    except SliceproofError as exc:
+        errors.extend(exc.errors)
+        return
+    if current != raw:
+        errors.append(f"{label}: current file differs from the exact committed evidence blob")
+
+
+def validate_cluster_state_bindings(
+    state: dict[str, Any],
+    *,
+    artifact_root: Path,
+    feature: str,
+    verify_files: bool,
+    verify_git_objects: bool,
+    errors: list[str],
+) -> None:
+    reservation_groups: dict[tuple[str, int, str, str], set[str]] = {}
+    for index, cluster in enumerate(state["serious_clusters"]):
+        label = f"lifecycle-state.json.serious_clusters[{index}]"
+        route, repair, closure = cluster["route"], cluster["repair"], cluster["closure"]
+        if closure is not None:
+            try:
+                repo_relative_path(closure["evidence_path"], f"{label}.closure.evidence_path")
+            except SliceproofError as exc:
+                errors.extend(exc.errors)
+        if repair is not None:
+            key = (
+                repair["reservation_id"],
+                repair["reservation_generation"],
+                repair["reservation_commit"],
+                repair["reservation_state_digest"],
+            )
+            reservation_groups.setdefault(key, set()).add(cluster["id"])
+        if not verify_git_objects or closure is None:
+            continue
+        head = git_head_or_none(artifact_root)
+        if head is not None:
+            require_commit_ancestor(
+                artifact_root,
+                closure["evidence_commit"],
+                head,
+                f"{label}.closure.evidence_commit",
+                errors,
+                distinct=False,
+            )
+            require_first_parent_ancestor(
+                artifact_root,
+                closure["evidence_commit"],
+                head,
+                f"{label}.closure.evidence_commit",
+                errors,
+            )
+        if route == "technical-reassessment":
+            receipt = load_committed_canonical_json(
+                artifact_root,
+                closure["evidence_commit"],
+                closure["evidence_path"],
+                f"{label}.closure technical amendment receipt",
+                errors,
+            )
+            if receipt is None:
+                continue
+            shape_errors: list[str] = []
+            validate_json_shape(
+                receipt,
+                TECHNICAL_AMENDMENT_RECEIPT_SCHEMA,
+                f"{label}.closure technical amendment receipt",
+                shape_errors,
+            )
+            errors.extend(shape_errors)
+            if digest_bytes(canonical_json_bytes(receipt)) != closure["evidence_digest"]:
+                errors.append(f"{label}.closure.evidence_digest: amendment receipt digest mismatch")
+            if not shape_errors:
+                auth = state["authorization"]
+                if (
+                    receipt["authorization_id"] != auth["id"]
+                    or receipt["initial_digest"] != auth["initial_digest"]
+                    or receipt["inputs_digest"] != canonical_json_digest(auth["inputs"])
+                ):
+                    errors.append(f"{label}.closure: amendment receipt crosses authorization lineage")
+                if not receipt["packages"]["invalidated"]:
+                    errors.append(f"{label}.closure: technical reassessment requires affected package invalidation")
+            if verify_files:
+                validate_current_matches_committed_blob(
+                    artifact_root,
+                    closure["evidence_path"],
+                    canonical_json_bytes(receipt),
+                    f"{label}.closure",
+                    errors,
+                )
+        elif route == "evidence-refresh":
+            prefix = f".tasks/{feature}/evidence/"
+            if not closure["evidence_path"].startswith(prefix):
+                errors.append(f"{label}.closure.evidence_path: evidence refresh requires a safe task evidence path")
+            raw = load_regular_committed_blob(
+                artifact_root,
+                closure["evidence_commit"],
+                closure["evidence_path"],
+                f"{label}.closure refreshed evidence",
+                errors,
+            )
+            if raw is not None:
+                if digest_bytes(raw) != closure["evidence_digest"]:
+                    errors.append(f"{label}.closure.evidence_digest: committed refreshed evidence mismatch")
+                if verify_files:
+                    validate_current_matches_committed_blob(
+                        artifact_root, closure["evidence_path"], raw, f"{label}.closure", errors
+                    )
+        elif route == "closure-repair":
+            if repair is not None:
+                require_commit_ancestor(
+                    artifact_root,
+                    repair["reservation_commit"],
+                    closure["evidence_commit"],
+                    f"{label}.closure: evidence after repair reservation",
+                    errors,
+                    distinct=True,
+                )
+            expected_path = canonical_cluster_closure_evidence_path(feature, cluster["id"])
+            if closure["evidence_path"] != expected_path:
+                errors.append(f"{label}.closure.evidence_path: expected canonical path {expected_path!r}")
+            evidence = load_committed_canonical_json(
+                artifact_root,
+                closure["evidence_commit"],
+                closure["evidence_path"],
+                f"{label}.closure evidence",
+                errors,
+            )
+            if evidence is not None:
+                shape_errors: list[str] = []
+                validate_json_shape(
+                    evidence, CLUSTER_CLOSURE_EVIDENCE_SCHEMA, f"{label}.closure evidence", shape_errors
+                )
+                errors.extend(shape_errors)
+                if digest_bytes(canonical_json_bytes(evidence)) != closure["evidence_digest"]:
+                    errors.append(f"{label}.closure.evidence_digest: canonical closure evidence mismatch")
+                if not shape_errors and (
+                    evidence["cluster_id"] != cluster["id"]
+                    or evidence["affected_surface_digest"] != closure["affected_surface_digest"]
+                    or evidence["verdict"] != closure["verdict"]
+                ):
+                    errors.append(f"{label}.closure: evidence does not bind exact cluster/surface/verdict")
+                if not shape_errors:
+                    recorded_at = evidence["recorded_at"]
+                    if len(recorded_at) > 64:
+                        errors.append(f"{label}.closure evidence.recorded_at: timestamp is not concise")
+                    parse_aware_iso8601(recorded_at, f"{label}.closure evidence.recorded_at", errors)
+                if verify_files:
+                    validate_current_matches_committed_blob(
+                        artifact_root,
+                        closure["evidence_path"],
+                        canonical_json_bytes(evidence),
+                        f"{label}.closure",
+                        errors,
+                    )
+    if not verify_git_objects:
+        return
+    head = git_head_or_none(artifact_root)
+    reservation_id_counts: dict[str, int] = {}
+    for reservation_id, _generation, _commit, _state_digest in reservation_groups:
+        reservation_id_counts[reservation_id] = reservation_id_counts.get(reservation_id, 0) + 1
+    for reservation_id, count in reservation_id_counts.items():
+        if count > 1:
+            errors.append(f"lifecycle-state.json: repair reservation ID {reservation_id!r} is reused")
+    implementation = state["budgets"].get("implementation")
+    issued_waves = 0 if implementation is None else implementation["issued"].get("repair_waves", 0)
+    if len(reservation_groups) > issued_waves:
+        errors.append("lifecycle-state.json: historical repair reservations exceed issued repair_waves")
+    first_parent_commits: set[str] = set()
+    if head is not None:
+        try:
+            first_parent_commits = set(git_output(
+                artifact_root, ["rev-list", "--first-parent", head], "repair reservation first-parent lineage"
+            ).splitlines())
+        except SliceproofError as exc:
+            errors.extend(exc.errors)
+    for (reservation_id, generation, commit, state_digest), bound_ids in reservation_groups.items():
+        label = f"lifecycle-state.json repair reservation {reservation_id!r}"
+        reservation_state = load_historical_lifecycle_state(
+            artifact_root, feature, commit, label, errors
+        )
+        if reservation_state is None:
+            continue
+        shape_errors: list[str] = []
+        validate_json_shape(
+            reservation_state, LIFECYCLE_JSON_SCHEMA, f"{label}: committed reservation State", shape_errors
+        )
+        errors.extend(shape_errors)
+        if shape_errors:
+            continue
+        if canonical_json_digest(reservation_state) != state_digest:
+            errors.append(f"{label}: reservation_state_digest mismatch")
+        if reservation_state.get("generation") != generation:
+            errors.append(f"{label}: reservation generation mismatch")
+        reservation = reservation_state.get("budgets", {}).get("active_reservation")
+        metadata = reservation.get("repair_wave") if isinstance(reservation, dict) else None
+        if (
+            not isinstance(reservation, dict)
+            or reservation.get("id") != reservation_id
+            or not isinstance(metadata, dict)
+            or metadata.get("cluster_ids") != sorted(bound_ids)
+        ):
+            errors.append(f"{label}: committed active reservation does not bind exact canonical cluster set")
+        reserved_clusters = {item["id"]: item for item in reservation_state["serious_clusters"]}
+        if any(
+            cluster_id not in reserved_clusters
+            or reserved_clusters[cluster_id]["route"] != "closure-repair"
+            or reserved_clusters[cluster_id]["disposition"] != "repair-eligible"
+            or reserved_clusters[cluster_id]["repair"] is not None
+            or reserved_clusters[cluster_id]["closure"] is not None
+            for cluster_id in bound_ids
+        ):
+            errors.append(f"{label}: committed cluster set was not repair-eligible at issuance")
+        verified = reservation_state.get("last_verified")
+        if not isinstance(verified, dict):
+            errors.append(f"{label}: committed reservation lacks exact issuance predecessor")
+        else:
+            predecessor_state = load_historical_lifecycle_state(
+                artifact_root, feature, verified["artifact_sha"], f"{label}: issuance predecessor", errors
+            )
+            if predecessor_state is not None:
+                predecessor_shape_errors: list[str] = []
+                validate_json_shape(
+                    predecessor_state,
+                    LIFECYCLE_JSON_SCHEMA,
+                    f"{label}: issuance predecessor State",
+                    predecessor_shape_errors,
+                )
+                errors.extend(predecessor_shape_errors)
+                if not predecessor_shape_errors:
+                    if (
+                        verified["state_digest"] != canonical_json_digest(predecessor_state)
+                        or verified["generation"] != predecessor_state["generation"]
+                    ):
+                        errors.append(f"{label}: last_verified issuance predecessor mismatch")
+                    budget_errors = compare_lifecycle_budgets(
+                        predecessor_state["budgets"], reservation_state["budgets"]
+                    )
+                    errors.extend(f"{label}: {error}" for error in budget_errors)
+            try:
+                parents = git_output(
+                    artifact_root, ["rev-list", "--parents", "-n", "1", commit], f"{label}: commit parent"
+                ).split()
+            except SliceproofError as exc:
+                errors.extend(exc.errors)
+            else:
+                if len(parents) != 2 or parents[1] != verified["artifact_sha"]:
+                    errors.append(f"{label}: reservation must be a dedicated issuance checkpoint")
+        if head is not None:
+            require_commit_ancestor(
+                artifact_root, commit, head, f"{label}: historical lineage", errors, distinct=True
+            )
+            if commit not in first_parent_commits:
+                errors.append(f"{label}: reservation is not on the exact first-parent lifecycle lineage")
 
 
 def validate_lifecycle_budget_invariants(
@@ -1978,6 +2367,45 @@ def validate_lifecycle_budget_invariants(
             errors.append(f"{label}.active_reservation.units.{counter}: unsupported budget counter")
         elif amount > selected["issued"][counter]:
             errors.append(f"{label}.active_reservation.units.{counter}: reservation is not already charged")
+    assurance_call = reservation.get("assurance_call")
+    repair_wave = reservation.get("repair_wave")
+    if assurance_call is not None and repair_wave is not None:
+        errors.append(f"{label}.active_reservation: assurance_call and repair_wave are mutually exclusive")
+    if assurance_call is not None:
+        role = assurance_call["role"]
+        counter = FINAL_ASSURANCE_CALL_COUNTERS[role]
+        if reservation["budget"] != "implementation" or state["stage"] != "final-assurance":
+            errors.append(f"{label}.active_reservation.assurance_call: requires final-assurance implementation stage")
+        if reservation["units"] != {"delegated_calls": 1, counter: 1}:
+            errors.append(
+                f"{label}.active_reservation.assurance_call: units must authorize exactly one {role} call"
+            )
+        freeze = state["freeze"]
+        if freeze is None or (
+            assurance_call["freeze_id"] != freeze["id"]
+            or assurance_call["freeze_digest"] != freeze["digest"]
+        ):
+            errors.append(f"{label}.active_reservation.assurance_call: must bind the active freeze")
+    if repair_wave is not None:
+        cluster_ids = repair_wave["cluster_ids"]
+        if (
+            not cluster_ids
+            or cluster_ids != sorted(cluster_ids)
+            or len(cluster_ids) != len(set(cluster_ids))
+        ):
+            errors.append(f"{label}.active_reservation.repair_wave.cluster_ids: expected sorted unique IDs")
+        if reservation["budget"] != "implementation" or reservation["units"].get("repair_waves") != 1:
+            errors.append(f"{label}.active_reservation.repair_wave: requires one implementation repair_waves unit")
+        clusters = {cluster["id"]: cluster for cluster in state["serious_clusters"]}
+        if any(
+            cluster_id not in clusters
+            or clusters[cluster_id]["route"] != "closure-repair"
+            or clusters[cluster_id]["disposition"] != "repair-eligible"
+            or clusters[cluster_id]["repair"] is not None
+            or clusters[cluster_id]["closure"] is not None
+            for cluster_id in cluster_ids
+        ):
+            errors.append(f"{label}.active_reservation.repair_wave: every bound cluster must be repair-eligible")
 
 
 def canonical_freeze_directory(feature: str, freeze_id: str) -> str:
@@ -2071,12 +2499,272 @@ def validate_pointer_file(
         errors.append(f"{label}.digest: does not match current file")
 
 
-def technical_amendment_effective_digest(parent: str, amendment: str, artifact_sha: str) -> str:
+def canonical_amendment_receipt_path(feature: str, reviewed_artifact_commit: str) -> str:
+    return f".tasks/{feature}/reviews/amendments/{reviewed_artifact_commit}.json"
+
+
+def canonical_cluster_closure_evidence_path(feature: str, cluster_id: str) -> str:
+    digest_hex = cluster_id.removeprefix("sha256:")
+    return f".tasks/{feature}/evidence/closures/{digest_hex}.json"
+
+
+def technical_amendment_effective_digest(
+    parent: str, receipt_digest: str, reviewed_artifact_commit: str
+) -> str:
     return canonical_json_digest({
-        "artifact_sha": artifact_sha,
         "parent_effective_digest": parent,
-        "technical_amendment_digest": amendment,
+        "receipt_digest": receipt_digest,
+        "reviewed_artifact_commit": reviewed_artifact_commit,
     })
+
+
+def load_regular_committed_blob(
+    root: Path,
+    commit: str,
+    path: str,
+    label: str,
+    errors: list[str],
+) -> bytes | None:
+    try:
+        repo_relative_path(path, f"{label}.path")
+    except SliceproofError as exc:
+        errors.extend(exc.errors)
+        return None
+    before = len(errors)
+    if not require_exact_git_sha(commit, f"{label}.commit", errors):
+        return None
+    require_git_commit(root, commit, f"{label}.commit", errors)
+    if len(errors) != before:
+        return None
+    try:
+        row = git_output_bytes(
+            root, ["ls-tree", "-z", commit, "--", path], f"{label}: committed path"
+        )
+    except SliceproofError as exc:
+        errors.extend(exc.errors)
+        return None
+    expected_suffix = b"\t" + path.encode("utf-8") + b"\0"
+    if not row.startswith(b"100644 blob ") or not row.endswith(expected_suffix) or row.count(b"\0") != 1:
+        errors.append(f"{label}: must be one regular non-executable committed blob at the exact path")
+        return None
+    try:
+        return git_output_bytes(root, ["show", f"{commit}:{path}"], f"{label}: committed blob")
+    except SliceproofError as exc:
+        errors.extend(exc.errors)
+        return None
+
+
+def load_committed_canonical_json(
+    root: Path,
+    commit: str,
+    path: str,
+    label: str,
+    errors: list[str],
+) -> dict[str, Any] | None:
+    raw = load_regular_committed_blob(root, commit, path, label, errors)
+    if raw is None:
+        return None
+    try:
+        data = load_strict_json_text(raw.decode("utf-8"), label)
+    except (SliceproofError, UnicodeError) as exc:
+        if isinstance(exc, SliceproofError):
+            errors.extend(exc.errors)
+        else:
+            errors.append(f"{label}: expected UTF-8 canonical JSON")
+        return None
+    if not isinstance(data, dict):
+        errors.append(f"{label}: root must be an object")
+        return None
+    if raw != canonical_json_bytes(data):
+        errors.append(f"{label}: committed blob must be canonical sorted-key compact JSON with one trailing newline")
+    return data
+
+
+def require_commit_ancestor(
+    root: Path, ancestor: str, descendant: str, label: str, errors: list[str], *, distinct: bool
+) -> None:
+    if distinct and ancestor == descendant:
+        errors.append(f"{label}: commits must be distinct")
+        return
+    result = git_process(root, ["merge-base", "--is-ancestor", ancestor, descendant], label)
+    if result.returncode == 1:
+        errors.append(f"{label}: expected descendant commit lineage")
+    elif result.returncode != 0:
+        detail = result.stderr.strip() or result.stdout.strip() or f"exit {result.returncode}"
+        errors.append(f"{label}: unable to verify commit lineage: {detail}")
+
+
+def require_first_parent_ancestor(
+    root: Path, commit: str, head: str, label: str, errors: list[str]
+) -> None:
+    try:
+        lineage = git_output(root, ["rev-list", "--first-parent", head], label).splitlines()
+    except SliceproofError as exc:
+        errors.extend(exc.errors)
+        return
+    if commit not in lineage:
+        errors.append(f"{label}: commit must be on the exact first-parent lifecycle lineage")
+
+
+def validate_technical_amendment_receipt(
+    state: dict[str, Any],
+    *,
+    artifact_root: Path,
+    feature: str,
+    verify_files: bool,
+    verify_git_objects: bool,
+    errors: list[str],
+) -> dict[str, Any] | None:
+    link = state["authorization"]["amendment_link"]
+    if link is None:
+        return None
+    label = "lifecycle-state.json.authorization.amendment_link"
+    expected_path = canonical_amendment_receipt_path(feature, link["reviewed_artifact_commit"])
+    try:
+        repo_relative_path(link["receipt_path"], f"{label}.receipt_path", expected_suffix=".json")
+    except SliceproofError as exc:
+        errors.extend(exc.errors)
+    if link["receipt_path"] != expected_path:
+        errors.append(f"{label}.receipt_path: expected canonical path {expected_path!r}")
+    if not verify_git_objects:
+        return None
+
+    receipt_tree = git_commit_tree(
+        artifact_root, link["receipt_commit"], f"{label}.receipt_commit", errors
+    )
+    if receipt_tree is not None and receipt_tree != link["receipt_tree"]:
+        errors.append(f"{label}.receipt_tree: does not match receipt checkpoint commit")
+    reviewed_tree = git_commit_tree(
+        artifact_root,
+        link["reviewed_artifact_commit"],
+        f"{label}.reviewed_artifact_commit",
+        errors,
+    )
+    if reviewed_tree is not None and reviewed_tree != link["reviewed_artifact_tree"]:
+        errors.append(f"{label}.reviewed_artifact_tree: does not match reviewed artifact commit")
+    require_commit_ancestor(
+        artifact_root,
+        link["reviewed_artifact_commit"],
+        link["receipt_commit"],
+        f"{label}: receipt-after-review order",
+        errors,
+        distinct=True,
+    )
+    try:
+        receipt_parents = git_output(
+            artifact_root,
+            ["rev-list", "--parents", "-n", "1", link["receipt_commit"]],
+            f"{label}: receipt checkpoint parent",
+        ).split()
+        receipt_delta = git_output_bytes(
+            artifact_root,
+            [
+                "diff", "--name-only", "-z", "--no-renames",
+                link["reviewed_artifact_commit"], link["receipt_commit"], "--",
+            ],
+            f"{label}: receipt-only checkpoint",
+        )
+    except SliceproofError as exc:
+        errors.extend(exc.errors)
+    else:
+        if len(receipt_parents) != 2 or receipt_parents[1] != link["reviewed_artifact_commit"]:
+            errors.append(f"{label}: receipt checkpoint must directly follow the reviewed artifact")
+        if receipt_delta != link["receipt_path"].encode("utf-8") + b"\0":
+            errors.append(f"{label}: receipt checkpoint may add only the canonical receipt path")
+        try:
+            preexisting_receipt = git_output(
+                artifact_root,
+                ["ls-tree", link["reviewed_artifact_commit"], "--", link["receipt_path"]],
+                f"{label}: reviewed artifact receipt absence",
+            ).strip()
+        except SliceproofError as exc:
+            errors.extend(exc.errors)
+        else:
+            if preexisting_receipt:
+                errors.append(f"{label}: reviewed artifact cannot pre-contain its cold-review receipt")
+    receipt = load_committed_canonical_json(
+        artifact_root,
+        link["receipt_commit"],
+        link["receipt_path"],
+        "technical amendment cold-review receipt",
+        errors,
+    )
+    if receipt is None:
+        return None
+    validate_json_shape(
+        receipt, TECHNICAL_AMENDMENT_RECEIPT_SCHEMA, "technical amendment cold-review receipt", errors
+    )
+    if digest_bytes(canonical_json_bytes(receipt)) != link["receipt_digest"]:
+        errors.append(f"{label}.receipt_digest: does not match canonical committed receipt")
+    if verify_files:
+        try:
+            current = resolve_authority_file(
+                artifact_root, link["receipt_path"], f"{label}.receipt_path"
+            ).read_bytes()
+        except SliceproofError as exc:
+            errors.extend(exc.errors)
+        else:
+            if current != canonical_json_bytes(receipt):
+                errors.append(f"{label}.receipt_path: current file differs from committed canonical receipt")
+    receipt_shape_errors: list[str] = []
+    validate_json_shape(
+        receipt,
+        TECHNICAL_AMENDMENT_RECEIPT_SCHEMA,
+        "technical amendment cold-review receipt",
+        receipt_shape_errors,
+    )
+    if receipt_shape_errors:
+        return receipt
+
+    authorization = state["authorization"]
+    inputs = authorization["inputs"]
+    expected_values = {
+        "authorization_id": authorization["id"],
+        "initial_digest": authorization["initial_digest"],
+        "inputs_digest": canonical_json_digest(inputs),
+        "parent_effective_digest": link["parent_effective_digest"],
+        "reviewed_artifact": {
+            "commit": link["reviewed_artifact_commit"],
+            "tree": link["reviewed_artifact_tree"],
+        },
+        "immutable_digests": {
+            "dependencies": inputs["dependencies"],
+            "actions": inputs["actions"],
+            "budget_authority": inputs["budget_authority"],
+            "amendment_policy": inputs["amendment_policy"],
+        },
+    }
+    for field, expected in expected_values.items():
+        if receipt[field] != expected:
+            errors.append(f"technical amendment cold-review receipt.{field}: immutable authority binding mismatch")
+    current_routing = assurance_routing_digest(
+        state["assurance_profile"], state["package_modes"], state["package_assignments"]
+    )
+    if receipt["routing"]["new"] != current_routing:
+        errors.append("technical amendment cold-review receipt.routing.new: does not match current routing")
+    reviewed_at = receipt["review"]["reviewed_at"]
+    if len(reviewed_at) > 64:
+        errors.append("technical amendment cold-review receipt.review.reviewed_at: timestamp is not concise")
+    parse_aware_iso8601(
+        reviewed_at, "technical amendment cold-review receipt.review.reviewed_at", errors
+    )
+    parent_tree = git_commit_tree(
+        artifact_root,
+        receipt["parent_artifact"]["commit"],
+        "technical amendment cold-review receipt.parent_artifact.commit",
+        errors,
+    )
+    if parent_tree is not None and parent_tree != receipt["parent_artifact"]["tree"]:
+        errors.append("technical amendment cold-review receipt.parent_artifact.tree: commit tree mismatch")
+    require_commit_ancestor(
+        artifact_root,
+        receipt["parent_artifact"]["commit"],
+        receipt["reviewed_artifact"]["commit"],
+        "technical amendment cold-review receipt: parent-to-reviewed lineage",
+        errors,
+        distinct=True,
+    )
+    return receipt
 
 
 def assurance_routing_digest(
@@ -2155,18 +2843,89 @@ def load_committed_lifecycle_state(
     )
     if not isinstance(previous, dict):
         raise SliceproofError(["predecessor Lifecycle State: root must be an object"])
-    validate_predecessor_topology(artifact_root, relative_path, commit, current_state)
+    validate_predecessor_topology(
+        artifact_root, relative_path, commit, previous, current_state
+    )
     return previous
+
+
+def transition_material_checkpoint(
+    previous: dict[str, Any], current: dict[str, Any]
+) -> str | None:
+    checkpoints: set[str] = set()
+    link = current["authorization"].get("amendment_link")
+    if link is not None:
+        checkpoints.add(link["receipt_commit"])
+    old_clusters = {item["id"]: item for item in previous["serious_clusters"]}
+    for cluster in current["serious_clusters"]:
+        old = old_clusters.get(cluster["id"])
+        if cluster["closure"] is not None and (old is None or old["closure"] is None):
+            checkpoints.add(cluster["closure"]["evidence_commit"])
+    if not checkpoints:
+        return None
+    if len(checkpoints) != 1:
+        raise SliceproofError([
+            "validate-lifecycle-state: one transition must use one exact committed material checkpoint"
+        ])
+    return next(iter(checkpoints))
+
+
+def validate_linear_checkpoint_range(
+    artifact_root: Path, previous_commit: str, checkpoint: str
+) -> None:
+    result = git_process(
+        artifact_root,
+        ["merge-base", "--is-ancestor", previous_commit, checkpoint],
+        "validate-lifecycle-state: material checkpoint lineage",
+    )
+    if result.returncode != 0 or checkpoint == previous_commit:
+        raise SliceproofError([
+            "validate-lifecycle-state: material checkpoint must be a distinct descendant of the predecessor"
+        ])
+    rows = git_output(
+        artifact_root,
+        ["rev-list", "--reverse", "--first-parent", "--parents", f"{previous_commit}..{checkpoint}"],
+        "validate-lifecycle-state: material checkpoint ancestry",
+    ).splitlines()
+    expected_parent = previous_commit
+    for row in rows:
+        fields = row.split()
+        if len(fields) != 2 or fields[1] != expected_parent:
+            raise SliceproofError([
+                "validate-lifecycle-state: material checkpoint lineage must be linear and merge-free"
+            ])
+        expected_parent = fields[0]
+    if expected_parent != checkpoint:
+        raise SliceproofError([
+            "validate-lifecycle-state: material checkpoint is not on the exact first-parent lineage"
+        ])
 
 
 def validate_predecessor_topology(
     artifact_root: Path,
     relative_path: str,
     previous_commit: str,
+    previous_state: dict[str, Any],
     current_state: dict[str, Any],
 ) -> None:
     head = git_output(artifact_root, ["rev-parse", "HEAD"], "validate-lifecycle-state: artifact HEAD").strip()
-    if head == previous_commit:
+    material_checkpoint = transition_material_checkpoint(previous_state, current_state)
+    base = previous_commit if material_checkpoint is None else material_checkpoint
+    if material_checkpoint is not None:
+        validate_linear_checkpoint_range(artifact_root, previous_commit, material_checkpoint)
+        material_state = load_strict_json_text(
+            git_output(
+                artifact_root,
+                ["show", f"{material_checkpoint}:{relative_path}"],
+                "validate-lifecycle-state: material checkpoint Lifecycle State",
+            ),
+            "material checkpoint Lifecycle State",
+        )
+        if canonical_json_digest(material_state) != canonical_json_digest(previous_state):
+            raise SliceproofError([
+                "validate-lifecycle-state: material commits must preserve the predecessor Lifecycle State"
+            ])
+    if head == base:
         return
     committed_current = load_strict_json_text(
         git_output(
@@ -2181,9 +2940,9 @@ def validate_predecessor_topology(
     parents = git_output(
         artifact_root, ["rev-list", "--parents", "-n", "1", head], "validate-lifecycle-state: artifact checkpoint ancestry"
     ).split()
-    if len(parents) != 2 or parents[1] != previous_commit:
+    if len(parents) != 2 or parents[1] != base:
         raise SliceproofError([
-            "validate-lifecycle-state: committed current state must have the named predecessor as its sole parent"
+            "validate-lifecycle-state: committed current state must have the exact transition checkpoint as its sole parent"
         ])
 
 
@@ -2489,11 +3248,11 @@ def compare_lifecycle_states(previous: dict[str, Any], current: dict[str, Any]) 
             new_artifact = current["artifact_checkpoint"]["sha"]
             if authorization_changed:
                 if not isinstance(link, dict) or link.get("parent_effective_digest") != previous_auth["effective_digest"]:
-                    errors.append("lifecycle transition: effective authorization digest requires an exact amendment link")
+                    errors.append("lifecycle transition: effective authorization digest requires an exact amendment receipt link")
                 if new_artifact == old_artifact:
                     errors.append("lifecycle transition: effective authorization digest requires a distinct artifact checkpoint")
-                if not isinstance(link, dict) or link.get("artifact_sha") != new_artifact:
-                    errors.append("lifecycle transition: amendment link must name the exact new artifact checkpoint")
+                if not isinstance(link, dict) or link.get("receipt_commit") != new_artifact:
+                    errors.append("lifecycle transition: amendment receipt link must name the exact new artifact checkpoint")
             elif link is not None:
                 errors.append("lifecycle transition: amendment_link is allowed only for this generation's effective-digest change")
             if new_artifact != old_artifact and not authorization_changed:
@@ -2551,13 +3310,22 @@ def compare_lifecycle_states(previous: dict[str, Any], current: dict[str, Any]) 
         new_cluster = current_clusters[cluster_id]
         if new_cluster["strikes"] != 1:
             errors.append(f"lifecycle transition: new serious cluster {cluster_id} must start at strike 1")
-        if new_cluster["route"] == "closure-repair" and (
-            new_cluster["disposition"] != "repair-eligible"
+        if new_cluster["route"] == "closure-repair":
+            if (
+                new_cluster["disposition"] != "repair-eligible"
+                or new_cluster["repair"] is not None
+                or new_cluster["closure"] is not None
+            ):
+                errors.append(
+                    f"lifecycle transition: new eligible serious cluster {cluster_id} starts with exactly one repair authorization"
+                )
+        elif (
+            new_cluster["disposition"] != "routed"
             or new_cluster["repair"] is not None
             or new_cluster["closure"] is not None
         ):
             errors.append(
-                f"lifecycle transition: new eligible serious cluster {cluster_id} starts with exactly one repair authorization"
+                f"lifecycle transition: new non-repair serious cluster {cluster_id} must enter its canonical routed state"
             )
     for cluster_id, old in previous_clusters.items():
         new = current_clusters.get(cluster_id)
@@ -2635,6 +3403,247 @@ def compare_lifecycle_states(previous: dict[str, Any], current: dict[str, Any]) 
             errors.append(
                 "lifecycle transition: ownership/CAS-unavailable escalation cannot take over ownership"
             )
+    return errors
+
+
+def validate_technical_amendment_transition(
+    artifact_root: Path,
+    previous_commit: str,
+    previous: dict[str, Any],
+    current: dict[str, Any],
+) -> list[str]:
+    old_auth, new_auth = previous["authorization"], current["authorization"]
+    if old_auth["id"] is None or new_auth["effective_digest"] == old_auth["effective_digest"]:
+        return []
+    errors: list[str] = []
+    link = new_auth.get("amendment_link")
+    if not isinstance(link, dict):
+        return ["lifecycle transition: changed effective digest requires a committed cold-review receipt"]
+    receipt = load_committed_canonical_json(
+        artifact_root,
+        link["receipt_commit"],
+        link["receipt_path"],
+        "lifecycle transition: technical amendment receipt",
+        errors,
+    )
+    if receipt is None:
+        return errors
+    shape_errors: list[str] = []
+    validate_json_shape(
+        receipt,
+        TECHNICAL_AMENDMENT_RECEIPT_SCHEMA,
+        "lifecycle transition: technical amendment receipt",
+        shape_errors,
+    )
+    errors.extend(shape_errors)
+    if shape_errors:
+        return errors
+    if receipt["parent_effective_digest"] != old_auth["effective_digest"]:
+        errors.append("lifecycle transition: amendment receipt is stale or cross-parent")
+    expected_parent_artifact = {
+        "commit": previous["artifact_checkpoint"]["sha"],
+        "tree": previous["artifact_checkpoint"]["tree"],
+    }
+    if receipt["parent_artifact"] != expected_parent_artifact:
+        errors.append("lifecycle transition: amendment receipt parent artifact checkpoint mismatch")
+    previous_routing = assurance_routing_digest(
+        previous["assurance_profile"], previous["package_modes"], previous["package_assignments"]
+    )
+    current_routing = assurance_routing_digest(
+        current["assurance_profile"], current["package_modes"], current["package_assignments"]
+    )
+    if receipt["routing"] != {"previous": previous_routing, "new": current_routing}:
+        errors.append("lifecycle transition: amendment receipt routing lineage mismatch")
+    old_packages, new_packages = previous["packages"], current["packages"]
+    invalidated = sorted(
+        (
+            package_id for package_id in set(old_packages) & set(new_packages)
+            if old_packages[package_id]["state"] != "invalidated"
+            and new_packages[package_id]["state"] == "invalidated"
+        ),
+        key=package_id_order,
+    )
+    added = sorted(set(new_packages) - set(old_packages), key=package_id_order)
+    if receipt["packages"] != {"invalidated": invalidated, "added": added}:
+        errors.append("lifecycle transition: amendment receipt invalidated/added package IDs are not exact")
+    if receipt["packages"]["invalidated"] != sorted(
+        receipt["packages"]["invalidated"], key=package_id_order
+    ) or receipt["packages"]["added"] != sorted(receipt["packages"]["added"], key=package_id_order):
+        errors.append("lifecycle transition: amendment receipt package IDs must use canonical order")
+    try:
+        prior_path = git_output(
+            artifact_root,
+            ["ls-tree", previous_commit, "--", link["receipt_path"]],
+            "lifecycle transition: amendment receipt path freshness",
+        ).strip()
+    except SliceproofError as exc:
+        errors.extend(exc.errors)
+    else:
+        if prior_path:
+            errors.append("lifecycle transition: amendment receipt path must be newly committed")
+    require_commit_ancestor(
+        artifact_root,
+        previous_commit,
+        link["reviewed_artifact_commit"],
+        "lifecycle transition: reviewed artifact after predecessor",
+        errors,
+        distinct=True,
+    )
+    require_commit_ancestor(
+        artifact_root,
+        link["reviewed_artifact_commit"],
+        link["receipt_commit"],
+        "lifecycle transition: receipt checkpoint after reviewed artifact",
+        errors,
+        distinct=True,
+    )
+    return errors
+
+
+def validate_cluster_transition_evidence(
+    artifact_root: Path,
+    previous_commit: str,
+    previous: dict[str, Any],
+    current: dict[str, Any],
+) -> list[str]:
+    errors: list[str] = []
+    old_clusters = {item["id"]: item for item in previous["serious_clusters"]}
+    new_clusters = {item["id"]: item for item in current["serious_clusters"]}
+    link = current["authorization"].get("amendment_link")
+    for cluster_id, new in new_clusters.items():
+        old = old_clusters.get(cluster_id)
+        if old is None or old["disposition"] != "routed" or new["disposition"] != "closed":
+            continue
+        label = f"lifecycle transition: serious cluster {cluster_id}"
+        if new["route"] == "human-envelope":
+            errors.append(f"{label}: requirement/human-envelope gap cannot close in the same authorization")
+        elif new["route"] == "technical-reassessment":
+            closure = new["closure"]
+            if link is None or closure is None or (
+                closure["verdict"] != "PASS"
+                or closure["evidence_path"] != link["receipt_path"]
+                or closure["evidence_digest"] != link["receipt_digest"]
+                or closure["evidence_commit"] != link["receipt_commit"]
+            ):
+                errors.append(f"{label}: architecture closure requires this transition's exact PASS amendment receipt")
+            else:
+                receipt_errors: list[str] = []
+                receipt = load_committed_canonical_json(
+                    artifact_root,
+                    link["receipt_commit"],
+                    link["receipt_path"],
+                    f"{label}: amendment receipt",
+                    receipt_errors,
+                )
+                errors.extend(receipt_errors)
+                if isinstance(receipt, dict) and not receipt.get("packages", {}).get("invalidated"):
+                    errors.append(f"{label}: architecture closure requires affected package invalidation")
+        elif new["route"] == "evidence-refresh":
+            closure = new["closure"]
+            if closure is None:
+                errors.append(f"{label}: evidence refresh closure requires exact evidence")
+                continue
+            prior_exists = git_process(
+                artifact_root,
+                ["cat-file", "-e", f"{previous_commit}:{closure['evidence_path']}"],
+                f"{label}: predecessor evidence",
+            )
+            if prior_exists.returncode == 0:
+                try:
+                    previous_blob = git_output_bytes(
+                        artifact_root,
+                        ["show", f"{previous_commit}:{closure['evidence_path']}"],
+                        f"{label}: predecessor evidence",
+                    )
+                except SliceproofError as exc:
+                    errors.extend(exc.errors)
+                else:
+                    if digest_bytes(previous_blob) == closure["evidence_digest"]:
+                        errors.append(f"{label}: evidence refresh digest is stale versus predecessor")
+            elif prior_exists.returncode not in {1, 128}:
+                errors.append(f"{label}: unable to inspect predecessor evidence")
+            require_commit_ancestor(
+                artifact_root,
+                previous_commit,
+                closure["evidence_commit"],
+                f"{label}: fresh evidence checkpoint",
+                errors,
+                distinct=True,
+            )
+
+    old_reservation = previous["budgets"].get("active_reservation")
+    old_wave = old_reservation.get("repair_wave") if isinstance(old_reservation, dict) else None
+    new_reservation = current["budgets"].get("active_reservation")
+    new_wave = new_reservation.get("repair_wave") if isinstance(new_reservation, dict) else None
+    if old_wave is not None and (
+        not isinstance(new_reservation, dict) or new_reservation.get("id") != old_reservation["id"]
+    ):
+        bound_ids = old_wave["cluster_ids"]
+        expected_binding = {
+            "reservation_id": old_reservation["id"],
+            "reservation_generation": old_reservation["generation"],
+            "reservation_commit": previous_commit,
+            "reservation_state_digest": canonical_json_digest(previous),
+        }
+        for cluster_id in bound_ids:
+            cluster = new_clusters.get(cluster_id)
+            if cluster is None or cluster["repair"] is None or cluster["closure"] is None:
+                errors.append(
+                    f"lifecycle transition: repair reservation cannot clear before bound cluster {cluster_id} has closure evidence"
+                )
+                continue
+            repair = cluster["repair"]
+            if any(repair[field] != value for field, value in expected_binding.items()):
+                errors.append(f"lifecycle transition: cluster {cluster_id} repair reservation binding mismatch")
+            closure = cluster["closure"]
+            valid_terminal = (
+                closure["verdict"] == "PASS"
+                and cluster["strikes"] == 1
+                and cluster["disposition"] == "closed"
+            ) or (
+                closure["verdict"] == "FAIL"
+                and cluster["strikes"] == 2
+                and cluster["disposition"] == "circuit-open"
+            )
+            if not valid_terminal:
+                errors.append(f"lifecycle transition: cluster {cluster_id} closure verdict must select strike terminal state")
+            require_commit_ancestor(
+                artifact_root,
+                previous_commit,
+                closure["evidence_commit"],
+                f"lifecycle transition: cluster {cluster_id} closure after repair reservation",
+                errors,
+                distinct=True,
+            )
+        newly_repaired = {
+            cluster_id for cluster_id, cluster in new_clusters.items()
+            if cluster["repair"] is not None
+            and (cluster_id not in old_clusters or old_clusters[cluster_id]["repair"] is None)
+        }
+        if newly_repaired != set(bound_ids):
+            errors.append("lifecycle transition: repair return must cover exactly its reserved canonical cluster set")
+        if new_reservation is not None:
+            errors.append("lifecycle transition: repair closure and successor reservation require separate checkpoints")
+    elif old_wave is not None:
+        if any(
+            new_clusters[cluster_id] != old_clusters[cluster_id]
+            for cluster_id in old_wave["cluster_ids"]
+        ):
+            errors.append("lifecycle transition: bound repair clusters cannot mutate before reservation closure")
+    if new_wave is not None and (
+        old_reservation is None or old_reservation.get("id") != new_reservation["id"]
+    ):
+        if any(new_clusters[cluster_id] != old_clusters.get(cluster_id) for cluster_id in new_wave["cluster_ids"]):
+            errors.append("lifecycle transition: repair-wave issuance must checkpoint clusters before repair mutation")
+        lifecycle_path = f".tasks/{current['feature']}/lifecycle-state.json"
+        if historical_reservation_id_exists(
+            artifact_root,
+            lifecycle_path,
+            previous_commit,
+            new_reservation["id"],
+            errors,
+        ):
+            errors.append("lifecycle transition: repair reservation ID cannot be reused")
     return errors
 
 
@@ -2956,55 +3965,327 @@ def validate_new_assurance_pointer_paths(
     return errors
 
 
+def expected_assurance_call_predecessors(
+    state: dict[str, Any], role: str, lens: str, errors: list[str]
+) -> list[dict[str, str]]:
+    freeze = state["freeze"]
+    if freeze is None:
+        errors.append("assurance call: active freeze F is required")
+        return []
+    freeze_pointer = predecessor_pointer("F", "freeze", freeze["path"], freeze["digest"])
+    pointers = {
+        (item["role"], item["lens"]): predecessor_pointer(
+            item["role"], item["lens"], item["path"], item["digest"]
+        )
+        for item in state["receipts"]
+    }
+    profile = state["assurance_profile"]
+    review_key = ("R", FIXED_RECEIPT_LENSES["R"])
+    if role == "C":
+        if profile != "low" or lens != FIXED_RECEIPT_LENSES["C"]:
+            errors.append("assurance call: C is only the canonical low-profile call")
+        return [freeze_pointer]
+    if role == "R":
+        if profile not in {"standard", "high"} or lens != FIXED_RECEIPT_LENSES["R"]:
+            errors.append("assurance call: R requires the canonical standard/high review lens")
+        return [freeze_pointer]
+    review = pointers.get(review_key)
+    if review is None:
+        errors.append(f"assurance call: {role} requires exact predecessor PASS R")
+        return [freeze_pointer]
+    if role == "S":
+        planned = planned_final_specialist_lenses(state["package_assignments"])
+        if profile != "high" or lens not in planned:
+            errors.append("assurance call: S lens must be planned uniquely by high-profile routing")
+        return [freeze_pointer, review]
+    if role == "U":
+        if profile not in {"standard", "high"} or lens != FIXED_RECEIPT_LENSES["U"]:
+            errors.append("assurance call: U requires the canonical standard/high audit lens")
+        specialists: list[dict[str, str]] = []
+        if profile == "high":
+            for specialist_lens in planned_final_specialist_lenses(state["package_assignments"]):
+                pointer = pointers.get(("S", specialist_lens))
+                if pointer is None:
+                    errors.append(f"assurance call: U requires every planned PASS S; missing {specialist_lens!r}")
+                else:
+                    specialists.append(pointer)
+        return [freeze_pointer, review, *specialists]
+    errors.append(f"assurance call: unsupported role {role!r}")
+    return []
+
+
+def validate_committed_assurance_predecessors(
+    artifact_root: Path,
+    commit: str,
+    predecessors: list[dict[str, str]],
+    label: str,
+    errors: list[str],
+) -> None:
+    for pointer in predecessors:
+        data = load_committed_canonical_json(
+            artifact_root, commit, pointer["path"], f"{label}: predecessor {pointer['role']}", errors
+        )
+        if data is None:
+            continue
+        raw = canonical_json_bytes(data)
+        if digest_bytes(raw) != pointer["digest"]:
+            errors.append(f"{label}: predecessor {pointer['role']} digest mismatch at reservation checkpoint")
+        role = pointer["role"]
+        if role == "F":
+            shape_errors: list[str] = []
+            validate_json_shape(data, FREEZE_FILE_SCHEMA, f"{label}: predecessor F", shape_errors)
+            errors.extend(shape_errors)
+            continue
+        shape_errors = []
+        validate_json_shape(data, receipt_file_schema(role), f"{label}: predecessor {role}", shape_errors)
+        errors.extend(shape_errors)
+        if shape_errors:
+            continue
+        if role == "C" and data["verdicts"] != {"code_risk": "PASS", "completion": "PASS"}:
+            errors.append(f"{label}: predecessor C is not exact PASS")
+        elif role in {"R", "S", "U"} and data["verdict"] != "PASS":
+            errors.append(f"{label}: predecessor {role} is not PASS")
+
+
+def lifecycle_transition_changed_paths(
+    artifact_root: Path, previous_commit: str, label: str, errors: list[str]
+) -> set[str]:
+    try:
+        changed = git_output_bytes(
+            artifact_root,
+            ["diff", "--name-only", "-z", "--no-renames", previous_commit, "--"],
+            label,
+        )
+        untracked = git_output_bytes(
+            artifact_root, ["ls-files", "--others", "--exclude-standard", "-z"], label
+        )
+    except SliceproofError as exc:
+        errors.extend(exc.errors)
+        return set()
+    try:
+        return {
+            item.decode("utf-8") for item in (changed + untracked).split(b"\0") if item
+        }
+    except UnicodeError:
+        errors.append(f"{label}: changed paths must be UTF-8")
+        return set()
+
+
+def historical_reservation_id_exists(
+    artifact_root: Path,
+    lifecycle_path: str,
+    through_commit: str,
+    reservation_id: str,
+    errors: list[str],
+) -> bool:
+    try:
+        commits = git_output(
+            artifact_root,
+            ["rev-list", through_commit, "--", lifecycle_path],
+            "lifecycle transition: reservation ID history",
+        ).splitlines()
+    except SliceproofError as exc:
+        errors.extend(exc.errors)
+        return True
+    for commit in commits:
+        try:
+            historical = load_strict_json_text(
+                git_output(
+                    artifact_root,
+                    ["show", f"{commit}:{lifecycle_path}"],
+                    "lifecycle transition: historical reservation State",
+                ),
+                "historical reservation State",
+            )
+        except SliceproofError as exc:
+            errors.extend(exc.errors)
+            return True
+        reservation = historical.get("budgets", {}).get("active_reservation") if isinstance(historical, dict) else None
+        if isinstance(reservation, dict) and reservation.get("id") == reservation_id:
+            return True
+    return False
+
+
+def validate_assurance_call_transition_paths(
+    artifact_root: Path,
+    lifecycle_path: str,
+    previous_commit: str,
+    previous: dict[str, Any],
+    current: dict[str, Any],
+) -> list[str]:
+    errors: list[str] = []
+    old_reservation = previous["budgets"].get("active_reservation")
+    old_call = old_reservation.get("assurance_call") if isinstance(old_reservation, dict) else None
+    new_reservation = current["budgets"].get("active_reservation")
+    new_call = new_reservation.get("assurance_call") if isinstance(new_reservation, dict) else None
+    new_call_created = new_call is not None and (
+        old_reservation is None or old_reservation.get("id") != new_reservation["id"]
+    )
+    changed = lifecycle_transition_changed_paths(
+        artifact_root, previous_commit, "lifecycle transition: assurance call checkpoint", errors
+    )
+    if new_call_created:
+        label = "lifecycle transition: assurance call issuance"
+        if current["freeze"] != previous["freeze"] or previous["freeze"] is None:
+            errors.append(f"{label}: F must already exist unchanged in the predecessor checkpoint")
+        if current["receipts"] != previous["receipts"]:
+            errors.append(f"{label}: issuance cannot add a receipt in the reservation generation")
+        expected = expected_assurance_call_predecessors(
+            previous, new_call["role"], new_call["lens"], errors
+        )
+        if new_call["predecessors"] != expected:
+            errors.append(f"{label}: reservation predecessor pointers are not exact")
+        validate_committed_assurance_predecessors(
+            artifact_root, previous_commit, expected, label, errors
+        )
+        target_path = canonical_receipt_path(
+            current["feature"], new_call["freeze_id"], new_call["role"], new_call["lens"]
+        )
+        try:
+            existing = git_output(
+                artifact_root, ["ls-tree", previous_commit, "--", target_path], label
+            ).strip()
+        except SliceproofError as exc:
+            errors.extend(exc.errors)
+        else:
+            if existing:
+                errors.append(f"{label}: target receipt already existed before call issuance")
+        if historical_reservation_id_exists(
+            artifact_root, lifecycle_path, previous_commit, new_reservation["id"], errors
+        ):
+            errors.append(f"{label}: reservation/call ID cannot be reused")
+        if changed != {lifecycle_path}:
+            errors.append(f"{label}: reservation checkpoint may change only Lifecycle State; observed {sorted(changed)}")
+
+    call_returned = old_call is not None and (
+        not isinstance(new_reservation, dict) or new_reservation.get("id") != old_reservation["id"]
+    )
+    if call_returned:
+        label = "lifecycle transition: assurance call return"
+        old_nodes = {(item["role"], item["lens"]): item for item in previous["receipts"]}
+        additions = [
+            item for item in current["receipts"]
+            if (item["role"], item["lens"]) not in old_nodes
+            and item["role"] in FINAL_ASSURANCE_CALL_COUNTERS
+        ]
+        allowed_paths = {lifecycle_path}
+        if additions:
+            pointer = additions[0]
+            allowed_paths.add(pointer["path"])
+            data = load_canonical_assurance_json(
+                artifact_root, pointer["path"], f"{label}: returned receipt", errors
+            )
+            if data is not None:
+                shape_errors: list[str] = []
+                validate_json_shape(
+                    data, receipt_file_schema(pointer["role"]), f"{label}: returned receipt", shape_errors
+                )
+                errors.extend(shape_errors)
+                if not shape_errors:
+                    expected_binding = {
+                        "id": old_reservation["id"],
+                        "generation": old_reservation["generation"],
+                        "artifact_commit": previous_commit,
+                        "state_digest": canonical_json_digest(previous),
+                    }
+                    if data["reservation"] != expected_binding:
+                        errors.append(f"{label}: receipt reservation checkpoint binding mismatch")
+                    expected_authorization = {
+                        "id": current["authorization"]["id"],
+                        "effective_digest": current["authorization"]["effective_digest"],
+                    }
+                    if data["authorization"] != expected_authorization:
+                        errors.append(f"{label}: receipt authorization lineage mismatch")
+                    if (
+                        data["role"] != old_call["role"]
+                        or data["lens"] != old_call["lens"]
+                        or data["freeze_id"] != old_call["freeze_id"]
+                        or data["freeze_digest"] != old_call["freeze_digest"]
+                        or data["predecessors"] != old_call["predecessors"]
+                    ):
+                        errors.append(f"{label}: receipt role/lens/freeze/predecessors mismatch")
+                    if len(data["recorded_at"]) > 64:
+                        errors.append(f"{label}: receipt timestamp is not concise")
+                    parse_aware_iso8601(data["recorded_at"], f"{label}: receipt timestamp", errors)
+                if digest_bytes(canonical_json_bytes(data)) != pointer["digest"]:
+                    errors.append(f"{label}: returned receipt pointer digest mismatch")
+            try:
+                existing = git_output(
+                    artifact_root, ["ls-tree", previous_commit, "--", pointer["path"]], label
+                ).strip()
+            except SliceproofError as exc:
+                errors.extend(exc.errors)
+            else:
+                if existing:
+                    errors.append(f"{label}: returned receipt already existed at its reservation checkpoint")
+        if changed != allowed_paths:
+            errors.append(f"{label}: return checkpoint changed unexpected paths {sorted(changed - allowed_paths)}")
+    return errors
+
+
 def validate_role_call_consumption_transition(
     previous: dict[str, Any],
     current: dict[str, Any],
 ) -> list[str]:
     errors: list[str] = []
-    previous_consumption = previous["budgets"]["role_call_consumption"]
-    current_consumption = current["budgets"]["role_call_consumption"]
-    previous_implementation = previous["budgets"].get("implementation")
-    previous_issued = (
-        previous_implementation["issued"] if previous_implementation is not None else {}
-    )
-
-    previous_freeze = previous["freeze"]
-    current_freeze = current["freeze"]
-    same_freeze = (
-        previous_freeze is not None
-        and current_freeze is not None
-        and previous_freeze["id"] == current_freeze["id"]
-    )
-    previous_nodes = (
-        {(receipt["role"], receipt["lens"]) for receipt in previous["receipts"]}
-        if same_freeze
-        else set()
-    )
-    added_receipts = {role: 0 for role in FINAL_ASSURANCE_CALL_COUNTERS}
-    for receipt in current["receipts"]:
-        role = receipt["role"]
-        if role in added_receipts and (role, receipt["lens"]) not in previous_nodes:
-            added_receipts[role] += 1
-
-    for role, counter in FINAL_ASSURANCE_CALL_COUNTERS.items():
-        old_consumed = previous_consumption[role]
-        new_consumed = current_consumption[role]
-        if new_consumed < old_consumed:
+    old_consumption = previous["budgets"]["role_call_consumption"]
+    new_consumption = current["budgets"]["role_call_consumption"]
+    implementation = previous["budgets"].get("implementation")
+    previous_issued = implementation["issued"] if implementation is not None else {}
+    deltas = {role: new_consumption[role] - old_consumption[role] for role in old_consumption}
+    for role, delta in deltas.items():
+        if delta < 0:
+            errors.append(f"lifecycle transition: role_call_consumption.{role} cannot decrease")
+        counter = FINAL_ASSURANCE_CALL_COUNTERS[role]
+        if delta > 0 and new_consumption[role] > previous_issued.get(counter, 0):
             errors.append(
-                f"lifecycle transition: role_call_consumption.{role} cannot decrease"
-            )
-            continue
-        consumed_delta = new_consumed - old_consumed
-        if consumed_delta and new_consumed > previous_issued.get(counter, 0):
-            errors.append(
-                f"lifecycle transition: role_call_consumption.{role}={new_consumed} exceeds "
+                f"lifecycle transition: role_call_consumption.{role}={new_consumption[role]} exceeds "
                 f"predecessor-issued {counter}={previous_issued.get(counter, 0)}"
             )
-        if added_receipts[role] > consumed_delta:
+
+    old_freeze, new_freeze = previous["freeze"], current["freeze"]
+    same_freeze = (
+        old_freeze is not None and new_freeze is not None
+        and old_freeze["id"] == new_freeze["id"]
+    )
+    old_nodes = {
+        (item["role"], item["lens"]): item for item in previous["receipts"]
+    } if same_freeze else {}
+    added = [
+        item for item in current["receipts"]
+        if (item["role"], item["lens"]) not in old_nodes
+    ]
+    added_calls = [item for item in added if item["role"] in FINAL_ASSURANCE_CALL_COUNTERS]
+    old_reservation = previous["budgets"].get("active_reservation")
+    old_call = old_reservation.get("assurance_call") if isinstance(old_reservation, dict) else None
+    new_reservation = current["budgets"].get("active_reservation")
+    call_returned = old_call is not None and (
+        not isinstance(new_reservation, dict) or new_reservation.get("id") != old_reservation["id"]
+    )
+    if old_call is None:
+        if any(delta > 0 for delta in deltas.values()) or added_calls:
             errors.append(
-                f"lifecycle transition: {added_receipts[role]} new {role} receipt(s) require matching "
-                f"new role-call consumption after predecessor issuance; delta is {consumed_delta}"
+                "lifecycle transition: final-role consumption/receipt requires the predecessor's active assurance call"
             )
+        return errors
+    if not call_returned:
+        if any(delta != 0 for delta in deltas.values()) or added_calls:
+            errors.append("lifecycle transition: active assurance call must return before consumption or receipt")
+        return errors
+    role = old_call["role"]
+    expected_deltas = {name: int(name == role) for name in deltas}
+    if deltas != expected_deltas:
+        errors.append(
+            f"lifecycle transition: returned/abandoned {role} call must consume exactly that one issued role"
+        )
+    matching = [
+        item for item in added_calls
+        if item["role"] == role and item["lens"] == old_call["lens"]
+    ]
+    if len(added_calls) > 1 or (added_calls and len(matching) != 1):
+        errors.append("lifecycle transition: returned assurance call may add only its exact role/lens receipt")
+    if new_reservation is not None:
+        errors.append("lifecycle transition: call return and successor reservation require separate checkpoints")
     return errors
 
 
@@ -3064,6 +4345,8 @@ def compare_lifecycle_budgets(previous: dict[str, Any], current: dict[str, Any])
         if old_reservation != new_reservation:
             errors.append("lifecycle transition: active reservation cannot mutate under the same id")
     elif new_reservation is not None:
+        if old_reservation is not None:
+            errors.append("lifecycle transition: a new reservation cannot replace an active predecessor reservation")
         budget_name = new_reservation["budget"]
         old_budget, new_budget = previous.get(budget_name), current.get(budget_name)
         old_issued = old_budget["issued"] if old_budget is not None else {}
@@ -3090,26 +4373,54 @@ def compare_lifecycle_budgets(previous: dict[str, Any], current: dict[str, Any])
             new_reservation_created
             and new_reservation is not None
             and new_reservation["budget"] == "implementation"
+            and new_reservation.get("assurance_call") is not None
         )
         if not matching_reservation:
             errors.append(
-                "lifecycle transition: positive role-call issued delta requires a newly created "
-                "matching implementation reservation"
+                "lifecycle transition: positive final-role issued delta requires a newly created "
+                "matching assurance-call reservation"
             )
         else:
-            units = new_reservation["units"]
-            for counter, delta in positive_role_deltas.items():
-                if units.get(counter, 0) != delta:
-                    errors.append(
-                        f"lifecycle transition: new reservation {counter} units must exactly match "
-                        f"issued delta {delta}"
-                    )
-            role_delta_total = sum(positive_role_deltas.values())
-            if units.get("delegated_calls", 0) < role_delta_total:
+            if len(positive_role_deltas) != 1 or next(iter(positive_role_deltas.values())) != 1:
                 errors.append(
-                    "lifecycle transition: new role-call reservation must charge delegated_calls "
-                    "by at least the role delta sum"
+                    "lifecycle transition: one assurance reservation may issue exactly one C/R/S/U role call"
                 )
+            counter, delta = next(iter(positive_role_deltas.items()))
+            metadata = new_reservation["assurance_call"]
+            expected_role = next(
+                role for role, role_counter in FINAL_ASSURANCE_CALL_COUNTERS.items()
+                if role_counter == counter
+            )
+            if metadata["role"] != expected_role:
+                errors.append("lifecycle transition: assurance-call role does not match issued counter")
+            if new_reservation["units"] != {"delegated_calls": 1, counter: 1}:
+                errors.append(
+                    f"lifecycle transition: new reservation {counter} units must exactly match issued delta {delta}"
+                )
+            old_delegated = old_role_issued.get("delegated_calls", 0)
+            if new_role_issued.get("delegated_calls", 0) - old_delegated != 1:
+                errors.append("lifecycle transition: one final-role call must issue exactly one delegated_calls unit")
+    elif new_reservation_created and new_reservation is not None and new_reservation.get("assurance_call") is not None:
+        errors.append("lifecycle transition: assurance-call reservation requires this generation's role issuance")
+
+    old_repair = old_role_issued.get("repair_waves", 0)
+    new_repair = new_role_issued.get("repair_waves", 0)
+    repair_delta = new_repair - old_repair
+    if repair_delta > 0:
+        matching_repair = (
+            repair_delta == 1
+            and new_reservation_created
+            and new_reservation is not None
+            and new_reservation["budget"] == "implementation"
+            and new_reservation.get("repair_wave") is not None
+            and new_reservation["units"].get("repair_waves") == 1
+        )
+        if not matching_repair:
+            errors.append(
+                "lifecycle transition: every repair batch requires one newly charged repair-wave reservation"
+            )
+    elif new_reservation_created and new_reservation is not None and new_reservation.get("repair_wave") is not None:
+        errors.append("lifecycle transition: repair-wave reservation requires this generation's repair_waves delta")
     return errors
 
 
@@ -3743,6 +5054,7 @@ def validate_agentic_completion_data(
         state,
         freeze,
         artifact_root,
+        code_root,
         frozen_at,
         errors,
     )
@@ -3950,10 +5262,244 @@ def predecessor_pointer(role: str, lens: str, path: str, digest: str) -> dict[st
     return {"role": role, "lens": lens, "path": path, "digest": digest}
 
 
+def validate_historical_lifecycle_semantics(
+    state: dict[str, Any],
+    *,
+    artifact_root: Path,
+    code_root: Path,
+    feature: str,
+    label: str,
+    errors: list[str],
+) -> bool:
+    semantic_errors = validate_lifecycle_state_data(
+        state,
+        artifact_root=artifact_root,
+        code_root=code_root,
+        feature=feature,
+        verify_files=False,
+        verify_git_objects=False,
+    )
+    errors.extend(f"{label}: {error}" for error in semantic_errors)
+    return not semantic_errors
+
+
+def validate_receipt_reservation_history(
+    final_state: dict[str, Any],
+    pointer: dict[str, Any],
+    receipt: dict[str, Any],
+    artifact_root: Path,
+    code_root: Path,
+    errors: list[str],
+) -> None:
+    role, lens = pointer["role"], pointer["lens"]
+    label = f"receipt {(role, lens)} reservation history"
+    binding = receipt["reservation"]
+    lifecycle_path = f".tasks/{final_state['feature']}/lifecycle-state.json"
+    reservation_state = load_historical_lifecycle_state(
+        artifact_root, final_state["feature"], binding["artifact_commit"], label, errors
+    )
+    if reservation_state is None:
+        return
+    head = git_head_or_none(artifact_root)
+    if head is None:
+        errors.append(f"{label}: artifact HEAD is missing")
+        return
+    try:
+        first_parent_lineage = set(git_output(
+            artifact_root,
+            ["rev-list", "--first-parent", head],
+            f"{label}: final first-parent lifecycle lineage",
+        ).splitlines())
+    except SliceproofError as exc:
+        errors.extend(exc.errors)
+        return
+    if binding["artifact_commit"] not in first_parent_lineage:
+        errors.append(f"{label}: reservation commit is not on final HEAD first-parent lineage")
+    if not validate_historical_lifecycle_semantics(
+        reservation_state,
+        artifact_root=artifact_root,
+        code_root=code_root,
+        feature=final_state["feature"],
+        label=f"{label}: committed reservation State",
+        errors=errors,
+    ):
+        return
+    if canonical_json_digest(reservation_state) != binding["state_digest"]:
+        errors.append(f"{label}: committed reservation state digest mismatch")
+    if reservation_state.get("generation") != binding["generation"]:
+        errors.append(f"{label}: committed reservation generation mismatch")
+    reservation = reservation_state.get("budgets", {}).get("active_reservation")
+    call = reservation.get("assurance_call") if isinstance(reservation, dict) else None
+    if (
+        not isinstance(reservation, dict)
+        or reservation.get("id") != binding["id"]
+        or call is None
+        or call.get("role") != role
+        or call.get("lens") != lens
+        or call.get("freeze_id") != receipt["freeze_id"]
+        or call.get("freeze_digest") != receipt["freeze_digest"]
+        or call.get("predecessors") != receipt["predecessors"]
+    ):
+        errors.append(f"{label}: committed active reservation does not match returned receipt")
+        return
+    require_commit_ancestor(
+        artifact_root,
+        binding["artifact_commit"],
+        head,
+        f"{label}: reservation ancestry",
+        errors,
+        distinct=True,
+    )
+    try:
+        existing = git_output(
+            artifact_root,
+            ["ls-tree", binding["artifact_commit"], "--", pointer["path"]],
+            f"{label}: receipt absence",
+        ).strip()
+    except SliceproofError as exc:
+        errors.extend(exc.errors)
+    else:
+        if existing:
+            errors.append(f"{label}: returned receipt existed in its reservation checkpoint")
+    validate_committed_assurance_predecessors(
+        artifact_root, binding["artifact_commit"], call["predecessors"], label, errors
+    )
+
+    verified = reservation_state.get("last_verified")
+    if not isinstance(verified, dict):
+        errors.append(f"{label}: reservation state lacks exact issuance predecessor")
+        return
+    issuance_parent = verified["artifact_sha"]
+    if issuance_parent not in first_parent_lineage:
+        errors.append(f"{label}: issuance parent is not on final HEAD first-parent lineage")
+    if historical_reservation_id_exists(
+        artifact_root,
+        lifecycle_path,
+        issuance_parent,
+        binding["id"],
+        errors,
+    ):
+        errors.append(f"{label}: reservation/call ID was used by an older lifecycle reservation")
+    issuance_state = load_historical_lifecycle_state(
+        artifact_root, final_state["feature"], issuance_parent, f"{label}: issuance predecessor", errors
+    )
+    if issuance_state is None:
+        return
+    if not validate_historical_lifecycle_semantics(
+        issuance_state,
+        artifact_root=artifact_root,
+        code_root=code_root,
+        feature=final_state["feature"],
+        label=f"{label}: issuance predecessor State",
+        errors=errors,
+    ):
+        return
+    if (
+        verified["state_digest"] != canonical_json_digest(issuance_state)
+        or verified["generation"] != issuance_state.get("generation")
+    ):
+        errors.append(f"{label}: reservation last_verified does not bind issuance predecessor")
+    try:
+        parents = git_output(
+            artifact_root,
+            ["rev-list", "--parents", "-n", "1", binding["artifact_commit"]],
+            f"{label}: issuance checkpoint parent",
+        ).split()
+    except SliceproofError as exc:
+        errors.extend(exc.errors)
+    else:
+        if len(parents) != 2 or parents[1] != issuance_parent:
+            errors.append(f"{label}: reservation must be a dedicated checkpoint after F/predecessors")
+    expected_predecessors = expected_assurance_call_predecessors(
+        issuance_state, role, lens, errors
+    )
+    if call["predecessors"] != expected_predecessors:
+        errors.append(f"{label}: committed reservation predecessor pointers are not exact")
+    validate_committed_assurance_predecessors(
+        artifact_root, issuance_parent, expected_predecessors, label, errors
+    )
+    budget_errors = compare_lifecycle_budgets(
+        issuance_state["budgets"], reservation_state["budgets"]
+    )
+    errors.extend(f"{label}: {error}" for error in budget_errors)
+
+    try:
+        changed_commits = git_output(
+            artifact_root,
+            [
+                "rev-list", "--first-parent", "--reverse",
+                f"{binding['artifact_commit']}..{head}", "--", pointer["path"],
+            ],
+            f"{label}: returned receipt checkpoint",
+        ).splitlines()
+    except SliceproofError as exc:
+        errors.extend(exc.errors)
+        return
+    if not changed_commits:
+        errors.append(f"{label}: returned receipt has no committed addition checkpoint")
+        return
+    return_commit = changed_commits[0]
+    if return_commit not in first_parent_lineage:
+        errors.append(f"{label}: return commit is not on final HEAD first-parent lineage")
+    try:
+        return_parents = git_output(
+            artifact_root,
+            ["rev-list", "--parents", "-n", "1", return_commit],
+            f"{label}: return checkpoint parent",
+        ).split()
+    except SliceproofError as exc:
+        errors.extend(exc.errors)
+        return
+    if len(return_parents) != 2 or return_parents[1] != binding["artifact_commit"]:
+        errors.append(f"{label}: receipt return must be the immediate checkpoint after its reservation")
+    returned_state = load_historical_lifecycle_state(
+        artifact_root, final_state["feature"], return_commit, f"{label}: return state", errors
+    )
+    if returned_state is None:
+        return
+    if not validate_historical_lifecycle_semantics(
+        returned_state,
+        artifact_root=artifact_root,
+        code_root=code_root,
+        feature=final_state["feature"],
+        label=f"{label}: committed return State",
+        errors=errors,
+    ):
+        return
+    returned_verified = returned_state.get("last_verified")
+    if not isinstance(returned_verified, dict) or (
+        returned_verified.get("artifact_sha") != binding["artifact_commit"]
+        or returned_verified.get("state_digest") != canonical_json_digest(reservation_state)
+        or returned_verified.get("generation") != reservation_state.get("generation")
+    ):
+        errors.append(f"{label}: return state does not bind the exact reservation predecessor")
+    returned_pointer = next(
+        (
+            item for item in returned_state.get("receipts", [])
+            if item.get("role") == role and item.get("lens") == lens
+        ),
+        None,
+    )
+    if returned_pointer != pointer:
+        errors.append(f"{label}: exact receipt pointer was not added at the return checkpoint")
+    transition_errors = validate_role_call_consumption_transition(
+        reservation_state, returned_state
+    )
+    errors.extend(f"{label}: {error}" for error in transition_errors)
+    if returned_state.get("budgets", {}).get("active_reservation") is not None:
+        errors.append(f"{label}: return checkpoint cannot reserve the successor call")
+    committed_receipt = load_regular_committed_blob(
+        artifact_root, return_commit, pointer["path"], f"{label}: committed returned receipt", errors
+    )
+    if committed_receipt is not None and committed_receipt != canonical_json_bytes(receipt):
+        errors.append(f"{label}: return checkpoint receipt bytes differ from final pointer")
+
+
 def validate_completion_receipt_graph(
     state: dict[str, Any],
     freeze: dict[str, Any],
     artifact_root: Path,
+    code_root: Path,
     frozen_at: datetime | None,
     errors: list[str],
 ) -> tuple[list[dict[str, Any]], datetime | None]:
@@ -4001,6 +5547,7 @@ def validate_completion_receipt_graph(
     receipt_data: dict[tuple[str, str], dict[str, Any]] = {}
     receipt_times: dict[tuple[str, str], datetime] = {}
     graph: list[dict[str, Any]] = []
+    reservation_ids: set[str] = set()
     for pointer in state["receipts"]:
         node = (pointer["role"], pointer["lens"])
         data = load_canonical_assurance_json(artifact_root, pointer["path"], f"receipt {node}", errors)
@@ -4019,6 +5566,14 @@ def validate_completion_receipt_graph(
             errors.append(f"receipt {node}: cross-freeze binding is forbidden")
         if data["authorization"] != freeze["authorization"]:
             errors.append(f"receipt {node}: authorization lineage does not match F")
+        if pointer["role"] in FINAL_ASSURANCE_CALL_COUNTERS:
+            reservation_id = data["reservation"]["id"]
+            if reservation_id in reservation_ids:
+                errors.append(f"receipt {node}: reservation/call ID is reused")
+            reservation_ids.add(reservation_id)
+            validate_receipt_reservation_history(
+                state, pointer, data, artifact_root, code_root, errors
+            )
         recorded = parse_aware_iso8601(data["recorded_at"], f"receipt {node}.recorded_at", errors)
         if recorded is not None:
             receipt_times[node] = recorded
@@ -4092,11 +5647,13 @@ def receipt_file_schema(role: str) -> dict[str, Any]:
         "recorded_at": str,
     }
     if role == "C":
+        schema["reservation"] = RESERVATION_RECEIPT_BINDING_SCHEMA
         schema["verdicts"] = {
             "code_risk": ("enum", {"PASS", "FAIL", "PROFILE_INVALID"}),
             "completion": ("enum", {"PASS", "FAIL", "PROFILE_INVALID"}),
         }
     elif role in {"R", "S", "U"}:
+        schema["reservation"] = RESERVATION_RECEIPT_BINDING_SCHEMA
         schema["verdict"] = ("enum", {"PASS", "FAIL"})
     elif role == "V":
         schema["deviations"] = ("list", str)
