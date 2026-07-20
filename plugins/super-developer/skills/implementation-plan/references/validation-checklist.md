@@ -10,9 +10,11 @@ Do not create or overwrite `.tasks/<feature-name>/` artifacts until all applicab
 
 - Feature slug, artifact root/ref, and code root are safe; any existing feature directory conflict is resolved by the user.
 - If Conceptualize supplied the source, its slug is the feature/artifact slug unless approved migration metadata exists.
-- Post-Conceptualize sidecar checkpoint has happened before writing `.tasks/`, or the orchestrator has invoked `worktree` to perform it.
+- Post-Conceptualize local artifact state is valid; publish its sidecar checkpoint only when the exact action/ref is authorized.
 - Only references needed by the active path have been read: Conceptualize inputs when a handoff applies; SPEC/artifact/package guidance while drafting those surfaces; tool usage only for command syntax or safety ambiguity; Semgrep reference only at preference/evidence action points; design preflight only when triggered.
-- Design preflight trigger decision is made; if it ran, unresolved `COVERAGE_GAPS`, `MUST_DECIDE`, and `BLOCKERS` findings are resolved.
+- Design preflight trigger decision is made. Any reused equivalent analysis covers the same approved scope,
+  current evidence, completeness, and overengineering lens with provenance; whether reused or newly run, no
+  `COVERAGE_GAPS`, `MUST_DECIDE`, or `BLOCKERS` remain unresolved.
 - Conditional spike decision is made; if a spike was required, evidence is accepted and no exploratory code will be persisted.
 - Any decision that changes user-visible semantics, risk acceptance, scope, or Slice commitments has user approval.
 - Conceptualize input state is one of: no workspace applies, Index-only/no-Slice, or full safe Slice inventory.
@@ -57,6 +59,8 @@ Do not create or overwrite `.tasks/<feature-name>/` artifacts until all applicab
 - H1 matches `# Work Package: <WP-ID> — <title>`.
 - Required sections are present and non-empty: `Scope`, `Assigned Slices`, `Primary Paths`, `Verification Expectations`, `Proof`, `Package Verification Report`, and `Dependencies`.
 - `## Acceptance Checklist` is present with one concrete item per `Must satisfy` obligation and material verification expectation; every item is an executable check or a human-approved `manual (approved)` exception, never aspirational prose.
+- Package Acceptance Checklists exclude source/sidecar publication, final review/audit, target delivery,
+  release/deployment, and post-delivery validation; those checks belong only to feature/delivery acceptance.
 - Assigned Slice paths come from the authoritative inventory; no-Slice packages use `- None.`.
 - `Must satisfy` and `Context only` IDs exist under the referenced Slice `## Shared Understanding` section.
 - `Context only` has a concrete reason and does not hide closure work.

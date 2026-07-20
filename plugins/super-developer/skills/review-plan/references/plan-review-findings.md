@@ -29,6 +29,10 @@ Rules:
 - `ISSUE` cites observable SPEC/package/registry/Slice/codebase evidence or labels an inference.
 - `FIX` is actionable and scoped to `SPEC.md`, package Markdown, Slice approval/deferral metadata, registry bookkeeping, or a required user decision.
 - `COST` is required for `BLOCKER`, `CRITICAL`, and any finding whose fix changes semantics, scope, package boundaries, Slice obligations, proof/report expectations, or risk acceptance.
+- A blocker that adds machinery or materially increases complexity must use `ISSUE` to identify the accepted
+  requirement, invariant, or observed failure it protects; `FIX` to give the minimum sufficient repair and why
+  the simpler/current design is insufficient; and `COST` to state package-boundary, risk, verification, and
+  existing-approval impact. Without that burden of proof, narrow/dismiss it or report a `SUGGESTION`.
 
 ## Severity
 

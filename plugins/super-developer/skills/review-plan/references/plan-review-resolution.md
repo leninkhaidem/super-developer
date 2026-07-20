@@ -36,7 +36,9 @@ A valid concern the package agent can resolve without changing requirements, ext
 
 ### disproportionate recommendation
 
-A recommendation whose cost, scope expansion, complexity, or semantic impact is not justified by evidence. Dismiss or narrow it. Record only durable outcomes that affect future review.
+A recommendation whose cost, scope expansion, complexity, or semantic impact is not justified by an accepted
+requirement, invariant, or observed failure. Dismiss or narrow it; unsupported machinery remains advisory.
+Record only durable outcomes that affect future review.
 
 ### suggestion
 
@@ -68,7 +70,10 @@ Internal simplification may be applied without a prompt only when it preserves t
 6. Persist accepted decisions in the owning artifact.
 7. Keep `SPEC.md` requirements-focused; package assignment belongs in package Markdown.
 8. Encode implementation-time concerns durably in package Markdown or verification expectations, not chat-only summaries.
-9. From the code root, rerun mechanical validation with explicit roots and perform focused re-review only for changed content that affects semantic review scope.
+9. When accepted repairs materially expand or move closure-complexity dimensions, reapply
+   `../../../references/work-packages.md` to affected packages and route required boundary changes through the
+   Semantic Change Rule; shared-file overlap may justify serialization without one combined package.
+10. From the code root, rerun mechanical validation with explicit roots and perform focused re-review only for changed content that affects semantic review scope.
 
 ## Re-Review
 

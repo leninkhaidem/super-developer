@@ -120,9 +120,14 @@ Enhanced verification is triggered by surfaces such as:
 Documentation-only and reference-only packages still receive standard package verification; risk determines
 whether verification is standard or enhanced, not whether it runs.
 
-## Runtime Adjustment
+## Runtime and Repair-Time Adjustment
 
-The implementation orchestrator may merge, split, defer, or reorder planned packages when current package
+Package sizing is not a one-time decision. After accepted plan-review repairs, reapply semantic closure-complexity
+analysis to affected packages when obligations, failure/risk cases, dependencies, evidence boundaries, or
+verification scope materially expand or move. Counts remain warning signals, never automatic split thresholds;
+change boundaries only when coherent closure no longer holds.
+
+The implementation orchestrator may also merge, split, defer, or reorder planned packages when current package
 status, closure complexity, file impact, proof readiness, Slice assignment, or previous merged work makes the
 plan unsafe or inefficient. When one uncertainty gates several otherwise independent packages, retire it with
 the smallest bounded readiness action before affected fanout; do not invent a dependency edge when dispatch

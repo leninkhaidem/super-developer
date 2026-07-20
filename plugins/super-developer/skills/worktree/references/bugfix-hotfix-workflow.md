@@ -83,6 +83,25 @@ git worktree add .worktrees/bugfix-<name> -b bugfix/<name> <feature-base-sha>
 Verify the named base ref still equals the approved SHA. Edit/commit only under their gates after complete-state
 CLEAN review. Stage reviewed manifest files only. Spikes are evidence-only and never merge.
 
+## Planned Production-Hotfix Bridge
+
+When a confirmed broad/risky production repair is routed through planning, the diagnosis handoff carries its
+mechanism/evidence, behavior goal/non-goals, regression acceptance, residual risk, explicit production base
+ref/SHA, intended `hotfix/<name>`, and target ref. Planning authorization covers only that handoff; implementation
+and every remote/delivery action retain their owning approvals.
+Reuse ordinary SPEC/Slice/package/proof/report and verification gates—do not create a hotfix artifact taxonomy.
+Carry delivery context through planning/review packets into the Execution Contract. Normal package refs/worktrees
+integrate into the named non-root `hotfix-<name>` worktree/ref from the explicit production base; do not synthesize
+`feature/<feature>`. Create an independent package from production base, or from `hotfix/<name>` after prerequisites:
+```bash
+set -euo pipefail
+cd "$PROJECT_ROOT"
+git worktree add .worktrees/<feature>/wp-<WP-ID> -b wp/<feature>/<WP-ID> <production-base-sha-or-hotfix-ref>
+git -C "$PROJECT_ROOT/.worktrees/hotfix-<name>" merge wp/<feature>/<WP-ID> --no-edit
+```
+The reviewed hotfix branch uses the exact non-force source-push command listed in the Execution Contract and
+publishes only that branch; target merge/push, release/deployment, live mutation, sidecar publication, and cleanup remain separate boundaries.
+
 ## Non-Root Immutable Integration
 
 Use `--no-ff`. Revalidate source SHA, target SHA, and snapshot. Use an existing clean **non-root** target worktree

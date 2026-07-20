@@ -24,9 +24,9 @@
 6. Complete faithful additive Slice fixes as routine capture. Pause for user input only when a fix
    must resolve ambiguity, accept risk, narrow/remove/defer scope, contradict existing Slice content,
    or turn an unaccepted recommendation into a requirement.
-7. Return the compact handoff; do not perform planning. If the user proceeds, the parent/main
-   transition checkpoints `origin artifacts/<feature>` via `worktree`, resolves preferences and
-   Semgrep state, then invokes `implementation-plan` with artifact-root/code-root facts.
+7. Return the compact handoff; do not perform planning. If the user proceeds, the parent/main transition publishes
+   `origin artifacts/<feature>` via `worktree` only when that exact sidecar action/ref is authorized; otherwise it
+   reports valid local artifacts as unpublished. It then resolves preferences/Semgrep state and invokes planning.
 
 ## Handoff Format
 
@@ -49,7 +49,7 @@ Planning Handoff:
 - <highest-signal requirements, constraints, risks, non-goals, and H3 pointers when useful>
 Planning Blockers:
 - <only unresolved blockers or `None.`>
-Next: checkpoint `origin artifacts/<feature>`, then create an implementation plan for <deliverable> after preference and Semgrep-state resolution.
+Next: publish `origin artifacts/<feature>` if explicitly authorized, then plan <deliverable> after preference and Semgrep-state resolution; otherwise continue from valid local artifacts and report them unpublished.
 ```
 
 ## Fail Closed When

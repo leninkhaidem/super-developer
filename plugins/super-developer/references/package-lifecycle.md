@@ -13,6 +13,9 @@ correctness. Dashboards may show status, dependency readiness, and helper result
 A package is **done** when its **frozen `## Acceptance Checklist`** (in the package Markdown, approved at the plan gate)
 passes: every item shows a real passing check with authentic evidence, and no open blocking finding remains.
 That checklist is the closed, objective done-definition — the verifier checks exactly it, inventing nothing.
+Package completion is a local evidence fact: source/sidecar publication, final review/audit, target delivery,
+release/deployment, and post-delivery validation are downstream gates and cannot be checklist prerequisites.
+Later evidence changes may stale completion through the existing freshness rules; publication cannot create it.
 
 ## Proof
 Each package has one artifact-root proof file declared in the registry and package Markdown:

@@ -8,8 +8,8 @@ do not rely on hidden chat context.
 
 The packet should provide:
 
-- artifact root, code root, artifact ref, resolved feature/artifact slug, and any approved slug
-  rename/migration metadata;
+- artifact root, code root, artifact ref, resolved feature/artifact slug, any approved slug rename/migration
+  metadata, and supplied planned-hotfix base/integration/target context when applicable;
 - approved requirements or selected Conceptualize workspace/index;
 - testing-authority provenance for triggered feasibility; omit this field when clearly non-triggered;
 - safe Conceptualize workspace, Index, and Slice paths relative to the artifact root when known;
@@ -27,7 +27,7 @@ The orchestrator packet owns concrete paths and must label each supporting contr
 
 - artifact-store semantics while validating roots, refs, paths, or slug mapping;
 - Slice-authority and Conceptualize projection rules when Conceptualize material applies;
-- design-preflight evidence when the packet says preflight ran or uncertainty remains;
+- design-preflight evidence or an equivalent-analysis reuse summary when the packet says either applies;
 - the SPEC template before drafting the specification;
 - clean-code and work-package contracts while shaping package boundaries;
 - canonical artifact-model and artifact-authoring rules before drafting registry and package Markdown;
@@ -57,9 +57,10 @@ the packet omits a contract required by the current action.
    Preserve exact interface/forbidden-behavior obligations; seed obvious package-specific risk expectations (interactive UI, retry/fail-closed, trigger precedence, lifecycle/restart/reaper, cache invalidation, model/default precedence, generated defaults, state pollution when applicable); and state that planner seeds do not limit verifier discovery.
    Author the feature-level `## Acceptance` in `SPEC.md` and a per-package `## Acceptance Checklist` as closed,
    frozen done-definitions: each item an executable check (command/test/observable) unless it is a human-approved
-   `manual (approved)` exception. If the project has no runnable build/test command the checks depend on, say so
-   in the output so the orchestrator can resolve testing authority before authorization — do not write
-   unrunnable acceptance.
+   `manual (approved)` exception. Package checklists cannot depend on source/sidecar publication, final review or
+   audit, target delivery, release/deployment, or post-delivery validation; those are downstream feature/delivery
+   checks. If the project has no runnable build/test command the checks depend on, say so in the output so the
+   orchestrator can resolve testing authority before authorization — do not write unrunnable acceptance.
    If Semgrep is disabled, do not require helper setup, scans, or evidence. If enabled, detect
    impacted stacks from normal repo/package analysis, use helper `index`/`retrieve` for local config
    paths/profile refresh, never inspect `index.json` manually or hard-code curated rule mappings, and

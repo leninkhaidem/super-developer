@@ -124,7 +124,7 @@ Present the Skeptic's analysis and recommendation. Include:
 - The recommended approach and why
 - What was rejected and why
 - Open questions or decisions requiring user input
-- Suggested next step (continue discussing, or proceed to planning)
+- Suggested next step (continue discussing, proceed directly through the appropriate workflow, or plan when package shaping/risk requires it)
 
 All findings remain in the conversation context for downstream skills to consume.
 
@@ -138,18 +138,19 @@ All findings remain in the conversation context for downstream skills to consume
 - **Sub-agents investigate the codebase.** They read code, configs, and infrastructure definitions to ground their proposals in reality — not just theorize.
 - **No premature convergence.** State the problem neutrally in the brief. Include what has been tried, but do not indicate a preferred direction.
 - **The Skeptic is adversarial, not diplomatic.** Its job is to find flaws, not validate. A proposal that survives the Skeptic has earned its recommendation.
-- **This skill does not produce implementation artifacts.** Its output is a recommendation ready to feed into planning.
+- **This skill does not produce implementation artifacts.** Its output is a recommendation for the next appropriate route; analysis alone does not require a plan.
 
 ---
 
 ## Pipeline Continuation
 
-If this stage failed or requires user intervention, STOP. Do not invoke the next stage.
+If this stage failed or requires user intervention, STOP. Otherwise route the user's next request by the accepted
+recommendation and current risk—do not treat confirmation as automatic planning authorization.
 
-State: "Perspectives complete. Ready to convert this into a structured plan when you are — let me know if you have any follow-up questions first."
+- Continue discussion when the user asks follow-up questions or decisions remain open.
+- Invoke `implementation-plan` only when the user asks for a plan or execution needs package shaping, unresolved
+  design decisions, material risk acceptance, or a durable multi-package contract.
+- For an accepted narrow, low-risk change with no unresolved scope/risk decision, route directly to the
+  task-appropriate implementation workflow. Do not create planned-feature artifacts merely because Perspectives ran.
 
-Wait for user confirmation. Then invoke:
-
-Use the Skill tool with: skill: "implementation-plan"
-
-Do NOT attempt to execute plan logic inline. The Skill tool loads it properly.
+When planning is selected, invoke the `implementation-plan` skill rather than executing plan logic inline.

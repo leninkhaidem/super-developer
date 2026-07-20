@@ -6,6 +6,12 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+### Changed
+- Changed Perspectives and Design Preflight routing to reuse sufficient current analysis and avoid forcing accepted low-risk work through planned-feature ceremony.
+
+### Fixed
+- Fixed package resizing after review expansion, package-versus-delivery acceptance, sidecar publication authorization, planned-hotfix execution, complexity-increasing review findings, and portable helper paths.
+
 ## [v1.40.0] - 2026-07-20
 
 ### Added

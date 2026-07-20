@@ -3,7 +3,7 @@
 Load after package agents return and before accepting, merging, marking `done`, dispatching downstream packages, or final readiness. This reference owns package return acceptance, proof validation, holistic package verification, merge/freshness gates, repair routing, and final handoff.
 
 The `worktree` skill owns git command runbooks, root-worktree safety, branch/ref invariants, sidecar
-checkpoints, cleanup, feature push, and target-merge boundaries. This reference owns when those operations
+checkpoints, cleanup, source push, and target-merge boundaries. This reference owns when those operations
 are allowed. Artifact checks read/write the artifact root; source validation runs in package or integration
 code worktrees.
 
@@ -53,13 +53,13 @@ For each returned package:
     post-merge freshness. Classify production, test/oracle/harness, claim, execution-evidence, and metadata
     changes through the shared semantic rubric; run only its affected proof, verification, and
     `validate-package-complete` route before completion.
-14. Before the package-delivery boundary completes, checkpoint sidecar artifacts after proof/report/review
-    updates are written. Push only `origin artifacts/<feature>` from `.worktrees/<feature>/artifacts`; do not
-    push `feature/<feature>` or `wp/<feature>/<WP-ID>` as an artifact side effect.
+14. After package completion is established, publish a package-delivery sidecar checkpoint only when the exact
+    action/ref is contracted. Push only `origin artifacts/<feature>` from the artifact worktree; otherwise keep
+    valid artifacts local and report them unpublished. Publication never creates `done` or unlocks dependents.
 
 Mark a package `done` only after proof validation, verification expectations, package verification PASS, clean
-`validate-package-complete`, ignored `.tasks` handling, post-merge freshness, sidecar checkpoint eligibility,
-repair/delta closure, and Slice plan-defect gates all pass.
+`validate-package-complete`, ignored `.tasks` handling, post-merge freshness, repair/delta closure, and Slice
+plan-defect gates all pass.
 
 ## Slice Plan-Defect Gate
 
@@ -137,10 +137,10 @@ Freeze exact integrated-code, artifact, and runtime-evidence inputs consumed by 
 Run sibling final `review-code`/`audit` against it; outputs are not freeze inputs.
 After a blocking repair, re-run only the affected checks plus the feature Acceptance, then establish a new freeze before affected final checks.
 
-After review-code readiness and final audit PASS are recorded in the artifact root, run the final sidecar
-checkpoint through the `worktree` skill before target merge/cleanup eligibility. This checkpoint pushes only
-`origin artifacts/<feature>` and never merges the sidecar branch. Sidecar cleanup is routed to the
-`worktree`/`release` boundary after final target merge/push and exact user approval.
+After review-code readiness and final audit PASS are recorded, run the final sidecar checkpoint through
+`worktree` only when its exact push is contracted or the selected delivery policy requires it. Otherwise report
+valid local artifacts as unpublished and retain the active sidecar. Publication never changes package/readiness
+truth. Sidecar cleanup remains at the `worktree`/`release` boundary after delivery and exact user approval.
 
 Declare readiness only when package evidence, review-code readiness, and final audit PASS are clean for the
 same integrated state.
