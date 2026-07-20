@@ -20,7 +20,9 @@ package, bugfix, hotfix, spike, integration, target-merge, and artifact-sidecar 
 - Keep agent-managed checkouts under `$PROJECT_ROOT/.worktrees/`; ensure `.worktrees/` is ignored.
 - Feature branches are refs, not root checkouts. Create `feature/<feature>` from an explicit `<base-ref>`.
 - Use `.worktrees/<feature>/merge` as the only checkout of `feature/<feature>` for integration.
-- Planned-feature package branches use `wp/<feature>/<WP-ID>` with worktrees at `.worktrees/<feature>/wp-<WP-ID>`.
+- Planned-package branches use `wp/<feature>/<WP-ID>` with worktrees at `.worktrees/<feature>/wp-<WP-ID>`.
+  Normal feature work integrates into `feature/<feature>`; a planned production hotfix integrates into the exact
+  non-root `hotfix/<name>` worktree/ref from its explicit production base and creates no feature ref.
 - Artifact sidecars use orphan ref `artifacts/<feature>` at `.worktrees/<feature>/artifacts`; they are not source checkouts or deliverable refs.
 - Package agents never create worktrees, branches, merges, target pushes, or cleanup operations.
 - Planned-feature setup may visibly propose `main` only when its owning contract allows. Bugfix, hotfix, and spike
@@ -61,11 +63,11 @@ inside a linked worktree.
 
 ## Do
 
-1. Identify the active workflow: planned-feature package, bugfix, hotfix, diagnostic spike, cleanup, feature push, or target merge.
+1. Identify the active workflow: normal planned-feature package, planned production-hotfix package, localized bugfix/hotfix, diagnostic spike, cleanup, source push, or target merge.
 2. Resolve project root, state, refs, and paths. For bugfix/hotfix/spike, require explicit base/target refs.
 3. For planned-feature artifact sidecars, load `../../references/artifact-store.md` before setup, checkpoint, or cleanup.
-4. Load `references/feature-package-workflow.md` for planned-feature package, integration, sidecar setup, and checkpoint commands.
-5. Load `references/bugfix-hotfix-workflow.md` for diagnostic spikes, feature bugfixes, production hotfixes, or hotfix propagation.
+4. Load `references/feature-package-workflow.md` for normal planned-feature package, integration, sidecar setup, and checkpoint commands.
+5. Load `references/bugfix-hotfix-workflow.md` for diagnostic spikes, feature bugfixes, localized or planned production hotfixes, and hotfix propagation.
 6. Before cleanup, branch removal, feature push, target merge, target push, sidecar deletion, or final teardown, load `references/cleanup-safety.md`.
 7. Run commands only from the worktree named by the loaded playbook; never repair convenience by switching the root worktree.
 8. Report created refs/worktrees, current checkout paths, approval boundaries, and cleanup candidates before destructive steps.

@@ -173,6 +173,15 @@ class SafetyGuardTests(unittest.TestCase):
                     offenders.append(f"{source.relative_to(REPO_ROOT)}: {span}")
         self.assertEqual(offenders, [], "raw semgrep scan invocation found:\n" + "\n".join(offenders))
 
+    def test_sliceproof_python_invocations_use_plugin_root(self) -> None:
+        expected = '${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py'
+        offenders: list[str] = []
+        for source in prompt_files():
+            for line_number, line in enumerate(source.read_text(encoding="utf-8").splitlines(), 1):
+                if "python3 " in line and "sliceproof.py" in line and expected not in line:
+                    offenders.append(f"{source.relative_to(REPO_ROOT)}:{line_number}: {line.strip()}")
+        self.assertEqual(offenders, [], "non-portable sliceproof invocation found:\n" + "\n".join(offenders))
+
 
 if __name__ == "__main__":
     unittest.main()

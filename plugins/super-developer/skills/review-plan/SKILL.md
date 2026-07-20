@@ -24,13 +24,13 @@ Validate that a Slice-first planned-feature artifact set is complete, self-suffi
 - The plan gate freezes the objective done-definition: the feature `## Acceptance` and every package `## Acceptance
   Checklist`. Reviewers confirm each item is a concrete executable check; every `manual (approved)` exception is
   surfaced for explicit user approval at the plan gate. After approval these checklists are the frozen implementation gate.
-- Keep artifact root, code root, artifact ref, and resolved feature/artifact slug explicit in the gate, reviewer packets, validation commands, and summaries.
+- Keep artifact root, code root, artifact ref, and resolved feature/artifact slug explicit in the gate, reviewer packets, validation commands, and summaries. Preserve supplied planned-hotfix delivery context without inventing a feature ref.
 - Do not create implementation proof, mark packages complete, run code review, or execute implementation inline.
 
 ## Do
 
 1. Load `../../references/artifact-store.md`. Resolve artifact root, code root, artifact ref, and `.tasks/<feature>/`; require `SPEC.md`, `tasks.json`, declared package Markdown paths, proof paths, report paths, and safe Slice inventory paths under the artifact root when Slices exist.
-2. From the code root, run `python3 plugins/super-developer/assets/sliceproof.py validate-plan --artifact-root <artifact-root> --code-root <code-root> .tasks/<feature>/tasks.json` before reviewer dispatch. Do not load semantic review references into orchestrator context unless debugging or changing review instructions.
+2. From the code root, run `python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-plan --artifact-root <artifact-root> --code-root <code-root> .tasks/<feature>/tasks.json` before reviewer dispatch. Do not load semantic review references into orchestrator context unless debugging or changing review instructions.
 3. Read enough metadata to summarize the plan (roots/ref, packages/dependencies, Slice and proof/report paths,
    flags, exclusions) and validate any package execution-feasibility profile's testing-authority provenance;
    missing/stale/insufficient provenance is a blocker. Run a lightweight **security-surface pre-screen** over
@@ -44,7 +44,7 @@ Validate that a Slice-first planned-feature artifact set is complete, self-suffi
 5. Backstop escalation: if the pre-screen did not trip but the Plan Reviewer/Triage returns
    `ESCALATE: security-failure-mode`, dispatch the Security/Failure-Mode Reviewer with the Plan Reviewer output.
    Do not decide escalation by loading semantic refs in the orchestrator.
-6. Reviewer packets include roots/ref/slug, narrowed artifacts, triggered testing-authority provenance, and
+6. Reviewer packets include roots/ref/slug, supplied delivery context, narrowed artifacts, triggered testing-authority provenance, and
    paths for `references/plan-review-rubrics.md`, `references/plan-review-findings.md`,
    `../../references/artifact-store.md`, `../../references/slice-first-artifacts.md`,
    `../../references/work-packages.md`, conditional `../../references/conceptualize-slice-authority.md`, and
@@ -57,7 +57,9 @@ Validate that a Slice-first planned-feature artifact set is complete, self-suffi
    closure-complexity and parallel/serial rationale, triggered execution-feasibility profiles, the frozen
    feature `## Acceptance` and per-package Acceptance Checklists with every `manual (approved)` exception called
    out for explicit approval, and remaining risks.
-9. After plan-gate approval, update registry feature status to `reviewed` in the artifact root, invoke `worktree` for the sidecar checkpoint to `origin artifacts/<feature>`, report ready-for-implementation, and invoke `implement` only through the skill tool if already authorized.
+9. After plan-gate approval, update registry status to `reviewed`. Invoke `worktree` for the sidecar checkpoint only
+   when the exact `origin artifacts/<feature>` push is authorized; otherwise report the reviewed artifacts as
+   valid but unpublished. Report implementation readiness and invoke `implement` only when already authorized.
 
 ## Load if needed
 
@@ -76,6 +78,6 @@ Validate that a Slice-first planned-feature artifact set is complete, self-suffi
 
 ## Output
 
-Return plan-gate status, roots/ref, checkpoint, reviewers (including whether security ran in the first wave or as
+Return plan-gate status, roots/ref, delivery context, checkpoint, reviewers (including whether security ran in the first wave or as
 escalation), findings/resolutions, changed artifacts, validation,
 closure-complexity/dependency/parallel rationale, execution-feasibility findings, deferrals, blockers, and next stage.

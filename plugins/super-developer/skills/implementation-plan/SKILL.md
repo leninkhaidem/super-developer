@@ -21,8 +21,9 @@ rules are required; do not preload references merely because they are named.
 
 ## Always
 
-- Plan from approved user requirements, safe Conceptualize handoff material, and verified repo/spike
-  evidence only.
+- Plan from approved user requirements, safe Conceptualize/diagnosis handoff material, and verified repo/spike
+  evidence only. Preserve supplied planned-hotfix base/integration/target context through orchestration packets and
+  summaries without creating new artifact fields or inventing a feature ref.
 - Delegate planned-feature artifact writing to a fresh planner agent using
   `references/planner-agent-contract.md`.
 - Ask before inventing behavior, narrowing scope, deferring material obligations, accepting risk, or
@@ -59,8 +60,8 @@ rules are required; do not preload references merely because they are named.
 1. Load `../../references/artifact-store.md`. Resolve artifact root, code root, artifact ref,
    feature/artifact slug, and source material. Use direct user requirements, repo evidence, spike
    evidence, or one selected Conceptualize workspace; ask one focused question if the source is
-   ambiguous. When planning from Conceptualize, verify the post-Conceptualize sidecar checkpoint
-   happened or invoke `worktree` for that checkpoint before writing `.tasks/`. When no sidecar exists
+   ambiguous. When planning from Conceptualize, verify valid local sidecar state; publish its eligible checkpoint
+   only when the exact action/ref is authorized. Lack of publication does not block planning. When no sidecar exists
    yet (direct planning without Conceptualize), create it through `worktree` before writing `.tasks/`,
    since `git worktree add` refuses a non-empty path.
 2. Check orchestration blockers before delegation: unsafe paths, unresolved decisions, overwrite, spike, or
@@ -68,9 +69,11 @@ rules are required; do not preload references merely because they are named.
    authority: accepted/current workflow for high-risk/reusable work, routine-safe fallback for a bounded local
    command, or task-local Testing Authorization for an exact focused approval. Missing workflow alone does not
    block read-only planning. If authority is insufficient, invoke `testing` to establish/update it or stop;
-   cost or breadth alone is not a trigger. For nontrivial/risky plans, run `references/design-preflight.md` with its
-   `models.design-preflight` resolution and requirement-completeness pass; resolve `COVERAGE_GAPS`,
-   `MUST_DECIDE`, and `BLOCKERS` before artifact writing; skip only narrow, low-risk plans.
+   cost or breadth alone is not a trigger. For nontrivial/risky plans, satisfy `references/design-preflight.md`:
+   reuse equivalent current adversarial analysis when it covers the same approved scope/evidence, completeness,
+   and overengineering with no unresolved findings; otherwise run fresh challengers with the resolved
+   `models.design-preflight`. Rerun only for material scope/evidence change or missing coverage, and resolve all
+   `COVERAGE_GAPS`, `MUST_DECIDE`, and `BLOCKERS` before artifact writing.
 3. If empirical evidence is required before planning, stop artifact writing and invoke `spike-to-plan`
    via fresh Skill-tool/sub-agent packet; do not guess or run the spike workflow inline.
 4. Resolve the planner packet's Semgrep state before planner dispatch. Use supplied resolved state
@@ -80,24 +83,24 @@ rules are required; do not preload references merely because they are named.
    opt-in/setup choice, name any clone or fast-forward pull side effect before it runs, and
    continue with Semgrep disabled when declined. Do not run Semgrep scans during artifact authoring.
 5. Dispatch a fresh planner agent with a compact packet containing:
-   - artifact root, code root, artifact ref, resolved feature/artifact slug, and any approved
-     slug migration metadata;
+   - artifact root, code root, artifact ref, resolved feature/artifact slug, any approved slug migration
+     metadata, and supplied planned-hotfix delivery context when applicable;
    - approved requirements and selected source material;
    - testing-authority provenance only for a triggered feasibility profile; omit routine non-trigger state;
    - Conceptualize workspace/index and Slice paths relative to the artifact root when applicable;
    - path to `references/planner-agent-contract.md`;
    - labeled action-point paths for artifact-store, Slice authority, Conceptualize projection,
-     design-preflight evidence, SPEC template, clean-code, work-package, canonical artifact model,
+     design-preflight evidence or reuse summary, SPEC template, clean-code, work-package, canonical artifact model,
      artifact-authoring, validation, tool-usage, and optional Semgrep contracts;
    - resolved Semgrep state: disabled, or enabled with privacy-mode, local cache/index/profile facts,
      approved setup side effects, and helper availability;
    - overwrite approval state, stop conditions, and expected output fields.
 6. After the planner returns, re-open `SPEC.md`, `tasks.json`, and package Markdown from the
    artifact root.
-7. From the code root, run `python3 plugins/super-developer/assets/sliceproof.py validate-plan \
+7. From the code root, run `python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-plan \
    --artifact-root <artifact-root> --code-root <code-root> .tasks/<feature>/tasks.json` and route
    any non-mechanical repair back through a planner packet instead of patching artifacts inline.
-8. Report artifact root/ref, code root, feature and artifact paths, packages/dependencies, closure-complexity
+8. Report artifact root/ref, code root, delivery context, feature and artifact paths, packages/dependencies, closure-complexity
    and parallel/serial rationale, triggered execution-feasibility profiles, testing-authority provenance,
    Slice inventory or no-Slice state, approved deferrals, assumptions, validation result, and next gate.
 

@@ -100,9 +100,12 @@ python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-final \
 
 - Sidecar checkpoint: an artifact-root commit/push to `origin artifacts/<feature>` at an accepted lifecycle
   gate. Checkpoint commands run from `.worktrees/<feature>/artifacts`, not a code worktree.
-- Accepted checkpoint gates: after Conceptualize before planning, after accepted review-plan before
+- Publication authorization is action/ref-specific: source or target publication never authorizes a sidecar
+  push, or vice versa. One approval may list both exact actions. Without sidecar publication authorization,
+  valid local artifacts remain usable but must be reported as unpublished.
+- Checkpoint-eligible gates: after Conceptualize before planning, after accepted review-plan before
   implementation, after each package delivery/WP merge-push boundary, and after final integrated
-  review/audit acceptance before target merge/cleanup.
+  review/audit acceptance before target merge/cleanup. Eligibility does not authorize publication.
 - Do not checkpoint after every incidental edit, and do not push `main`, `feature/<feature>`, or
   `wp/<feature>/<WP-ID>` as an artifact side effect.
 - Package-delivery checkpoint: the sidecar checkpoint associated with a work-package delivery boundary after

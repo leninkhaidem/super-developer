@@ -10,18 +10,17 @@ The challenge is **two-sided**: it also right-sizes the design. It flags **over-
 
 It is not an implementation plan, persisted transcript, or instruction stream for sub-agents.
 
-## Trigger
+## Trigger and Reuse
 
-Run for nontrivial or risky plans, including:
+Require this challenge for nontrivial/risky plans: architecture or data/permission/external/persistence changes;
+security, privacy, safety, reliability, migration, concurrency, rollback, destructive-action, or novel-harness risk;
+ambiguous requirements; cross-cutting changes; or semantic tradeoffs needed before package authoring. Skip narrow,
+mechanical, low-risk plans whose architecture and caller contract are clear.
 
-- new architecture, data model, permission boundary, external integration, persistence, or generated contract behavior;
-- security, privacy, safety, reliability, migration, concurrency, rollback, destructive-action risk, or novel
-  runtime measurement/harness behavior whose feasibility is not established by repository evidence;
-- ambiguous requirements where multiple designs could satisfy the same request;
-- cross-cutting changes across skills, commands, subsystems, or generated artifacts;
-- semantic tradeoffs that should be explicit before package authoring.
-
-Skip only for narrow, mechanical, low-risk plans where the existing architecture and caller contract are clear.
+Do not launch duplicate challengers when current read-only adversarial analysis already covers requirement
+completeness and overengineering for the same approved scope and current repository evidence, with no unresolved
+`MUST_DECIDE`, `COVERAGE_GAPS`, or `BLOCKERS`. Carry a concise provenance/coverage summary in the planner packet,
+not a new artifact or persisted transcript. Rerun only when scope/evidence materially changed or coverage is absent.
 
 ## Authority Split
 

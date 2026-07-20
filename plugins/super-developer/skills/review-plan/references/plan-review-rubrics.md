@@ -44,7 +44,8 @@ Check whether:
   trigger; cost or breadth alone does not trigger a profile;
 - unresolved static feasibility is a plan finding; unresolved empirical behavior that must be observed before a
   safe commitment requires spike routing rather than implementation-time guessing;
-- a simpler lower-risk approach can produce the same outcome without weakening Slice commitments;
+- a simpler lower-risk approach can produce the same outcome without weakening Slice commitments; any blocker
+  that adds machinery meets the `ISSUE`/`FIX`/`COST` burden in `plan-review-findings.md`;
 - user-visible tradeoffs and risk acceptance are escalated instead of silently decided;
 - foreseeable quality-contract risks are visible, actionable, and verifiable;
 - a Security/Failure-Mode Reviewer is needed.
@@ -61,6 +62,8 @@ Check whether:
 - package Markdown proof/report paths match the registry and are usable by `sliceproof.py`;
 - package dependencies and parallel assumptions are safe, with ID-only dependency edges limited to durable prerequisites and non-obvious consumed output, contract, or evidence rationale recorded in package `Notes`;
 - verification expectations are observable and tied to Slice/package obligations and changed behavior;
+- package Acceptance Checklists do not depend on source/sidecar publication, final review/audit, target delivery,
+  release/deployment, or post-delivery validation;
 - triggered execution-feasibility profiles are file-backed, executable under the resolved testing authority,
   bounded, deterministic where controllable, cleanup-aware, and sufficient to close the package independently;
 - caller contracts, public API continuity, trust boundaries, invalid input handling, migration/rollback/idempotency, data integrity, performance, and concurrency concerns are represented where relevant;

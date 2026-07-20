@@ -22,7 +22,9 @@ a fresh Fix Implementer edits under the passed contract.
 - Keep repairs minimal. Route cross-module/service, contract, schema, security, data, concurrency, performance,
   dependency, or otherwise broad/risky change through `implementation-plan`.
 - `implementation-plan` may plan approved changes to existing systems. “Fresh” describes its Slice-first
-  planned-feature artifacts, not a new-code-only or new-system restriction.
+  planned-feature artifacts, not a new-code-only or new-system restriction. For a broad/risky production repair,
+  preserve the confirmed diagnosis and explicit production-base/hotfix/target delivery context; do not silently
+  convert it into feature-branch delivery.
 - Delegate localized edits to a fresh Fix Implementer. The parent constructs the authority packet, passes
   `references/fix-implementer-contract.md`, and validates its report and repository state.
 - Never infer approval from silence, “fix this,” diagnosis approval, or another approved action.
@@ -50,6 +52,8 @@ its action. Orchestrator-owned progress within the authorized semantic action ma
 approval; unexpected/external drift, conflict, scope/risk change, or failed preconditions stop for a human decision.
 Never silently absorb drift. Keep receipts internal unless requested, needed for audit/debug, or required to explain
 a blocker. Existing exact leases, ancestry checks, and separate target-merge/target-push bindings remain mandatory.
+Approval of an `implementation-plan` route authorizes only the diagnosis handoff and planning; the later Execution
+Contract and delivery gates separately own implementation, source/sidecar publication, target merge/push, and release.
 
 ## Do
 
@@ -107,7 +111,8 @@ a blocker. Existing exact leases, ancestry checks, and separate target-merge/tar
 - Localized implementation or review repair → pass `references/fix-implementer-contract.md` to a fresh worker.
 - Nontrivial repro/test/harness/service command → `../../references/tool-usage.md` and testing authority.
 - Worktree/ref creation, push, merge, or cleanup → invoke `worktree`.
-- Broad/risky existing-system or feature change → invoke `implementation-plan` with the diagnosis handoff.
+- Broad/risky existing-system or feature change → invoke `implementation-plan` with the diagnosis handoff; for
+  production repair, apply `../worktree/references/bugfix-hotfix-workflow.md` planned-hotfix delivery context.
 - Delivered localized state → invoke `review-code` with complete binding, repair owner, and contract path.
 
 ## Stop if
