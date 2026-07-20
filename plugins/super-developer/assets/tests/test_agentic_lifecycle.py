@@ -237,7 +237,7 @@ class AgenticLifecycleOracleTests(unittest.TestCase):
         self.assertRegex(revisions["candidate"]["label"], r"(?i)evaluated behavioral candidate checkpoint")
         self.assertEqual("df7396f677c026cd8bfdf2d0e9baca29e5a03791", revisions["v1_39"]["commit"])
         self.assertEqual("790bf679466b3738e422b3eb23a951a92a239a6f", revisions["phase_1"]["commit"])
-        self.assertEqual("82cdb0eac9955ef995a26c7d0d0a4c90c0dd279c", revisions["candidate"]["commit"])
+        self.assertEqual("26cccdd94c0576b63b1d2efae77c774eff7b8b3a", revisions["candidate"]["commit"])
 
     def test_scenario_manifest_identity_and_seed_fields_are_unique(self) -> None:
         scenarios = load_scenarios()["scenarios"]
