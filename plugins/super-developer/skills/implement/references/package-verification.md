@@ -81,10 +81,10 @@ Keep it short. No long transcripts, no deliverable-completeness matrix, no Test 
 
 ## Re-verification after repair (delta-only)
 
-Remain an independent approving verifier. From the semantic repair impact, re-check only affected checklist,
-proof, and report evidence plus focused seam closure and affected build/lint/test checks; retain unaffected
-results. Widen conservatively for changed public contracts or unknown/unbounded impact, not because a dependency,
-descendant, commit, or merge exists.
+Remain an independent approving verifier. From the semantic repair impact, re-check only affected package-local
+checklist, proof, and report evidence plus affected build/lint/test checks; retain unaffected results. Focused seam
+closure remains exclusively with final `review-code` Fix Verification. Widen conservatively for changed public
+contracts or unknown/unbounded impact, not because a dependency, descendant, commit, or merge exists.
 
 On one stabilized state, run or reuse the deduplicated minimum union only when code/artifact state, cwd,
 environment/data, isolation/order assumptions, and evidence mapping are equivalent. Authentic exact-state output

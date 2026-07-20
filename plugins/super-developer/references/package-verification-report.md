@@ -50,11 +50,13 @@ PASS | FAIL
 
 ## Re-verification after repair
 
-Classify semantic impact rather than following dependency descendants. Re-check only affected checklist/proof/
-report evidence plus focused seam closure and a fresh affected build/lint/test run; retain unaffected results.
-Unknown or unbounded consumers/invariants widen conservatively. Rewrite each affected report for the repaired
-state; the verifier remains separate from the implementer.
+Classify semantic impact rather than following dependency descendants. Re-check only affected package-local
+checklist/proof/report evidence plus fresh-for-the-stabilized-state affected build/lint/test evidence; retain
+unaffected results. Focused seam closure remains exclusively with final `review-code` Fix Verification. Unknown or
+unbounded consumers/invariants widen conservatively. Rewrite each affected report for the repaired state; the
+verifier remains separate from the implementer.
 
 For one stabilized state, run or reuse the deduplicated minimum union only when code/artifact state, cwd,
-environment/data, isolation/order assumptions, and evidence mapping are equivalent. Reuse authentic exact-state
-output; distinct package, isolation, cleanup, or nondeterministic checks still run.
+environment/data, isolation/order assumptions, and evidence mapping are equivalent. Fresh-for-that-state evidence
+may use authentic exact-state reused output; distinct package, isolation, cleanup, or nondeterministic checks still
+run.
