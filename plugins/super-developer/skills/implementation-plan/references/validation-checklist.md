@@ -43,6 +43,7 @@ Do not create or overwrite `.tasks/<feature-name>/` artifacts until all applicab
 ## `SPEC.md`
 
 - Contains all feature-level user-stated and safely projected requirements, acceptance criteria, constraints, non-goals, and approved deferrals.
+- `## Acceptance` is present, non-empty, and every item is an executable check (command/test/observable) or a human-approved `manual (approved)` exception; manual exceptions are surfaced for user approval at plan review.
 - Contains no invented product behavior, non-functional target, architecture, or success condition.
 - Contains no raw secrets, credentials, tokens, PII, or proprietary sensitive values.
 - Contains no implementation code, pseudo-code, line numbers, proof rows, review findings, transcript, or debate.
@@ -55,6 +56,7 @@ Do not create or overwrite `.tasks/<feature-name>/` artifacts until all applicab
 - Every package file exists before implementation dispatch.
 - H1 matches `# Work Package: <WP-ID> — <title>`.
 - Required sections are present and non-empty: `Scope`, `Assigned Slices`, `Primary Paths`, `Verification Expectations`, `Proof`, `Package Verification Report`, and `Dependencies`.
+- `## Acceptance Checklist` is present with one concrete item per `Must satisfy` obligation and material verification expectation; every item is an executable check or a human-approved `manual (approved)` exception, never aspirational prose.
 - Assigned Slice paths come from the authoritative inventory; no-Slice packages use `- None.`.
 - `Must satisfy` and `Context only` IDs exist under the referenced Slice `## Shared Understanding` section.
 - `Context only` has a concrete reason and does not hide closure work.

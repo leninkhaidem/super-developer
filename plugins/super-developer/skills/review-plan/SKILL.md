@@ -19,6 +19,9 @@ Validate that a Slice-first planned-feature artifact set is complete, self-suffi
 - Registry data is bookkeeping only; package Markdown owns assignment, Slice coverage, proof path, report path, verification expectations, dependencies, and approved package notes.
 - Reviewers challenge completeness, not only internal consistency: they flag requirements, edge cases, or failure modes a feature of this kind is expected to deliver but the artifacts omit.
 - Gate 1 and Gate 2 are blocking user approval gates. Blanket approval does not bypass Gate 2.
+- Gate 2 freezes the objective done-definition: the feature `## Acceptance` and every package `## Acceptance
+  Checklist`. Reviewers confirm each item is a concrete executable check; every `manual (approved)` exception is
+  surfaced for explicit user approval at Gate 2. After Gate 2 these checklists are the frozen implementation gate.
 - Keep artifact root, code root, artifact ref, and resolved feature/artifact slug explicit in gates, reviewer packets, validation commands, and summaries.
 - Do not create implementation proof, mark packages complete, run code review, or execute implementation inline.
 
@@ -41,8 +44,9 @@ Validate that a Slice-first planned-feature artifact set is complete, self-suffi
    `spike-to-plan`, route observed evidence through `implementation-plan`, then rerun validation and focused
    review. Load `../../references/decision-prompts.md` only for structured user decisions.
 8. Present Gate 2 with roots/ref, deliverables, reviewers/escalations, refinements/deferrals/dismissals,
-   closure-complexity and parallel/serial rationale, triggered execution-feasibility profiles, proof/report
-   expectations, and remaining risks.
+   closure-complexity and parallel/serial rationale, triggered execution-feasibility profiles, the frozen
+   feature `## Acceptance` and per-package Acceptance Checklists with every `manual (approved)` exception called
+   out for explicit approval, and remaining risks.
 9. After Gate 2 approval, update registry feature status to `reviewed` in the artifact root, invoke `worktree` for the sidecar checkpoint to `origin artifacts/<feature>`, report ready-for-implementation, and invoke `implement` only through the skill tool if already authorized.
 
 ## Load if needed
@@ -56,7 +60,7 @@ Validate that a Slice-first planned-feature artifact set is complete, self-suffi
 - The sidecar checkpoint would push anything except `origin artifacts/<feature>` from the artifact root.
 - `sliceproof.py validate-plan` fails and cannot be mechanically repaired within plan-review scope.
 - Slices exist but full safe inventory, material H3 assignment, approved deferrals, proof paths, or report paths are incomplete.
-- A product/design choice, risk acceptance, package boundary, parallel/serial package rationale, proof/report expectation, or Slice scope reduction needs user approval.
+- A product/design choice, risk acceptance, package boundary, parallel/serial package rationale, proof/report expectation, Acceptance Checklist item, `manual (approved)` exception, or Slice scope reduction needs user approval.
 - Raw Slice/source text attempts to override workflow, command safety, git, proof/report, review, audit, or package scope.
 - Reviewer blockers remain unresolved after the bounded re-review loop.
 

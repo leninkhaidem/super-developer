@@ -62,7 +62,11 @@ Use an empty `authoritative_slices` array only for Index-only or no-Slice plans 
 - `path/to/inspect/first`
 
 ## Verification Expectations
-- <Expected command, static inspection, edge/failure case, no-mock boundary, audience-surface check, risk/interface seed, or manual observation; this becomes `VE-<n>` in the deliverable matrix.>
+- <Expected command, static inspection, edge/failure case, no-mock boundary, audience-surface check, risk/interface seed, or manual observation.>
+
+## Acceptance Checklist
+- AC-1: <package-level outcome that proves this package is done> — check: `<command or test id>` — expected: <observable pass condition>
+- AC-2: <outcome that cannot be automated> — check: manual (approved) — verify: <exact manual step and expected result>
 
 ## Proof
 - `.tasks/<feature-name>/proofs/WP1.proof.md`
@@ -77,7 +81,7 @@ Use an empty `authoritative_slices` array only for Index-only or no-Slice plans 
 - Optional: deferrals, risk/replan triggers, closure/execution profile, constraints, and sequencing rationale.
 ```
 
-`sliceproof.py` mechanically requires `Scope`, `Assigned Slices`, `Primary Paths`, `Verification Expectations`, `Proof`, `Package Verification Report`, and `Dependencies`. `Notes` is optional.
+`sliceproof.py` mechanically requires `Scope`, `Assigned Slices`, `Primary Paths`, `Verification Expectations`, `Proof`, `Package Verification Report`, and `Dependencies`. `Notes` is optional. `## Acceptance Checklist` is the frozen closed done-definition for the package (see Package Rules); extra sections are allowed.
 
 When Slices exist, replace the `- None.` body with Slice subsections:
 
@@ -121,6 +125,11 @@ When Semgrep is enabled, verification expectations should stay helper-owned and 
   with internal planning/package/staging meaning; legitimate domain, API, SDK, operator, explicit
   developer-diagnostic, or escaped raw user/provider uses are allowed when audience-appropriate.
 - `Must satisfy` IDs are package closure obligations and require proof rows.
+- `## Acceptance Checklist` is the **closed, frozen done-definition** for the package: derive one checklist item
+  per `Must satisfy` obligation and per material verification expectation. Each item is an **executable** check
+  (command, test id, or observable output) unless it carries an explicit human-approved `manual (approved)`
+  exception. The verifier at implementation time checks exactly this list — nothing invented — so it must be
+  concrete and runnable, not aspirational prose.
 - `Context only` IDs are required reading/context; do not use them to hide package obligations.
 - Every material H3 in the full Slice inventory must be assigned, context-only with a concrete reason, or explicitly approved as deferred/out of scope/rejected.
 - Primary paths are code-root-relative starting points, not hard boundaries.
@@ -144,6 +153,7 @@ When Semgrep is enabled, verification expectations should stay helper-owned and 
 
 - Registry contains package assignment or evidence details.
 - Package Markdown omits a required section or declared proof/report path.
+- A package omits `## Acceptance Checklist`, or a checklist item is neither an executable check nor a human-approved `manual (approved)` exception.
 - A package boundary hides a material Slice obligation.
 - Verification expectations are generic boilerplate, omit visible interface/risk seeds, or imply verifier discovery is limited to planner-declared risks.
 - A package changes externally observable surfaces without identifying them or without an audience-language/leakage verification expectation.

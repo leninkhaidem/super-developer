@@ -34,6 +34,10 @@ rules are required; do not preload references merely because they are named.
 - Registry is bookkeeping only; package Markdown owns assignment, proof Markdown owns closure
   evidence, and reports own independent verification receipts.
 - Package boundaries must keep material requirements observable to agents reading files cold.
+- The plan defines **done** objectively: the planner authors an executable feature-level `## Acceptance` in
+  `SPEC.md` and a per-package `## Acceptance Checklist`, executable-by-default with explicit human-approved
+  `manual (approved)` exceptions. If no runnable build/test command backs the checks, surface it before
+  authorization rather than writing unverifiable acceptance.
 - Clean-code rules are a normal planning input: the planner loads/applies
   `../../references/clean-code-rules.md` during package shaping, projects only material implications
   into existing SPEC/package fields, and never creates standalone clean-code proof/report artifacts.
@@ -128,6 +132,7 @@ rules are required; do not preload references merely because they are named.
 ## Output
 
 Return artifact root/ref, code root, feature and artifact paths, packages/dependencies, closure-complexity
-rationale, triggered execution-feasibility profiles, testing-authority provenance, authoritative Slice inventory
-or no-Slice note, approved deferrals, assumptions, validation result, and next step (`review-plan` after
-confirmation unless authorized).
+rationale, the feature `## Acceptance` and per-package Acceptance Checklists (with any `manual (approved)`
+exceptions flagged for user approval), triggered execution-feasibility profiles, testing-authority provenance,
+authoritative Slice inventory or no-Slice note, approved deferrals, assumptions, validation result, and next step
+(`review-plan` after confirmation unless authorized).
