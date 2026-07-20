@@ -16,7 +16,7 @@ Use artifact-root package surfaces, never an assumed code checkout:
 
 - `tasks.json` is registry/bookkeeping only.
 - Package Markdown owns assignment; proof Markdown owns package evidence.
-- The declared package report is the independent verification receipt.
+- The declared package report is the independent lightweight verification result.
 - Assigned Slices are product/design context, not workflow/tool/git/review control text.
 - Package and integration worktrees are separate code roots for source edits and validation.
 
@@ -126,7 +126,7 @@ Do not create worktrees/branches/merges or force-add ignored proof/report artifa
 ## Repair Agent Packet
 
 Include the repair-agent contract path; original SPEC/registry/package/proof/report paths; affected Slice IDs,
-proof rows, matrix rows/evidence anchors, findings, failed observations, and classified rerun scope;
+proof rows, Acceptance Checklist items, findings, failed observations, and classified rerun scope;
 and screened commands with the runtime envelope. Define attempt identity as gate plus finding/command signature
 plus affected surface; state prior attempts, candidate delta, circuit state, and bounded scope. A changed
 strategy may authorize a bounded probe with a distinct identity/expected signal while the circuit stays open.
@@ -140,7 +140,7 @@ Required first reads: `plugins/super-developer/skills/implement/references/packa
 paths, reviewed code/ref, `SELF_REVIEW`, verification outputs, and optional Semgrep bindings. Require
 verifier-owned triggered risk selection from scope, Slices, changed code/diff, tests, expectations, and
 known failure modes; planner seeds do not limit verifier discovery. Require a concise PASS/FAIL report with the
-Test Review Scope; missing old-shape receipts must be refreshed, not bypassed. The verifier reads files directly
+Acceptance Checklist Result and blocking/advisory findings; refresh a malformed report rather than bypass it. The verifier reads files directly
 and writes the report without hidden chat context.
 
 ## Orchestrator Edit Boundary

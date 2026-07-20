@@ -32,9 +32,10 @@ For each returned package:
 5. Prefer committing/stabilizing the package branch before holistic package verification so a `PASS` report binds directly to an exact commit/ref. Do not commit ignored `.tasks` proof/report artifacts.
 6. Run one holistic package verifier for every returned package. Use `plugins/super-developer/skills/implement/references/package-verification.md` as the verifier contract; dispatch through the verifier packet in `plugins/super-developer/skills/implement/references/package-dispatch.md`.
 7. Store the verifier PASS/FAIL report at the declared artifact-root report path such as
-   `.tasks/<feature>/reports/<WP-ID>.package-verification.md`. The report must bind artifact evidence to
-   the reviewed package code state and contain the verifier-owned canonical `### Test Review Scope` receipt for that package-owned reviewed delta.
-8. Reject missing, failed, stale, schema-mismatched, placeholder, dirty-matrix, test-scope-omitting, or pre-repair package verification reports; reports without the required receipt must be refreshed with no bypass.
+   `.tasks/<feature>/reports/<WP-ID>.package-verification.md`. The report records the Acceptance Checklist
+   Result bound to the reviewed package code state, with blocking/advisory findings and the reviewed worktree/ref/commit.
+8. Reject missing, failed, placeholder, or pre-repair package verification reports, or any report whose
+   Acceptance Checklist Result cannot be resolved to real evidence; refresh rather than bypass.
 9. Run the pre-done completion helper after the report exists and before accepting/merging as complete,
    marking `done`, unlocking dependents, or final readiness handoff:
 
@@ -71,35 +72,33 @@ A Slice plan defect is any package/repair/verifier report showing assigned Slice
 
 Slice plan defects are blockers, not advisory notes. Resolve by projecting the requirement into normal plan artifacts, recording explicit user-approved scope/override metadata, or correcting Slice/package assignment state. Do not accept PASS package verification, mark `done`, or unlock dependents while unresolved.
 
-## Report Shape and Freshness
-Package verification reports use the source-aligned shape from `plugins/super-developer/skills/implement/references/package-verification.md`: `## Package Verification: <WP-ID>` with H3 `Verdict`, `Deliverable Completeness Matrix`, `Triggered Risk Selection Notes`, `Test Review Scope`, `Slice Closure Review`, `Code Review Findings`, and failure-only `Blocking Findings` / `Repair Guidance`. If lifecycle metadata is kept, add it separately as `## State Binding` after the source report body.
+## Report Shape and Re-Verification
+Package verification reports use the lightweight shape from `plugins/super-developer/skills/implement/references/package-verification.md` and `plugins/super-developer/references/package-verification-report.md`: `## Package Verification: <WP-ID>` with `### Verdict`, `## Acceptance Checklist Result`, `## Blocking findings`, `## Advisory notes`, and `## Reviewed state`. There is no deliverable matrix, test-review receipt, or separate state-binding block.
 
-Apply the shared semantic freshness rubric and keep its rationale in existing orchestrator/proof/report/review
-state, never a new receipt. Binding-only refresh requires identical semantic inputs, claims, and evidence. For
-evidence-only refresh, rebind only when verifier-inspected regenerated evidence has identical bound semantic
-inputs/method and a valid, non-contradictory outcome. Failed, inconclusive, or contradictory evidence routes to
-diagnosis and affected verification, never PASS rebinding. Bounded production, test/oracle/harness,
-proof/report-claim, population, or contract changes may use focused verification. Material, unbounded, sensitive,
-shared, or uncertain population or contract changes, and cross-package changes, require full verification.
-`must_satisfy` drift and malformed bindings fail closed; `context_only_slice_drift` remains non-blocking
-classification input by default.
+After a blocking repair, re-verify delta-only: re-check only the Acceptance Checklist items whose evidence the
+repair diff touched, plus a fresh build/lint/test run, then rewrite the report for the repaired state. A repair
+does not invalidate checklist items its diff did not touch. Widen to a full re-verification only when the repair
+changed the package's public contract or its scope genuinely cannot be bounded. `context_only_slice_drift`
+remains a non-blocking advisory by default.
 
 ## Rejection and Repair
-Reject failed code/proof/verification/plan/artifact handling; keep incomplete while proof, findings, repair, or freshness remain open.
-Before repair, record identity, prior outcome, and unresolved state. Treat impact as provisional and apply the
-shared lifecycle semantic-closure rules; a dependency edge, failure, commit, or merge ancestry alone is not
-staleness. A changed diagnostic strategy may authorize a bounded probe while the circuit stays open.
-For confirmed in-scope findings:
-1. map the finding to named packages/Slices/rows/evidence/contracts and classify boundedness;
+Only **blocking** findings — correctness, security, data-loss, contract-break — reject a package and trigger
+repair; everything else is advisory, recorded in the report and never looped. Keep a package incomplete while
+proof, a blocking finding, or a repair remains open.
+Before repair, record identity, prior outcome, and unresolved state. A dependency edge, failure, commit, or merge
+ancestry alone is not a reason to re-verify unaffected work. A changed diagnostic strategy may authorize a bounded
+probe while the circuit stays open.
+For confirmed blocking findings:
+1. map the finding to named packages/Slices/checklist items/evidence/contracts and classify boundedness;
 2. batch compatible findings and delegate a fresh repair agent with identity and progress requirement;
-3. after code repair, reclassify the actual repair diff through semantic closure and invalidate newly affected
-   report/matrix/bindings before refreshing proof/command evidence;
-4. refresh affected proof/command evidence and run `validate-proof`; reclassify the final
-   code/proof/command-evidence state to semantic closure, repeating steps 3–4 for newly affected surfaces until stable;
-5. only then run fresh focused package verification when carried inputs remain unchanged and impact is bounded;
-   widen when reuse cannot be confirmed or shared lifecycle criteria require it. The verifier writes the fresh
-   report, matrix, and bindings; the orchestrator never rewrites verifier-owned report or proof state;
+3. after code repair, re-check only the checklist items the repair diff touched, plus a fresh build/lint/test run,
+   before refreshing proof/command evidence;
+4. refresh affected proof/command evidence and run `validate-proof`;
+5. run fresh delta-only package verification for the touched items; widen only when the repair changed the
+   package's public contract or its scope cannot be bounded. The verifier writes the fresh
+   report; the orchestrator never rewrites verifier-owned report or proof state;
 6. only after the fresh verification report, run `validate-package-complete`.
+At most 3 repair attempts per blocking finding-cluster, then stop and notify the user with a precise summary.
 Open the circuit before unchanged work, uncertain termination/cleanup, invalid readiness, or no progress; diagnostic probes do not close it. Reset only after a relevant material state/evidence/strategy delta closes or narrows the gate, changes ownership, or yields decisive evidence, then run the smallest confirmation. Attempt renaming, status/report metadata, or a changed commit alone is not progress. While open, stop affected execution; stop for authority, scope, safety, external facts, or risk.
 
 ## Conflict Handling
@@ -111,7 +110,7 @@ Before moving to final `review-code` and `audit`, every package must have:
 
 - valid proof Markdown with no unresolved `GAP`, `OPEN`, `TODO`, unapproved `DEFERRED`, or unsupported `N/A`;
 - required command/manual evidence recorded in proof Markdown;
-- fresh PASS package verification report with clean matrix and canonical Test Review Scope receipt for the package-owned reviewed delta, bound to current proof/package/Slice/code state;
+- fresh PASS package verification report whose Acceptance Checklist Result reconciles with the current proof/package/Slice/code state and carries no open blocking finding;
 - clean `validate-package-complete` for the current package state;
 - no unresolved Slice plan defects;
 - integration worktree clean for the intended final state;
@@ -135,8 +134,8 @@ python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-final \
 ```
 
 Freeze exact integrated-code, artifact, and runtime-evidence inputs consumed by final checks.
-Run sibling final `review-code`/`audit` against it; outputs are not freeze inputs. Any frozen-input change invalidates the binding.
-Classify freshness to select rebind, evidence-focused, focused, or full work, then establish a new freeze before affected final checks.
+Run sibling final `review-code`/`audit` against it; outputs are not freeze inputs.
+After a blocking repair, re-run only the affected checks plus the feature Acceptance, then establish a new freeze before affected final checks.
 
 After review-code readiness and final audit PASS are recorded in the artifact root, run the final sidecar
 checkpoint through the `worktree` skill before target merge/cleanup eligibility. This checkpoint pushes only
@@ -147,4 +146,4 @@ Declare readiness only when package evidence, review-code readiness, and final a
 same integrated state.
 
 ## Status Output
-Status summaries should include package ID/title, proof path and validation result, package verification report path, matrix cleanliness, `validate-package-complete` result as mechanical signals only, package branch/worktree, integration state, Slice plan-defect status, repair/follow-up state, next gate, and any blockers.
+Status summaries should include package ID/title, proof path and validation result, package verification report path, Acceptance Checklist Result, `validate-package-complete` result as mechanical signals only, package branch/worktree, integration state, Slice plan-defect status, repair/follow-up state, next gate, and any blockers.

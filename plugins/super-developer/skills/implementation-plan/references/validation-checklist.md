@@ -28,7 +28,7 @@ Do not create or overwrite `.tasks/<feature-name>/` artifacts until all applicab
   credible bounded probe or broad-only justification, broad-check placement, testing-authority provenance,
   and a spike/replan trigger. Cost or breadth alone does not trigger a profile.
 - Visible interface contracts preserve exact interfaces and forbidden behaviors in package scope/verification text.
-- Package verification expectations seed obvious interface/risk evidence without boilerplate and without limiting verifier-selected emergent triggered-risk rows.
+- Package verification expectations seed obvious interface/risk evidence without boilerplate and without limiting verifier-selected emergent blocking findings.
 - Packages that create or change externally observable surfaces identify them and require
   surface-appropriate verification that delivered UI, CLI, API responses/errors, docs,
   operator logs, exports, SDK examples, prompts, or templates use audience/domain language
@@ -65,7 +65,7 @@ Do not create or overwrite `.tasks/<feature-name>/` artifacts until all applicab
   edge/failure/default/security/privacy/data/concurrency/performance/lifecycle/audience-surface
   cases or state why not applicable; triggered execution-feasibility profiles are repo-backed and leave exact
   runtime budgets to the resolved testing authority.
-- Each expectation is written so package verification can map it to a stable deliverable-matrix `VE-<n>` row; linked Slice rows may share evidence but do not erase the `VE-<n>` source.
+- Each expectation maps to a concrete `## Acceptance Checklist` item so package verification can check it directly; a linked Slice obligation may share the same check.
 - Known risks such as interactive UI, retry/fail-closed, trigger precedence, lifecycle/restart/reaper, cache invalidation, model/default precedence, generated defaults, and state pollution are seeded when applicable.
 - Planning text says planner seeds do not limit verifier discovery and verifiers must inspect package scope, assigned Slices, changed code/diff, tests, and known failure modes.
 - When Semgrep is enabled, expectations use helper `retrieve` and

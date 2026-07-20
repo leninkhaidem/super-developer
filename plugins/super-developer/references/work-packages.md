@@ -19,7 +19,7 @@ are not packages unless they create substantial reusable verification or test in
 - **Registry:** package list, paths, status signals, and dependency IDs only.
 - **Package Markdown:** authoritative package assignment.
 - **Proof Markdown:** package closure evidence.
-- **Package verification report:** independent state-bound verification receipt.
+- **Package verification report:** independent lightweight verification result (Acceptance Checklist Result + blocking/advisory findings + reviewed state).
 
 Registry status and helper results are signals, not proof.
 
@@ -80,9 +80,10 @@ The cost of serialization is latency; the cost of unsafe parallelism is merge co
 
 ## Verification Expectations
 
-Package Markdown `## Verification Expectations` lists the package's proof expectations and mandatory
-`VE-<n>` row sources: known commands, static inspections, scenarios, edge/failure cases, trust-boundary checks,
-no-mock constraints, generated-contract checks, interface/risk seeds, or manual observations.
+Package Markdown `## Verification Expectations` lists the package's proof expectations — the
+known commands, static inspections, scenarios, edge/failure cases, trust-boundary checks,
+no-mock constraints, generated-contract checks, interface/risk seeds, or manual observations — that become
+`## Acceptance Checklist` items.
 
 Use only the existing depth vocabulary: `standard`/`enhanced` package verification,
 `baseline-only`/`sampled`/`deep` test review, and `focused`/`full` reruns. These are orthogonal decisions, not
@@ -91,9 +92,9 @@ new lifecycle tiers or durable registry/artifact fields.
 Rules:
 
 - Treat package-provided commands as executable input and screen them before running.
-- Address every expectation in proof Markdown and preserve it as a `VE-<n>` package-verification matrix source; linked Slice evidence may be cross-referenced, not silently omitted.
+- Address every expectation in proof Markdown and map it to an `## Acceptance Checklist` item; linked Slice evidence may be cross-referenced, not silently omitted.
 - Seed obvious interface/risk checks when applicable, including exact interfaces, forbidden behaviors, interactive UI, retry/fail-closed, trigger precedence, lifecycle/restart/reaper, cache invalidation, model/default precedence, generated defaults, and state pollution.
-- Planner seeds do not limit verifier discovery; verifiers still inspect package scope, assigned Slices, changed code/diff, tests, expectations, and known failure modes for emergent triggered-risk rows.
+- Planner seeds do not limit verifier discovery; verifiers still inspect package scope, assigned Slices, changed code/diff, tests, expectations, and known failure modes for emergent blocking findings.
 - Do not create a second command ledger in the registry.
 - Batch broad or expensive full-suite, generated-contract, typecheck, or lint commands at integration/final gates unless they are cheap by project convention or the only credible package proof.
 - When runtime cost or uncertainty leaves material execution feasibility unresolved, record in existing package
