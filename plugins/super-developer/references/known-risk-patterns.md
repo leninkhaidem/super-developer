@@ -37,6 +37,7 @@ This is a probe library only; do not persist these prompts as registry fields or
 ## Use
 
 Scan probes against package scope, assigned Slices, verification expectations, changed code/diff/tests, and
-runtime observations. Verifiers add only applicable probes as deliverable-matrix triggered-risk rows with explicit
-`RISK-<...>` IDs and rationale/disposition. Note nearby high-signal non-applicable probes concisely; omit the rest
-instead of creating durable checklist noise.
+runtime observations. Verifiers raise only applicable probes that reveal a real blocking finding
+(correctness/security/data-loss/contract-break) or a missed Acceptance Checklist obligation; everything else is
+an advisory note. Mention nearby high-signal non-applicable probes concisely; omit the rest instead of creating
+durable noise.

@@ -14,9 +14,9 @@ Run bounded review; route report/actions by mode.
 
 - Select exactly one mode: PR, local, or planned-feature pipeline.
 - Keep PR/local review separate from Slice/proof/report/audit obligations unless pipeline artifacts are in scope.
-- Pipeline review binds artifact-root evidence to one frozen integrated state; deliverable matrices are context
-  only for freshness, seams, contradictions, and proof/report invalidation, not a third deliverable-completeness gate.
-- `CLEAN` means no confirmed serious review-code findings remain for the reviewed state; it is not audit PASS, proof acceptance, or merge readiness.
+- Pipeline review checks one frozen integrated state for integration correctness (seams, shared contracts,
+  coherence). It trusts fresh package-local verification and is not a whole-feature completeness gate.
+- `CLEAN` means no open blocking finding remains for the reviewed state; it is not audit PASS or merge readiness.
 - Main agent owns orchestration, state gates, reports, and action routing; semantic review/role work happen through dispatched sub-agents. No mutation until the active mode allows it.
 - Revalidate reviewed-state metadata before posting, fixing, committing, evidence refresh, or audit-context handoff.
 
@@ -24,10 +24,9 @@ Run bounded review; route report/actions by mode.
 
 1. PR mode: PR URL, `owner/repo#N`, or `#N` in repo context → load `references/pr-workflow.md`. PR mode is review-only for code changes.
 2. Local mode: no pipeline context and no PR identifier → load `references/local-workflow.md`.
-3. Pipeline mode: feature context plus artifact root, SPEC, registry, package/proof/report artifacts, and
-   integrated code worktree state → load `references/pipeline-report.md`. Load and pass
-   `../../references/package-verification-report.md`. Pass `../../references/package-lifecycle.md` as a labeled
-   path, but load it only when proof/report freshness or non-bypass routing is disputed.
+3. Pipeline mode: feature context plus artifact root, SPEC (including `## Acceptance`), registry, package
+   Markdown with Acceptance Checklists, package result reports, and integrated code worktree state → load
+   `references/pipeline-report.md`.
 4. Before reviewer dispatch, capture immutable refs/SHAs, worktree or PR identity, diff checksum or saved
    diff, file list/status, artifact root, code root, and mode artifact context.
 
@@ -35,24 +34,20 @@ Run bounded review; route report/actions by mode.
 
 - Build a compact manifest: core/runtime, public contracts, generated/schema/config, proof-critical tests, fixtures/snapshots, docs/tooling.
 - Use semantic batching when the diff is about 2,000+ lines, many files, mixed domains, generated churn, or too broad for one coherent review.
-- Split by package, module, seam, or risk surface; never by arbitrary line chunks.
-- Keep source and tests that prove the same behavior together when practical.
+- Split by package, module, seam, or risk surface (never arbitrary line chunks); keep source and tests that prove the same behavior together when practical.
 - For low-risk generated/docs/snapshots/repetitive fixtures, verify provenance or sample with the owning surface.
-- Per batch: preserve mode metadata, run bounded topology, assign stable dedupe keys, and merge all verdict types into one cross-batch set.
-- After batches, run one global integration pass for duplicates, conflicting recommendations, cross-batch serious risks, and seam issues.
-- Reopen reviewer fanout only when batch boundaries cannot preserve confidence.
-- Run one default Code Reviewer sub-agent for each diff or semantic batch.
-- Add at most one specialist only when the diff/evidence triggers a sensitive surface: security/privacy/safety;
+- Per batch preserve mode metadata, run bounded topology, assign stable dedupe keys, and merge verdicts into one cross-batch set; after batches, run one global integration pass (duplicates, conflicting recommendations, cross-batch serious risks, seam issues), reopening fanout only when batch boundaries cannot preserve confidence.
+- Run one default Code Reviewer sub-agent per diff/batch; add at most one specialist only when the diff/evidence triggers a sensitive surface: security/privacy/safety;
   data/persistence/change-safety; performance/concurrency; or public-contract/architecture/integration.
 - Add Skeptic only for serious findings, risky-clean coverage, cross-batch serious conflicts, or required mode gates. Caps include Skeptic: normal 2, risky 3.
-- Resolve reviewer model only when local policy matters: `../../references/model-preferences.md`.
-  Pass `../../references/clean-code-rules.md`; do not load it in the orchestrator.
-- For changed test-relevant surfaces, use only baseline-only, sampled, or deep scope with rationale and typed evidence; `not-reviewed`/`unreviewed` cannot support clean. Pipeline mode validates each fresh package `### Test Review Scope` receipt against its package-owned reviewed delta, reconciles the union of fresh package receipts against the integrated diff, and separately classifies/reviews integration-only or merge-resolution test-relevant changes. Widen only for canonical triggers/anomalies rather than rereviewing clean package-local tests.
-- In pipeline mode, add Slice-first context from the artifact root: package IDs, proof/report paths,
-  matrix source IDs/evidence anchors/source bindings, Slice/H3 IDs, verification results/advisories,
-  Semgrep evidence when enabled or contracted, risks, deferred concerns, ownership, and the separate integrated code state. Route `context_only_slice_drift` through affected-surface classification as non-blocking by default unless reviewer judgment escalates material risk.
-- Pipeline final review is integration-first: trust fresh package-local verification. Reopen local code only for
-  a seam, integration-only change, contradiction, stale report, invalidated matrix, or triggered serious risk.
+- Resolve reviewer model only when local policy matters (`../../references/model-preferences.md`); pass `../../references/clean-code-rules.md` without loading it in the orchestrator.
+- For changed test-relevant surfaces, confirm the change is covered by a check that actually ran; do not
+  impose receipt-grammar ceremony. Trust clean package-local verification and review the integrated test delta
+  for seam coverage only.
+- In pipeline mode, add Slice-first artifact-root context (package IDs, result report paths, Slice/H3 IDs,
+  Acceptance Checklist results, integrated code state) and stay integration-first: trust fresh package-local
+  verification; reopen local code only for a real seam problem, contradiction, or a package result reporting an
+  open blocking finding. Route product/design Slice drift as advisory unless it is a real integration contradiction.
 
 ## Coverage Gate
 
@@ -74,16 +69,22 @@ Skeptic/stronger review only for high-risk unresolved coverage.
 
 ## Findings, Skeptic, and Suggestions
 
-Severity:
+Severity (two tiers — the bar):
 
-- 🔴 **BLOCKER** — must resolve before merge/commit/audit handoff: correctness, security, privacy, safety, data loss, integrity, or required-evidence failure.
-- 🟠 **CRITICAL** — material maintainability, brittleness, operational, regression, completion-confidence,
-  or future-modification risk backed by concrete evidence before readiness.
-- 🟡 **SUGGESTION** — non-blocking, report-only, actionable, diff-relevant, deduplicated, repo-grounded;
-  optional style/taste concerns stay here only when useful, otherwise omit them.
+- 🔴 **BLOCKING** — must resolve before merge/commit/audit handoff: correctness, security, privacy, safety,
+  data loss, integrity, or a broken stated contract. Only these trigger a fix loop.
+- 🟡 **ADVISORY** — everything else: maintainability opinions, brittleness, style, taste, non-blocking
+  regressions with no evidence of a real defect. Report-only; never blocks, never starts a fix loop.
 
-Clean-code findings require material evidence, not taste. Downgrade or exclude preferences that do not show
-brittleness, change-cost, caller-contract, safety/security/data, completion-confidence, or future-modification risk.
+A finding is blocking only when it makes the software wrong, unsafe, lose data, or break a stated contract.
+Do not manufacture blockers from taste or speculative completeness.
+
+**Over-engineering lens:** flag complexity not traced to an accepted requirement or the `## Acceptance` criteria
+— speculative abstraction, unused extensibility, needless layers/config/flags, or premature optimization. Report
+it as 🟡 **ADVISORY** by default; escalate to 🔴 **BLOCKING** only when the excess creates a real
+correctness/security/data/contract risk. Do not demand rewrites of working, right-sized code, and do not treat
+simplicity itself as a defect — under-engineering (missing validation, error handling, or tests) is a separate
+finding.
 
 Internal fields: severity, tags, location, title, evidence, artifact refs, introduced-by-change, planned signal, recommendation, dedupe key, Skeptic verdict,
 suggestion actionability, fix status.
@@ -95,10 +96,10 @@ reason. Verbose rows are optional.
 Documented intent disputes only non-security/privacy/safety findings; real security/privacy/safety risks stay confirmed. Test-only scope disputes serious
 findings unless it masks production regression. Planned-requirement claims require artifact evidence; review-code is not final audit.
 
-Only `CONFIRMED` 🔴/🟠 findings are reportable as serious or fixable. `DISPUTED` findings are excluded. `DOWNGRADED` findings may appear only as actionable 🟡
+Only `CONFIRMED` 🔴 blocking findings are reportable as blocking or fixable. `DISPUTED` findings are excluded. `DOWNGRADED` findings may appear only as 🟡 advisory
 suggestions.
 
-Suggestions are report-only and never start a separate fix loop. Auto-fix at most 1–3 per batch only when bundled with an approved 🔴/🟠 fix, same
+Suggestions are report-only and never start a separate fix loop. Auto-fix at most 1–3 per batch only when bundled with an approved 🔴 fix, same
 file/symbol/root cause, behavior-preserving, no public/API/schema/config/permission/persistence/error/test/user-visible change, no extra surface, and optional
 to closing the serious finding.
 
@@ -107,7 +108,7 @@ surface, and choice needs product/architecture authority. Otherwise delegate una
 
 ## Report Template
 
-Render one Markdown body, not inline diff comments: header, optional verdict, finding counts, file/line counts, metadata, then 🔴/🟠/🟡 sections. Each finding
+Render one Markdown body, not inline diff comments: header, optional verdict, finding counts, file/line counts, metadata, then 🔴/🟡 sections. Each finding
 needs title, `Path`, evidence, and recommendation/tradeoffs. Omit empty sections; if all empty, render `No issues found. ✅`.
 
 Footer states bounded review and Skeptic verification for serious findings, plus mode footer. Never
@@ -120,30 +121,28 @@ Every review-owned local/pipeline repair passes `references/fix-implementer-cont
 Implementer; PR mode has no fix path. A caller-owned local repair contract takes precedence and receives the
 approved packet/action instead. Main may apply only trivial behavior-preserving mechanical edits and explain why.
 
-After a delegated fix batch, run Fix Verification as a fresh role/sub-agent closure gate, not second
-discovery. Inputs: original findings, Fix Implementer report, pre/post metadata, batch boundaries,
-constraints, target paths, relevant proof/report context, and enough code to verify the delta.
+After a delegated fix batch, run Fix Verification as a fresh closure gate, not second discovery. Inputs:
+original blocking findings, Fix Implementer report, pre/post metadata, target paths, and enough code to verify
+the delta.
 
-Return per dedupe key: `dedupe_key`, `verdict: closed|partially_closed|not_closed|reopened`, evidence, remaining risk, and `next_action: none|same_scope_fix|widened_verification|full_rereview|authority_boundary`. Also include generic affected-surface impact classification, triggers, and readiness: `ready_for_audit`, `needs_fix`, `needs_widened_review`, or `needs_user_authority`.
+Re-check **only the affected seam and the checks the fix diff touched**, plus the feature Acceptance checks.
+Return per finding: `verdict: closed|not_closed|reopened`, evidence, and `next_action:
+none|same_scope_fix|authority_boundary`. A fix does not invalidate package results or checks it did not touch.
 
-Classify packages, Slice H3s, validation advisories, artifact-root proof/report/matrix rows, source bindings,
-evidence anchors, contracts, integration seams, safety/security/privacy/data surfaces, and whether impact is bounded. Named
-triggers: `scope_expansion`, `public_api_or_schema_change`, `sensitive_risk_surface`,
-`cross_package_impact`, `proof_invalidation`, `large_delta`, `non_closed_verdict`. Report new issues only
-when they are fix-introduced serious regressions or explain a concrete trigger.
-
-Non-closed findings, serious regressions, unresolved triggers, stale state, or dirty pipeline proof/report/matrix evidence block readiness. Do not run full rereview solely because any new commit exists; rerun targeted checks when impact is narrow/bounded and broaden only when affected surfaces cannot be isolated. Do not repeat the same prompt with more tokens; change agent strength, scope split, evidence requirement, specialist lens, or verification seam.
+At most 3 attempts per blocking finding-cluster. On non-convergence, hand back a precise summary for the main
+agent to surface to the user — do not loop. Do not run a full re-review because a commit exists. Do not repeat
+the same prompt with more tokens; change agent strength, scope split, or verification seam.
 
 ## Stop if
 
 - Mode ambiguity changes side-effect authority.
-- PR/local review is asked to satisfy planned-feature proof/report/audit gates, or pipeline review is asked to own full deliverable completeness; switch/stop at the owning gate.
+- PR/local review is asked to satisfy planned-feature audit gates, or pipeline review is asked to own
+  whole-feature completeness; switch/stop at the owning gate.
 - Reviewed state is stale, broadened, ambiguous, or not bound to the requested action.
-- A serious finding lacks Skeptic verdict or required lens coverage is weak.
+- A blocking finding lacks Skeptic verdict or required lens coverage is weak.
 - A fix requires product/design choice, scope expansion, new dependency/service, unsafe command, credentials, external facts, destructive action, or risk
   acceptance.
-- Pipeline artifact-root proof/report/Semgrep-evidence freshness, review-code state, package verification
-  rerun need, unrouted validation advisory, or widened verification is missing/stale/contradictory/uncertain.
+- A blocking seam finding will not converge within 3 attempts.
 
 ## Output
 Return the mode report, verdict, allowed next actions, and blocked readiness reason. In pipeline mode, state whether review-code is audit-ready; never state

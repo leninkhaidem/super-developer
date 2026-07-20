@@ -113,7 +113,7 @@ Pipeline:
 10. finish repairs; run focused/integrated checks and finalize runtime evidence/cleanup
 11. run root-aware final validation; freeze integrated-code/artifact/runtime-evidence inputs
 12. invoke `review-code` and `audit` as sibling checks; their outputs are not freeze inputs
-13. batch findings, delegate repairs; after any frozen-input change, classify work and establish a new freeze
+13. batch blocking findings, delegate bounded repairs; re-run only the affected checks, then establish a new freeze
 14. after clean review-code/audit acceptance, checkpoint artifacts and push the feature branch as covered
 
 Stop conditions:

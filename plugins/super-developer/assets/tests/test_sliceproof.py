@@ -77,7 +77,6 @@ class SliceproofFixture:
         self.package_dir = self.feature_dir / "packages"
         self.proofs_dir = self.feature_dir / "proofs"
         self.reports_dir = self.feature_dir / "reports"
-        self.semgrep_dir = self.feature_dir / "semgrep"
         self.slice_dir = self.artifact_root / ".planning" / "fixture" / "slices"
         self.package_path = self.package_dir / "WP1.md"
         self.proof_path = self.proofs_dir / "WP1.proof.md"
@@ -88,7 +87,6 @@ class SliceproofFixture:
         self.package_dir.mkdir()
         self.proofs_dir.mkdir()
         self.reports_dir.mkdir()
-        self.semgrep_dir.mkdir()
         self.slice_dir.mkdir(parents=True)
         self.evidence_asset = self.repo / "plugins" / "super-developer" / "assets" / "sliceproof.py"
         self.evidence_test = self.repo / "plugins" / "super-developer" / "assets" / "tests" / "test_sliceproof.py"
@@ -98,7 +96,7 @@ class SliceproofFixture:
         self.evidence_asset.write_text("def validate_plan():\n    pass\n\ndef validate_proof():\n    pass\n", encoding="utf-8")
         self.evidence_test.write_text("def test_validate_plan_accepts_valid_registry_package_slice_fixture():\n    pass\n", encoding="utf-8")
         self.evidence_ref.write_text("# Tool Usage\n\n## sliceproof.py\n", encoding="utf-8")
-        (self.feature_dir / "SPEC.md").write_text("# Fixture Spec\n", encoding="utf-8")
+        (self.feature_dir / "SPEC.md").write_text(self.spec_text(), encoding="utf-8")
         self.slice_path.write_text(self.slice_text(), encoding="utf-8")
         self.package_path.write_text(self.package_text(), encoding="utf-8")
         self.write_plan(self.plan())
@@ -170,6 +168,17 @@ class SliceproofFixture:
     def write_plan(self, plan: dict) -> None:
         self.tasks_path.write_text(json.dumps(plan, indent=2), encoding="utf-8")
 
+    def spec_text(self) -> str:
+        return textwrap.dedent(
+            """
+            # Fixture Spec
+
+            ## Acceptance
+            - AC-1: helper validates the fixture plan — check: `sliceproof.py validate-plan` — expected: exit 0.
+            - AC-2: helper validates completed proofs — check: `sliceproof.py validate-proof` — expected: exit 0.
+            """
+        ).lstrip()
+
     def slice_text(self) -> str:
         return textwrap.dedent(
             """
@@ -213,6 +222,7 @@ class SliceproofFixture:
         must_id: str | None = "HELPER-PLAN-001",
         context_id: str | None = "HELPER-CONTEXT-003",
         primary_paths: list[str] | None = None,
+        acceptance_checklist: str | None = None,
     ) -> str:
         must_line = (
             "- Registry and package references validate mechanically"
@@ -245,6 +255,16 @@ class SliceproofFixture:
                 - `sliceproof.py validate-proof` fails placeholders and passes completed proof.
                 """
             ).strip(),
+            "Acceptance Checklist": (
+                acceptance_checklist
+                if acceptance_checklist is not None
+                else textwrap.dedent(
+                    """
+                    - AC-1: registry and package references validate mechanically — check: `sliceproof.py validate-plan` — expected: exit 0.
+                    - AC-2: completed proofs validate mechanically — check: `sliceproof.py validate-proof` — expected: exit 0.
+                    """
+                ).strip()
+            ),
             "Proof": "- `.tasks/fixture/proofs/WP1.proof.md`",
             "Package Verification Report": "- `.tasks/fixture/reports/WP1.package-verification.md`",
             "Dependencies": "- None.",
@@ -306,203 +326,40 @@ class SliceproofFixture:
             """
         ).lstrip()
 
-    def digest_text(self, text: str) -> str:
-        return "sha256:" + hashlib.sha256(text.encode("utf-8")).hexdigest()
-
-    def package_markdown_digest(self) -> str:
-        return self.digest_text(self.package_path.read_text(encoding="utf-8"))
-
-    def package_markdown(self):
-        return SLICEPROOF.parse_package_markdown(self.package_path, "WP1")
-
-    def registry_package(self):
-        return SLICEPROOF.RegistryPackage(
-            package_id="WP1",
-            path=".tasks/fixture/packages/WP1.md",
-            proof_path=".tasks/fixture/proofs/WP1.proof.md",
-            report_path=".tasks/fixture/reports/WP1.package-verification.md",
-            status="pending",
-            depends_on=[],
-        )
-
-    def assigned_slice_digests(self, assigned_slices: str = ".planning/fixture/slices/helper.md") -> str:
-        if assigned_slices == "none":
-            return "none"
-        return SLICEPROOF.assigned_slice_digests_binding(self.artifact_root, self.package_markdown())
-
-    def matrix_source_snapshot(self, assigned_slices: str = ".planning/fixture/slices/helper.md") -> str:
-        if assigned_slices == "none":
-            package_content = self.package_path.read_text(encoding="utf-8")
-            return self.digest_text(f".tasks/fixture/packages/WP1.md\0{package_content}\0")
-        return SLICEPROOF.matrix_source_snapshot_binding(self.artifact_root, self.registry_package(), self.package_markdown())
-
-    def deliverable_matrix(self, *, assigned_slices: str = ".planning/fixture/slices/helper.md") -> str:
-        rows = [
-            "| Source ID | Row Type | Deliverable | Evidence Type | Evidence Refs | Exactness / Risk Disposition | Verdict |",
-            "|---|---|---|---|---|---|---|",
-        ]
-        if assigned_slices != "none":
-            rows.extend(
-                [
-                    "| HELPER-PLAN-001 | slice | Registry and package references validate mechanically. | mixed | static:plugins/super-developer/assets/sliceproof.py#validate_plan; test:plugins/super-developer/assets/tests/test_sliceproof.py::test_validate_plan_accepts_valid_registry_package_slice_fixture | no interface; fixture plan behavior covered | delivered |",
-                    "| HELPER-PROOF-002 | slice | Proof placeholders and proof closure validate mechanically. | static | static:plugins/super-developer/assets/sliceproof.py#validate_proof | no interface; fixture proof behavior covered | delivered |",
-                ]
-            )
-        rows.extend(
-            [
-                "| VE-1 | verification-expectation | `sliceproof.py validate-plan` succeeds for the valid fixture. | test | test:plugins/super-developer/assets/tests/test_sliceproof.py::test_validate_plan_accepts_valid_registry_package_slice_fixture | expectation covered; no interface | delivered |",
-                "| VE-2 | verification-expectation | `sliceproof.py validate-proof` fails placeholders and passes completed proof. | static | static:plugins/super-developer/assets/sliceproof.py#validate_proof | expectation covered; no interface | delivered |",
-            ]
-        )
-        return "\n".join(rows)
-
-    def test_review_scope(
-        self,
-        *,
-        surface: str = "tests",
-        changed_population: str = "count: 12; scope: sliceproof report-contract tests in test_sliceproof.py",
-        depth: str = "deep",
-        baseline_review: str = "complete: assertions, skip/focus/xfail, paths, state effects, fresh commands, and provenance checked",
-        deep_triggers: str = "triggered: proof-critical contract tests are sole evidence for report validation",
-        selected_exemplars: str = "not-applicable: deep review covered every changed test case",
-        sampling_rationale: str = "not-applicable: deep review covered the full changed population",
-        generated_provenance: str = "not-applicable: hand-authored tests contain no generated output",
-        evidence_refs: str = "test:plugins/super-developer/assets/tests/test_sliceproof.py::test_validate_plan_accepts_valid_registry_package_slice_fixture",
-    ) -> str:
-        return "\n".join(
-            [
-                "| Surface | Changed Population | Review Depth | Baseline Review | Deep Triggers | Selected Exemplars | Sampling Rationale | Generator / Input / Provenance | Evidence Refs |",
-                "|---|---|---|---|---|---|---|---|---|",
-                f"| {surface} | {changed_population} | {depth} | {baseline_review} | {deep_triggers} | {selected_exemplars} | {sampling_rationale} | {generated_provenance} | {evidence_refs} |",
-            ]
-        )
-
     def report_text(
         self,
         proof_text: str | None = None,
         *,
-        verdict: str = "PASS",
-        package_markdown: str = ".tasks/fixture/packages/WP1.md",
-        assigned_slices: str = ".planning/fixture/slices/helper.md",
         worktree: str | None = None,
         git_ref: str | None = None,
         commit: str | None = None,
-        deliverable_matrix: str | None = None,
-        triggered_risk_selection_notes: str = "- Not applicable: fixture helper report has no triggered runtime risk probes.",
-        test_review_scope: str | None = None,
-        slice_closure_review: str | None = None,
-        code_review_findings: str = "- None.",
-        blocking_findings: str | None = "- None.",
-        repair_guidance: str | None = "- None required.",
-        semgrep_evidence: str | None = None,
     ) -> str:
-        if proof_text is None:
-            proof_text = self.proof_path.read_text(encoding="utf-8")
-        digest = self.digest_text(proof_text)
         worktree = str(self.repo.resolve(strict=False)) if worktree is None else worktree
         git_ref = "wp/fixture/WP1" if git_ref is None else git_ref
         commit = REPORT_COMMIT if commit is None else commit
-        if deliverable_matrix is None:
-            deliverable_matrix = self.deliverable_matrix(assigned_slices=assigned_slices)
-        if test_review_scope is None:
-            test_review_scope = self.test_review_scope()
-        if slice_closure_review is None:
-            if assigned_slices == "none":
-                slice_closure_review = "- None."
-            else:
-                slice_closure_review = textwrap.dedent(
-                    """
-                    | Slice ID | Proof status | Evidence sufficient? | Notes |
-                    |---|---|---|---|
-                    | `HELPER-PLAN-001` | `PASS` | yes | Fixture proof closure verified mechanically. |
-                    | `HELPER-PROOF-002` | `PASS` | yes | Fixture proof closure verified mechanically. |
-                    """
-                ).strip()
-        lines = [
-            "## Package Verification: WP1",
-            "",
-            "### Verdict",
-            verdict,
-            "",
-            "### Deliverable Completeness Matrix",
-            deliverable_matrix,
-            "",
-            "### Triggered Risk Selection Notes",
-            triggered_risk_selection_notes,
-            "",
-            "### Test Review Scope",
-            test_review_scope,
-            "",
-            "### Slice Closure Review",
-            slice_closure_review,
-            "",
-            "### Code Review Findings",
-            code_review_findings,
-            "",
-        ]
-        if blocking_findings is not None:
-            lines.extend(["### Blocking Findings", blocking_findings, ""])
-        if repair_guidance is not None:
-            lines.extend(["### Repair Guidance", repair_guidance, ""])
-        lines.extend(
-            [
-                "## State Binding",
-                "Helper/package-lifecycle metadata; the source report body above remains canonical.",
-                f"- Package: `WP1`",
-                f"- Package Markdown: `{package_markdown}`",
-                f"- Package Markdown Digest: `{self.package_markdown_digest()}`",
-                "- Proof: `.tasks/fixture/proofs/WP1.proof.md`",
-                f"- Proof Digest: `{digest}`",
-                f"- Assigned Slices: `{assigned_slices}`",
-                f"- Assigned Slice Digests: `{self.assigned_slice_digests(assigned_slices)}`",
-                f"- Matrix Source Snapshot: `{self.matrix_source_snapshot(assigned_slices)}`",
-                f"- Worktree: `{worktree}`",
-                f"- Git Ref: `{git_ref}`",
-                f"- Commit: `{commit}`",
-                "- Verified At: `2026-06-04T00:00:00Z`",
-                "",
-            ]
-        )
-        if semgrep_evidence is not None:
-            lines.extend(["## Semgrep Evidence", semgrep_evidence, ""])
-        return "\n".join(lines)
-
-    def write_semgrep_evidence(self, stem: str = "WP1") -> tuple[str, str, str, str]:
-        raw = self.semgrep_dir / f"{stem}.semgrep.json"
-        summary = self.semgrep_dir / f"{stem}.semgrep-summary.json"
-        raw.write_text('{"errors": [], "results": []}\n', encoding="utf-8")
-        raw_digest = hashlib.sha256(raw.read_bytes()).hexdigest()
-        summary_data = {
-            "raw_digest": raw_digest,
-            "result_count": 0,
-            "scan_errors": [],
-            "severity_counts": {},
-            "semgrep_severity_is_advisory": True,
-        }
-        canonical = json.dumps(summary_data, sort_keys=True, separators=(",", ":")).encode("utf-8")
-        summary_digest = hashlib.sha256(canonical).hexdigest()
-        summary_data["summary_digest"] = summary_digest
-        summary.write_text(json.dumps(summary_data, sort_keys=True), encoding="utf-8")
-        return (
-            f".tasks/fixture/semgrep/{stem}.semgrep.json",
-            raw_digest,
-            f".tasks/fixture/semgrep/{stem}.semgrep-summary.json",
-            summary_digest,
-        )
-
-    def semgrep_evidence_text(self, *, stem: str = "WP1", raw_digest: str | None = None, summary_digest: str | None = None) -> str:
-        raw_path, actual_raw_digest, summary_path, actual_summary_digest = self.write_semgrep_evidence(stem)
         return textwrap.dedent(
             f"""
-            - Status: `enabled`
-            - Raw Path: `{raw_path}`
-            - Raw Digest: `{raw_digest or actual_raw_digest}`
-            - Summary Path: `{summary_path}`
-            - Summary Digest: `{summary_digest or actual_summary_digest}`
-            - Scan Scope: `package WP1 worktree`
-            - Bounded Summary: `helper summarize reported 0 findings and 0 scan errors; no raw JSON was consumed by agents.`
+            ## Package Verification: WP1
+
+            ### Verdict
+            PASS
+
+            ## Acceptance Checklist Result
+            - AC-1: pass — evidence: `sliceproof.py validate-plan` exit 0 in unittest fixture.
+            - AC-2: pass — evidence: `sliceproof.py validate-proof` exit 0 in unittest fixture.
+
+            ## Blocking findings
+            - none
+
+            ## Advisory notes
+            - none
+
+            ## Reviewed state
+            - Worktree: `{worktree}`
+            - Git Ref: `{git_ref}`
+            - Commit: `{commit}`
             """
-        ).strip()
+        ).lstrip()
 
     def write_completed_proof_and_report(self) -> None:
         proof = self.completed_proof()
@@ -524,7 +381,6 @@ class SliceproofFixture:
             "HELPER-PIPE-004": "Proof rows preserve table content",
             "HELPER-INTERFACE-005": "Interface-bearing rows require exactness",
         }
-        package_rel = f".tasks/fixture/packages/{package_id}.md"
         proof_rel = f".tasks/fixture/proofs/{package_id}.proof.md"
         report_rel = f".tasks/fixture/reports/{package_id}.package-verification.md"
         package_path = self.package_dir / f"{package_id}.md"
@@ -554,6 +410,9 @@ class SliceproofFixture:
             "",
             "## Verification Expectations",
             f"- `{package_id}` fixture report validates mechanically.",
+            "",
+            "## Acceptance Checklist",
+            f"- AC-1: {package_id} fixture report validates mechanically — check: `sliceproof.py validate-package-complete` — expected: exit 0.",
             "",
             "## Proof",
             f"- `{proof_rel}`",
@@ -609,74 +468,7 @@ class SliceproofFixture:
             "",
         ]
         proof_path.write_text("\n".join(proof_lines), encoding="utf-8")
-        matrix_rows = [
-            "| Source ID | Row Type | Deliverable | Evidence Type | Evidence Refs | Exactness / Risk Disposition | Verdict |",
-            "|---|---|---|---|---|---|---|",
-        ]
-        matrix_rows.extend(
-            f"| {slice_id} | slice | {titles[slice_id]}. | static | static:plugins/super-developer/assets/sliceproof.py#validate_plan | no interface; fixture row covered | delivered |"
-            for slice_id in must_ids
-        )
-        matrix_rows.append(
-            f"| VE-1 | verification-expectation | `{package_id}` fixture report validates mechanically. | static | static:plugins/super-developer/assets/sliceproof.py#validate_plan | expectation covered; no interface | delivered |"
-        )
-        slice_review_rows = [
-            "| Slice ID | Proof status | Evidence sufficient? | Notes |",
-            "|---|---|---|---|",
-        ]
-        slice_review_rows.extend(
-            f"| `{slice_id}` | `PASS` | yes | Fixture proof closure verified mechanically. |" for slice_id in must_ids
-        )
-        package_md = SLICEPROOF.parse_package_markdown(package_path, package_id)
-        registry_package = SLICEPROOF.RegistryPackage(
-            package_id=package_id,
-            path=package_rel,
-            proof_path=proof_rel,
-            report_path=report_rel,
-            status="pending",
-            depends_on=[],
-        )
-        values = SLICEPROOF.state_binding_values(
-            self.artifact_root,
-            registry_package,
-            package_md,
-            proof_path,
-            worktree=str(self.repo.resolve(strict=False)),
-            git_ref=f"wp/fixture/{package_id}",
-            commit=REPORT_COMMIT,
-            verified_at="2026-06-04T00:00:00Z",
-        )
-        report_lines = [
-            f"## Package Verification: {package_id}",
-            "",
-            "### Verdict",
-            "PASS",
-            "",
-            "### Deliverable Completeness Matrix",
-            *matrix_rows,
-            "",
-            "### Triggered Risk Selection Notes",
-            "- Not applicable: fixture helper report has no triggered runtime risk probes.",
-            "",
-            "### Test Review Scope",
-            self.test_review_scope(),
-            "",
-            "### Slice Closure Review",
-            *slice_review_rows,
-            "",
-            "### Code Review Findings",
-            "- None.",
-            "",
-            "### Blocking Findings",
-            "- None.",
-            "",
-            "### Repair Guidance",
-            "- None required.",
-            "",
-            SLICEPROOF.render_state_binding_block(values).rstrip("\n"),
-            "",
-        ]
-        report_path.write_text("\n".join(report_lines), encoding="utf-8")
+        report_path.write_text(self.report_text(git_ref=f"wp/fixture/{package_id}"), encoding="utf-8")
 
 
 class SliceproofTests(unittest.TestCase):
@@ -1251,300 +1043,6 @@ class SliceproofTests(unittest.TestCase):
         self.assertNotIn("Traceback", write_error.stderr)
         self.assertIn("unable to create directory", "\n".join(json.loads(write_error.stderr)["errors"]))
 
-    def test_validate_final_requires_done_proofs_and_report_binding_fields(self) -> None:
-        self.fixture.write_completed_proof_and_report()
-        not_done = self.fixture.run("validate-final", str(self.fixture.tasks_path))
-        self.assertNotEqual(0, not_done.returncode)
-        self.assertIn("expected 'done'", "\n".join(json.loads(not_done.stderr)["errors"]))
-
-        plan = self.fixture.plan()
-        plan["work_packages"][0]["status"] = "done"
-        self.fixture.write_plan(plan)
-        done = self.fixture.run("validate-final", str(self.fixture.tasks_path))
-        self.assertEqual(0, done.returncode, done.stdout + done.stderr)
-
-        valid_report = self.fixture.report_path.read_text(encoding="utf-8")
-        state_binding_index = valid_report.index("## State Binding")
-        state_binding_first_report = valid_report[state_binding_index:] + "\n" + valid_report[:state_binding_index]
-        verdict_index = valid_report.index("### Verdict")
-        slice_review_index = valid_report.index("### Slice Closure Review")
-        code_review_index = valid_report.index("### Code Review Findings")
-        h3_reordered_report = (
-            valid_report[:verdict_index]
-            + valid_report[slice_review_index:code_review_index]
-            + valid_report[verdict_index:slice_review_index]
-            + valid_report[code_review_index:]
-        )
-        valid_worktree_line = f"- Worktree: `{self.fixture.repo.resolve(strict=False)}`"
-        valid_ref_line = "- Git Ref: `wp/fixture/WP1`"
-        valid_commit_line = f"- Commit: `{REPORT_COMMIT}`"
-        valid_verified_at_line = "- Verified At: `2026-06-04T00:00:00Z`"
-        report_cases = [
-            (
-                "missing package markdown",
-                valid_report.replace("- Package Markdown: `.tasks/fixture/packages/WP1.md`\n", ""),
-                "missing 'Package Markdown'",
-            ),
-            (
-                "wrong package markdown",
-                valid_report.replace(".tasks/fixture/packages/WP1.md", ".tasks/fixture/packages/WP2.md"),
-                "State Binding Package Markdown must be .tasks/fixture/packages/WP1.md",
-            ),
-            (
-                "missing assigned slices",
-                valid_report.replace("- Assigned Slices: `.planning/fixture/slices/helper.md`\n", ""),
-                "missing 'Assigned Slices'",
-            ),
-            (
-                "wrong assigned slices",
-                valid_report.replace(".planning/fixture/slices/helper.md", ".planning/fixture/slices/other.md"),
-                "State Binding Assigned Slices must be .planning/fixture/slices/helper.md",
-            ),
-            (
-                "relative worktree binding",
-                valid_report.replace(valid_worktree_line, "- Worktree: `relative/worktree`"),
-                "State Binding Worktree must be an absolute reviewed worktree path",
-            ),
-            (
-                "state binding before source body",
-                state_binding_first_report,
-                "first report section must be ## Package Verification: WP1",
-            ),
-            (
-                "source h3 sections out of order",
-                h3_reordered_report,
-                "source report sections must appear in order",
-            ),
-            (
-                "invalid commit",
-                valid_report.replace(valid_commit_line, "- Commit: `not-a-commit`"),
-                "State Binding Commit must look like a git commit",
-            ),
-            (
-                "too short commit",
-                valid_report.replace(valid_commit_line, "- Commit: `abc123`"),
-                "State Binding Commit must look like a git commit",
-            ),
-            (
-                "invalid verified at",
-                valid_report.replace(valid_verified_at_line, "- Verified At: `not-a-date`"),
-                "State Binding Verified At must be ISO-8601",
-            ),
-            (
-                "failed verdict",
-                valid_report.replace("### Verdict\nPASS", "### Verdict\nFAIL"),
-                "### Verdict must be PASS for final validation",
-            ),
-            (
-                "invalid verdict spelling",
-                valid_report.replace("### Verdict\nPASS", "### Verdict\npassed"),
-                "### Verdict must be PASS or FAIL",
-            ),
-            (
-                "missing source report body",
-                valid_report.replace("## Package Verification: WP1", "# Package Verification Report: WP1 — Helper behavior"),
-                "missing required section ## Package Verification: WP1",
-            ),
-            (
-                "missing verdict",
-                remove_h3_section(valid_report, "Verdict"),
-                "missing required source section ### Verdict",
-            ),
-            (
-                "missing test review scope",
-                remove_h3_section(valid_report, "Test Review Scope"),
-                "missing required source section ### Test Review Scope",
-            ),
-            (
-                "missing slice closure review",
-                remove_h3_section(valid_report, "Slice Closure Review"),
-                "missing required source section ### Slice Closure Review",
-            ),
-            (
-                "missing code review findings",
-                remove_h3_section(valid_report, "Code Review Findings"),
-                "missing required source section ### Code Review Findings",
-            ),
-            (
-                "slice closure placeholder",
-                valid_report.replace("Fixture proof closure verified mechanically.", "TODO", 1),
-                "### Slice Closure Review contains unresolved TODO/OPEN/GAP marker",
-            ),
-            (
-                "slice closure missing required row",
-                re.sub(r"\n\| `HELPER-PROOF-002` .*", "", valid_report, count=1),
-                "### Slice Closure Review missing required row for HELPER-PROOF-002",
-            ),
-            (
-                "slice closure non-pass proof status",
-                valid_report.replace("| `HELPER-PLAN-001` | `PASS` | yes |", "| `HELPER-PLAN-001` | `DEFERRED` | yes |"),
-                "HELPER-PLAN-001 Proof status must be PASS",
-            ),
-            (
-                "slice closure insufficient evidence",
-                valid_report.replace("| `HELPER-PLAN-001` | `PASS` | yes |", "| `HELPER-PLAN-001` | `PASS` | no |"),
-                "HELPER-PLAN-001 Evidence sufficient? must be yes",
-            ),
-            (
-                "code review findings placeholder",
-                valid_report.replace("### Code Review Findings\n- None.", "### Code Review Findings\nTODO"),
-                "### Code Review Findings must contain non-placeholder review evidence",
-            ),
-            (
-                "blocking findings non-empty",
-                valid_report.replace("### Blocking Findings\n- None.", "### Blocking Findings\n- Fixture blocker remains."),
-                "### Blocking Findings must be empty or None for final validation",
-            ),
-            (
-                "fail report missing blocking findings",
-                remove_h3_section(valid_report.replace("### Verdict\nPASS", "### Verdict\nFAIL"), "Blocking Findings"),
-                "FAIL report missing required source section ### Blocking Findings",
-            ),
-            (
-                "fail report missing repair guidance",
-                remove_h3_section(valid_report.replace("### Verdict\nPASS", "### Verdict\nFAIL"), "Repair Guidance"),
-                "FAIL report missing required source section ### Repair Guidance",
-            ),
-        ]
-        placeholder_variants = [
-            "none",
-            "no",
-            "n/a",
-            "na",
-            "tbd",
-            "to be determined",
-            "to-be-determined",
-            "to_be_determined",
-            "todo",
-            "open",
-            "gap",
-            "unknown",
-            "unconfirmed",
-            "missing",
-            "absent",
-            "pending",
-            "requested",
-            "awaiting",
-            "not set",
-            "not-set",
-            "not_set",
-            "unset",
-            "not provided",
-            "not-provided",
-            "not_provided",
-            "not supplied",
-            "not-supplied",
-            "not_supplied",
-            "  to...be___determined  ",
-            "  not---provided.  ",
-        ]
-        binding_fields = {
-            "Worktree": valid_worktree_line,
-            "Git Ref": valid_ref_line,
-            "Commit": valid_commit_line,
-        }
-        for field, valid_line in binding_fields.items():
-            for placeholder in placeholder_variants:
-                report_cases.append(
-                    (
-                        f"{field} placeholder {placeholder!r}",
-                        valid_report.replace(valid_line, f"- {field}: `{placeholder}`"),
-                        f"State Binding {field} must be non-placeholder",
-                    )
-                )
-        for name, report, expected_error in report_cases:
-            with self.subTest(name=name):
-                self.fixture.report_path.write_text(report, encoding="utf-8")
-                invalid_report = self.fixture.run("validate-final", str(self.fixture.tasks_path))
-                self.assertNotEqual(0, invalid_report.returncode, invalid_report.stdout + invalid_report.stderr)
-                self.assertIn(expected_error, "\n".join(json.loads(invalid_report.stderr)["errors"]))
-
-        with self.subTest(name="stale open findings rejected when present"):
-            self.fixture.report_path.write_text(valid_report + "\n## Open Findings\n- OPEN stale blocker\n", encoding="utf-8")
-            rejected = self.fixture.run("validate-final", str(self.fixture.tasks_path))
-            self.assertNotEqual(0, rejected.returncode, rejected.stdout + rejected.stderr)
-            self.assertIn("## Open Findings contains unresolved TODO/OPEN marker", "\n".join(json.loads(rejected.stderr)["errors"]))
-
-        for commit_like in ("abcdef0", "abcdef012345"):
-            with self.subTest(commit_like=commit_like):
-                self.fixture.report_path.write_text(
-                    valid_report.replace(valid_commit_line, f"- Commit: `{commit_like}`"),
-                    encoding="utf-8",
-                )
-                accepted = self.fixture.run("validate-final", str(self.fixture.tasks_path))
-                self.assertEqual(0, accepted.returncode, accepted.stdout + accepted.stderr)
-        self.fixture.report_path.write_text(valid_report, encoding="utf-8")
-
-        self.fixture.report_path.unlink()
-        missing_report = self.fixture.run("validate-final", str(self.fixture.tasks_path))
-        self.assertNotEqual(0, missing_report.returncode)
-        self.assertIn("report: file not found", "\n".join(json.loads(missing_report.stderr)["errors"]))
-
-        proof = self.fixture.completed_proof()
-        self.fixture.proof_path.write_text(proof, encoding="utf-8")
-        self.fixture.report_path.write_text(self.fixture.report_text(proof), encoding="utf-8")
-        self.fixture.proof_path.write_text(proof.replace("Mechanical helper evidence", "Changed proof evidence"), encoding="utf-8")
-        stale_report = self.fixture.run("validate-final", str(self.fixture.tasks_path))
-        self.assertNotEqual(0, stale_report.returncode)
-        self.assertIn("Proof Digest does not match current proof content", "\n".join(json.loads(stale_report.stderr)["errors"]))
-
-    def test_state_binding_uses_section_scoped_tier_aware_slice_digests(self) -> None:
-        proof = self.fixture.completed_proof()
-        self.fixture.proof_path.write_text(proof, encoding="utf-8")
-        self.fixture.report_path.write_text(self.fixture.report_text(proof), encoding="utf-8")
-        binding = self.fixture.assigned_slice_digests()
-        entries = SLICEPROOF.assigned_slice_digest_entries(self.fixture.artifact_root, self.fixture.package_markdown())
-
-        self.assertEqual(SLICEPROOF.format_assigned_slice_digest_entries(entries), binding)
-        self.assertIn(".planning/fixture/slices/helper.md|must_satisfy|HELPER-PLAN-001=sha256:", binding)
-        self.assertIn(".planning/fixture/slices/helper.md|must_satisfy|HELPER-PROOF-002=sha256:", binding)
-        self.assertIn(".planning/fixture/slices/helper.md|context_only|HELPER-CONTEXT-003=sha256:", binding)
-        self.assertNotIn("HELPER-INTERFACE-005", binding)
-        self.assertNotIn(self.fixture.digest_text(self.fixture.slice_path.read_text(encoding="utf-8")), binding)
-
-        snapshot = self.fixture.matrix_source_snapshot()
-        self.fixture.slice_path.write_text(
-            self.fixture.slice_path.read_text(encoding="utf-8").replace(
-                "Must exist: a stable fixture command interface.",
-                "Must exist: a changed fixture command interface.",
-                1,
-            ),
-            encoding="utf-8",
-        )
-
-        self.assertEqual(binding, self.fixture.assigned_slice_digests())
-        self.assertEqual(snapshot, self.fixture.matrix_source_snapshot())
-        result = self.fixture.run("validate-package-complete", str(self.fixture.tasks_path), "--package", "WP1")
-        self.assertEqual(0, result.returncode, result.stdout + result.stderr)
-
-    def test_state_binding_is_order_independent_for_sections_and_assignments(self) -> None:
-        original_binding = self.fixture.assigned_slice_digests()
-        original_snapshot = self.fixture.matrix_source_snapshot()
-        text = self.fixture.slice_path.read_text(encoding="utf-8")
-        prefix, rest = text.split("\n### HELPER-PLAN-001", 1)
-        sections = re.split(r"(?=\n### HELPER-[A-Z-]+-\d{3})", "\n### HELPER-PLAN-001" + rest)
-        by_id = {re.match(r"\n### (HELPER-[A-Z-]+-\d{3})", section).group(1): section for section in sections if section.strip()}
-        self.fixture.slice_path.write_text(
-            prefix
-            + by_id["HELPER-INTERFACE-005"]
-            + by_id["HELPER-CONTEXT-003"]
-            + by_id["HELPER-PROOF-002"]
-            + by_id["HELPER-PLAN-001"]
-            + by_id["HELPER-PIPE-004"],
-            encoding="utf-8",
-        )
-        self.assertEqual(original_binding, self.fixture.assigned_slice_digests())
-        self.assertEqual(original_snapshot, self.fixture.matrix_source_snapshot())
-
-        self.fixture.slice_path.write_text(text, encoding="utf-8")
-        package_text = self.fixture.package_text().replace(
-            "- `HELPER-PLAN-001` — Registry and package references validate mechanically\n- `HELPER-PROOF-002` — Proof placeholders and proof closure are mechanical",
-            "- `HELPER-PROOF-002` — Proof placeholders and proof closure are mechanical\n- `HELPER-PLAN-001` — Registry and package references validate mechanically",
-            1,
-        )
-        self.fixture.package_path.write_text(package_text, encoding="utf-8")
-        self.assertEqual(original_binding, self.fixture.assigned_slice_digests())
-
     def test_missing_assigned_h3_fails_closed_with_section_scoped_error(self) -> None:
         self.fixture.slice_path.write_text(remove_h3_section(self.fixture.slice_path.read_text(encoding="utf-8"), "HELPER-CONTEXT-003"), encoding="utf-8")
 
@@ -1555,335 +1053,6 @@ class SliceproofTests(unittest.TestCase):
             "assigned H3 'HELPER-CONTEXT-003' not found in Slice '.planning/fixture/slices/helper.md'",
             "\n".join(json.loads(result.stderr)["errors"]),
         )
-
-    def test_assigned_slice_paths_with_state_binding_delimiters_fail_before_emit(self) -> None:
-        cases = [
-            ("pipe", ".planning/fixture/slices/helper|pipe.md", "|"),
-            ("equals", ".planning/fixture/slices/helper=equals.md", "="),
-            ("entry delimiter", ".planning/fixture/slices/helper; delimiter.md", "; "),
-        ]
-        for name, slice_rel, delimiter in cases:
-            with self.subTest(name=name):
-                fixture = SliceproofFixture()
-                try:
-                    new_slice = fixture.artifact_root / slice_rel
-                    new_slice.parent.mkdir(parents=True, exist_ok=True)
-                    new_slice.write_text(fixture.slice_text(), encoding="utf-8")
-                    plan = fixture.plan()
-                    plan["authoritative_slices"] = [slice_rel]
-                    fixture.write_plan(plan)
-                    fixture.package_path.write_text(
-                        fixture.package_text().replace(".planning/fixture/slices/helper.md", slice_rel),
-                        encoding="utf-8",
-                    )
-                    fixture.proof_path.write_text(fixture.completed_proof(), encoding="utf-8")
-
-                    plan_result = fixture.run("validate-plan", str(fixture.tasks_path))
-                    self.assertNotEqual(0, plan_result.returncode, plan_result.stdout + plan_result.stderr)
-                    plan_errors = "\n".join(json.loads(plan_result.stderr)["errors"])
-                    self.assertIn("State Binding Assigned Slice path must not contain", plan_errors)
-                    self.assertIn("path|tier|H3-ID=sha256:<64-hex>", plan_errors)
-                    self.assertIn(delimiter, plan_errors)
-
-                    emit = fixture.run(
-                        "emit-state-binding",
-                        str(fixture.tasks_path),
-                        "--package",
-                        "WP1",
-                        "--worktree",
-                        str(fixture.repo.resolve(strict=False)),
-                        "--git-ref",
-                        "wp/fixture/WP1",
-                        "--commit",
-                        REPORT_COMMIT,
-                        "--verified-at",
-                        "2026-06-04T00:00:00Z",
-                    )
-                    self.assertNotEqual(0, emit.returncode, emit.stdout + emit.stderr)
-                    self.assertEqual("", emit.stdout)
-                    self.assertIn(
-                        "State Binding Assigned Slice path must not contain",
-                        "\n".join(json.loads(emit.stderr)["errors"]),
-                    )
-                finally:
-                    fixture.cleanup()
-
-    def test_two_tier_gate_emits_context_advisories_and_blocks_must_satisfy_drift(self) -> None:
-        proof = self.fixture.completed_proof()
-        self.fixture.proof_path.write_text(proof, encoding="utf-8")
-        self.fixture.report_path.write_text(self.fixture.report_text(proof), encoding="utf-8")
-        self.fixture.slice_path.write_text(
-            self.fixture.slice_path.read_text(encoding="utf-8").replace(
-                "Context-only IDs must be readable but do not create required proof rows.",
-                "Context-only IDs changed but do not create required proof rows.",
-                1,
-            ),
-            encoding="utf-8",
-        )
-
-        context_result = self.fixture.run("validate-package-complete", str(self.fixture.tasks_path), "--package", "WP1")
-
-        self.assertEqual(0, context_result.returncode, context_result.stdout + context_result.stderr)
-        advisories = json.loads(context_result.stdout)["advisories"]
-        self.assertEqual(1, len(advisories))
-        self.assertEqual(
-            {
-                "type": "context_only_slice_drift",
-                "severity": "advisory",
-                "package": "WP1",
-                "slice_path": ".planning/fixture/slices/helper.md",
-                "tier": "context_only",
-                "h3_ids": ["HELPER-CONTEXT-003"],
-            },
-            {key: advisories[0][key] for key in ("type", "severity", "package", "slice_path", "tier", "h3_ids")},
-        )
-
-        fixture = SliceproofFixture()
-        try:
-            proof = fixture.completed_proof()
-            fixture.proof_path.write_text(proof, encoding="utf-8")
-            fixture.report_path.write_text(fixture.report_text(proof), encoding="utf-8")
-            fixture.slice_path.write_text(
-                fixture.slice_path.read_text(encoding="utf-8").replace(
-                    "The helper validates paths, required package sections, dependencies, and H3 IDs.",
-                    "The helper validates changed paths, required package sections, dependencies, and H3 IDs.",
-                    1,
-                ),
-                encoding="utf-8",
-            )
-
-            must_result = fixture.run("validate-package-complete", str(fixture.tasks_path), "--package", "WP1")
-
-            self.assertNotEqual(0, must_result.returncode, must_result.stdout + must_result.stderr)
-            must_payload = json.loads(must_result.stderr)
-            self.assertIn("must_satisfy Slice section drift for HELPER-PLAN-001", "\n".join(must_payload["errors"]))
-            self.assertEqual([], must_payload["advisories"])
-        finally:
-            fixture.cleanup()
-
-        fixture = SliceproofFixture()
-        try:
-            proof = fixture.completed_proof()
-            fixture.proof_path.write_text(proof, encoding="utf-8")
-            fixture.report_path.write_text(fixture.report_text(proof), encoding="utf-8")
-            changed = fixture.slice_path.read_text(encoding="utf-8").replace(
-                "The helper validates paths, required package sections, dependencies, and H3 IDs.",
-                "The helper validates changed paths, required package sections, dependencies, and H3 IDs.",
-                1,
-            ).replace(
-                "Context-only IDs must be readable but do not create required proof rows.",
-                "Context-only IDs changed but do not create required proof rows.",
-                1,
-            )
-            fixture.slice_path.write_text(changed, encoding="utf-8")
-
-            mixed_result = fixture.run("validate-package-complete", str(fixture.tasks_path), "--package", "WP1")
-
-            self.assertNotEqual(0, mixed_result.returncode, mixed_result.stdout + mixed_result.stderr)
-            mixed_payload = json.loads(mixed_result.stderr)
-            self.assertIn("must_satisfy Slice section drift for HELPER-PLAN-001", "\n".join(mixed_payload["errors"]))
-            self.assertEqual(["HELPER-CONTEXT-003"], mixed_payload["advisories"][0]["h3_ids"])
-        finally:
-            fixture.cleanup()
-
-    def test_validate_final_aggregates_context_only_advisories_across_packages(self) -> None:
-        self.fixture.write_completed_proof_and_report()
-        self.fixture.write_simple_package_artifacts("WP2", must_ids=["HELPER-PIPE-004"], context_ids=["HELPER-INTERFACE-005"])
-        plan = self.fixture.plan()
-        plan["work_packages"][0]["status"] = "done"
-        plan["work_packages"].append(
-            {
-                "id": "WP2",
-                "path": ".tasks/fixture/packages/WP2.md",
-                "proof_path": ".tasks/fixture/proofs/WP2.proof.md",
-                "report_path": ".tasks/fixture/reports/WP2.package-verification.md",
-                "status": "pending",
-                "depends_on": [],
-            }
-        )
-        self.fixture.write_plan(plan)
-        changed = self.fixture.slice_path.read_text(encoding="utf-8").replace(
-            "Context-only IDs must be readable but do not create required proof rows.",
-            "Context-only IDs changed but do not create required proof rows.",
-            1,
-        ).replace(
-            "Must exist: a stable fixture command interface.",
-            "Must exist: a changed fixture command interface.",
-            1,
-        )
-        self.fixture.slice_path.write_text(changed, encoding="utf-8")
-
-        failed = self.fixture.run("validate-final", str(self.fixture.tasks_path))
-
-        self.assertNotEqual(0, failed.returncode, failed.stdout + failed.stderr)
-        failed_payload = json.loads(failed.stderr)
-        self.assertIn("work_packages[WP2].status: expected 'done'", "\n".join(failed_payload["errors"]))
-        self.assertEqual(
-            [("WP1", ["HELPER-CONTEXT-003"]), ("WP2", ["HELPER-INTERFACE-005"])],
-            sorted((advisory["package"], advisory["h3_ids"]) for advisory in failed_payload["advisories"]),
-        )
-
-        plan["work_packages"][1]["status"] = "done"
-        self.fixture.write_plan(plan)
-        result = self.fixture.run("validate-final", str(self.fixture.tasks_path))
-
-        self.assertEqual(0, result.returncode, result.stdout + result.stderr)
-        advisories = json.loads(result.stdout)["advisories"]
-        self.assertEqual(
-            [("WP1", ["HELPER-CONTEXT-003"]), ("WP2", ["HELPER-INTERFACE-005"])],
-            sorted((advisory["package"], advisory["h3_ids"]) for advisory in advisories),
-        )
-
-    def test_assigned_slice_digest_grammar_failures_are_hard_errors_before_drift_classification(self) -> None:
-        proof = self.fixture.completed_proof()
-        self.fixture.proof_path.write_text(proof, encoding="utf-8")
-        valid_report = self.fixture.report_text(proof)
-        valid_value = self.fixture.assigned_slice_digests()
-        entries = valid_value.split("; ")
-
-        cases = [
-            ("missing", "; ".join(entries[1:]), "missing entry"),
-            ("extra unknown H3", valid_value + "; .planning/fixture/slices/helper.md|must_satisfy|HELPER-PIPE-004=sha256:" + "0" * 64, "unknown H3"),
-            ("duplicate", valid_value + "; " + entries[0], "duplicate entry"),
-            ("malformed", "not-an-entry", "malformed entry"),
-            ("unknown path", valid_value.replace(".planning/fixture/slices/helper.md", ".planning/fixture/slices/other.md", 1), "unknown path"),
-            ("invalid tier", valid_value.replace("must_satisfy", "optional", 1), "invalid tier"),
-            ("invalid digest", re.sub(r"sha256:[0-9a-f]{64}", "sha256:not-a-digest", valid_value, count=1), "invalid digest"),
-            ("encoded tier mismatch", entries[0].replace("must_satisfy", "context_only", 1) + "; " + "; ".join(entries[1:]), "encoded tier mismatch"),
-            ("unsorted", "; ".join(reversed(entries)), "entries must be sorted"),
-        ]
-        for name, digest_value, expected_error in cases:
-            with self.subTest(name=name):
-                self.fixture.report_path.write_text(
-                    valid_report.replace(f"- Assigned Slice Digests: `{valid_value}`", f"- Assigned Slice Digests: `{digest_value}`"),
-                    encoding="utf-8",
-                )
-                result = self.fixture.run("validate-package-complete", str(self.fixture.tasks_path), "--package", "WP1")
-                self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
-                payload = json.loads(result.stderr)
-                self.assertIn(expected_error, "\n".join(payload["errors"]))
-                self.assertEqual([], payload["advisories"])
-
-    def test_emit_state_binding_round_trips_through_shared_formatter_and_parser(self) -> None:
-        proof = self.fixture.completed_proof()
-        self.fixture.proof_path.write_text(proof, encoding="utf-8")
-        emit = self.fixture.run(
-            "emit-state-binding",
-            str(self.fixture.tasks_path),
-            "--package",
-            "WP1",
-            "--worktree",
-            str(self.fixture.repo.resolve(strict=False)),
-            "--git-ref",
-            "wp/fixture/WP1",
-            "--commit",
-            REPORT_COMMIT,
-            "--verified-at",
-            "2026-06-04T00:00:00Z",
-        )
-
-        self.assertEqual(0, emit.returncode, emit.stdout + emit.stderr)
-        expected_block = SLICEPROOF.render_state_binding_block(
-            SLICEPROOF.state_binding_values(
-                self.fixture.artifact_root,
-                self.fixture.registry_package(),
-                self.fixture.package_markdown(),
-                self.fixture.proof_path,
-                worktree=str(self.fixture.repo.resolve(strict=False)),
-                git_ref="wp/fixture/WP1",
-                commit=REPORT_COMMIT,
-                verified_at="2026-06-04T00:00:00Z",
-            )
-        )
-        self.assertEqual(expected_block, emit.stdout)
-        parsed = SLICEPROOF.parse_key_values(emit.stdout)
-        digest_value = SLICEPROOF.clean_cell_id(parsed["Assigned Slice Digests"])
-        self.assertRegex(
-            digest_value,
-            r"^\.planning/fixture/slices/helper\.md\|must_satisfy\|HELPER-PLAN-001=sha256:[0-9a-f]{64}; "
-            r"\.planning/fixture/slices/helper\.md\|must_satisfy\|HELPER-PROOF-002=sha256:[0-9a-f]{64}; "
-            r"\.planning/fixture/slices/helper\.md\|context_only\|HELPER-CONTEXT-003=sha256:[0-9a-f]{64}$",
-        )
-        self.assertNotIn("\n", digest_value)
-
-        report_without_binding = self.fixture.report_text(proof).split("## State Binding", 1)[0]
-        self.fixture.report_path.write_text(report_without_binding + emit.stdout, encoding="utf-8")
-        package_result = self.fixture.run("validate-package-complete", str(self.fixture.tasks_path), "--package", "WP1")
-        self.assertEqual(0, package_result.returncode, package_result.stdout + package_result.stderr)
-        plan = self.fixture.plan()
-        plan["work_packages"][0]["status"] = "done"
-        self.fixture.write_plan(plan)
-        final_result = self.fixture.run("validate-final", str(self.fixture.tasks_path))
-        self.assertEqual(0, final_result.returncode, final_result.stdout + final_result.stderr)
-
-        bad = self.fixture.run(
-            "emit-state-binding",
-            str(self.fixture.tasks_path),
-            "--package",
-            "WP1",
-            "--worktree",
-            "relative/worktree",
-            "--git-ref",
-            "todo",
-            "--commit",
-            "bad",
-            "--verified-at",
-            "not-a-date",
-        )
-        self.assertNotEqual(0, bad.returncode, bad.stdout + bad.stderr)
-        bad_errors = "\n".join(json.loads(bad.stderr)["errors"])
-        self.assertIn("--worktree must be an absolute reviewed worktree path", bad_errors)
-        self.assertIn("--git-ref must be non-placeholder", bad_errors)
-        self.assertIn("--commit must look like a git commit", bad_errors)
-        self.assertIn("--verified-at must be ISO-8601", bad_errors)
-
-    def test_incident_shape_changed_owner_sections_do_not_invalidate_other_packages(self) -> None:
-        self.fixture.write_completed_proof_and_report()
-        self.fixture.write_simple_package_artifacts("WP2", must_ids=["HELPER-PROOF-002"])
-        self.fixture.write_simple_package_artifacts("WP3", must_ids=["HELPER-CONTEXT-003"])
-        plan = self.fixture.plan()
-        plan["work_packages"].extend(
-            [
-                {
-                    "id": "WP2",
-                    "path": ".tasks/fixture/packages/WP2.md",
-                    "proof_path": ".tasks/fixture/proofs/WP2.proof.md",
-                    "report_path": ".tasks/fixture/reports/WP2.package-verification.md",
-                    "status": "pending",
-                    "depends_on": [],
-                },
-                {
-                    "id": "WP3",
-                    "path": ".tasks/fixture/packages/WP3.md",
-                    "proof_path": ".tasks/fixture/proofs/WP3.proof.md",
-                    "report_path": ".tasks/fixture/reports/WP3.package-verification.md",
-                    "status": "pending",
-                    "depends_on": [],
-                },
-            ]
-        )
-        self.fixture.write_plan(plan)
-        changed = self.fixture.slice_path.read_text(encoding="utf-8").replace(
-            "The helper validates paths, required package sections, dependencies, and H3 IDs.",
-            "The helper validates changed paths, required package sections, dependencies, and H3 IDs.",
-            1,
-        ).replace(
-            "The helper creates placeholders and checks completion markers without semantic scoring.",
-            "The helper creates changed placeholders and checks completion markers without semantic scoring.",
-            1,
-        )
-        self.fixture.slice_path.write_text(changed, encoding="utf-8")
-
-        wp1 = self.fixture.run("validate-package-complete", str(self.fixture.tasks_path), "--package", "WP1")
-        wp2 = self.fixture.run("validate-package-complete", str(self.fixture.tasks_path), "--package", "WP2")
-        wp3 = self.fixture.run("validate-package-complete", str(self.fixture.tasks_path), "--package", "WP3")
-
-        self.assertNotEqual(0, wp1.returncode, wp1.stdout + wp1.stderr)
-        self.assertIn("must_satisfy Slice section drift for HELPER-PLAN-001", "\n".join(json.loads(wp1.stderr)["errors"]))
-        self.assertNotEqual(0, wp2.returncode, wp2.stdout + wp2.stderr)
-        self.assertIn("must_satisfy Slice section drift for HELPER-PROOF-002", "\n".join(json.loads(wp2.stderr)["errors"]))
-        self.assertEqual(0, wp3.returncode, wp3.stdout + wp3.stderr)
-        self.assertEqual([], json.loads(wp3.stdout)["advisories"])
 
     def test_validate_package_complete_accepts_pre_done_package_without_git(self) -> None:
         self.fixture.write_completed_proof_and_report()
@@ -1914,732 +1083,6 @@ class SliceproofTests(unittest.TestCase):
         unknown = self.fixture.run("validate-package-complete", str(self.fixture.tasks_path), "--package", "WP9")
         self.assertNotEqual(0, unknown.returncode)
         self.assertIn("unknown package id WP9", "\n".join(json.loads(unknown.stderr)["errors"]))
-
-    def _package_and_final_commands(self) -> list[tuple[str, tuple[str, ...]]]:
-        plan = self.fixture.plan()
-        plan["work_packages"][0]["status"] = "done"
-        self.fixture.write_plan(plan)
-        return [
-            (
-                "package-complete",
-                ("validate-package-complete", str(self.fixture.tasks_path), "--package", "WP1"),
-            ),
-            ("final", ("validate-final", str(self.fixture.tasks_path))),
-        ]
-
-    def test_test_review_scope_grammar_accepts_each_depth_and_provenance_form(self) -> None:
-        proof = self.fixture.completed_proof()
-        self.fixture.proof_path.write_text(proof, encoding="utf-8")
-        commands = self._package_and_final_commands()
-        scopes = [
-            (
-                "baseline-only with negative results",
-                self.fixture.test_review_scope(
-                    depth="baseline-only",
-                    baseline_review=(
-                        "complete: assertions and open-source paths checked; no skip/focus/xfail changes "
-                        "or coverage gaps found; fresh commands passed"
-                    ),
-                    deep_triggers="none: package-local fixture edits have no canonical deep trigger",
-                    selected_exemplars="not-applicable: baseline review covered every changed test",
-                    sampling_rationale="not-applicable: baseline-only depth does not select a sample",
-                ),
-            ),
-            (
-                "sampled with ordinary structured provenance",
-                self.fixture.test_review_scope(
-                    depth="sampled",
-                    deep_triggers="none: parser cases are neither sensitive nor sole proof evidence",
-                    selected_exemplars="selected: valid, malformed, and unsupported receipt cases",
-                    sampling_rationale="strategy: semantic behavior, oracle, and fixture-stack strata",
-                    generated_provenance=(
-                        "generator: fixture helper; inputs: package report parameters; "
-                        "provenance: current test source"
-                    ),
-                ),
-            ),
-            (
-                "deep generated surface",
-                self.fixture.test_review_scope(
-                    surface="generators/snapshots",
-                    generated_provenance=(
-                        "generator: snapshot_builder.py; inputs: parser-cases.json; "
-                        "provenance: sha256 abc123 source digest"
-                    ),
-                ),
-            ),
-        ]
-        for scope_name, scope in scopes:
-            for command_name, command in commands:
-                with self.subTest(scope=scope_name, command=command_name):
-                    self.fixture.report_path.write_text(
-                        self.fixture.report_text(proof, test_review_scope=scope), encoding="utf-8"
-                    )
-                    result = self.fixture.run(*command)
-                    self.assertEqual(0, result.returncode, result.stdout + result.stderr)
-
-    def test_other_test_relevant_is_deep_only_in_package_and_final(self) -> None:
-        proof = self.fixture.completed_proof()
-        self.fixture.proof_path.write_text(proof, encoding="utf-8")
-        commands = self._package_and_final_commands()
-        population = (
-            "count: 1; scope: plugins/super-developer/assets/tests/test_sliceproof.py "
-            "catch-all depth cases"
-        )
-        valid_deep = self.fixture.test_review_scope(
-            surface="other-test-relevant",
-            changed_population=population,
-            deep_triggers=(
-                "triggered: changed test-relevant contract check has a novel ambiguous classification"
-            ),
-        )
-        invalid_depths = [
-            (
-                "baseline-only",
-                self.fixture.test_review_scope(
-                    surface="other-test-relevant",
-                    changed_population=population,
-                    depth="baseline-only",
-                    deep_triggers="none: no trigger recorded at baseline depth",
-                    selected_exemplars="not-applicable: baseline review covered the changed path",
-                    sampling_rationale="not-applicable: baseline-only depth does not sample",
-                ),
-            ),
-            (
-                "sampled",
-                self.fixture.test_review_scope(
-                    surface="other-test-relevant",
-                    changed_population=population,
-                    depth="sampled",
-                    deep_triggers="none: no trigger recorded at sampled depth",
-                    selected_exemplars="selected: catch-all depth contract case",
-                    sampling_rationale="strategy: semantic depth and classification behavior",
-                ),
-            ),
-        ]
-
-        for command_name, command in commands:
-            with self.subTest(depth="deep", command=command_name):
-                self.fixture.report_path.write_text(
-                    self.fixture.report_text(proof, test_review_scope=valid_deep), encoding="utf-8"
-                )
-                accepted = self.fixture.run(*command)
-                self.assertEqual(0, accepted.returncode, accepted.stdout + accepted.stderr)
-
-            for depth, scope in invalid_depths:
-                with self.subTest(depth=depth, command=command_name):
-                    self.fixture.report_path.write_text(
-                        self.fixture.report_text(proof, test_review_scope=scope), encoding="utf-8"
-                    )
-                    rejected = self.fixture.run(*command)
-                    self.assertNotEqual(0, rejected.returncode, rejected.stdout + rejected.stderr)
-                    self.assertEqual(
-                        [
-                            f"{self.fixture.report_path}: Test Review Scope other-test-relevant "
-                            "Review Depth must be deep for other-test-relevant"
-                        ],
-                        json.loads(rejected.stderr)["errors"],
-                    )
-
-    def test_test_review_scope_grammar_rejects_bad_fields_in_package_and_final(self) -> None:
-        proof = self.fixture.completed_proof()
-        self.fixture.proof_path.write_text(proof, encoding="utf-8")
-        commands = self._package_and_final_commands()
-        sampled = {
-            "depth": "sampled",
-            "deep_triggers": "none: package-local cases have no canonical deep trigger",
-            "selected_exemplars": "selected: valid and malformed receipt cases",
-            "sampling_rationale": "strategy: semantic behavior and oracle-shape strata",
-        }
-        valid_scope = self.fixture.test_review_scope()
-        evidence_ref = (
-            "test:plugins/super-developer/assets/tests/test_sliceproof.py::"
-            "test_validate_plan_accepts_valid_registry_package_slice_fixture"
-        )
-        cases = [
-            (
-                "missing population prefix",
-                self.fixture.test_review_scope(changed_population="twelve parser contract tests"),
-                "Changed Population must use 'count:",
-            ),
-            (
-                "wrong population prefix",
-                self.fixture.test_review_scope(changed_population="total: 12; scope: parser contract tests"),
-                "Changed Population must use 'count:",
-            ),
-            (
-                "zero count",
-                self.fixture.test_review_scope(changed_population="count: 0; scope: parser contract tests"),
-                "count must be a positive integer",
-            ),
-            (
-                "non-numeric count",
-                self.fixture.test_review_scope(changed_population="count: twelve; scope: parser contract tests"),
-                "count must be a positive integer",
-            ),
-            (
-                "prefixed omission bypass",
-                self.fixture.test_review_scope(
-                    baseline_review="Review status: baseline review was not performed"
-                ),
-                "Baseline Review must use 'complete:",
-            ),
-            (
-                "wrong deep prefix",
-                self.fixture.test_review_scope(
-                    deep_triggers="none: package appeared to have no deep trigger"
-                ),
-                "deep Deep Triggers must use 'triggered:",
-            ),
-            (
-                "missing sampled selection prefix",
-                self.fixture.test_review_scope(**(sampled | {"selected_exemplars": "valid receipt case"})),
-                "sampled Selected Exemplars must use 'selected:",
-            ),
-            (
-                "wrong sampled strategy prefix",
-                self.fixture.test_review_scope(**(sampled | {"sampling_rationale": "reason: behavior strata"})),
-                "sampled Sampling Rationale must use 'strategy:",
-            ),
-            (
-                "generated triple missing inputs",
-                self.fixture.test_review_scope(
-                    surface="generators/snapshots",
-                    generated_provenance="generator: snapshot_builder.py; provenance: sha256 abc123",
-                ),
-                "must use 'generator: <specific>; inputs: <specific>; provenance: <specific>'",
-            ),
-            (
-                "ordinary provenance prose lacks grammar",
-                self.fixture.test_review_scope(generated_provenance="hand-authored test source"),
-                "must use the structured generator/inputs/provenance triple",
-            ),
-            (
-                "placeholder baseline payload",
-                self.fixture.test_review_scope(baseline_review="complete: none"),
-                "Baseline Review must use 'complete:",
-            ),
-            (
-                "unsupported surface",
-                valid_scope.replace("| tests |", "| documentation |", 1),
-                "Surface 'documentation' is not supported",
-            ),
-            (
-                "unsupported depth",
-                valid_scope.replace("| deep |", "| shallow |", 1),
-                "Review Depth 'shallow' is not supported",
-            ),
-            (
-                "forbidden not-reviewed",
-                valid_scope.replace("| deep |", "| not-reviewed |", 1),
-                "contains forbidden not-reviewed/unreviewed status",
-            ),
-            (
-                "forbidden unreviewed",
-                valid_scope.replace("| deep |", "| unreviewed |", 1),
-                "contains forbidden not-reviewed/unreviewed status",
-            ),
-            (
-                "unresolved marker",
-                self.fixture.test_review_scope(
-                    baseline_review="complete: assertions checked; TODO rerun remains"
-                ),
-                "contains unresolved TODO/OPEN/GAP marker",
-            ),
-            (
-                "missing typed evidence",
-                valid_scope.replace(evidence_ref, "none", 1),
-                "Evidence Refs must use typed evidence anchors",
-            ),
-        ]
-        for case_name, scope, expected_error in cases:
-            for command_name, command in commands:
-                with self.subTest(case=case_name, command=command_name):
-                    self.fixture.report_path.write_text(
-                        self.fixture.report_text(proof, test_review_scope=scope), encoding="utf-8"
-                    )
-                    result = self.fixture.run(*command)
-                    self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
-                    self.assertIn(expected_error, "\n".join(json.loads(result.stderr)["errors"]))
-
-        old_report = remove_h3_section(self.fixture.report_text(proof), "Test Review Scope")
-        for command_name, command in commands:
-            with self.subTest(case="intentional old report", command=command_name):
-                self.fixture.report_path.write_text(old_report, encoding="utf-8")
-                result = self.fixture.run(*command)
-                self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
-                self.assertIn(
-                    "missing required source section ### Test Review Scope",
-                    "\n".join(json.loads(result.stderr)["errors"]),
-                )
-
-    def test_test_review_scope_table_shape_is_strict_in_package_and_final(self) -> None:
-        proof = self.fixture.completed_proof()
-        self.fixture.proof_path.write_text(proof, encoding="utf-8")
-        commands = self._package_and_final_commands()
-        valid_scope = self.fixture.test_review_scope()
-        lines = valid_scope.splitlines()
-        malformed_scopes = [
-            (
-                "fenced",
-                "```markdown\n" + valid_scope + "\n```",
-                "### Test Review Scope must not contain fenced content",
-            ),
-            (
-                "missing delimiter",
-                "\n".join([lines[0], lines[2]]),
-                "must place a matching-width Markdown delimiter immediately after the header",
-            ),
-            (
-                "interleaved prose",
-                "\n".join([lines[0], lines[1], "ignored prose", lines[2]]),
-                "must contain exactly one contiguous Markdown table",
-            ),
-            (
-                "extra cell",
-                "\n".join([lines[0], lines[1], lines[2][:-1] + "| extra |"]),
-                "table row 3 must contain exactly 9 cells",
-            ),
-            (
-                "second table",
-                valid_scope + "\n\n" + valid_scope,
-                "must contain exactly one contiguous Markdown table",
-            ),
-        ]
-        for form, scope, expected_error in malformed_scopes:
-            for command_name, command in commands:
-                with self.subTest(form=form, command=command_name):
-                    self.fixture.report_path.write_text(
-                        self.fixture.report_text(proof, test_review_scope=scope), encoding="utf-8"
-                    )
-                    result = self.fixture.run(*command)
-                    self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
-                    self.assertIn(expected_error, "\n".join(json.loads(result.stderr)["errors"]))
-
-    def test_test_review_scope_allows_only_canonical_no_applicable_receipt(self) -> None:
-        proof = self.fixture.completed_proof()
-        self.fixture.proof_path.write_text(proof, encoding="utf-8")
-        commands = self._package_and_final_commands()
-        no_applicable_scope = self.fixture.test_review_scope(
-            surface="none",
-            changed_population="none",
-            depth="no-applicable-surface",
-            baseline_review=(
-                "not-applicable: package-owned delta has no changed test-relevant surface"
-            ),
-            deep_triggers="not-applicable: no applicable surface can trigger widening",
-            selected_exemplars="none",
-            sampling_rationale="not-applicable: no changed population exists to sample",
-            generated_provenance="not-applicable: no generated test output changed",
-            evidence_refs="static:plugins/super-developer/assets/sliceproof.py#validate_plan",
-        )
-        invalid_scopes = [
-            no_applicable_scope.replace(
-                "| none | none | no-applicable-surface |",
-                "| none | count: 1; scope: fixture | no-applicable-surface |",
-                1,
-            ),
-            no_applicable_scope + "\n" + self.fixture.test_review_scope().splitlines()[-1],
-        ]
-        for command_name, command in commands:
-            with self.subTest(disposition="canonical", command=command_name):
-                self.fixture.report_path.write_text(
-                    self.fixture.report_text(proof, test_review_scope=no_applicable_scope),
-                    encoding="utf-8",
-                )
-                result = self.fixture.run(*command)
-                self.assertEqual(0, result.returncode, result.stdout + result.stderr)
-            for invalid_scope in invalid_scopes:
-                with self.subTest(disposition="invalid", command=command_name):
-                    self.fixture.report_path.write_text(
-                        self.fixture.report_text(proof, test_review_scope=invalid_scope),
-                        encoding="utf-8",
-                    )
-                    result = self.fixture.run(*command)
-                    self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
-                    self.assertIn(
-                        "no-applicable-surface receipt must contain exactly one canonical none row",
-                        "\n".join(json.loads(result.stderr)["errors"]),
-                    )
-
-    def test_validate_package_complete_rejects_dirty_or_stale_matrices(self) -> None:
-        first_matrix_row = (
-            "| HELPER-PLAN-001 | slice | Registry and package references validate mechanically. | mixed | "
-            "static:plugins/super-developer/assets/sliceproof.py#validate_plan; "
-            "test:plugins/super-developer/assets/tests/test_sliceproof.py::test_validate_plan_accepts_valid_registry_package_slice_fixture | "
-            "no interface; fixture plan behavior covered | delivered |"
-        )
-        second_slice_row = (
-            "| HELPER-PROOF-002 | slice | Proof placeholders and proof closure validate mechanically. | static | "
-            "static:plugins/super-developer/assets/sliceproof.py#validate_proof | no interface; fixture proof behavior covered | delivered |"
-        )
-        ve2_row = (
-            "| VE-2 | verification-expectation | `sliceproof.py validate-proof` fails placeholders and passes completed proof. | static | "
-            "static:plugins/super-developer/assets/sliceproof.py#validate_proof | expectation covered; no interface | delivered |"
-        )
-        valid_proof = self.fixture.completed_proof()
-        valid_report = self.fixture.report_text(valid_proof)
-        cases = [
-            (
-                "old report shape without matrix",
-                lambda fixture, report: remove_h3_section(report, "Deliverable Completeness Matrix"),
-                "missing required source section ### Deliverable Completeness Matrix",
-            ),
-            (
-                "missing H3 row",
-                lambda fixture, report: report.replace("\n" + second_slice_row, "", 1),
-                "missing required slice row for HELPER-PROOF-002",
-            ),
-            (
-                "missing VE row",
-                lambda fixture, report: report.replace("\n" + ve2_row, "", 1),
-                "missing required verification-expectation row for VE-2",
-            ),
-            (
-                "duplicate rows",
-                lambda fixture, report: report.replace(first_matrix_row, first_matrix_row + "\n" + first_matrix_row, 1),
-                "duplicate Deliverable Completeness Matrix row for HELPER-PLAN-001",
-            ),
-            (
-                "dirty verdict",
-                lambda fixture, report: report.replace("| delivered |", "| partial |", 1),
-                "Verdict must be delivered for package completion",
-            ),
-            (
-                "unsupported verdict",
-                lambda fixture, report: report.replace("| delivered |", "| complete |", 1),
-                "Verdict 'complete' is not supported",
-            ),
-            (
-                "unsupported evidence type",
-                lambda fixture, report: report.replace("| mixed |", "| screenshot |", 1),
-                "Evidence Type 'screenshot' is not supported",
-            ),
-            (
-                "placeholder evidence refs",
-                lambda fixture, report: report.replace(
-                    "static:plugins/super-developer/assets/sliceproof.py#validate_plan; test:plugins/super-developer/assets/tests/test_sliceproof.py::test_validate_plan_accepts_valid_registry_package_slice_fixture",
-                    "TODO",
-                    1,
-                ),
-                "Evidence Refs must be non-placeholder",
-            ),
-            (
-                "nonexistent evidence path",
-                lambda fixture, report: report.replace("plugins/super-developer/assets/sliceproof.py#validate_plan", "plugins/super-developer/assets/missing.py#validate_plan", 1),
-                "file not found",
-            ),
-            (
-                "unsafe evidence path",
-                lambda fixture, report: report.replace("plugins/super-developer/assets/sliceproof.py#validate_plan", "../escape.py#validate_plan", 1),
-                "path must not contain",
-            ),
-            (
-                "vague evidence ref",
-                lambda fixture, report: report.replace("static:plugins/super-developer/assets/sliceproof.py#validate_plan", "static:plugins/super-developer/assets/sliceproof.py", 1),
-                "static evidence ref must include a concrete anchor",
-            ),
-            (
-                "command ref not tied to proof",
-                lambda fixture, report: report.replace(
-                    first_matrix_row,
-                    "| HELPER-PLAN-001 | slice | Registry and package references validate mechanically. | command | command:proof#Commands Run:not-run | no interface; fixture plan behavior covered | delivered |",
-                    1,
-                ),
-                "command proof label 'not-run' was not found in proof ## Commands Run",
-            ),
-            (
-                "manual ref missing observed field",
-                lambda fixture, report: report.replace(
-                    first_matrix_row,
-                    "| HELPER-PLAN-001 | slice | Registry and package references validate mechanically. | manual | manual:scenario=operator checked fixture | no interface; fixture plan behavior covered | delivered |",
-                    1,
-                ),
-                "manual evidence must include non-placeholder observed=...",
-            ),
-            (
-                "stale package digest",
-                lambda fixture, report: (fixture.package_path.write_text(fixture.package_path.read_text(encoding="utf-8") + "\n<!-- stale -->\n", encoding="utf-8"), report)[1],
-                "Package Markdown Digest does not match current package Markdown content",
-            ),
-            (
-                "must-satisfy section drift",
-                lambda fixture, report: (
-                    fixture.slice_path.write_text(
-                        fixture.slice_path.read_text(encoding="utf-8").replace(
-                            "The helper validates paths, required package sections, dependencies, and H3 IDs.",
-                            "The helper validates paths, required package sections, dependencies, H3 IDs, and changed text.",
-                            1,
-                        ),
-                        encoding="utf-8",
-                    ),
-                    report,
-                )[1],
-                "must_satisfy Slice section drift for HELPER-PLAN-001",
-            ),
-            (
-                "triggered risk without rationale",
-                lambda fixture, report: report.replace(
-                    "| VE-1 |",
-                    "| RISK-fixture | triggered-risk | Fixture risk checked. | static | static:plugins/super-developer/assets/sliceproof.py#validate_plan | checked | delivered |\n| VE-1 |",
-                    1,
-                ),
-                "triggered-risk row must record rationale/disposition",
-            ),
-            (
-                "triggered risk with bare triggered",
-                lambda fixture, report: report.replace(
-                    "| VE-1 |",
-                    "| RISK-fixture | triggered-risk | Fixture risk checked. | static | static:plugins/super-developer/assets/sliceproof.py#validate_plan | triggered | delivered |\n| VE-1 |",
-                    1,
-                ),
-                "triggered-risk row must record rationale/disposition",
-            ),
-            (
-                "triggered risk with bare because",
-                lambda fixture, report: report.replace(
-                    "| VE-1 |",
-                    "| RISK-fixture | triggered-risk | Fixture risk checked. | static | static:plugins/super-developer/assets/sliceproof.py#validate_plan | because | delivered |\n| VE-1 |",
-                    1,
-                ),
-                "triggered-risk row must record rationale/disposition",
-            ),
-        ]
-        for name, mutate, expected_error in cases:
-            with self.subTest(name=name):
-                fixture = SliceproofFixture()
-                try:
-                    proof = fixture.completed_proof()
-                    fixture.proof_path.write_text(proof, encoding="utf-8")
-                    report = fixture.report_text(proof)
-                    fixture.report_path.write_text(mutate(fixture, report), encoding="utf-8")
-                    result = fixture.run("validate-package-complete", str(fixture.tasks_path), "--package", "WP1")
-                    self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
-                    self.assertIn(expected_error, "\n".join(json.loads(result.stderr)["errors"]))
-                finally:
-                    fixture.cleanup()
-
-    def test_validate_package_complete_does_not_trust_report_worktree_for_matrix_file_evidence(self) -> None:
-        proof = self.fixture.completed_proof()
-        self.fixture.proof_path.write_text(proof, encoding="utf-8")
-        fake_paths = [
-            ("outside-only/code.py", "def fake():\n    pass\n"),
-            ("outside-only/test_fake.py", "def test_fake():\n    pass\n"),
-            ("outside-only/evidence.md", "## fake-anchor\n"),
-        ]
-        for relative_path, content in fake_paths:
-            target = self.fixture.external_worktree / relative_path
-            target.parent.mkdir(parents=True, exist_ok=True)
-            target.write_text(content, encoding="utf-8")
-        fake_refs = (
-            "code:outside-only/code.py#fake; "
-            "test:outside-only/test_fake.py::test_fake; "
-            "static:outside-only/evidence.md#fake-anchor"
-        )
-        matrix = self.fixture.deliverable_matrix().replace(
-            "static:plugins/super-developer/assets/sliceproof.py#validate_plan; "
-            "test:plugins/super-developer/assets/tests/test_sliceproof.py::test_validate_plan_accepts_valid_registry_package_slice_fixture",
-            fake_refs,
-            1,
-        )
-        report = self.fixture.report_text(proof, deliverable_matrix=matrix, worktree=str(self.fixture.external_worktree))
-        self.fixture.report_path.write_text(report, encoding="utf-8")
-
-        result = self.fixture.run("validate-package-complete", str(self.fixture.tasks_path), "--package", "WP1")
-
-        self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
-        errors = "\n".join(json.loads(result.stderr)["errors"])
-        self.assertIn("code evidence path: file not found: outside-only/code.py", errors)
-
-    def test_validate_package_complete_verifies_verification_output_labels(self) -> None:
-        proof = self.fixture.completed_proof()
-        self.fixture.proof_path.write_text(proof, encoding="utf-8")
-        output_rel = ".tasks/fixture/verification-output/WP1.md"
-        output_path = self.fixture.feature_dir / "verification-output" / "WP1.md"
-        output_path.parent.mkdir(parents=True)
-        output_path.write_text("# Durable verifier output\n\n## existing-label\nObserved command output.\n", encoding="utf-8")
-        matrix = self.fixture.deliverable_matrix().replace(
-            "| HELPER-PLAN-001 | slice | Registry and package references validate mechanically. | mixed | "
-            "static:plugins/super-developer/assets/sliceproof.py#validate_plan; "
-            "test:plugins/super-developer/assets/tests/test_sliceproof.py::test_validate_plan_accepts_valid_registry_package_slice_fixture |",
-            "| HELPER-PLAN-001 | slice | Registry and package references validate mechanically. | command | "
-            f"command:verification-output:{output_rel}#existing-label |",
-            1,
-        )
-        self.fixture.report_path.write_text(self.fixture.report_text(proof, deliverable_matrix=matrix), encoding="utf-8")
-
-        accepted = self.fixture.run("validate-package-complete", str(self.fixture.tasks_path), "--package", "WP1")
-
-        self.assertEqual(0, accepted.returncode, accepted.stdout + accepted.stderr)
-
-        rejected_matrix = matrix.replace("#existing-label", "#not-a-real-label", 1)
-        self.fixture.report_path.write_text(self.fixture.report_text(proof, deliverable_matrix=rejected_matrix), encoding="utf-8")
-
-        rejected = self.fixture.run("validate-package-complete", str(self.fixture.tasks_path), "--package", "WP1")
-
-        self.assertNotEqual(0, rejected.returncode, rejected.stdout + rejected.stderr)
-        errors = "\n".join(json.loads(rejected.stderr)["errors"])
-        self.assertIn("verification-output label 'not-a-real-label' was not found", errors)
-
-    def test_validate_package_complete_rejects_interface_rows_without_exactness(self) -> None:
-        self.fixture.package_path.write_text(self.fixture.package_text(must_id="HELPER-INTERFACE-005"), encoding="utf-8")
-        proof = self.fixture.completed_proof().replace("HELPER-PLAN-001", "HELPER-INTERFACE-005")
-        self.fixture.proof_path.write_text(proof, encoding="utf-8")
-        matrix = self.fixture.deliverable_matrix().replace("HELPER-PLAN-001", "HELPER-INTERFACE-005").replace(
-            "no interface; fixture plan behavior covered",
-            "interface checked",
-            1,
-        )
-        report = self.fixture.report_text(proof, deliverable_matrix=matrix).replace("HELPER-PLAN-001", "HELPER-INTERFACE-005")
-        self.fixture.report_path.write_text(report, encoding="utf-8")
-
-        result = self.fixture.run("validate-package-complete", str(self.fixture.tasks_path), "--package", "WP1")
-
-        self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
-        errors = "\n".join(json.loads(result.stderr)["errors"])
-        self.assertIn("interface row must record exact interface fulfillment", errors)
-        self.assertIn("interface row must record forbidden-behavior falsification", errors)
-
-        negated_matrix = self.fixture.deliverable_matrix().replace("HELPER-PLAN-001", "HELPER-INTERFACE-005").replace(
-            "no interface; fixture plan behavior covered",
-            "interface: exact; forbidden behavior not falsified",
-            1,
-        )
-        negated_report = self.fixture.report_text(proof, deliverable_matrix=negated_matrix).replace(
-            "HELPER-PLAN-001",
-            "HELPER-INTERFACE-005",
-        )
-        self.fixture.report_path.write_text(negated_report, encoding="utf-8")
-
-        negated = self.fixture.run("validate-package-complete", str(self.fixture.tasks_path), "--package", "WP1")
-
-        self.assertNotEqual(0, negated.returncode, negated.stdout + negated.stderr)
-        negated_errors = "\n".join(json.loads(negated.stderr)["errors"])
-        self.assertIn("interface row must not negate forbidden-behavior falsification", negated_errors)
-
-        for disposition in (
-            "interface: not exact; forbidden behavior falsified",
-            "interface: inexact; forbidden behavior falsified",
-        ):
-            with self.subTest(disposition=disposition):
-                inexact_matrix = self.fixture.deliverable_matrix().replace("HELPER-PLAN-001", "HELPER-INTERFACE-005").replace(
-                    "no interface; fixture plan behavior covered",
-                    disposition,
-                    1,
-                )
-                inexact_report = self.fixture.report_text(proof, deliverable_matrix=inexact_matrix).replace(
-                    "HELPER-PLAN-001",
-                    "HELPER-INTERFACE-005",
-                )
-                self.fixture.report_path.write_text(inexact_report, encoding="utf-8")
-
-                inexact = self.fixture.run("validate-package-complete", str(self.fixture.tasks_path), "--package", "WP1")
-
-                self.assertNotEqual(0, inexact.returncode, inexact.stdout + inexact.stderr)
-                inexact_errors = "\n".join(json.loads(inexact.stderr)["errors"])
-                self.assertIn("interface row contains non-exact interface disposition", inexact_errors)
-
-    def test_validate_final_reuses_deliverable_matrix_validation(self) -> None:
-        proof = self.fixture.completed_proof()
-        self.fixture.proof_path.write_text(proof, encoding="utf-8")
-        plan = self.fixture.plan()
-        plan["work_packages"][0]["status"] = "done"
-        self.fixture.write_plan(plan)
-        valid_report = self.fixture.report_text(proof)
-        final_cases = [
-            ("old shape", remove_h3_section(valid_report, "Deliverable Completeness Matrix"), "missing required source section ### Deliverable Completeness Matrix"),
-            ("dirty verdict", valid_report.replace("| delivered |", "| unverified |", 1), "Verdict must be delivered for package completion"),
-            ("stale source", valid_report, "Package Markdown Digest does not match current package Markdown content"),
-        ]
-        for name, report, expected_error in final_cases:
-            with self.subTest(name=name):
-                fixture = SliceproofFixture()
-                try:
-                    proof_text = fixture.completed_proof()
-                    fixture.proof_path.write_text(proof_text, encoding="utf-8")
-                    plan = fixture.plan()
-                    plan["work_packages"][0]["status"] = "done"
-                    fixture.write_plan(plan)
-                    report_text = fixture.report_text(proof_text)
-                    if name == "old shape":
-                        report_text = remove_h3_section(report_text, "Deliverable Completeness Matrix")
-                    elif name == "dirty verdict":
-                        report_text = report_text.replace("| delivered |", "| unverified |", 1)
-                    else:
-                        fixture.package_path.write_text(fixture.package_path.read_text(encoding="utf-8") + "\n<!-- stale -->\n", encoding="utf-8")
-                    fixture.report_path.write_text(report_text, encoding="utf-8")
-                    result = fixture.run("validate-final", str(fixture.tasks_path))
-                    self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
-                    self.assertIn(expected_error, "\n".join(json.loads(result.stderr)["errors"]))
-                finally:
-                    fixture.cleanup()
-
-    def test_validate_final_validates_optional_semgrep_evidence_binding(self) -> None:
-        proof = self.fixture.completed_proof()
-        self.fixture.proof_path.write_text(proof, encoding="utf-8")
-        plan = self.fixture.plan()
-        plan["work_packages"][0]["status"] = "done"
-        self.fixture.write_plan(plan)
-
-        valid_evidence = self.fixture.semgrep_evidence_text()
-        self.fixture.report_path.write_text(
-            self.fixture.report_text(proof, semgrep_evidence=valid_evidence),
-            encoding="utf-8",
-        )
-        valid = self.fixture.run("validate-final", str(self.fixture.tasks_path))
-        self.assertEqual(0, valid.returncode, valid.stdout + valid.stderr)
-
-        cases = [
-            (
-                "missing status",
-                valid_evidence.replace("- Status: `enabled`\n", ""),
-                "## Semgrep Evidence missing 'Status'",
-            ),
-            (
-                "outside tree",
-                valid_evidence.replace(".tasks/fixture/semgrep/WP1.semgrep.json", ".tasks/fixture/WP1.semgrep.json"),
-                "path must be under .tasks/fixture/semgrep/",
-            ),
-            (
-                "wrong package stem",
-                self.fixture.semgrep_evidence_text(stem="WP2"),
-                "Raw Path must use package stem WP1.semgrep.json",
-            ),
-            (
-                "raw digest mismatch",
-                self.fixture.semgrep_evidence_text(raw_digest="0" * 64),
-                "Raw Digest does not match current raw output",
-            ),
-            (
-                "summary digest mismatch",
-                self.fixture.semgrep_evidence_text(summary_digest="f" * 64),
-                "Summary Digest does not match current summary output",
-            ),
-        ]
-        for name, evidence, expected_error in cases:
-            with self.subTest(name=name):
-                self.fixture.report_path.write_text(
-                    self.fixture.report_text(proof, semgrep_evidence=evidence),
-                    encoding="utf-8",
-                )
-                result = self.fixture.run("validate-final", str(self.fixture.tasks_path))
-                self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
-                self.assertIn(expected_error, "\n".join(json.loads(result.stderr)["errors"]))
-
-        with self.subTest(name="symlink evidence rejected"):
-            raw_path, _raw_digest, _summary_path, _summary_digest = self.fixture.write_semgrep_evidence()
-            raw_file = self.fixture.repo / raw_path
-            raw_file.unlink()
-            outside = self.fixture.repo / "outside.semgrep.json"
-            outside.write_text("{}\n", encoding="utf-8")
-            raw_file.symlink_to(outside)
-            self.fixture.report_path.write_text(
-                self.fixture.report_text(proof, semgrep_evidence=valid_evidence),
-                encoding="utf-8",
-            )
-            result = self.fixture.run("validate-final", str(self.fixture.tasks_path))
-            self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
-            self.assertIn("path must not contain symlinks", "\n".join(json.loads(result.stderr)["errors"]))
 
     def test_validate_final_passes_without_git_metadata_and_does_not_call_git(self) -> None:
         self.fixture.write_completed_proof_and_report()
@@ -2687,6 +1130,238 @@ class SliceproofTests(unittest.TestCase):
 
         self.assertEqual(0, result.returncode, result.stdout + result.stderr)
 
+    def test_validate_plan_requires_non_empty_package_acceptance_checklist(self) -> None:
+        present = self.fixture.run("validate-plan", str(self.fixture.tasks_path))
+        self.assertEqual(0, present.returncode, present.stdout + present.stderr)
+
+        cases = [
+            (
+                "missing section",
+                self.fixture.package_text(missing_section="Acceptance Checklist"),
+                "missing required section ## Acceptance Checklist",
+            ),
+            (
+                "empty section",
+                self.fixture.package_text(acceptance_checklist=""),
+                "## Acceptance Checklist must list at least one checklist item",
+            ),
+        ]
+        for name, package_text, expected_error in cases:
+            with self.subTest(name=name):
+                fixture = SliceproofFixture()
+                try:
+                    fixture.package_path.write_text(package_text, encoding="utf-8")
+                    result = fixture.run("validate-plan", str(fixture.tasks_path))
+                    self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+                    self.assertIn(expected_error, "\n".join(json.loads(result.stderr)["errors"]))
+                finally:
+                    fixture.cleanup()
+
+    def test_validate_plan_requires_non_empty_spec_acceptance(self) -> None:
+        present = self.fixture.run("validate-plan", str(self.fixture.tasks_path))
+        self.assertEqual(0, present.returncode, present.stdout + present.stderr)
+
+        spec_path = self.fixture.feature_dir / "SPEC.md"
+        cases = [
+            ("missing section", "# Fixture Spec\n", "missing required section ## Acceptance"),
+            (
+                "empty section",
+                "# Fixture Spec\n\n## Acceptance\n",
+                "## Acceptance must list at least one feature-level acceptance item",
+            ),
+        ]
+        for name, spec_text, expected_error in cases:
+            with self.subTest(name=name):
+                spec_path.write_text(spec_text, encoding="utf-8")
+                result = self.fixture.run("validate-plan", str(self.fixture.tasks_path))
+                self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+                self.assertIn(expected_error, "\n".join(json.loads(result.stderr)["errors"]))
+        spec_path.write_text(self.fixture.spec_text(), encoding="utf-8")
+
+    def test_validate_plan_rejects_weak_acceptance_items(self) -> None:
+        cases = [
+            ("placeholder", "- TODO", "is a placeholder"),
+            (
+                "TODO-leading requirement description",
+                "- AC-1: TODO later — check: `x`",
+                "requirement description is missing or placeholder",
+            ),
+            (
+                "TBD-leading requirement description",
+                "- AC-1: TBD later — check: `x`",
+                "requirement description is missing or placeholder",
+            ),
+            (
+                "to-be-determined requirement description",
+                "- AC-1: to-be-determined later — check: `x`",
+                "requirement description is missing or placeholder",
+            ),
+            ("empty check payload", "- AC-1: finished — check:", "must include a non-empty 'check:' payload"),
+            (
+                "expected clause without check payload",
+                "- AC-1: finished — check: — expected: exit 0",
+                "must include a non-empty 'check:' payload",
+            ),
+            (
+                "verify label without manual description",
+                "- AC-1: operator confirms result — manual (approved) — verify:",
+                "must include a non-empty description",
+            ),
+            ("no check grammar", "- AC-1: something is finished", "must name an executable 'check:'"),
+            (
+                "duplicate id",
+                "- AC-1: a — check: `x`\n- AC-1: b — check: `y`",
+                "duplicate acceptance item ID",
+            ),
+            ("no id", "- finished without an id — check: `x`", "must start with a stable ID"),
+        ]
+        for name, checklist, expected in cases:
+            with self.subTest(name=name):
+                fixture = SliceproofFixture()
+                try:
+                    fixture.package_path.write_text(
+                        fixture.package_text(acceptance_checklist=checklist), encoding="utf-8"
+                    )
+                    result = fixture.run("validate-plan", str(fixture.tasks_path))
+                    self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+                    self.assertIn(expected, "\n".join(json.loads(result.stderr)["errors"]))
+                finally:
+                    fixture.cleanup()
+
+        manual_fixture = SliceproofFixture()
+        try:
+            manual_fixture.package_path.write_text(
+                manual_fixture.package_text(
+                    acceptance_checklist=(
+                        "- AC-1: operator confirms the rendered result — check: manual (approved) "
+                        "— verify: inspect the fixture output."
+                    )
+                ),
+                encoding="utf-8",
+            )
+            manual_result = manual_fixture.run("validate-plan", str(manual_fixture.tasks_path))
+            self.assertEqual(0, manual_result.returncode, manual_result.stdout + manual_result.stderr)
+        finally:
+            manual_fixture.cleanup()
+
+        spec_path = self.fixture.feature_dir / "SPEC.md"
+        spec_path.write_text("# Fixture Spec\n\n## Acceptance\n- TODO\n", encoding="utf-8")
+        result = self.fixture.run("validate-plan", str(self.fixture.tasks_path))
+        self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+        self.assertIn("is a placeholder", "\n".join(json.loads(result.stderr)["errors"]))
+        spec_path.write_text(self.fixture.spec_text(), encoding="utf-8")
+
+    def test_report_verdict_rejects_fenced_smuggling_and_duplicates(self) -> None:
+        fixture = SliceproofFixture()
+        try:
+            fixture.write_completed_proof_and_report()
+            good = fixture.report_text(fixture.completed_proof())
+            cases = [
+                (
+                    "fenced pass before actual fail",
+                    "```md\n## Verdict\nPASS\n```\n\n" + good.replace("### Verdict\nPASS", "## Verdict\nFAIL"),
+                    "Verdict must be PASS",
+                ),
+                (
+                    "mixed fence cannot hide actual fail",
+                    "```md\n~~~\n" + good + "```\n\n" + good.replace("### Verdict\nPASS", "## Verdict\nFAIL"),
+                    "Verdict must be PASS",
+                ),
+                (
+                    "duplicate verdict",
+                    good.replace("### Verdict\nPASS", "### Verdict\nPASS\n\n## Verdict\nPASS"),
+                    "exactly one canonical Verdict heading/value",
+                ),
+            ]
+            for name, report_text, expected in cases:
+                with self.subTest(name=name):
+                    fixture.report_path.write_text(report_text, encoding="utf-8")
+                    package = fixture.run(
+                        "validate-package-complete", str(fixture.tasks_path), "--package", "WP1"
+                    )
+                    self.assertNotEqual(0, package.returncode, package.stdout + package.stderr)
+                    self.assertIn(expected, "\n".join(json.loads(package.stderr)["errors"]))
+
+                    plan = fixture.plan()
+                    plan["work_packages"][0]["status"] = "done"
+                    fixture.write_plan(plan)
+                    final = fixture.run("validate-final", str(fixture.tasks_path))
+                    self.assertNotEqual(0, final.returncode, final.stdout + final.stderr)
+                    self.assertIn(expected, "\n".join(json.loads(final.stderr)["errors"]))
+        finally:
+            fixture.cleanup()
+
+    def test_report_verdict_accepts_valid_report_after_nonclosing_fence_markers(self) -> None:
+        fixture = SliceproofFixture()
+        try:
+            fixture.write_completed_proof_and_report()
+            good = fixture.report_text(fixture.completed_proof())
+            examples = [
+                "```md\n~~~\n## Verdict\nFAIL\n```\n\n",
+                "````md\n```\n## Verdict\nFAIL\n````\n\n",
+            ]
+            for example in examples:
+                with self.subTest(example=example.splitlines()[0]):
+                    fixture.report_path.write_text(example + good, encoding="utf-8")
+                    package = fixture.run(
+                        "validate-package-complete", str(fixture.tasks_path), "--package", "WP1"
+                    )
+                    self.assertEqual(0, package.returncode, package.stdout + package.stderr)
+        finally:
+            fixture.cleanup()
+
+    def test_validate_package_complete_enforces_checklist_outcome(self) -> None:
+        good = self.fixture.report_text(self.fixture.completed_proof())
+        cases = [
+            ("fail verdict", good.replace("\nPASS\n", "\nFAIL\n"), "Verdict must be PASS"),
+            (
+                "missing frozen item",
+                good.replace(
+                    "- AC-2: pass — evidence: `sliceproof.py validate-proof` exit 0 in unittest fixture.\n",
+                    "",
+                ),
+                "missing frozen item AC-2",
+            ),
+            (
+                "open blocker",
+                good.replace("## Blocking findings\n- none", "## Blocking findings\n- data loss risk"),
+                "open blocking findings",
+            ),
+            ("no reviewed state", good.split("## Reviewed state")[0], "Reviewed state"),
+        ]
+        for name, report_text, expected in cases:
+            with self.subTest(name=name):
+                self.fixture.write_completed_proof_and_report()
+                self.fixture.report_path.write_text(report_text, encoding="utf-8")
+                result = self.fixture.run(
+                    "validate-package-complete", str(self.fixture.tasks_path), "--package", "WP1"
+                )
+                self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+                self.assertIn(expected, "\n".join(json.loads(result.stderr)["errors"]))
+
+    def test_validate_final_requires_done_status_and_lightweight_report(self) -> None:
+        self.fixture.write_completed_proof_and_report()
+        not_done = self.fixture.run("validate-final", str(self.fixture.tasks_path))
+        self.assertNotEqual(0, not_done.returncode)
+        self.assertIn("expected 'done'", "\n".join(json.loads(not_done.stderr)["errors"]))
+
+        plan = self.fixture.plan()
+        plan["work_packages"][0]["status"] = "done"
+        self.fixture.write_plan(plan)
+        done = self.fixture.run("validate-final", str(self.fixture.tasks_path))
+        self.assertEqual(0, done.returncode, done.stdout + done.stderr)
+        self.assertEqual([], json.loads(done.stdout)["advisories"])
+
+        self.fixture.report_path.write_text("", encoding="utf-8")
+        empty_report = self.fixture.run("validate-final", str(self.fixture.tasks_path))
+        self.assertNotEqual(0, empty_report.returncode)
+        self.assertIn("must be non-empty", "\n".join(json.loads(empty_report.stderr)["errors"]))
+
+        self.fixture.report_path.unlink()
+        missing_report = self.fixture.run("validate-final", str(self.fixture.tasks_path))
+        self.assertNotEqual(0, missing_report.returncode)
+        self.assertIn("report: file not found", "\n".join(json.loads(missing_report.stderr)["errors"]))
+
     def test_zero_slice_registry_allows_index_only_package_assignment(self) -> None:
         plan = self.fixture.plan()
         plan["authoritative_slices"] = []
@@ -2714,27 +1389,7 @@ class SliceproofTests(unittest.TestCase):
         proof = self.fixture.proof_path.read_text(encoding="utf-8")
         completed = proof.replace("TODO", "observed evidence").replace("OPEN", "PASS")
         self.fixture.proof_path.write_text(completed, encoding="utf-8")
-        emitted = self.fixture.run(
-            "emit-state-binding",
-            str(self.fixture.tasks_path),
-            "--package",
-            "WP1",
-            "--worktree",
-            str(self.fixture.repo.resolve(strict=False)),
-            "--git-ref",
-            "wp/fixture/WP1",
-            "--commit",
-            REPORT_COMMIT,
-            "--verified-at",
-            "2026-06-04T00:00:00Z",
-        )
-        self.assertEqual(0, emitted.returncode, emitted.stdout + emitted.stderr)
-        self.assertIn("- Assigned Slices: `none`", emitted.stdout)
-        self.assertIn("- Assigned Slice Digests: `none`", emitted.stdout)
-        self.fixture.report_path.write_text(
-            self.fixture.report_text(completed, assigned_slices="none"),
-            encoding="utf-8",
-        )
+        self.fixture.report_path.write_text(self.fixture.report_text(completed), encoding="utf-8")
         result = self.fixture.run("validate-final", str(self.fixture.tasks_path))
         self.assertEqual(0, result.returncode, result.stdout + result.stderr)
 

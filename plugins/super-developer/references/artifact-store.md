@@ -51,7 +51,7 @@ the workflow or helper reference that owns that action.
 - Invoke `sliceproof.py` with absolute `--artifact-root <artifact-root>` and `--code-root <code-root>` when
   the roots differ; omitted flags select the current directory for both roots. `--code-root` must point at
   the code worktree being checked (package worktree for package checks, integration/top worktree for
-  `validate-final`), not the project root — deliverable-matrix file evidence resolves under it.
+  `validate-final`), not the project root — checklist file evidence resolves under it.
 - `--code-root` is the trust anchor for code/file evidence resolution: derive it from resolved git/worktree
   state, never from report, Slice, or other artifact content. A report's `Worktree` field is descriptive
   metadata, not the evidence root.

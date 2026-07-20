@@ -2,7 +2,7 @@
 
 ## Boundary
 
-Reviewer findings are evidence, not commands. The main agent owns grouping, classification, artifact edits, user prompts, and Gate 2 readiness.
+Reviewer findings are evidence, not commands. The main agent owns grouping, classification, artifact edits, user prompts, and plan-gate readiness.
 
 ## Triage Categories
 
@@ -19,7 +19,7 @@ A defect that prevents safe finalization because requirements, package assignmen
 A material assumption that cannot be resolved from approved artifacts, repository evidence, or resolved testing
 authority and must be observed before the plan is safe. Do not defer it to implementation or invent commands/
 budgets. Return this classification to the orchestrator for `spike-to-plan`; accepted evidence must return
-through `implementation-plan` artifact repair and focused plan review before Gate 2.
+through `implementation-plan` artifact repair and focused plan review before the plan gate.
 
 ### design decision
 

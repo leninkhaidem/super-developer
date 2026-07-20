@@ -24,9 +24,14 @@ Full safe Slice inventory for this plan. Details stay in Slice files.
 User-facing functional requirements and safe Slice-derived feature requirements. Use stable IDs for traceability.
 - REQ-1: ...
 
-## Acceptance Criteria
-Feature-level outcomes. Use stable IDs; prefer Given/When/Then when useful.
-- AC-1: ...
+## Acceptance
+Feature-level definition of success: the end-to-end checks that prove the whole feature actually works.
+This is the final delivery gate — the feature is delivered only when every check here passes on the integrated
+code. **Executable-by-default:** each item is a runnable check (command, test id, or observable output). An item
+that genuinely cannot be automated is allowed only as an explicit human-approved manual-verification exception,
+marked `manual (approved)`, and is surfaced for approval at plan review.
+- AC-1: <what success looks like> — check: `<command or test id>` — expected: <observable pass condition>
+- AC-2: <outcome that cannot be automated> — check: manual (approved) — verify: <exact manual step and expected result>
 
 ## Constraints
 Non-negotiable user-stated constraints, approved scope limits, compatibility/security/performance policy, or Slice-derived constraints that apply feature-wide.
@@ -47,6 +52,7 @@ User-approved exclusions, deferred items, or boundaries. Include approval proven
 
 - Include normative product content only when stated, explicitly approved, or safely projected from authoritative Slice product/design commitments.
 - Do not invent product behavior, architecture, performance targets, security rules, compatibility constraints, or success criteria to make the spec feel complete.
+- Every `## Acceptance` item is an executable check unless it carries an explicit human-approved `manual (approved)` exception; never leave a feature-level outcome unverifiable and silent.
 - Ask before writing if a requirement, constraint, success condition, Slice deferral, or exclusion is needed but ambiguous.
 - Preserve all user-stated and safely projected requirements while keeping the file concise.
 - Redact secrets, credentials, tokens, PII, and proprietary sensitive values.
@@ -62,5 +68,6 @@ User-approved exclusions, deferred items, or boundaries. Include approval proven
 
 - Raw Slice text, source excerpts, transcripts, debate, implementation sequencing, proof rows, review findings, line numbers, code snippets, or diffs are copied into `SPEC.md`.
 - Feature-level requirements omit user-stated or safely projected commitments.
+- `## Acceptance` is missing, empty, or contains an item that is neither an executable check nor a human-approved `manual (approved)` exception.
 - An approved deferral/exclusion lacks provenance and scope.
 - The Slice manifest and registry Slice inventory disagree.

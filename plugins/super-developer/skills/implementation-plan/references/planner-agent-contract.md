@@ -54,7 +54,12 @@ the packet omits a contract required by the current action.
    integration, or final verification.
    When material execution feasibility remains unresolved, use existing package `Notes` or verification
    expectations for the profile and testing-authority provenance; route empirical assumptions to a spike.
-   Preserve exact interface/forbidden-behavior obligations; seed obvious package-specific risk expectations as deliverable-matrix `VE-<n>` row sources (interactive UI, retry/fail-closed, trigger precedence, lifecycle/restart/reaper, cache invalidation, model/default precedence, generated defaults, state pollution when applicable); and state that planner seeds do not limit verifier discovery.
+   Preserve exact interface/forbidden-behavior obligations; seed obvious package-specific risk expectations (interactive UI, retry/fail-closed, trigger precedence, lifecycle/restart/reaper, cache invalidation, model/default precedence, generated defaults, state pollution when applicable); and state that planner seeds do not limit verifier discovery.
+   Author the feature-level `## Acceptance` in `SPEC.md` and a per-package `## Acceptance Checklist` as closed,
+   frozen done-definitions: each item an executable check (command/test/observable) unless it is a human-approved
+   `manual (approved)` exception. If the project has no runnable build/test command the checks depend on, say so
+   in the output so the orchestrator can resolve testing authority before authorization — do not write
+   unrunnable acceptance.
    If Semgrep is disabled, do not require helper setup, scans, or evidence. If enabled, detect
    impacted stacks from normal repo/package analysis, use helper `index`/`retrieve` for local config
    paths/profile refresh, never inspect `index.json` manually or hard-code curated rule mappings, and

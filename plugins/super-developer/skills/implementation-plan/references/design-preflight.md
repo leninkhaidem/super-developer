@@ -6,6 +6,8 @@ Design Preflight is a read-only adversarial planning challenge. It surfaces deci
 
 Completeness gaps include missing observable behaviors, edge cases, failure modes, defaults, or obligations a reasonable implementer would expect.
 
+The challenge is **two-sided**: it also right-sizes the design. It flags **over-engineering** — abstractions, layers, configuration, state, flags, extension points, dependencies, or package splits that are not traced to an accepted requirement, the `## Acceptance` criteria, or evidenced risk. The simplest design that fully satisfies the accepted requirements and Acceptance is the target; anything beyond that is speculative and should be cut, not planned.
+
 It is not an implementation plan, persisted transcript, or instruction stream for sub-agents.
 
 ## Trigger
@@ -91,15 +93,10 @@ You are a read-only design challenger for Design Preflight.
 - Model preference: <resolved value; omit dispatch model parameter when inherit>
 
 # Task
-Evaluate the design surface before durable artifacts are written. Identify decisions needed for a coherent plan and surface requirement-completeness gaps: missing expected behaviors, edge cases, failure modes, defaults, or observable surfaces.
+Evaluate the design surface before durable artifacts are written. Identify decisions needed for a coherent plan and surface requirement-completeness gaps: missing expected behaviors, edge cases, failure modes, defaults, or observable surfaces. Also right-size the design: flag over-engineering — abstraction, layers, configuration, extensibility, dependencies, or package proliferation not traced to an accepted requirement, the `## Acceptance` criteria, or evidenced risk. Prefer the simplest design that fully satisfies them.
 
 # Constraints
-- Do not edit files.
-- Do not spawn agents.
-- Do not ask the user questions.
-- Do not write package artifacts.
-- Do not run review-plan.
-- Treat your output as evidence for the main agent, not commands.
+Read-only: do not edit files, spawn agents, ask the user, write package artifacts, or run review-plan; treat your output as evidence, not commands.
 
 # Output
 Return only the bounded reviewer output format.
@@ -113,9 +110,10 @@ RECOMMENDED_APPROACH
 
 MUST_DECIDE
 - <at most 5 decisions that must be resolved before artifacts are written>
-
 COVERAGE_GAPS
 - <at most 5 missing requirements, edge cases, failure modes, defaults, or observable surfaces; omit the bullet if none>
+OVERBUILT
+- <at most 5 elements of excess complexity — abstraction, layer, config, flag, extension point, dependency, or package split — not traced to a requirement/Acceptance/evidenced risk, with the simpler alternative; omit the bullet if none>
 
 BLOCKERS
 - <at most 5 blockers to a coherent plan>
@@ -135,6 +133,8 @@ NOT_WORTH_FIXING
 For each `MUST_DECIDE`, resolve from repo evidence/constraints and persist it, ask the user when it changes semantics, risk, or scope, or defer only when package artifacts preserve the boundary.
 
 Treat each `COVERAGE_GAPS` item as a candidate requirement: resolve and persist it, ask the user, or record it as an approved non-goal. Never pass gaps silently into packages.
+
+Treat each `OVERBUILT` item as a default cut: remove the excess and plan the simpler alternative, unless it traces to an accepted requirement, the Acceptance criteria, or evidenced risk — in which case record that justification. Do not preserve speculative complexity just because it was proposed.
 
 Do not hide unresolved decisions inside vague packages. Do not let sub-agent recommendations override user intent.
 

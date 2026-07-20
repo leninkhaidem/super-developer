@@ -4,10 +4,10 @@
 
 This reference owns artifact roles and file shapes. Use `artifact-store.md` for artifact root/code root,
 sidecar branch/worktree, slug mapping, and sidecar checkpoint vocabulary. Slice authority lives in
-`conceptualize-slice-authority.md`; package sizing lives in `work-packages.md`; completion and freshness
-live in `package-lifecycle.md`; command shapes live in `tool-usage.md`. The detailed package verification
-report/matrix contract is shared in `plugins/super-developer/references/package-verification-report.md` and
-should be passed directly to package verifiers.
+`conceptualize-slice-authority.md`; package sizing lives in `work-packages.md`; completion and repair
+live in `package-lifecycle.md`; command shapes live in `tool-usage.md`. The lightweight package verification
+report shape is shared in `plugins/super-developer/references/package-verification-report.md` and should be
+passed directly to package verifiers.
 
 ## Artifact Set
 
@@ -15,14 +15,12 @@ Planned-feature state is file-based and Slice-first. Paths below are artifact-ro
 current-root artifact store is explicitly selected; code, plugin, and test paths resolve under the code root.
 
 - `.planning/<concept-slug>/slices/*.md` — authoritative product/design Slices when present.
-- `.tasks/<feature>/SPEC.md` — accepted requirements, constraints, non-goals, Slice inventory, and package-level verification summary.
+- `.tasks/<feature>/SPEC.md` — accepted requirements, constraints, non-goals, Slice inventory, and the executable feature-level `## Acceptance` gate.
 - `.tasks/<feature>/tasks.json` — lightweight registry only.
-- `.tasks/<feature>/packages/<WP-ID>.md` — package assignment.
+- `.tasks/<feature>/packages/<WP-ID>.md` — package assignment, including the frozen `## Acceptance Checklist`.
 - `.tasks/<feature>/proofs/<WP-ID>.proof.md` — package closure evidence.
-- `.tasks/<feature>/reports/<WP-ID>.package-verification.md` — independent package verification receipt with a durable deliverable completeness matrix.
-- `.tasks/<feature>/semgrep/<WP-ID>.semgrep.json` and `.semgrep-summary.json` — optional local raw/summary Semgrep package evidence when Semgrep was enabled or contracted.
-- `.tasks/<feature>/semgrep/integration.semgrep.json` and `.semgrep-summary.json` — optional one-shot integrated Semgrep evidence for concrete cross-package/shared-surface risk.
-- `.tasks/<feature>/reviews/review-code-state.json` — review-code governance readiness for audit handoff.
+- `.tasks/<feature>/reports/<WP-ID>.package-verification.md` — lightweight independent package verification result (Acceptance Checklist Result + blocking/advisory findings + reviewed state).
+- `.tasks/<feature>/semgrep/<WP-ID>.semgrep.json` and `.semgrep-summary.json` — optional local Semgrep evidence when enabled or contracted.
 
 ## Lightweight Registry
 
@@ -85,6 +83,9 @@ Context only:
 ## Verification Expectations
 - <command, inspection, or scenario expectation>
 
+## Acceptance Checklist
+- AC-1: <package outcome> — check: `<command or test id>` — expected: <observable pass condition>
+
 ## Proof
 - `.tasks/<feature>/proofs/WP1.proof.md`
 
@@ -95,7 +96,7 @@ Context only:
 - None.
 ```
 
-`Must satisfy` Slice IDs require proof rows. `Context only` IDs must be read and respected but do not create closure rows unless another package owns them.
+`Must satisfy` Slice IDs require proof rows. `Context only` IDs must be read and respected but do not create closure rows unless another package owns them. `## Acceptance Checklist` is the frozen closed done-definition (see `package-lifecycle.md`).
 
 ## Proof Markdown Closure
 
@@ -114,34 +115,15 @@ Closure tables use `PASS`, `DEFERRED`, or `N/A`. `OPEN` and `GAP` block closure.
 
 ## Package Verification Report
 
-A report confirms independent package verification occurred after proof evidence was available, semantically checks deliverable completion, and binds verification to current proof/source/code state through helper-readable metadata.
+A lightweight result confirming the package was verified against its frozen `## Acceptance Checklist`. See
+`plugins/super-developer/references/package-verification-report.md` for the full shape. It contains, in order:
 
-Canonical source body starts with `## Package Verification: <WP-ID>` and includes, in order:
+- `### Verdict` with `PASS` or `FAIL`;
+- `## Acceptance Checklist Result` — each checklist item → `pass`/`fail` + one resolvable evidence pointer;
+- `## Blocking findings` — correctness/security/data-loss/contract-break findings, or `none`;
+- `## Advisory notes` — non-blocking observations, or `none`;
+- `## Reviewed state` — worktree/ref/commit of the verified code.
 
-- `### Verdict` with `PASS` or `FAIL`.
-- `### Deliverable Completeness Matrix` using the fixed columns `Source ID`, `Row Type`, `Deliverable`, `Evidence Type`, `Evidence Refs`, `Exactness / Risk Disposition`, and `Verdict`.
-- `### Triggered Risk Selection Notes`, verifier-owned `### Test Review Scope` for the package-owned reviewed delta, `### Slice Closure Review`, and `### Code Review Findings`.
-- For failures, `### Blocking Findings` and `### Repair Guidance`.
-
-Matrix rows cover assigned `Must satisfy` Slice H3 IDs, package verification expectations as stable `VE-<n>` rows, and verifier-selected triggered risks as explicit `RISK-<...>` rows. Clean completion requires every mandatory row to be `delivered` with structurally valid non-placeholder code/test/static/command/manual evidence refs and a canonical test-review receipt. Dirty verdicts (`missing`, `partial`, `contradicted`, `unverified`) block completion; `### Slice Closure Review` or proof prose alone is insufficient. Helpers validate exact receipt grammar, positive counts, controlled values, placeholders, strict table shape, typed refs, source bindings, and clean verdicts only; verifiers and final auditors judge contradictions, semantic sufficiency, and claim truthfulness.
-
-Append `## State Binding` from `emit-state-binding` with package path, package Markdown digest, proof path/digest, assigned Slice paths, section-scoped tier-aware `Assigned Slice Digests` (`path|tier|H3-ID=sha256:<64-hex>` entries separated by `; `, or `none`), `Matrix Source Snapshot` over package Markdown plus `must_satisfy` section blocks only, reviewed worktree/ref/commit, and timestamp. See `plugins/super-developer/references/package-verification-report.md` for the full report template, evidence-ref grammar, malformed-binding fail-closed rules, and `context_only_slice_drift` advisory disposition. If proof content, hard-tier source inputs, cited evidence, Test Review Scope inputs, or reviewed implementation state changes after the report, freshness is lost until a new source report/state binding is produced; advisory-only `context_only` drift is non-blocking by default and routed through affected-surface classification.
-
-## Review-Code Governance State
-
-Canonical path: `.tasks/<feature>/reviews/review-code-state.json`.
-
-`review-code-state.json` is governance readiness only. It is not proof evidence, package evidence, a review transcript, an event stream, or lifecycle history.
-
-Minimum clean audit-handoff state includes:
-
-- `feature`, `mode: "pipeline"`, `state: "ready_for_audit"`, and `captured_at`;
-- `reviewed_state` with feature/base/target refs, reviewed commit, diff/file-list checksums, and merge worktree;
-- `artifact_context` with SPEC, registry, package/proof/report paths, report freshness, authoritative Slices, and changed-file ownership;
-- `lenses` with completed coverage evidence;
-- `findings.open_serious: []`;
-- `closure_status` with serious findings closed, no serious regression, widening complete, proofs/reports fresh, and ready-for-audit true.
-
-Keep the state compact: bounded current-state summaries and pointers are allowed; package proof bodies, report bodies, transcripts, status history, lifecycle ledgers, and format markers are not.
-
-Audit may run with this state or explicit `none` as optional context. Final merge/readiness fails closed when review-code readiness is missing, not `mode: "pipeline"`, not `state: "ready_for_audit"`, not bound to the reviewed integrated state, has any `findings.open_serious` entry, or has false/uncertain `closure_status.ready_for_audit` or `closure_status.proofs_and_reports_fresh`.
+PASS requires every checklist item `pass` with authentic evidence and no open blocking finding. There is no
+deliverable-completeness matrix, test-review receipt, or digest state-binding block. Mechanical helper output is
+advisory; it never fails a package whose checklist passes.
