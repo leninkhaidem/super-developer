@@ -545,6 +545,10 @@ def load_registry(
 
 
 ACCEPTANCE_ID_RE = re.compile(r"^([A-Za-z][A-Za-z0-9_-]*)\s*:")
+ACCEPTANCE_PLACEHOLDER_LEADING_RE = re.compile(
+    r"^(?:todo|tbd|to(?:[\s_-]+)be(?:[\s_-]+)determined)\b",
+    flags=re.IGNORECASE,
+)
 
 
 def acceptance_item_id(item: str) -> str | None:
@@ -563,18 +567,46 @@ def validate_acceptance_items(items: list[str], label: str) -> list[str]:
         if is_placeholder_text(text):
             errors.append(f"{label}: item {index} is a placeholder ({text!r}); write a concrete acceptance check")
             continue
-        item_id = acceptance_item_id(text)
-        if item_id is None:
+        id_match = ACCEPTANCE_ID_RE.match(text)
+        if id_match is None:
             errors.append(f"{label}: item {index} must start with a stable ID like 'AC-1:' ({text!r})")
             continue
+        item_id = id_match.group(1)
         if item_id in seen:
             errors.append(f"{label}: duplicate acceptance item ID {item_id!r}")
         seen.add(item_id)
-        lowered = text.lower()
-        if "check:" not in lowered and "manual (approved)" not in lowered:
+
+        body = text[id_match.end():].strip()
+        check_match = re.search(r"(?i)\bcheck\s*:", body)
+        manual_match = re.search(r"(?i)\bmanual\s*\(approved\)", body)
+        marker_starts = [match.start() for match in (check_match, manual_match) if match is not None]
+        description = body[:min(marker_starts)].strip(" \t—–-:") if marker_starts else body
+        if is_placeholder_text(description) or ACCEPTANCE_PLACEHOLDER_LEADING_RE.match(description):
+            errors.append(f"{label}: item {item_id} requirement description is missing or placeholder")
+
+        if check_match is None and manual_match is None:
             errors.append(
                 f"{label}: item {item_id} must name an executable 'check:' or a 'manual (approved)' exception"
             )
+        elif manual_match is not None:
+            manual_description = body[manual_match.end():].strip()
+            manual_description = re.sub(
+                r"(?i)^(?:—|–|-)?\s*verify\s*:\s*", "", manual_description
+            ).strip(" \t—–-:")
+            if is_placeholder_text(manual_description):
+                errors.append(
+                    f"{label}: item {item_id} 'manual (approved)' exception must include a non-empty description"
+                )
+        elif check_match is not None:
+            check_payload = body[check_match.end():].strip()
+            check_payload = re.split(
+                r"(?:^|\s+)(?:—|–)\s*(?:expected|verify)\s*:",
+                check_payload,
+                maxsplit=1,
+                flags=re.IGNORECASE,
+            )[0].strip()
+            if is_placeholder_text(check_payload):
+                errors.append(f"{label}: item {item_id} must include a non-empty 'check:' payload")
     return errors
 
 
@@ -949,16 +981,16 @@ def parse_bullets(body: str, *, unwrap_path: bool) -> list[str]:
 def split_h2_sections(text: str) -> dict[str, str]:
     sections: dict[str, list[str]] = {}
     current: str | None = None
-    in_fence = False
+    active_fence: tuple[str, int] | None = None
     for raw_line in text.splitlines():
         line = raw_line.rstrip("\n")
-        stripped = line.strip()
-        if is_fence(stripped):
-            in_fence = not in_fence
+        was_in_fence = active_fence is not None
+        active_fence, is_fence_marker = advance_markdown_fence(line, active_fence)
+        if was_in_fence or is_fence_marker:
             if current is not None:
                 sections[current].append(line)
             continue
-        if not in_fence and line.startswith("## ") and not line.startswith("### "):
+        if line.startswith("## ") and not line.startswith("### "):
             current = line[3:].strip()
             sections.setdefault(current, [])
             continue
@@ -1201,9 +1233,19 @@ def validate_expectation_row_status(proof_path: Path, row: ProofRow, row_label: 
     return errors
 
 
-def report_verdict(text: str) -> str | None:
-    match = re.search(r"(?im)^#{2,4}\s*Verdict\s*$\s*\n+\s*([A-Za-z]+)", text)
-    return match.group(1).upper() if match else None
+def report_verdicts(text: str) -> list[str]:
+    unfenced_lines: list[str] = []
+    active_fence: tuple[str, int] | None = None
+    for line in text.splitlines():
+        was_in_fence = active_fence is not None
+        active_fence, is_fence_marker = advance_markdown_fence(line, active_fence)
+        if not was_in_fence and not is_fence_marker:
+            unfenced_lines.append(line)
+    unfenced_text = "\n".join(unfenced_lines)
+    return [
+        match.group(1).upper()
+        for match in re.finditer(r"(?im)^#{2,4}\s*Verdict\s*$\s*\n+\s*([A-Za-z]+)", unfenced_text)
+    ]
 
 
 def parse_report_checklist_results(section_body: str) -> dict[str, tuple[str, str]]:
@@ -1246,9 +1288,14 @@ def validate_report_markdown(report_path: Path, proof_path: Path, package_md: Pa
         errors.append(f"{report_path}: package verification report must be non-empty")
         return ReportValidationResult(errors, [])
 
-    verdict = report_verdict(text)
-    if verdict != "PASS":
-        errors.append(f"{report_path}: report Verdict must be PASS (found {verdict or 'missing'})")
+    verdicts = report_verdicts(text)
+    if len(verdicts) != 1:
+        errors.append(
+            f"{report_path}: report must contain exactly one canonical Verdict heading/value "
+            f"(found {len(verdicts)})"
+        )
+    elif verdicts[0] != "PASS":
+        errors.append(f"{report_path}: report Verdict must be PASS (found {verdicts[0]})")
 
     sections = split_h2_sections(text)
 
@@ -1592,6 +1639,23 @@ def format_title(title: str) -> str:
 
 def escape_table_cell(value: str) -> str:
     return value.replace("|", "\\|")
+
+
+def advance_markdown_fence(
+    line: str, active_fence: tuple[str, int] | None
+) -> tuple[tuple[str, int] | None, bool]:
+    match = re.match(r"^(`{3,}|~{3,})(.*)$", line.strip())
+    if match is None:
+        return active_fence, False
+
+    marker, suffix = match.groups()
+    if active_fence is None:
+        return (marker[0], len(marker)), True
+
+    delimiter, opening_length = active_fence
+    if marker[0] == delimiter and len(marker) >= opening_length and not suffix.strip():
+        return None, True
+    return active_fence, False
 
 
 def is_fence(line: str) -> bool:

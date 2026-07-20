@@ -1181,6 +1181,32 @@ class SliceproofTests(unittest.TestCase):
     def test_validate_plan_rejects_weak_acceptance_items(self) -> None:
         cases = [
             ("placeholder", "- TODO", "is a placeholder"),
+            (
+                "TODO-leading requirement description",
+                "- AC-1: TODO later — check: `x`",
+                "requirement description is missing or placeholder",
+            ),
+            (
+                "TBD-leading requirement description",
+                "- AC-1: TBD later — check: `x`",
+                "requirement description is missing or placeholder",
+            ),
+            (
+                "to-be-determined requirement description",
+                "- AC-1: to-be-determined later — check: `x`",
+                "requirement description is missing or placeholder",
+            ),
+            ("empty check payload", "- AC-1: finished — check:", "must include a non-empty 'check:' payload"),
+            (
+                "expected clause without check payload",
+                "- AC-1: finished — check: — expected: exit 0",
+                "must include a non-empty 'check:' payload",
+            ),
+            (
+                "verify label without manual description",
+                "- AC-1: operator confirms result — manual (approved) — verify:",
+                "must include a non-empty description",
+            ),
             ("no check grammar", "- AC-1: something is finished", "must name an executable 'check:'"),
             (
                 "duplicate id",
@@ -1202,12 +1228,87 @@ class SliceproofTests(unittest.TestCase):
                 finally:
                     fixture.cleanup()
 
+        manual_fixture = SliceproofFixture()
+        try:
+            manual_fixture.package_path.write_text(
+                manual_fixture.package_text(
+                    acceptance_checklist=(
+                        "- AC-1: operator confirms the rendered result — check: manual (approved) "
+                        "— verify: inspect the fixture output."
+                    )
+                ),
+                encoding="utf-8",
+            )
+            manual_result = manual_fixture.run("validate-plan", str(manual_fixture.tasks_path))
+            self.assertEqual(0, manual_result.returncode, manual_result.stdout + manual_result.stderr)
+        finally:
+            manual_fixture.cleanup()
+
         spec_path = self.fixture.feature_dir / "SPEC.md"
         spec_path.write_text("# Fixture Spec\n\n## Acceptance\n- TODO\n", encoding="utf-8")
         result = self.fixture.run("validate-plan", str(self.fixture.tasks_path))
         self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
         self.assertIn("is a placeholder", "\n".join(json.loads(result.stderr)["errors"]))
         spec_path.write_text(self.fixture.spec_text(), encoding="utf-8")
+
+    def test_report_verdict_rejects_fenced_smuggling_and_duplicates(self) -> None:
+        fixture = SliceproofFixture()
+        try:
+            fixture.write_completed_proof_and_report()
+            good = fixture.report_text(fixture.completed_proof())
+            cases = [
+                (
+                    "fenced pass before actual fail",
+                    "```md\n## Verdict\nPASS\n```\n\n" + good.replace("### Verdict\nPASS", "## Verdict\nFAIL"),
+                    "Verdict must be PASS",
+                ),
+                (
+                    "mixed fence cannot hide actual fail",
+                    "```md\n~~~\n" + good + "```\n\n" + good.replace("### Verdict\nPASS", "## Verdict\nFAIL"),
+                    "Verdict must be PASS",
+                ),
+                (
+                    "duplicate verdict",
+                    good.replace("### Verdict\nPASS", "### Verdict\nPASS\n\n## Verdict\nPASS"),
+                    "exactly one canonical Verdict heading/value",
+                ),
+            ]
+            for name, report_text, expected in cases:
+                with self.subTest(name=name):
+                    fixture.report_path.write_text(report_text, encoding="utf-8")
+                    package = fixture.run(
+                        "validate-package-complete", str(fixture.tasks_path), "--package", "WP1"
+                    )
+                    self.assertNotEqual(0, package.returncode, package.stdout + package.stderr)
+                    self.assertIn(expected, "\n".join(json.loads(package.stderr)["errors"]))
+
+                    plan = fixture.plan()
+                    plan["work_packages"][0]["status"] = "done"
+                    fixture.write_plan(plan)
+                    final = fixture.run("validate-final", str(fixture.tasks_path))
+                    self.assertNotEqual(0, final.returncode, final.stdout + final.stderr)
+                    self.assertIn(expected, "\n".join(json.loads(final.stderr)["errors"]))
+        finally:
+            fixture.cleanup()
+
+    def test_report_verdict_accepts_valid_report_after_nonclosing_fence_markers(self) -> None:
+        fixture = SliceproofFixture()
+        try:
+            fixture.write_completed_proof_and_report()
+            good = fixture.report_text(fixture.completed_proof())
+            examples = [
+                "```md\n~~~\n## Verdict\nFAIL\n```\n\n",
+                "````md\n```\n## Verdict\nFAIL\n````\n\n",
+            ]
+            for example in examples:
+                with self.subTest(example=example.splitlines()[0]):
+                    fixture.report_path.write_text(example + good, encoding="utf-8")
+                    package = fixture.run(
+                        "validate-package-complete", str(fixture.tasks_path), "--package", "WP1"
+                    )
+                    self.assertEqual(0, package.returncode, package.stdout + package.stderr)
+        finally:
+            fixture.cleanup()
 
     def test_validate_package_complete_enforces_checklist_outcome(self) -> None:
         good = self.fixture.report_text(self.fixture.completed_proof())
