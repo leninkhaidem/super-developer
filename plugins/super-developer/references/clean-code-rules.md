@@ -26,8 +26,12 @@ For every material change, agents MUST ensure:
   not expose secrets or private data.
 - **Maintainable ownership:** changed behavior has a clear owner and cohesive boundary. Likely future changes avoid
   scattered edits and duplicated conditionals.
-- **Justified complexity:** abstractions, dependencies, configuration, state, retries, caches, flags, and extension
-  points require a current requirement or evidenced risk.
+- **Right-sized complexity:** aim for the simplest design that fully satisfies the accepted requirements and
+  `## Acceptance` criteria — neither over- nor under-engineered. Abstractions, dependencies, configuration, state,
+  retries, caches, flags, and extension points require a current requirement or evidenced risk; anything built
+  beyond what Acceptance needs, and not traceable to one, is speculative and must be cut. Simpler is the default;
+  added complexity carries the burden of proof. This never licenses sloppiness — correctness, boundary
+  validation, and the required outcomes below still hold.
 - **Readable behavior:** project vocabulary, control flow, state transitions, defaults, and errors reveal intent.
 - **Testable design:** important behavior is observable through deterministic seams. Isolate I/O, time, randomness,
   globals, subprocesses, networks, tools, and framework lifecycle when they make proof brittle.

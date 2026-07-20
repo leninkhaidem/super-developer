@@ -85,6 +85,13 @@ Severity (two tiers — the bar):
 A finding is blocking only when it makes the software wrong, unsafe, lose data, or break a stated contract.
 Do not manufacture blockers from taste or speculative completeness.
 
+**Over-engineering lens:** flag complexity not traced to an accepted requirement or the `## Acceptance` criteria
+— speculative abstraction, unused extensibility, needless layers/config/flags, or premature optimization. Report
+it as 🟡 **ADVISORY** by default; escalate to 🔴 **BLOCKING** only when the excess creates a real
+correctness/security/data/contract risk. Do not demand rewrites of working, right-sized code, and do not treat
+simplicity itself as a defect — under-engineering (missing validation, error handling, or tests) is a separate
+finding.
+
 Internal fields: severity, tags, location, title, evidence, artifact refs, introduced-by-change, planned signal, recommendation, dedupe key, Skeptic verdict,
 suggestion actionability, fix status.
 
