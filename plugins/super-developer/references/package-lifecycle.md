@@ -10,7 +10,7 @@ Registry package status is routing only: `pending`, `in_progress`, `blocked`, or
 correctness. Dashboards may show status, dependency readiness, and helper results as mechanical signals only.
 
 ## Definition of done
-A package is **done** when its **frozen `## Acceptance Checklist`** (in the package Markdown, approved at Gate 2)
+A package is **done** when its **frozen `## Acceptance Checklist`** (in the package Markdown, approved at the plan gate)
 passes: every item shows a real passing check with authentic evidence, and no open blocking finding remains.
 That checklist is the closed, objective done-definition — the verifier checks exactly it, inventing nothing.
 

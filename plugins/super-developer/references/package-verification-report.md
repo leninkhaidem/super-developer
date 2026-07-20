@@ -44,7 +44,7 @@ PASS | FAIL
   observed result, or a `manual (approved)` observation). Fabricated, skipped-without-approval, or hollow
   evidence makes the item `fail`.
 - **Executable-by-default:** a `manual` result is acceptable only for an item the plan froze as a human-approved
-  `manual (approved)` exception at Gate 2.
+  `manual (approved)` exception at the plan gate.
 - Mechanical `sliceproof.py` output is advisory diagnostics, never a reason to FAIL a package whose checklist
   passes. Note shape issues under Advisory; do not loop on paperwork.
 

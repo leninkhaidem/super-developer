@@ -22,7 +22,7 @@ Reviewers work cold from supplied files and references; they do not inherit hidd
 
 ## Plan Reviewer
 
-Always run one Plan Reviewer/Triage. Perform challenge first, then artifact QA. This reviewer decides whether Security/Failure-Mode escalation is needed from the same file-only evidence.
+Always run one Plan Reviewer/Triage. Perform challenge first, then artifact QA. The orchestrator's security-surface pre-screen may already have dispatched the Security/Failure-Mode Reviewer in the first wave; if not, this reviewer decides whether Security/Failure-Mode escalation is needed from the same file-only evidence.
 
 ### Pass 1: Challenge
 
@@ -85,7 +85,7 @@ Valid `NONE` requires safe roots/paths, mechanical validation, file self-suffici
 
 ## Security/Failure-Mode Reviewer
 
-Run only when the Plan Reviewer/Triage requests `ESCALATE: security-failure-mode`.
+Run when the orchestrator's security-surface pre-screen tripped (first wave, parallel with the Plan Reviewer/Triage) or, as a backstop, when the Plan Reviewer/Triage requests `ESCALATE: security-failure-mode`.
 
 Check whether:
 
@@ -109,4 +109,4 @@ Check whether:
 
 ## Reviewer Selection
 
-Default to one Plan Reviewer/Triage. Add the Security/Failure-Mode Reviewer only when the Plan Reviewer/Triage emits `ESCALATE: security-failure-mode`. More reviewers are not inherently better.
+Default to one Plan Reviewer/Triage. Add the Security/Failure-Mode Reviewer when the security-surface pre-screen trips (first wave) or when the Plan Reviewer/Triage emits `ESCALATE: security-failure-mode` (backstop). More reviewers are not inherently better.

@@ -51,7 +51,7 @@ passed on the integrated code. It does not re-derive completeness by opinion or 
    passing evidence is a blocking gap.
 6. Confirm the feature-level `## Acceptance` checks were run against the integrated code and passed, with real
    captured output. A manual-verification exception is acceptable only if it was the human-approved exception
-   recorded at Gate 2.
+   recorded at the plan gate.
 7. Load `references/audit-subagent-contract.md` and dispatch one cold read-only auditor with a self-contained
    packet: integrated worktree state, git metadata, SPEC/registry/package/result paths, each package's
    Acceptance Checklist and result, and the feature Acceptance result. The auditor spot-falsifies high-value

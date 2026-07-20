@@ -10,7 +10,7 @@ A package is **done** when **every item on its frozen Acceptance Checklist passe
 no open blocking finding remains.** That is the whole gate. Nothing else fails a package.
 
 - The Acceptance Checklist is **closed and frozen** — it comes from the package Markdown `## Acceptance
-  Checklist` section (authored during planning, approved at Gate 2). Check *exactly* those items. Do not add
+  Checklist` section (authored during planning, approved at the plan gate). Check *exactly* those items. Do not add
   "completeness" items of your own.
 - Each item is **binary**: pass or fail, with a one-line evidence pointer (command + observed result, test id,
   or file:line for an observable behavior).
