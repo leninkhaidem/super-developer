@@ -1665,6 +1665,7 @@ def validate_lifecycle_state_data(
     validate_cluster_state_bindings(
         state,
         artifact_root=artifact_root,
+        code_root=code_root,
         feature=feature,
         verify_files=verify_files,
         verify_git_objects=verify_git_objects,
@@ -1963,10 +1964,259 @@ def validate_current_matches_committed_blob(
         errors.append(f"{label}: current file differs from the exact committed evidence blob")
 
 
+def validate_retained_repair_return(
+    final_state: dict[str, Any],
+    reservation_state: dict[str, Any],
+    return_state: dict[str, Any],
+    *,
+    artifact_root: Path,
+    reservation_commit: str,
+    reservation_key: tuple[str, int, str, str],
+    bound_ids: set[str],
+    label: str,
+    errors: list[str],
+) -> None:
+    reservation_id, generation, commit, state_digest = reservation_key
+    expected_verified = {
+        "artifact_ref": reservation_state["artifact_checkpoint"]["ref"],
+        "artifact_sha": reservation_commit,
+        "state_digest": canonical_json_digest(reservation_state),
+        "generation": reservation_state["generation"],
+    }
+    if return_state["last_verified"] != expected_verified:
+        errors.append(f"{label}: return last_verified does not bind the exact repair reservation")
+    if return_state["budgets"]["active_reservation"] is not None:
+        errors.append(f"{label}: repair return must clear the active reservation")
+
+    final_clusters = {cluster["id"]: cluster for cluster in final_state["serious_clusters"]}
+    returned_clusters = {cluster["id"]: cluster for cluster in return_state["serious_clusters"]}
+    returned_binding_ids = {
+        cluster["id"]
+        for cluster in return_state["serious_clusters"]
+        if cluster["repair"] is not None
+        and (
+            cluster["repair"]["reservation_id"],
+            cluster["repair"]["reservation_generation"],
+            cluster["repair"]["reservation_commit"],
+            cluster["repair"]["reservation_state_digest"],
+        ) == (reservation_id, generation, commit, state_digest)
+    }
+    if returned_binding_ids != bound_ids:
+        errors.append(f"{label}: return does not carry the exact reserved canonical cluster set")
+    for cluster_id in sorted(bound_ids):
+        returned = returned_clusters.get(cluster_id)
+        retained = final_clusters.get(cluster_id)
+        if returned is None or retained is None or (
+            returned["repair"] != retained["repair"]
+            or returned["closure"] != retained["closure"]
+        ):
+            errors.append(f"{label}: cluster {cluster_id} return does not match retained repair/closure")
+
+    transition_errors = compare_lifecycle_states(reservation_state, return_state)
+    transition_errors.extend(validate_cluster_transition_evidence(
+        artifact_root, reservation_commit, reservation_state, return_state
+    ))
+    errors.extend(f"{label}: {error}" for error in transition_errors)
+
+
+def validate_retained_repair_history(
+    state: dict[str, Any],
+    *,
+    artifact_root: Path,
+    code_root: Path,
+    feature: str,
+    head: str,
+    first_parent_commits: set[str],
+    reservation_key: tuple[str, int, str, str],
+    bound_ids: set[str],
+    errors: list[str],
+) -> None:
+    reservation_id, generation, commit, state_digest = reservation_key
+    label = f"lifecycle-state.json repair reservation {reservation_id!r}"
+    lifecycle_path = f".tasks/{feature}/lifecycle-state.json"
+    reservation_state = load_historical_lifecycle_state(
+        artifact_root, feature, commit, label, errors
+    )
+    if reservation_state is None or not validate_historical_lifecycle_semantics(
+        reservation_state,
+        artifact_root=artifact_root,
+        code_root=code_root,
+        feature=feature,
+        label=f"{label}: committed reservation State",
+        errors=errors,
+    ):
+        return
+    if canonical_json_digest(reservation_state) != state_digest:
+        errors.append(f"{label}: reservation_state_digest mismatch")
+    if reservation_state["generation"] != generation:
+        errors.append(f"{label}: reservation generation mismatch")
+    reservation = reservation_state["budgets"]["active_reservation"]
+    metadata = reservation.get("repair_wave") if isinstance(reservation, dict) else None
+    if (
+        not isinstance(reservation, dict)
+        or reservation.get("id") != reservation_id
+        or not isinstance(metadata, dict)
+        or metadata.get("cluster_ids") != sorted(bound_ids)
+    ):
+        errors.append(f"{label}: committed active reservation does not bind exact canonical cluster set")
+    reserved_clusters = {item["id"]: item for item in reservation_state["serious_clusters"]}
+    if any(
+        cluster_id not in reserved_clusters
+        or reserved_clusters[cluster_id]["route"] != "closure-repair"
+        or reserved_clusters[cluster_id]["disposition"] != "repair-eligible"
+        or reserved_clusters[cluster_id]["repair"] is not None
+        or reserved_clusters[cluster_id]["closure"] is not None
+        for cluster_id in bound_ids
+    ):
+        errors.append(f"{label}: committed cluster set was not repair-eligible at issuance")
+
+    verified = reservation_state["last_verified"]
+    predecessor_state = load_historical_lifecycle_state(
+        artifact_root, feature, verified["artifact_sha"], f"{label}: issuance predecessor", errors
+    )
+    if predecessor_state is not None and validate_historical_lifecycle_semantics(
+        predecessor_state,
+        artifact_root=artifact_root,
+        code_root=code_root,
+        feature=feature,
+        label=f"{label}: issuance predecessor State",
+        errors=errors,
+    ):
+        if (
+            verified["state_digest"] != canonical_json_digest(predecessor_state)
+            or verified["generation"] != predecessor_state["generation"]
+        ):
+            errors.append(f"{label}: last_verified issuance predecessor mismatch")
+        budget_errors = compare_lifecycle_budgets(
+            predecessor_state["budgets"], reservation_state["budgets"]
+        )
+        errors.extend(f"{label}: {error}" for error in budget_errors)
+    if historical_reservation_id_exists(
+        artifact_root, lifecycle_path, verified["artifact_sha"], reservation_id, errors
+    ):
+        errors.append(f"{label}: repair reservation ID was used by an older active reservation")
+    try:
+        parents = git_output(
+            artifact_root, ["rev-list", "--parents", "-n", "1", commit], f"{label}: commit parent"
+        ).split()
+    except SliceproofError as exc:
+        errors.extend(exc.errors)
+    else:
+        if len(parents) != 2 or parents[1] != verified["artifact_sha"]:
+            errors.append(f"{label}: reservation must be a dedicated issuance checkpoint")
+
+    require_commit_ancestor(
+        artifact_root, commit, head, f"{label}: historical lineage", errors, distinct=True
+    )
+    if commit not in first_parent_commits:
+        errors.append(f"{label}: reservation is not on the exact first-parent lifecycle lineage")
+        return
+
+    retained = {cluster["id"]: cluster for cluster in state["serious_clusters"]}
+    evidence_commits: set[str] = set()
+    for cluster_id in sorted(bound_ids):
+        closure = retained[cluster_id]["closure"]
+        evidence_path = closure["evidence_path"]
+        evidence_commit = closure["evidence_commit"]
+        evidence_commits.add(evidence_commit)
+        prior = git_process(
+            artifact_root,
+            ["cat-file", "-e", f"{commit}:{evidence_path}"],
+            f"{label}: pre-reservation closure evidence",
+        )
+        if prior.returncode == 0:
+            errors.append(
+                f"{label}: closure evidence path {evidence_path!r} must be absent at the repair reservation"
+            )
+        elif prior.returncode not in {1, 128}:
+            errors.append(f"{label}: unable to inspect pre-reservation closure evidence")
+        try:
+            changes = git_output(
+                artifact_root,
+                ["rev-list", "--first-parent", "--reverse", f"{commit}..{head}", "--", evidence_path],
+                f"{label}: closure evidence first-parent publication",
+            ).splitlines()
+        except SliceproofError as exc:
+            errors.extend(exc.errors)
+            changes = []
+        if not changes:
+            errors.append(f"{label}: closure evidence path {evidence_path!r} has no post-reservation publication")
+        elif changes[0] != evidence_commit:
+            errors.append(
+                f"{label}: recorded evidence_commit is not the first post-reservation first-parent change "
+                f"for {evidence_path!r}"
+            )
+    if len(evidence_commits) != 1:
+        errors.append(f"{label}: multi-cluster repair wave requires one exact material evidence checkpoint")
+        return
+    material_commit = next(iter(evidence_commits))
+    try:
+        validate_linear_checkpoint_range(artifact_root, commit, material_commit)
+    except SliceproofError as exc:
+        errors.extend(f"{label}: {error}" for error in exc.errors)
+    material_state = load_historical_lifecycle_state(
+        artifact_root, feature, material_commit, f"{label}: material evidence State", errors
+    )
+    if material_state is not None and canonical_json_digest(material_state) != canonical_json_digest(reservation_state):
+        errors.append(f"{label}: material evidence checkpoint must preserve the reservation State")
+
+    try:
+        lifecycle_changes = git_output(
+            artifact_root,
+            ["rev-list", "--first-parent", "--reverse", f"{commit}..{head}", "--", lifecycle_path],
+            f"{label}: repair return first-parent publication",
+        ).splitlines()
+    except SliceproofError as exc:
+        errors.extend(exc.errors)
+        return
+    if lifecycle_changes:
+        return_commit = lifecycle_changes[0]
+        try:
+            parents = git_output(
+                artifact_root,
+                ["rev-list", "--parents", "-n", "1", return_commit],
+                f"{label}: repair return topology",
+            ).split()
+        except SliceproofError as exc:
+            errors.extend(exc.errors)
+            return
+        if len(parents) != 2 or parents[1] != material_commit:
+            errors.append(f"{label}: first repair return must have the exact material evidence checkpoint as sole parent")
+        return_state = load_historical_lifecycle_state(
+            artifact_root, feature, return_commit, f"{label}: committed repair return", errors
+        )
+        if return_state is None or not validate_historical_lifecycle_semantics(
+            return_state,
+            artifact_root=artifact_root,
+            code_root=code_root,
+            feature=feature,
+            label=f"{label}: committed repair return State",
+            errors=errors,
+        ):
+            return
+    else:
+        if head != material_commit:
+            errors.append(f"{label}: missing repair return immediately after the material evidence checkpoint")
+            return
+        return_state = state
+    validate_retained_repair_return(
+        state,
+        reservation_state,
+        return_state,
+        artifact_root=artifact_root,
+        reservation_commit=commit,
+        reservation_key=reservation_key,
+        bound_ids=bound_ids,
+        label=label,
+        errors=errors,
+    )
+
+
 def validate_cluster_state_bindings(
     state: dict[str, Any],
     *,
     artifact_root: Path,
+    code_root: Path,
     feature: str,
     verify_files: bool,
     verify_git_objects: bool,
@@ -2132,84 +2382,22 @@ def validate_cluster_state_bindings(
             ).splitlines())
         except SliceproofError as exc:
             errors.extend(exc.errors)
-    for (reservation_id, generation, commit, state_digest), bound_ids in reservation_groups.items():
-        label = f"lifecycle-state.json repair reservation {reservation_id!r}"
-        reservation_state = load_historical_lifecycle_state(
-            artifact_root, feature, commit, label, errors
-        )
-        if reservation_state is None:
-            continue
-        shape_errors: list[str] = []
-        validate_json_shape(
-            reservation_state, LIFECYCLE_JSON_SCHEMA, f"{label}: committed reservation State", shape_errors
-        )
-        errors.extend(shape_errors)
-        if shape_errors:
-            continue
-        if canonical_json_digest(reservation_state) != state_digest:
-            errors.append(f"{label}: reservation_state_digest mismatch")
-        if reservation_state.get("generation") != generation:
-            errors.append(f"{label}: reservation generation mismatch")
-        reservation = reservation_state.get("budgets", {}).get("active_reservation")
-        metadata = reservation.get("repair_wave") if isinstance(reservation, dict) else None
-        if (
-            not isinstance(reservation, dict)
-            or reservation.get("id") != reservation_id
-            or not isinstance(metadata, dict)
-            or metadata.get("cluster_ids") != sorted(bound_ids)
-        ):
-            errors.append(f"{label}: committed active reservation does not bind exact canonical cluster set")
-        reserved_clusters = {item["id"]: item for item in reservation_state["serious_clusters"]}
-        if any(
-            cluster_id not in reserved_clusters
-            or reserved_clusters[cluster_id]["route"] != "closure-repair"
-            or reserved_clusters[cluster_id]["disposition"] != "repair-eligible"
-            or reserved_clusters[cluster_id]["repair"] is not None
-            or reserved_clusters[cluster_id]["closure"] is not None
-            for cluster_id in bound_ids
-        ):
-            errors.append(f"{label}: committed cluster set was not repair-eligible at issuance")
-        verified = reservation_state.get("last_verified")
-        if not isinstance(verified, dict):
-            errors.append(f"{label}: committed reservation lacks exact issuance predecessor")
-        else:
-            predecessor_state = load_historical_lifecycle_state(
-                artifact_root, feature, verified["artifact_sha"], f"{label}: issuance predecessor", errors
+    if reservation_groups and head is None:
+        errors.append("lifecycle-state.json: retained repair history requires artifact HEAD")
+        return
+    if head is not None:
+        for reservation_key, bound_ids in reservation_groups.items():
+            validate_retained_repair_history(
+                state,
+                artifact_root=artifact_root,
+                code_root=code_root,
+                feature=feature,
+                head=head,
+                first_parent_commits=first_parent_commits,
+                reservation_key=reservation_key,
+                bound_ids=bound_ids,
+                errors=errors,
             )
-            if predecessor_state is not None:
-                predecessor_shape_errors: list[str] = []
-                validate_json_shape(
-                    predecessor_state,
-                    LIFECYCLE_JSON_SCHEMA,
-                    f"{label}: issuance predecessor State",
-                    predecessor_shape_errors,
-                )
-                errors.extend(predecessor_shape_errors)
-                if not predecessor_shape_errors:
-                    if (
-                        verified["state_digest"] != canonical_json_digest(predecessor_state)
-                        or verified["generation"] != predecessor_state["generation"]
-                    ):
-                        errors.append(f"{label}: last_verified issuance predecessor mismatch")
-                    budget_errors = compare_lifecycle_budgets(
-                        predecessor_state["budgets"], reservation_state["budgets"]
-                    )
-                    errors.extend(f"{label}: {error}" for error in budget_errors)
-            try:
-                parents = git_output(
-                    artifact_root, ["rev-list", "--parents", "-n", "1", commit], f"{label}: commit parent"
-                ).split()
-            except SliceproofError as exc:
-                errors.extend(exc.errors)
-            else:
-                if len(parents) != 2 or parents[1] != verified["artifact_sha"]:
-                    errors.append(f"{label}: reservation must be a dedicated issuance checkpoint")
-        if head is not None:
-            require_commit_ancestor(
-                artifact_root, commit, head, f"{label}: historical lineage", errors, distinct=True
-            )
-            if commit not in first_parent_commits:
-                errors.append(f"{label}: reservation is not on the exact first-parent lifecycle lineage")
 
 
 def validate_lifecycle_budget_invariants(

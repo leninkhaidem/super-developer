@@ -3831,7 +3831,10 @@ class SliceproofTests(unittest.TestCase):
                 fixture.write_lifecycle(state)
                 checked = fixture.validate_lifecycle(reservation_commit)
                 self.assertEqual(0, checked.returncode, checked.stdout + checked.stderr)
-                return state, fixture.commit_lifecycle(f"close repair wave {wave}")
+                return_commit = fixture.commit_lifecycle(f"close repair wave {wave}")
+                replayed = fixture.validate_lifecycle(reservation_commit)
+                self.assertEqual(0, replayed.returncode, replayed.stdout + replayed.stderr)
+                return state, return_commit
 
             reserved_one, reservation_one = reserve(base, base_commit, [first_cluster["id"]], 1)
             closed_one, closed_one_commit = close(reserved_one, reservation_one, [first_cluster["id"]], 1)
@@ -3955,6 +3958,108 @@ class SliceproofTests(unittest.TestCase):
         finally:
             fixture.cleanup()
 
+    def test_retained_repair_rejects_preexisting_closure_named_by_unrelated_commit(self) -> None:
+        fixture = SliceproofFixture(separate_roots=True)
+        try:
+            fixture.init_lifecycle_git_roots()
+            initial = fixture.lifecycle_state()
+            fixture.write_lifecycle(initial)
+            generation_one = fixture.commit_lifecycle("preexisting-evidence generation one")
+            base = fixture.authorized_lifecycle_state(initial, generation_one)
+            base["stage"] = "package-wave-quiescent"
+            base["next_legal_actions"] = ["repair"]
+            base["budgets"]["active_reservation"] = None
+            cluster = fixture.serious_cluster()
+            base["serious_clusters"] = [cluster]
+            fixture.write_lifecycle(base)
+            self.assertEqual(0, fixture.validate_lifecycle(generation_one).returncode)
+            fixture.commit_lifecycle("preexisting-evidence base")
+
+            affected = fixture.digest_text("preexisting affected surface")
+            evidence_path = SLICEPROOF.canonical_cluster_closure_evidence_path(
+                "fixture", cluster["id"]
+            )
+            evidence = {
+                "schema_version": 1,
+                "kind": "cluster-closure",
+                "cluster_id": cluster["id"],
+                "affected_surface_digest": affected,
+                "verdict": "PASS",
+                "recorded_at": "2026-07-18T14:00:00Z",
+            }
+            evidence_digest = fixture.write_canonical_json(evidence_path, evidence)
+            fixture.git_at(fixture.artifact_root, "add", evidence_path)
+            fixture.git_at(fixture.artifact_root, "commit", "-m", "preexisting closure evidence")
+            preexisting_commit = fixture.git_at(fixture.artifact_root, "rev-parse", "HEAD")
+
+            reserved = copy.deepcopy(base)
+            reserved["generation"] += 1
+            reserved["last_verified"] = {
+                "artifact_ref": "refs/heads/artifacts/fixture",
+                "artifact_sha": preexisting_commit,
+                "state_digest": SLICEPROOF.canonical_json_digest(base),
+                "generation": base["generation"],
+            }
+            reserved["budgets"]["implementation"]["issued"]["repair_waves"] = 1
+            reserved["budgets"]["active_reservation"] = {
+                "id": "preexisting-evidence-wave",
+                "owner_token": reserved["owner"]["token"],
+                "budget": "implementation",
+                "generation": reserved["generation"],
+                "units": {"repair_waves": 1},
+                "repair_wave": {"cluster_ids": [cluster["id"]]},
+            }
+            fixture.write_lifecycle(reserved)
+            checked = fixture.validate_lifecycle(preexisting_commit)
+            self.assertEqual(0, checked.returncode, checked.stdout + checked.stderr)
+            reservation_commit = fixture.commit_lifecycle("reserve preexisting-evidence repair")
+
+            unrelated_path = ".tasks/fixture/evidence/unrelated.txt"
+            unrelated_file = fixture.artifact_root / unrelated_path
+            unrelated_file.parent.mkdir(parents=True, exist_ok=True)
+            unrelated_file.write_text("unrelated\n", encoding="utf-8")
+            fixture.git_at(fixture.artifact_root, "add", unrelated_path)
+            fixture.git_at(fixture.artifact_root, "commit", "-m", "unrelated post-reservation checkpoint")
+            unrelated_commit = fixture.git_at(fixture.artifact_root, "rev-parse", "HEAD")
+
+            forged = copy.deepcopy(reserved)
+            forged["generation"] += 1
+            forged["budgets"]["active_reservation"] = None
+            forged["last_verified"] = {
+                "artifact_ref": "refs/heads/artifacts/fixture",
+                "artifact_sha": reservation_commit,
+                "state_digest": SLICEPROOF.canonical_json_digest(reserved),
+                "generation": reserved["generation"],
+            }
+            forged_cluster = forged["serious_clusters"][0]
+            forged_cluster.update({
+                "strikes": 1,
+                "disposition": "closed",
+                "repair": {
+                    "root_cause_digest": fixture.digest_text("forged repair"),
+                    "affected_surface_digest": affected,
+                    "reservation_id": "preexisting-evidence-wave",
+                    "reservation_generation": reserved["generation"],
+                    "reservation_commit": reservation_commit,
+                    "reservation_state_digest": SLICEPROOF.canonical_json_digest(reserved),
+                },
+                "closure": {
+                    "verdict": "PASS",
+                    "affected_surface_digest": affected,
+                    "evidence_path": evidence_path,
+                    "evidence_digest": evidence_digest,
+                    "evidence_commit": unrelated_commit,
+                },
+            })
+            fixture.write_lifecycle(forged)
+            fixture.commit_lifecycle("forge retained repair from preexisting evidence")
+            rejected = fixture.validate_lifecycle(reservation_commit)
+            self.assertNotEqual(0, rejected.returncode)
+            self.assertIn("must be absent at the repair reservation", rejected.stderr)
+            self.assertIn("has no post-reservation publication", rejected.stderr)
+        finally:
+            fixture.cleanup()
+
     def test_repair_wave_rejects_abandoned_historical_reservation_id_reuse(self) -> None:
         fixture = SliceproofFixture(separate_roots=True)
         try:
@@ -4026,6 +4131,62 @@ class SliceproofTests(unittest.TestCase):
             rejected = fixture.validate_lifecycle(cleared_commit)
             self.assertNotEqual(0, rejected.returncode)
             self.assertIn("repair reservation ID cannot be reused", rejected.stderr)
+
+            reused_commit = fixture.commit_lifecycle("forge reused abandoned repair reservation")
+            affected = fixture.digest_text("abandoned-ID affected surface")
+            evidence_path = SLICEPROOF.canonical_cluster_closure_evidence_path(
+                "fixture", cluster["id"]
+            )
+            evidence = {
+                "schema_version": 1,
+                "kind": "cluster-closure",
+                "cluster_id": cluster["id"],
+                "affected_surface_digest": affected,
+                "verdict": "PASS",
+                "recorded_at": "2026-07-18T15:00:00Z",
+            }
+            evidence_digest = fixture.write_canonical_json(evidence_path, evidence)
+            fixture.git_at(fixture.artifact_root, "add", evidence_path)
+            fixture.git_at(fixture.artifact_root, "commit", "-m", "forged reused-ID closure evidence")
+            evidence_commit = fixture.git_at(fixture.artifact_root, "rev-parse", "HEAD")
+
+            returned = copy.deepcopy(reused)
+            returned["generation"] += 1
+            returned["budgets"]["active_reservation"] = None
+            returned["last_verified"] = {
+                "artifact_ref": "refs/heads/artifacts/fixture",
+                "artifact_sha": reused_commit,
+                "state_digest": SLICEPROOF.canonical_json_digest(reused),
+                "generation": reused["generation"],
+            }
+            returned_cluster = returned["serious_clusters"][0]
+            returned_cluster.update({
+                "strikes": 1,
+                "disposition": "closed",
+                "repair": {
+                    "root_cause_digest": fixture.digest_text("forged reused-ID repair"),
+                    "affected_surface_digest": affected,
+                    "reservation_id": "abandoned-repair-wave",
+                    "reservation_generation": reused["generation"],
+                    "reservation_commit": reused_commit,
+                    "reservation_state_digest": SLICEPROOF.canonical_json_digest(reused),
+                },
+                "closure": {
+                    "verdict": "PASS",
+                    "affected_surface_digest": affected,
+                    "evidence_path": evidence_path,
+                    "evidence_digest": evidence_digest,
+                    "evidence_commit": evidence_commit,
+                },
+            })
+            fixture.write_lifecycle(returned)
+            fixture.commit_lifecycle("forge retained repair with abandoned ID")
+            final_rejected = fixture.validate_lifecycle(reused_commit)
+            self.assertNotEqual(0, final_rejected.returncode)
+            self.assertIn(
+                "repair reservation ID was used by an older active reservation",
+                final_rejected.stderr,
+            )
         finally:
             fixture.cleanup()
 
