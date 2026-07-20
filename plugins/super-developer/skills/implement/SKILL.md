@@ -58,14 +58,17 @@ Loop map: dispatch package waves → verify each against its Acceptance Checklis
    safe ready batch of package agents with compact packets (assignment, Acceptance Checklist, Slice context,
    how to run the checks). If readiness exposes a plan-owned requirements/empirical gap, that is a legitimate
    stop (see Stop) — invoke `spike-to-plan`/`implementation-plan` rather than guessing.
-5. When a package agent returns, dispatch the verifier with `references/package-verification.md`. The verifier
-   confirms every Acceptance Checklist item passes with authentic evidence and reports blocking vs advisory
-   findings. A package is done on verifier PASS.
+5. When a package agent returns, load `references/package-integration-gates.md` and dispatch the verifier with
+   `references/package-verification.md`. The verifier confirms every Acceptance Checklist item passes with
+   authentic evidence and reports blocking vs advisory findings. A package is done on verifier PASS plus a clean
+   `sliceproof.py validate-package-complete`.
 6. For each blocking finding, dispatch a bounded repair (`references/repair-agent-contract.md` via
    `references/package-dispatch.md`). After repair, re-verify **delta-only** (step 5 rules). Track attempts per
    finding-cluster; open the circuit and stop after 3 non-converging attempts. Advisory findings are recorded,
    not repaired.
-7. Mark a package done only after verifier PASS; merge through the integration worktree, checkpoint the sidecar
+7. Mark a package done only after verifier PASS and `validate-package-complete` (see
+   `references/package-integration-gates.md` and `../../references/package-lifecycle.md` for the completion gate,
+   downstream unlocks, and post-merge freshness); merge through the integration worktree, checkpoint the sidecar
    at package boundaries, and continue to downstream packages. Keep a short append-only decisions log
    (settled choices, rejected approaches) and pass it to each fresh agent so nothing is re-litigated.
 8. At final readiness, integrate all packages, then run the **feature Acceptance checks** (SPEC `## Acceptance`)
@@ -82,6 +85,8 @@ Loop map: dispatch package waves → verify each against its Acceptance Checklis
 ## Load if needed
 
 - Dispatching a package worker → pass `references/package-agent-contract.md`
+- Package completion gate, integration, downstream unlocks, post-merge freshness →
+  `references/package-integration-gates.md` and `../../references/package-lifecycle.md`
 - Dispatching a repair worker → pass `references/repair-agent-contract.md`
 - Dispatching the verifier → pass `references/package-verification.md`
 - Readiness, batching, or repair packet mechanics → `references/package-dispatch.md`

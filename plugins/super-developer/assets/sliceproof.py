@@ -385,7 +385,7 @@ def cmd_validate_proof(args: argparse.Namespace) -> dict[str, Any]:
 def cmd_validate_package_complete(args: argparse.Namespace) -> dict[str, Any]:
     state = load_package_state(args.tasks, args.package, artifact_root=args.artifact_root, code_root=args.code_root)
     errors = validate_proof_markdown(state.proof_path, state.package_md)
-    report_result = validate_report_markdown(state.report_path, state.proof_path)
+    report_result = validate_report_markdown(state.report_path, state.proof_path, state.package_md)
     errors.extend(report_result.errors)
     if errors:
         raise SliceproofError(errors, report_result.advisories)
@@ -425,7 +425,7 @@ def cmd_validate_final(args: argparse.Namespace) -> dict[str, Any]:
             root_label="artifact root",
         )
         errors.extend(validate_proof_markdown(proof_path, package_md))
-        report_result = validate_report_markdown(report_path, proof_path)
+        report_result = validate_report_markdown(report_path, proof_path, package_md)
         advisories.extend(report_result.advisories)
         if not report_result.errors:
             validated_reports.append(package.report_path)
@@ -544,6 +544,40 @@ def load_registry(
     )
 
 
+ACCEPTANCE_ID_RE = re.compile(r"^([A-Za-z][A-Za-z0-9_-]*)\s*:")
+
+
+def acceptance_item_id(item: str) -> str | None:
+    match = ACCEPTANCE_ID_RE.match(item.strip())
+    return match.group(1) if match else None
+
+
+def validate_acceptance_items(items: list[str], label: str) -> list[str]:
+    """Right-sized checks on a frozen Acceptance list: real IDs, unique, not placeholders,
+    and each item names an executable check or an approved manual exception. It does not (and
+    cannot) prove a check actually runs — the verifier agent owns that."""
+    errors: list[str] = []
+    seen: set[str] = set()
+    for index, item in enumerate(items, 1):
+        text = item.strip()
+        if is_placeholder_text(text):
+            errors.append(f"{label}: item {index} is a placeholder ({text!r}); write a concrete acceptance check")
+            continue
+        item_id = acceptance_item_id(text)
+        if item_id is None:
+            errors.append(f"{label}: item {index} must start with a stable ID like 'AC-1:' ({text!r})")
+            continue
+        if item_id in seen:
+            errors.append(f"{label}: duplicate acceptance item ID {item_id!r}")
+        seen.add(item_id)
+        lowered = text.lower()
+        if "check:" not in lowered and "manual (approved)" not in lowered:
+            errors.append(
+                f"{label}: item {item_id} must name an executable 'check:' or a 'manual (approved)' exception"
+            )
+    return errors
+
+
 def validate_spec_acceptance(spec_path: Path) -> list[str]:
     try:
         text = read_text_file(spec_path, f"SPEC {spec_path}")
@@ -552,9 +586,10 @@ def validate_spec_acceptance(spec_path: Path) -> list[str]:
     sections = split_h2_sections(text)
     if "Acceptance" not in sections:
         return [f"{spec_path}: missing required section ## Acceptance"]
-    if not parse_bullets(sections["Acceptance"], unwrap_path=False):
+    items = parse_bullets(sections["Acceptance"], unwrap_path=False)
+    if not items:
         return [f"{spec_path}: ## Acceptance must list at least one feature-level acceptance item"]
-    return []
+    return validate_acceptance_items(items, f"{spec_path}: ## Acceptance")
 
 
 def validate_registry(registry: Registry) -> list[str]:
@@ -739,6 +774,8 @@ def parse_package_markdown(path: Path, package_id: str) -> PackageMarkdown:
         errors.append(f"{path}: ## Verification Expectations must list at least one expectation")
     if not acceptance_checklist:
         errors.append(f"{path}: ## Acceptance Checklist must list at least one checklist item")
+    else:
+        errors.extend(validate_acceptance_items(acceptance_checklist, f"{path}: ## Acceptance Checklist"))
     if len(proof_paths) != 1:
         errors.append(f"{path}: ## Proof must list exactly one proof path")
     if len(report_paths) != 1:
@@ -1164,23 +1201,87 @@ def validate_expectation_row_status(proof_path: Path, row: ProofRow, row_label: 
     return errors
 
 
-def validate_report_markdown(report_path: Path, proof_path: Path) -> ReportValidationResult:
-    """Confirm the lightweight package verification report exists and carries content.
+def report_verdict(text: str) -> str | None:
+    match = re.search(r"(?im)^#{2,4}\s*Verdict\s*$\s*\n+\s*([A-Za-z]+)", text)
+    return match.group(1).upper() if match else None
 
-    The converging delivery model treats report shape as advisory: the durable
-    result is a concise lightweight report (## Acceptance Checklist Result,
-    ## Blocking findings, ## Advisory notes, ## Reviewed state). This helper only
-    checks that the declared report file exists and is non-empty, and that the
-    package proof exists; it does not re-impose matrix/receipt/state-binding grammar.
+
+def parse_report_checklist_results(section_body: str) -> dict[str, tuple[str, str]]:
+    """Accept either a Markdown table (Item|Result|Evidence) or a bullet list
+    (`- AC-1: pass — evidence: ...`). Lenient on shape; strict only on the outcome."""
+    results: dict[str, tuple[str, str]] = {}
+    for row in parse_table(section_body):
+        item_cell = extract_backticked_or_text(row.cells.get("Item", "").strip())
+        item_id = acceptance_item_id(item_cell) or item_cell
+        if item_id and item_id not in results:
+            results[item_id] = (row.cells.get("Result", "").strip(), row.cells.get("Evidence", "").strip())
+    for bullet in parse_bullets(section_body, unwrap_path=False):
+        item_id = acceptance_item_id(bullet)
+        if not item_id or item_id in results:
+            continue
+        rest = bullet[bullet.index(":") + 1:].strip()
+        match = re.match(r"(?i)(pass|fail)\b(.*)", rest)
+        if match:
+            results[item_id] = (match.group(1), match.group(2).strip(" \u2014-:"))
+        else:
+            results[item_id] = (rest, "")
+    return results
+
+
+def validate_report_markdown(report_path: Path, proof_path: Path, package_md: PackageMarkdown) -> ReportValidationResult:
+    """Confirm the lightweight package verification report records the objective done-definition.
+
+    Report shape stays lightweight (no matrix/receipt/state-binding grammar), but the report must
+    mechanically show the closed-checklist outcome so a FAIL/garbage report cannot pass as complete:
+    verdict PASS, every frozen Acceptance Checklist item marked pass with evidence, no open blocking
+    finding, and a reviewed-state record. The verifier agent still owns semantic sufficiency.
     """
     if not report_path.is_file():
         return ReportValidationResult([f"report: file not found: {report_path}"], [])
     text = read_text_file(report_path, f"package verification report {report_path}")
     errors: list[str] = []
-    if not text.strip():
-        errors.append(f"{report_path}: package verification report must be non-empty")
     if not proof_path.is_file():
         errors.append(f"proof: file not found: {proof_path}")
+    if not text.strip():
+        errors.append(f"{report_path}: package verification report must be non-empty")
+        return ReportValidationResult(errors, [])
+
+    verdict = report_verdict(text)
+    if verdict != "PASS":
+        errors.append(f"{report_path}: report Verdict must be PASS (found {verdict or 'missing'})")
+
+    sections = split_h2_sections(text)
+
+    blocking_body = sections.get("Blocking findings")
+    if blocking_body is None:
+        errors.append(f"{report_path}: missing ## Blocking findings section")
+    else:
+        open_blockers = [b for b in parse_bullets(blocking_body, unwrap_path=False) if b.strip().lower() != "none"]
+        if open_blockers:
+            errors.append(f"{report_path}: report has open blocking findings: {open_blockers}")
+
+    result_body = sections.get("Acceptance Checklist Result")
+    if result_body is None:
+        errors.append(f"{report_path}: missing ## Acceptance Checklist Result section")
+    else:
+        results = parse_report_checklist_results(result_body)
+        for item in package_md.acceptance_checklist:
+            item_id = acceptance_item_id(item)
+            if item_id is None:
+                continue
+            if item_id not in results:
+                errors.append(f"{report_path}: Acceptance Checklist Result is missing frozen item {item_id}")
+                continue
+            result_value, evidence = results[item_id]
+            if result_value.lower() != "pass":
+                errors.append(f"{report_path}: checklist item {item_id} result must be pass (found {result_value!r})")
+            elif is_placeholder_text(evidence):
+                errors.append(f"{report_path}: checklist item {item_id} is marked pass without evidence")
+
+    reviewed_body = sections.get("Reviewed state")
+    if not reviewed_body or not reviewed_body.strip():
+        errors.append(f"{report_path}: missing or empty ## Reviewed state section")
+
     return ReportValidationResult(errors, [])
 
 def parse_table(body: str) -> list[ProofRow]:

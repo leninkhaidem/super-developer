@@ -26,9 +26,15 @@ from pathlib import Path
 PLUGIN_ROOT = Path(__file__).resolve().parents[2]
 REPO_ROOT = PLUGIN_ROOT.parents[1]
 
-# Generous cap: catches egregious bloat (the thing we are trying to avoid) without
-# nitpicking reasonable prose. Raise deliberately if a file legitimately needs more.
-MD_LINE_CAP = 400
+# Canonical hard cap for skill/reference prompts (matches skill-authoring/scripts/audit-skill.py).
+MD_LINE_CAP = 150
+
+# Files that already exceeded the cap before the converging-loop work; tracked as pre-existing
+# debt rather than silently allowed by a loose global cap. New/changed files must meet the cap.
+PREEXISTING_OVER_CAP = {
+    "plugins/super-developer/skills/code-doc/SKILL.md",
+    "plugins/super-developer/skills/perspectives/SKILL.md",
+}
 
 # Placeholder / non-file markers: paths containing these are runtime templates, not
 # repository files, and must not be checked for existence.
@@ -143,9 +149,13 @@ class BudgetTests(unittest.TestCase):
     def test_no_prompt_file_exceeds_line_cap(self) -> None:
         oversized: list[str] = []
         for source in prompt_files():
+            rel = str(source.relative_to(REPO_ROOT))
+            # The line cap governs skill/reference prompts, not README docs (matches audit-skill.py).
+            if source.name == "README.md" or rel in PREEXISTING_OVER_CAP:
+                continue
             n = len(source.read_text(encoding="utf-8").splitlines())
             if n > MD_LINE_CAP:
-                oversized.append(f"{source.relative_to(REPO_ROOT)}: {n} lines")
+                oversized.append(f"{rel}: {n} lines")
         self.assertEqual(oversized, [], f"prompt files over {MD_LINE_CAP} lines:\n" + "\n".join(oversized))
 
 

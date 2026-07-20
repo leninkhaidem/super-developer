@@ -34,26 +34,20 @@ Run bounded review; route report/actions by mode.
 
 - Build a compact manifest: core/runtime, public contracts, generated/schema/config, proof-critical tests, fixtures/snapshots, docs/tooling.
 - Use semantic batching when the diff is about 2,000+ lines, many files, mixed domains, generated churn, or too broad for one coherent review.
-- Split by package, module, seam, or risk surface; never by arbitrary line chunks.
-- Keep source and tests that prove the same behavior together when practical.
+- Split by package, module, seam, or risk surface (never arbitrary line chunks); keep source and tests that prove the same behavior together when practical.
 - For low-risk generated/docs/snapshots/repetitive fixtures, verify provenance or sample with the owning surface.
-- Per batch: preserve mode metadata, run bounded topology, assign stable dedupe keys, and merge all verdict types into one cross-batch set.
-- After batches, run one global integration pass for duplicates, conflicting recommendations, cross-batch serious risks, and seam issues.
-- Reopen reviewer fanout only when batch boundaries cannot preserve confidence.
-- Run one default Code Reviewer sub-agent for each diff or semantic batch.
-- Add at most one specialist only when the diff/evidence triggers a sensitive surface: security/privacy/safety;
+- Per batch preserve mode metadata, run bounded topology, assign stable dedupe keys, and merge verdicts into one cross-batch set; after batches, run one global integration pass (duplicates, conflicting recommendations, cross-batch serious risks, seam issues), reopening fanout only when batch boundaries cannot preserve confidence.
+- Run one default Code Reviewer sub-agent per diff/batch; add at most one specialist only when the diff/evidence triggers a sensitive surface: security/privacy/safety;
   data/persistence/change-safety; performance/concurrency; or public-contract/architecture/integration.
 - Add Skeptic only for serious findings, risky-clean coverage, cross-batch serious conflicts, or required mode gates. Caps include Skeptic: normal 2, risky 3.
-- Resolve reviewer model only when local policy matters: `../../references/model-preferences.md`.
-  Pass `../../references/clean-code-rules.md`; do not load it in the orchestrator.
+- Resolve reviewer model only when local policy matters (`../../references/model-preferences.md`); pass `../../references/clean-code-rules.md` without loading it in the orchestrator.
 - For changed test-relevant surfaces, confirm the change is covered by a check that actually ran; do not
   impose receipt-grammar ceremony. Trust clean package-local verification and review the integrated test delta
   for seam coverage only.
-- In pipeline mode, add Slice-first context from the artifact root: package IDs, package result report paths,
-  Slice/H3 IDs, Acceptance Checklist results, and the integrated code state. Route product/design Slice drift
-  through affected-surface judgment as advisory unless it is a real integration contradiction.
-- Pipeline final review is integration-first: trust fresh package-local verification. Reopen local code only for
-  a real seam problem, contradiction, or a package result reporting an open blocking finding.
+- In pipeline mode, add Slice-first artifact-root context (package IDs, result report paths, Slice/H3 IDs,
+  Acceptance Checklist results, integrated code state) and stay integration-first: trust fresh package-local
+  verification; reopen local code only for a real seam problem, contradiction, or a package result reporting an
+  open blocking finding. Route product/design Slice drift as advisory unless it is a real integration contradiction.
 
 ## Coverage Gate
 

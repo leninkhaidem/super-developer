@@ -339,6 +339,11 @@ class SliceproofFixture:
         commit = REPORT_COMMIT if commit is None else commit
         return textwrap.dedent(
             f"""
+            ## Package Verification: WP1
+
+            ### Verdict
+            PASS
+
             ## Acceptance Checklist Result
             - AC-1: pass — evidence: `sliceproof.py validate-plan` exit 0 in unittest fixture.
             - AC-2: pass — evidence: `sliceproof.py validate-proof` exit 0 in unittest fixture.
@@ -1172,6 +1177,66 @@ class SliceproofTests(unittest.TestCase):
                 self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
                 self.assertIn(expected_error, "\n".join(json.loads(result.stderr)["errors"]))
         spec_path.write_text(self.fixture.spec_text(), encoding="utf-8")
+
+    def test_validate_plan_rejects_weak_acceptance_items(self) -> None:
+        cases = [
+            ("placeholder", "- TODO", "is a placeholder"),
+            ("no check grammar", "- AC-1: something is finished", "must name an executable 'check:'"),
+            (
+                "duplicate id",
+                "- AC-1: a — check: `x`\n- AC-1: b — check: `y`",
+                "duplicate acceptance item ID",
+            ),
+            ("no id", "- finished without an id — check: `x`", "must start with a stable ID"),
+        ]
+        for name, checklist, expected in cases:
+            with self.subTest(name=name):
+                fixture = SliceproofFixture()
+                try:
+                    fixture.package_path.write_text(
+                        fixture.package_text(acceptance_checklist=checklist), encoding="utf-8"
+                    )
+                    result = fixture.run("validate-plan", str(fixture.tasks_path))
+                    self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+                    self.assertIn(expected, "\n".join(json.loads(result.stderr)["errors"]))
+                finally:
+                    fixture.cleanup()
+
+        spec_path = self.fixture.feature_dir / "SPEC.md"
+        spec_path.write_text("# Fixture Spec\n\n## Acceptance\n- TODO\n", encoding="utf-8")
+        result = self.fixture.run("validate-plan", str(self.fixture.tasks_path))
+        self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+        self.assertIn("is a placeholder", "\n".join(json.loads(result.stderr)["errors"]))
+        spec_path.write_text(self.fixture.spec_text(), encoding="utf-8")
+
+    def test_validate_package_complete_enforces_checklist_outcome(self) -> None:
+        good = self.fixture.report_text(self.fixture.completed_proof())
+        cases = [
+            ("fail verdict", good.replace("\nPASS\n", "\nFAIL\n"), "Verdict must be PASS"),
+            (
+                "missing frozen item",
+                good.replace(
+                    "- AC-2: pass — evidence: `sliceproof.py validate-proof` exit 0 in unittest fixture.\n",
+                    "",
+                ),
+                "missing frozen item AC-2",
+            ),
+            (
+                "open blocker",
+                good.replace("## Blocking findings\n- none", "## Blocking findings\n- data loss risk"),
+                "open blocking findings",
+            ),
+            ("no reviewed state", good.split("## Reviewed state")[0], "Reviewed state"),
+        ]
+        for name, report_text, expected in cases:
+            with self.subTest(name=name):
+                self.fixture.write_completed_proof_and_report()
+                self.fixture.report_path.write_text(report_text, encoding="utf-8")
+                result = self.fixture.run(
+                    "validate-package-complete", str(self.fixture.tasks_path), "--package", "WP1"
+                )
+                self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+                self.assertIn(expected, "\n".join(json.loads(result.stderr)["errors"]))
 
     def test_validate_final_requires_done_status_and_lightweight_report(self) -> None:
         self.fixture.write_completed_proof_and_report()
