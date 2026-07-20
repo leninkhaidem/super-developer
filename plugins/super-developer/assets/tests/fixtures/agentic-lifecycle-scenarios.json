@@ -12,7 +12,7 @@
     },
     "candidate": {
       "label": "Evaluated behavioral candidate checkpoint",
-      "commit": "6f4b91dc0def05709adefd12b5790840711e2016"
+      "commit": "82cdb0eac9955ef995a26c7d0d0a4c90c0dd279c"
     }
   },
   "scenarios": [
