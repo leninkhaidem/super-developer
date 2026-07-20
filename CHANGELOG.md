@@ -6,6 +6,25 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [v1.40.0] - 2026-07-20
+
+### Added
+- Added frozen, executable feature acceptance checks and package acceptance checklists as the objective delivery definition.
+- Added right-sizing guidance that identifies unnecessary complexity during design preflight and code review.
+
+### Changed
+- Changed autonomous delivery to a severity-based converging loop with delta-focused re-verification and at most three repair attempts per blocking cluster.
+- Changed plan review to one approval gate, with security and failure-mode review joining the first wave when the planned surface requires it.
+- Simplified package evidence and completion contracts so correctness, security, data-loss, and contract failures block delivery while non-blocking observations remain advisory.
+- Changed planned-feature artifacts to require stable acceptance IDs with executable checks or explicitly approved manual verification; existing in-progress artifacts must be refreshed before validation.
+
+### Removed
+- Removed deliverable-matrix, receipt-grammar, and broad freshness-cascade requirements that created verification churn without proving behavior.
+
+### Fixed
+- Fixed package completion validation so fenced or duplicate verdicts cannot conceal a failing result.
+- Fixed acceptance validation so placeholder requirements and empty executable or manual checks cannot pass the plan gate.
+
 ## [v1.39.0] - 2026-07-15
 
 ### Added
