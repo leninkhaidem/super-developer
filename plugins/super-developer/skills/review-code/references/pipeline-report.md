@@ -48,16 +48,16 @@ contract. Do not manufacture blockers. Suggestions never affect the verdict.
 
 ## Fix loop (bounded, delta-only)
 
-Group blocking seam findings by root cause and delegate a bounded fix packet (findings, evidence, target paths,
-scope boundaries) with the parent-supplied Fix Implementer contract. The worker performs no git/delivery action.
+Cluster only findings sharing root cause, writable scope, and verification envelope; preserve logical identity
+through the three-attempt cap. A review-owned cross-package repair packet must enumerate every affected package,
+path, and finding under one coherent seam authority/verification envelope; otherwise split or stop rather than
+silently expand.
 
-After a fix, run Fix Verification as a fresh closure check on **only the affected seam and the checks its diff
-touched**, plus the feature Acceptance checks. Do not re-review the whole feature because a commit exists. At
-most 3 attempts per finding-cluster; on non-convergence, stop and hand back a precise summary for the main
-agent to surface to the user.
-
-A fix does not invalidate package results or checklist items it did not touch. There is no "any change
-invalidates everything" cascade.
+After repair, stabilize the new integrated freeze and run focused Fix Verification on affected package evidence
+and seams plus feature Acceptance. Run/reuse the minimum command union only for equivalent code/artifact state,
+cwd, environment/data, isolation/order assumptions, and evidence mapping; distinct package, isolation, cleanup,
+or nondeterministic checks run. Unaffected results remain reusable. Focused closure may restore `CLEAN`, but a
+separate fresh cold auditor must reconcile retained plus refreshed evidence into a complete same-freeze PASS.
 
 ## Stops
 

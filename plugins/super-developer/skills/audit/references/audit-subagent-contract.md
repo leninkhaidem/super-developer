@@ -138,9 +138,9 @@ PASS requires complete Slice inventory for every included task set, each materia
 ## Repair Handoff
 When audit fails, provide the minimal affected set: Slice IDs/paths, packages, proof rows/sections, package reports, affected checklist items, invalid evidence refs, relevant review-code fields, code/test paths, required verification, and affected-surface classification for focused or full audit rerun.
 
-The auditor does not edit files. After a blocking repair, re-verify delta-only — only the checklist items whose
-evidence the repair diff touched, plus a fresh build/lint/test run and the feature Acceptance checks — not the
-whole feature. A repair does not invalidate checklist items its diff did not touch; there is no cascade in which
-any change invalidates everything. Widen only if the repair changed a package's public contract or its scope
-genuinely cannot be bounded. At most 3 repair attempts per blocking finding-cluster, then stop and notify the
-user. Re-freeze and require review-code/audit PASS for that freeze; generated outputs are not freeze inputs.
+The auditor does not edit files. After a blocking repair, package verification refreshes semantically affected
+checklist/proof/report and focused seam evidence plus feature Acceptance; unaffected results remain reusable and
+unknown impact widens. Audit itself is never focused closure: for the new integrated freeze, one fresh cold
+auditor reconciles complete retained plus refreshed evidence and issues a complete PASS/FAIL for that same freeze.
+Focused review-code Fix Verification may restore `CLEAN` but cannot substitute for audit. Keep implementer,
+package verifier, Fix Verification, and auditor separate; generated outputs are not freeze inputs.

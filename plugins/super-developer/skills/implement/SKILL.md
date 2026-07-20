@@ -26,11 +26,12 @@ Loop map: dispatch package waves → verify each against its Acceptance Checklis
   The feature is delivered only when the SPEC `## Acceptance` end-to-end checks pass on integrated code.
 - **Severity bar.** Only **blocking** findings (correctness, security, data-loss, contract-break) trigger
   repair. Everything else is **advisory** — logged, never looped, never a reason to withhold done.
-- **Delta-only re-verification.** After a repair, re-check only the checklist items its diff touched plus a
-  build/lint/test run. A change does not invalidate checklist items it did not touch. There is no
-  whole-package or whole-feature re-verification on every fix.
-- **Bounded repair.** At most **3** repair attempts per blocking finding-cluster. If it still does not
-  converge, stop and notify the user with a precise summary — never loop forever.
+- **Semantic delta-only re-verification.** Dependency edges are readiness/sequencing, not staleness fan-out.
+  Classify affected package/checklist/proof/report and seam evidence from changed behavior and contracts;
+  unknown impact widens, while unaffected results remain reusable. Never force descendants or the whole feature.
+- **Bounded coherent repair.** Cluster only a shared root cause, writable scope, and verification envelope;
+  preserve logical cluster identity across retries. Stop after **3** non-converging attempts — never recluster
+  to reset the cap.
 - The main agent orchestrates only (validate, dispatch, verify handoffs, merge, route repairs, checkpoint);
   package agents do the substantive code/test/doc/evidence work. Verifier, reviewer, and auditor are read-only.
 - Package Markdown is assignment + Acceptance Checklist authority; the package result report is the durable
@@ -63,10 +64,12 @@ Loop map: dispatch package waves → verify each against its Acceptance Checklis
    `references/package-verification.md`. The verifier confirms every Acceptance Checklist item passes with
    authentic evidence and reports blocking vs advisory findings. A package is done on verifier PASS plus a clean
    `sliceproof.py validate-package-complete`.
-6. For each blocking finding, dispatch a bounded repair (`references/repair-agent-contract.md` via
-   `references/package-dispatch.md`). After repair, re-verify **delta-only** (step 5 rules). Track attempts per
-   finding-cluster; open the circuit and stop after 3 non-converging attempts. Advisory findings are recorded,
-   not repaired.
+6. Dispatch one worker per coherent blocking-finding cluster (`references/repair-agent-contract.md` via
+   `references/package-dispatch.md`). After repair, refresh affected package evidence and focused seams
+   **delta-only** (step 5 rules). Stabilize state and run/reuse the deduplicated minimum command union only under
+   equivalent code/artifact state, cwd, environment/data, isolation/order assumptions, and evidence mapping;
+   distinct isolation, cleanup, nondeterministic, or package checks still run. Track the logical cluster through
+   3 attempts. Advisory findings are recorded, not repaired.
 7. Mark a package done only after verifier PASS and `validate-package-complete` (see
    `references/package-integration-gates.md` and `../../references/package-lifecycle.md` for the completion gate,
    downstream unlocks, and post-merge freshness); merge through the integration worktree, then publish an eligible
@@ -77,9 +80,11 @@ Loop map: dispatch package waves → verify each against its Acceptance Checklis
    against the integrated code and capture real output. Freeze the integrated state and invoke `review-code`
    (seams/integration only) and `audit` (confirm every checklist item + feature Acceptance passed). Their
    outputs are not freeze inputs.
-9. If final `review-code` or `audit` returns a **blocking** finding, repair it bounded (step 6 rules),
-   re-run only the affected checks and the feature Acceptance, and re-freeze. Advisory findings do not block.
-   Declare delivered only when the feature Acceptance passes and no blocking finding is open.
+9. If final `review-code` or `audit` returns a **blocking** finding, repair it bounded (step 6 rules), refresh
+   only affected package/seam evidence plus feature Acceptance, and establish a **new integrated freeze**.
+   Focused review-code Fix Verification may restore `CLEAN`; it does not replace one fresh cold auditor that
+   reconciles complete retained plus refreshed evidence and issues a complete `PASS` for that same freeze.
+   Keep implementer, package verifier, Fix Verification, and auditor roles separate. Advisory findings do not block.
 10. Notify the user: the feature is delivered, with the Acceptance Checklist (every item → pass + evidence
     pointer) and the feature Acceptance result they can re-run. This is the only mandatory return to the user
     on the success path.

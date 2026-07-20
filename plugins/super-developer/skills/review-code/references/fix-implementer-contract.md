@@ -27,8 +27,10 @@ The parent supplies:
 - bounded verification commands and supplied tool-usage/testing-authority contract paths when applicable;
 - forbidden actions, stop/scope-expansion route, and required report fields;
 - local context: caller constraints and reviewed snapshot; or
-- pipeline context: artifact/code roots, feature/package/Slice IDs, proof/report/matrix paths, dirty-evidence map,
-  source bindings, verification state, and freshness handback owner.
+- pipeline context: artifact/code roots, feature/package/Slice IDs, proof/report paths, dirty-evidence map,
+  source bindings, verification state, and freshness handback owner;
+- for cross-package repair, every affected package, writable path, and finding under one coherent seam authority
+  and verification envelope; otherwise the parent must split the packet.
 
 Normally the parent supplies a clean isolated worktree. Before action and immediately before the first write,
 recapture HEAD and all four state categories and compare every checksum. Any drift is `BLOCKED`; never absorb it.
@@ -60,16 +62,16 @@ credentials; mutate shared/production data; or run destructive commands. Return 
 
 ## Pipeline Freshness Handback
 
-Pipeline workers never claim proof/report/matrix/Semgrep freshness or audit readiness. Return affected packages,
-Slice H3s, proof rows, report/matrix source bindings/evidence anchors, Semgrep evidence, verification outputs, and
-`no_impact|refresh_required|candidate_dirty` with evidence. The parent applies package-lifecycle routing, refreshes
-owned artifacts/reports, reruns package verification, and rebinds state. Uncertain impact is `candidate_dirty`.
+Pipeline workers never claim proof/report/Semgrep freshness, Fix Verification, or audit readiness. Return each
+affected package, checklist/proof/report row, seam, Slice H3, evidence anchor, Semgrep evidence, and verification
+output as `no_impact|refresh_required|candidate_dirty`. The parent applies semantic package-lifecycle routing;
+unknown impact is `candidate_dirty`, while unaffected results remain reusable.
 
 ## Stop and Report
 
-Stop for unlisted paths, public API/schema/contract change, dependency/service/config change, cross-package scope,
-security/privacy/data/concurrency/performance risk, product decision, unsafe command, external fact, or risk
-acceptance. Only the parent may clarify or expand.
+Stop for unlisted paths; unenumerated cross-package scope; public API/schema/contract, dependency/service/config,
+or product change; security/privacy/data/concurrency/performance risk; unsafe command; external fact; or risk
+acceptance. Never silently expand; only the parent may clarify or authorize a coherent enumerated seam repair.
 
 Return at most:
 

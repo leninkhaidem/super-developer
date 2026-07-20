@@ -121,17 +121,15 @@ Every review-owned local/pipeline repair passes `references/fix-implementer-cont
 Implementer; PR mode has no fix path. A caller-owned local repair contract takes precedence and receives the
 approved packet/action instead. Main may apply only trivial behavior-preserving mechanical edits and explain why.
 
-After a delegated fix batch, run Fix Verification as a fresh closure gate, not second discovery. Inputs:
-original blocking findings, Fix Implementer report, pre/post metadata, target paths, and enough code to verify
-the delta.
+After a delegated fix cluster, run focused Fix Verification as a fresh closure gate, not second discovery.
+Cluster only shared root cause, writable scope, and verification envelope; preserve logical cluster identity and
+the three-attempt cap. Review-owned cross-package repair is allowed only when every affected package, path, and
+finding is explicitly enumerated under one coherent seam authority/verification envelope; otherwise split or stop.
 
-Re-check **only the affected seam and the checks the fix diff touched**, plus the feature Acceptance checks.
-Return per finding: `verdict: closed|not_closed|reopened`, evidence, and `next_action:
-none|same_scope_fix|authority_boundary`. A fix does not invalidate package results or checks it did not touch.
-
-At most 3 attempts per blocking finding-cluster. On non-convergence, hand back a precise summary for the main
-agent to surface to the user — do not loop. Do not run a full re-review because a commit exists. Do not repeat
-the same prompt with more tokens; change agent strength, scope split, or verification seam.
+Refresh **only affected package evidence and focused seams**, plus feature Acceptance. Return per finding:
+`verdict: closed|not_closed|reopened`, evidence, and `next_action: none|same_scope_fix|authority_boundary`.
+Unaffected results remain reusable. `CLEAN` may be restored for the new freeze, but cannot substitute for the
+fresh cold auditor's complete same-freeze PASS. Keep Fix Implementer, Fix Verification, and auditor separate.
 
 ## Stop if
 

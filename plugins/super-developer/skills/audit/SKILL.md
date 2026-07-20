@@ -52,12 +52,11 @@ passed on the integrated code. It does not re-derive completeness by opinion or 
 6. Confirm the feature-level `## Acceptance` checks were run against the integrated code and passed, with real
    captured output. A manual-verification exception is acceptable only if it was the human-approved exception
    recorded at the plan gate.
-7. Load `references/audit-subagent-contract.md` and dispatch one cold read-only auditor with a self-contained
-   packet: integrated worktree state, git metadata, SPEC/registry/package/result paths, each package's
-   Acceptance Checklist and result, and the feature Acceptance result. The auditor spot-falsifies high-value
-   claims (does the evidence really show the check passing?) rather than re-reviewing everything.
-8. Preserve the auditor's report and return a concise PASS/FAIL summary with any blocking gaps and their repair
-   targets.
+7. Dispatch one fresh cold read-only auditor for the freeze. After any blocking repair, require a new integrated
+   freeze; focused review-code Fix Verification may restore `CLEAN` but cannot substitute for this audit. Supply
+   complete retained plus refreshed package/checklist/proof/report and feature Acceptance evidence.
+8. The auditor reconciles all evidence and issues a complete PASS/FAIL, while selectively falsifying high-value
+   claims rather than automatically rerunning unaffected checks. Preserve its report and repair targets.
 
 ## Load if needed
 

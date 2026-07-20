@@ -108,13 +108,14 @@ Pipeline:
 5. require package-agent SELF_REVIEW and artifact-root proof Markdown evidence
 6. run root-aware `validate-proof`, package verification with a fresh PASS report, then `validate-package-complete`
 7. merge accepted source-only package branches into the integration worktree after gates pass
-8. refresh and rerun affected proof/report/verification state after repairs, merge changes, or findings
+8. semantically refresh only affected package checklist/proof/report evidence and focused seams; retain unaffected results
 9. after package delivery, publish the sidecar only when its exact push is listed; otherwise keep it local
 10. finish repairs; run focused/integrated checks and finalize runtime evidence/cleanup
 11. run root-aware final validation; freeze integrated-code/artifact/runtime-evidence inputs
 12. invoke `review-code` and `audit` as sibling checks; their outputs are not freeze inputs
-13. batch blocking findings, delegate bounded repairs; re-run only the affected checks, then establish a new freeze
-14. after clean review-code/audit acceptance, run only the independently listed sidecar/source pushes
+13. cluster repairs only by root cause, writable scope, and verification envelope; preserve identity/3-attempt cap
+14. stabilize repairs; deduplicate commands only for equivalent state/cwd/environment/isolation/evidence mappings; establish a new freeze and require focused review-code closure plus a fresh cold complete same-freeze audit PASS
+15. after clean review-code/audit acceptance, run only the independently listed sidecar/source pushes
 
 Stop conditions:
 - unsafe, missing, stale, contradictory, or out-of-scope artifact root, code root, package/proof/report/Slice/worktree path
