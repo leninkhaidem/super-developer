@@ -81,9 +81,11 @@ Keep it short. No long transcripts, no deliverable-completeness matrix, no Test 
 
 ## Re-verification after repair (delta-only)
 
-When re-verifying a repaired package, **re-check only the checklist items whose evidence the repair diff
-touched, plus a fresh build/lint/test run.** Do not re-verify unaffected items and do not re-open the whole
-package. A repair does not invalidate checklist items its diff did not touch.
+Remain an independent approving verifier. From the semantic repair impact, re-check only affected package-local
+checklist, proof, and report evidence plus affected build/lint/test checks; retain unaffected results. Focused seam
+closure remains exclusively with final `review-code` Fix Verification. Widen conservatively for changed public
+contracts or unknown/unbounded impact, not because a dependency, descendant, commit, or merge exists.
 
-Widen to a full re-check only if the repair changed the package's public contract, or its scope genuinely can't
-be bounded — not merely because a commit exists or one item changed.
+On one stabilized state, run or reuse the deduplicated minimum union only when code/artifact state, cwd,
+environment/data, isolation/order assumptions, and evidence mapping are equivalent. Authentic exact-state output
+may be reused; distinct package, isolation, cleanup, and nondeterministic checks still run.

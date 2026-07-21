@@ -63,15 +63,22 @@ Only **blocking** findings — correctness, security, data-loss, contract-break 
 repair. Everything else is **advisory**: recorded in the report, never looped, never a reason to withhold done.
 Do not manufacture blockers from style, taste, or speculative completeness.
 
-## Repair and re-verification (delta-only, bounded)
-For each blocking finding, dispatch a bounded repair. After repair, **re-verify only the checklist items whose
-evidence the repair diff touched, plus a fresh build/lint/test run** — not the whole package, not the whole
-feature. A repair does not invalidate items its diff did not touch; there is no "any change invalidates
-everything" cascade.
+## Repair impact and re-verification (delta-only, bounded)
+Dependency edges express readiness/sequencing only: descendants are not staleness fan-out. Classify semantic
+impact from the diff and changed behavior/evidence. Include direct owners and consumers; observable/public
+contracts; generated artifacts, configuration, and migrations; dynamic or unknown consumers; shared fixtures,
+harnesses, and oracles; security, data, concurrency, and global invariants; merge resolutions; and evidence-only
+invalidation. Unknown or unbounded impact widens conservatively, while unaffected results remain reusable.
 
-At most **3** repair attempts per blocking finding-cluster. If it still does not converge, stop and notify the
-user with a precise summary rather than looping. Widen a re-check beyond the touched items only if the repair
-changed the package's public contract or its scope genuinely cannot be bounded.
+Refresh only each affected package's checklist/proof/report evidence plus focused seam closure. Stabilize the
+repaired state, then run or reuse the deduplicated minimum union of commands only when code/artifact state, cwd,
+environment/data, isolation/order assumptions, and evidence mapping are equivalent. Authentic exact-state
+output may be reused; distinct package, isolation, cleanup, and nondeterministic checks still run.
+
+Cluster confirmed findings only when they share a root cause, writable scope, and verification envelope; assign
+one repair worker per coherent cluster. Preserve logical cluster identity across retries and the existing
+three-attempt cap: after **3** non-converging repair attempts, stop rather than rename or recluster. Widen only
+for semantically affected surfaces, never merely because a dependency, commit, or merge exists.
 
 ## Final readiness
 Before final `review-code` and `audit`, every package is `done`, the integrated code is assembled, and the

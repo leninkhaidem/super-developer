@@ -124,14 +124,14 @@ Do not create worktrees/branches/merges or force-add ignored proof/report artifa
 ```
 
 ## Repair Agent Packet
-
-Include the repair-agent contract path; original SPEC/registry/package/proof/report paths; affected Slice IDs,
-proof rows, Acceptance Checklist items, findings, failed observations, and classified rerun scope;
-and screened commands with the runtime envelope. Define attempt identity as gate plus finding/command signature
-plus affected surface; state prior attempts, candidate delta, circuit state, and bounded scope. A changed
-strategy may authorize a bounded probe with a distinct identity/expected signal while the circuit stays open.
-Attempt identity or status/report metadata is never progress. Only a relevant material state/evidence/strategy delta that closes/narrows the gate, changes ownership, or yields decisive evidence may reset routing;
-otherwise the circuit remains open. Stop for authority changes, unsafe actions, missing external facts, risk acceptance, or unchanged work.
+Classify semantic impact from the diff, not dependency descendants: direct owners/consumers, observable contracts,
+generated/config/migration surfaces, dynamic/unknown consumers, shared fixtures/harnesses/oracles,
+security/data/concurrency/global invariants, merge resolutions, and evidence-only invalidation. Unknown impact widens; retain unaffected results. Include the contract and original artifact paths; affected packages, Slice IDs,
+proof/report/checklist rows, seams, findings, failed observations; and screened commands. Cluster only findings
+sharing root cause, writable scope, and verification envelope, with one worker and a logical cluster identity
+that survives retries. State prior attempts, bounded scope, candidate delta, and circuit state. Identity/metadata
+is not progress and cannot reset the three-attempt cap. Stop for authority changes, unsafe actions, missing facts,
+risk acceptance, or unchanged work.
 
 ## Package Verifier Packet
 

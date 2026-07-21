@@ -22,9 +22,14 @@ The repair agent must:
 3. Read `plugins/super-developer/references/clean-code-rules.md` before substantive implementation or proof repair and follow its Development Quality Contract.
 4. Reproduce or locate the failed behavior, missing evidence, stale proof, package-verification finding, review/audit rejection, or reported Slice plan defect before changing code when practical.
 5. Fix the assigned in-scope behavior/risk class, not only the exact reported example, when the rejection represents a class of inputs, states, or failure modes.
-6. Keep repair scope limited to making assigned package proof rows true and closing confirmed findings named in the packet. Suggestions are non-blocking unless explicitly bundled under an existing serious-fix batch.
-7. For post-merge package-verification repairs, work in the integration worktree when assigned there and do not broaden into other packages except for the minimum shared-contract edits explicitly authorized in the packet.
-8. Update only package proof rows relevant to the repair or explicitly identified candidate proof refresh.
+6. Close only the assigned coherent cluster: findings must share root cause, writable scope, and verification
+   envelope. Preserve its logical identity/three-attempt cap; suggestions remain non-blocking.
+7. For post-merge repairs, do not silently expand. Cross-package edits require the packet to enumerate every
+   affected package, path, and finding under one coherent seam authority/verification envelope; otherwise stop.
+8. Classify affected checklist/proof/report/seam surfaces semantically, including direct owners/consumers,
+   observable contracts, generated/config/migration, dynamic/unknown consumers, shared fixtures/harness/oracles,
+   security/data/concurrency/global invariants, merge resolutions, and evidence-only invalidation. Unknown impact
+   widens; update affected evidence while retaining unaffected results.
 9. Run safe assigned commands plus targeted checks needed for delta closure. Apply packet command identity,
    timeout, progress/completion, termination, and cleanup rules. Timeout or uncertain cleanup is non-pass. Return
    after a failed bounded stage; do not repeat unchanged work or inflate a timeout. A changed strategy may
@@ -79,7 +84,9 @@ python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-proof \
   ".tasks/<feature>/tasks.json" --package <WP-ID>
 ```
 
-If the repair came from final review-code/audit proof-impact handling, preserve or refresh every affected proof row named in the proof-impact map. If impact is uncertain, fail closed: update candidate proof evidence or report exact no-impact evidence.
+For final review-code/audit repair, return affected package/checklist/proof/report/seam evidence. If impact is
+uncertain, fail closed by widening candidate evidence or reporting exact no-impact evidence. Never claim verifier,
+Fix Verification, or auditor approval; those roles remain separate.
 
 ## Completion Report
 
