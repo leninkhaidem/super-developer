@@ -6,6 +6,14 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [v1.40.2] - 2026-07-21
+
+### Changed
+- Changed repair freshness to follow semantic impact rather than dependency descendants and to reuse equivalent-state evidence without redundant checks.
+
+### Fixed
+- Fixed repair clustering, cross-package scope authority, and package/review/audit role ownership so retries remain bounded and focused review cannot substitute for a complete same-freeze audit.
+
 ## [v1.40.1] - 2026-07-20
 
 ### Changed
