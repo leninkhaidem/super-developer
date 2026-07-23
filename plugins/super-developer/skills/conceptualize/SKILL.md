@@ -15,6 +15,10 @@ The eager workflow should be enough to guide the session. Load references only a
 - For each material question, provide your recommended answer and tradeoff-shaped options when useful.
 - Inspect the repo instead of asking when repo evidence can answer; ask only for remaining intent, preference, or risk acceptance.
 - Continue the loop until shared understanding is sufficient for implementation planning without inventing behavior.
+- Before recommending or settling a design branch, apply the shared right-sized-complexity rule: choose the
+  smallest complete design that satisfies accepted requirements while addressing evidenced risk. Every extra state, marker,
+  flag, abstraction, dependency, configuration, or control branch needs a named requirement/risk or must be cut;
+  never remove required validation, safety, or failure handling in the name of simplicity.
 - Prefer explicit uncertainty over confident invention; name assumptions and unresolved branches instead of filling gaps silently.
 - Always derive a new concept slug autonomously from the concept itself. It is the default feature/artifact slug for `artifacts/<feature>`, `.worktrees/<feature>/artifacts`, `.planning/<concept-slug>/`, and later `.tasks/<feature>/`; never ask for routine slug naming or confirmation unless the user explicitly authorized slug selection or a path-safety/collision conflict blocks safe derivation.
 - When shared understanding materializes into a settled requirement, constraint, decision, non-goal, risk, blocker, accepted tradeoff, or planning implication, checkpoint it to the workspace instead of leaving it only in chat context.
@@ -34,7 +38,9 @@ The eager workflow should be enough to guide the session. Load references only a
 ## Do
 
 1. Autonomously derive a new concept slug from the concept (do not ask the user for it). Load `../../references/artifact-store.md` and `references/workspace-index.md`; resolve artifact root, artifact ref, code root, feature/artifact slug, and workspace path. In sidecar mode, create the orphan sidecar worktree through the `worktree` skill before writing any `.planning/` file (this local setup is part of Conceptualize; no checkpoint push yet). Only pause for slug input if explicitly authorized or path-safety/collision blocks autonomous derivation.
-2. Frame the current highest-leverage branch of the design tree: the next decision, dependency, risk, unknown, or scope boundary that most improves shared understanding.
+2. Before framing or recommending a design branch, load `../../references/clean-code-rules.md` and apply its
+   right-sized-complexity rule. Then select the next decision, dependency, risk, unknown, or scope boundary that
+   most improves shared understanding; do not carry untraced machinery forward as an accepted design.
 3. Gather repo or research evidence first when it can materially reduce uncertainty; ask only for the remaining user intent, preference, or risk acceptance.
 4. Ask exactly one focused question with a recommended answer or clear options. After the answer, state the updated shared understanding in plain language.
 5. Identify the next dependent branch, hidden assumption, conflict, risk, or planning implication. Repeat the loop until remaining unknowns are resolved, explicitly deferred/out of scope by a user decision, or blocking.

@@ -8,7 +8,7 @@ MUST NOT, SHOULD, SHOULD NOT, and MAY.
 
 - Implementation and repair agents MUST follow this contract for changed code and behavior.
 - Review and audit agents MUST apply its evidence and severity rules; preferences are not findings.
-- Planning agents use it to expose design, risk, and verification needs only.
+- Conceptualize and planning agents MUST use it to right-size design and expose risk and verification needs only.
 
 A change is material when it affects behavior, public contracts, data, errors, shared code, prompts or workflow
 artifacts, generated artifacts, package verification, or security/privacy/reliability/concurrency/performance risk.
@@ -26,12 +26,12 @@ For every material change, agents MUST ensure:
   not expose secrets or private data.
 - **Maintainable ownership:** changed behavior has a clear owner and cohesive boundary. Likely future changes avoid
   scattered edits and duplicated conditionals.
-- **Right-sized complexity:** aim for the simplest design that fully satisfies the accepted requirements and
-  `## Acceptance` criteria — neither over- nor under-engineered. Abstractions, dependencies, configuration, state,
-  retries, caches, flags, and extension points require a current requirement or evidenced risk; anything built
-  beyond what Acceptance needs, and not traceable to one, is speculative and must be cut. Simpler is the default;
-  added complexity carries the burden of proof. This never licenses sloppiness — correctness, boundary
-  validation, and the required outcomes below still hold.
+- **Right-sized complexity:** choose the smallest complete design that fully satisfies accepted requirements and
+  `## Acceptance` while addressing evidenced risk — neither over- nor under-engineered. Every additional state, marker, flag,
+  abstraction, dependency, configuration, control branch, retry, cache, or extension point MUST name the current
+  requirement or evidenced risk that justifies it; otherwise it is speculative and MUST be cut. Simpler is the
+  default and added complexity carries the burden of proof. Simplification MUST NOT remove required correctness,
+  boundary validation, safety, or failure handling.
 - **Readable behavior:** project vocabulary, control flow, state transitions, defaults, and errors reveal intent.
 - **Testable design:** important behavior is observable through deterministic seams. Isolate I/O, time, randomness,
   globals, subprocesses, networks, tools, and framework lifecycle when they make proof brittle.
