@@ -16,8 +16,14 @@ Recapture each binding immediately before action. A local ref must be direct: `g
 success is a blocker. Delete only with `git update-ref --no-deref -d <full-ref> <approved-old-sha>`; concurrent
 movement fails CAS. Remote deletion never follows failed local cleanup. Orchestration may run at `$PROJECT_ROOT`.
 
-## Package Cleanup
-Bind package and integration worktrees. Recapture current integration HEAD/state immediately before ancestry:
+## Package Cleanup — Whole Feature Only
+Use this section only for delivery context `feature`. Do not use this section for individual-package cleanup;
+enter only once whole-feature preconditions pass: all registry packages are delivered/verified and merged into
+clean integration `HEAD`, final integrated review/audit passes, remote feature SHA equals that `HEAD`, and any
+contracted later target/base delivery gate is complete. Ancestry alone is never sufficient. Planned-hotfix uses
+its separately contracted bugfix/hotfix cleanup path and never requires a feature ref/SHA.
+
+Bind each package and the integration worktree. Recapture integration HEAD/state immediately before ancestry:
 ```bash
 set -euo pipefail
 PKG="$PROJECT_ROOT/.worktrees/<feature>/wp-<WP-ID>"
@@ -34,14 +40,21 @@ if git symbolic-ref -q "$REF"; then exit 1; fi
 test "$(git rev-parse "$REF")" = "<approved-local-ref-sha>"
 git update-ref --no-deref -d "$REF" <approved-local-ref-sha>
 ```
-Keep integration/sidecar safety nets through delivery. Never batch-delete or force-remove dirty/unmerged state.
+Remove package candidates only inside the approved whole-feature cleanup sequence. Keep integration/sidecar
+safety nets through delivery. Never force-remove dirty/unmerged state.
 
-## Planned Feature and Sidecar Pushes
-These retain existing Execution Contract/checkpoint gates; no user-known SHA/snapshot fields are implied:
+## Normal Feature Checkpoints and Sidecar Pushes
+The feature-checkpoint block applies only to delivery context `feature`; its Execution Contract covers every
+repetition and implies no user-known SHA/snapshot fields. Planned-hotfix creates no feature ref/SHA and retains
+its separately contracted `hotfix/<name>` source publication:
 ```bash
 set -euo pipefail
 cd "$PROJECT_ROOT/.worktrees/<feature>/merge"
-git push -u origin feature/<feature>
+test "$(git symbolic-ref --short HEAD)" = "feature/<feature>"; test -z "$(git status --porcelain)"
+LOCAL_SHA="$(git rev-parse HEAD)"
+git push origin "HEAD:refs/heads/feature/<feature>"
+REMOTE_LINE="$(git ls-remote --heads origin refs/heads/feature/<feature>)"; test -n "$REMOTE_LINE"
+REMOTE_SHA="${REMOTE_LINE%%$'\t'*}"; test "$REMOTE_SHA" = "$LOCAL_SHA"
 ```
 ```bash
 set -euo pipefail
@@ -81,7 +94,8 @@ git push --force-with-lease="$TARGET_REF:$EXPECTED" <remote> "$RESULT_SHA:$TARGE
 Bare force, unqualified lease, or missing ancestry proof is forbidden. Push failure preserves safety nets.
 
 ## Feature Cleanup
-Recapture the current delivery landing state before removing feature worktree/ref; stale approved SHA is insufficient:
+Use only for delivery context `feature`. Recapture the current delivery landing state before removing its feature
+worktree/ref; stale approved SHA is insufficient:
 ```bash
 set -euo pipefail
 FEATURE_WT="$PROJECT_ROOT/.worktrees/<feature>/merge"

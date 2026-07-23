@@ -28,8 +28,9 @@ package, bugfix, hotfix, spike, integration, target-merge, and artifact-sidecar 
 - Planned-feature setup may visibly propose `main` only when its owning contract allows. Bugfix, hotfix, and spike
   base/target refs must be explicit and are never inferred.
 - A branch checked out in one worktree is locked for other worktrees; create separate refs instead of reusing checkouts.
-- Remove package branches only after `git merge-base --is-ancestor` proves they are included in integration `HEAD`.
-- Feature push, sidecar push, target merge, target push, and cleanup are separate boundaries.
+- Retain all package branches/worktrees throughout active feature work. Ancestry proof is necessary at final
+  cleanup but never authorizes incremental cleanup after an individual package merge.
+- Feature checkpoint, sidecar push, target merge, target push, and cleanup are separate boundaries.
 - Never merge or push `<target-ref>`/`main` without explicit approval for that exact target.
 - Keep integration, target-merge, and active artifact sidecar worktrees until the authorized lifecycle boundary is complete.
 - Clean up only the named feature namespace; never remove another active feature's worktrees or refs.
@@ -103,14 +104,16 @@ Merge-base cleanup check from the integration worktree:
 git merge-base --is-ancestor wp/<feature>/<WP-ID> HEAD
 ```
 
-Only remove a package worktree/branch when this check succeeds for that package branch.
+Run this for every package only at whole-feature cleanup. Success proves ancestry but never permits cleanup
+before all packages, final integrated gates, remote feature synchronization, and the later delivery boundary pass.
 
 ## Approval Boundaries
 
 - Creating local package/feature/artifact worktrees requires the approved worktree action, the implementation Execution Contract, or the planned-feature setup step that owns it (Conceptualize or implementation-plan artifact-sidecar setup). Local creation has no remote side effect; the sidecar checkpoint push and sidecar cleanup stay separately gated.
 - Sidecar checkpoints push only `origin artifacts/<feature>` from `.worktrees/<feature>/artifacts` at accepted gates.
 - Diagnose bugfix/hotfix branch publication binds remote/ref, source SHA, snapshot, and expected remote SHA/absence.
-- Planned feature/sidecar pushes remain governed by their existing approved Execution Contract/checkpoint gates;
+- Normal planned-feature contracts cover the repeated non-force `feature/<feature>` checkpoint after each
+  accepted package merge and remote-SHA verification. Sidecar and planned-hotfix pushes remain separately gated;
   do not claim those contracts contain user-known SHA/snapshot fields.
 - Target merge binds source/pre-target SHAs, snapshot, strategy, and non-root worktree. Target push separately binds
   result and expected remote SHA; exact lease plus ancestry enforces compare-and-swap without non-FF rewrite.
@@ -131,6 +134,9 @@ Only remove a package worktree/branch when this check succeeds for that package 
 - A sidecar checkpoint would push anything except `origin artifacts/<feature>` from the artifact worktree.
 - A feature push was not named in the approved Execution Contract.
 - A target merge or target push lacks its separate exact ref/SHA approval.
+- In normal `delivery context: feature`, package cleanup is requested before every package is delivered, verified,
+  merged, remotely checkpointed, and retained through final integrated review/audit and the applicable later
+  delivery boundary. Planned-hotfix follows its separately contracted hotfix publication/cleanup gate instead.
 - Cleanup would remove another active feature namespace, dirty worktree, unmerged branch, active sidecar, or safety-net checkout.
 - A force push/delete, tag/release action, remote branch deletion, or external side effect is requested but not explicitly approved.
 
