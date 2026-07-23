@@ -1,8 +1,7 @@
 # Feature Package Workflow
 
-Use this reference for planned-feature execution. Boundary: artifact sidecar setup/checkpoints,
-package/integration worktree setup, package merge order, dependency examples, and feature-push handoff.
-Use the parent-supplied artifact-store contract for root terms.
+Use this reference for planned-feature execution. Boundary: artifact sidecar setup/checkpoints, package/integration
+worktrees, package merge order, dependencies, and feature-push handoff. Parent supplies artifact-store root terms.
 
 ## Contract
 - One artifact sidecar per feature slug: orphan ref `artifacts/<feature>` at `.worktrees/<feature>/artifacts`.
@@ -13,7 +12,7 @@ Use the parent-supplied artifact-store contract for root terms.
 - The feature ref is `feature/<feature>` and its integration worktree is `.worktrees/<feature>/merge`.
 - Stacked-feature final readiness names the top code state plus every relevant base/follow-up artifact set.
 - Package agents implement inside assigned package worktrees only.
-- The orchestrator creates worktrees/branches, merges packages, pushes refs, and handles cleanup.
+- The orchestrator creates worktrees/branches, merges and remotely checkpoints accepted packages, and handles cleanup.
 - Never put worktree-managed development in the root worktree or assume the root is on `main`.
 
 ## Directory Layout
@@ -36,15 +35,12 @@ Keep `.worktrees/` ignored before creating these paths.
 | Feature ref | `feature/<feature>` | `feature/auth` |
 | Package branch | `wp/<feature>/<WP-ID>` | `wp/auth/WP1` |
 
-`<feature>` is the resolved feature/artifact slug. Do not prompt for routine slug naming or silently
-remap `.planning/`, `.tasks/`, sidecar branch, or worktree paths. `<WP-ID>` is a work package ID.
-`<base-ref>` defaults to `main`; stacked features may use another feature ref. `<target-ref>` is the
-later merge destination after explicit approval and defaults to `main`.
+`<feature>` is the resolved feature/artifact slug; never prompt for routine naming or silently remap artifact,
+branch, or worktree paths. `<WP-ID>` names a package; `<base-ref>` defaults to `main` but may be a stacked feature; `<target-ref>` is later approved and defaults to `main`.
 
 ## Artifact Sidecar Setup
-Create the sidecar before the first artifact write; `git worktree add` refuses a non-empty path, so it
-cannot be added after `.planning/` exists. `--orphan` needs git >= 2.42; on older git, stop and report
-the version gap rather than improvising an orphan checkout.
+Create the sidecar before the first artifact write because `git worktree add` refuses a non-empty path.
+`--orphan` needs git >= 2.42; on older git, stop and report rather than improvising.
 ```bash
 cd "$PROJECT_ROOT"
 mkdir -p .worktrees/<feature>
@@ -57,8 +53,7 @@ git worktree add .worktrees/<feature>/artifacts artifacts/<feature>   # when the
 git fetch origin artifacts/<feature> && \
   git worktree add -b artifacts/<feature> .worktrees/<feature>/artifacts origin/artifacts/<feature>  # remote-only
 ```
-Create `.planning/<concept-slug>/` and `.tasks/<feature>/` inside the artifact worktree/root. Do not
-expect plugin files, source files, dependencies, or source validation to exist there.
+Create `.planning/<concept-slug>/` and `.tasks/<feature>/` there; do not expect source files or validation.
 
 ## Feature and Package Commands
 ### 1. Create the feature ref
@@ -66,8 +61,7 @@ expect plugin files, source files, dependencies, or source validation to exist t
 cd "$PROJECT_ROOT"
 git branch feature/<feature> <base-ref>
 ```
-No feature worktree is created here. `feature/<feature>` starts from `<base-ref>` and package branches
-merge into it later.
+No worktree is created here; package branches later merge into this ref from `<base-ref>`.
 
 ### 2. Create package worktrees
 For a package that can start from the feature base:
@@ -88,8 +82,7 @@ cd "$PROJECT_ROOT/.worktrees/<feature>/wp-<WP-ID>"
 # implement all work assigned to this package
 # commit the package's source/reference/test changes on wp/<feature>/<WP-ID>
 ```
-Proof/report artifacts stay in the artifact root, not the package branch. Do not create smaller
-internal branches unless the plan split them into separate work packages.
+Proof/reports stay in the artifact root. Create no internal branches unless the plan split the package.
 
 ### 4. Create the integration worktree
 ```bash
@@ -97,22 +90,28 @@ cd "$PROJECT_ROOT"
 git worktree add .worktrees/<feature>/merge feature/<feature>
 cd .worktrees/<feature>/merge
 ```
-This is the only checkout of `feature/<feature>`. Keep it until feature merge, push, and final cleanup complete.
+This is the only checkout of `feature/<feature>`. Keep it through final delivery and approved cleanup.
 
-### 5. Merge package branches into the feature ref
+### 5. Merge and remotely checkpoint each accepted package
+After package completion gates, merge:
 ```bash
+set -euo pipefail
 cd "$PROJECT_ROOT/.worktrees/<feature>/merge"
-git merge wp/<feature>/WP1 --no-edit
-git merge wp/<feature>/WP2 --no-edit
+git merge wp/<feature>/<WP-ID> --no-edit
 ```
-Resolve conflicts in the integration worktree. Verification for the integrated feature runs there.
-
-### 6. Push feature branch for review/testing
+Close parent-owned post-merge freshness/repair gates, then checkpoint:
 ```bash
+set -euo pipefail
 cd "$PROJECT_ROOT/.worktrees/<feature>/merge"
-git push -u origin feature/<feature>
+test "$(git symbolic-ref --short HEAD)" = "feature/<feature>"; test -z "$(git status --porcelain)"
+LOCAL_SHA="$(git rev-parse HEAD)"
+git push origin "HEAD:refs/heads/feature/<feature>"
+REMOTE_LINE="$(git ls-remote --heads origin refs/heads/feature/<feature>)"; test -n "$REMOTE_LINE"
+REMOTE_SHA="${REMOTE_LINE%%$'\t'*}"; test "$REMOTE_SHA" = "$LOCAL_SHA"
 ```
-This publishes only `feature/<feature>`. It does not authorize target merge/push or sidecar cleanup.
+Non-force pushes serialize through integration; failure, mismatch, or divergence stops progression. The checkpoint
+publishes only `feature/<feature>` and never authorizes target work. Retain every package branch/worktree plus
+integration and artifacts until all packages, final gates, and the applicable delivery/cleanup boundary pass.
 
 ## Sidecar Checkpoints
 Checkpoint at parent-supplied artifact-store gates (post-Conceptualize, post-review-plan, each package delivery,
@@ -147,4 +146,5 @@ Clean up only the namespace being finalized. Package IDs such as `WP1` can repea
 - A sidecar checkpoint would push anything except `origin artifacts/<feature>` from the artifact worktree.
 - A package needs predecessor output that has not merged into `feature/<feature>`.
 - Package ownership/dependencies do not permit parallel package work.
+- A feature checkpoint is uncontracted/non-fast-forward, mismatches integration `HEAD`, or incremental cleanup is requested.
 - A target merge, target push, cleanup, force action, or remote deletion is requested inside this playbook.

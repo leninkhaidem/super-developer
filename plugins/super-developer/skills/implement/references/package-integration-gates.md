@@ -1,7 +1,6 @@
 # Implement Package Integration Gates
 
 Load after package agents return and before accepting, merging, marking `done`, dispatching downstream packages, or final readiness. This reference owns package return acceptance, proof validation, holistic package verification, merge/freshness gates, repair routing, and final handoff.
-
 The `worktree` skill owns git command runbooks, root-worktree safety, branch/ref invariants, sidecar
 checkpoints, cleanup, source push, and target-merge boundaries. This reference owns when those operations
 are allowed. Artifact checks read/write the artifact root; source validation runs in package or integration
@@ -49,17 +48,22 @@ For each returned package:
 11. Confirm package branches did not force-add or commit ignored `.tasks` proof/report artifacts. If they did,
     preserve artifacts in the artifact root, repair the branch to code/doc changes only, and keep the package incomplete.
 12. Merge each accepted package branch at most once through the integration worktree using the `worktree` skill.
+    For delivery context `feature`, retain all feature safety nets until whole-feature cleanup is eligible;
+    planned-hotfix retains safety nets under its separately contracted hotfix delivery/cleanup gates.
 13. After merge, classify semantic impact, never dependency descendants: direct owners/consumers; observable
     contracts; generated/config/migration and dynamic/unknown consumers; shared fixtures/harnesses/oracles;
     security/data/concurrency/global invariants; merge resolutions; and evidence-only invalidation. Unknown
     impact widens; retain unaffected results. Refresh only affected proof/report/verification and focused seams.
-14. After package completion is established, publish a package-delivery sidecar checkpoint only when the exact
-    action/ref is contracted. Push only `origin artifacts/<feature>` from the artifact worktree; otherwise keep
-    valid artifacts local and report them unpublished. Publication never creates `done` or unlocks dependents.
+14. After merge, close post-merge freshness. Only for delivery context `feature`, run the contracted non-force
+    feature checkpoint through `worktree` and require remote feature SHA = integration `HEAD`. Failure, mismatch,
+    or divergence blocks downstream dispatch/progression; retain every safety net and never force. Planned-hotfix
+    has no feature ref/SHA or package-boundary source push; publish `hotfix/<name>` only at its separate contracted
+    source gate. Publish a sidecar only when separately contracted; otherwise keep valid artifacts local.
 
-Mark a package `done` only after proof validation, verification expectations, package verification PASS, clean
-`validate-package-complete`, ignored `.tasks` handling, post-merge freshness, repair/delta closure, and Slice
-plan-defect gates all pass.
+Mark a package `done` as the local evidence fact only after proof validation, verification expectations, package
+verification PASS, clean `validate-package-complete`, ignored `.tasks` handling, repair/delta closure, and Slice
+plan-defect gates all pass. `done` alone does not unlock dependents: merge/freshness must close; only for delivery
+context `feature`, checkpoint/remote-SHA verification must pass before downstream dispatch or progression.
 
 ## Slice Plan-Defect Gate
 
@@ -108,7 +112,8 @@ Before moving to final `review-code` and `audit`, every package must have:
 - clean `validate-package-complete` for the current package state;
 - no unresolved Slice plan defects;
 - integration worktree clean for the intended final state;
-- package branches merged once and retained until cleanup gates pass.
+- package branches merged once and retained under the applicable delivery-context cleanup gates;
+- for delivery context `feature` only, contracted remote feature SHA equal to integration `HEAD` after the latest accepted merge.
 
 For bounded stacked-feature readiness, build a packet naming the top integrated worktree/code state and every relevant task/Slice artifact set; each included set must have clean package completion and `validate-final` prerequisites before readiness claims. Do not audit only a follow-up task set when the top branch includes base feature deliverables; stop when included sets are unknown or out of scope.
 

@@ -1,7 +1,6 @@
 # Execution Contract
 ## Boundary
 This reference owns the user-facing implement approval template and its approval boundaries.
-
 ## Contract
 - Derive the contract only from approved plan artifacts, package Markdown, safe assigned Slice content,
   resolved testing authority when execution feasibility is triggered, current git state, and explicit user
@@ -12,8 +11,8 @@ This reference owns the user-facing implement approval template and its approval
   those listings; re-ask when either exceeds the contract or a separately protected boundary applies.
   Step-by-step still asks at every contracted major gate as described below.
 - Name artifact/code roots, sidecar ref/worktree, and package/integration code worktrees.
-- Source/integration branch push is covered only when its exact command/ref is listed (normally
-  `feature/<feature>`, or the explicit `hotfix/<name>` for planned production repair); the user may exclude it.
+- Normal feature execution requires the exact non-force `feature/<feature>` checkpoint after every accepted
+  package merge with remote-SHA verification; auto-resolve covers all repetitions. Planned-hotfix push is separate.
 - Sidecar pushes require their own exact listed command/ref; source/target publication never implies them or vice
   versa. One approval may list both. When excluded, valid local artifacts remain usable but unpublished.
 - Target branch merge, target push, force push, tag, release, branch delete, destructive command,
@@ -21,15 +20,16 @@ This reference owns the user-facing implement approval template and its approval
 - Dependency installs/additions are covered only when exact commands and manifest/lockfile paths are
   derived from approved artifacts or explicit user instruction and listed in this contract; otherwise
   they require separate approval.
-- Auto-resolve mode continues through approved implementation gates and the covered source push only while
-  readiness holds and each repair attempt makes material progress. An open execution/repair circuit stops it.
+- Auto-resolve continues through approved gates while readiness holds and each repair attempt makes material
+  progress; only delivery context `feature` includes repeated package-boundary checkpoints. An open circuit stops it.
 - Step-by-step mode asks before each major gate, package wave, repair loop, source push, and final handoff.
 
 ## Do
 1. Validate `.tasks/<feature>/`, package/proof/report/Slice paths, current git refs, and—when execution
    feasibility is triggered—the testing-authority provenance and command/write bounds.
 2. Name the exact delivery context, artifact/code roots, artifact/base/integration/target refs and worktrees,
-   package refs/worktrees, proof/report paths, optional sidecar checkpoint command, and source-push command.
+   package refs/worktrees, proof/report paths, optional sidecar command, and the context-applicable source command:
+   repeated feature checkpoints only for `feature`, or separately contracted `hotfix/<name>` publication.
 3. For each package, summarize assigned Slice obligations, primary paths, dependencies, approved dependency
    changes, verification expectations/depth, known blockers, and any execution-feasibility profile: authority,
    preconditions/cleanup, cost, bounds, readiness probe, and broad placement or broad-only justification.
@@ -62,10 +62,10 @@ Covered actions:
   writes: <implementation/docs plus exact in-scope test/oracle/harness paths or categories>
   execution/evidence: <focused, runtime, and integrated commands; evidence destinations/redaction>
   bounded reruns: <same-scope rerun conditions/budgets; no unchanged retries or timeout inflation>
-  pushes: <independently list source and sidecar commands below, or excluded>
+  pushes: <list required normal-feature checkpoints and each optional planned-hotfix/sidecar action below>
 
 Remote actions:
-  source branch push: <exact non-force push of feature/<feature> or hotfix/<name>, or excluded>
+  source checkpoints: <normal feature: repeated non-force post-package push + remote-SHA verification | planned hotfix: exact push or excluded>
   sidecar checkpoints: <exact push of artifacts/<feature> from its worktree at eligible gates, or excluded/local-only>
   target merge/push: not authorized; requires separate explicit approval for <target-ref>
   force/delete/tag/release actions: not authorized
@@ -107,9 +107,9 @@ Pipeline:
 4. dispatch package agents with artifact-root package/Slice/proof/report paths and package code worktrees
 5. require package-agent SELF_REVIEW and artifact-root proof Markdown evidence
 6. run root-aware `validate-proof`, package verification with a fresh PASS report, then `validate-package-complete`
-7. merge accepted source-only package branches into the integration worktree after gates pass
-8. semantically refresh only affected package checklist/proof/report evidence and focused seams; retain unaffected results
-9. after package delivery, publish the sidecar only when its exact push is listed; otherwise keep it local
+7. merge each accepted source-only package branch into the integration worktree after its gates pass
+8. refresh affected evidence/seams; only for delivery context `feature`, checkpoint and require remote feature SHA = integration `HEAD` before downstream progression; retain all safety nets on failure/divergence
+9. planned-hotfix has no feature ref/SHA or package-boundary source push; run its separately listed `hotfix/<name>` publication only at its source-push gate; publish sidecar only when listed
 10. finish repairs; run focused/integrated checks and finalize runtime evidence/cleanup
 11. run root-aware final validation; freeze integrated-code/artifact/runtime-evidence inputs
 12. invoke `review-code` and `audit` as sibling checks; their outputs are not freeze inputs
@@ -126,13 +126,13 @@ Stop conditions:
 - product/design change, scope expansion, existing-system contract change not explicitly approved in accepted
   artifacts/this Execution Contract, or risk acceptance needed
 - unsafe/destructive/external/credentialed command, service install/start, or unlisted dependency install needed
-- source push remote/ref differs from this contract, remote diverges/non-fast-forwards unexpectedly, or credentials fail
+- a `feature` checkpoint differs from contract/integration `HEAD`, or an applicable feature/hotfix publication non-fast-forwards or fails credentials
 - any target merge/push, force/delete/tag/release action, or branch deletion is requested
 - final review-code readiness or audit prerequisites are not fresh and closed
 
 Choices:
-  approve auto-resolve — run approved package/verification/repair gates, including the listed source push,
-                         while readiness and material-progress circuit rules hold, until completion or stop
+  approve auto-resolve — run approved package/verification/repair gates and, only for delivery context `feature`,
+                         every listed feature checkpoint while readiness/material-progress rules hold, until stop
   step-by-step        — ask before each package wave, repair loop, push, and final handoff
   abort               — stop before worktree creation or dispatch
 ```

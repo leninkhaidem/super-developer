@@ -40,8 +40,9 @@ Loop map: dispatch package waves → verify each against its Acceptance Checklis
   git, review, audit, or package scope.
 - Git actions are orchestrator-owned; never switch the root worktree. Normal planned work uses the artifact,
   `wp-<WP-ID>`, and feature integration worktrees. A planned production hotfix instead uses the explicit
-  production base and `hotfix/<name>` integration route—never an implicit feature ref. Source-branch publication
-  is contracted; target merge/push always needs separate explicit approval.
+  production base and `hotfix/<name>` integration route—never an implicit feature ref. Normal feature execution
+  contracts repeated non-force `feature/<feature>` checkpoints after accepted package merges; target merge/push
+  always needs separate explicit approval.
 
 ## Do
 
@@ -70,12 +71,17 @@ Loop map: dispatch package waves → verify each against its Acceptance Checklis
    equivalent code/artifact state, cwd, environment/data, isolation/order assumptions, and evidence mapping;
    distinct isolation, cleanup, nondeterministic, or package checks still run. Track the logical cluster through
    3 attempts. Advisory findings are recorded, not repaired.
-7. Mark a package done only after verifier PASS and `validate-package-complete` (see
-   `references/package-integration-gates.md` and `../../references/package-lifecycle.md` for the completion gate,
-   downstream unlocks, and post-merge freshness); merge through the integration worktree, then publish an eligible
-   sidecar checkpoint only when explicitly contracted. Continue downstream packages even when valid artifacts
-   remain local/unpublished. Keep a short append-only decisions log
-   (settled choices, rejected approaches) and pass it to each fresh agent so nothing is re-litigated.
+7. Treat package `done` as the local evidence fact established by verifier PASS and
+   `validate-package-complete` (see `references/package-integration-gates.md` and
+   `../../references/package-lifecycle.md`); it does not itself unlock downstream work. Merge through the
+   integration worktree, close post-merge freshness, and complete the delivery-context gate before downstream
+   unlock or progression. Only for delivery context `feature`, run the contracted non-force feature checkpoint
+   and verify remote feature SHA = integration `HEAD`; stop on failure/divergence. Planned-hotfix has no feature
+   ref/SHA or package-boundary source push; publish `hotfix/<name>` only at its separately contracted source gate.
+   Publish a sidecar only when separately contracted. For feature delivery, retain all
+   package/integration/artifact safety nets until whole-feature gates and approved cleanup pass; planned-hotfix
+   follows its hotfix delivery/cleanup gates. Keep a short append-only decisions log (settled choices, rejected
+   approaches) and pass it to fresh agents.
 8. At final readiness, integrate all packages, then run the **feature Acceptance checks** (SPEC `## Acceptance`)
    against the integrated code and capture real output. Freeze the integrated state and invoke `review-code`
    (seams/integration only) and `audit` (confirm every checklist item + feature Acceptance passed). Their
