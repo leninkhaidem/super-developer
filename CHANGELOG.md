@@ -6,6 +6,11 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [v1.40.3] - 2026-07-23
+
+### Changed
+- Changed planned-feature delivery to push and verify the remote feature branch after every accepted work-package merge while retaining all feature safety nets until whole-feature verification and cleanup gates pass.
+
 ## [v1.40.2] - 2026-07-21
 
 ### Changed
