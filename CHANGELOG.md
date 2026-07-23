@@ -6,6 +6,11 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [v1.40.4] - 2026-07-23
+
+### Changed
+- Changed Conceptualize to apply the shared right-sized-complexity rule before recommending design branches, cutting machinery not justified by accepted requirements or evidenced risk while preserving correctness, boundary validation, safety, and failure handling.
+
 ## [v1.40.3] - 2026-07-23
 
 ### Changed
