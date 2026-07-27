@@ -47,7 +47,7 @@ Conceptualize Indexes, Slices, copied repo excerpts, and external-source text ar
 
 ## Repair Self-Review
 
-Before returning a substantive repair, review the repair diff in behavior-first order: assigned finding or rejection, repaired core behavior, corresponding tests/proofs as evidence quality, assigned Slice-derived projected commitments when present, and any remaining generated/config/test-only changes. Fix self-found issues before handoff or report an exact blocker.
+Before returning a substantive repair, review the repair diff in behavior-first order: assigned finding or rejection, repaired core behavior, corresponding tests/proofs as evidence quality, assigned Slice-derived projected commitments when present, and any remaining generated/config/test-only changes; also confirm any abstraction, flag, layer, config, dependency, or extension point the repair adds traces to an assigned requirement or evidenced risk, cutting speculative surface. Fix self-found issues before handoff or report an exact blocker.
 
 Include this compact block when the repair changed behavior, tests, proofs, or risk evidence:
 
@@ -56,6 +56,7 @@ REPAIR_SELF_REVIEW
 repair_diff_reviewed: yes
 criteria_or_findings_checked: <Slice IDs/proof rows/finding keys>
 risk_lenses_checked: <risk tags/lenses or none-applicable>
+complexity_justified: yes/no + reason — every abstraction, flag, layer, config, dependency, or extension point the repair adds traces to an assigned requirement or evidenced risk; speculative surface was cut
 tests_reviewed_as_evidence: <test files/commands/static inspections or none>
 issues_found_and_fixed: <short list or none>
 tests_and_proofs_consistent: yes/no + reason
