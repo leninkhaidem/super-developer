@@ -6,8 +6,10 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [v1.40.5] - 2026-07-27
+
 ### Changed
-- Changed the Implement package and repair agent contracts to right-size implementation at authoring time: the "go the extra mile" framing now scopes rigor to depth of the required behavior rather than added surface area, and the mandatory package/repair self-review adds a `complexity_justified` forcing function so every added abstraction, flag, layer, config, dependency, or extension point must trace to an assigned requirement or evidenced risk before handoff (mirroring Design Preflight's OVERBUILT lens). Code review keeps over-engineering advisory by design.
+- Changed package and repair implementation guidance to favor the smallest complete implementation and require self-review justification for added abstractions, flags, layers, configuration, dependencies, or extension points.
 
 ## [v1.40.4] - 2026-07-23
 
