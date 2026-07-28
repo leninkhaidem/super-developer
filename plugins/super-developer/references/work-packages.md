@@ -44,9 +44,9 @@ Before finalizing the boundary, assess semantic closure complexity:
 
 Split when one agent cannot close those dimensions coherently. Keep work together when splitting would
 multiply shared harness ownership, duplicate evidence, or add more fixed gate cost than it removes. Counts of
-files, scenarios, or commands are warning signals, never universal thresholds. Route unresolved empirical
-uncertainty to a spike instead of guessing package boundaries. Avoid tiny packages unless risk or isolation
-justifies their fixed lifecycle cost.
+files, scenarios, or commands are warning signals, never universal thresholds. Return unresolved material
+empirical uncertainty to the owning orchestrator for conditional `empirical-spike`; do not guess boundaries.
+Avoid tiny packages unless risk or isolation justifies their fixed lifecycle cost.
 
 ## IDs and Dependencies
 
@@ -101,7 +101,7 @@ Rules:
   `Notes` or verification expectations:
   authoritative command/harness/contract/fixture sources, preconditions and cleanup, cost class, the smallest
   credible bounded probe or broad-only justification, broad-check placement, testing-authority provenance,
-  and a spike/replan trigger. Exact budgets come from the resolved authority.
+  and an empirical-evidence/replan trigger. Exact budgets come from the resolved authority.
 
 ## Risk and Review Lenses
 

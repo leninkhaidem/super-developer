@@ -1,7 +1,7 @@
 # Bugfix and Hotfix Workflow
 
-Use for diagnostic spikes, active-feature bugfixes, maintenance bugfixes, production hotfixes, and propagation.
-Boundary: isolated non-root worktrees and immutable diagnose delivery gates.
+Use for disposable empirical/diagnostic probes, active-feature bugfixes, maintenance bugfixes, production hotfixes,
+and propagation. Boundary: isolated non-root worktrees and immutable diagnose delivery gates.
 
 ## Contract
 
@@ -62,8 +62,7 @@ Bare `--force`, unqualified `--force-with-lease`, and a lease without required a
 
 ## Isolated Worktree Creation
 
-Diagnostic spike:
-
+Disposable empirical or diagnostic probe:
 ```bash
 set -euo pipefail
 cd "$PROJECT_ROOT"
@@ -80,8 +79,9 @@ git worktree add .worktrees/bugfix-<name> -b bugfix/<name> <feature-base-sha>
 # OR: git worktree add .worktrees/hotfix-<name> -b hotfix/<name> <production-base-sha>
 ```
 
-Verify the named base ref still equals the approved SHA. Edit/commit only under their gates after complete-state
-CLEAN review. Stage reviewed manifest files only. Spikes are evidence-only and never merge.
+Probe edits stay uncommitted and evidence-only. Their owning workflow applies bounded method/correctness and
+execution-boundary checks; never require production hardening, security review, `review-code`, or `audit` solely
+for them, and never merge them. For repairs, verify base ref/SHA and edit/commit after complete-state CLEAN review.
 
 ## Planned Production-Hotfix Bridge
 

@@ -15,7 +15,13 @@ Do not create or overwrite `.tasks/<feature-name>/` artifacts until all applicab
 - Design preflight trigger decision is made. Any reused equivalent analysis covers the same approved scope,
   current evidence, completeness, and overengineering lens with provenance; whether reused or newly run, no
   `COVERAGE_GAPS`, `MUST_DECIDE`, or `BLOCKERS` remain unresolved.
-- Conditional spike decision is made; if a spike was required, evidence is accepted and no exploratory code will be persisted.
+- After repository/official evidence, the orchestrator inventoried a bounded set of distinct material empirical
+  questions. Each question has one accepted `resolved-static`, `supported`, or `rejected` report with adequate
+  provenance, method, authority, limitations, and cleanup; independent questions ran in parallel, while sequential
+  dispatch occurred only when accepted evidence created the next question. `blocked`/`inconclusive` cannot support
+  writes, and no unchanged or continually emerging/unbounded question remains.
+- The planner worker did not invoke a spike. Unresolved material behavior produced
+  `BLOCKED: empirical_evidence_needed` before any artifact write and returned to the orchestrator.
 - Any decision that changes user-visible semantics, risk acceptance, scope, or Slice commitments has user approval.
 - Conceptualize input state is one of: no workspace applies, Index-only/no-Slice, or full safe Slice inventory.
 - Resolved Semgrep state is present before planner delegation; enabled setup names any clone/pull side effect, disabled setup imposes no helper/scan evidence, and artifact authoring does not run broad scans.
@@ -25,10 +31,10 @@ Do not create or overwrite `.tasks/<feature-name>/` artifacts until all applicab
 - Package boundaries are coherent, dependency-safe, and do not hide shared files, contracts, risk surfaces,
   observable surfaces, or Slice obligations. Closure complexity and fixed per-package gate cost were assessed;
   file, scenario, and command counts were not treated as universal split thresholds.
-- Packages with materially unresolved execution feasibility record a profile in existing
-  `Notes` or verification expectations: authoritative sources, preconditions/cleanup, cost class, smallest
-  credible bounded probe or broad-only justification, broad-check placement, testing-authority provenance,
-  and a spike/replan trigger. Cost or breadth alone does not trigger a profile.
+- Material empirical behavior needed for a safe plan is resolved before authoring, not hidden in a package profile.
+  Non-blocking execution-feasibility profiles use existing `Notes`/expectations for authoritative sources,
+  preconditions/cleanup, cost, smallest bounded check or broad-only justification, broad-check placement,
+  testing-authority provenance, and an empirical-evidence/replan trigger. Cost or breadth alone does not trigger.
 - Visible interface contracts preserve exact interfaces and forbidden behaviors in package scope/verification text.
 - Package verification expectations seed obvious interface/risk evidence without boilerplate and without limiting verifier-selected emergent blocking findings.
 - Packages that create or change externally observable surfaces identify them and require
@@ -125,6 +131,8 @@ Do not use `--force` unless replacing existing proof content has explicit approv
 - Confirm full Slice inventory matches between SPEC and registry.
 - Confirm every package-assigned H3 exists and every material H3 is assigned or approved otherwise.
 - Confirm helper success was not treated as semantic evidence sufficiency.
+- Confirm accepted empirical conclusions were distilled only into owning fields; no report transcript or disposable
+  probe code was persisted as a planned-feature artifact.
 - Confirm the user summary lists artifact root/ref, code root, paths, packages, dependencies,
   parallel/serial rationale, Slice inventory or no-Slice state, approved deferrals, validation
   commands, and remaining assumptions.

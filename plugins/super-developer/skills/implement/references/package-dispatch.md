@@ -47,8 +47,8 @@ resolved testing authority, repository evidence, and shared command runtime enve
 3. the smallest approved bounded probe when credible, or a documented no-narrower-check justification plus an
    explicitly bounded broad command as the first runtime evidence.
 
-If any criterion is absent, mark the package not ready. On failure, withhold only the affected wave and classify
-plan, testing-authority/precondition, implementation, or orchestration ownership; do not guess or retry unchanged.
+If any criterion is absent, withhold the affected wave and classify its owner; return each distinct plan-owned
+material gap as `empirical_evidence_needed` to the orchestrator. Workers do not probe, guess, or retry unchanged.
 Broad or costly execution requires a clean readiness result and clean targeted evidence when a credible narrower
 check exists. The documented broad-only branch may proceed after deterministic preflight/discovery. Readiness is
 a dispatch control, not package proof or a replacement for holistic package verification.

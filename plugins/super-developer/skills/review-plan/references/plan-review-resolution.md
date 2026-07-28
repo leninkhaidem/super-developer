@@ -16,10 +16,10 @@ A defect that prevents safe finalization because requirements, package assignmen
 
 ### empirical feasibility blocker
 
-A material assumption that cannot be resolved from approved artifacts, repository evidence, or resolved testing
-authority and must be observed before the plan is safe. Do not defer it to implementation or invent commands/
-budgets. Return this classification to the orchestrator for `spike-to-plan`; accepted evidence must return
-through `implementation-plan` artifact repair and focused plan review before the plan gate.
+A material assumption that remains unresolved after approved artifacts, bounded repository/official evidence,
+and resolved testing authority and must be observed before plan approval. Do not defer it to implementation,
+invent commands/budgets, or trigger a spike from a reviewer/worker. Return `empirical_evidence_needed` with one
+question and blocked decision per finding. Routine or statically resolved work is not a blocker.
 
 ### design decision
 
@@ -65,15 +65,22 @@ Internal simplification may be applied without a prompt only when it preserves t
 1. Group duplicate findings by target and issue.
 2. Classify each finding.
 3. Apply mechanical fixes directly.
-4. Route empirical feasibility blockers to the orchestrator; do not repair artifacts until observed evidence returns.
-5. Escalate semantic choices to the user unless already resolved by explicit constraints.
-6. Persist accepted decisions in the owning artifact.
-7. Keep `SPEC.md` requirements-focused; package assignment belongs in package Markdown.
-8. Encode implementation-time concerns durably in package Markdown or verification expectations, not chat-only summaries.
-9. When accepted repairs materially expand or move closure-complexity dimensions, reapply
-   `../../../references/work-packages.md` to affected packages and route required boundary changes through the
-   Semantic Change Rule; shared-file overlap may justify serialization without one combined package.
-10. From the code root, rerun mechanical validation with explicit roots and perform focused re-review only for changed content that affects semantic review scope.
+4. For `empirical_evidence_needed`, preserve review roots/ref, artifacts, findings, reviewers, approvals, and gate
+   state. After static/official evidence, inventory a bounded set of distinct questions and invoke one fresh
+   `empirical-spike` per question. Run independent questions in parallel; sequence only when accepted evidence
+   creates the next question. Reviewers and repair workers never invoke it.
+5. Validate all reports and stop on blocked/inconclusive/malformed evidence, repeated unchanged questions, or
+   continually emerging/unbounded questions. Resolve semantic decisions, then make one caller-owned
+   `implementation-plan` continuation with preserved context and the accepted report set. That continuation is for
+   the set, not a cap on distinct spike invocations; do not repair empirical implications inline.
+6. Escalate semantic choices to the user unless already resolved by explicit constraints.
+7. Persist accepted decisions in the owning artifact.
+8. Keep `SPEC.md` requirements-focused; package assignment belongs in package Markdown.
+9. Encode implementation-time concerns durably in package Markdown or verification expectations, not chat-only summaries.
+10. When accepted repairs materially expand or move closure-complexity dimensions, reapply the parent-supplied
+    work-package contract to affected packages and route required boundary changes through the Semantic Change
+    Rule; shared-file overlap may justify serialization without one combined package.
+11. From the code root, rerun mechanical validation with explicit roots and perform focused re-review only for changed content that affects semantic review scope.
 
 ## Re-Review
 

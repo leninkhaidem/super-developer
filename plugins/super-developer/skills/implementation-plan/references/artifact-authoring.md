@@ -128,9 +128,9 @@ When Semgrep is enabled, keep verification expectations helper-owned and package
 - Apply shared closure-complexity rules; counts are warnings, not thresholds, and fixed package gates count.
 - Verification expectations are package-specific and cover relevant edge, failure, trust-boundary, data,
   security, privacy, performance, concurrency, generated-contract, audience-surface, and lifecycle cases or state
-  why not applicable. For unresolved execution feasibility, `Notes`/expectations identify authoritative
-  command/harness/fixture sources, preconditions/cleanup, cost, the smallest credible probe or broad-only
-  justification, testing-authority provenance, and the spike/replan trigger; exact budgets come from the authority.
+  why not applicable. Material unresolved empirical behavior blocks authoring: before writes return
+  `BLOCKED: empirical_evidence_needed` to the orchestrator; never invoke `empirical-spike` or hide it in `Notes`.
+  For non-blocking execution feasibility, record repo-backed sources/bounds and testing-authority provenance.
 - Each listed expectation becomes a concrete `## Acceptance Checklist` item in package order; if a Slice obligation proves it, the same check may cover both.
 - Seed visible interface/risk expectations without boilerplate: exact interfaces, forbidden behaviors, interactive UI, retry/fail-closed, trigger precedence, lifecycle/restart/reaper, cache invalidation, model/default precedence, generated defaults, and state pollution when applicable.
 - Planner seeds do not limit verifier discovery; verifier packets still require inspection of package scope, assigned Slices, changed code/diff, tests, verification expectations, and known failure modes for emergent blocking findings.

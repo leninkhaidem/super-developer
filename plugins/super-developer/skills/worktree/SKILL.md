@@ -64,11 +64,11 @@ inside a linked worktree.
 
 ## Do
 
-1. Identify the active workflow: normal planned-feature package, planned production-hotfix package, localized bugfix/hotfix, diagnostic spike, cleanup, source push, or target merge.
-2. Resolve project root, state, refs, and paths. For bugfix/hotfix/spike, require explicit base/target refs.
+1. Identify the active workflow: planned-feature package, planned production-hotfix package, localized bugfix/hotfix, disposable empirical/diagnostic probe, cleanup, source push, or target merge.
+2. Resolve project root, state, refs, and paths. For bugfix/hotfix/probe, require explicit base/target refs.
 3. For planned-feature artifact sidecars, load `../../references/artifact-store.md` before setup, checkpoint, or cleanup.
 4. Load `references/feature-package-workflow.md` for normal planned-feature package, integration, sidecar setup, and checkpoint commands.
-5. Load `references/bugfix-hotfix-workflow.md` for diagnostic spikes, feature bugfixes, localized or planned production hotfixes, and hotfix propagation.
+5. Load `references/bugfix-hotfix-workflow.md` for disposable empirical/diagnostic probes, feature bugfixes, localized or planned production hotfixes, and hotfix propagation.
 6. Before cleanup, branch removal, feature push, target merge, target push, sidecar deletion, or final teardown, load `references/cleanup-safety.md`.
 7. Run commands only from the worktree named by the loaded playbook; never repair convenience by switching the root worktree.
 8. Report created refs/worktrees, current checkout paths, approval boundaries, and cleanup candidates before destructive steps.
@@ -78,7 +78,7 @@ inside a linked worktree.
 
 - Planned feature/package commands → `references/feature-package-workflow.md`
 - Artifact-root/code-root terms for sidecars → `../../references/artifact-store.md`
-- Bugfix, hotfix, or diagnostic spike commands → `references/bugfix-hotfix-workflow.md`
+- Bugfix, hotfix, or disposable empirical/diagnostic probe commands → `references/bugfix-hotfix-workflow.md`
 - Cleanup, branch removal, feature push, target merge, target push, or teardown → `references/cleanup-safety.md`
 
 ## Planned Feature Contract

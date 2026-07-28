@@ -6,6 +6,9 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+### Changed
+- **Breaking:** Renamed the routed `spike-to-plan` skill to `empirical-spike` and made it a standalone bounded evidence producer; planning, review, and implementation orchestrators retain context, collect one report per distinct material question, and own downstream planning.
+
 ## [v1.40.5] - 2026-07-27
 
 ### Changed

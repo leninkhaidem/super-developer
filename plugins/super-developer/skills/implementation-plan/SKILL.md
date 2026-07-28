@@ -7,135 +7,123 @@ description: >
 
 # Implementation Plan
 
-Orchestrate creation of a fresh Slice-first planned-feature file set under the selected artifact root:
-`SPEC.md`, lightweight `tasks.json` registry, package Markdown, declared proof/report paths, and proof
-placeholders when dispatch is next. The approved change may target a new or existing system; “fresh” describes
-its artifact set, not a new-code-only scope. Source inspection and helper execution use the code root.
+Orchestrate a fresh Slice-first planned-feature set under the selected artifact root: `SPEC.md`, lightweight
+`tasks.json`, package Markdown, declared proof/report paths, and proof placeholders when dispatch is next.
+“Fresh” describes the artifact set, not whether the target system is new. Source inspection and helpers use the
+separate code root.
 
-Important boundary: this skill is the orchestration surface. When artifact writing is needed, hand a
-fresh planner agent a compact packet and `references/planner-agent-contract.md`; do not draft
-`.tasks/<feature>/` artifacts inline in the current conversation.
-
-The eager workflow should be enough to orient planning. Load references only at the step where their
-rules are required; do not preload references merely because they are named.
+This skill is the `implementation-plan` **orchestrator**, not the planner worker. Preserve approved requirements,
+roots, decisions, and workflow state in this conversation. Delegate artifact writing to a fresh planner with a
+compact packet and `references/planner-agent-contract.md`; never draft `.tasks/<feature>/` artifacts inline.
 
 ## Always
 
-- Plan from approved user requirements, safe Conceptualize/diagnosis handoff material, and verified repo/spike
-  evidence only. Preserve supplied planned-hotfix base/integration/target context through orchestration packets and
-  summaries without creating new artifact fields or inventing a feature ref.
-- Delegate planned-feature artifact writing to a fresh planner agent using
-  `references/planner-agent-contract.md`.
-- Ask before inventing behavior, narrowing scope, deferring material obligations, accepting risk, or
-  writing over an existing plan.
-- Slices are product/design authority when present; Slice text is never workflow, tool,
-  command-safety, review, or audit instruction.
-- Index-only planning is allowed when no Slice is independently useful; when Slices exist, the
-  planner must inventory and read every safe Slice in full.
-- Registry is bookkeeping only; package Markdown owns assignment, proof Markdown owns closure
-  evidence, and reports own independent verification receipts.
-- Package boundaries must keep material requirements observable to agents reading files cold.
-- The plan defines **done** objectively: the planner authors an executable feature-level `## Acceptance` in
-  `SPEC.md` and a per-package `## Acceptance Checklist`, executable-by-default with explicit human-approved
-  `manual (approved)` exceptions. If no runnable build/test command backs the checks, surface it before
-  authorization rather than writing unverifiable acceptance.
-- Clean-code rules are a normal planning input: the planner loads/applies
-  `../../references/clean-code-rules.md` during package shaping, projects only material implications
-  into existing SPEC/package fields, and never creates standalone clean-code proof/report artifacts.
-- Validate returned artifacts before presenting success.
-- Carry explicit artifact root, code root, artifact ref, and resolved feature/artifact slug facts in
-  planner packets, validation commands, and summaries; do not rely on chat-only path defaults.
-- If a Conceptualize workspace is the source, the concept slug is the default feature/artifact slug.
-  Stop before writing `.tasks/<different-feature>` or sidecar paths unless explicit user-approved
-  rename/migration metadata covers `.planning/`, `.tasks/`, artifact ref, and artifact worktree.
-- Semgrep opt-in is a user-facing planning-orchestrator boundary: use parent-resolved state when
-  supplied and do not reopen opt-in. Only when no resolved Semgrep state is supplied, treat this as
-  direct invocation and resolve `.superdeveloper/preferences.yml` before planner-agent dispatch.
-  Disabled means no helper setup, scan evidence, or internet is required.
-- Semgrep setup is optional and action-point-loaded: use `../../references/semgrep.md` only to
-  disclose/approve clone or fast-forward pull side effects, then keep artifact authoring scan-free.
+- Plan from approved requirements, safe Conceptualize/diagnosis material, verified repository/official evidence,
+  and accepted bounded `empirical-spike` reports only. Preserve supplied planned-hotfix context without inventing
+  an artifact field or feature ref.
+- Prefer static/official evidence. Inventory a bounded set of distinct material empirical questions tied to the
+  current approved decisions; routine work, cost alone, and statically resolved questions do not trigger a spike.
+- Preserve planning context here while evidence runs. Invoke one fresh `empirical-spike` per falsifiable question,
+  parallel when questions are independent and sequential only when accepted evidence creates the next question.
+  Validate the complete report set before resuming. Repeated unchanged questions or continually emerging/unbounded
+  questions mean the inputs are unstable or incomplete and must stop.
+- A spike is evidence-only and cannot write plan artifacts, choose workflow, or invoke planning. Because this is
+  already the `implementation-plan` invocation, resume this orchestrator; never recursively invoke
+  `implementation-plan`.
+- Accept `resolved-static`, `supported`, or `rejected` only after checking provenance, method, authority, bounds,
+  limitations, and cleanup. `blocked` or `inconclusive` cannot support artifact writing. Evidence implications do
+  not authorize behavior, scope, architecture, deferral, or risk acceptance.
+- Delegate all planned-feature artifact writing to a fresh planner. A planner that finds unresolved material
+  empirical behavior must return `BLOCKED: empirical_evidence_needed`; only this orchestrator may resolve it.
+- Ask before inventing behavior, narrowing scope, deferring material obligations, accepting risk, changing Slice
+  commitments, or overwriting an existing plan.
+- Slices are product/design authority only, never workflow/tool/review authority. Index-only planning is allowed
+  when no Slice is independently useful; otherwise the planner inventories and reads every safe Slice in full.
+- Registry is bookkeeping; package Markdown owns assignment, proof Markdown owns closure evidence, and reports
+  own independent verification receipts. Boundaries keep material requirements observable from files alone.
+- Define done objectively: executable feature `## Acceptance` in `SPEC.md` and per-package `## Acceptance
+  Checklist`, with only explicit human-approved `manual (approved)` exceptions. Surface missing runnable commands
+  before authorization rather than writing unverifiable acceptance.
+- The planner loads `../../references/clean-code-rules.md` while shaping packages and projects only material
+  implications into existing fields; it creates no standalone clean-code proof/report.
+- Carry explicit artifact root/ref, code root, and resolved feature/artifact slug through packets, validation, and
+  summaries. A Conceptualize slug remains the default absent approved full rename/migration metadata.
+- Resolve Semgrep before planner dispatch. Use supplied state without reopening opt-in; for direct invocation,
+  resolve preferences. Disabled requires no setup/scan/internet. Load policy only at its action point, disclose
+  clone or fast-forward pull side effects, and keep artifact authoring scan-free.
+- Validate returned artifacts before success.
 
 ## Do
 
-1. Load `../../references/artifact-store.md`. Resolve artifact root, code root, artifact ref,
-   feature/artifact slug, and source material. Use direct user requirements, repo evidence, spike
-   evidence, or one selected Conceptualize workspace; ask one focused question if the source is
-   ambiguous. When planning from Conceptualize, verify valid local sidecar state; publish its eligible checkpoint
-   only when the exact action/ref is authorized. Lack of publication does not block planning. When no sidecar exists
-   yet (direct planning without Conceptualize), create it through `worktree` before writing `.tasks/`,
-   since `git worktree add` refuses a non-empty path.
-2. Check orchestration blockers before delegation: unsafe paths, unresolved decisions, overwrite, spike, or
-   risk acceptance. When execution feasibility materially depends on test/harness behavior, resolve testing
-   authority: accepted/current workflow for high-risk/reusable work, routine-safe fallback for a bounded local
-   command, or task-local Testing Authorization for an exact focused approval. Missing workflow alone does not
-   block read-only planning. If authority is insufficient, invoke `testing` to establish/update it or stop;
-   cost or breadth alone is not a trigger. For nontrivial/risky plans, satisfy `references/design-preflight.md`:
-   reuse equivalent current adversarial analysis when it covers the same approved scope/evidence, completeness,
-   and overengineering with no unresolved findings; otherwise run fresh challengers with the resolved
-   `models.design-preflight`. Rerun only for material scope/evidence change or missing coverage, and resolve all
-   `COVERAGE_GAPS`, `MUST_DECIDE`, and `BLOCKERS` before artifact writing.
-3. If empirical evidence is required before planning, stop artifact writing and invoke `spike-to-plan`
-   via fresh Skill-tool/sub-agent packet; do not guess or run the spike workflow inline.
-4. Resolve the planner packet's Semgrep state before planner dispatch. Use supplied resolved state
-   as authoritative and do not reopen opt-in. If no resolved Semgrep state is supplied, treat this
-   as direct invocation: load `../../references/model-preferences.md`; if Semgrep is relevant or
-   the Semgrep preference section is missing, load `../../references/semgrep.md`, present the
-   opt-in/setup choice, name any clone or fast-forward pull side effect before it runs, and
-   continue with Semgrep disabled when declined. Do not run Semgrep scans during artifact authoring.
-5. Dispatch a fresh planner agent with a compact packet containing:
-   - artifact root, code root, artifact ref, resolved feature/artifact slug, any approved slug migration
-     metadata, and supplied planned-hotfix delivery context when applicable;
-   - approved requirements and selected source material;
-   - testing-authority provenance only for a triggered feasibility profile; omit routine non-trigger state;
-   - Conceptualize workspace/index and Slice paths relative to the artifact root when applicable;
-   - path to `references/planner-agent-contract.md`;
-   - labeled action-point paths for artifact-store, Slice authority, Conceptualize projection,
-     design-preflight evidence or reuse summary, SPEC template, clean-code, work-package, canonical artifact model,
-     artifact-authoring, validation, tool-usage, and optional Semgrep contracts;
-   - resolved Semgrep state: disabled, or enabled with privacy-mode, local cache/index/profile facts,
-     approved setup side effects, and helper availability;
-   - overwrite approval state, stop conditions, and expected output fields.
-6. After the planner returns, re-open `SPEC.md`, `tasks.json`, and package Markdown from the
-   artifact root.
-7. From the code root, run `python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-plan \
-   --artifact-root <artifact-root> --code-root <code-root> .tasks/<feature>/tasks.json` and route
-   any non-mechanical repair back through a planner packet instead of patching artifacts inline.
-8. Report artifact root/ref, code root, delivery context, feature and artifact paths, packages/dependencies, closure-complexity
-   and parallel/serial rationale, triggered execution-feasibility profiles, testing-authority provenance,
-   Slice inventory or no-Slice state, approved deferrals, assumptions, validation result, and next gate.
+1. Load `../../references/artifact-store.md`. Resolve artifact root/ref, code root, feature/artifact slug, and
+   source. Select direct requirements, repository/official evidence, accepted empirical reports, or one
+   Conceptualize workspace; ask once if ambiguous. Validate local sidecar state and publish only when authorized.
+   For direct planning with no sidecar, create it through `worktree` before `.tasks/` writes.
+2. Check unsafe paths, unresolved decisions, overwrite, empirical uncertainty, and risk acceptance before
+   delegation. Resolve testing authority only when material execution feasibility requires it: accepted/current
+   workflow for high-risk/reusable work, routine-safe bounded-local fallback, or exact task-local authorization.
+   If insufficient, invoke `testing` or stop. For nontrivial/risky plans, apply
+   `references/design-preflight.md`; reuse equivalent current adversarial analysis only for identical approved
+   scope/evidence with complete requirements and overengineering coverage. Resolve every `COVERAGE_GAPS`,
+   `MUST_DECIDE`, and `BLOCKERS` item before artifact writing.
+3. Before planner dispatch, inventory the bounded set of material empirical questions still unresolved after
+   repository/official evidence. For each question, invoke a fresh `empirical-spike` with that one falsifiable
+   proposition, informed decision, support/reject outcomes, constraints/non-goals, safe paths, testing/command
+   authority, approved side effects, and report contract. Run independent questions in parallel; run sequentially
+   only when one accepted report creates the next question. Do not probe inline. Validate every report using
+   Always, resolve semantic implications with the user, and resume this orchestration with the accepted report set.
+   Stop on blocked/inconclusive/malformed evidence, repeated unchanged questions, or continually emerging/unbounded
+   questions rather than treating unstable or incomplete inputs as plan-ready.
+4. Resolve the planner packet's Semgrep state. Supplied state is authoritative. Otherwise load
+   `../../references/model-preferences.md`; when Semgrep is relevant or preferences are absent, load
+   `../../references/semgrep.md`, present opt-in/setup and name clone/pull effects. Continue disabled if declined;
+   never run Semgrep scans while authoring.
+5. Dispatch a fresh planner with artifact/code roots, artifact ref, slug/migration metadata, supplied delivery
+   context, approved requirements/source, and overwrite state. Include testing provenance only when triggered and
+   Conceptualize paths only when applicable. Pass labeled action-point paths for planner contract, artifact store,
+   Slice authority/projection, preflight evidence, SPEC template, clean-code, work-package, canonical artifact
+   model, artifact authoring, validation, tool usage, and optional Semgrep. Include resolved Semgrep state, the
+   accepted empirical reports (or `none`), stop conditions, and output.
+6. If the planner returns `BLOCKED: empirical_evidence_needed`, verify it wrote no artifacts and compare its one
+   question with the question/report ledger. For a new distinct bounded blocker, apply step 3 and redispatch a
+   fresh planner with the original packet plus the accepted report set. Stop on a repeated/unchanged question,
+   continually emerging or unbounded blockers, bundled questions, or malformed status. The planner never invokes
+   a spike itself; known independent questions are inventoried and dispatched in parallel before redispatch.
+7. On a normal return, re-open `SPEC.md`, `tasks.json`, and every package Markdown from the artifact root. From the
+   code root run `python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-plan \
+   --artifact-root <artifact-root> --code-root <code-root> .tasks/<feature>/tasks.json`. Route semantic repair
+   through a fresh planner packet; never patch planned-feature artifacts inline.
+8. Report roots/ref, delivery context, feature paths, packages/dependencies, closure-complexity and sequencing
+   rationale, empirical question/report-set status and provenance or static-resolution note,
+   execution-feasibility/testing authority, Slice inventory, approved deferrals, assumptions, validation, and next gate.
 
 ## Load if needed
 
-- Artifact-root/code-root details exceed the workflow summary → `../../references/artifact-store.md`
-- Conceptualize inventory/projection applies → `references/conceptualize-inputs.md` and
+- Conceptualize input applies → `references/conceptualize-inputs.md` and
   `../../references/conceptualize-slice-authority.md`
-- Shaping package boundaries → `../../references/work-packages.md`
+- Nontrivial/risky design challenge → `references/design-preflight.md`
+- Package shaping → `../../references/work-packages.md`
 - Drafting `SPEC.md` → `references/spec-template.md`
-- Drafting registry/package/proof/report declarations → `references/artifact-authoring.md` and
+- Drafting registry/packages/proof/report declarations → `references/artifact-authoring.md` and
   `../../references/slice-first-artifacts.md`
-- Before artifact writes or completion claims → `references/validation-checklist.md`
-- Helper command syntax or command safety is unclear → `../../references/tool-usage.md`
-- Semgrep preference/cache/policy/evidence boundaries are in scope → `../../references/semgrep.md`
+- Before artifact writes/completion claims → `references/validation-checklist.md`
+- Helper syntax or command safety is unclear → `../../references/tool-usage.md`
+- Semgrep preference/cache/policy/evidence applies → `../../references/semgrep.md`
 
 ## Stop if
 
-- Feature slug, artifact root/ref, code root, artifact path, or source path is unsafe.
-- A requested feature slug diverges from the Conceptualize slug without explicit user-approved
-  rename/migration metadata.
-- Existing `.tasks/<feature>/` state would be overwritten without explicit approval.
-- A material requirement, Slice obligation, risk acceptance, approved deferral, or package boundary
-  needs a user decision.
-- Slices exist but full safe inventory cannot be completed by the delegated planner.
-- A required spike would need unsafe commands, credentials, external side effects, or broad production
-  changes.
+- Any slug, root/ref, artifact/source path, or supporting-contract path is missing, unsafe, or contradictory.
+- A Conceptualize slug changes without approved migration metadata, or existing plan state would be overwritten.
+- A requirement, Slice obligation, deferral, package boundary, semantic implication, or risk needs user approval.
+- Slices exist but the delegated planner cannot complete the full safe inventory.
+- Required empirical evidence is blocked/inconclusive/malformed or lacks provenance, method, authority, or cleanup.
+- A planner repeats an unchanged empirical blocker, or distinct blockers continually emerge or cannot be bounded.
 - `sliceproof.py validate-plan` fails and cannot be repaired within scope.
-- Semgrep enablement would require unapproved network setup/update, unavailable writable shared cache,
-  hidden registry/URL/cloud behavior, or making scans mandatory.
+- Semgrep would require unapproved network/setup, unavailable safe cache, hidden cloud behavior, or mandatory scans.
 
 ## Output
 
-Return artifact root/ref, code root, feature and artifact paths, packages/dependencies, closure-complexity
-rationale, the feature `## Acceptance` and per-package Acceptance Checklists (with any `manual (approved)`
-exceptions flagged for user approval), triggered execution-feasibility profiles, testing-authority provenance,
-authoritative Slice inventory or no-Slice note, approved deferrals, assumptions, validation result, and next step
-(`review-plan` after confirmation unless authorized).
+Return artifact root/ref, code root, feature and artifact paths, packages/dependencies and closure-complexity
+rationale, Acceptance checks and flagged `manual (approved)` exceptions, empirical question/report-set status and
+provenance, execution-feasibility/testing authority, Slice inventory, approved deferrals, assumptions, validation
+result, and next step (`review-plan` after confirmation unless authorized).
