@@ -1,48 +1,41 @@
 # Cleanup and Delivery Safety
-
 Load before removal, pushes, target merge, or teardown. Every block is fresh Bash with `set -euo pipefail`; failed
 proof stops later SHA capture, push, removal, or deletion. Root checkout files/index remain untouched.
-
-## Cleanup Approval Binding
-Every named cleanup subset binds:
-```text
-worktree_path=<path>; worktree_head=<sha>; worktree_state=<checksum>
-local_ref=<full refs/heads/...>; local_ref_kind=direct; local_ref_sha=<sha>
-landing_worktree=<path|not_applicable>; landing_head=<sha|not_applicable>;
-  landing_state=<checksum|not_applicable>
-remote_ref=<ref|none>; expected_remote_ref_sha=<sha|absent>
-```
-Recapture each binding immediately before action. A local ref must be direct: `git symbolic-ref -q <full-ref>`
-success is a blocker. Delete only with `git update-ref --no-deref -d <full-ref> <approved-old-sha>`; concurrent
-movement fails CAS. Remote deletion never follows failed local cleanup. Orchestration may run at `$PROJECT_ROOT`.
-
+## Cleanup Authority Binding
+Normal cleanup binds canonical path, HEAD/complete state, full direct ref/SHA, landing/base state when required,
+and remote expected state only for separately authorized remote actions. Recapture immediately; direct-ref deletion
+uses `git update-ref --no-deref -d <full-ref> <old-sha>` CAS after normal worktree removal. Never force.
+## Envelope Probe Boundary
+Only a probe created under the Execution Contract envelope may clean autonomously. Require its creation receipt and
+the supplied probe-cleanup procedure to classify every delta NUL-safely, restore/remove exact owned state, and prove
+HEAD/ref/base, index checksum, status, process, and data closure before normal removal/CAS. Locally verify no
+upstream/tracking config and record `remote_action=none`; perform no network/credential check or remote mutation.
+A coincidental remote ref is out of scope and untouched. Any unowned/uncertain delta preserves the probe and stops.
+Continuation package worktrees/refs—active or retired—never use envelope cleanup and remain through final gates.
 ## Package Cleanup — Whole Feature Only
-Use this section only for delivery context `feature`. Do not use this section for individual-package cleanup;
-enter only once whole-feature preconditions pass: all registry packages are delivered/verified and merged into
-clean integration `HEAD`, final integrated review/audit passes, remote feature SHA equals that `HEAD`, and any
-contracted later target/base delivery gate is complete. Ancestry alone is never sufficient. Planned-hotfix uses
-its separately contracted bugfix/hotfix cleanup path and never requires a feature ref/SHA.
-
-Bind each package and the integration worktree. Recapture integration HEAD/state immediately before ancestry:
+No active or retired package cleanup occurs before all packages, final integrated review/audit, remote feature
+synchronization and contracted later delivery gates pass. Planned-hotfix applies the same tip eligibility at its
+separate final cleanup gate against final hotfix integration HEAD.
+At final cleanup, bind kind (`initial|continuation`), creation base SHA, tip/ref, path/HEAD/state, and final clean
+integration HEAD/state. Remove only when tip is integrated, or a continuation tip equals its creation base:
 ```bash
 set -euo pipefail
-PKG="$PROJECT_ROOT/.worktrees/<feature>/wp-<WP-ID>"
-LANDING="$PROJECT_ROOT/.worktrees/<feature>/merge"
-test "$(git -C "$PKG" rev-parse HEAD)" = "<approved-worktree-head>"
-test "$RECAPTURED_WORKTREE_STATE_CHECKSUM" = "<approved-worktree-state-checksum>"
-LANDING_HEAD="$(git -C "$LANDING" rev-parse HEAD)"
-test "$LANDING_HEAD" = "<approved-integration-head>"
-test "$RECAPTURED_LANDING_STATE_CHECKSUM" = "<approved-integration-state-checksum>"
-git -C "$LANDING" merge-base --is-ancestor <approved-local-ref-sha> "$LANDING_HEAD"
+PKG="$PROJECT_ROOT/.worktrees/<feature>/wp-<WP-ID>"; LANDING="$PROJECT_ROOT/.worktrees/<feature>/merge"
+REF=refs/heads/wp/<feature>/<WP-ID>; TIP=<bound-tip>; BASE=<bound-creation-base>; KIND=<initial|continuation>
+test "$(git -C "$PKG" symbolic-ref -q HEAD)" = "$REF"; test "$(git -C "$PKG" rev-parse HEAD)" = "$TIP"
+test "$(git -C "$PROJECT_ROOT" rev-parse "$REF")" = "$TIP"
+test "$RECAPTURED_WORKTREE_STATE_CHECKSUM" = "<bound-clean-state>"; test -z "$(git -C "$PKG" status --porcelain)"
+FINAL="$(git -C "$LANDING" rev-parse HEAD)"; test "$FINAL" = "<bound-final-integration-head>"
+test "$RECAPTURED_LANDING_STATE_CHECKSUM" = "<bound-final-clean-state>"
+if git -C "$LANDING" merge-base --is-ancestor "$TIP" "$FINAL"; then :
+elif test "$KIND" = continuation && test "$TIP" = "$BASE"; then :
+else printf '%s\n' 'preserve: unique unmerged package commits'; exit 0
+fi
 cd "$PROJECT_ROOT"; git worktree remove "$PKG"
-REF=refs/heads/wp/<feature>/<WP-ID>
 if git symbolic-ref -q "$REF"; then exit 1; fi
-test "$(git rev-parse "$REF")" = "<approved-local-ref-sha>"
-git update-ref --no-deref -d "$REF" <approved-local-ref-sha>
+git update-ref --no-deref -d "$REF" "$TIP"
 ```
-Remove package candidates only inside the approved whole-feature cleanup sequence. Keep integration/sidecar
-safety nets through delivery. Never force-remove dirty/unmerged state.
-
+If unique unmerged commits remain, retain and report the safety net. Never force, reset, stash, or delete it.
 ## Normal Feature Checkpoints and Sidecar Pushes
 The feature-checkpoint block applies only to delivery context `feature`; its Execution Contract covers every
 repetition and implies no user-known SHA/snapshot fields. Planned-hotfix creates no feature ref/SHA and retains
@@ -62,7 +55,6 @@ cd "$PROJECT_ROOT/.worktrees/<feature>/artifacts"
 git push -u origin artifacts/<feature>
 ```
 Neither approves target delivery or cleanup; never merge artifact refs into code history.
-
 ## Immutable Target Merge and Push
 Merge approval binds source/pre-target SHAs, snapshot, strategy, integration ref/worktree. Compare immutable SHAs:
 ```bash
@@ -79,7 +71,6 @@ printf 'RESULT_SHA=%s\n' "$RESULT_SHA"
 ```
 Status 1 alone means merge needed. A clean approved non-root target checkout may substitute. Locked local target
 stays unchanged; report only the integration result, then request target-push approval.
-
 Target push binds remote/ref, result, and expected remote SHA. Recapture, prove FF ancestry, and exact server CAS:
 ```bash
 set -euo pipefail
@@ -92,7 +83,6 @@ git merge-base --is-ancestor "$EXPECTED" "$RESULT_SHA"
 git push --force-with-lease="$TARGET_REF:$EXPECTED" <remote> "$RESULT_SHA:$TARGET_REF"
 ```
 Bare force, unqualified lease, or missing ancestry proof is forbidden. Push failure preserves safety nets.
-
 ## Feature Cleanup
 Use only for delivery context `feature`. Recapture the current delivery landing state before removing its feature
 worktree/ref; stale approved SHA is insufficient:
@@ -113,13 +103,11 @@ git update-ref --no-deref -d "$REF" <approved-local-ref-sha>
 git worktree remove "$LANDING"
 ```
 Temporary integration refs need their own direct-ref SHA/state binding. Remote deletion is separately approved.
-
-## Sidecar, Bugfix/Hotfix, and Spike Cleanup
-Sidecar/spike require exact HEAD/state/status proof and direct-ref CAS:
+## Sidecar and Bugfix/Hotfix Cleanup
+Sidecars require exact approved path/HEAD/state and direct-ref CAS:
 ```bash
 set -euo pipefail
-WT=<approved-sidecar-or-spike-worktree>
-REF=refs/heads/artifacts/<feature> # OR: REF=refs/heads/spike/<name>
+WT=<approved-sidecar-worktree>; REF=refs/heads/artifacts/<feature>
 test "$(git -C "$WT" rev-parse HEAD)" = "<approved-worktree-head>"
 test "$RECAPTURED_WORKTREE_STATE_CHECKSUM" = "<approved-worktree-state-checksum>"
 test -z "$(git -C "$WT" status --porcelain)"
@@ -142,5 +130,5 @@ REF=<approved-full-direct-ref>
 if git symbolic-ref -q "$REF"; then exit 1; fi
 git update-ref --no-deref -d "$REF" <approved-local-ref-sha>
 ```
-Remote deletion, when approved, runs its exact remote-SHA lease only after successful local CAS. Disposable rules
-never apply to package, feature, bugfix, hotfix, or integration refs.
+Remote deletion, when approved, runs its exact remote-SHA lease only after successful local CAS. Probe cleanup is
+local-only under its receipt procedure; package cleanup occurs only at the final whole-feature gate above.

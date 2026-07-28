@@ -29,7 +29,9 @@ Before dispatch, confirm:
   not unlock dependents, and proof rows alone do not unlock dependents;
 - `sliceproof.py validate-plan` passed and package/proof/report paths agree under the artifact root;
 - required package sections are non-empty, assigned Slice paths/H3 IDs are safe and valid, and proof creation
-  is non-destructive.
+  is non-destructive;
+- a continuation-created package supplies focused-reviewed `BASE_KIND`, exact `BASE_REF`, `REVIEWED_BASE_SHA`, and
+  prerequisite ref/SHAs. Independent requires approved original base; create only if the ref and dependent integration HEAD equal that SHA with every prerequisite SHA as ancestor. Never accept a moved base.
 
 Trigger readiness only when material execution feasibility remains unresolved because a changed, shared,
 costly, or unproven command/harness/fixture/contract, async/process boundary, external precondition, or broad/
@@ -47,11 +49,11 @@ resolved testing authority, repository evidence, and shared command runtime enve
 3. the smallest approved bounded probe when credible, or a documented no-narrower-check justification plus an
    explicitly bounded broad command as the first runtime evidence.
 
-If any criterion is absent, withhold the affected wave and classify its owner; return each distinct plan-owned
-material gap as `empirical_evidence_needed` to the orchestrator. Workers do not probe, guess, or retry unchanged.
-Broad or costly execution requires a clean readiness result and clean targeted evidence when a credible narrower
-check exists. The documented broad-only branch may proceed after deterministic preflight/discovery. Readiness is
-a dispatch control, not package proof or a replacement for holistic package verification.
+If any criterion is absent, withhold the affected wave and classify its owner. Return every plan-owned defect to
+`implement` for `implementation-plan` `implementation-continuation` plus focused `review-plan`; use empirical
+reports only when observation is material, otherwise pass explicit report set `none`. Workers do not probe, patch
+plan artifacts, guess, or retry unchanged. Broad/costly execution requires clean readiness and targeted evidence
+when credible; a documented broad-only branch may use bounded preflight. Readiness is dispatch control, not proof.
 
 Create the proof placeholder before dispatch:
 
@@ -74,11 +76,10 @@ Choose the largest safe useful batch after readiness:
 4. Serialize or merge work only for concrete shared state, contract, file, artifact, or prerequisite risk.
 5. Branch downstream packages only after prerequisite package branches merge.
 
-State the batch rationale. The orchestrator may merge, split, defer, or reorder when closure complexity, current
-state, proof readiness, or merged work makes the plan unsafe or inefficient. Scope, Slice, dependency,
-proof/report, or deferral changes require artifact repair or explicit approval. Every package still requires
-`SELF_REVIEW` and independent holistic package verification. Load the shared work-package or risk-probe contract
-only when its action-point condition applies.
+State the batch rationale. The orchestrator may reorder work within reviewed artifacts. Any needed plan-owned
+scope, Slice, dependency, proof/report, deferral, split, or merge correction follows the continuation/focused-review
+route; prompt only for changed semantics/scope/visible behavior/risk/manual exceptions. Every package still needs
+`SELF_REVIEW` and independent holistic verification. Load work-package/risk-probe rules only when triggered.
 
 ## Dispatch Packet Kernel
 
@@ -124,14 +125,13 @@ Do not create worktrees/branches/merges or force-add ignored proof/report artifa
 ```
 
 ## Repair Agent Packet
-Classify semantic impact from the diff, not dependency descendants: direct owners/consumers, observable contracts,
-generated/config/migration surfaces, dynamic/unknown consumers, shared fixtures/harnesses/oracles,
-security/data/concurrency/global invariants, merge resolutions, and evidence-only invalidation. Unknown impact widens; retain unaffected results. Include the contract and original artifact paths; affected packages, Slice IDs,
-proof/report/checklist rows, seams, findings, failed observations; and screened commands. Cluster only findings
-sharing root cause, writable scope, and verification envelope, with one worker and a logical cluster identity
-that survives retries. State prior attempts, bounded scope, candidate delta, and circuit state. Identity/metadata
-is not progress and cannot reset the three-attempt cap. Stop for authority changes, unsafe actions, missing facts,
-risk acceptance, or unchanged work.
+Dispatch only a blocking code defect; plan-owned defects must complete planning continuation/focused review first.
+Classify semantic impact from the diff, not dependency descendants: owners/consumers, observable contracts,
+generated/config/migration surfaces, dynamic consumers, shared harnesses/oracles, global risk invariants, merge
+resolutions, and evidence invalidation. Include artifact paths; affected packages/Slices/proof/report/checklist/seams;
+findings, failed observations, and screened commands. Cluster only a shared cause, writable scope, and verification
+envelope under one stable ID. Attempt 1 is initial; attempts 2–3 name a material code/diagnostic delta. Identity is
+not progress and cannot reset the three-total-attempt cap. Stop for authority/safety/facts/risk or unchanged work.
 
 ## Package Verifier Packet
 
@@ -145,6 +145,6 @@ and writes the report without hidden chat context.
 
 ## Orchestrator Edit Boundary
 
-The orchestrator does not implement or repair production/test/documentation behavior inline. Direct edits are
-limited to workflow metadata, artifact handoff/validation bookkeeping, mechanical integration state, and
-explicitly approved plan/status changes.
+The orchestrator does not implement code behavior or plan-owned repairs inline. Direct edits are limited to
+workflow metadata, handoff/validation bookkeeping, mechanical integration state, and status transitions; plan
+artifacts are repaired only by the planner route above.

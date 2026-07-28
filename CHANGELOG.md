@@ -7,7 +7,8 @@ The format is based on Keep a Changelog.
 ## [Unreleased]
 
 ### Changed
-- **Breaking:** Renamed the routed `spike-to-plan` skill to `empirical-spike` and made it a standalone bounded evidence producer; planning, review, and implementation orchestrators retain context, collect one report per distinct material question, and own downstream planning.
+- **Breaking:** Renamed the routed `spike-to-plan` skill to `empirical-spike` and made it a standalone bounded evidence producer; callers retain context under a stable logical-question ID with one initial run and at most two fresh, materially changed follow-ups (three total).
+- Changed `approve auto-resolve` to route same-requirement plan defects through continuation/focused review and cover bounded code/probe/test/review/audit work. Probe cleanup is exact-manifest, local-only, and non-force; continuation packages use reviewed base/prerequisite ancestry evidence and remain through final safe cleanup. Protected actions, semantic/risk/manual changes, missing facts, target delivery, uncertainty, and non-convergence remain stops.
 
 ## [v1.40.5] - 2026-07-27
 

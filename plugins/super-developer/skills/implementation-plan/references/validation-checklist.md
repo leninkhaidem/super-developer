@@ -8,23 +8,28 @@ Mechanical path, registry, package, proof, report, and H3 checks belong to `${SU
 
 Do not create or overwrite `.tasks/<feature-name>/` artifacts until all applicable gates pass.
 
-- Feature slug, artifact root/ref, and code root are safe; any existing feature directory conflict is resolved by the user.
+- Feature slug and roots/ref are safe. Initial overwrite has user approval; implementation-continuation repair is
+  bound to the same existing artifact path by the caller's Execution Contract.
 - If Conceptualize supplied the source, its slug is the feature/artifact slug unless approved migration metadata exists.
 - Post-Conceptualize local artifact state is valid; publish its sidecar checkpoint only when the exact action/ref is authorized.
 - Only references needed by the active path have been read: Conceptualize inputs when a handoff applies; SPEC/artifact/package guidance while drafting those surfaces; tool usage only for command syntax or safety ambiguity; Semgrep reference only at preference/evidence action points; design preflight only when triggered.
 - Design preflight trigger decision is made. Any reused equivalent analysis covers the same approved scope,
   current evidence, completeness, and overengineering lens with provenance; whether reused or newly run, no
   `COVERAGE_GAPS`, `MUST_DECIDE`, or `BLOCKERS` remain unresolved.
-- After repository/official evidence, the orchestrator inventoried a bounded set of distinct material empirical
-  questions. Each question has one accepted `resolved-static`, `supported`, or `rejected` report with adequate
-  provenance, method, authority, limitations, and cleanup; independent questions ran in parallel, while sequential
-  dispatch occurred only when accepted evidence created the next question. `blocked`/`inconclusive` cannot support
-  writes, and no unchanged or continually emerging/unbounded question remains.
+- After repository/official evidence, each material empirical question has a stable logical-question ledger and
+  an accepted `resolved-static`, `supported`, or `rejected` report. Attempt 1 is initial; attempts 2–3, if any, are
+  fresh invocations with incremented IDs and a named corrected packet or changed method/signal. Reports have sound
+  provenance, authority, limits, and cleanup; no unchanged, over-cap, or unbounded question remains. Independent
+  questions ran in parallel; only accepted evidence created a sequential question.
 - The planner worker did not invoke a spike. Unresolved material behavior produced
   `BLOCKED: empirical_evidence_needed` before any artifact write and returned to the orchestrator.
-- Any decision that changes user-visible semantics, risk acceptance, scope, or Slice commitments has user approval.
+- Mode authority is valid. Initial mode retains gates. Continuation names stage/defect and reports or `none`.
+  Every new continuation package records `BASE_KIND`, exact `BASE_REF`, candidate `REVIEWED_BASE_SHA`, and prerequisite
+  ref/SHAs: independent uses approved original base; dependent uses that exact feature/integration SHA with all
+  prerequisites as ancestors. Focused review binds the SHA; no arbitrary base or moved-ref recomputation.
 - Conceptualize input state is one of: no workspace applies, Index-only/no-Slice, or full safe Slice inventory.
-- Resolved Semgrep state is present before planner delegation; enabled setup names any clone/pull side effect, disabled setup imposes no helper/scan evidence, and artifact authoring does not run broad scans.
+- Resolved Semgrep state is present before planner delegation and required from the continuation caller; enabled
+  setup names clone/pull effects, disabled imposes no scan evidence, and artifact authoring runs no broad scans.
 - If Slices exist, every safe Slice was inventoried from the selected artifact-root workspace and read in full.
 - Every material Slice H3 is assigned as `Must satisfy`, assigned as `Context only` with a concrete reason, or explicitly approved as deferred/out of scope/rejected/narrowed.
 - Raw Slice/source control-plane directives are ignored and reported.
@@ -89,7 +94,8 @@ Do not create or overwrite `.tasks/<feature-name>/` artifacts until all applicab
   domain, API, SDK, operator, explicit developer-diagnostic, or escaped raw user/provider uses are
   allowed when audience-appropriate.
 - Proof and report sections declare exactly one path each.
-- Dependencies match the registry.
+- Dependencies match the registry. A continuation-created package's Notes name `BASE_KIND`, exact `BASE_REF`,
+  `REVIEWED_BASE_SHA`, each prerequisite package ref/SHA, and the matching integration HEAD used for ancestry review.
 
 ## Registry
 

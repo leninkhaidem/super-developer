@@ -24,7 +24,7 @@ implementation-plan -> review-plan -> implement -> final review-code + final aud
         SPEC.md + tasks.json registry + packages/proofs/reports
 ```
 
-Validated Slices are product/design authority only. Workflow, tool, git, proof, review, and audit authority stays in the plugin instructions and shared references. Planning, review, and implementation orchestrators may conditionally call one fresh `empirical-spike` per distinct material question after static/official evidence is insufficient; they retain context, collect a bounded report set, and own downstream planning.
+Validated Slices are product/design authority only. Workflow, tool, git, proof, review, and audit authority stays in the plugin instructions and shared references. Planning, review, and implementation orchestrators may run `empirical-spike` once per attempt for a distinct material question after static evidence is insufficient; one initial run and at most two materially changed follow-ups are allowed. After `approve auto-resolve`, in-scope work is autonomous. Dirty probes clean only through exact receipt-owned local restoration; continuation packages use reviewed base/prerequisite evidence and remain safety nets through final gates.
 
 ---
 
@@ -239,7 +239,7 @@ Claude Code discovers packaged skills automatically. Other hosts need equivalent
 > Plan this feature
 ```
 
-A delegated planner agent writes `.tasks/<feature>/SPEC.md`, `.tasks/<feature>/tasks.json`, package Markdown, and declared proof/report paths. After plan review approval, `implement` presents an Execution Contract. Approve auto-resolve to continue through package implementation, package verification, final review-code, and final audit sibling checks, or choose step-by-step control at each gate.
+A delegated planner writes the task artifacts; after initial plan review, `implement` presents an Execution Contract. Auto-resolve covers bounded code/probes/tests, plan continuation/focused review, repairs, verification, review-code, and audit. Probe cleanup is local, manifest-bound, and non-force; continuation package worktrees are retained until final ancestry/no-unique-commit cleanup. Credentials, protected actions, semantic/risk/manual changes, target delivery, uncertainty, and three-attempt non-convergence still stop.
 
 Useful standalone prompts:
 

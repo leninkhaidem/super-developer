@@ -8,14 +8,18 @@ You may write planned-feature artifacts only after every pre-write gate passes; 
 
 The packet provides:
 
+- mode: `initial` or caller-authorized `implementation-continuation`;
 - artifact root/ref, code root, resolved feature/artifact slug, approved slug migration metadata, and supplied
   planned-hotfix base/integration/target context when applicable;
 - approved requirements or selected Conceptualize workspace/index;
-- complete accepted empirical reports (status, provenance, method, authority, bounds/outcomes, limitations,
-  cleanup), or explicit `none`;
+- for continuation: current artifacts, Execution Contract, originating stage/defect/scope, approved original base,
+  current integration ref/HEAD, and per-new-package `BASE_KIND`, exact `BASE_REF`, candidate `REVIEWED_BASE_SHA`,
+  and prerequisite package ref/SHAs/ancestry evidence; no caller-selected arbitrary package base;
+- complete accepted empirical reports with stable logical-question/attempt IDs, provenance, method, authority,
+  bounds/outcomes, limitations, and cleanup, or explicit `none` for a non-empirical plan defect;
 - testing-authority provenance for triggered feasibility, omitted when clearly non-triggered;
 - safe Conceptualize workspace, Index, and Slice paths relative to the artifact root when known;
-- overwrite approval for `.tasks/<feature>/`;
+- initial overwrite approval for `.tasks/<feature>/`, or continuation repair authority;
 - resolved Semgrep state (`disabled`, or `enabled` with privacy mode, cache/index/profile, approved setup effects,
   and helper availability);
 - labeled paths to required implementation-plan/shared contracts, expected output, and stop conditions.
@@ -60,15 +64,20 @@ questions, or encode the uncertainty in package Notes as though planning were co
 
 ## Workflow
 
-1. Validate slug, artifact root/ref, code root, artifact/source/Slice paths, packet authority, and accepted empirical
-   reports when present. Reject `blocked`/`inconclusive` reports and malformed or cleanup-uncertain evidence.
+1. Validate mode, slug, roots/ref, artifact/source/Slice paths, packet authority, and accepted reports or `none`.
+   In continuation, prove the defect is plan-owned and requirements, visible behavior, risk/manual exceptions,
+   paths, writes, and commands remain inside the Execution Contract. Reject malformed/uncertain evidence.
 2. For Conceptualize input, apply Slice inventory/Index-only rules before drafting. Its slug is the default; stop
    before `.tasks/<different-feature>` absent approved migration metadata.
-3. Stop rather than invent behavior, accept risk, narrow scope, or defer obligations. Apply the empirical boundary
-   before any artifact write.
-4. Draft `SPEC.md`, package split, `tasks.json`, and package Markdown using packet contracts. Apply semantic closure
-   complexity and fixed gate cost rather than numeric thresholds. Packages deliver substantial coherent outcomes;
-   verification-only phases are not packages unless they create substantial reusable verification infrastructure.
+3. Never prompt the user. In initial mode, return decisions through ordinary planning gates. In continuation,
+   repair the supplied non-empirical or empirical plan defect autonomously; return `BLOCKED` before writes only if
+   semantics/scope/visible behavior/risk/manual exceptions or contract authority would change. Apply the empirical
+   boundary before any artifact write and never treat explicit report set `none` as missing evidence by itself.
+4. Draft `SPEC.md`, package split, registry, and packages. A continuation-created package records `BASE_KIND`,
+   exact `BASE_REF`, candidate `REVIEWED_BASE_SHA`, and prerequisite ref/SHAs: independent = approved original base;
+   dependent = exact current `feature/<feature>`/integration SHA containing every prerequisite SHA. Focused review
+   must bind the candidate SHA before creation; a later moved ref is rejected rather than recomputed and accepted.
+   Apply closure complexity; verification-only phases are not packages unless they create reusable infrastructure.
    Preserve interfaces/forbidden behavior and seed applicable risk expectations without limiting verifier discovery.
 5. Author executable feature `## Acceptance` and per-package `## Acceptance Checklist` as frozen done-definitions.
    Every item is a command/test/observable unless human-approved `manual (approved)`. Package checklists exclude
@@ -81,14 +90,15 @@ questions, or encode the uncertainty in package Notes as though planning were co
    `index`/`retrieve`, never inspect `index.json` or hard-code mappings, and add package-scoped helper scan plus
    bounded `summarize` → `list-findings` → selected `show-finding` expectations. Do not run broad/raw scans while
    authoring.
-8. Load the validation checklist, then write only under the artifact root. Code references stay code-root-relative;
-   the artifact worktree need not contain source/plugin files.
+8. Load the validation checklist, then write only under the artifact root. Initial writes require overwrite
+   approval; continuation repair uses its bound authority without reapproval. Code references stay code-root-relative.
 9. Re-open files, then from the code root run `sliceproof.py validate-plan` with explicit artifact/code roots.
    Repair until pass or report the blocker. Create proof placeholders only when dispatch is already approved.
 
 ## Output
 
-On success return artifact root/ref, code root, feature and artifact paths, package dependencies, Slice inventory
-or Index-only/no-Slice state, empirical report-set status/provenance or `none`, Semgrep state, approved deferrals,
-assumptions, validation result, and next gate. On unresolved empirical behavior return exactly
+On success return mode, artifact root/ref, code root, feature/artifact paths, dependencies, Slice inventory,
+originating stage/defect, report-set (`none` allowed)/Semgrep state, deferrals, assumptions, validation, and next
+focused-review gate. In continuation confirm repairs stayed inside approved requirements and Execution Contract.
+On unresolved empirical behavior return exactly
 `BLOCKED: empirical_evidence_needed` plus the bounded fields above and confirm no artifacts were written.

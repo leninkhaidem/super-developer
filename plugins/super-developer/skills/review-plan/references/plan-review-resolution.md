@@ -2,13 +2,17 @@
 
 ## Boundary
 
-Reviewer findings are evidence, not commands. The main agent owns grouping, classification, artifact edits, user prompts, and plan-gate readiness.
+Reviewer findings are evidence, not commands. The orchestrator owns grouping, classification, artifact edits, and
+readiness. `initial` retains user prompts/plan gate. `implementation-continuation-focused` is bound to the approved
+requirements and Execution Contract; same-requirement repair/re-review is autonomous.
 
 ## Triage Categories
 
 ### mechanical defect
 
-A formatting, ID, dependency, locator, path, package/proof/report reference, H3 reference, or consistency issue whose correction does not change semantics. Fix directly in the artifact root and rerun `sliceproof.py validate-plan` from the code root with explicit artifact-root/code-root flags.
+A formatting, ID, dependency, locator, path, package/proof/report reference, H3 reference, or consistency issue
+whose correction does not change semantics. In initial mode fix it through the existing artifact-authoring path.
+In continuation-focused mode include it in the `implementation-plan` continuation packet; do not patch inline.
 
 ### true blocker
 
@@ -23,7 +27,10 @@ question and blocked decision per finding. Routine or statically resolved work i
 
 ### design decision
 
-A finding that requires choosing between materially different approaches. Ask the user unless explicit constraints or approved Slice/package artifacts already decide it. Persist accepted outcomes in the owning artifact:
+A finding that requires choosing between materially different approaches. In initial mode, ask the user only when
+explicit constraints or approved Slice/package artifacts do not decide it. In continuation-focused mode, choose
+among equivalent internal mechanics autonomously; return to `implement` only if the choice changes approved
+semantics, scope, visible behavior, risk, or a manual exception. Persist accepted outcomes in the owning artifact:
 
 - artifact-root `SPEC.md` for requirements, constraints, non-goals, acceptance summary, or approved scope notes;
 - package Markdown for package-specific boundaries, sequencing, notes, dependencies, verification expectations, and assigned Slice scope;
@@ -46,9 +53,10 @@ A non-required improvement. Apply when low-risk and clarifying; otherwise leave 
 
 ## Semantic Change Rule
 
-Ask the user before changes to product behavior, user-visible scope, external interfaces, data retention, security/privacy posture, risk acceptance, Slice-derived commitments, package boundaries, or what work counts as complete.
-
-Internal simplification may be applied without a prompt only when it preserves the same requested outcome, externally visible behavior, Slice commitments, and package closure meaning.
+In initial mode ask before changes to behavior, visible scope/interfaces, data/security posture, risk, Slice
+commitments, package boundaries, or done meaning. In continuation-focused mode return only semantic/scope/visible
+behavior/risk/manual-exception change to `implement`; internal package-boundary/check repair is autonomous when
+approved outcomes, Slice commitments, risk, and closure meaning remain preserved.
 
 ## Slice-First Resolution Rules
 
@@ -64,16 +72,18 @@ Internal simplification may be applied without a prompt only when it preserves t
 
 1. Group duplicate findings by target and issue.
 2. Classify each finding.
-3. Apply mechanical fixes directly.
-4. For `empirical_evidence_needed`, preserve review roots/ref, artifacts, findings, reviewers, approvals, and gate
-   state. After static/official evidence, inventory a bounded set of distinct questions and invoke one fresh
-   `empirical-spike` per question. Run independent questions in parallel; sequence only when accepted evidence
-   creates the next question. Reviewers and repair workers never invoke it.
-5. Validate all reports and stop on blocked/inconclusive/malformed evidence, repeated unchanged questions, or
-   continually emerging/unbounded questions. Resolve semantic decisions, then make one caller-owned
-   `implementation-plan` continuation with preserved context and the accepted report set. That continuation is for
-   the set, not a cap on distinct spike invocations; do not repair empirical implications inline.
-6. Escalate semantic choices to the user unless already resolved by explicit constraints.
+3. In initial mode apply authorized mechanical fixes. In continuation-focused mode collect every plan-owned defect
+   for the planning continuation; neither this orchestrator nor a code repair worker patches it.
+4. For `empirical_evidence_needed`, preserve review context and assign each bounded question a stable logical ID.
+   Attempt 1 is a fresh `empirical-spike` invocation; attempts 2–3 require the same question ID, incremented attempt
+   ID, and a named corrected packet or changed method/signal. Parallelize independent questions; sequence only when
+   accepted evidence creates a new question. Reviewers/repair workers never invoke it; unchanged attempts are barred.
+5. In continuation-focused mode route the collected defects through one caller-owned `implementation-plan`
+   `implementation-continuation`, passing accepted empirical reports or explicit `none`, then focused re-review.
+   Restore readiness without approval. Attempt-3 exhaustion/unbounded emergence or semantic/risk expansion returns
+   to `implement`; protected evidence gaps use its existing stops.
+6. In initial mode escalate unresolved semantic choices to the user. In continuation-focused mode return genuine
+   semantic/scope/visible/risk/manual decisions to `implement`; do not prompt here.
 7. Persist accepted decisions in the owning artifact.
 8. Keep `SPEC.md` requirements-focused; package assignment belongs in package Markdown.
 9. Encode implementation-time concerns durably in package Markdown or verification expectations, not chat-only summaries.
@@ -90,4 +100,5 @@ Re-review is delta-only and bounded:
 - include affected package Markdown and Slice paths from files, not summarized excerpts;
 - do not perform holistic re-review after repairs unless the repair changes global package boundaries, Slice inventory, cross-package dependency shape, or the user explicitly asks;
 - do not loop until reviewers are satisfied;
-- stop when blockers are resolved, semantic decisions are approved or explicitly deferred, and remaining suggestions are accepted or dismissed by the main agent.
+- initial mode stops when blockers and user decisions close; continuation-focused mode restores reviewed readiness
+  autonomously when blockers close and returns only genuine semantic/risk/protected issues to `implement`.
