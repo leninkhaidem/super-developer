@@ -4,8 +4,8 @@ and propagation. Boundary: isolated non-root worktrees and immutable diagnose de
 ## Contract
 - Root files/index are user-owned: never switch, edit, merge, or deliver there. Orchestration commands may run from
   `$PROJECT_ROOT` to create/remove approved non-root worktrees/refs.
-- Bugfix, hotfix, source, and target refs/SHAs require exact approval. Auto-resolve probes instead require the
-  Execution Contract's exact feature namespace/pattern and allowed base refs; never infer `main` or current branch.
+- Bugfix/hotfix/source/target refs and SHAs require exact approval. A probe requires the auto-resolve Execution
+  Contract envelope or exact current-task approval for its question, expected base/ref, path, effects, bounds, and cleanup; never infer a base.
 - Probe authority forbids stage/index writes, commit/merge/push, reset/stash/clean/force, and permits only exact
   receipt-owned tracked/untracked/ignored/symlink/process/data changes. Live containment remains outside.
 - Creation, edits, commit, branch push, target merge, target push, and cleanup otherwise remain separate gates.
@@ -52,26 +52,26 @@ fi
 ```
 Bare `--force`, unqualified `--force-with-lease`, and a lease without required ancestry proof are forbidden.
 ## Isolated Worktree Creation
-Auto-resolve probe; the packet supplies receipt paths plus digest-bound exact NUL manifests outside the worktree:
+Receipt-bound probe: auto-resolve supplies its Execution Contract envelope; a non-envelope diagnostic spike requires exact current-task approval for the same receipt paths, fields, and digest-bound external NUL manifests:
 ```bash
 set -euo pipefail; cd "$PROJECT_ROOT"
-FEATURE=<contract-feature>; QUESTION_ID=<logical-question-id>; ATTEMPT_ID=<1|2|3>
+FEATURE=<approved-feature>; QUESTION_ID=<logical-question-id>; ATTEMPT_ID=<1|2|3>
 [[ "$FEATURE" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ && "$QUESTION_ID" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]]
-[[ "$ATTEMPT_ID" =~ ^[123]$ ]]; BASE_REF=<contract-listed-base-ref>
-case "$BASE_REF" in <allowed-base-ref-1>|<allowed-base-ref-2>) ;; *) exit 1 ;; esac
-BASE_SHA="$(git rev-parse "$BASE_REF")"; test "$(git rev-parse "$BASE_REF")" = "$BASE_SHA"
-WT="$PROJECT_ROOT/.worktrees/$FEATURE/probe-$QUESTION_ID-a$ATTEMPT_ID"; REF="probe/$FEATURE/$QUESTION_ID/a$ATTEMPT_ID"
-test ! -e "$WT"; test ! -L "$WT"; test -z "$(git show-ref --verify --hash "refs/heads/$REF" 2>/dev/null || :)"
-git worktree add --no-track -b "$REF" "$WT" "$BASE_SHA"
-test -z "$(git for-each-ref --format='%(upstream)' "refs/heads/$REF")"; test -z "$(git config --get "branch.$REF.remote" || :)"; test -z "$(git config --get "branch.$REF.merge" || :)"; test -z "$(git config --get "branch.$REF.pushRemote" || :)"
-test "$(git -C "$WT" symbolic-ref -q HEAD)" = "refs/heads/$REF"; test "$(git -C "$WT" rev-parse HEAD)" = "$BASE_SHA"; git -C "$WT" diff --cached --quiet; git -C "$WT" diff --quiet "$BASE_SHA" --
+[[ "$ATTEMPT_ID" =~ ^[123]$ ]]; BASE_REF=<approved-base-ref>; EXPECTED_BASE_SHA=<caller-or-contract-supplied-sha>
+case "$BASE_REF" in <allowed-or-exact-base-ref-1>|<allowed-base-ref-2>) ;; *) exit 1 ;; esac
+test "$(git rev-parse "$BASE_REF")" = "$EXPECTED_BASE_SHA"
+WT="$PROJECT_ROOT/.worktrees/$FEATURE/probe-$QUESTION_ID-a$ATTEMPT_ID"; BRANCH="probe/$FEATURE/$QUESTION_ID/a$ATTEMPT_ID"; REF="refs/heads/$BRANCH"
+test ! -e "$WT"; test ! -L "$WT"; test -z "$(git show-ref --verify --hash "$REF" 2>/dev/null || :)"
+git worktree add --no-track -b "$BRANCH" "$WT" "$EXPECTED_BASE_SHA"
+test "$(git rev-parse "$BASE_REF")" = "$EXPECTED_BASE_SHA"; test -z "$(git for-each-ref --format='%(upstream)' "$REF")"
+test -z "$(git config --get "branch.$BRANCH.remote" || :)"; test -z "$(git config --get "branch.$BRANCH.merge" || :)"; test -z "$(git config --get "branch.$BRANCH.pushRemote" || :)"
+test "$(git -C "$WT" symbolic-ref -q HEAD)" = "$REF"; test "$(git -C "$WT" rev-parse HEAD)" = "$EXPECTED_BASE_SHA"; git -C "$WT" diff --cached --quiet; git -C "$WT" diff --quiet "$EXPECTED_BASE_SHA" --
 git -C "$WT" status --porcelain=v1 -z --untracked-files=all >"$INITIAL_STATUS_NUL"; test ! -s "$INITIAL_STATUS_NUL"
 git -C "$WT" ls-files --others --ignored --exclude-standard -z >"$INITIAL_IGNORED_NUL"; test ! -s "$INITIAL_IGNORED_NUL"
-git -C "$WT" ls-files --stage -z >"$INITIAL_INDEX_NUL"
-INDEX_SHA256="$(sha256sum "$INITIAL_INDEX_NUL")"; INDEX_SHA256="${INDEX_SHA256%% *}"
+git -C "$WT" ls-files --stage -z >"$INITIAL_INDEX_NUL"; INDEX_DIGEST="$(git hash-object --no-filters "$INITIAL_INDEX_NUL")"
 ```
-Bind base ref/SHA, clean HEAD/ref/index/worktree, NUL index-manifest checksum, canonical path, manifest digests,
-no upstream/tracking config, forbidden actions, and `remote_action=none` in the receipt before any probe write.
+Before probe writes, bind `BASE_REF`, supplied `EXPECTED_BASE_SHA`, full direct `REF`, clean HEAD/index/worktree,
+`INDEX_DIGEST`, canonical path, manifest digests, no tracking config, forbidden actions, and `remote_action=none`.
 Active-feature, maintenance, and production-hotfix repairs respectively:
 ```bash
 set -euo pipefail

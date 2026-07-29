@@ -10,11 +10,11 @@ This reference owns the user-facing implement approval template and its approval
   same-requirement plan repair/focused re-review, ordinary repairs/review/audit, and pushes.
 - Auto-resolve never re-asks while scope/side effects stay within those listings; it stops when they exceed the
   contract or reach a protected boundary. Step-by-step still asks at each contracted major gate.
-- Name fixed worktrees and one bounded dynamic envelope: exact feature namespace/path/ref patterns, probe base refs,
-  per-continuation-package bases/prerequisites, runtime bindings, owned manifests, and forbidden actions.
-- A probe receipt binds base ref/SHA, clean initial HEAD/index/worktree and index checksum, exact NUL-delimited owned
-  tracked/untracked/ignored/symlink/process/data manifests, and `remote_action=none`. It forbids staging/index writes,
-  commit, merge, push, force, reset, stash, broad removal, and `git clean`.
+- Name fixed worktrees and one bounded dynamic envelope: exact feature namespace/path/ref patterns, probe base refs
+  plus caller/contract-supplied expected base SHAs, package bases/prerequisites, bindings, manifests, and prohibitions.
+- A probe receipt binds `BASE_REF`, `EXPECTED_BASE_SHA`, full direct `REF`, clean initial HEAD/index/worktree,
+  non-writing `git hash-object --no-filters` `INDEX_DIGEST`, exact NUL owned tracked/untracked/ignored/symlink/process/
+  data manifests, and `remote_action=none`; it forbids index writes, commit/merge/push/force/reset/stash/clean.
 - Continuation may create—but never remove—focused-reviewed package IDs. Each package artifact/contract supplies
   `BASE_KIND`, exact `BASE_REF`, focused-reviewed `REVIEWED_BASE_SHA`, and prerequisite ref/SHAs. Independent uses
   approved original base; dependent integration `HEAD` equals that SHA with every prerequisite SHA its ancestor.
@@ -29,10 +29,11 @@ This reference owns the user-facing implement approval template and its approval
 - Dependency installs/additions are covered only when exact commands and manifest/lockfile paths are
   derived from approved artifacts or explicit user instruction and listed in this contract; otherwise
   they require separate approval.
-- Auto-resolve continues through covered probes, tests, replan/re-review, repairs, and final gates. Each logical
-  empirical question has at most three total attempts: attempt 1 is initial; attempts 2–3 use fresh invocations,
-  the stable question ID, incremented attempt IDs, and a named corrected packet or changed method/signal. Unchanged
-  attempts are forbidden and attempt-3 exhaustion is non-convergence; no additional empirical counter exists.
+- Accept `resolved-static`, `supported`, or `rejected` only after validating report identity, provenance, method,
+  authority, bounds, limitations, and cleanup. Auto-resolve corrects in-contract `blocked`/`inconclusive`; protected/
+  out-of-contract needs return at a Stop condition. Each logical question has at most three total attempts: attempt 1
+  is initial; attempts 2–3 are each a fresh invocation with stable ID and named corrected packet or changed method/signal. Exhaustion stops;
+  unchanged work is forbidden and no other counter exists.
 - Step-by-step mode asks before each major gate, package wave, repair loop, source push, and final handoff.
 ## Do
 1. Validate `.tasks/<feature>/`, package/proof/report/Slice paths, current git refs, and—when execution
@@ -76,13 +77,13 @@ Remote actions:
   force/remote-delete/tag/release actions: not authorized; probe cleanup records remote_action=none
 Worktree authority envelope:
   namespace: .worktrees/<feature>/...; refs probe/<feature>/... and wp/<feature>/... only
-  probe: exact allowed base ref; captured/revalidated SHA; clean HEAD/index/worktree + index checksum receipt
-  probe owned manifests: exact NUL tracked/deleted/untracked/ignored/symlink/process/data policy + digests
+  probe: exact allowed BASE_REF + supplied EXPECTED_BASE_SHA; require equality before/after creation; receipt stores full REF
+  probe state: clean HEAD/index/worktree + INDEX_DIGEST and exact NUL tracked/deleted/untracked/ignored/symlink/process/data manifests
   probe limits: no stage/index write/commit/merge/push/reset/stash/force/git-clean/broad delete
-  probe cleanup: classify exact deltas, restore/remove owned only, final HEAD/index/ref/status clean, normal remove/CAS
+  probe cleanup: restore/remove exact owned only; prove expected base/full ref/index/status; normal remove/direct full-ref CAS
   local-only: no upstream/tracking config; remote_action=none; no network lookup or remote ref mutation
   continuation package: create only; reviewed ID + BASE_KIND + exact BASE_REF + REVIEWED_BASE_SHA + prerequisite ref/SHAs
-  creation rule: base ref equals reviewed SHA before/after add; dependent clean integration HEAD equals it and contains prerequisites
+  package creation: base ref equals reviewed SHA before/after add; dependent clean integration HEAD equals it and contains prerequisites
   retention: active/retired package worktrees/refs remain through final whole-feature cleanup
 Fixed worktrees:
   artifact sidecar: .worktrees/<feature>/artifacts on artifacts/<feature>

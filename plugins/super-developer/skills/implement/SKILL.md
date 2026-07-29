@@ -71,11 +71,11 @@ Loop map: dispatch package waves → verify each against its Acceptance Checklis
    Execution Contract, roots/refs, artifacts, package/integration state, decisions, approvals, and evidence for any
    plan defect. For each unresolved empirical question, assign one stable logical-question ID and dispatch attempt 1
    as one fresh `empirical-spike` invocation. Independent questions may run in parallel; only accepted evidence may
-   create a sequential question. Validate report status, identity, provenance, method, authority, bounds,
-   limitations, and cleanup. Correct `blocked`/malformed packets or omitted in-contract authority autonomously.
-   A follow-up is a fresh invocation with the same logical-question ID, incremented attempt ID (2 or 3), and a named
-   corrected packet or changed method/signal; unchanged attempts are forbidden. Classify out-of-contract needs under
-   Stop if; attempt-3 exhaustion or continually emerging/unbounded questions are non-convergence. Route the complete
+   create a sequential question. Accept `resolved-static`, `supported`, or `rejected` only after validating identity,
+   provenance, method, authority, bounds, limitations, and cleanup. Correct in-contract `blocked`/`inconclusive` or
+   malformed packets autonomously; protected/out-of-contract needs return at Stop if and exhaustion stops. A
+   follow-up is a fresh invocation with the same logical-question ID, incremented attempt ID (2 or 3), and a named
+   corrected packet or changed method/signal; unchanged attempts are forbidden. Route the complete
    plan defect through the Plan-defect route above, passing the accepted report set or explicit `none`, then resume
    package work under the same Execution Contract.
 5. When a package agent returns, load `references/package-integration-gates.md` and dispatch the verifier with

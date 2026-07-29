@@ -16,11 +16,12 @@ Do not create or overwrite `.tasks/<feature-name>/` artifacts until all applicab
 - Design preflight trigger decision is made. Any reused equivalent analysis covers the same approved scope,
   current evidence, completeness, and overengineering lens with provenance; whether reused or newly run, no
   `COVERAGE_GAPS`, `MUST_DECIDE`, or `BLOCKERS` remain unresolved.
-- After repository/official evidence, each material empirical question has a stable logical-question ledger and
-  an accepted `resolved-static`, `supported`, or `rejected` report. Attempt 1 is initial; attempts 2–3, if any, are
-  fresh invocations with incremented IDs and a named corrected packet or changed method/signal. Reports have sound
-  provenance, authority, limits, and cleanup; no unchanged, over-cap, or unbounded question remains. Independent
-  questions ran in parallel; only accepted evidence created a sequential question.
+- After repository/official evidence, each material empirical question has a stable logical-question ledger.
+  Accept `resolved-static`, `supported`, or `rejected` only after validating identity, provenance, method, authority,
+  bounds, limitations, and cleanup. Correct `blocked`/`inconclusive` only through an authorized changed attempt;
+  unresolved initial mode stops and continuation returns protected/out-of-contract gaps to `implement`. Attempts
+  2–3 have incremented IDs and a named packet/method/signal change; no unchanged, over-cap, or unbounded question
+  remains. Independent questions ran in parallel; only accepted evidence created a sequential question.
 - The planner worker did not invoke a spike. Unresolved material behavior produced
   `BLOCKED: empirical_evidence_needed` before any artifact write and returned to the orchestrator.
 - Mode authority is valid. Initial mode retains gates. Continuation names stage/defect and reports or `none`.

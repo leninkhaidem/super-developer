@@ -34,9 +34,10 @@ accepted empirical reports or explicit `none`.
 - A spike is evidence-only and cannot write plan artifacts, choose workflow, or invoke planning. Because this is
   already the `implementation-plan` invocation, resume this orchestrator; never recursively invoke
   `implementation-plan`.
-- Accept `resolved-static`, `supported`, or `rejected` only after checking provenance, method, authority, bounds,
-  limitations, and cleanup. `blocked` or `inconclusive` cannot support artifact writing. Evidence implications do
-  not authorize behavior, scope, architecture, deferral, or risk acceptance.
+- Accept `resolved-static`, `supported`, or `rejected` only after validating identity, provenance, method,
+  authority, bounds, limitations, and cleanup. Correct `blocked`/`inconclusive` only through an authorized changed
+  attempt; unresolved initial mode stops and continuation returns protected/out-of-contract gaps to `implement`.
+  Evidence never authorizes behavior, scope, architecture, deferral, or risk acceptance.
 - Delegate all planned-feature artifact writing to a fresh planner. A planner that finds unresolved material
   empirical behavior must return `BLOCKED: empirical_evidence_needed`; only this orchestrator may resolve it.
 - In `initial` mode, retain every existing planning/overwrite/user-decision gate. In continuation, repair supplied

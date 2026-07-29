@@ -21,11 +21,11 @@ package, bugfix, hotfix, spike, integration, target-merge, and artifact-sidecar 
   non-root `hotfix/<name>` worktree/ref from its explicit production base and creates no feature ref.
 - Artifact sidecars use orphan ref `artifacts/<feature>` at `.worktrees/<feature>/artifacts`; they are not source checkouts or deliverable refs.
 - Package agents never create worktrees, branches, merges, target pushes, or cleanup operations.
-- An auto-resolve Execution Contract may authorize matching probe creation/owned cleanup and focused-reviewed
-  continuation package creation inside its exact feature namespace. It grants no package cleanup, arbitrary base,
-  root, remote, target, force, other-namespace, or arbitrary branch authority.
-- Probe creation captures base/ref/SHA, clean HEAD/index/worktree, and exact owned manifests. Continuation package
-  creation consumes its reviewed exact base/dependency evidence. Revalidate every runtime binding; uncertainty stops.
+- An auto-resolve Execution Contract may authorize matching probes and focused-reviewed continuation packages;
+  exact current-task approval may authorize one diagnostic probe. Both probe routes bind expected base/full ref/path,
+  owned effects and cleanup; neither grants package cleanup, root/remote/force, other-namespace, or arbitrary authority.
+- Probe creation proves the base ref equals its supplied expected SHA before/after creation and captures clean
+  HEAD/index/worktree plus exact owned manifests. Revalidate every runtime binding; uncertainty stops.
 - Other planned setup may visibly propose `main` only when its contract allows. Bugfix/hotfix/spike bases are
   explicit and never inferred.
 - A branch checked out in one worktree is locked for other worktrees; create separate refs instead of reusing checkouts.
@@ -65,13 +65,13 @@ inside a linked worktree.
 
 1. Identify the active workflow: planned-feature package, planned production-hotfix package, localized bugfix/
    hotfix, disposable probe, auto-resolve dynamic resource, cleanup, source push, or target merge.
-2. Resolve root, state, refs, and paths. Dynamic creation validates the envelope then records its receipt; cleanup
-   validates both. Other bugfix/hotfix/probe base/target refs require exact approval and are never inferred.
+2. Resolve root, state, refs, and paths. Probe creation validates its envelope or exact current-task approval, then
+   records a receipt; cleanup validates both authority and receipt. Other base/target refs are never inferred.
 3. For planned-feature artifact sidecars, load `../../references/artifact-store.md` before setup, checkpoint, or cleanup.
 4. Load `references/feature-package-workflow.md` for normal planned-feature package, integration, sidecar setup, and checkpoint commands.
 5. Load `references/bugfix-hotfix-workflow.md` for probe/bugfix/hotfix creation and delivery mechanics.
-6. For envelope probe cleanup load `references/probe-cleanup.md`; before any removal, push, merge, or teardown also
-   load `references/cleanup-safety.md`.
+6. For any receipt-bound probe cleanup load `references/probe-cleanup.md`; before any removal, push, merge, or
+   teardown also load `references/cleanup-safety.md`.
 7. Run commands only from the worktree named by the loaded playbook; never repair convenience by switching the root worktree.
 8. Report created refs/worktrees, current checkout paths, approval boundaries, and cleanup candidates before destructive steps.
 9. Stop instead of forcing branch deletion, worktree removal, target merge, target push, sidecar deletion, or remote action when proof or approval is missing.
@@ -81,7 +81,7 @@ inside a linked worktree.
 - Planned feature/package commands → `references/feature-package-workflow.md`
 - Artifact-root/code-root terms for sidecars → `../../references/artifact-store.md`
 - Bugfix, hotfix, or probe creation → `references/bugfix-hotfix-workflow.md`
-- Envelope probe cleanup → `references/probe-cleanup.md` plus `references/cleanup-safety.md`
+- Receipt-bound probe cleanup → `references/probe-cleanup.md` plus `references/cleanup-safety.md`
 - Other cleanup, branch removal, push, merge, or teardown → `references/cleanup-safety.md`
 
 ## Planned Feature Contract
@@ -112,9 +112,9 @@ creation base also has no unique commit. Otherwise preserve/report it. No packag
 
 ## Approval Boundaries
 
-- Fixed creation requires its owning action/contract. The dynamic envelope authorizes matching probe creation and
-  receipt-owned cleanup plus reviewed continuation package creation only. It grants no package cleanup, remote
-  action, or implementation; package gates separately own edits/commits/merges.
+- Fixed creation requires its owning action/contract. The dynamic envelope or exact current-task probe approval
+  authorizes matching receipt-owned probe creation/cleanup; only the envelope may also create reviewed continuation
+  packages. Neither grants package cleanup, remote action, or implementation.
 - Sidecar checkpoints push only `origin artifacts/<feature>` from `.worktrees/<feature>/artifacts` at accepted gates.
 - Diagnose bugfix/hotfix branch publication binds remote/ref, source SHA, snapshot, and expected remote SHA/absence.
 - Normal planned-feature contracts cover the repeated non-force `feature/<feature>` checkpoint after each

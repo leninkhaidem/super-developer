@@ -61,17 +61,18 @@ report set or explicit `none`, and changed artifact scope.
    `../../references/artifact-store.md`, `../../references/slice-first-artifacts.md`,
    `../../references/work-packages.md`, conditional `../../references/conceptualize-slice-authority.md`, and
    `../../references/clean-code-rules.md`; never pass hidden chat or copied Slice prose.
-7. If findings exist, load `references/plan-review-resolution.md`. Initial mode retains its repair/decision gates.
-   In continuation-focused mode, route every same-requirement plan-owned finding through one caller-owned
-   `implementation-plan` `implementation-continuation`, with stage/defect provenance and explicit report set `none`
-   unless empirical evidence applies; never patch it inline or send it to a code repair worker. For each empirical
-   blocker, preserve review state and start its stable ledger at attempt 1. Validate identity, provenance, method,
-   authority, bounds, limitations, and cleanup. Only a corrected packet or changed method/signal may advance a
-   fresh invocation to attempts 2–3; unchanged or exhausted attempts are non-convergence. Parallelize independent
-   questions and sequence only evidence-created questions. In continuation-focused mode return protected evidence
-   gaps to `implement`; initial mode stops. Invoke the planning continuation with the accepted reports, then rerun
-   validation/focused review and autonomously restore readiness. Load `../../references/decision-prompts.md` only
-   for structured decisions in initial mode.
+7. If findings exist, load `references/plan-review-resolution.md`; initial mode retains its repair/decision gates.
+   For each empirical blocker in either mode, preserve review state and start its stable ledger at attempt 1.
+   Accept `resolved-static`, `supported`, or `rejected` only after validating identity, provenance, method, authority,
+   bounds, limitations, and cleanup. Correct `blocked`/`inconclusive` only through an authorized changed packet,
+   method, or signal at attempts 2–3; unresolved initial mode stops and continuation returns protected/out-of-contract
+   gaps to `implement`. Parallelize independent questions and sequence only evidence-created questions.
+   In initial mode persist accepted empirical outcomes in owning artifacts under the resolution reference's Semantic
+   Change Rule, rerun validation and focused re-review, then present the ordinary plan gate; never invoke a planning
+   continuation. Only in continuation-focused mode route same-requirement plan findings and accepted reports or
+   explicit `none` through caller-owned `implementation-plan` `implementation-continuation`; then rerun validation/
+   focused review and autonomously restore readiness. Never patch continuation findings inline or send them to a
+   code repair worker. Load `../../references/decision-prompts.md` only for structured decisions in initial mode.
 8. In initial mode present the existing plan gate with roots/ref, deliverables, reviewers/escalations,
    refinements/deferrals/dismissals, closure/dependency rationale, feasibility profiles, Acceptance, every manual
    exception, and remaining risks. In continuation-focused mode present no gate when requirements/behavior/risk/

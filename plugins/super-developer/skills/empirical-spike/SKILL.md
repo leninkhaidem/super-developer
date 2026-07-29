@@ -53,8 +53,9 @@ the caller retains its context, interprets the evidence, and owns every downstre
    for one bounded deterministic local command; or exact task-local Testing Authorization. If authority is missing,
    stale, conflicting, or too narrow, return `blocked` and name the approval needed; do not select another workflow.
 5. Screen the execution boundary named in Always. Use a clean temporary directory for contained local probes. For
-   a worktree probe, require a creation receipt binding base ref/SHA, clean initial HEAD/index/worktree, unchanged
-   index checksum, exact NUL-delimited owned path/symlink/process/data manifests, and `remote_action=none`.
+   a worktree probe, require a creation receipt binding base ref and caller/contract-supplied expected base SHA,
+   full direct ref, clean initial HEAD/index/worktree, unchanged index digest, exact NUL-delimited owned
+   path/symlink/process/data manifests, and `remote_action=none`.
 6. Write the probe contract before execution: question mapping and signals; environment/limits; command identity,
    cwd, exact allowed writes, timeout/progress, resources, termination, cleanup, and authority. Choose the smallest
    credible discriminator. Never use production targets or sensitive/shared data as a realism shortcut.
@@ -82,8 +83,8 @@ the caller retains its context, interprets the evidence, and owns every downstre
 
 - The question is routine, immaterial, already resolved statically, not falsifiable within bounds, or bundles
   unrelated uncertainties.
-- Required credentials, network, permissions, external access, production/sensitive/shared data, destructive
-  effects, isolation, termination, cleanup, or testing authority is absent or unapproved.
+- Required credentials, network, permissions, external access, paid services, production/sensitive/shared data,
+  destructive effects, isolation, termination, cleanup, or testing authority is absent or unapproved.
 - A credible measurement requires production changes, broad refactoring, public-contract changes, dependency or
   service adoption, or treating exploratory code as an implementation head start.
 - The stated method cannot distinguish outcomes, its instrumentation invalidates the observation, or its required

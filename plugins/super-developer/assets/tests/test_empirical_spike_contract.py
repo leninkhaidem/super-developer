@@ -21,17 +21,15 @@ SKILLS_ROOT = PLUGIN_ROOT / "skills"
 DEPRECATED_SKILL = "spike" + "-to-plan"
 NEW_SKILL = "empirical-spike"
 AUDIT_SKILL = SKILLS_ROOT / "skill-authoring" / "scripts" / "audit-skill.py"
-DEPRECATED_NAME_ALLOWLIST = {REPO_ROOT / "CHANGELOG.md"}
+DEPRECATED_NAME_SCAN_EXCLUSIONS = {REPO_ROOT / "CHANGELOG.md"}
 
 
-def relevant_markdown_json() -> list[Path]:
-    return sorted(
-        path
-        for path in REPO_ROOT.rglob("*")
-        if path.is_file()
-        and path.suffix in {".md", ".json"}
-        and ".git" not in path.relative_to(REPO_ROOT).parts
+def tracked_markdown_json() -> list[Path]:
+    inventory = subprocess.check_output(
+        ["git", "ls-files", "-z", "--", "*.md", "*.json"],
+        cwd=REPO_ROOT,
     )
+    return sorted(REPO_ROOT / os.fsdecode(record) for record in inventory.split(b"\0") if record)
 
 
 def folded_description(skill_text: str) -> str:
@@ -57,6 +55,14 @@ def fenced_commands(text: str) -> str:
     return "\n".join(re.findall(r"```bash\n(.*?)```", text, re.DOTALL))
 
 
+def canonical_empirical_statuses(text: str) -> tuple[str, ...]:
+    output = markdown_section(text, "## Output")
+    match = re.search(r"Return exactly one status\s+—(.*?)—\s+plus", output, re.DOTALL)
+    if not match:
+        raise AssertionError("expected canonical empirical-spike status clause")
+    return tuple(re.findall(r"`([a-z-]+)`", match.group(1)))
+
+
 class EmpiricalSpikeMigrationTests(unittest.TestCase):
     def test_catalog_keeps_15_skills_and_rename_is_complete(self) -> None:
         skill_dirs = sorted(path.name for path in SKILLS_ROOT.iterdir() if path.is_dir())
@@ -68,13 +74,17 @@ class EmpiricalSpikeMigrationTests(unittest.TestCase):
         self.assertRegex(skill_text, rf"(?m)^name:\s*{re.escape(NEW_SKILL)}$")
         self.assertIn("# Empirical Spike", skill_text)
 
-    def test_deprecated_name_is_absent_from_live_markdown_and_json(self) -> None:
+    def test_deprecated_name_is_absent_from_tracked_markdown_and_json(self) -> None:
+        inventory = tracked_markdown_json()
+        self.assertIn(REPO_ROOT / "CHANGELOG.md", inventory)
+        self.assertTrue(all(".worktrees" not in path.relative_to(REPO_ROOT).parts for path in inventory))
         offenders = {
             path
-            for path in relevant_markdown_json()
-            if DEPRECATED_SKILL in path.read_text(encoding="utf-8")
+            for path in inventory
+            if path not in DEPRECATED_NAME_SCAN_EXCLUSIONS
+            and DEPRECATED_SKILL in path.read_text(encoding="utf-8")
         }
-        self.assertEqual(offenders, DEPRECATED_NAME_ALLOWLIST)
+        self.assertEqual(offenders, set())
 
     def test_unreleased_changelog_records_breaking_rename(self) -> None:
         changelog = (REPO_ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
@@ -120,6 +130,7 @@ class EmpiricalSpikeContractTests(unittest.TestCase):
         self.assertIn("Do not include a next-skill", self.skill)
         self.assertIn("non-authoritative decision", self.skill)
         self.assertRegex(self.skill, r"(?i)one (?:material|falsifiable) question per (?:run|invocation)")
+        self.assertIn("paid services", normalized(markdown_section(self.skill, "## Stop if")))
 
     def test_probe_review_is_bounded_to_method_and_execution_boundary(self) -> None:
         for required in (
@@ -219,11 +230,11 @@ class OrchestratorOwnershipTests(unittest.TestCase):
         envelope = normalized(markdown_section(self.execution, "Worktree authority envelope:", "Fixed worktrees:"))
         for required in (
             "clean head/index/worktree",
-            "index checksum",
+            "index_digest",
             "exact nul tracked/deleted/untracked/ignored/symlink/process/data",
             "no stage/index write",
             "remote_action=none",
-            "normal remove/cas",
+            "normal remove/direct full-ref cas",
         ):
             self.assertIn(required, envelope)
 
@@ -236,13 +247,24 @@ class OrchestratorOwnershipTests(unittest.TestCase):
             producer.index("restoring exact owned tracked paths"),
         )
 
-        creation = normalized(markdown_section(self.probe_worktrees, "Auto-resolve probe", "Active-feature"))
-        for required in ("base_ref", "base_sha", "index_sha256", "initial_status_nul", "initial_ignored_nul"):
+        creation = normalized(markdown_section(self.probe_worktrees, "Receipt-bound probe", "Active-feature"))
+        for required in ("base_ref", "expected_base_sha", "index_digest", "initial_status_nul", "initial_ignored_nul"):
             self.assertIn(required, creation)
-        self.assertIn("git worktree add --no-track -b", creation)
-        self.assertLess(creation.index("git worktree add --no-track -b"), creation.index("for-each-ref"))
-        self.assertLess(creation.index("for-each-ref"), creation.index("index_sha256"))
-        self.assertLess(creation.index("index_sha256"), creation.index("before any probe write"))
+        self.assertIn('branch="probe/$feature/$question_id/a$attempt_id"', creation)
+        self.assertIn('ref="refs/heads/$branch"', creation)
+        add = creation.index('git worktree add --no-track -b "$branch"')
+        base_check = 'test "$(git rev-parse "$base_ref")" = "$expected_base_sha"'
+        base_checks = [match.start() for match in re.finditer(re.escape(base_check), creation)]
+        self.assertEqual(len(base_checks), 2)
+        self.assertLess(base_checks[0], add)
+        self.assertGreater(base_checks[1], add)
+        self.assertLess(add, creation.index("for-each-ref"))
+        self.assertIn('"branch.$branch.remote"', creation)
+        self.assertIn('git hash-object --no-filters "$initial_index_nul"', creation)
+        self.assertNotIn("sha256sum", creation)
+        self.assertLess(creation.index("for-each-ref"), creation.index("index_digest"))
+        self.assertLess(creation.index("index_digest"), creation.index("before probe writes"))
+        self.assertIn("full direct `ref`", creation)
 
         cleanup = normalized(self.probe_cleanup)
         for required in (
@@ -254,13 +276,14 @@ class OrchestratorOwnershipTests(unittest.TestCase):
             "process identities",
             "external data",
             "--literal-pathspecs",
-            "--source=\"$base_sha\" --worktree",
+            "--source=\"$expected_base_sha\" --worktree",
             "rm -- \"$wt/$path\"",
             "rmdir --",
+            "git hash-object --no-filters",
             "regenerated nul index digest unchanged",
-            "head`/direct ref = base sha",
+            "`head`/direct ref = `expected_base_sha`",
             "git worktree remove \"$wt\"",
-            "update-ref --no-deref -d \"$ref\" \"$base_sha\"",
+            "update-ref --no-deref -d \"$ref\" \"$expected_base_sha\"",
         ):
             self.assertIn(required, cleanup)
         self.assertLess(cleanup.index("classify before mutation"), cleanup.index("restore exact owned state"))
@@ -274,7 +297,7 @@ class OrchestratorOwnershipTests(unittest.TestCase):
         self.assertIn("any extra", cleanup)
         self.assertIn("unowned, or uncertain record stops", cleanup)
 
-        boundary = markdown_section(self.cleanup, "## Envelope Probe Boundary", "## Package Cleanup")
+        boundary = markdown_section(self.cleanup, "## Receipt-Bound Probe Boundary", "## Package Cleanup")
         commands = normalized(fenced_commands(self.probe_cleanup) + fenced_commands(boundary))
         self.assertNotRegex(commands, r"\bgit\s+(?:ls-remote|fetch|push|clean|reset)\b")
         self.assertNotRegex(commands, r"\bgit\s+worktree\s+remove\s+--force\b|\brm\s+-r")
@@ -282,7 +305,20 @@ class OrchestratorOwnershipTests(unittest.TestCase):
             self.assertIn(required, cleanup)
         local_boundary = normalized(boundary)
         self.assertIn("perform no network/credential check", local_boundary)
-        self.assertIn("coincidental remote ref is out of scope and untouched", local_boundary)
+        self.assertIn("coincidental remote ref stays untouched", local_boundary)
+
+    def test_receipt_bound_probe_accepts_contract_or_exact_current_task_authority(self) -> None:
+        for source in (self.worktree, self.probe_worktrees, self.probe_cleanup, self.cleanup):
+            contract = normalized(source)
+            self.assertIn("execution contract", contract)
+            self.assertIn("exact current-task", contract)
+        creation = normalized(markdown_section(self.probe_worktrees, "Receipt-bound probe", "Active-feature"))
+        self.assertIn("non-envelope diagnostic spike", creation)
+        self.assertIn("same receipt", creation)
+        cleanup = normalized(self.probe_cleanup)
+        for required in ("full direct `ref`", "expected_base_sha", "index_digest", "remote_action=none"):
+            self.assertIn(required, cleanup)
+        self.assertNotIn("only a probe created under the execution contract envelope", normalized(self.cleanup))
 
     def test_continuation_package_creation_uses_reviewed_base_and_prerequisite_ancestry(self) -> None:
         for prompt in (self.plan, self.planner, self.validation, self.review, self.dispatch, self.execution):
@@ -326,7 +362,11 @@ class OrchestratorOwnershipTests(unittest.TestCase):
         self.assertIn("merge-base --is-ancestor \"$tip\" \"$final\"", final_cleanup)
         self.assertIn("$kind\" = continuation", final_cleanup)
         self.assertIn("$tip\" = \"$base", final_cleanup)
-        self.assertIn("preserve: unique unmerged package commits", final_cleanup)
+        preserve = final_cleanup[final_cleanup.index("preserve: unique unmerged package commits"):]
+        self.assertIn(">&2; exit 1", preserve)
+        self.assertNotIn("exit 0", preserve.split(" fi ", 1)[0])
+        for residual in ('ref=%s', 'tip=%s', 'base=%s', 'final=%s', '"$ref"', '"$tip"', '"$base"', '"$final"'):
+            self.assertIn(residual, preserve)
         self.assertLess(final_cleanup.index("merge-base --is-ancestor"), final_cleanup.index("git worktree remove"))
 
     def test_continuation_has_no_generic_design_decision_user_prompt(self) -> None:
@@ -336,9 +376,14 @@ class OrchestratorOwnershipTests(unittest.TestCase):
         self.assertIn("return to `implement` only if", decision)
         self.assertNotIn("ask the user unless", decision)
 
-        for sentence in re.split(r"(?<=[.!?])\s+", normalized(self.resolution)):
-            if "ask the user" in sentence:
-                self.assertIn("initial mode", sentence)
+        ask_user_sentences = [
+            sentence
+            for sentence in re.split(r"(?<=[.!?])\s+", normalized(self.resolution))
+            if "ask the user" in sentence
+        ]
+        self.assertGreaterEqual(len(ask_user_sentences), 1)
+        for sentence in ask_user_sentences:
+            self.assertIn("initial mode", sentence)
         continuation = normalized(self.review)
         self.assertIn("decision-prompts.md` only for structured decisions in initial mode", continuation)
 
@@ -375,6 +420,59 @@ class OrchestratorOwnershipTests(unittest.TestCase):
         self.assertIn("in `initial` mode, one blocking plan-approval gate", review_contract)
         self.assertIn("continuation-focused mode does not reopen this gate", review_contract)
         self.assertIn("present no gate", review_contract)
+
+    def test_all_six_callers_handle_the_canonical_empirical_status_inventory(self) -> None:
+        statuses = canonical_empirical_statuses(self.empirical)
+        self.assertEqual(statuses, ("resolved-static", "supported", "rejected", "blocked", "inconclusive"))
+        callers = {
+            "implementation-plan": self.plan,
+            "implementation-plan validation": self.validation,
+            "review-plan": self.review,
+            "review-plan resolution": self.resolution,
+            "implement": self.implement,
+            "implement execution contract": self.execution,
+        }
+        for name, text in callers.items():
+            contract = normalized(text)
+            with self.subTest(caller=name):
+                for status in statuses:
+                    self.assertIn(f"`{status}`", contract)
+                start = contract.index(
+                    "accept `resolved-static`, `supported`, or `rejected` only after validat"
+                )
+                handling = contract[start:start + 600]
+                self.assertRegex(handling, r"correct\w* .*`blocked`/`inconclusive`|correct\w* `blocked`/`inconclusive`")
+                self.assertRegex(handling, r"\breturn\w*\b")
+                self.assertRegex(handling, r"\bstop\w*\b")
+
+    def test_initial_empirical_resolution_precedes_the_ordinary_gate_without_continuation(self) -> None:
+        review_step = normalized(markdown_section(self.review, "7. If findings exist", "8."))
+        initial = review_step.index("in initial mode persist accepted empirical outcomes")
+        semantic = review_step.index("semantic change rule", initial)
+        validation = review_step.index("rerun validation and focused re-review", semantic)
+        gate = review_step.index("ordinary plan gate", validation)
+        continuation = review_step.index("only in continuation-focused mode", gate)
+        planning = review_step.index("`implementation-plan` `implementation-continuation`", continuation)
+        readiness = review_step.index("restore readiness", planning)
+        self.assertLess(initial, semantic)
+        self.assertLess(semantic, validation)
+        self.assertLess(validation, gate)
+        self.assertLess(gate, continuation)
+        self.assertLess(continuation, planning)
+        self.assertLess(planning, readiness)
+        self.assertNotIn("invoke the planning continuation", normalized(self.review))
+
+        resolution = normalized(markdown_section(self.resolution, "## Workflow", "## Re-Review"))
+        for required in (
+            "in initial mode persist accepted empirical outcomes in the owning artifacts",
+            "under the semantic change rule",
+            "ordinary plan gate",
+            "initial mode never invokes a planning continuation",
+            "only continuation-focused mode routes collected defects",
+            "caller-owned `implementation-plan` `implementation-continuation`",
+            "restores readiness",
+        ):
+            self.assertIn(required, resolution)
 
     def test_planner_worker_remains_evidence_consumer_not_spike_orchestrator(self) -> None:
         self.assertIn("planner worker, not the orchestrator", self.planner)
@@ -449,6 +547,115 @@ class GitEnvelopeSimulationTests(unittest.TestCase):
                 )
                 self.assertNotEqual(result.returncode, 0)
                 self.assertEqual(result.stdout, "")
+
+    def test_probe_creation_and_cleanup_agree_on_the_full_direct_ref(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            repo = Path(temp) / "repo"
+            worktree = Path(temp) / "probe"
+            self.init_repo(repo)
+            subprocess.run(["git", "-C", str(repo), "branch", "feature/demo"], check=True)
+            expected = subprocess.check_output(
+                ["git", "-C", str(repo), "rev-parse", "feature/demo"], text=True
+            ).strip()
+            script = r'''
+set -euo pipefail
+BRANCH="probe/demo/q1/a1"
+REF="refs/heads/$BRANCH"
+test "$(git rev-parse "$BASE_REF")" = "$EXPECTED_BASE_SHA"
+git worktree add -q --no-track -b "$BRANCH" "$WT" "$EXPECTED_BASE_SHA"
+test "$(git rev-parse "$BASE_REF")" = "$EXPECTED_BASE_SHA"
+test "$(git -C "$WT" symbolic-ref -q HEAD)" = "$REF"
+test "$(git rev-parse "$REF")" = "$EXPECTED_BASE_SHA"
+test -z "$(git config --get "branch.$BRANCH.remote" || :)"
+test -z "$(git config --get "branch.$BRANCH.merge" || :)"
+test -z "$(git config --get "branch.$BRANCH.pushRemote" || :)"
+git worktree remove "$WT"
+if git symbolic-ref -q "$REF"; then exit 1; fi
+git update-ref --no-deref -d "$REF" "$EXPECTED_BASE_SHA"
+test -z "$(git show-ref --verify --hash "$REF" 2>/dev/null || :)"
+'''
+            result = subprocess.run(
+                ["bash", "-c", script],
+                cwd=repo,
+                check=False,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                env={
+                    **os.environ,
+                    "BASE_REF": "feature/demo",
+                    "EXPECTED_BASE_SHA": expected,
+                    "WT": str(worktree),
+                },
+            )
+            self.assertEqual(result.returncode, 0, result.stdout)
+            self.assertFalse(worktree.exists())
+            self.assertNotEqual(
+                subprocess.run(
+                    ["git", "-C", str(repo), "show-ref", "--verify", "--quiet", "refs/heads/probe/demo/q1/a1"],
+                    check=False,
+                ).returncode,
+                0,
+            )
+
+    def test_index_digest_uses_portable_non_writing_git_hash_object(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            repo = Path(temp) / "repo"
+            self.init_repo(repo)
+            manifest = Path(temp) / "initial-index.nul"
+            manifest.write_bytes(
+                subprocess.check_output(["git", "-C", str(repo), "ls-files", "--stage", "-z"])
+            )
+            before = subprocess.check_output(["git", "-C", str(repo), "count-objects", "-v"], text=True)
+            digest = subprocess.check_output(
+                ["git", "-C", str(repo), "hash-object", "--no-filters", str(manifest)], text=True
+            ).strip()
+            after = subprocess.check_output(["git", "-C", str(repo), "count-objects", "-v"], text=True)
+            repeated = subprocess.check_output(
+                ["git", "-C", str(repo), "hash-object", "--no-filters", str(manifest)], text=True
+            ).strip()
+            self.assertEqual(digest, repeated)
+            self.assertEqual(before, after)
+
+    def test_moved_expected_probe_base_is_rejected_before_worktree_creation(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            repo = Path(temp) / "repo"
+            worktree = Path(temp) / "probe"
+            self.init_repo(repo)
+            subprocess.run(["git", "-C", str(repo), "branch", "feature/demo"], check=True)
+            expected = subprocess.check_output(
+                ["git", "-C", str(repo), "rev-parse", "feature/demo"], text=True
+            ).strip()
+            (repo / "seed").write_text("moved\n", encoding="utf-8")
+            subprocess.run(["git", "-C", str(repo), "commit", "-qam", "move base"], check=True)
+            subprocess.run(["git", "-C", str(repo), "branch", "-f", "feature/demo", "HEAD"], check=True)
+            script = r'''
+set -euo pipefail
+BRANCH="probe/demo/q1/a1"; REF="refs/heads/$BRANCH"
+test "$(git rev-parse "$BASE_REF")" = "$EXPECTED_BASE_SHA"
+git worktree add --no-track -b "$BRANCH" "$WT" "$EXPECTED_BASE_SHA"
+test "$(git rev-parse "$BASE_REF")" = "$EXPECTED_BASE_SHA"
+'''
+            result = subprocess.run(
+                ["bash", "-c", script],
+                cwd=repo,
+                check=False,
+                env={
+                    **os.environ,
+                    "BASE_REF": "feature/demo",
+                    "EXPECTED_BASE_SHA": expected,
+                    "WT": str(worktree),
+                },
+            )
+            self.assertNotEqual(result.returncode, 0)
+            self.assertFalse(worktree.exists())
+            self.assertNotEqual(
+                subprocess.run(
+                    ["git", "-C", str(repo), "show-ref", "--verify", "--quiet", "refs/heads/probe/demo/q1/a1"],
+                    check=False,
+                ).returncode,
+                0,
+            )
 
     def test_moved_reviewed_base_is_rejected_before_worktree_creation(self) -> None:
         with tempfile.TemporaryDirectory() as temp:

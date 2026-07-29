@@ -5,13 +5,13 @@ proof stops later SHA capture, push, removal, or deletion. Root checkout files/i
 Normal cleanup binds canonical path, HEAD/complete state, full direct ref/SHA, landing/base state when required,
 and remote expected state only for separately authorized remote actions. Recapture immediately; direct-ref deletion
 uses `git update-ref --no-deref -d <full-ref> <old-sha>` CAS after normal worktree removal. Never force.
-## Envelope Probe Boundary
-Only a probe created under the Execution Contract envelope may clean autonomously. Require its creation receipt and
-the supplied probe-cleanup procedure to classify every delta NUL-safely, restore/remove exact owned state, and prove
-HEAD/ref/base, index checksum, status, process, and data closure before normal removal/CAS. Locally verify no
-upstream/tracking config and record `remote_action=none`; perform no network/credential check or remote mutation.
-A coincidental remote ref is out of scope and untouched. Any unowned/uncertain delta preserves the probe and stops.
-Continuation package worktrees/refs—active or retired—never use envelope cleanup and remain through final gates.
+## Receipt-Bound Probe Boundary
+A probe authorized by an auto-resolve Execution Contract or exact current-task probe approval may clean only through
+its creation receipt and `probe-cleanup.md`: classify NUL deltas, restore/remove exact owned state, and prove full
+ref/expected base/index digest/status/process/data closure before normal removal/direct full-ref CAS. Locally verify
+no tracking config and `remote_action=none`; perform no network/credential check or remote mutation. A coincidental
+remote ref stays untouched. Any unowned/uncertain delta preserves the probe and stops.
+Continuation package worktrees/refs—active or retired—never use receipt-bound probe cleanup and remain through final gates.
 ## Package Cleanup — Whole Feature Only
 No active or retired package cleanup occurs before all packages, final integrated review/audit, remote feature
 synchronization and contracted later delivery gates pass. Planned-hotfix applies the same tip eligibility at its
@@ -29,7 +29,7 @@ FINAL="$(git -C "$LANDING" rev-parse HEAD)"; test "$FINAL" = "<bound-final-integ
 test "$RECAPTURED_LANDING_STATE_CHECKSUM" = "<bound-final-clean-state>"
 if git -C "$LANDING" merge-base --is-ancestor "$TIP" "$FINAL"; then :
 elif test "$KIND" = continuation && test "$TIP" = "$BASE"; then :
-else printf '%s\n' 'preserve: unique unmerged package commits'; exit 0
+else printf 'preserve: unique unmerged package commits ref=%s tip=%s base=%s final=%s\n' "$REF" "$TIP" "$BASE" "$FINAL" >&2; exit 1
 fi
 cd "$PROJECT_ROOT"; git worktree remove "$PKG"
 if git symbolic-ref -q "$REF"; then exit 1; fi

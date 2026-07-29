@@ -75,17 +75,20 @@ approved outcomes, Slice commitments, risk, and closure meaning remain preserved
 3. In initial mode apply authorized mechanical fixes. In continuation-focused mode collect every plan-owned defect
    for the planning continuation; neither this orchestrator nor a code repair worker patches it.
 4. For `empirical_evidence_needed`, preserve review context and assign each bounded question a stable logical ID.
-   Attempt 1 is a fresh `empirical-spike` invocation; attempts 2–3 require the same question ID, incremented attempt
-   ID, and a named corrected packet or changed method/signal. Parallelize independent questions; sequence only when
-   accepted evidence creates a new question. Reviewers/repair workers never invoke it; unchanged attempts are barred.
-5. In continuation-focused mode route the collected defects through one caller-owned `implementation-plan`
-   `implementation-continuation`, passing accepted empirical reports or explicit `none`, then focused re-review.
-   Restore readiness without approval. Attempt-3 exhaustion/unbounded emergence or semantic/risk expansion returns
-   to `implement`; protected evidence gaps use its existing stops.
-6. In initial mode escalate unresolved semantic choices to the user. In continuation-focused mode return genuine
+   Accept `resolved-static`, `supported`, or `rejected` only after validating identity, provenance, method, authority,
+   bounds, limitations, and cleanup. Correct `blocked`/`inconclusive` only through an authorized changed packet,
+   method, or signal at attempts 2–3; unresolved initial mode stops and continuation returns protected/out-of-contract
+   gaps to `implement`. Parallelize independent questions; sequence only when accepted evidence creates a new one.
+5. In initial mode persist accepted empirical outcomes in the owning artifacts above under the Semantic Change Rule,
+   rerun mechanical validation and focused re-review, then proceed to the ordinary plan gate. Initial mode never
+   invokes a planning continuation.
+6. Only continuation-focused mode routes collected defects through caller-owned `implementation-plan`
+   `implementation-continuation`, passing accepted empirical reports or explicit `none`, then reruns validation/
+   focused re-review and restores readiness. Exhaustion/unbounded emergence or semantic/risk expansion returns to
+   `implement`; protected evidence gaps use its existing stops.
+7. In initial mode escalate unresolved semantic choices to the user. In continuation-focused mode return genuine
    semantic/scope/visible/risk/manual decisions to `implement`; do not prompt here.
-7. Persist accepted decisions in the owning artifact.
-8. Keep `SPEC.md` requirements-focused; package assignment belongs in package Markdown.
+8. Persist accepted decisions in the owning artifact; keep `SPEC.md` requirements-focused and package assignment in package Markdown.
 9. Encode implementation-time concerns durably in package Markdown or verification expectations, not chat-only summaries.
 10. When accepted repairs materially expand or move closure-complexity dimensions, reapply the parent-supplied
     work-package contract to affected packages and route required boundary changes through the Semantic Change
