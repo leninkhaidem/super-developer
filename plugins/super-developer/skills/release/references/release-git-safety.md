@@ -40,51 +40,54 @@ Stop on any mismatch. Do not move tags, overwrite releases, force-push, or force
 
 ## Merge Worktree
 
-Never switch the user-owned root worktree. Merge the feature branch into the base branch from a worktree already on the base ref.
-If none exists, create an exact temporary target-merge worktree named in the contract, for example:
+Never switch or detach the user-owned root worktree. Refresh `origin`, bind the exact remote-base SHA, and require
+any local base ref to equal or be an ancestor of it. Use a clean non-root checkout already on that exact base when
+available. Otherwise create a named temporary integration branch/worktree from the remote-base SHA—not from the
+locked local branch:
 
 ```bash
-git worktree add .worktrees/<feature-or-release>/target-merge <base-branch>
-cd .worktrees/<feature-or-release>/target-merge
-git merge --no-ff <feature-branch> -m "<contracted merge message>"
+EXPECTED=$(git rev-parse origin/<base>)
+LOCAL_BASE=$(git rev-parse refs/heads/<base> 2>/dev/null || :)
+test -z "$LOCAL_BASE" || git merge-base --is-ancestor "$LOCAL_BASE" "$EXPECTED"
+git worktree add --no-track -b integrate/release-<name> \
+  .worktrees/release-<name>/target-merge "$EXPECTED"
+cd .worktrees/release-<name>/target-merge
+git merge --no-ff <feature-sha> -m "<contracted merge message>"
 ```
 
-Use a prepare-style message for `prepare-only` and `release: vX.Y.Z` only for publish prep unless repo convention differs.
-If the feature is already merged, verify ancestry instead of merging:
-
-```bash
-git merge-base --is-ancestor <feature-branch> <base-branch>
-```
-
-Resolve conflicts only within the contracted merge worktree. Stop if the conflict requires product/design decisions or uncontracted code changes.
+Use a prepare-style message for `prepare-only` and `release: vX.Y.Z` only for publish prep unless repository
+convention differs. If the feature is already included, verify immutable-SHA ancestry instead. Resolve conflicts
+only in the integration worktree and stop when they require uncontracted decisions.
 
 ## Base Push and Publish Checks
 
-Before pushing the base branch, verify:
-
-- base worktree is clean and on the contracted base branch;
-- intended prepare/publish commit is `HEAD` or otherwise exactly named in the contract;
-- final diff, changelog, docs, and publish-only version files/release notes match the contract;
-- `prepare-only` made no version bump, tag, or GitHub release change;
-- local/remote tags and GitHub release are absent for a new publish, or existing state passes the resume matrix;
-- any sidecar cleanup candidate is listed for default delete/remove or kept with an explicit reason.
-
-After any successful base push, refresh refs and verify local/remote base sync before tag/release creation or cleanup:
+Before pushing, require the final diff/files, checks, changelog, publish state, and cleanup candidates to match the
+contract; `prepare-only` still permits no version/tag/release change. Then bind the clean integration `RESULT_SHA`,
+re-read the remote target, prove a fast-forward, and use an exact lease plus explicit result/target refspec:
 
 ```bash
+RESULT_SHA=$(git rev-parse HEAD)
+EXPECTED=<contracted-remote-base-sha>
+TARGET_REF=refs/heads/<base>
+test -z "$(git status --porcelain)"
+REMOTE_LINE=$(git ls-remote --heads origin "$TARGET_REF"); test -n "$REMOTE_LINE"
+test "${REMOTE_LINE%%$'\t'*}" = "$EXPECTED"
+git merge-base --is-ancestor "$EXPECTED" "$RESULT_SHA"
+git push --force-with-lease="$TARGET_REF:$EXPECTED" origin "$RESULT_SHA:$TARGET_REF"
 git fetch --prune --tags origin
-git rev-parse <base-branch>
-git rev-parse origin/<base-branch>
-git rev-parse HEAD  # or the exact intended prepare/publish commit named in the contract
+test "$(git rev-parse origin/<base>)" = "$RESULT_SHA"
+test "$(git ls-remote --heads origin "$TARGET_REF" | cut -f1)" = "$RESULT_SHA"
 ```
 
-The local base ref, `origin/<base>`, and intended prepare/publish commit must match. Stop on mismatch and report completed side effects.
-Do not force-reset, force-push, switch the user-owned root worktree, or silently repair the local branch to make verification pass.
+Ancestry makes this lease push fast-forward only; it does not authorize history rewriting. For an existing base
+checkout, require its local base ref to equal `RESULT_SHA`. For temporary integration, keep the root/local base
+unchanged and prove its bound SHA is an ancestor of `RESULT_SHA`; report the intentional local lag rather than
+asking for detachment or forcing local/remote equality.
 
-For `prepare-only`, push the base branch, run post-push sync verification, then run contracted cleanup. Do not create or update tags or GitHub releases.
-For `publish`, push base first, run post-push sync verification, create/push the annotated tag,
-create the GitHub release, then run contracted cleanup for exact feature/sidecar candidates when applicable.
-If any push, sync verification, publish, or cleanup step fails, stop and report completed side effects. Do not continue cleanup automatically.
+For `prepare-only`, verify the target then run contracted cleanup; never create/update tags or GitHub releases.
+For `publish`, verify the target, create/push the annotated tag, create the GitHub release, then clean up. Retain a
+temporary integration ref/worktree on any failure and remove it normally only after every contracted action and
+other cleanup succeeds.
 
 ## Cleanup Safety
 

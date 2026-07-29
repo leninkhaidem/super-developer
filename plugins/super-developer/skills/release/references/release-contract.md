@@ -30,7 +30,8 @@ Use this structure, adapted to observed repository state:
 Mode: publish | prepare-only
 
 Base branch:
-- <base-branch>
+- <base-branch>; target `refs/heads/<base>`; fresh remote-base SHA <full SHA>
+- Local base/root lock: <equal | ancestor left unchanged and allowed to lag | no local ref>
 
 Feature branch:
 - <feature-branch or none>
@@ -56,15 +57,16 @@ Release checks to run:
 
 Merge/release strategy:
 - Merge <feature-branch> into <base-branch> with --no-ff, unless already merged
-- Worktree: <existing base worktree or exact temporary target-merge worktree>
+- Worktree: <existing exact non-root base checkout | named temporary integration ref/path
+  created from the fresh remote-base SHA because the local base is locked/unavailable>
 - Commit: <prepare-only integration/changelog commit message or publish release commit `release: vX.Y.Z`>
 - Annotated tag: vX.Y.Z if publishing; none in prepare-only
 
 Remote actions:
-- Push <base-branch> to origin after merge/checks
-- Post-push sync verification: fetch remote refs, then verify local <base-branch>,
-  origin/<base-branch>, and the intended commit all match; stop on mismatch without force-reset or
-  root branch switching
+- Push exact result SHA to `refs/heads/<base>` after remote-SHA equality and ancestry proof, using the
+  qualified exact lease bound to the fresh pre-target SHA
+- Post-push: verify result, `origin/<base>`, and fresh remote target match; require local-base equality only
+  for an existing base checkout, otherwise prove the unchanged root-locked local base is an ancestor of result
 - Push tag vX.Y.Z to origin, if publishing
 - Create GitHub release for vX.Y.Z, if publishing
 - Delete remote feature branch: <origin/<feature-branch> after pushed-base inclusion verification, or keep because ... / no candidate found>
@@ -82,6 +84,7 @@ Cleanup candidates:
 - Delete local feature branch: <feature-branch by default after ancestry proof, or keep because ...>
 - Delete remote feature branch: <origin/<feature-branch> by default after remote inclusion proof, or keep because ...>
 - Remove local code worktree(s): <exact clean paths by default, or keep because ...>
+- Remove temporary integration ref/worktree last: <exact names, or not applicable; retain on any failure>
 - Remove local artifact worktree: <.worktrees/<feature>/artifacts by default when clean, or keep because ...>
 - Delete local artifact ref: <artifacts/<feature> by default, or keep because ...>
 - Delete remote artifact ref: <origin/artifacts/<feature> by default after fresh remote verification, or keep because ...>
