@@ -1,9 +1,9 @@
 ---
 name: release
 description: >
-  Prepares or publishes completed work through a contract-bound release. Use when asked to prepare,
-  publish, version, tag, ship, or finish release cleanup. Do not use for development, review, audit,
-  or unrelated cleanup.
+  Prepares or publishes completed work with version bumps, tags, release notes, and cleanup. Use when
+  asked to prepare, publish, version, tag, ship, or finish a release. Do not use for development,
+  code review, audit, or unrelated cleanup.
 ---
 
 # Release
@@ -61,7 +61,8 @@ with exact state, side effects, artifact-sidecar handling, and cleanup candidate
 4. Load `references/release-git-safety.md` before relying on remote refs, existing tags/releases, feature merge, publish, sidecar state, or cleanup.
 5. Stop before contract approval if local base is ahead/diverged from the fresh remote base, publish version sources disagree,
    a worktree has unrelated changes, the push target is ambiguous, remote state cannot be verified, or an existing
-   tag/release conflicts. A clean root-locked local base may lag only when it is an ancestor of the remote base.
+   tag/release conflicts. A clean local base omitted from temporary integration may lag only when it is an
+   ancestor of the remote base.
 6. Load `references/release-contract.md` and present the compact Release Contract, including
    changelog format choices and default delete/remove cleanup candidates when needed.
    Ask once unless the current turn already approved the full contract.

@@ -46,12 +46,16 @@ available. Otherwise create a named temporary integration branch/worktree from t
 locked local branch:
 
 ```bash
-EXPECTED=$(git rev-parse origin/<base>)
-LOCAL_BASE=$(git rev-parse refs/heads/<base> 2>/dev/null || :)
-test -z "$LOCAL_BASE" || git merge-base --is-ancestor "$LOCAL_BASE" "$EXPECTED"
-git worktree add --no-track -b integrate/release-<name> \
-  .worktrees/release-<name>/target-merge "$EXPECTED"
-cd .worktrees/release-<name>/target-merge
+set -euo pipefail
+BOUND_BASE=$(git rev-parse origin/<base>)
+BOUND_LOCAL_BASE=$(git rev-parse refs/heads/<base> 2>/dev/null || :)
+test -z "$BOUND_LOCAL_BASE" || git merge-base --is-ancestor "$BOUND_LOCAL_BASE" "$BOUND_BASE"
+INTEGRATION_BRANCH=integrate/release-<name>; INTEGRATION_REF=refs/heads/$INTEGRATION_BRANCH
+INTEGRATION_WORKTREE=.worktrees/release-<name>/target-merge
+test -z "$(git show-ref --verify --hash "$INTEGRATION_REF" 2>/dev/null || :)"
+test ! -e "$INTEGRATION_WORKTREE"; test ! -L "$INTEGRATION_WORKTREE"
+git worktree add --no-track -b "$INTEGRATION_BRANCH" "$INTEGRATION_WORKTREE" "$BOUND_BASE"
+cd "$INTEGRATION_WORKTREE"
 git merge --no-ff <feature-sha> -m "<contracted merge message>"
 ```
 
@@ -66,23 +70,25 @@ contract; `prepare-only` still permits no version/tag/release change. Then bind 
 re-read the remote target, prove a fast-forward, and use an exact lease plus explicit result/target refspec:
 
 ```bash
-RESULT_SHA=$(git rev-parse HEAD)
-EXPECTED=<contracted-remote-base-sha>
-TARGET_REF=refs/heads/<base>
+set -euo pipefail
+RESULT_SHA=<contracted-result-sha>; EXPECTED=<contract-bound-remote-base-sha-from-preflight>
+BOUND_LOCAL_BASE=<contract-bound-local-base-sha-or-empty>; TARGET_REF=refs/heads/<base>
+remote_sha() { git ls-remote --heads origin | awk -v r="$TARGET_REF" '$2 == r {print $1}'; }
 test -z "$(git status --porcelain)"
-REMOTE_LINE=$(git ls-remote --heads origin "$TARGET_REF"); test -n "$REMOTE_LINE"
-test "${REMOTE_LINE%%$'\t'*}" = "$EXPECTED"
+test "$(git rev-parse HEAD)" = "$RESULT_SHA"
+test "$(git rev-parse refs/heads/<base> 2>/dev/null || :)" = "$BOUND_LOCAL_BASE"
+test "$(remote_sha)" = "$EXPECTED"
 git merge-base --is-ancestor "$EXPECTED" "$RESULT_SHA"
 git push --force-with-lease="$TARGET_REF:$EXPECTED" origin "$RESULT_SHA:$TARGET_REF"
 git fetch --prune --tags origin
 test "$(git rev-parse origin/<base>)" = "$RESULT_SHA"
-test "$(git ls-remote --heads origin "$TARGET_REF" | cut -f1)" = "$RESULT_SHA"
+test "$(remote_sha)" = "$RESULT_SHA"
 ```
 
 Ancestry makes this lease push fast-forward only; it does not authorize history rewriting. For an existing base
 checkout, require its local base ref to equal `RESULT_SHA`. For temporary integration, keep the root/local base
 unchanged and prove its bound SHA is an ancestor of `RESULT_SHA`; report the intentional local lag rather than
-asking for detachment or forcing local/remote equality.
+asking for detachment or forcing local/remote equality. Never force-reset or silently repair the local base.
 
 For `prepare-only`, verify the target then run contracted cleanup; never create/update tags or GitHub releases.
 For `publish`, verify the target, create/push the annotated tag, create the GitHub release, then clean up. Retain a
@@ -106,6 +112,7 @@ git status --short  # in each candidate worktree
 git worktree remove <exact-worktree-path>
 git branch -d <feature-branch>
 git worktree remove <exact-temporary-target-worktree>
+git update-ref --no-deref -d refs/heads/integrate/release-<name> <verified-result-sha>
 ```
 
 Stop on dirty worktrees, checked-out branches without removable worktrees, failed ancestry, or branch deletion refusal. Do not force-remove by default.
