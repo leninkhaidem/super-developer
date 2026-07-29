@@ -24,7 +24,7 @@ implementation-plan -> review-plan -> implement -> final review-code + final aud
         SPEC.md + tasks.json registry + packages/proofs/reports
 ```
 
-Validated Slices are product/design authority only. Workflow, tool, git, proof, review, and audit authority stays in the plugin instructions and shared references.
+Validated Slices are product/design authority only. Workflow, tool, git, proof, review, and audit authority stays in the plugin instructions and shared references. Planning, review, and implementation orchestrators may run `empirical-spike` once per attempt for a distinct material question after static evidence is insufficient; one initial run and at most two materially changed follow-ups are allowed. After `approve auto-resolve`, in-scope work is autonomous. Dirty probes clean only through exact receipt-owned local restoration; continuation packages use reviewed base/prerequisite evidence and remain safety nets through final gates.
 
 ---
 
@@ -153,13 +153,13 @@ Semgrep findings preserve Semgrep severity but are advisory by default. They do 
 | Skill | What It Does | Usage |
 |---|---|---|
 | **conceptualize** | Runs an optional one-question-at-a-time exploration, maintains an ignored workspace Index, and writes focused Slices only when useful. | Standalone + pre-planning |
-| **implementation-plan** | Creates `SPEC.md`, the lightweight registry, package Markdown, proof paths, report paths, and proof placeholders from approved requirements, Slices, or spike evidence. | Pipeline + standalone |
+| **implementation-plan** | Orchestrates a fresh planner worker to create `SPEC.md`, the lightweight registry, package Markdown, proof/report paths, and optional proof placeholders from approved requirements, Slices, or accepted empirical evidence. | Pipeline + standalone |
 | **skill-authoring** | Creates or revises compact skills with on-demand references and a mid-tier-agent followability gate. | Standalone + internal |
 | **review-plan** | Validates planned-feature artifacts, Slice coverage, package assignment, proof/report expectations, and approved deferrals before implementation. | Pipeline + standalone |
 | **implement** | Orchestrates package worktrees, package agents, proof Markdown, package verification reports, integration checkpoints, review-code, and audit handoff. | Pipeline + standalone |
 | **review-code** | Runs bounded PR, local, or planned-feature pipeline code review with dynamic risk lenses, Skeptic verification for serious findings, and governed fix verification where the mode permits fixes. | Pipeline + standalone + PR review |
 | **audit** | Final read-only planned-feature completeness gate over accepted artifacts, proof Markdown, package reports, optional review-code context, and integrated code state. | Final gate + standalone |
-| **spike-to-plan** | Runs empirical feasibility spikes before planning and routes accepted evidence into durable planning artifacts. | Planning hook |
+| **empirical-spike** | Produces a bounded caller-neutral report for one material unresolved empirical behavior; it neither implements nor chooses or invokes downstream workflows. | Standalone + conditional evidence hook |
 | **diagnose-and-fix** | Diagnoses issues evidence-first, reports findings for approval, then routes approved fixes through worktree or implementation-plan. | Standalone |
 | **testing** | Establishes or updates reusable project testing workflow docs, then routes test authoring, alteration, and execution through the approved workflow. | Standalone |
 | **perspectives** | Explores architecture or design options from multiple angles with a final skeptic synthesis. | Standalone |
@@ -239,14 +239,14 @@ Claude Code discovers packaged skills automatically. Other hosts need equivalent
 > Plan this feature
 ```
 
-A delegated planner agent writes `.tasks/<feature>/SPEC.md`, `.tasks/<feature>/tasks.json`, package Markdown, and declared proof/report paths. After plan review approval, `implement` presents an Execution Contract. Approve auto-resolve to continue through package implementation, package verification, final review-code, and final audit sibling checks, or choose step-by-step control at each gate.
+A delegated planner writes the task artifacts; after initial plan review, `implement` presents an Execution Contract. Auto-resolve covers bounded code/probes/tests, plan continuation/focused review, repairs, verification, review-code, and audit. Probe cleanup is local, manifest-bound, and non-force; continuation package worktrees are retained until final ancestry/no-unique-commit cleanup. Credentials, protected actions, semantic/risk/manual changes, target delivery, uncertainty, and three-attempt non-convergence still stop.
 
 Useful standalone prompts:
 
 ```text
 > Conceptualize this product idea before planning
 > Get perspectives on this architecture decision
-> Spike this feature assumption before planning
+> Empirically test this API assumption within a bounded disposable probe
 > Review this PR: owner/repo#42
 > Review my code
 > Audit the auth-system feature
@@ -343,7 +343,7 @@ plugins/super-developer/
 |   +-- readme-polish/
 |   |   +-- SKILL.md
 |   |   +-- references/banner-examples.md
-|   +-- spike-to-plan/SKILL.md
+|   +-- empirical-spike/SKILL.md
 |   +-- release/SKILL.md
 ```
 

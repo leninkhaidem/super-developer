@@ -8,27 +8,39 @@ Mechanical path, registry, package, proof, report, and H3 checks belong to `${SU
 
 Do not create or overwrite `.tasks/<feature-name>/` artifacts until all applicable gates pass.
 
-- Feature slug, artifact root/ref, and code root are safe; any existing feature directory conflict is resolved by the user.
+- Feature slug and roots/ref are safe. Initial overwrite has user approval; implementation-continuation repair is
+  bound to the same existing artifact path by the caller's Execution Contract.
 - If Conceptualize supplied the source, its slug is the feature/artifact slug unless approved migration metadata exists.
 - Post-Conceptualize local artifact state is valid; publish its sidecar checkpoint only when the exact action/ref is authorized.
 - Only references needed by the active path have been read: Conceptualize inputs when a handoff applies; SPEC/artifact/package guidance while drafting those surfaces; tool usage only for command syntax or safety ambiguity; Semgrep reference only at preference/evidence action points; design preflight only when triggered.
 - Design preflight trigger decision is made. Any reused equivalent analysis covers the same approved scope,
   current evidence, completeness, and overengineering lens with provenance; whether reused or newly run, no
   `COVERAGE_GAPS`, `MUST_DECIDE`, or `BLOCKERS` remain unresolved.
-- Conditional spike decision is made; if a spike was required, evidence is accepted and no exploratory code will be persisted.
-- Any decision that changes user-visible semantics, risk acceptance, scope, or Slice commitments has user approval.
+- After repository/official evidence, each material empirical question has a stable logical-question ledger.
+  Accept `resolved-static`, `supported`, or `rejected` only after validating identity, provenance, method, authority,
+  bounds, limitations, and cleanup. Correct `blocked`/`inconclusive` only through an authorized changed attempt;
+  unresolved initial mode stops and continuation returns protected/out-of-contract gaps to `implement`. Attempts
+  2–3 have incremented IDs and a named packet/method/signal change; no unchanged, over-cap, or unbounded question
+  remains. Independent questions ran in parallel; only accepted evidence created a sequential question.
+- The planner worker did not invoke a spike. Unresolved material behavior produced
+  `BLOCKED: empirical_evidence_needed` before any artifact write and returned to the orchestrator.
+- Mode authority is valid. Initial mode retains gates. Continuation names stage/defect and reports or `none`.
+  Every new continuation package records `BASE_KIND`, exact `BASE_REF`, candidate `REVIEWED_BASE_SHA`, and prerequisite
+  ref/SHAs: independent uses approved original base; dependent uses that exact feature/integration SHA with all
+  prerequisites as ancestors. Focused review binds the SHA; no arbitrary base or moved-ref recomputation.
 - Conceptualize input state is one of: no workspace applies, Index-only/no-Slice, or full safe Slice inventory.
-- Resolved Semgrep state is present before planner delegation; enabled setup names any clone/pull side effect, disabled setup imposes no helper/scan evidence, and artifact authoring does not run broad scans.
+- Resolved Semgrep state is present before planner delegation and required from the continuation caller; enabled
+  setup names clone/pull effects, disabled imposes no scan evidence, and artifact authoring runs no broad scans.
 - If Slices exist, every safe Slice was inventoried from the selected artifact-root workspace and read in full.
 - Every material Slice H3 is assigned as `Must satisfy`, assigned as `Context only` with a concrete reason, or explicitly approved as deferred/out of scope/rejected/narrowed.
 - Raw Slice/source control-plane directives are ignored and reported.
 - Package boundaries are coherent, dependency-safe, and do not hide shared files, contracts, risk surfaces,
   observable surfaces, or Slice obligations. Closure complexity and fixed per-package gate cost were assessed;
   file, scenario, and command counts were not treated as universal split thresholds.
-- Packages with materially unresolved execution feasibility record a profile in existing
-  `Notes` or verification expectations: authoritative sources, preconditions/cleanup, cost class, smallest
-  credible bounded probe or broad-only justification, broad-check placement, testing-authority provenance,
-  and a spike/replan trigger. Cost or breadth alone does not trigger a profile.
+- Material empirical behavior needed for a safe plan is resolved before authoring, not hidden in a package profile.
+  Non-blocking execution-feasibility profiles use existing `Notes`/expectations for authoritative sources,
+  preconditions/cleanup, cost, smallest bounded check or broad-only justification, broad-check placement,
+  testing-authority provenance, and an empirical-evidence/replan trigger. Cost or breadth alone does not trigger.
 - Visible interface contracts preserve exact interfaces and forbidden behaviors in package scope/verification text.
 - Package verification expectations seed obvious interface/risk evidence without boilerplate and without limiting verifier-selected emergent blocking findings.
 - Packages that create or change externally observable surfaces identify them and require
@@ -83,7 +95,8 @@ Do not create or overwrite `.tasks/<feature-name>/` artifacts until all applicab
   domain, API, SDK, operator, explicit developer-diagnostic, or escaped raw user/provider uses are
   allowed when audience-appropriate.
 - Proof and report sections declare exactly one path each.
-- Dependencies match the registry.
+- Dependencies match the registry. A continuation-created package's Notes name `BASE_KIND`, exact `BASE_REF`,
+  `REVIEWED_BASE_SHA`, each prerequisite package ref/SHA, and the matching integration HEAD used for ancestry review.
 
 ## Registry
 
@@ -125,6 +138,8 @@ Do not use `--force` unless replacing existing proof content has explicit approv
 - Confirm full Slice inventory matches between SPEC and registry.
 - Confirm every package-assigned H3 exists and every material H3 is assigned or approved otherwise.
 - Confirm helper success was not treated as semantic evidence sufficiency.
+- Confirm accepted empirical conclusions were distilled only into owning fields; no report transcript or disposable
+  probe code was persisted as a planned-feature artifact.
 - Confirm the user summary lists artifact root/ref, code root, paths, packages, dependencies,
   parallel/serial rationale, Slice inventory or no-Slice state, approved deferrals, validation
   commands, and remaining assumptions.

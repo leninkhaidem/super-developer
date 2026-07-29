@@ -1,19 +1,16 @@
 # Bugfix and Hotfix Workflow
-
-Use for diagnostic spikes, active-feature bugfixes, maintenance bugfixes, production hotfixes, and propagation.
-Boundary: isolated non-root worktrees and immutable diagnose delivery gates.
-
+Use for disposable empirical/diagnostic probes, active-feature bugfixes, maintenance bugfixes, production hotfixes,
+and propagation. Boundary: isolated non-root worktrees and immutable diagnose delivery gates.
 ## Contract
-
 - Root files/index are user-owned: never switch, edit, merge, or deliver there. Orchestration commands may run from
   `$PROJECT_ROOT` to create/remove approved non-root worktrees/refs.
-- Bugfix, hotfix, spike, source, and target refs/SHAs are explicit; never infer `main` or current branch.
-- Live containment/production mutation is outside this workflow; hand off to an owning incident procedure.
-- Creation, edits, commit, branch push, target merge, target push, and cleanup are separate gates.
+- Bugfix/hotfix/source/target refs and SHAs require exact approval. A probe requires the auto-resolve Execution
+  Contract envelope or exact current-task approval for its question, expected base/ref, path, effects, bounds, and cleanup; never infer a base.
+- Probe authority forbids stage/index writes, commit/merge/push, reset/stash/clean/force, and permits only exact
+  receipt-owned tracked/untracked/ignored/symlink/process/data changes. Live containment remains outside.
+- Creation, edits, commit, branch push, target merge, target push, and cleanup otherwise remain separate gates.
 - Run every command block in fresh Bash with `set -euo pipefail`; failed checks/merges stop later actions.
-
 ## Immutable Approval Fields
-
 ```text
 worktree_creation: base_ref=<ref>; base_sha=<sha>; branch=<ref>; path=<path>
 production_edits: scope=<paths/purpose/non-goals>
@@ -29,16 +26,12 @@ cleanup: worktree=<path>; worktree_head=<sha>; worktree_state=<checksum>;
   landing_worktree=<path|n/a>; landing_head/state=<value|n/a>;
   remote_ref=<ref|none>; expected_remote_ref_sha=<sha|absent>
 ```
-
 Recapture every binding immediately before action. Drift blocks and requires approval; no field implies another.
-
 ## Atomic Branch Publication
-
 For standard bugfix publication, approval binds `origin`, both refs=`bugfix/<name>`, source SHA, snapshot, and
 expected remote SHA or `absent`. `ls-remote` is diagnostic; the exact qualified lease is server-side CAS. A command
 error cannot mean absent. Existing remote equal to source is a no-op; any other mismatch stops/requires reapproval.
 For an existing expected SHA, prove fast-forward ancestry before CAS. Expected-absent uses an empty exact lease:
-
 ```bash
 set -euo pipefail
 SOURCE_SHA=<source-sha>
@@ -57,21 +50,29 @@ else
   git push --force-with-lease="$DEST_REF:$EXPECTED" origin "$SOURCE_SHA:$DEST_REF"
 fi
 ```
-
 Bare `--force`, unqualified `--force-with-lease`, and a lease without required ancestry proof are forbidden.
-
 ## Isolated Worktree Creation
-
-Diagnostic spike:
-
+Receipt-bound probe: auto-resolve supplies its Execution Contract envelope; a non-envelope diagnostic spike requires exact current-task approval for the same receipt paths, fields, and digest-bound external NUL manifests:
 ```bash
-set -euo pipefail
-cd "$PROJECT_ROOT"
-git worktree add .worktrees/spike-<name> -b spike/<name> <explicit-base-sha>
+set -euo pipefail; cd "$PROJECT_ROOT"
+FEATURE=<approved-feature>; QUESTION_ID=<logical-question-id>; ATTEMPT_ID=<1|2|3>
+[[ "$FEATURE" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ && "$QUESTION_ID" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]]
+[[ "$ATTEMPT_ID" =~ ^[123]$ ]]; BASE_REF=<approved-base-ref>; EXPECTED_BASE_SHA=<caller-or-contract-supplied-sha>
+case "$BASE_REF" in <allowed-or-exact-base-ref-1>|<allowed-base-ref-2>) ;; *) exit 1 ;; esac
+test "$(git rev-parse "$BASE_REF")" = "$EXPECTED_BASE_SHA"
+WT="$PROJECT_ROOT/.worktrees/$FEATURE/probe-$QUESTION_ID-a$ATTEMPT_ID"; BRANCH="probe/$FEATURE/$QUESTION_ID/a$ATTEMPT_ID"; REF="refs/heads/$BRANCH"
+test ! -e "$WT"; test ! -L "$WT"; test -z "$(git show-ref --verify --hash "$REF" 2>/dev/null || :)"
+git worktree add --no-track -b "$BRANCH" "$WT" "$EXPECTED_BASE_SHA"
+test "$(git rev-parse "$BASE_REF")" = "$EXPECTED_BASE_SHA"; test -z "$(git for-each-ref --format='%(upstream)' "$REF")"
+test -z "$(git config --get "branch.$BRANCH.remote" || :)"; test -z "$(git config --get "branch.$BRANCH.merge" || :)"; test -z "$(git config --get "branch.$BRANCH.pushRemote" || :)"
+test "$(git -C "$WT" symbolic-ref -q HEAD)" = "$REF"; test "$(git -C "$WT" rev-parse HEAD)" = "$EXPECTED_BASE_SHA"; git -C "$WT" diff --cached --quiet; git -C "$WT" diff --quiet "$EXPECTED_BASE_SHA" --
+git -C "$WT" status --porcelain=v1 -z --untracked-files=all >"$INITIAL_STATUS_NUL"; test ! -s "$INITIAL_STATUS_NUL"
+git -C "$WT" ls-files --others --ignored --exclude-standard -z >"$INITIAL_IGNORED_NUL"; test ! -s "$INITIAL_IGNORED_NUL"
+git -C "$WT" ls-files --stage -z >"$INITIAL_INDEX_NUL"; INDEX_DIGEST="$(git hash-object --no-filters "$INITIAL_INDEX_NUL")"
 ```
-
+Before probe writes, bind `BASE_REF`, supplied `EXPECTED_BASE_SHA`, full direct `REF`, clean HEAD/index/worktree,
+`INDEX_DIGEST`, canonical path, manifest digests, no tracking config, forbidden actions, and `remote_action=none`.
 Active-feature, maintenance, and production-hotfix repairs respectively:
-
 ```bash
 set -euo pipefail
 cd "$PROJECT_ROOT"
@@ -80,11 +81,10 @@ git worktree add .worktrees/bugfix-<name> -b bugfix/<name> <feature-base-sha>
 # OR: git worktree add .worktrees/hotfix-<name> -b hotfix/<name> <production-base-sha>
 ```
 
-Verify the named base ref still equals the approved SHA. Edit/commit only under their gates after complete-state
-CLEAN review. Stage reviewed manifest files only. Spikes are evidence-only and never merge.
-
+Probe edits stay uncommitted and evidence-only: never commit, merge, push, or touch unowned writes/processes/data.
+Their workflow applies bounded method/execution checks; do not production-harden, security-review, `review-code`, or
+`audit` them. For repairs, verify base ref/SHA and edit/commit only after complete-state CLEAN review.
 ## Planned Production-Hotfix Bridge
-
 When a confirmed broad/risky production repair is routed through planning, the diagnosis handoff carries its
 mechanism/evidence, behavior goal/non-goals, regression acceptance, residual risk, explicit production base
 ref/SHA, intended `hotfix/<name>`, and target ref. Planning authorization covers only that handoff; implementation
