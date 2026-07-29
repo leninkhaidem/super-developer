@@ -86,12 +86,14 @@ class EmpiricalSpikeMigrationTests(unittest.TestCase):
         }
         self.assertEqual(offenders, set())
 
-    def test_unreleased_changelog_records_breaking_rename(self) -> None:
+    def test_changelog_records_breaking_rename(self) -> None:
         changelog = (REPO_ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
-        unreleased = changelog.split("## [Unreleased]", 1)[1].split("\n## [", 1)[0]
-        self.assertIn("Breaking", unreleased)
-        self.assertIn(DEPRECATED_SKILL, unreleased)
-        self.assertIn(NEW_SKILL, unreleased)
+        matching = [
+            line for line in changelog.splitlines()
+            if DEPRECATED_SKILL in line and NEW_SKILL in line
+        ]
+        self.assertEqual(len(matching), 1)
+        self.assertIn("**Breaking:**", matching[0])
 
     def test_renamed_skill_passes_frontmatter_link_and_budget_audit(self) -> None:
         result = subprocess.run(

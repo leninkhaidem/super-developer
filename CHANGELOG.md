@@ -6,6 +6,8 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [v2.0.0] - 2026-07-29
+
 ### Changed
 - **Breaking:** Renamed the routed `spike-to-plan` skill to `empirical-spike` and made it a standalone bounded evidence producer; callers retain context under a stable logical-question ID with one initial run and at most two fresh, materially changed follow-ups (three total).
 - Changed release integration to use a temporary non-root integration branch when the protected root locks the base branch, avoiding manual root detachment while preserving exact remote-SHA push checks.
