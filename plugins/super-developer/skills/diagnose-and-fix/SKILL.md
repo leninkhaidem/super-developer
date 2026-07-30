@@ -54,16 +54,10 @@ one exhaustion fallback: if that localized repair exhausts its three attempts, r
 diagnosis to `implementation-plan` without another ask. That handoff is planning only, and planning keeps its own
 separate approval gate before anything is implemented, so it grants no implementation authority and never converts
 the authorized `localized` repair into a `broad/risky` one. Unnamed scope, delivery, or side effects remain
-unauthorized. Target merge/push and cleanup stay at their existing owning
-boundaries. Users never need to understand or approve raw SHAs, checksums, leases, or state receipts.
+unauthorized. Target merge/push and cleanup stay at their existing owning boundaries.
 
-The orchestrator derives mandatory internal receipts at action time from the `worktree` and review contracts:
-authorized paths, non-root worktree/base/ref identity, reviewed state, exact commit/push/merge bindings, expected
-remote state, cleanup proofs, and authorized diagnostic side effects. Revalidate every binding immediately before
-its action. Orchestrator-owned progress within the authorized semantic action may bind/rebind without another user
-approval; unexpected/external drift, conflict, scope/risk change, or failed preconditions stop for a human decision.
-Never silently absorb drift. Keep receipts internal unless requested, needed for audit/debug, or required to explain
-a blocker. Existing exact leases, ancestry checks, and separate target-merge/target-push bindings remain mandatory.
+Internal receipts are orchestrator-owned mechanics, never a user-facing ask: apply
+`references/orchestration-mechanics.md` in full at every binding, revalidation, and delivery action point.
 Approval of an `implementation-plan` route authorizes only the diagnosis handoff and planning; the later Execution
 Contract and delivery gates separately own implementation, source/sidecar publication, target merge/push, and release.
 
@@ -72,73 +66,49 @@ Contract and delivery gates separately own implementation, source/sidecar public
 1. Record symptom, expected/observed behavior, surface, explicit context/base, environment, and supplied evidence.
 2. Inspect repository status, files, history, tests, and docs read-only. Do not mutate files, create refs/worktrees,
    access the network, start services, or use credentials.
-3. Before nontrivial repro, test, harness, or service commands, load `../../references/tool-usage.md` and
-   resolve testing authority. Use accepted/current `docs/testing/workflow.md` for high-risk/reusable work,
-   routine-safe fallback for one clearly bounded local command, or task-local Testing Authorization for an exact
-   focused approval, which the Fix Authorization may supply up front for its named commands. Missing workflow alone
-   does not block read-only diagnosis or static analysis. Resolve authority; never fabricate it. If authority is
-   insufficient, invoke `testing` or stop with `blocked`/`not-run`; never report not-run work as passed.
+3. Before nontrivial repro, test, harness, or service commands, load `../../references/tool-usage.md` and resolve
+   testing authority through the authority ladder and stop rules in `references/orchestration-mechanics.md`.
+   Missing workflow alone does not block read-only diagnosis or static analysis.
 4. Ask exact approval before instrumentation, validation writes, unsafe commands, credentials, network, service
    use, or any task-local Testing Authorization the Fix Authorization did not already name. Put approved diagnostic
    spikes in a throwaway `worktree`; never promote their history.
 5. Reproduce and minimize the failure. Record bounded commands/outcomes. Test falsifiable causes until evidence
    confirms one mechanism or a named blocker prevents confirmation.
-6. Present the structured diagnosis report before production edits:
-   - symptom and status: `reproduced`, `not reproduced`, `deterministic failing test`, or `blocked`;
-   - evidence with commands/outcomes and files/symbols, or unavailable evidence;
-   - confirmed root cause and proof, or exact confirmation blocker;
-   - blast radius and `localized` versus `broad/risky` classification;
-   - exactly one recommended route: stop/missing-info, named diagnostic spike, localized isolated fix, or
-     `implementation-plan`, with rationale;
-   - minimal strategy, non-goals, regression/spec test, verification, and residual risk;
-   - proposed human-readable Fix Authorization for the selected route.
+6. Present the structured diagnosis report before production edits, using every field that
+   `references/orchestration-mechanics.md` lists for it, in that order and omitting none.
 7. Ask once for Fix Authorization. Unspecified or altered semantic actions remain unauthorized.
-8. For an approved localized fix, select one route and invoke `worktree` for approved setup:
-   - active-feature: `bugfix/<name>` from explicit `feature/<feature>`;
-   - maintenance: `bugfix/<name>` from an explicit maintenance base name;
-   - production hotfix: `hotfix/<name>` from an explicit production base name, without live containment.
-   Creation, commit, branch push, target merge, target push, and cleanup retain separate internal bindings. Never
+8. For an approved localized fix, select one isolated route, bind it and every later delivery action through
+   `references/orchestration-mechanics.md`, and invoke `worktree` for approved setup. Never
    use root as the repair or delivery checkout.
-9. From the approved target worktree, resolve `implement` through `../../references/model-preferences.md` before
-   binding state. If `.superdeveloper/preferences.yml` is missing, display the shared contract's gitignored local
-   creation; a Fix Authorization that named that exceptional write covers it, and otherwise ask before creating it
-   there; never create it in root or silently. Then bind HEAD and committed/staged/unstaged/untracked
-   manifests/checksums. Untracked records include file type, Git/index-compatible mode, symlink target, and content
-   digest or binary provenance. Dispatch with the `references/fix-implementer-contract.md`, and that path.
-   Do not implement substantive edits inline.
-10. Validate the report against packet, contract, starting binding, and actual worktree. Reject drift, out-of-scope
-    paths, forbidden actions, missing regression evidence, incomplete outcomes, or unreported residuals. Route
+9. From the approved target worktree, complete that reference's worker-dispatch prerequisites in order: resolve
+   `implement` through `../../references/model-preferences.md`, settle any missing
+   `.superdeveloper/preferences.yml`, and bind the complete starting state. Dispatch with the packet,
+   `references/fix-implementer-contract.md`, and that path. Do not implement substantive edits inline.
+10. Validate the returned report and the actual worktree against `references/orchestration-mechanics.md`. Route
     expansion back to diagnosis and broad/risky work to `implementation-plan`; never expand authority implicitly.
-11. Bind post-fix `review-code` to exact base/HEAD/ref/worktree and every category snapshot/checksum, including
-    untracked type, mode, symlink target, and digest/binary provenance. Never omit metadata or a category.
+11. Bind post-fix `review-code` to the complete state receipt `references/orchestration-mechanics.md` requires.
 12. Invoke `review-code` with that binding plus `repair_owner=diagnose-and-fix` and
-    `repair_contract_path=references/fix-implementer-contract.md`. Review findings use review-code’s action gate.
-    On explicit `fix`, accept the confirmed repair packet/action back; then this parent dispatches a fresh worker
-    under its contract, validates it, rebinds the complete state, and reruns review. Initial approval never repairs.
+    `repair_contract_path=references/fix-implementer-contract.md`, handling findings and any accepted `fix` exactly
+    as that reference's review section requires.
     One confirmed mechanism gets at most three total repair attempts. Attempt 1 is the initial fix; attempts 2 and 3
     must each name a material delta in mechanism, evidence, or strategy. Never retry unchanged and never exceed three
     total attempts. On exhaustion, do step 15, then re-diagnose and hand the confirmed diagnosis to
     `implementation-plan` under that fallback — at most one such escalation per confirmed mechanism, and a
     relabeled mechanism earns no second one. If the same mechanism exhausts three attempts again, stop for the
     user. Never halt silently.
-13. Commit only under the exact internal `commit` receipt, CLEAN unchanged snapshot, passing verification, and
-    reviewed-only staging. For each authorized delivery action invoke `worktree` and revalidate its binding.
-    After target merge, capture its result SHA before deriving `target_push`; merge never pushes by itself.
+13. Commit and deliver only under the delivery bindings in `references/orchestration-mechanics.md`, invoking
+    `worktree` for each authorized delivery action.
 14. Return observed facts and next boundary. Preserve useful fixtures; clean only approved throwaway artifacts.
-15. On attempt exhaustion, or on any stop once the fix loop has begun, do not return empty-handed. Write durably only
-    after confirming the destination is the authorized non-root bugfix worktree, that write authority for it exists,
-    and that the write cannot overwrite or obscure user changes. When that holds, preserve the deterministic
-    reproducing test, if one was produced, in the repository's normal test location, and a short written diagnosis as
-    `DIAGNOSIS-<mechanism-id>-<event-ordinal>.md` at that worktree's root, naming the confirmed mechanism or the exact
-    blocker plus the attempts made. The ordinal counts this stop event for that mechanism, so a second exhaustion of
-    the same mechanism gets a new file; never overwrite, edit, or delete an existing diagnosis file. Land them only at
-    the delivery level already authorized: under `local only` leave them in that worktree and report their paths;
-    commit them on the bugfix branch only when the authorization covers a commit. This adds no new approval gate, and
-    never pushes or merges. If any of those checks fails, write nothing and instead return the same diagnosis,
-    attempts, and blocker in the response, saying why the durable write was skipped.
+15. On attempt exhaustion, or on any stop once the fix loop has begun, do not return empty-handed: preserve the
+    deterministic reproducing test, if one was produced, and a short written diagnosis naming the confirmed mechanism
+    or the exact blocker plus the attempts made. Apply the durable-evidence safety preconditions, file naming and
+    never-overwrite rule, and authorized-delivery-level limits in `references/orchestration-mechanics.md`, which
+    also states what to return in the response instead when a durable write is unsafe.
 
 ## Load if needed
 
+- Command/testing authority, any state binding or revalidation, receipt reporting, worker or review dispatch,
+  delivery, or durable evidence on exhaustion or a post-fix-loop stop → `references/orchestration-mechanics.md`.
 - Localized implementation or review repair → pass `references/fix-implementer-contract.md` to a fresh worker.
 - Nontrivial repro/test/harness/service command → `../../references/tool-usage.md` and testing authority.
 - Worktree/ref creation, push, merge, or cleanup → invoke `worktree`.
