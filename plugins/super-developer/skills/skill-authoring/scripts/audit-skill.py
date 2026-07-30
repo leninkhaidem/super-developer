@@ -1,13 +1,16 @@
 #!/usr/bin/env python3
-"""Audit skill prompt structure, hard line caps, and local reference links.
+"""Audit skill prompt structure, complexity budgets, and local reference links.
 
 Usage:
   audit-skill.py path/to/skills/<skill-name>
   audit-skill.py --strict path/to/skills/<skill-name>/SKILL.md
 
 The audit always fails invalid frontmatter, broken local links, hidden Markdown-reference hops,
-and hard line-cap violations. Word-count targets remain warnings. ``--strict`` is accepted as a
-backward-compatible no-op because line caps are always enforced.
+and hard budget violations (words and a loose line backstop). Word *targets* and long-line
+density remain warnings. ``--strict`` is accepted as a backward-compatible no-op because
+budgets are always enforced.
+
+Words, not lines, are the enforced complexity ceiling. See the constants below for why.
 """
 
 from __future__ import annotations
@@ -22,10 +25,21 @@ from pathlib import Path
 from urllib.parse import unquote
 
 LONG_LINE_LIMIT = 120
-SKILL_LINE_MAX = 150
-REF_LINE_MAX = 150
-SKILL_WORD_TARGET = (600, 1200)
-REF_WORD_TARGET = (300, 900)
+
+# Line caps are a loose *formatting* backstop, not the complexity budget. A tight line cap
+# is gameable and actively harmful: prose compressed into fewer, denser lines passes it,
+# so the cap ends up rewarding the unreadable density it was meant to prevent. Keep these
+# generous enough that plain, readable prose never has to be compressed to fit.
+SKILL_LINE_MAX = 220
+REF_LINE_MAX = 220
+
+# Words are the real complexity ceiling: line-wrapping invariant, so unlike a line cap this
+# cannot be satisfied by reflowing the same obligations into denser text. Adding meaningful
+# new behaviour to a prompt must cost budget; reformatting it for clarity must not.
+SKILL_WORD_MAX = 1800
+REF_WORD_MAX = 1800
+SKILL_WORD_TARGET = (600, 1500)
+REF_WORD_TARGET = (300, 1200)
 DESCRIPTION_CHAR_MAX = 280
 DESCRIPTION_CONTENT_LINE_TARGET = 3
 
@@ -388,6 +402,11 @@ def audit(skill_dir: Path, *, strict: bool = False) -> int:
     print_metric("SKILL", skill_metrics)
     if skill_metrics.lines > SKILL_LINE_MAX:
         line_cap_errors.append(f"{skill_file}: SKILL.md exceeds hard cap of {SKILL_LINE_MAX} lines")
+    if skill_metrics.words > SKILL_WORD_MAX:
+        line_cap_errors.append(
+            f"{skill_file}: SKILL.md exceeds hard budget of {SKILL_WORD_MAX} words "
+            f"({skill_metrics.words}); remove obligations rather than compressing prose"
+        )
     if not (SKILL_WORD_TARGET[0] <= skill_metrics.words <= SKILL_WORD_TARGET[1]):
         warnings.append(f"{skill_file}: words outside target {SKILL_WORD_TARGET[0]}-{SKILL_WORD_TARGET[1]}")
     if skill_metrics.long_lines:
@@ -401,6 +420,11 @@ def audit(skill_dir: Path, *, strict: bool = False) -> int:
         total_ref_chars += item.chars
         if item.lines > REF_LINE_MAX:
             line_cap_errors.append(f"{item.path}: reference exceeds hard cap of {REF_LINE_MAX} lines")
+        if item.words > REF_WORD_MAX:
+            line_cap_errors.append(
+                f"{item.path}: reference exceeds hard budget of {REF_WORD_MAX} words "
+                f"({item.words}); remove obligations rather than compressing prose"
+            )
         if not (REF_WORD_TARGET[0] <= item.words <= REF_WORD_TARGET[1]):
             warnings.append(f"{item.path}: words outside target {REF_WORD_TARGET[0]}-{REF_WORD_TARGET[1]}")
         if item.long_lines:
@@ -464,7 +488,7 @@ def main(argv: list[str]) -> int:
     parser.add_argument(
         "--strict",
         action="store_true",
-        help="backward-compatible no-op; hard line caps are always enforced and word targets only warn",
+        help="backward-compatible no-op; hard word/line budgets are always enforced and word targets only warn",
     )
     args = parser.parse_args(argv)
     return audit(find_skill_dir(args.path), strict=args.strict)

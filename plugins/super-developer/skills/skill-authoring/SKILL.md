@@ -13,9 +13,14 @@ action point, and a competent mid-tier agent can follow the result without hidde
 ## Budgets
 
 - Frontmatter `description`: target 1–3 short content lines; hard maximum 280 folded characters.
-- `SKILL.md`: target 80–140 normal-width lines, hard maximum 150, target 600–1,200 words.
-- References: target 60–130 normal-width lines, hard maximum 150, target 300–900 words.
+- Words are the enforced complexity ceiling, not lines. A line cap is gameable — the same
+  obligations reflowed into denser text still pass it — so tight line caps end up rewarding the
+  unreadable density they were meant to prevent. Reformatting for clarity must always be free.
+- `SKILL.md`: hard maximum 1,800 words, target 600–1,500; loose line backstop 220.
+- References: hard maximum 1,800 words, target 300–1,200; loose line backstop 220.
 - Keep lines at or below 120 characters where practical; never pack prose to satisfy a line budget.
+- Spend the word budget on obligations, not phrasing. When a prompt nears its ceiling, remove or
+  extract obligations; never compress prose to fit.
 - Exceed a target only when concrete safety or workflow value justifies it; never exceed a hard maximum.
 
 ## Canonical Shape
