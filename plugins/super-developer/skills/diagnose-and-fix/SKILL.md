@@ -19,8 +19,13 @@ a fresh Fix Implementer edits under the passed contract.
   the exact artifact, access, command, or risk acceptance needed; do not substitute “likely.”
 - Keep root checkout files/index user-owned: never switch it, edit it, merge there, or use it for delivery.
   Orchestration may run from `$PROJECT_ROOT` to manage approved non-root worktrees/refs through `worktree`.
-- Keep repairs minimal. Route cross-module/service, contract, schema, security, data, concurrency, performance,
-  dependency, or otherwise broad/risky change through `implementation-plan`.
+- Keep repairs minimal. Classify a repair by cost, not by category. A repair is `localized` only when both (i) the
+  mechanism is confirmed by evidence, ideally a deterministic failing test, and (ii) the change is bounded and
+  cheaply reversible. Check (i) and (ii) separately and require both; neither one alone is enough. When both hold,
+  fix and review it here whatever subsystem or category it touches.
+- A repair is `broad/risky`, and therefore goes through `implementation-plan`, only when one of these holds: the
+  mechanism is unconfirmed and the fix requires choosing between viable designs; the change is hard to reverse,
+  such as a schema or data migration or a published contract or API; or the blast radius cannot be bounded.
 - `implementation-plan` may plan approved changes to existing systems. “Fresh” describes its Slice-first
   planned-feature artifacts, not a new-code-only or new-system restriction. For a broad/risky production repair,
   preserve the confirmed diagnosis and explicit production-base/hotfix/target delivery context; do not silently
@@ -38,10 +43,13 @@ Ask for one compact, human-readable Fix Authorization:
 
 - approved paths and behavior goal, with explicit non-goals;
 - isolated route plus human branch/base names;
-- delivery: `local only`, `commit reviewed fix`, or `commit and push reviewed branch`; and
-- exceptional side effects such as diagnostic writes, network, credentials, or service use.
+- delivery: `local only`, `commit reviewed fix`, or `commit and push reviewed branch`;
+- exceptional side effects such as diagnostic writes, network, credentials, or service use; and
+- the routine enabling steps this repair needs: testing authority for the named bounded repro/verification
+  commands, and gitignored local creation of `.superdeveloper/preferences.yml` when it is missing.
 
-One response may authorize the displayed localized route through the selected branch delivery. Unnamed scope,
+One response may authorize the displayed localized route through the selected branch delivery, including the
+testing authority and the `preferences.yml` creation it names, so neither becomes a separate ask. Unnamed scope,
 delivery, or side effects remain unauthorized. Target merge/push and cleanup stay at their existing owning
 boundaries. Users never need to understand or approve raw SHAs, checksums, leases, or state receipts.
 
@@ -63,11 +71,12 @@ Contract and delivery gates separately own implementation, source/sidecar public
 3. Before nontrivial repro, test, harness, or service commands, load `../../references/tool-usage.md` and
    resolve testing authority. Use accepted/current `docs/testing/workflow.md` for high-risk/reusable work,
    routine-safe fallback for one clearly bounded local command, or task-local Testing Authorization for an exact
-   focused approval. Missing workflow alone does not block read-only diagnosis or static analysis. If authority is
+   focused approval, which the Fix Authorization may supply up front for its named commands. Missing workflow alone
+   does not block read-only diagnosis or static analysis. Resolve authority; never fabricate it. If authority is
    insufficient, invoke `testing` or stop with `blocked`/`not-run`; never report not-run work as passed.
 4. Ask exact approval before instrumentation, validation writes, unsafe commands, credentials, network, service
-   use, or task-local Testing Authorization. Put approved diagnostic spikes in a throwaway `worktree`; never
-   promote their history.
+   use, or any task-local Testing Authorization the Fix Authorization did not already name. Put approved diagnostic
+   spikes in a throwaway `worktree`; never promote their history.
 5. Reproduce and minimize the failure. Record bounded commands/outcomes. Test falsifiable causes until evidence
    confirms one mechanism or a named blocker prevents confirmation.
 6. Present the structured diagnosis report before production edits:
@@ -88,10 +97,11 @@ Contract and delivery gates separately own implementation, source/sidecar public
    use root as the repair or delivery checkout.
 9. From the approved target worktree, resolve `implement` through `../../references/model-preferences.md` before
    binding state. If `.superdeveloper/preferences.yml` is missing, display the shared contract's gitignored local
-   creation and require authorization for that exceptional write before creating it there; never create it in root
-   or silently. Then bind HEAD and committed/staged/unstaged/untracked manifests/checksums. Untracked records include
-   file type, Git/index-compatible mode, symlink target, and content digest or binary provenance. Dispatch with the
-   `references/fix-implementer-contract.md`, and that path. Do not implement substantive edits inline.
+   creation; a Fix Authorization that named that exceptional write covers it, and otherwise ask before creating it
+   there; never create it in root or silently. Then bind HEAD and committed/staged/unstaged/untracked
+   manifests/checksums. Untracked records include file type, Git/index-compatible mode, symlink target, and content
+   digest or binary provenance. Dispatch with the `references/fix-implementer-contract.md`, and that path.
+   Do not implement substantive edits inline.
 10. Validate the report against packet, contract, starting binding, and actual worktree. Reject drift, out-of-scope
     paths, forbidden actions, missing regression evidence, incomplete outcomes, or unreported residuals. Route
     expansion back to diagnosis and broad/risky work to `implementation-plan`; never expand authority implicitly.
@@ -101,10 +111,19 @@ Contract and delivery gates separately own implementation, source/sidecar public
     `repair_contract_path=references/fix-implementer-contract.md`. Review findings use review-code’s action gate.
     On explicit `fix`, accept the confirmed repair packet/action back; then this parent dispatches a fresh worker
     under its contract, validates it, rebinds the complete state, and reruns review. Initial approval never repairs.
+    One confirmed mechanism gets at most three total repair attempts. Attempt 1 is the initial fix; attempts 2 and 3
+    must each name a material delta in mechanism, evidence, or strategy. Never retry unchanged and never exceed three
+    total attempts. On exhaustion, do step 15 and stop; do not halt silently.
 13. Commit only under the exact internal `commit` receipt, CLEAN unchanged snapshot, passing verification, and
     reviewed-only staging. For each authorized delivery action invoke `worktree` and revalidate its binding.
     After target merge, capture its result SHA before deriving `target_push`; merge never pushes by itself.
 14. Return observed facts and next boundary. Preserve useful fixtures; clean only approved throwaway artifacts.
+15. On attempt exhaustion, or on any stop once the fix loop has begun, do not return empty-handed. In the authorized
+    non-root worktree preserve the deterministic reproducing test, if one was produced, and a short written
+    diagnosis naming the confirmed mechanism or the exact blocker plus the attempts made. Land them only at the
+    delivery level already authorized: under `local only` leave them in that worktree and report their paths; commit
+    them on the bugfix branch only when the authorization covers a commit. This adds no new approval gate, and never
+    pushes or merges.
 
 ## Load if needed
 
@@ -129,4 +148,5 @@ Contract and delivery gates separately own implementation, source/sidecar public
 ## Output
 
 Return a concise diagnosis, Fix Authorization consumed, changed files, verification/review, delivery/cleanup,
-risks, and next boundary. Include the internal receipt only on request or to explain audit/debug/drift/blockers.
+risks, and next boundary. On a stop after the fix loop began, also report the preserved repro/diagnosis paths.
+Include the internal receipt only on request or to explain audit/debug/drift/blockers.

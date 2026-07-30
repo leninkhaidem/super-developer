@@ -137,6 +137,9 @@ Loop map: dispatch package waves → verify each against its Acceptance Checklis
 - **Non-convergence** — a logical question or coherent plan/code finding cluster exhausted 3 total materially
   changed attempts, or distinct material questions cannot be bounded.
 
+When stopping at a Stop-if boundary or an exhausted circuit, record durable stop evidence on disk — what was
+attempted, the blocker, and where the work sits — rather than reporting it only in chat.
+
 Everything else — in-contract empirical follow-ups, same-requirement replan/re-review, routine test failures,
 repairs, reruns, verification, and integration — is handled silently. Advisory findings are never a stop.
 
