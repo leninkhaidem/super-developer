@@ -20,19 +20,6 @@ after loading the parent-supplied tool-usage contract:
 Resolve authority; never fabricate it. If authority is insufficient, invoke `testing` or stop with
 `blocked`/`not-run`; never report not-run work as passed.
 
-## Diagnosis report fields
-
-Present these fields, in this order, before any production edit:
-
-- symptom and status: `reproduced`, `not reproduced`, `deterministic failing test`, or `blocked`;
-- evidence with commands/outcomes and files/symbols, or unavailable evidence;
-- confirmed root cause and proof, or exact confirmation blocker;
-- blast radius and `localized` versus `broad/risky` classification;
-- exactly one recommended route: stop/missing-info, named diagnostic spike, localized isolated fix, or
-  `implementation-plan`, with rationale;
-- minimal strategy, non-goals, regression/spec test, verification, and residual risk;
-- proposed human-readable Fix Authorization for the selected route.
-
 ## Internal receipts
 
 Users never need to understand or approve raw SHAs, checksums, leases, or state receipts. The orchestrator derives

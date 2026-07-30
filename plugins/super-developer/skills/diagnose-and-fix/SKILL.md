@@ -74,22 +74,30 @@ Contract and delivery gates separately own implementation, source/sidecar public
    spikes in a throwaway `worktree`; never promote their history.
 5. Reproduce and minimize the failure. Record bounded commands/outcomes. Test falsifiable causes until evidence
    confirms one mechanism or a named blocker prevents confirmation.
-6. Present the structured diagnosis report before production edits, using every field that
-   `references/orchestration-mechanics.md` lists for it, in that order and omitting none.
+6. Present the structured diagnosis report before production edits:
+   - symptom and status: `reproduced`, `not reproduced`, `deterministic failing test`, or `blocked`;
+   - evidence with commands/outcomes and files/symbols, or unavailable evidence;
+   - confirmed root cause and proof, or exact confirmation blocker;
+   - blast radius and `localized` versus `broad/risky` classification;
+   - exactly one recommended route: stop/missing-info, named diagnostic spike, localized isolated fix, or
+     `implementation-plan`, with rationale;
+   - minimal strategy, non-goals, regression/spec test, verification, and residual risk;
+   - proposed human-readable Fix Authorization for the selected route.
 7. Ask once for Fix Authorization. Unspecified or altered semantic actions remain unauthorized.
 8. For an approved localized fix, select one isolated route, bind it and every later delivery action through
    `references/orchestration-mechanics.md`, and invoke `worktree` for approved setup. Never
    use root as the repair or delivery checkout.
-9. From the approved target worktree, complete that reference's worker-dispatch prerequisites in order: resolve
-   `implement` through `../../references/model-preferences.md`, settle any missing
-   `.superdeveloper/preferences.yml`, and bind the complete starting state. Dispatch with the packet,
-   `references/fix-implementer-contract.md`, and that path. Do not implement substantive edits inline.
+9. From the approved target worktree, complete the worker-dispatch prerequisites in
+   `references/orchestration-mechanics.md` in order: resolve `implement` through
+   `../../references/model-preferences.md`, settle any missing `.superdeveloper/preferences.yml`, and bind the
+   complete starting state. Dispatch with the packet, `references/fix-implementer-contract.md`, and that path. Do not
+   implement substantive edits inline.
 10. Validate the returned report and the actual worktree against `references/orchestration-mechanics.md`. Route
     expansion back to diagnosis and broad/risky work to `implementation-plan`; never expand authority implicitly.
 11. Bind post-fix `review-code` to the complete state receipt `references/orchestration-mechanics.md` requires.
 12. Invoke `review-code` with that binding plus `repair_owner=diagnose-and-fix` and
     `repair_contract_path=references/fix-implementer-contract.md`, handling findings and any accepted `fix` exactly
-    as that reference's review section requires.
+    as the review section of `references/orchestration-mechanics.md` requires.
     One confirmed mechanism gets at most three total repair attempts. Attempt 1 is the initial fix; attempts 2 and 3
     must each name a material delta in mechanism, evidence, or strategy. Never retry unchanged and never exceed three
     total attempts. On exhaustion, do step 15, then re-diagnose and hand the confirmed diagnosis to
