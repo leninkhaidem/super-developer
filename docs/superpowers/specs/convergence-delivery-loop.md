@@ -10,9 +10,25 @@ Delivered by commits `654023b` (cost-based routing, bounded repair loop, deliver
 `e8beb31` (stop-evidence obligation reachable from every stop), and `a37cd8d` (escalate once on
 exhaustion, artifact-path conventions).
 
-Reading caveat: the fenced blocks in §2 are the **proposal's** draft wording. The delivered wording
-lives in the tree and differs in detail; where a detail matters it is quoted verbatim in §2.4, §2.5,
-or §11.
+## ⚠ READ THIS BEFORE QUOTING ANYTHING BELOW
+
+1. **Line numbers in §§1–5 and §§7–10 are pre-change *baseline* numbers** (tree `23e3e52`), not
+   delivered ones. They have all shifted — `diagnose-and-fix/SKILL.md` went 132 → 162 lines, so a
+   citation like `:97` is off by roughly +13 lines and the later ones by more. **Never cite a `:NN`
+   from those sections as the current location of anything; the tree is the authority.** The one
+   exceptions are §6's verification greps and the citations in §§11–12, which were re-measured
+   against the delivered tree and state delivered line numbers.
+2. **Every fenced block in §2 is the proposal's DRAFT wording, and none of it is what shipped.** The
+   delivered clauses differ in detail, in some places substantially. Do not quote, review, or
+   implement against a fenced block. The authoritative delivered text lives only in
+   `plugins/super-developer/skills/diagnose-and-fix/SKILL.md`,
+   `plugins/super-developer/skills/diagnose-and-fix/references/fix-implementer-contract.md`, and
+   `plugins/super-developer/skills/implement/SKILL.md`. Where a delivered detail matters it is quoted
+   verbatim in §2.4, §2.5, or §11.
+3. **This document deliberately keeps the record of its own wrong claims.** A passage marked
+   **DELIVERED / CORRECTED** supersedes the text above it, and a paragraph marked **FALSE** is
+   preserved as evidence of an error, not as an assertion. Read the correction before acting on
+   anything near it.
 
 ## Recommendation up front
 
@@ -131,15 +147,26 @@ Add step 15 to `skills/diagnose-and-fix/SKILL.md` (after current step 14):
     Escalation changes method, never authority; never merge, push, or act outside the authorization to deliver it.
 ```
 
-**No new exhaustion trigger is needed.** `diagnose-and-fix:100-103` (step 12) invokes
-`review-code`, whose Stop-if already reads *"A blocking seam finding will not converge
-within 3 attempts."* (`skills/review-code/SKILL.md:143`, echoed at
-`references/pipeline-report.md:66`). The existing numeric cap already bounds the
-`diagnose-and-fix` repair loop. Step 15 only changes **what happens on expiry**, from
-"stop" to "deliver, then stop".
+**The block above is DRAFT wording and is not what shipped.** Delivered step 15 fixes the artifact
+paths (§11 q2), is reachable from every stop after the fix loop begins, and does **not** contain the
+sentence "Escalation changes method, never authority" — that clause shipped in
+`skills/implement/SKILL.md` instead (see §6 row 20). Read the delivered step 15 in
+`plugins/super-developer/skills/diagnose-and-fix/SKILL.md`; do not review against the draft.
 
-**DELIVERED / CORRECTED (D2) — the paragraph above was this spec's blocking error B1. It is false.**
-The `diagnose-and-fix` repair loop was genuinely **unbounded**, for three independent reasons:
+**FALSE — blocking error B1. The paragraph below is the proposal's claim, kept verbatim only as the
+record of the error. Its conclusion and its central premise are both wrong (only its first clause,
+that step 12 invokes `review-code`, is true). Do not act on it; the correction follows immediately.**
+
+> **No new exhaustion trigger is needed.** `diagnose-and-fix:100-103` (step 12) invokes
+> `review-code`, whose Stop-if already reads *"A blocking seam finding will not converge
+> within 3 attempts."* (`skills/review-code/SKILL.md:143`, echoed at
+> `references/pipeline-report.md:66`). The existing numeric cap already bounds the
+> `diagnose-and-fix` repair loop. Step 15 only changes **what happens on expiry**, from
+> "stop" to "deliver, then stop".
+
+**DELIVERED / CORRECTED (D2) — why the quoted claim is false.** `review-code/SKILL.md:143` does
+**not** govern the `diagnose-and-fix` repair loop, and before this change that loop was genuinely
+**unbounded**, for three independent reasons:
 
 - `:143` speaks of a **seam** finding — pipeline-mode vocabulary. `diagnose-and-fix` step 12 passes
   no pipeline context and no PR identifier, so `review-code` selects **local** mode
@@ -165,7 +192,7 @@ then stop" (§2.5).
 
 | Rung | Where it lives | Action |
 |---|---|---|
-| 1. Localized fix/review loop | `diagnose-and-fix:83-103` steps 8–12, bounded by `review-code/SKILL.md:143` | keep as-is |
+| 1. Localized fix/review loop | `diagnose-and-fix:83-103` steps 8–12 — **CORRECTED: unbounded.** The proposal claimed `review-code/SKILL.md:143` bounded it; that is false (see §2.2, B1), because `diagnose-and-fix` invokes `review-code` in **local** mode and `references/local-workflow.md` states no cap | **changed:** an explicit three-attempt cap now lives in `diagnose-and-fix` step 12 itself |
 | 2. Escalate to `implementation-plan` | `diagnose-and-fix:97` (validation) and `:114-115` (Load if needed) | keep as-is |
 | 3. Land repro test + written diagnosis + named blocker | **does not exist** | add (§2.2) |
 
@@ -177,7 +204,13 @@ route (re-diagnose, then route) preserves the authority boundary and costs nothi
 **DELIVERED / CORRECTED:** rung 2 **is** now reached automatically on exhaustion, in both skills. The
 hazard named above is real and was not dismissed — it is resolved by separating *method* from
 *authority*, which is exactly what §2.5 sets out. Read §2.5 as superseding the "keep as-is" verdict
-for rung 2 in the table above, and nothing else in this section.
+for rung 2 in the table above.
+
+**Two of the three rungs in that table were also stated wrongly, so treat none of it as verified
+without checking the tree:** rung 1 was **not** "bounded by `review-code/SKILL.md:143`" and was not
+kept as-is — it was unbounded and received an explicit three-attempt cap (§2.2 correction, §12 item
+1); rung 2 is now reached automatically on exhaustion rather than "kept as-is". Only rung 3's verdict
+("does not exist — add") stood.
 
 ### 2.4 Right-size clause in the fix implementer contract (DELIVERED — absent from the proposal)
 
@@ -347,9 +380,9 @@ confirm nothing was quietly left inconsistent (the failure mode of reverted comm
 | 10 | `skills/review-plan/SKILL.md:68` | "method, or signal at attempts 2–3" | keep |
 | 11 | `skills/review-plan/SKILL.md:102` | "A logical question reaches attempt 3 without accepted evidence" | keep |
 | 12 | `skills/review-code/references/pipeline-report.md:52` | "preserve logical identity through the three-attempt cap" | keep |
-| 13 | `skills/review-code/references/pipeline-report.md:66` | "a blocking seam finding that will not converge within 3 attempts" | keep — **this is the exhaustion trigger §2.2 reuses** |
+| 13 | `skills/review-code/references/pipeline-report.md:66` | "a blocking seam finding that will not converge within 3 attempts" | keep — **CORRECTED: this is *not* an exhaustion trigger for `diagnose-and-fix`.** It is pipeline-mode only; nothing reuses it here (§2.2, B1) |
 | 14 | `skills/review-code/SKILL.md:126` | "preserve logical cluster identity and the three-attempt cap" | keep |
-| 15 | `skills/review-code/SKILL.md:143` | "A blocking seam finding will not converge within 3 attempts." | keep — **trigger reused by §2.2** |
+| 15 | `skills/review-code/SKILL.md:143` | "A blocking seam finding will not converge within 3 attempts." | keep — **CORRECTED: not reused by §2.2, and it never bounded the `diagnose-and-fix` loop.** It is in `review-code`'s pipeline-mode Stop-if; `diagnose-and-fix` selects local mode (`review-code/SKILL.md:26`), and it would bound only `review-code`'s own loop in any case. The cap that actually bounds `diagnose-and-fix` is the new one in its step 12 |
 | 16 | `skills/implementation-plan/references/validation-checklist.md:23` | "no unchanged, over-cap, or unbounded question" | keep |
 | 17 | `skills/implementation-plan/SKILL.md:31` | "incremented attempt IDs 2–3, and a named corrected packet" | keep |
 | 18 | `skills/implementation-plan/SKILL.md:32` | "three total attempts or continually emerging/unbounded questions are non-convergence" | keep |
@@ -383,7 +416,20 @@ confirm nothing was quietly left inconsistent (the failure mode of reverted comm
 | `:65-66` (step 3) | "or task-local Testing Authorization for an exact focused approval" | **append ≈9 words**: the Fix Authorization may supply it up front. Every other clause of step 3 unchanged. |
 | `:90-92` (step 9) | "require authorization for that exceptional write before creating it there; never create it in root or silently" | **narrow edit**: accept the Fix Authorization's named coverage in place of a second ask. "never create it in root or silently" stays verbatim. |
 | after `:107` (new step 15) | — | **add** the deliver-on-exhaustion step (§2.2) |
-| `:118-127` (Stop if) | (whole block) | **keep as-is.** Step 15 runs *before* the stop; the stop conditions themselves do not loosen. |
+| `:118-127` (Stop if) | (whole block) | **keep as-is.** Step 15 runs *before* the stop; the stop conditions themselves do not loosen. **DELIVERED / CORRECTED:** every stop *bullet* is indeed byte-identical, but a sentence was appended after the block — delivered `:156`, "Any stop reached after the fix loop has begun still performs step 15 before returning." — and `## Output` gained one sentence at delivered `:161`. So the section is unchanged; the file around it is not. |
+
+**DELIVERED / CORRECTED — the map above missed four real edits to the same file.** Baseline `:NN` /
+delivered `:NN` both given, measured by diffing `23e3e52` against the delivered tree:
+
+| baseline → delivered | what changed | why |
+|---|---|---|
+| `:66-67` → `:79` (step 3) | **added** the sentence "Resolve authority; never fabricate it." | not in the proposal; makes the step's authority rule explicit rather than implied by the fallbacks that follow |
+| `:68-70` → `:81-83` (step 4) | **narrowed:** "or task-local Testing Authorization" → "or **any** task-local Testing Authorization **the Fix Authorization did not already name**" | add-on 1 folds routine testing authority into the one Fix Authorization; without this narrowing step 4 would still demand the second ask that add-on 1 removes. The exact-approval obligation for instrumentation, unsafe commands, credentials, network, and service use is untouched. |
+| `:100-103` → `:114-123` (step 12) | **added** the explicit three-attempt cap and the escalate-once clause (6 lines) | §2.2's "no new exhaustion trigger is needed" was false; this is the bound that makes "deliver on exhaustion" fire at all (§12 item 1) |
+| `:44-45` → `:52-58` (Fix Authorization) | beyond the rewrite the map already lists, the block **also** gained the exhaustion-fallback sentences (§2.5) and a fifth bullet naming the routine enabling steps | the fallback must be covered by the one authorization or it becomes a second ask |
+
+Edits to the other two files are listed in §12 (rows 2–4) and quoted in §2.4/§2.5. Net effect on this
+file: 132 → 162 lines, 1286 → 1744 words (§8).
 
 ## 6. Obligation inventory
 
@@ -391,36 +437,44 @@ Every safety obligation currently expressed in or adjacent to the six changing r
 where it lives afterwards, and how to prove it survived. Modelled directly on what
 commit 6e03ce6 silently dropped.
 
+**Column convention (DELIVERED / CORRECTED):** "Currently at" is a **baseline** (`23e3e52`) citation.
+The "Verification grep" column is the exception to the caveat at the top of this document: every
+expected value in it was **re-measured against the delivered tree** and is what the grep returns
+today. Where a delivered value differs from the proposal's prediction, the row says so.
+
 | # | Obligation | Currently at | Afterwards | Verification grep (from `plugins/super-developer/`) |
 |---|---|---|---|---|
 | 1 | "Keep repairs minimal." | `d&f:22` | same line, unchanged prefix | `grep -c "Keep repairs minimal" skills/diagnose-and-fix/SKILL.md` → `1` |
-| 2 | Broad/risky work routes to `implementation-plan` | `d&f:23` | new second bullet (§2.1), plus untouched `:97`, `:114` | `grep -c "implementation-plan" skills/diagnose-and-fix/SKILL.md` — baseline `6` lines, must be ≥ `6` |
+| 2 | Broad/risky work routes to `implementation-plan` | `d&f:23` | new second bullet (§2.1), plus untouched `:111`, `:141` delivered | `grep -c "implementation-plan" skills/diagnose-and-fix/SKILL.md` — baseline `6` lines, delivered **`8`** (must be ≥ `6`) |
 | 3 | Preserve confirmed diagnosis + production-base/hotfix/target delivery context on planning handoff | `d&f:24-27` | unchanged | `grep -c "production-base/hotfix/target delivery" skills/diagnose-and-fix/SKILL.md` → `1` |
-| 4 | Exact **leases** remain mandatory | `d&f:46`, `:54` | unchanged | `grep -n "leases" skills/diagnose-and-fix/SKILL.md` → lines `46`, `54` |
-| 5 | **Ancestry checks** remain mandatory | `d&f:54` | unchanged | `grep -n "ancestry" skills/diagnose-and-fix/SKILL.md` → line `54` |
-| 6 | Separate target-merge / target-push bindings | `d&f:54` and step 13 `:104-106` | unchanged | `grep -n "target-merge/target-push" skills/diagnose-and-fix/SKILL.md` → line `54`; `grep -c "target_push" …` → `1` |
-| 7 | **Cleanup proofs** in the internal receipt | `d&f:50` | unchanged | `grep -n "cleanup proofs" skills/diagnose-and-fix/SKILL.md` → line `50` |
+| 4 | Exact **leases** remain mandatory | `d&f:46`, `:54` | unchanged text, shifted lines | `grep -nw "leases" skills/diagnose-and-fix/SKILL.md` → delivered lines **`58`, `66`** (baseline `46`, `54`). Use `-w`, or the frontmatter word "releases" adds a false hit at `:6` |
+| 5 | **Ancestry checks** remain mandatory | `d&f:54` | unchanged text, shifted line | `grep -n "ancestry" skills/diagnose-and-fix/SKILL.md` → delivered line **`66`** (baseline `54`) |
+| 6 | Separate target-merge / target-push bindings | `d&f:54` and step 13 `:104-106` | unchanged text, shifted lines | `grep -n "target-merge/target-push" skills/diagnose-and-fix/SKILL.md` → delivered line **`66`** (baseline `54`); `grep -c "target_push" …` → `1` |
+| 7 | **Cleanup proofs** in the internal receipt | `d&f:50` | unchanged text, shifted line | `grep -n "cleanup proofs" skills/diagnose-and-fix/SKILL.md` → delivered line **`62`** (baseline `50`) |
 | 8 | Untracked records include **Git/index-compatible mode** | `d&f:93` | unchanged — the `index-compatible` qualifier is the exact word 6e03ce6 dropped | `grep -c "Git/index-compatible mode" skills/diagnose-and-fix/SKILL.md` → `1` |
 | 9 | Untracked records include symlink target and **binary provenance** | `d&f:93`, `:99` | unchanged | `grep -c "binary provenance" skills/diagnose-and-fix/SKILL.md` → `2`; `grep -c "symlink target" …` → `2` |
 | 10 | Never infer approval from silence / "fix this" / diagnosis approval | `d&f:30` | unchanged | `grep -c "Never infer approval from silence" skills/diagnose-and-fix/SKILL.md` → `1` |
-| 11 | No live incident containment or production mutation | `d&f:31-33`, step 8 `:86`, Stop-if `:124-125` | unchanged | `grep -n "containment" skills/diagnose-and-fix/SKILL.md` → lines `6`, `31`, `86`, `124` (4 hits) |
+| 11 | No live incident containment or production mutation | `d&f:31-33`, step 8 `:86`, Stop-if `:124-125` | unchanged | `grep -n "containment" skills/diagnose-and-fix/SKILL.md` → delivered lines **`6`, `36`, `99`, `151`** (still 4 hits; baseline `6`, `31`, `86`, `124`) |
 | 12 | Root checkout never used for repair or delivery | `d&f:20-21` (Always) and `:87-88` (step 8) | unchanged | `grep -c "Keep root checkout files/index user-owned" …` → `1`; `grep -c "use root as the repair or delivery checkout" …` → `1` |
 | 13 | Target merge/push and cleanup stay at existing owning boundaries | `d&f:45-46` (sentence wraps the line break) | unchanged sentence inside the rewritten `:44-46` block | `grep -c "existing owning" skills/diagnose-and-fix/SKILL.md` → `1` (do **not** grep the full phrase; it is line-wrapped) |
-| 14 | Unnamed scope / delivery / side effects remain unauthorized | `d&f:44-45` | preserved verbatim as the final sentence of the rewritten block | `grep -n "remain unauthorized" skills/diagnose-and-fix/SKILL.md` → lines `45`, `82` (2 hits) |
+| 14 | Unnamed scope / delivery / side effects remain unauthorized | `d&f:44-45` | **PRESENT**, delivered `:56-57`, wording byte-identical | **CORRECTED:** `grep -n "remain unauthorized" skills/diagnose-and-fix/SKILL.md` returns **`1`** hit (delivered `:95`, step 7), not the predicted `2`. The Fix Authorization sentence is intact but the delivered block re-wraps it as "… side effects remain" / "unauthorized. …", so a single-line grep cannot see it. Prove it with the un-wrapped half instead: `grep -c "Unnamed scope, delivery, or side effects remain" …` → `1`. The obligation was **not** weakened; only the line break moved. Do not "fix" the prompt to satisfy a grep. |
 | 15 | Revalidate every binding immediately before its action; never silently absorb drift | `d&f:50-51`, `:53` | unchanged | `grep -c "Never silently absorb drift" …` → `1`; `grep -c "Revalidate every binding" …` → `1` |
-| 16 | Testing authority resolution incl. `invoke testing` / stop `blocked`/`not-run`; never report not-run as passed | `d&f:63-67` | unchanged except the appended clause | `grep -n "never report not-run work as passed" skills/diagnose-and-fix/SKILL.md` → line `67` |
-| 17 | Exact approval before instrumentation / unsafe commands / credentials / network / service use; spikes in a throwaway worktree, history never promoted | `d&f:68-70` | unchanged | `grep -n "promote their history" skills/diagnose-and-fix/SKILL.md` → line `70` |
-| 18 | `preferences.yml` never created in root or silently; gitignored local creation | `d&f:90-92` | unchanged clause; only the *who authorizes* changes | `grep -c "never create it in root" skills/diagnose-and-fix/SKILL.md` → `1`; `grep -c "gitignored local" …` → `1` |
+| 16 | Testing authority resolution incl. `invoke testing` / stop `blocked`/`not-run`; never report not-run as passed | `d&f:63-67` | intact; step 3 gained **two** additions, not one — the up-front-coverage clause *and* "Resolve authority; never fabricate it." (delivered `:79`) | `grep -n "never report not-run work as passed" skills/diagnose-and-fix/SKILL.md` → delivered line **`80`** (baseline `67`); `grep -c "Resolve authority; never fabricate it" …` → `1` |
+| 17 | Exact approval before instrumentation / unsafe commands / credentials / network / service use; spikes in a throwaway worktree, history never promoted | `d&f:68-70` | **CORRECTED: not unchanged.** Step 4 was **narrowed** (delivered `:81-83`) so that a task-local Testing Authorization the Fix Authorization already named is no longer a second ask. Instrumentation, validation writes, unsafe commands, credentials, network, service use, and the throwaway-worktree/never-promote rule are all intact. | `grep -n "promote their history" skills/diagnose-and-fix/SKILL.md` → delivered line **`83`** (baseline `70`); `grep -c "the Fix Authorization did not already name" …` → `1` (the narrowing) |
+| 18 | `preferences.yml` never created in root or silently; gitignored local creation | `d&f:90-92` | unchanged clause; only the *who authorizes* changes | `grep -c "never create it in root" skills/diagnose-and-fix/SKILL.md` → `1`; **CORRECTED:** `grep -c "gitignored local" …` → **`2`**, not `1` — baseline `1`, and the new Fix Authorization bullet names the same gitignored local creation a second time |
 | 19 | Do not implement substantive edits inline | `d&f:94` | unchanged | `grep -c "Do not implement substantive edits inline" …` → `1` |
-| 20 | Never expand authority implicitly | `d&f:97` | unchanged, reinforced by step 15's "Escalation changes method, never authority" | `grep -c "never expand authority implicitly" …` → `1`; `grep -c "never authority" …` → `1` (new, from step 15) |
-| 21 | Commit only under the exact receipt, CLEAN snapshot, reviewed-only staging; merge never pushes by itself | `d&f:104-106` | unchanged; step 15 explicitly defers to the authorized delivery level | `grep -n "merge never pushes by itself" skills/diagnose-and-fix/SKILL.md` → line `106` |
-| 22 | Preserve useful fixtures; clean only approved throwaway artifacts | `d&f:107` | unchanged (step 15 is added after it, and its artifacts are *not* throwaway) | `grep -n "Preserve useful fixtures" skills/diagnose-and-fix/SKILL.md` → line `107` |
+| 20 | Never expand authority implicitly | `d&f:97` | unchanged (delivered `:111`) | `grep -c "never expand authority implicitly" skills/diagnose-and-fix/SKILL.md` → `1`. **CORRECTED — the second half of this row named the wrong file.** In `diagnose-and-fix/SKILL.md`, `grep -c "never authority"` returns **`0`**: the proposal's draft step 15 carried "Escalation changes method, never authority" but the delivered step 15 does not. That clause shipped in **`skills/implement/SKILL.md`** instead — `grep -c "never authority" skills/implement/SKILL.md` → **`1`** (delivered `:141`, inside the Non-convergence stop). In `diagnose-and-fix` the same authority boundary is carried by the Fix Authorization's planning-only fallback (`grep -c "grants no implementation authority" skills/diagnose-and-fix/SKILL.md` → `1`) plus row 20's first grep. |
+| 21 | Commit only under the exact receipt, CLEAN snapshot, reviewed-only staging; merge never pushes by itself | `d&f:104-106` | unchanged; step 15 explicitly defers to the authorized delivery level | `grep -n "merge never pushes by itself" skills/diagnose-and-fix/SKILL.md` → delivered line **`126`** (baseline `106`) |
+| 22 | Preserve useful fixtures; clean only approved throwaway artifacts | `d&f:107` | unchanged (step 15 is added after it, and its artifacts are *not* throwaway) | `grep -n "Preserve useful fixtures" skills/diagnose-and-fix/SKILL.md` → delivered line **`127`** (baseline `107`) |
 | 23 | Release / force-push / remote-delete keep separate approval boundaries | `d&f:45-46` plus the `worktree` and `release` skills | unchanged; no edit touches them | `git diff --stat -- plugins/super-developer/skills/release plugins/super-developer/skills/worktree` → empty |
-| 24 | The three-attempt cap and its 38 statements | 38 lines, 14 files (§5) | **all unchanged** | rerun the §5 grep; must still return exactly 38 lines / 14 files |
+| 24 | The three-attempt cap and its 38 statements | 38 lines, 14 files (§5) | **all 38 unchanged** | **CORRECTED:** the §5 grep now returns **43 lines / 15 files**, not 38 / 14 — step 12's new cap and §2.5's escalation clauses match the same pattern. The check is therefore the stronger one: diff the baseline and delivered grep outputs and see **additions only**. Measured: exactly **5** added lines (3 in `diagnose-and-fix/SKILL.md`, 2 in `implement/SKILL.md`), **0** removed, **0** reworded. |
 
 Reviewer recipe: run every grep above against the pre-change and post-change trees and
-diff the outputs. Only rows 2, 13, 14, 16, 18, 20 may differ, and only in the ways
-stated. Row 24 must be byte-identical.
+diff the outputs. Rows whose **content** differs: 2 (6→8), 14 (2 hits → 1, by line-wrap only),
+16 (two additions), 17 (step 4 narrowed), 18 (1→2), 20 (the clause is in `implement`, not
+`diagnose-and-fix`), 24 (38/14 → 43/15, additions only). Rows 4–7, 11, 21, 22 keep identical text at
+shifted line numbers. Rows 1, 3, 8–10, 12, 13, 15, 19, 23 are unchanged in both text and value. The
+38 pre-existing cap lines of row 24 must be byte-identical.
 
 ## 7. Shared reference: NO
 
@@ -496,6 +550,8 @@ over 120 characters; `implement/SKILL.md` has one, pre-existing at line 69 and u
 | Silent obligation loss (the 6e03ce6 failure) | Medium | §6 with 24 greps; row 24 must be byte-identical. |
 | `diagnose-and-fix` word count drifts past 1500 → new audit warning | Low | Measured in §8; implementer must recount. |
 | `README.md:242` and `CHANGELOG.md:54` describe the old routing wording | Low | Neither mentions the category list; both describe the cap, which is unchanged. Verify no README sentence claims security forces planning: `grep -n "security" plugins/super-developer/README.md`. |
+| **DELIVERED / KNOWN LIMITATION: `diagnose-and-fix`'s escalation count is session-local.** "At most one such escalation per confirmed mechanism" (delivered `skills/diagnose-and-fix/SKILL.md:121-123`) is counted in the running invocation only. The skill has no durable escalation ledger, so a fresh invocation on the same mechanism cannot see that an earlier session already escalated it. The 3 → escalate → 3 → stop bound therefore holds **within** a session, not across restarts. | Medium | Accepted as delivered, not fixed. Each cycle is still bounded and every escalation is planning-only with its own approval gate, so the worst case is repeated *planning* asks, never widened implementation authority. `DIAGNOSIS.md` (step 15) is the only cross-session trace — a reviewer or user who suspects a re-escalation loop should read it. `implement` is less exposed: its cluster identity lives in durable task artifacts. Making the bound durable would need a new artifact kind in `diagnose-and-fix`, which this change deliberately did not add. |
+| **DELIVERED / KNOWN LIMITATION: two dense spots, both followable but at the edge.** (a) `diagnose-and-fix` step 12 (delivered `:114-123`, 10 lines) now carries **sixteen** distinct obligations in one numbered step, counted: the review binding, `repair_owner`, the contract path, review-code's action gate, accept-on-`fix`, dispatch a fresh worker, validate it, rebind complete state, rerun review, "initial approval never repairs", the three-attempt cap, the material-delta precondition on attempts 2–3, never-retry-unchanged, escalate once via step 15, no second escalation for a relabeled mechanism, and stop-for-the-user on a second exhaustion — plus "never halt silently". (b) `implement`'s `## Stop if` is titled "the only reasons to re-enter the user", yet its Non-convergence bullet (delivered `:137-144`, 8 lines) spends 7 of them on a **"do not stop yet"** escalation clause — a *continue* rule inside a section a reader scans for *stop* rules. | Low | Both were reviewed as correct and are shipped as-is; no rewrite is proposed here. They are the **first two things to simplify** if either section is edited again — most likely by moving step 12's attempt-cap sentences into their own numbered step and lifting `implement`'s escalation clause above the Stop-if list. Any such edit must re-run §6 and respect the word headroom in §8 (`diagnose-and-fix/SKILL.md` has 56 words before the 1800-word audit warning). |
 
 ## 10. Verification plan
 
@@ -519,7 +575,10 @@ After implementation, all three must hold **identically** — same 67/1, same 12
 `diagnose-and-fix` must still print `RESULT: PASS`. Then:
 
 1. Rerun the §5 grep → still exactly 38 lines / 14 files.
-2. Run all 24 §6 greps and diff against baseline; only rows 2, 13, 14, 16, 18, 20 differ.
+2. Run all 24 §6 greps and diff against baseline. **CORRECTED:** the rows whose values differ are
+   **2, 14, 16, 17, 18, 20, 24** (not the predicted 2, 13, 14, 16, 18, 20 — row 13 does not move, and
+   rows 17 and 24 do); rows 4–7, 11, 21, 22 keep identical text at shifted line numbers. §6 now states
+   the delivered value for every row.
 3. `grep -c "cross-module/service" plugins/super-developer/skills/diagnose-and-fix/SKILL.md` → `0`.
 4. `wc -l -w plugins/super-developer/skills/diagnose-and-fix/SKILL.md` → ≤ 200 lines, ≤ 1500 words.
 
