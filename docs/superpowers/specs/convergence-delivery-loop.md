@@ -13,8 +13,10 @@ exhaustion, artifact-path conventions).
 ## ⚠ READ THIS BEFORE QUOTING ANYTHING BELOW
 
 1. **Line numbers in §§1–5 and §§7–10 are pre-change *baseline* numbers** (tree `23e3e52`), not
-   delivered ones. They have all shifted — `diagnose-and-fix/SKILL.md` went 132 → 162 lines, so a
-   citation like `:97` is off by roughly +13 lines and the later ones by more. **Never cite a `:NN`
+   delivered ones. They have all shifted — `diagnose-and-fix/SKILL.md` went 132 → 146 lines, and the
+   drift is **not** a constant offset, because the action-point mechanics were later extracted into
+   `references/orchestration-mechanics.md`: baseline `:97` is now `:96` and baseline `:100` is now
+   `:98`, while the baseline `## Output` heading at `:129` is now `:141`. **Never cite a `:NN`
    from those sections as the current location of anything; the tree is the authority.** The one
    exceptions are §6's verification greps and the citations in §§11–12, which were re-measured
    against the delivered tree and state delivered line numbers.
@@ -429,7 +431,7 @@ delivered `:NN` both given, measured by diffing `23e3e52` against the delivered 
 | `:44-45` → `:52-58` (Fix Authorization) | beyond the rewrite the map already lists, the block **also** gained the exhaustion-fallback sentences (§2.5) and a fifth bullet naming the routine enabling steps | the fallback must be covered by the one authorization or it becomes a second ask |
 
 Edits to the other two files are listed in §12 (rows 2–4) and quoted in §2.4/§2.5. Net effect on this
-file: 132 → 162 lines, 1286 → 1744 words (§8).
+file: 132 → 146 lines, 1286 → 1483 words (§8).
 
 ## 6. Obligation inventory
 
@@ -620,8 +622,10 @@ After implementation, all three must hold **identically** — same 67/1, same 12
 
 **DELIVERED / CORRECTED:** the three baselines held exactly (67 tests / 1 pre-existing failure; 12
 PASS / 3 FAIL; `diagnose-and-fix` still `RESULT: PASS`). Check 4's ≤ 1500-word half was **not** met
-and was superseded: the delivered file is 1744 words, which is over the 600–1500 *target* (one
-warning) and under the 1800 *warning threshold* that `audit-skill.py` actually gates on. Check 1 was
+and was superseded during the work, but the final delivered file meets it: after the action-point
+mechanics were extracted into `references/orchestration-mechanics.md`, `SKILL.md` is 146 lines /
+1483 words — inside both the 600–1500 *target* and the 1800 *warning threshold* — and
+`audit-skill.py` reports `RESULT: PASS` with **no** WARNINGS section at all. Check 1 was
 superseded too: the grep now returns 43 lines / 15 files, because step 12's new cap and §2.5's
 escalation clauses match it. What must still hold is the stronger statement: the 38 pre-existing cap
 lines are byte-identical, provable by diffing the grep outputs and seeing additions only.
