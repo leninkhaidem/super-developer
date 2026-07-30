@@ -340,6 +340,7 @@ plugins/super-developer/
 |   +-- diagnose-and-fix/
 |   |   +-- SKILL.md
 |   |   +-- references/fix-implementer-contract.md
+|   |   +-- references/orchestration-mechanics.md
 |   +-- readme-polish/
 |   |   +-- SKILL.md
 |   |   +-- references/banner-examples.md

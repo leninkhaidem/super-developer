@@ -491,17 +491,19 @@ byte-identical.
 1860 words after the work in §2, which tripped two `audit-skill.py` budget warnings: over
 `SKILL_WORD_MAX` (1800) and outside `SKILL_WORD_TARGET` (600–1500). The obligations were
 **extracted, not compressed**, into a new skill-private reference
-`skills/diagnose-and-fix/references/orchestration-mechanics.md` (102 lines / 886 words): the
+`skills/diagnose-and-fix/references/orchestration-mechanics.md` (89 lines / 798 words): the
 internal-receipt and state-binding mechanics, the route/dispatch/review/delivery bindings, the
-testing-authority ladder, the diagnosis report field list, and the durable-evidence rules of step
-15. `SKILL.md` is now 138 lines / 1421 words and the audit reports `RESULT: PASS` with **no**
+testing-authority ladder, and the durable-evidence rules of step 15. The step 6 diagnosis report
+field list stays inline in `SKILL.md`, because step 6 is pre-authorization and the human reads it to
+decide. `SKILL.md` is now 146 lines / 1483 words and the audit reports `RESULT: PASS` with **no**
 warnings for it. Extraction was chosen over compression for three reasons: the warning text itself
 says "remove obligations rather than compressing prose"; denser prose would satisfy the word count
 only by making the same obligations harder for a mid-tier agent to execute, which is the failure
 mode `audit-skill.py`'s own comments call out; and compression is how commit 6e03ce6 silently lost
 ancestry checks, cleanup proofs, binary provenance and the `index-compatible` qualifier. Every
 moved obligation keeps a load path: a `## Load if needed` trigger naming the reference, plus an
-explicit pointer in each `## Do` step that needs it (3, 6, 8, 9, 10, 11, 12, 13, 15) and in the
+explicit pointer, naming the reference path, in each `## Do` step that needs it (3, 8, 9, 10, 11,
+12, 13, 15 — step 6 no longer delegates) and in the
 `## Fix Authorization and Internal Receipt` section. The Fix Authorization ask, the three-attempt
 cap and single re-diagnose escalation of step 12, and the `## Stop if` clause requiring step 15
 after the fix loop has begun all stay in `SKILL.md`, unchanged.
@@ -556,16 +558,20 @@ in the delivered tree with `wc -l -w` and `audit-skill.py`:
 
 | File | Baseline `23e3e52` | Delivered | Δ lines | Δ words |
 |---|---|---|---|---|
-| `skills/diagnose-and-fix/SKILL.md` | 132 / 1286 | **162 / 1744** | +30 | +458 |
+| `skills/diagnose-and-fix/SKILL.md` | 132 / 1286 | **146 / 1483** | +14 | +197 |
+| `skills/diagnose-and-fix/references/orchestration-mechanics.md` | new file | **89 / 798** | +89 | +798 |
 | `skills/diagnose-and-fix/references/fix-implementer-contract.md` | 96 / 900 | **100 / 980** | +4 | +80 |
-| `skills/implement/SKILL.md` | 147 / 1554 | **157 / 1700** | +10 | +146 |
+| `skills/implement/SKILL.md` | 147 / 1554 | **162 / 1791** | +15 | +237 |
 | all other cap-bearing files | unchanged | unchanged | 0 | 0 |
 
-All three are inside the 200-line hard cap and under the 1800-word warning;
-`diagnose-and-fix/SKILL.md` has **56 words** of headroom against that warning, which is the binding
-constraint on any future edit to it. Both SKILL.md files exceed the 600–1500 word *target* and
-therefore emit one `words outside target` warning each — a warning, not a failure, and
-`implement/SKILL.md` already emitted it before this change. `diagnose-and-fix/SKILL.md` has no line
+All are inside the 200-line hard cap and under the 1800-word warning. After the §6 extraction
+`diagnose-and-fix/SKILL.md` is also inside the 600–1500 word *target*, so
+`audit-skill.py skills/diagnose-and-fix` prints `RESULT: PASS` with **no WARNINGS section at all**;
+it has 317 words of headroom against the 1800-word warning and 17 words against the 1500-word target
+ceiling, and that target ceiling is the binding constraint on any future edit to it.
+`orchestration-mechanics.md` at 798 words is inside the 300–1200 reference target.
+`implement/SKILL.md` still exceeds the 600–1500 word target and therefore still emits one
+`words outside target` warning, as it did before this change. No `diagnose-and-fix` file has a line
 over 120 characters; `implement/SKILL.md` has one, pre-existing at line 69 and untouched here.
 
 ## 9. Risks
@@ -581,7 +587,7 @@ over 120 characters; `implement/SKILL.md` has one, pre-existing at line 69 and u
 | `diagnose-and-fix` word count drifts past 1500 → new audit warning | Low | Measured in §8; implementer must recount. |
 | `README.md:242` and `CHANGELOG.md:54` describe the old routing wording | Low | Neither mentions the category list; both describe the cap, which is unchanged. Verify no README sentence claims security forces planning: `grep -n "security" plugins/super-developer/README.md`. |
 | **DELIVERED / KNOWN LIMITATION: `diagnose-and-fix`'s escalation count is session-local.** "At most one such escalation per confirmed mechanism" (delivered `skills/diagnose-and-fix/SKILL.md:121-123`) is counted in the running invocation only. The skill has no durable escalation ledger, so a fresh invocation on the same mechanism cannot see that an earlier session already escalated it. The 3 → escalate → 3 → stop bound therefore holds **within** a session, not across restarts. | Medium | Accepted as delivered, not fixed. Each cycle is still bounded and every escalation is planning-only with its own approval gate, so the worst case is repeated *planning* asks, never widened implementation authority. `DIAGNOSIS.md` (step 15) is the only cross-session trace — a reviewer or user who suspects a re-escalation loop should read it. `implement` is less exposed: its cluster identity lives in durable task artifacts. Making the bound durable would need a new artifact kind in `diagnose-and-fix`, which this change deliberately did not add. |
-| **DELIVERED / KNOWN LIMITATION: two dense spots, both followable but at the edge.** (a) `diagnose-and-fix` step 12 (delivered `:114-123`, 10 lines) now carries **sixteen** distinct obligations in one numbered step, counted: the review binding, `repair_owner`, the contract path, review-code's action gate, accept-on-`fix`, dispatch a fresh worker, validate it, rebind complete state, rerun review, "initial approval never repairs", the three-attempt cap, the material-delta precondition on attempts 2–3, never-retry-unchanged, escalate once via step 15, no second escalation for a relabeled mechanism, and stop-for-the-user on a second exhaustion — plus "never halt silently". (b) `implement`'s `## Stop if` is titled "the only reasons to re-enter the user", yet its Non-convergence bullet (delivered `:137-144`, 8 lines) spends 7 of them on a **"do not stop yet"** escalation clause — a *continue* rule inside a section a reader scans for *stop* rules. | Low | Both were reviewed as correct and are shipped as-is; no rewrite is proposed here. They are the **first two things to simplify** if either section is edited again — most likely by moving step 12's attempt-cap sentences into their own numbered step and lifting `implement`'s escalation clause above the Stop-if list. Any such edit must re-run §6 and respect the word headroom in §8 (`diagnose-and-fix/SKILL.md` has 56 words before the 1800-word audit warning). |
+| **DELIVERED / KNOWN LIMITATION: two dense spots, both followable but at the edge.** (a) `diagnose-and-fix` step 12 (delivered `:114-123`, 10 lines) now carries **sixteen** distinct obligations in one numbered step, counted: the review binding, `repair_owner`, the contract path, review-code's action gate, accept-on-`fix`, dispatch a fresh worker, validate it, rebind complete state, rerun review, "initial approval never repairs", the three-attempt cap, the material-delta precondition on attempts 2–3, never-retry-unchanged, escalate once via step 15, no second escalation for a relabeled mechanism, and stop-for-the-user on a second exhaustion — plus "never halt silently". (b) `implement`'s `## Stop if` is titled "the only reasons to re-enter the user", yet its Non-convergence bullet (delivered `:137-144`, 8 lines) spends 7 of them on a **"do not stop yet"** escalation clause — a *continue* rule inside a section a reader scans for *stop* rules. | Low | Both were reviewed as correct and are shipped as-is; no rewrite is proposed here. They are the **first two things to simplify** if either section is edited again — most likely by moving step 12's attempt-cap sentences into their own numbered step and lifting `implement`'s escalation clause above the Stop-if list. Any such edit must re-run §6 and respect the word headroom in §8 (`diagnose-and-fix/SKILL.md` has 317 words before the 1800-word audit warning and 17 before the 1500-word target ceiling). |
 
 ## 10. Verification plan
 
