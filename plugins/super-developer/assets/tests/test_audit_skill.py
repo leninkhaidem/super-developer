@@ -94,10 +94,11 @@ class AuditSkillValidatorTests(unittest.TestCase):
         many short lines and once packed into few long lines; both must report the same word
         budget warning, and neither may fail the audit.
         """
-        words = [f"word{index}" for index in range(1900)]
+        words = [f"w{index}" for index in range(1900)]
 
+        # Sparse stays well under the 200-line hard cap, so it can only trip the word budget.
         sparse = self.fixture("word-budget-sparse")
-        sparse.write_skill(body="# Fixture\n" + "\n".join(" ".join(words[i : i + 10]) for i in range(0, len(words), 10)) + "\n")
+        sparse.write_skill(body="# Fixture\n" + "\n".join(" ".join(words[i : i + 15]) for i in range(0, len(words), 15)) + "\n")
         sparse_result = sparse.run()
 
         packed = self.fixture("word-budget-packed")

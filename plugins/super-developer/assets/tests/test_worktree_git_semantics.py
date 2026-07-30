@@ -1,12 +1,16 @@
 """Git command-semantics checks for the worktree/probe envelope.
 
-These are behavioral: each test drives real git in a throwaway repository and
-asserts the *observable* outcome of the command recipes the prompts prescribe
-(ref creation/teardown ordering, --no-track isolation, portable index digests,
-moved-base rejection). They stay valid across any rewording of the prompts.
+Each test drives real git in a throwaway repository and asserts the observable
+outcome of a git command recipe hardcoded in this file (ref creation/teardown
+ordering, --no-track isolation, portable index digests, moved-base rejection).
 
-Prompt wording itself is deliberately untested here; see test_skill_prompts.py
-for the content-agnostic structural checks.
+Scope limit: the recipes are duplicated here, never extracted from the skill
+markdown, so these tests do not verify that any prompt still prescribes them.
+A prompt could drop --no-track or an ancestry guard and every test here would
+still pass. They only pin down what the git commands themselves do.
+
+Prompt content is checked separately; see test_skill_prompts.py for the
+content-agnostic structural checks.
 """
 
 from __future__ import annotations
