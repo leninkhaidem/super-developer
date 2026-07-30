@@ -125,13 +125,17 @@ Contract and delivery gates separately own implementation, source/sidecar public
     reviewed-only staging. For each authorized delivery action invoke `worktree` and revalidate its binding.
     After target merge, capture its result SHA before deriving `target_push`; merge never pushes by itself.
 14. Return observed facts and next boundary. Preserve useful fixtures; clean only approved throwaway artifacts.
-15. On attempt exhaustion, or on any stop once the fix loop has begun, do not return empty-handed. In the authorized
-    non-root worktree preserve the deterministic reproducing test, if one was produced, in the repository's normal
-    test location, and a short written diagnosis as `DIAGNOSIS.md` at that worktree's root, naming the confirmed
-    mechanism or the exact blocker plus the attempts made. Land them only at the
-    delivery level already authorized: under `local only` leave them in that worktree and report their paths; commit
-    them on the bugfix branch only when the authorization covers a commit. This adds no new approval gate, and never
-    pushes or merges.
+15. On attempt exhaustion, or on any stop once the fix loop has begun, do not return empty-handed. Write durably only
+    after confirming the destination is the authorized non-root bugfix worktree, that write authority for it exists,
+    and that the write cannot overwrite or obscure user changes. When that holds, preserve the deterministic
+    reproducing test, if one was produced, in the repository's normal test location, and a short written diagnosis as
+    `DIAGNOSIS-<mechanism-id>-<event-ordinal>.md` at that worktree's root, naming the confirmed mechanism or the exact
+    blocker plus the attempts made. The ordinal counts this stop event for that mechanism, so a second exhaustion of
+    the same mechanism gets a new file; never overwrite, edit, or delete an existing diagnosis file. Land them only at
+    the delivery level already authorized: under `local only` leave them in that worktree and report their paths;
+    commit them on the bugfix branch only when the authorization covers a commit. This adds no new approval gate, and
+    never pushes or merges. If any of those checks fails, write nothing and instead return the same diagnosis,
+    attempts, and blocker in the response, saying why the durable write was skipped.
 
 ## Load if needed
 
@@ -153,10 +157,12 @@ Contract and delivery gates separately own implementation, source/sidecar public
 - A command needs credentials, network/external effects, destructive behavior, unsafe changes, or missing testing
   authority without exact approval and the governing command/testing contract.
 
-Any stop reached after the fix loop has begun still performs step 15 before returning.
+Any stop reached after the fix loop has begun still performs step 15 before returning; step 15's own safety and
+authority checks decide whether that evidence is written durably or returned in the response instead.
 
 ## Output
 
 Return a concise diagnosis, Fix Authorization consumed, changed files, verification/review, delivery/cleanup,
-risks, and next boundary. On a stop after the fix loop began, also report the preserved repro/diagnosis paths.
+risks, and next boundary. On a stop after the fix loop began, also report the preserved repro/diagnosis paths, or
+the returned diagnosis and the reason the durable write was skipped.
 Include the internal receipt only on request or to explain audit/debug/drift/blockers.

@@ -143,9 +143,14 @@ Loop map: dispatch package waves → verify each against its Acceptance Checklis
   same cluster exhausts 3 attempts again after readiness is restored, stop for the user, and relabeling or
   reclustering earns no second escalation.
 
-When stopping at a Stop-if boundary or an exhausted circuit, record durable stop evidence in the artifact root's
-existing reports directory as `.tasks/<feature>/reports/stop-<logical-id>.md`, never the root checkout — what was
-attempted, the blocker, and where the work sits — rather than reporting it only in chat.
+When stopping at a Stop-if boundary or an exhausted circuit, record durable stop evidence — what was attempted, the
+blocker, and where the work sits — in the artifact root's existing reports directory as
+`.tasks/<feature>/reports/stop-<logical-id>-<event-ordinal>.md`, never the root checkout. The ordinal counts this
+stop event for that logical id, so a cluster that exhausts again after its one escalation gets a new file; never
+overwrite, edit, or delete an existing stop report. Write only after confirming that destination is the authorized
+non-root artifact root, that write authority for it exists, and that the write cannot overwrite or obscure user
+changes. If any of those fails, write nothing, return the same content in the response, and say why the durable
+write was skipped. Either way the user always receives the attempts, the blocker, and where the work sits.
 
 Everything else — in-contract empirical follow-ups, same-requirement replan/re-review, routine test failures,
 repairs, reruns, verification, and integration — is handled silently. Advisory findings are never a stop.
