@@ -239,7 +239,7 @@ Claude Code discovers packaged skills automatically. Other hosts need equivalent
 > Plan this feature
 ```
 
-A delegated planner writes the task artifacts; after initial plan review, `implement` presents an Execution Contract. Auto-resolve covers bounded code/probes/tests, plan continuation/focused review, repairs, verification, review-code, and audit. Probe cleanup is local, manifest-bound, and non-force; continuation package worktrees are retained until final ancestry/no-unique-commit cleanup. Credentials, protected actions, semantic/risk/manual changes, target delivery, uncertainty, and three-attempt non-convergence still stop.
+A delegated planner writes the task artifacts; after initial plan review, `implement` presents an Execution Contract. Auto-resolve covers bounded code/probes/tests, plan continuation/focused review, repairs, verification, review-code, and audit. Probe cleanup is local, manifest-bound, and non-force; continuation package worktrees are retained until final ancestry/no-unique-commit cleanup. Credentials, protected actions, semantic/risk/manual changes, target delivery, and uncertainty still stop, as does three-attempt non-convergence for an empirical question or a plan-owned cluster. A code repair cluster's first attempt-3 exhaustion is instead re-classified once and continues through the plan-defect route; its second exhaustion stops.
 
 Useful standalone prompts:
 
