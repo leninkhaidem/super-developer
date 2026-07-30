@@ -13,11 +13,12 @@ action point, and a competent mid-tier agent can follow the result without hidde
 ## Budgets
 
 - Frontmatter `description`: target 1–3 short content lines; hard maximum 280 folded characters.
-- Words are the enforced complexity ceiling, not lines. A line cap is gameable — the same
-  obligations reflowed into denser text still pass it — so tight line caps end up rewarding the
-  unreadable density they were meant to prevent. Reformatting for clarity must always be free.
-- `SKILL.md`: hard maximum 1,800 words, target 600–1,500; loose line backstop 220.
-- References: hard maximum 1,800 words, target 300–1,200; loose line backstop 220.
+- Judge complexity by words, not lines. A line cap is gameable — the same obligations reflowed into
+  denser text still pass it — so tight line caps end up rewarding the unreadable density they were
+  meant to prevent. Reformatting for clarity must always be free.
+- `SKILL.md`: hard maximum 200 lines; word budget 1,800, target 600–1,500.
+- References: hard maximum 200 lines; word budget 1,800, target 300–1,200.
+- Only the line cap fails the audit. Word budgets and targets warn, and are author guidance.
 - Keep lines at or below 120 characters where practical; never pack prose to satisfy a line budget.
 - Spend the word budget on obligations, not phrasing. When a prompt nears its ceiling, remove or
   extract obligations; never compress prose to fit.

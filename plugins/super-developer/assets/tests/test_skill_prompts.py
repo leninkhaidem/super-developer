@@ -27,13 +27,13 @@ PLUGIN_ROOT = Path(__file__).resolve().parents[2]
 REPO_ROOT = PLUGIN_ROOT.parents[1]
 
 # Loose formatting backstop for skill/reference prompts (matches audit-skill.py SKILL_LINE_MAX).
-# Not the complexity budget: words are, because a line cap is satisfied by compressing the same
-# obligations into denser text. audit-skill.py owns the enforced word ceiling.
-MD_LINE_CAP = 220
+# A poor proxy for complexity, since a line cap is satisfied by compressing the same obligations
+# into denser text; audit-skill.py reports words as the better signal, as a warning.
+MD_LINE_CAP = 200
 
 # Files that already exceeded the cap; tracked as pre-existing debt rather than silently allowed
 # by a loose global cap. New/changed files must meet the cap.
-# perspectives (156 lines) came into compliance when the backstop moved to 220.
+# perspectives (156 lines) came into compliance when the backstop moved to 200.
 PREEXISTING_OVER_CAP = {
     "plugins/super-developer/skills/code-doc/SKILL.md",
 }
