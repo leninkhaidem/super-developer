@@ -30,9 +30,10 @@ Loop map: dispatch package waves → verify each against its Acceptance Checklis
 - **Semantic delta-only re-verification.** Dependency edges are readiness/sequencing, not staleness fan-out.
   Classify affected package/checklist/proof/report and seam evidence from changed behavior and contracts;
   unknown impact widens, while unaffected results remain reusable. Never force descendants or the whole feature.
-- **Bounded issue circuits.** Bound every logical empirical question and every coherent repair cluster by
-  `../../references/bounded-attempts.md`. A code delta counts as the material change for a repair cluster.
-  Exhaustion is the non-convergence stop below, never a reason to continue silently.
+- **Bounded issue circuits.** Track each logical empirical question or coherent repair cluster under one stable ID.
+  Attempt 1 is initial; attempts 2–3 must be fresh, materially changed attempts with incremented IDs and a named
+  corrected packet or changed method/signal/code delta. Three total attempts exhaust the circuit; unchanged work,
+  relabeling, or reclustering cannot reset it.
 - **Plan-defect route.** At readiness, package-agent, verifier, integration, final review, or audit, route every
   plan-owned defect that preserves approved semantics, scope, visible behavior, risk, and manual exceptions through
   `implementation-plan` `implementation-continuation` (accepted empirical reports or explicit `none`), then
@@ -68,12 +69,15 @@ Loop map: dispatch package waves → verify each against its Acceptance Checklis
    focused-reviewed exact base ref/SHA and prerequisites, and create/clean receipt-owned probes only under the envelope; never clean packages before final whole-feature gates.
 4. Load `references/package-dispatch.md`; run readiness and dispatch the largest safe ready batch. Preserve the
    Execution Contract, roots/refs, artifacts, package/integration state, decisions, approvals, and evidence for any
-   plan defect. For each unresolved empirical question, dispatch attempt 1 as one fresh `empirical-spike`
-   invocation under the bounded-attempts rule. Accept `resolved-static`, `supported`, or `rejected` only after
-   validating identity, provenance, method, authority, bounds, limitations, and cleanup. Correct in-contract
-   `blocked`/`inconclusive` or malformed packets autonomously; protected/out-of-contract needs return at Stop if
-   and exhaustion stops. Route the complete plan defect through the Plan-defect route above, passing the accepted
-   report set or explicit `none`, then resume package work under the same Execution Contract.
+   plan defect. For each unresolved empirical question, assign one stable logical-question ID and dispatch attempt 1
+   as one fresh `empirical-spike` invocation. Independent questions may run in parallel; only accepted evidence may
+   create a sequential question. Accept `resolved-static`, `supported`, or `rejected` only after validating identity,
+   provenance, method, authority, bounds, limitations, and cleanup. Correct in-contract `blocked`/`inconclusive` or
+   malformed packets autonomously; protected/out-of-contract needs return at Stop if and exhaustion stops. A
+   follow-up is a fresh invocation with the same logical-question ID, incremented attempt ID (2 or 3), and a named
+   corrected packet or changed method/signal; unchanged attempts are forbidden. Route the complete
+   plan defect through the Plan-defect route above, passing the accepted report set or explicit `none`, then resume
+   package work under the same Execution Contract.
 5. When a package agent returns, load `references/package-integration-gates.md` and dispatch the verifier with
    `references/package-verification.md`. The verifier confirms every Acceptance Checklist item passes with
    authentic evidence and reports blocking vs advisory findings. Route any package-agent/verifier plan defect

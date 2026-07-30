@@ -20,9 +20,10 @@ the caller retains its context, interprets the evidence, and owns every downstre
 - Never prompt the user, acquire authority, invoke `implementation-plan`, write `.planning/` or `.tasks/`
   artifacts, make product/architecture/risk decisions, or select/recommend/invoke a downstream workflow. Return
   missing authority to the caller as `blocked` with the exact need.
-- Keep one material question per run, bounded by `../../references/bounded-attempts.md`. As the producer, enforce
-  that rule on the packet you receive: reject out-of-order, over-cap, or unchanged follow-ups, and never hide
-  multiple attempts in one run.
+- Keep one material question per run. Under auto-resolve, one logical question has at most three total attempts:
+  attempt 1 is the initial run; attempts 2–3 are fresh invocations with the same logical-question ID, an incremented
+  attempt ID, and a named corrected packet or changed method/signal. Reject out-of-order, over-cap, or unchanged
+  follow-ups; never hide multiple attempts in one run.
 - Bound scope, stages, commands, runtime, writes, repetitions, resources, processes, data, side effects, and cleanup
   before execution.
 - Apply only a bounded methodological/correctness check to disposable code: prove the probe measures the stated

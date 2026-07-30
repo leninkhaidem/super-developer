@@ -29,8 +29,10 @@ report set or explicit `none`, and changed artifact scope.
   exception returns to the user-facing gate.
 - Keep artifact root, code root, artifact ref, and resolved feature/artifact slug explicit in the gate, reviewer packets, validation commands, and summaries. Preserve supplied planned-hotfix delivery context without inventing a feature ref.
 - Do not create implementation proof, mark packages complete, run code review, or execute implementation inline.
-- Prefer repository/official evidence. Bound each material empirical question by
-  `../../references/bounded-attempts.md`, where every attempt is one fresh `empirical-spike` invocation.
+- Prefer repository/official evidence. Track each material empirical question under a stable logical-question ID:
+  attempt 1 is one fresh `empirical-spike` invocation; attempts 2–3 are fresh invocations with incremented IDs and
+  a named corrected packet or changed method/signal. Never retry unchanged or exceed three total attempts.
+  Parallelize independent questions; sequence only when accepted evidence creates a new question. Retain context.
 
 ## Do
 

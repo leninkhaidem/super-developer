@@ -45,26 +45,15 @@ One response may authorize the displayed localized route through the selected br
 delivery, or side effects remain unauthorized. Target merge/push and cleanup stay at their existing owning
 boundaries. Users never need to understand or approve raw SHAs, checksums, leases, or state receipts.
 
-### State binding
-
-A **state binding** is the record you capture before handing work to a worker and re-check before
-acting on the result. It has two parts:
-
-- **Identity:** the exact worktree, base ref, and HEAD SHA, which must be non-root and the approved ones.
-- **Contents:** the committed, staged, unstaged, and untracked file sets. Record every category.
-  For untracked entries record file type, Git-compatible mode, symlink target, and content digest,
-  because those are what silently destroy user work when a later step restores or cleans the tree.
-
-Immediately before each side-effecting action, re-check the binding and confirm the action is within
-the authorized paths. Making progress within one already-authorized action may re-bind freely without
-asking again. Anything else — drift you did not cause, a conflict, a change in scope or risk, or a
-failed pre-check — **stops for a human decision. Never absorb drift silently.**
-
-Bindings are internal. Show them only on request, for audit or debugging, or to explain a blocker;
-users never need to read SHAs or digests to approve a fix.
-
-Approving an `implementation-plan` route approves only the diagnosis handoff and the planning that
-follows. Implementation, publication, target merge/push, and release each keep their own later gates.
+The orchestrator derives mandatory internal receipts at action time from the `worktree` and review contracts:
+authorized paths, non-root worktree/base/ref identity, reviewed state, exact commit/push/merge bindings, expected
+remote state, cleanup proofs, and authorized diagnostic side effects. Revalidate every binding immediately before
+its action. Orchestrator-owned progress within the authorized semantic action may bind/rebind without another user
+approval; unexpected/external drift, conflict, scope/risk change, or failed preconditions stop for a human decision.
+Never silently absorb drift. Keep receipts internal unless requested, needed for audit/debug, or required to explain
+a blocker. Existing exact leases, ancestry checks, and separate target-merge/target-push bindings remain mandatory.
+Approval of an `implementation-plan` route authorizes only the diagnosis handoff and planning; the later Execution
+Contract and delivery gates separately own implementation, source/sidecar publication, target merge/push, and release.
 
 ## Do
 
@@ -97,15 +86,17 @@ follows. Implementation, publication, target merge/push, and release each keep t
    - production hotfix: `hotfix/<name>` from an explicit production base name, without live containment.
    Creation, commit, branch push, target merge, target push, and cleanup retain separate internal bindings. Never
    use root as the repair or delivery checkout.
-9. From the approved target worktree, resolve `implement` through `../../references/model-preferences.md`, then
-   capture the state binding. If `.superdeveloper/preferences.yml` is missing, display the shared contract's
-   gitignored local creation and require authorization for that exceptional write before creating it there; never
-   create it in root or silently. Dispatch with `references/fix-implementer-contract.md` and that path. Do not
-   implement substantive edits inline.
+9. From the approved target worktree, resolve `implement` through `../../references/model-preferences.md` before
+   binding state. If `.superdeveloper/preferences.yml` is missing, display the shared contract's gitignored local
+   creation and require authorization for that exceptional write before creating it there; never create it in root
+   or silently. Then bind HEAD and committed/staged/unstaged/untracked manifests/checksums. Untracked records include
+   file type, Git/index-compatible mode, symlink target, and content digest or binary provenance. Dispatch with the
+   `references/fix-implementer-contract.md`, and that path. Do not implement substantive edits inline.
 10. Validate the report against packet, contract, starting binding, and actual worktree. Reject drift, out-of-scope
     paths, forbidden actions, missing regression evidence, incomplete outcomes, or unreported residuals. Route
     expansion back to diagnosis and broad/risky work to `implementation-plan`; never expand authority implicitly.
-11. Bind post-fix `review-code` to a complete state binding.
+11. Bind post-fix `review-code` to exact base/HEAD/ref/worktree and every category snapshot/checksum, including
+    untracked type, mode, symlink target, and digest/binary provenance. Never omit metadata or a category.
 12. Invoke `review-code` with that binding plus `repair_owner=diagnose-and-fix` and
     `repair_contract_path=references/fix-implementer-contract.md`. Review findings use review-code’s action gate.
     On explicit `fix`, accept the confirmed repair packet/action back; then this parent dispatches a fresh worker
