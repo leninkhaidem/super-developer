@@ -77,8 +77,12 @@ output may be reused; distinct package, isolation, cleanup, and nondeterministic
 
 Cluster confirmed findings only when they share a root cause, writable scope, and verification envelope; assign
 one repair worker per coherent cluster. Preserve logical cluster identity across retries and the existing
-three-attempt cap: after **3** non-converging repair attempts, stop rather than rename or recluster. Widen only
-for semantically affected surfaces, never merely because a dependency, commit, or merge exists.
+three-attempt cap: after **3** non-converging repair attempts, never rename or recluster. A plan-owned cluster
+stops there. A **code** repair cluster is re-classified once as a possible plan defect and routed through planning
+continuation when that preserves approved semantics, scope, user-visible behavior, risk, and manual exceptions;
+otherwise it stops. At most one such escalation per cluster identity, relabeling earns no second one, and the same
+cluster's second exhaustion of **3** attempts stops. Widen only for semantically affected surfaces, never merely
+because a dependency, commit, or merge exists.
 
 ## Final readiness
 Before final `review-code` and `audit`, every package is `done`, the integrated code is assembled, and the
