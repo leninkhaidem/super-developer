@@ -49,8 +49,12 @@ Ask for one compact, human-readable Fix Authorization:
   commands, and gitignored local creation of `.superdeveloper/preferences.yml` when it is missing.
 
 One response may authorize the displayed localized route through the selected branch delivery, including the
-testing authority and the `preferences.yml` creation it names, so neither becomes a separate ask. Unnamed scope,
-delivery, or side effects remain unauthorized. Target merge/push and cleanup stay at their existing owning
+testing authority and the `preferences.yml` creation it names, so neither becomes a separate ask. It also covers
+one exhaustion fallback: if that localized repair exhausts its three attempts, re-diagnose and hand the confirmed
+diagnosis to `implementation-plan` without another ask. That handoff is planning only, and planning keeps its own
+separate approval gate before anything is implemented, so it grants no implementation authority and never converts
+the authorized `localized` repair into a `broad/risky` one. Unnamed scope, delivery, or side effects remain
+unauthorized. Target merge/push and cleanup stay at their existing owning
 boundaries. Users never need to understand or approve raw SHAs, checksums, leases, or state receipts.
 
 The orchestrator derives mandatory internal receipts at action time from the `worktree` and review contracts:
@@ -113,14 +117,18 @@ Contract and delivery gates separately own implementation, source/sidecar public
     under its contract, validates it, rebinds the complete state, and reruns review. Initial approval never repairs.
     One confirmed mechanism gets at most three total repair attempts. Attempt 1 is the initial fix; attempts 2 and 3
     must each name a material delta in mechanism, evidence, or strategy. Never retry unchanged and never exceed three
-    total attempts. On exhaustion, do step 15 and stop; do not halt silently.
+    total attempts. On exhaustion, do step 15, then re-diagnose and hand the confirmed diagnosis to
+    `implementation-plan` under that fallback — at most one such escalation per confirmed mechanism, and a
+    relabeled mechanism earns no second one. If the same mechanism exhausts three attempts again, stop for the
+    user. Never halt silently.
 13. Commit only under the exact internal `commit` receipt, CLEAN unchanged snapshot, passing verification, and
     reviewed-only staging. For each authorized delivery action invoke `worktree` and revalidate its binding.
     After target merge, capture its result SHA before deriving `target_push`; merge never pushes by itself.
 14. Return observed facts and next boundary. Preserve useful fixtures; clean only approved throwaway artifacts.
 15. On attempt exhaustion, or on any stop once the fix loop has begun, do not return empty-handed. In the authorized
-    non-root worktree preserve the deterministic reproducing test, if one was produced, and a short written
-    diagnosis naming the confirmed mechanism or the exact blocker plus the attempts made. Land them only at the
+    non-root worktree preserve the deterministic reproducing test, if one was produced, in the repository's normal
+    test location, and a short written diagnosis as `DIAGNOSIS.md` at that worktree's root, naming the confirmed
+    mechanism or the exact blocker plus the attempts made. Land them only at the
     delivery level already authorized: under `local only` leave them in that worktree and report their paths; commit
     them on the bugfix branch only when the authorization covers a commit. This adds no new approval gate, and never
     pushes or merges.

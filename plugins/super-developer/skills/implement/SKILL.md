@@ -135,10 +135,17 @@ Loop map: dispatch package waves → verify each against its Acceptance Checklis
 - **Protected or out-of-contract action** — destructive/external action, target delivery boundary, force push, remote
   deletion, local ref deletion outside owned probe cleanup/final package cleanup, or anything outside the contract.
 - **Non-convergence** — a logical question or coherent plan/code finding cluster exhausted 3 total materially
-  changed attempts, or distinct material questions cannot be bounded.
+  changed attempts, or distinct material questions cannot be bounded. When a **code** repair cluster exhausts its
+  3 attempts, do not stop yet: re-classify it as a possible plan defect, and when it preserves approved semantics,
+  scope, visible behavior, risk, and manual exceptions, route it through the Plan-defect route above and continue
+  autonomously. Escalation changes method, never authority: if routing it would change any of those, that is new
+  semantic authority and you stop here instead. Allow at most one such escalation per cluster identity — if that
+  same cluster exhausts 3 attempts again after readiness is restored, stop for the user, and relabeling or
+  reclustering earns no second escalation.
 
-When stopping at a Stop-if boundary or an exhausted circuit, record durable stop evidence under the artifact root, never
-the root checkout — what was attempted, the blocker, and where the work sits — rather than reporting it only in chat.
+When stopping at a Stop-if boundary or an exhausted circuit, record durable stop evidence in the artifact root's
+existing reports directory as `.tasks/<feature>/reports/stop-<logical-id>.md`, never the root checkout — what was
+attempted, the blocker, and where the work sits — rather than reporting it only in chat.
 
 Everything else — in-contract empirical follow-ups, same-requirement replan/re-review, routine test failures,
 repairs, reruns, verification, and integration — is handled silently. Advisory findings are never a stop.
