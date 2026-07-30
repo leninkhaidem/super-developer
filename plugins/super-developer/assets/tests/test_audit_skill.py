@@ -109,9 +109,25 @@ class AuditSkillValidatorTests(unittest.TestCase):
             self.assertIn("exceeds word budget of 1800", result.stdout, label)
             self.assertIn("remove obligations rather than compressing prose", result.stdout, label)
             self.assertNotIn("HARD LINE CAP ERRORS", result.stdout)
+            # Warning only: an over-budget prompt must still pass the audit, whatever its line density.
+            self.assertEqual(result.returncode, 0, f"{label}: {result.stdout}")
 
-        # Warning only: an over-budget prompt must still pass the audit.
-        self.assertEqual(packed_result.returncode, 0, packed_result.stdout)
+    def test_reference_word_budget_warns_and_still_passes(self) -> None:
+        """The reference word budget has its own warning branch, and it must not fail the audit."""
+        words = [f"w{index}" for index in range(1900)]
+        fixture = self.fixture("reference-word-budget")
+        fixture.write_reference(
+            "big.md",
+            "# Reference\n" + "\n".join(" ".join(words[i : i + 15]) for i in range(0, len(words), 15)) + "\n",
+        )
+        fixture.write_skill(body="# Fixture\n\nLoad `references/big.md` when needed.\n")
+
+        result = fixture.run()
+
+        self.assertEqual(result.returncode, 0, result.stdout)
+        self.assertIn("big.md: reference exceeds word budget of 1800", result.stdout)
+        self.assertIn("remove obligations rather than compressing prose", result.stdout)
+        self.assertNotIn("HARD LINE CAP ERRORS", result.stdout)
 
     def test_readable_reflowing_below_the_word_budget_passes(self) -> None:
         """De-densifying prose (same words, more/shorter lines) must never fail the audit."""
