@@ -145,6 +145,8 @@ Contract and delivery gates separately own implementation, source/sidecar public
 - A command needs credentials, network/external effects, destructive behavior, unsafe changes, or missing testing
   authority without exact approval and the governing command/testing contract.
 
+Any stop reached after the fix loop has begun still performs step 15 before returning.
+
 ## Output
 
 Return a concise diagnosis, Fix Authorization consumed, changed files, verification/review, delivery/cleanup,
