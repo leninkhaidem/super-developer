@@ -438,43 +438,73 @@ where it lives afterwards, and how to prove it survived. Modelled directly on wh
 commit 6e03ce6 silently dropped.
 
 **Column convention (DELIVERED / CORRECTED):** "Currently at" is a **baseline** (`23e3e52`) citation.
-The "Verification grep" column is the exception to the caveat at the top of this document: every
-expected value in it was **re-measured against the delivered tree** and is what the grep returns
+The "Verification" column is the exception to the caveat at the top of this document: every
+expected value in it was **re-measured against the delivered tree** and is what the command returns
 today. Where a delivered value differs from the proposal's prediction, the row says so.
 
-| # | Obligation | Currently at | Afterwards | Verification grep (from `plugins/super-developer/`) |
-|---|---|---|---|---|
-| 1 | "Keep repairs minimal." | `d&f:22` | same line, unchanged prefix | `grep -c "Keep repairs minimal" skills/diagnose-and-fix/SKILL.md` → `1` |
-| 2 | Broad/risky work routes to `implementation-plan` | `d&f:23` | new second bullet (§2.1), plus untouched `:111`, `:141` delivered | `grep -c "implementation-plan" skills/diagnose-and-fix/SKILL.md` — baseline `6` lines, delivered **`8`** (must be ≥ `6`) |
-| 3 | Preserve confirmed diagnosis + production-base/hotfix/target delivery context on planning handoff | `d&f:24-27` | unchanged | `grep -c "production-base/hotfix/target delivery" skills/diagnose-and-fix/SKILL.md` → `1` |
-| 4 | Exact **leases** remain mandatory | `d&f:46`, `:54` | unchanged text, shifted lines | `grep -nw "leases" skills/diagnose-and-fix/SKILL.md` → delivered lines **`58`, `66`** (baseline `46`, `54`). Use `-w`, or the frontmatter word "releases" adds a false hit at `:6` |
-| 5 | **Ancestry checks** remain mandatory | `d&f:54` | unchanged text, shifted line | `grep -n "ancestry" skills/diagnose-and-fix/SKILL.md` → delivered line **`66`** (baseline `54`) |
-| 6 | Separate target-merge / target-push bindings | `d&f:54` and step 13 `:104-106` | unchanged text, shifted lines | `grep -n "target-merge/target-push" skills/diagnose-and-fix/SKILL.md` → delivered line **`66`** (baseline `54`); `grep -c "target_push" …` → `1` |
-| 7 | **Cleanup proofs** in the internal receipt | `d&f:50` | unchanged text, shifted line | `grep -n "cleanup proofs" skills/diagnose-and-fix/SKILL.md` → delivered line **`62`** (baseline `50`) |
-| 8 | Untracked records include **Git/index-compatible mode** | `d&f:93` | unchanged — the `index-compatible` qualifier is the exact word 6e03ce6 dropped | `grep -c "Git/index-compatible mode" skills/diagnose-and-fix/SKILL.md` → `1` |
-| 9 | Untracked records include symlink target and **binary provenance** | `d&f:93`, `:99` | unchanged | `grep -c "binary provenance" skills/diagnose-and-fix/SKILL.md` → `2`; `grep -c "symlink target" …` → `2` |
-| 10 | Never infer approval from silence / "fix this" / diagnosis approval | `d&f:30` | unchanged | `grep -c "Never infer approval from silence" skills/diagnose-and-fix/SKILL.md` → `1` |
-| 11 | No live incident containment or production mutation | `d&f:31-33`, step 8 `:86`, Stop-if `:124-125` | unchanged | `grep -n "containment" skills/diagnose-and-fix/SKILL.md` → delivered lines **`6`, `36`, `99`, `151`** (still 4 hits; baseline `6`, `31`, `86`, `124`) |
-| 12 | Root checkout never used for repair or delivery | `d&f:20-21` (Always) and `:87-88` (step 8) | unchanged | `grep -c "Keep root checkout files/index user-owned" …` → `1`; `grep -c "use root as the repair or delivery checkout" …` → `1` |
-| 13 | Target merge/push and cleanup stay at existing owning boundaries | `d&f:45-46` (sentence wraps the line break) | unchanged sentence inside the rewritten `:44-46` block | `grep -c "existing owning" skills/diagnose-and-fix/SKILL.md` → `1` (do **not** grep the full phrase; it is line-wrapped) |
-| 14 | Unnamed scope / delivery / side effects remain unauthorized | `d&f:44-45` | **PRESENT**, delivered `:56-57`, wording byte-identical | **CORRECTED:** `grep -n "remain unauthorized" skills/diagnose-and-fix/SKILL.md` returns **`1`** hit (delivered `:95`, step 7), not the predicted `2`. The Fix Authorization sentence is intact but the delivered block re-wraps it as "… side effects remain" / "unauthorized. …", so a single-line grep cannot see it. Prove it with the un-wrapped half instead: `grep -c "Unnamed scope, delivery, or side effects remain" …` → `1`. The obligation was **not** weakened; only the line break moved. Do not "fix" the prompt to satisfy a grep. |
-| 15 | Revalidate every binding immediately before its action; never silently absorb drift | `d&f:50-51`, `:53` | unchanged | `grep -c "Never silently absorb drift" …` → `1`; `grep -c "Revalidate every binding" …` → `1` |
-| 16 | Testing authority resolution incl. `invoke testing` / stop `blocked`/`not-run`; never report not-run as passed | `d&f:63-67` | intact; step 3 gained **two** additions, not one — the up-front-coverage clause *and* "Resolve authority; never fabricate it." (delivered `:79`) | `grep -n "never report not-run work as passed" skills/diagnose-and-fix/SKILL.md` → delivered line **`80`** (baseline `67`); `grep -c "Resolve authority; never fabricate it" …` → `1` |
-| 17 | Exact approval before instrumentation / unsafe commands / credentials / network / service use; spikes in a throwaway worktree, history never promoted | `d&f:68-70` | **CORRECTED: not unchanged.** Step 4 was **narrowed** (delivered `:81-83`) so that a task-local Testing Authorization the Fix Authorization already named is no longer a second ask. Instrumentation, validation writes, unsafe commands, credentials, network, service use, and the throwaway-worktree/never-promote rule are all intact. | `grep -n "promote their history" skills/diagnose-and-fix/SKILL.md` → delivered line **`83`** (baseline `70`); `grep -c "the Fix Authorization did not already name" …` → `1` (the narrowing) |
-| 18 | `preferences.yml` never created in root or silently; gitignored local creation | `d&f:90-92` | unchanged clause; only the *who authorizes* changes | `grep -c "never create it in root" skills/diagnose-and-fix/SKILL.md` → `1`; **CORRECTED:** `grep -c "gitignored local" …` → **`2`**, not `1` — baseline `1`, and the new Fix Authorization bullet names the same gitignored local creation a second time |
-| 19 | Do not implement substantive edits inline | `d&f:94` | unchanged | `grep -c "Do not implement substantive edits inline" …` → `1` |
-| 20 | Never expand authority implicitly | `d&f:97` | unchanged (delivered `:111`) | `grep -c "never expand authority implicitly" skills/diagnose-and-fix/SKILL.md` → `1`. **CORRECTED — the second half of this row named the wrong file.** In `diagnose-and-fix/SKILL.md`, `grep -c "never authority"` returns **`0`**: the proposal's draft step 15 carried "Escalation changes method, never authority" but the delivered step 15 does not. That clause shipped in **`skills/implement/SKILL.md`** instead — `grep -c "never authority" skills/implement/SKILL.md` → **`1`** (delivered `:141`, inside the Non-convergence stop). In `diagnose-and-fix` the same authority boundary is carried by the Fix Authorization's planning-only fallback (`grep -c "grants no implementation authority" skills/diagnose-and-fix/SKILL.md` → `1`) plus row 20's first grep. |
-| 21 | Commit only under the exact receipt, CLEAN snapshot, reviewed-only staging; merge never pushes by itself | `d&f:104-106` | unchanged; step 15 explicitly defers to the authorized delivery level | `grep -n "merge never pushes by itself" skills/diagnose-and-fix/SKILL.md` → delivered line **`126`** (baseline `106`) |
-| 22 | Preserve useful fixtures; clean only approved throwaway artifacts | `d&f:107` | unchanged (step 15 is added after it, and its artifacts are *not* throwaway) | `grep -n "Preserve useful fixtures" skills/diagnose-and-fix/SKILL.md` → delivered line **`127`** (baseline `107`) |
-| 23 | Release / force-push / remote-delete keep separate approval boundaries | `d&f:45-46` plus the `worktree` and `release` skills | unchanged; no edit touches them | `git diff --stat -- plugins/super-developer/skills/release plugins/super-developer/skills/worktree` → empty |
-| 24 | The three-attempt cap and its 38 statements | 38 lines, 14 files (§5) | **all 38 unchanged** | **CORRECTED:** the §5 grep now returns **43 lines / 15 files**, not 38 / 14 — step 12's new cap and §2.5's escalation clauses match the same pattern. The check is therefore the stronger one: diff the baseline and delivered grep outputs and see **additions only**. Measured: exactly **5** added lines (3 in `diagnose-and-fix/SKILL.md`, 2 in `implement/SKILL.md`), **0** removed, **0** reworded. |
+**Scope of every check below (UPDATED):** `diagnose-and-fix` now carries part of this inventory in a
+skill-private reference, so a grep scoped to `SKILL.md` alone under-counts. Every check is therefore
+run over the **skill directory** — `SKILL.md` plus `references/` — with `grep -r`. Counts are totals
+across that directory (`grep -rh … | wc -l`), and citations are `file:line` relative to
+`skills/diagnose-and-fix/`. The obligation survives if the directory-wide total does not decrease;
+which file holds it is a routing decision, not a weakening. "Moved verbatim" below means the sentence
+text is unchanged apart from line rewrapping. See the extraction note after the table.
 
-Reviewer recipe: run every grep above against the pre-change and post-change trees and
-diff the outputs. Rows whose **content** differs: 2 (6→8), 14 (2 hits → 1, by line-wrap only),
-16 (two additions), 17 (step 4 narrowed), 18 (1→2), 20 (the clause is in `implement`, not
-`diagnose-and-fix`), 24 (38/14 → 43/15, additions only). Rows 4–7, 11, 21, 22 keep identical text at
-shifted line numbers. Rows 1, 3, 8–10, 12, 13, 15, 19, 23 are unchanged in both text and value. The
-38 pre-existing cap lines of row 24 must be byte-identical.
+| # | Obligation | Currently at | Afterwards | Verification (run from `plugins/super-developer/`, `D=skills/diagnose-and-fix/`) |
+|---|---|---|---|---|
+| 1 | "Keep repairs minimal." | `d&f:22` | `SKILL.md`, unchanged prefix | `grep -rh "Keep repairs minimal" $D \| wc -l` → `1` |
+| 2 | Broad/risky work routes to `implementation-plan` | `d&f:23` | `SKILL.md` (7 lines) plus one line each in the two references | `grep -rh "implementation-plan" $D \| wc -l` → `9` (baseline directory total was also `9`: 8 in `SKILL.md`, 1 in `references/fix-implementer-contract.md`; must be ≥ `9`) |
+| 3 | Preserve confirmed diagnosis + production-base/hotfix/target delivery context on planning handoff | `d&f:24-27` | `SKILL.md` `## Always`, unchanged | `grep -rh "production-base/hotfix/target delivery" $D \| wc -l` → `1` |
+| 4 | Exact **leases** remain mandatory | `d&f:46`, `:54` | **moved verbatim** to `references/orchestration-mechanics.md` | `grep -rnw "leases" $D` → `references/orchestration-mechanics.md:38` and `:45`. Use `-w`, or the word "releases" adds false hits |
+| 5 | **Ancestry checks** remain mandatory | `d&f:54` | **moved verbatim** to the same reference | `grep -rn "ancestry" $D` → `references/orchestration-mechanics.md:45` |
+| 6 | Separate target-merge / target-push bindings | `d&f:54` and step 13 `:104-106` | **moved verbatim** to the same reference | `grep -rn "target-merge/target-push" $D` → `references/orchestration-mechanics.md:45`; `grep -rh "target_push" $D \| wc -l` → `1` |
+| 7 | **Cleanup proofs** in the internal receipt | `d&f:50` | **moved verbatim** to the same reference | `grep -rn "cleanup proofs" $D` → `references/orchestration-mechanics.md:41` |
+| 8 | Untracked records include **Git/index-compatible mode** | `d&f:93` | **moved verbatim** — the `index-compatible` qualifier is the exact word 6e03ce6 dropped | `grep -rh "Git/index-compatible mode" $D \| wc -l` → `1` |
+| 9 | Untracked records include symlink target and **binary provenance** | `d&f:93`, `:99` | both `SKILL.md` copies **moved verbatim**; the `fix-implementer-contract.md` copy untouched | `grep -rh "binary provenance" $D \| wc -l` → `3`; `grep -rh "symlink target" $D \| wc -l` → `3` (both totals unchanged from baseline) |
+| 10 | Never infer approval from silence / "fix this" / diagnosis approval | `d&f:30` | `SKILL.md`, unchanged | `grep -rh "Never infer approval from silence" $D \| wc -l` → `1` |
+| 11 | No live incident containment or production mutation | `d&f:31-33`, step 8 `:86`, Stop-if `:124-125` | 3 lines still in `SKILL.md`; the hotfix route bullet moved to the reference | `grep -rn "containment" $D` → `SKILL.md:6`, `SKILL.md:36`, `SKILL.md:125`, `references/orchestration-mechanics.md:56`, `references/fix-implementer-contract.md:49` (5 hits; the baseline directory total was also 5) |
+| 12 | Root checkout never used for repair or delivery | `d&f:20-21` (Always) and `:87-88` (step 8) | both sentences still in `SKILL.md`; the reference restates it a third time | `grep -rh "Keep root checkout files/index user-owned" $D \| wc -l` → `1`; `grep -rh "use root as the repair or delivery checkout" $D \| wc -l` → `1`; `grep -rh "root checkout as the repair or delivery checkout" $D \| wc -l` → `1` |
+| 13 | Target merge/push and cleanup stay at existing owning boundaries | `d&f:45-46` (sentence wraps the line break) | unchanged sentence in `SKILL.md`; the reference adds an explicit restatement covering remote deletion and release | `grep -rh "existing owning" $D \| wc -l` → `1` (do **not** grep the full phrase; it is line-wrapped). The restatement: `grep -rh "keep their own separate approval boundaries" $D \| wc -l` → `1` |
+| 14 | Unnamed scope / delivery / side effects remain unauthorized | `d&f:44-45` | **PRESENT** in `SKILL.md`, wording byte-identical | **CORRECTED:** `grep -rh "remain unauthorized" $D \| wc -l` returns **`1`**, not the predicted `2`. The Fix Authorization sentence is intact but re-wrapped as "… side effects remain" / "unauthorized. …", so a single-line grep cannot see it. Prove it with the un-wrapped half instead: `grep -rh "Unnamed scope, delivery, or side effects remain" $D \| wc -l` → `1`. The obligation was **not** weakened; only the line break moved. Do not "fix" the prompt to satisfy a grep. |
+| 15 | Revalidate every binding immediately before its action; never silently absorb drift | `d&f:50-51`, `:53` | **moved verbatim** to the reference | `grep -rh "Never silently absorb drift" $D \| wc -l` → `1`; `grep -rh "Revalidate every binding" $D \| wc -l` → `1` |
+| 16 | Testing authority resolution incl. `invoke testing` / stop `blocked`/`not-run`; never report not-run as passed | `d&f:63-67` | **moved** to the reference — the three authority forms are now three bullets rather than one sentence, with no form, condition, or stop dropped; the stop rules moved verbatim; `SKILL.md` step 3 keeps the trigger, the load instruction, and the read-only carve-out | `grep -rn "never report not-run work as passed" $D` → `references/orchestration-mechanics.md:21`; `grep -rh "Resolve authority; never fabricate it" $D \| wc -l` → `1`; the up-front-coverage clause: `grep -rh "which the Fix Authorization may supply up front" $D \| wc -l` → `1` |
+| 17 | Exact approval before instrumentation / unsafe commands / credentials / network / service use; spikes in a throwaway worktree, history never promoted | `d&f:68-70` | `SKILL.md` step 4, **unchanged by this extraction** (it was already narrowed earlier so a Fix-Authorization-named task-local Testing Authorization is not a second ask) | `grep -rn "promote their history" $D` → `SKILL.md:74`; `grep -rh "the Fix Authorization did not already name" $D \| wc -l` → `1` |
+| 18 | `preferences.yml` never created in root or silently; gitignored local creation | `d&f:90-92` | the creation mechanics **moved** to the reference; only the clause join changed (`… there; never create it in root or silently` → `… there. Either way, never create it in root or silently`), so the phrase stays greppable; the Fix Authorization bullet naming the same gitignored local creation stays in `SKILL.md` | `grep -rh "never create it in root" $D \| wc -l` → `1`; `grep -rh "gitignored local" $D \| wc -l` → `2` (one in `SKILL.md`, one in the reference; total unchanged from baseline) |
+| 19 | Do not implement substantive edits inline | `d&f:94` | `SKILL.md` step 9, unchanged | `grep -rh "Do not implement substantive edits inline" $D \| wc -l` → `1` |
+| 20 | Never expand authority implicitly | `d&f:97` | `SKILL.md` step 10 (delivered `:88`) | `grep -rh "never expand authority implicitly" $D \| wc -l` → `1`. **CORRECTED — the second half of this row named the wrong file.** In `diagnose-and-fix`, `grep -rh "never authority" $D \| wc -l` returns **`0`**: that clause shipped in **`skills/implement/SKILL.md`** instead — `grep -c "never authority" skills/implement/SKILL.md` → **`1`**. In `diagnose-and-fix` the same authority boundary is carried by the Fix Authorization's planning-only fallback (`grep -rh "grants no implementation authority" $D \| wc -l` → `1`), by row 20's first check, and by the reference's "A binding records authority; it never widens it." (`grep -rh "it never widens it" $D \| wc -l` → `1`) |
+| 21 | Commit only under the exact receipt, CLEAN snapshot, reviewed-only staging; merge never pushes by itself | `d&f:104-106` | **moved verbatim** to the reference; `SKILL.md` step 13 keeps the gate and points at it, and step 15 still defers to the authorized delivery level | `grep -rn "merge never pushes by itself" $D` → `references/orchestration-mechanics.md:85`; `grep -rh "CLEAN unchanged snapshot" $D \| wc -l` → `1` |
+| 22 | Preserve useful fixtures; clean only approved throwaway artifacts | `d&f:107` | `SKILL.md` step 14, unchanged | `grep -rn "Preserve useful fixtures" $D` → `SKILL.md:101` |
+| 23 | Release / force-push / remote-delete keep separate approval boundaries | `d&f:45-46` plus the `worktree` and `release` skills | unchanged; no edit touches them | `git diff --stat -- plugins/super-developer/skills/release plugins/super-developer/skills/worktree` → empty |
+| 24 | The three-attempt cap and its statements | 38 lines, 14 files (§5) | **all unchanged**; the three lines in `diagnose-and-fix/SKILL.md` are byte-identical and only shift line number, and the new reference adds **none** | **RE-MEASURED:** the §5 grep now returns **44 lines / 15 files** on the delivered tree (§5 recorded 38 / 14 and §6 later recorded 43 / 15; commits after those measurements, not this extraction, account for the drift — the same command returns 44 / 15 both immediately before and immediately after this extraction). The check is therefore the stronger one: diff the pre- and post-change grep outputs and see **no removals and no rewordings**. Measured for this extraction: **0** added, **0** removed, **0** reworded cap lines; `grep -rniE "<§5 pattern>" $D` → 3 lines, all in `SKILL.md` (`:53`, `:94`, `:97`), byte-identical to baseline |
+
+Reviewer recipe: run every check above against the pre-change and post-change trees and
+diff the outputs. Because each one is now directory-scoped, a relocated obligation keeps its
+total and only its `file:line` citation moves. Rows whose **content** differs from the original
+proposal: 2 (6→9 directory-wide), 14 (2 hits → 1, by line-wrap only), 16 (two additions), 17
+(step 4 narrowed earlier), 18 (1→2), 20 (the "never authority" clause is in `implement`, not
+`diagnose-and-fix`), 24 (38/14 → 44/15, additions only). Rows 4–9, 15, 16, 18, 21 now resolve
+inside `references/orchestration-mechanics.md` with identical text. Rows 1, 3, 10, 12, 13, 19,
+22, 23 are unchanged in both text and value. The pre-existing cap lines of row 24 must stay
+byte-identical.
+
+**Extraction note (budget compliance).** `skills/diagnose-and-fix/SKILL.md` reached 168 lines /
+1860 words after the work in §2, which tripped two `audit-skill.py` budget warnings: over
+`SKILL_WORD_MAX` (1800) and outside `SKILL_WORD_TARGET` (600–1500). The obligations were
+**extracted, not compressed**, into a new skill-private reference
+`skills/diagnose-and-fix/references/orchestration-mechanics.md` (102 lines / 886 words): the
+internal-receipt and state-binding mechanics, the route/dispatch/review/delivery bindings, the
+testing-authority ladder, the diagnosis report field list, and the durable-evidence rules of step
+15. `SKILL.md` is now 138 lines / 1421 words and the audit reports `RESULT: PASS` with **no**
+warnings for it. Extraction was chosen over compression for three reasons: the warning text itself
+says "remove obligations rather than compressing prose"; denser prose would satisfy the word count
+only by making the same obligations harder for a mid-tier agent to execute, which is the failure
+mode `audit-skill.py`'s own comments call out; and compression is how commit 6e03ce6 silently lost
+ancestry checks, cleanup proofs, binary provenance and the `index-compatible` qualifier. Every
+moved obligation keeps a load path: a `## Load if needed` trigger naming the reference, plus an
+explicit pointer in each `## Do` step that needs it (3, 6, 8, 9, 10, 11, 12, 13, 15) and in the
+`## Fix Authorization and Internal Receipt` section. The Fix Authorization ask, the three-attempt
+cap and single re-diagnose escalation of step 12, and the `## Stop if` clause requiring step 15
+after the fix loop has begun all stay in `SKILL.md`, unchanged.
 
 ## 7. Shared reference: NO
 
