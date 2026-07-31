@@ -6,6 +6,20 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [v2.1.0] - 2026-07-30
+
+### Changed
+- Changed localized bug-repair routing to use confirmed evidence and bounded reversibility instead of subsystem categories, so ordinary defects can be repaired directly while preserving review and authority gates.
+- Changed prompt-complexity guidance to use warning-only word budgets with a 200-line formatting backstop, avoiding incentives to compress prompt prose.
+- Changed exhausted code-repair clusters to allow one bounded, authority-preserving escalation through the existing planning route before stopping on a second exhaustion.
+
+### Fixed
+- Fixed durable stop evidence so it is written only to authorized safe destinations, uses event-ordinal filenames, and never overwrites earlier evidence or user changes.
+- Fixed authoring, execution, lifecycle, integration, and user-facing contracts that contradicted the updated budget and repair-loop behavior.
+
+### Removed
+- Removed brittle prompt-prose assertion tests while retaining the real Git worktree and command-semantics tests.
+
 ## [v2.0.0] - 2026-07-29
 
 ### Changed
