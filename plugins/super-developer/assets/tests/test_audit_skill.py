@@ -70,22 +70,76 @@ class AuditSkillValidatorTests(unittest.TestCase):
 
     def test_default_mode_enforces_skill_and_reference_hard_line_caps(self) -> None:
         skill_fixture = self.fixture("skill-cap")
-        skill_fixture.write_skill(body="# Fixture\n" + "\n".join(f"line {index}" for index in range(160)) + "\n")
+        skill_fixture.write_skill(body="# Fixture\n" + "\n".join(f"line {index}" for index in range(210)) + "\n")
 
         result = skill_fixture.run()
 
         self.assertEqual(result.returncode, 1, result.stdout)
-        self.assertIn("SKILL.md exceeds hard cap of 150 lines", result.stdout)
+        self.assertIn("SKILL.md exceeds hard cap of 200 lines", result.stdout)
         self.assertIn("HARD LINE CAP ERRORS", result.stdout)
 
         ref_fixture = self.fixture("reference-cap")
-        ref_fixture.write_reference("large.md", "\n".join(f"reference line {index}" for index in range(151)) + "\n")
+        ref_fixture.write_reference("large.md", "\n".join(f"reference line {index}" for index in range(205)) + "\n")
         ref_fixture.write_skill(body="# Fixture\n\nLoad `references/large.md` when needed.\n")
 
         result = ref_fixture.run()
 
         self.assertEqual(result.returncode, 1, result.stdout)
-        self.assertIn("reference exceeds hard cap of 150 lines", result.stdout)
+        self.assertIn("reference exceeds hard cap of 200 lines", result.stdout)
+
+    def test_word_budget_warns_and_cannot_be_evaded_by_denser_lines(self) -> None:
+        """The word budget warns, and is line-wrapping invariant.
+
+        This is the property a line cap lacks. Identical word content is audited twice, once as
+        many short lines and once packed into few long lines; both must report the same word
+        budget warning, and neither may fail the audit.
+        """
+        words = [f"w{index}" for index in range(1900)]
+
+        # Sparse stays well under the 200-line hard cap, so it can only trip the word budget.
+        sparse = self.fixture("word-budget-sparse")
+        sparse.write_skill(body="# Fixture\n" + "\n".join(" ".join(words[i : i + 15]) for i in range(0, len(words), 15)) + "\n")
+        sparse_result = sparse.run()
+
+        packed = self.fixture("word-budget-packed")
+        packed.write_skill(body="# Fixture\n" + "\n".join(" ".join(words[i : i + 200]) for i in range(0, len(words), 200)) + "\n")
+        packed_result = packed.run()
+
+        for label, result in (("sparse", sparse_result), ("packed", packed_result)):
+            self.assertIn("exceeds word budget of 1800", result.stdout, label)
+            self.assertIn("remove obligations rather than compressing prose", result.stdout, label)
+            self.assertNotIn("HARD LINE CAP ERRORS", result.stdout)
+            # Warning only: an over-budget prompt must still pass the audit, whatever its line density.
+            self.assertEqual(result.returncode, 0, f"{label}: {result.stdout}")
+
+    def test_reference_word_budget_warns_and_still_passes(self) -> None:
+        """The reference word budget has its own warning branch, and it must not fail the audit."""
+        words = [f"w{index}" for index in range(1900)]
+        fixture = self.fixture("reference-word-budget")
+        fixture.write_reference(
+            "big.md",
+            "# Reference\n" + "\n".join(" ".join(words[i : i + 15]) for i in range(0, len(words), 15)) + "\n",
+        )
+        fixture.write_skill(body="# Fixture\n\nLoad `references/big.md` when needed.\n")
+
+        result = fixture.run()
+
+        self.assertEqual(result.returncode, 0, result.stdout)
+        self.assertIn("big.md: reference exceeds word budget of 1800", result.stdout)
+        self.assertIn("remove obligations rather than compressing prose", result.stdout)
+        self.assertNotIn("HARD LINE CAP ERRORS", result.stdout)
+
+    def test_readable_reflowing_below_the_word_budget_passes(self) -> None:
+        """De-densifying prose (same words, more/shorter lines) must never fail the audit."""
+        words = [f"word{index}" for index in range(700)]
+        fixture = self.fixture("reflow-ok")
+        fixture.write_skill(body="# Fixture\n" + "\n".join(" ".join(words[i : i + 8]) for i in range(0, len(words), 8)) + "\n")
+
+        result = fixture.run()
+
+        self.assertEqual(result.returncode, 0, result.stdout)
+        self.assertNotIn("HARD LINE CAP ERRORS", result.stdout)
+        self.assertNotIn("exceeds word budget", result.stdout)
 
     def test_strict_remains_a_no_op_and_word_targets_remain_warnings(self) -> None:
         fixture = self.fixture()

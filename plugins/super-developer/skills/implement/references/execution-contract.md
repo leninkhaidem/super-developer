@@ -31,9 +31,10 @@ This reference owns the user-facing implement approval template and its approval
   they require separate approval.
 - Accept `resolved-static`, `supported`, or `rejected` only after validating report identity, provenance, method,
   authority, bounds, limitations, and cleanup. Auto-resolve corrects in-contract `blocked`/`inconclusive`; protected/
-  out-of-contract needs return at a Stop condition. Each logical question has at most three total attempts: attempt 1
-  is initial; attempts 2–3 are each a fresh invocation with stable ID and named corrected packet or changed method/signal. Exhaustion stops;
-  unchanged work is forbidden and no other counter exists.
+  out-of-contract needs return at a Stop condition. Each logical empirical question has at most three total attempts:
+  attempt 1 is initial; attempts 2–3 are each a fresh invocation with stable ID and named corrected packet or changed method/signal.
+  Exhaustion of an empirical question stops, with no escalation; unchanged work is forbidden and no other counter
+  exists for it. Code repair clusters use the separate circuit in pipeline step 13.
 - Step-by-step mode asks before each major gate, package wave, repair loop, source push, and final handoff.
 ## Do
 1. Validate `.tasks/<feature>/`, package/proof/report/Slice paths, current git refs, and—when execution
@@ -120,7 +121,12 @@ Pipeline:
 10. route any plan-owned defect (reports or none) through continuation/focused review; repair code separately
 11. run root-aware final validation; freeze integrated-code/artifact/runtime-evidence inputs
 12. invoke `review-code` and `audit` as sibling checks; their outputs are not freeze inputs
-13. preserve logical question/finding identity and the existing three-total-attempt circuit; never retry unchanged
+13. preserve logical question/finding identity and the existing three-total-attempt circuit; never retry unchanged;
+    empirical questions and plan-owned clusters stop on that exhaustion, while a code repair cluster is instead
+    re-classified once as a possible plan defect and routed through step 10 when that preserves approved semantics,
+    scope, user-visible behavior, risk, and manual exceptions — otherwise that routing is new semantic authority and
+    stops; at most one such escalation per cluster identity, relabeling or reclustering earns no second one, and the
+    same cluster's second attempt-3 exhaustion stops
 14. stabilize repairs; deduplicate commands only for equivalent state/cwd/environment/isolation/evidence mappings; establish a new freeze and require focused review-code closure plus a fresh cold complete same-freeze audit PASS
 15. retain all package safety nets to final cleanup; then run only independently listed sidecar/source pushes
 Stop conditions:
@@ -131,7 +137,8 @@ Stop conditions:
 - sidecar action would escape `origin artifacts/<feature>` or merge artifact-only state into deliverable code
 - feature/hotfix checkpoint diverges, non-fast-forwards, or fails protected remote/credential checks
 - target delivery, force/remote-delete/tag/release, or local ref deletion outside probe/final-package cleanup
-- attempt-3 exhaustion, unbounded questions, or other true bounded non-convergence
+- attempt-3 exhaustion of an empirical question or plan-owned cluster, a code repair cluster's second attempt-3
+  exhaustion after its one allowed re-classification, unbounded questions, or other true bounded non-convergence
 Choices:
   approve auto-resolve — run covered code/probes/tests/replan/re-review/repairs/review/audit and, for `feature`,
                          listed checkpoints while scope, authority, and material-progress rules hold, until stop

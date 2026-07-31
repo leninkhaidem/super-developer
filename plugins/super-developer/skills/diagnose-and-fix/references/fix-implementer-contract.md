@@ -61,7 +61,8 @@ rotation, production config/data changes, or other incident containment. Do not 
    starting implementation for the diagnosed reason, not an incidental error.
    If a durable seam is unavailable, stop and report the exact scope or planning decision needed.
 4. **Minimal fix:** apply only the smallest change that closes the confirmed mechanism. Preserve public behavior
-   outside the approved correction and avoid refactors, upgrades, broad hardening, and opportunistic repairs.
+   outside the approved correction and avoid refactors, upgrades, broad hardening, and opportunistic repairs. Add no
+   abstraction, flag, layer, configuration, or extension point that does not trace to the confirmed mechanism.
 5. **Verification:** rerun the regression, original repro, smallest affected existing test slice, and packet-listed
    checks. Record exact command, cwd, bound, exit/result, progress/termination, and cleanup. A timeout, flaky result,
    uncertain process termination, or uncertain cleanup is not a pass.
@@ -72,9 +73,12 @@ rotation, production config/data changes, or other incident containment. Do not 
 
 ## Scope Expansion and Stops
 
-Stop before any unlisted path, changed public API/schema/contract, dependency/service/config change, cross-module
-repair, security/data/concurrency/performance-critical change, live action, unsafe command, or broader verification.
-Return `BLOCKED: scope_expansion` with evidence, proposed added paths/actions, and why the approved seam is
+The test is scope expansion beyond what the packet authorized, not the category of the code. Stop before any path
+outside the authorized set, a changed public API/schema/contract, a dependency/service/config change that was not
+authorized, a live action, an unsafe command, or verification broader than authorized. Category alone is not a stop:
+an authorized repair may touch security, data, concurrency, performance, or more than one module, provided every
+path is authorized and nothing above is triggered. Never widen your own authority for any reason. Return
+`BLOCKED: scope_expansion` with evidence, proposed added paths/actions, and why the approved seam is
 insufficient. The parent re-diagnoses and routes broad/risky work to `implementation-plan`; the worker never does.
 
 ## Bounded Report

@@ -13,9 +13,15 @@ action point, and a competent mid-tier agent can follow the result without hidde
 ## Budgets
 
 - Frontmatter `description`: target 1–3 short content lines; hard maximum 280 folded characters.
-- `SKILL.md`: target 80–140 normal-width lines, hard maximum 150, target 600–1,200 words.
-- References: target 60–130 normal-width lines, hard maximum 150, target 300–900 words.
+- Judge complexity by words, not lines. A line cap is gameable — the same obligations reflowed into
+  denser text still pass it — so tight line caps end up rewarding the unreadable density they were
+  meant to prevent. Reformatting for clarity must always be free.
+- `SKILL.md`: hard maximum 200 lines; word budget 1,800, target 600–1,500.
+- References: hard maximum 200 lines; word budget 1,800, target 300–1,200.
+- Only the line cap fails the audit. Word budgets and targets warn, and are author guidance.
 - Keep lines at or below 120 characters where practical; never pack prose to satisfy a line budget.
+- Spend the word budget on obligations, not phrasing. When a prompt nears its ceiling, remove or
+  extract obligations; never compress prose to fit.
 - Exceed a target only when concrete safety or workflow value justifies it; never exceed a hard maximum.
 
 ## Canonical Shape
@@ -122,7 +128,8 @@ quality standard, or read every reference up front to know what to do.
   focused clarification.
 - The execution surface or hybrid mode boundary cannot be selected from visible task behavior.
 - The target agent would need hidden context, invented authority, or unstated quality/safety rules.
-- Safe eager instructions still exceed 150 lines or a reference exceeds 150 lines after honest compression.
+- Safe eager instructions or a reference still exceed the hard line maximum stated in `## Budgets` after honest
+  compression.
 - A proposed reference has no concrete parent load condition or creates a hidden second hop.
 - The draft duplicates another skill instead of invoking it, or links another skill's private reference.
 - Deterministic validation fails or a normal/risky dry run exposes a material guess.

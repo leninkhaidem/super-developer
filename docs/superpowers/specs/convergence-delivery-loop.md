@@ -1,0 +1,712 @@
+# Convergence & Delivery Loop — Design Spec
+
+Status: **DELIVERED** on `chore/prompt-budget-cleanup`. Written as a proposal; now maintained as the
+record of what actually shipped. Passages corrected after delivery are marked **DELIVERED /
+CORRECTED**. The original reasoning is kept, not deleted, so the trade-offs stay auditable and a
+future reader can see which claims were wrong and why.
+Branch: `chore/prompt-budget-cleanup`
+Baseline measured: this worktree, all numbers below are measured, none estimated
+Delivered by commits `654023b` (cost-based routing, bounded repair loop, deliver-on-exhaustion),
+`e8beb31` (stop-evidence obligation reachable from every stop), and `a37cd8d` (escalate once on
+exhaustion, artifact-path conventions).
+
+## ⚠ READ THIS BEFORE QUOTING ANYTHING BELOW
+
+1. **Line numbers in §§1–5 and §§7–10 are pre-change *baseline* numbers** (tree `23e3e52`), not
+   delivered ones. They have all shifted — `diagnose-and-fix/SKILL.md` went 132 → 146 lines, and the
+   drift is **not** a constant offset, because the action-point mechanics were later extracted into
+   `references/orchestration-mechanics.md`: baseline `:97` is now `:96` and baseline `:100` is now
+   `:98`, while the baseline `## Output` heading at `:129` is now `:141`. **Never cite a `:NN`
+   from those sections as the current location of anything; the tree is the authority.** The one
+   exceptions are §6's verification greps and the citations in §§11–12, which were re-measured
+   against the delivered tree and state delivered line numbers.
+2. **Every fenced block in §2 is the proposal's DRAFT wording, and none of it is what shipped.** The
+   delivered clauses differ in detail, in some places substantially. Do not quote, review, or
+   implement against a fenced block. The authoritative delivered text lives only in
+   `plugins/super-developer/skills/diagnose-and-fix/SKILL.md`,
+   `plugins/super-developer/skills/diagnose-and-fix/references/fix-implementer-contract.md`, and
+   `plugins/super-developer/skills/implement/SKILL.md`. Where a delivered detail matters it is quoted
+   verbatim in §2.4, §2.5, or §11.
+3. **This document deliberately keeps the record of its own wrong claims.** A passage marked
+   **DELIVERED / CORRECTED** supersedes the text above it, and a paragraph marked **FALSE** is
+   preserved as evidence of an error, not as an assertion. Read the correction before acting on
+   anything near it.
+
+## Recommendation up front
+
+**Adopt the Minimum Viable Change only, plus one cheap add-on (Add-on 1).**
+Recommend AGAINST the convergence test, the orchestrator/worker split, a new preflight
+section, and a 13th shared reference.
+
+The recommended change edits **one file** (`skills/diagnose-and-fix/SKILL.md`) at
+**six line ranges**, and leaves all 38 existing numeric-cap lines untouched.
+
+**DELIVERED / CORRECTED (D1): the shipped change edits three files, not one.** Review of this spec
+found two of its factual claims wrong, and each correction pulled in a file the recommendation had
+ruled out:
+
+| File edited | Why |
+|---|---|
+| `skills/diagnose-and-fix/SKILL.md` | §2.1 cost test and §2.2 step 15 as designed, **plus** the explicit three-attempt cap §2.2 wrongly claimed was unnecessary (§2.2 correction), plus the exhaustion escalation and the `DIAGNOSIS.md` path convention (§2.5, §11 q2) |
+| `skills/diagnose-and-fix/references/fix-implementer-contract.md` | the worker's scope-expansion stop had to be rekeyed off category onto authorized scope, or its own worker would refuse the repairs §2.1 newly routes to it; **plus** the right-size clause (§2.4) |
+| `skills/implement/SKILL.md` | stop-evidence obligation, because open question 4 was wrong (§1 correction), its `.tasks/<feature>/reports/` location, and the exhaustion escalation (§2.5) |
+
+The claim about the 38 cap lines held. Measured with the §5 grep at `23e3e52` (pre-change) versus the
+delivered tree: 38 lines / 14 files → 43 lines / 15 files, and diffing the two grep outputs shows
+**additions only** — the 5 added lines are step 12's new cap plus the escalation clauses. No
+pre-existing cap line was reworded.
+
+Reason: the pain is real but narrow, and most of the machinery in the original brief
+would replace a mechanically checkable rule ("3 attempts") with an unfalsifiable one
+("did this attempt yield new information?"). A judgement with no failure signal cannot
+be verified by a reviewer, cannot be tested by `test_skill_prompts.py`, and cannot be
+detected when a mid-tier agent applies it wrongly. That is precisely the class of
+unfalsifiable prompt complexity this repo has been removing. Confronting that trade
+head-on: the numeric cap's inflexibility is a *known, bounded* cost; the convergence
+test's inconsistency would be an *unknown, unbounded* one.
+
+## 1. Problem statement
+
+| Objective | Actual pain | Diagnosis |
+|---|---|---|
+| 1. Frictionless agentic loop | Two incidental interruptions inside an already-authorized bug repair: task-local Testing Authorization (`skills/diagnose-and-fix/SKILL.md:63-67` and `:68-69`) and `.superdeveloper/preferences.yml` creation (`:90-92`). | Narrow. Two clauses. |
+| 2. Avoid overengineering | Not currently violated by the cap; would be violated by the fix originally proposed. | The cap is 38 lines of *repetition*, but repetition of a rule that costs nothing to read and cannot be misread. |
+| 3. Bugs must not be dragged through planning | `skills/diagnose-and-fix/SKILL.md:22-23` routes "cross-module/service, contract, schema, security, data, concurrency, performance, dependency, or otherwise broad/risky" through `implementation-plan`. That list matches nearly every real defect, so planning is the de-facto default. | **This is the real defect.** One line pair. |
+| (unstated but real) Never return empty-handed | `diagnose-and-fix` has no artifact store. On a Stop it returns a **chat-only** diagnosis (`:129-132` Output) and may have committed nothing (delivery `local only`). The user returns to an empty branch. | Genuine gap. `implement` does *not* share it — its packages, proof, and report artifacts are already durable on disk when it stops. |
+
+The empty-handed problem is therefore **specific to `diagnose-and-fix`**, not to
+`implement`. That single observation removes most of the proposed scope.
+
+**DELIVERED / CORRECTED (D3): the second half of that claim is wrong.** `implement`'s durable
+artifacts are real, but the citation behind the claim — `skills/implement/SKILL.md:47-48`, "the
+package result report is the durable done-evidence receipt" — covers **done** evidence only.
+Non-convergence can fire **at readiness**, before any package agent has been dispatched, and at that
+moment no package report, proof, or package branch exists yet: the user really does return to nothing
+but chat. `implement` therefore also received a stop-evidence obligation (see §11 q4 and §2.5). The
+gap is **narrower** in `implement` than in `diagnose-and-fix` — usually there are artifacts — but it
+is not absent, and "usually" is not a design guarantee.
+
+## 2. Minimum viable change (RECOMMENDED)
+
+Three edits, one file. Two of them are approved decisions A/B/C; the third is the
+delivery clause.
+
+**DELIVERED / CORRECTED:** this section is the proposal. What shipped is this plus four additions —
+the explicit cap (§2.2 correction), the scope-expansion rekey and right-size clause (§2.4), the
+exhaustion escalation (§2.5), and the two artifact-path conventions (§11 q2). §12 accounts for the
+difference.
+
+### 2.1 Cost-based routing (approved decisions A, B, C) — replaces a category list
+
+Replace `skills/diagnose-and-fix/SKILL.md:22-23`:
+
+> `- Keep repairs minimal. Route cross-module/service, contract, schema, security, data, concurrency, performance,`
+> `  dependency, or otherwise broad/risky change through `implementation-plan`.`
+
+with:
+
+```
+- Keep repairs minimal. Classify a repair by cost, not by category. It is `localized` when both hold: the
+  mechanism is confirmed by evidence, ideally a deterministic failing test, and the change is bounded and cheaply
+  reversible. When both hold, fix and review it here whatever subsystem it touches.
+- A repair is `broad/risky` and goes through `implementation-plan` only when one of these holds: the mechanism is
+  unconfirmed and the fix requires choosing between viable designs; the change is hard to reverse, such as a
+  schema or data migration or a published contract or API; or the blast radius cannot be bounded.
+```
+
+**Why this is the cheapest possible form of the change.** `broad/risky` is used as a
+label at seven other sites. Redefining the label at its single point of definition
+makes all seven inherit the new meaning with **zero further edits**:
+
+| Free-riding site | Text | Still correct? |
+|---|---|---|
+| `diagnose-and-fix/SKILL.md:25-26` | "For a broad/risky production repair, preserve the confirmed diagnosis…" | Yes |
+| `diagnose-and-fix/SKILL.md:77` | "blast radius and `localized` versus `broad/risky` classification" | Yes — now better defined |
+| `diagnose-and-fix/SKILL.md:97` | "Route expansion back to diagnosis and broad/risky work to `implementation-plan`" | Yes — this **is** degradation-ladder rung 2 |
+| `diagnose-and-fix/SKILL.md:114` | "Broad/risky existing-system or feature change → invoke `implementation-plan`" | Yes |
+| `diagnose-and-fix/SKILL.md:123` | "A localized fix expands beyond approved paths or crosses a broad/risky boundary." | Yes |
+| `diagnose-and-fix/references/fix-implementer-contract.md:78` | "The parent re-diagnoses and routes broad/risky work to `implementation-plan`" | Yes |
+| `worktree/references/bugfix-hotfix-workflow.md:88` | "When a confirmed broad/risky production repair is routed through planning…" | Yes |
+
+Security-forces-planning removal (decision C) is safe. Verified in this worktree:
+
+- `skills/review-code/SKILL.md:40` — "add at most one specialist only when the diff/evidence triggers a sensitive surface: security/privacy/safety;"
+- `skills/review-code/SKILL.md:74` — "🔴 **BLOCKING** — must resolve before merge/commit/audit handoff: correctness, security, privacy, safety,"
+- `skills/review-code/SKILL.md:96` — "Documented intent disputes only non-security/privacy/safety findings; real security/privacy/safety risks stay confirmed."
+
+All three still say what decision C assumes. Security therefore keeps a blocking gate
+on the localized path.
+
+### 2.2 Deliver-on-exhaustion (the one genuinely new obligation)
+
+Add step 15 to `skills/diagnose-and-fix/SKILL.md` (after current step 14):
+
+```
+15. If the repair cannot be completed — unconfirmed mechanism, review non-convergence, or a named blocker — do not
+    return empty-handed. In the approved bugfix worktree leave the deterministic reproducing test (or the exact
+    reason none exists) and a written diagnosis file naming the mechanism evidence, what was tried, and the exact
+    blocker. Land them only at the delivery level already authorized: `local only` leaves them uncommitted.
+    Escalation changes method, never authority; never merge, push, or act outside the authorization to deliver it.
+```
+
+**The block above is DRAFT wording and is not what shipped.** Delivered step 15 fixes the artifact
+paths (§11 q2), is reachable from every stop after the fix loop begins, and does **not** contain the
+sentence "Escalation changes method, never authority" — that clause shipped in
+`skills/implement/SKILL.md` instead (see §6 row 20). Read the delivered step 15 in
+`plugins/super-developer/skills/diagnose-and-fix/SKILL.md`; do not review against the draft.
+
+**FALSE — blocking error B1. The paragraph below is the proposal's claim, kept verbatim only as the
+record of the error. Its conclusion and its central premise are both wrong (only its first clause,
+that step 12 invokes `review-code`, is true). Do not act on it; the correction follows immediately.**
+
+> **No new exhaustion trigger is needed.** `diagnose-and-fix:100-103` (step 12) invokes
+> `review-code`, whose Stop-if already reads *"A blocking seam finding will not converge
+> within 3 attempts."* (`skills/review-code/SKILL.md:143`, echoed at
+> `references/pipeline-report.md:66`). The existing numeric cap already bounds the
+> `diagnose-and-fix` repair loop. Step 15 only changes **what happens on expiry**, from
+> "stop" to "deliver, then stop".
+
+**DELIVERED / CORRECTED (D2) — why the quoted claim is false.** `review-code/SKILL.md:143` does
+**not** govern the `diagnose-and-fix` repair loop, and before this change that loop was genuinely
+**unbounded**, for three independent reasons:
+
+- `:143` speaks of a **seam** finding — pipeline-mode vocabulary. `diagnose-and-fix` step 12 passes
+  no pipeline context and no PR identifier, so `review-code` selects **local** mode
+  (`skills/review-code/SKILL.md:26`) and loads `references/local-workflow.md`.
+- `skills/review-code/references/local-workflow.md` contains **no cap at all**. Measured in the
+  delivered tree: 104 lines, and `grep -ciE "three|attempt|converge"` returns `0`.
+- Even where a cap does exist it bounds `review-code`'s own repair loop, not the outer
+  `diagnose-and-fix` fix → review → refix loop, which the parent owns. Nothing stopped the parent
+  dispatching a fresh Fix Implementer indefinitely.
+
+The methodological lesson: "an existing rule already covers this" must be verified along the actual
+invocation path, in the mode actually selected, at the loop actually owned — not by finding the
+number `3` somewhere in the callee.
+
+So an **explicit** cap was delivered in step 12: at most three total repair attempts per confirmed
+mechanism; attempt 1 is the initial fix; attempts 2 and 3 must each name a material delta in
+mechanism, evidence, or strategy; never retry unchanged and never exceed three total. `3` matches the
+existing 38 cap statements, so this adds a bound, not a concept, and **no** "convergence" judgement
+was introduced. Step 15 then changes what happens on expiry — from "stop" to "deliver, escalate once,
+then stop" (§2.5).
+
+### 2.3 The degradation ladder is 2/3 already built
+
+| Rung | Where it lives | Action |
+|---|---|---|
+| 1. Localized fix/review loop | `diagnose-and-fix:83-103` steps 8–12 — **CORRECTED: unbounded.** The proposal claimed `review-code/SKILL.md:143` bounded it; that is false (see §2.2, B1), because `diagnose-and-fix` invokes `review-code` in **local** mode and `references/local-workflow.md` states no cap | **changed:** an explicit three-attempt cap now lives in `diagnose-and-fix` step 12 itself |
+| 2. Escalate to `implementation-plan` | `diagnose-and-fix:97` (validation) and `:114-115` (Load if needed) | keep as-is |
+| 3. Land repro test + written diagnosis + named blocker | **does not exist** | add (§2.2) |
+
+Rung 2 is *not* auto-escalation from inside the repair loop, and should not become
+that. Auto-escalating mid-loop would silently convert an authorized `localized` repair
+into a `broad/risky` one — new authority, which decision G forbids. The existing
+route (re-diagnose, then route) preserves the authority boundary and costs nothing.
+
+**DELIVERED / CORRECTED:** rung 2 **is** now reached automatically on exhaustion, in both skills. The
+hazard named above is real and was not dismissed — it is resolved by separating *method* from
+*authority*, which is exactly what §2.5 sets out. Read §2.5 as superseding the "keep as-is" verdict
+for rung 2 in the table above.
+
+**Two of the three rungs in that table were also stated wrongly, so treat none of it as verified
+without checking the tree:** rung 1 was **not** "bounded by `review-code/SKILL.md:143`" and was not
+kept as-is — it was unbounded and received an explicit three-attempt cap (§2.2 correction, §12 item
+1); rung 2 is now reached automatically on exhaustion rather than "kept as-is". Only rung 3's verdict
+("does not exist — add") stood.
+
+### 2.4 Right-size clause in the fix implementer contract (DELIVERED — absent from the proposal)
+
+The proposal never mentioned this and should have. Cost-based routing (§2.1) deliberately stops
+sending confirmed, bounded, reversible bugs through `implementation-plan` — which also stops sending
+them past `skills/implementation-plan/references/design-preflight.md:9`, the plan-time
+**over-engineering** lens: *"It flags **over-engineering** — abstractions, layers, configuration,
+state, flags, extension points, dependencies, or package splits that are not traced to an accepted
+requirement, the `## Acceptance` criteria, or evidenced risk."* Removing planning from the bug path
+removes that lens with it, so objective 2 (avoid overengineering, maintainability) would have been
+quietly weakened by the very change meant to serve objective 3.
+
+One sentence restores it at the point of work, appended to step 4 ("Minimal fix") of
+`skills/diagnose-and-fix/references/fix-implementer-contract.md:64-65`:
+
+> "Add no abstraction, flag, layer, configuration, or extension point that does not trace to the
+> confirmed mechanism."
+
+It mirrors what the feature path already tells its workers —
+`skills/implement/references/package-agent-contract.md:12` ("the smallest complete implementation
+that fully satisfies the assigned closure obligations") and `:57` (the "Right-size pass") — so a bug
+worker and a package worker are now held to the same right-sizing bar. It is one sentence in an
+existing contract step: no new file, no new section, no new concept, and it lands where the code is
+actually written rather than where a reviewer might later notice the bloat.
+
+### 2.5 Escalate once on exhaustion (DELIVERED — replaces add-on 7, and supersedes rung 2's "keep as-is")
+
+Objective 1 is *delivery*, not a halt. A user who is away from the keyboard should not return to a
+stopped loop. So exhausting the cap now **escalates** instead of stopping, in both skills. The
+numeric cap is unchanged, and no "convergence" or "did this attempt teach us anything?" judgement was
+introduced — that was rejected twice on review as unfalsifiable and stays rejected (§3 add-on 2).
+
+**`implement`.** On exhausting 3 attempts on a **code** repair cluster, the cluster is re-classified
+as a possible plan defect and, when it qualifies, routed through the **already existing** Plan-defect
+route (`skills/implement/SKILL.md:37-41`) instead of being returned to the user. No new machinery:
+the route, its qualification test, and its `implementation-continuation` /
+`implementation-continuation-focused` modes already existed for plan defects found at readiness,
+verification, integration, final review, and audit. Exhaustion is simply one more discovery point.
+
+**`diagnose-and-fix`.** On exhausting 3 attempts on a confirmed mechanism, step 15 still runs first,
+and then the parent re-diagnoses and hands the confirmed diagnosis to `implementation-plan` —
+degradation-ladder rung 2 — the same route as the validation clause in step 10 (`:110-111` in the
+delivered file, `:97` at baseline) and the `Load if needed` entry (`:141` delivered, `:114-115` at
+baseline) — now reached automatically rather than only by a fresh user instruction. Line numbers in
+§§1–10 are baseline numbers and have shifted; the delivered file is the authority.
+
+**How the authority hazard of §2.3 is resolved.** §2.3 was right that auto-escalation must not
+silently convert an authorized `localized` repair into a `broad/risky` one. The resolution separates
+method from authority instead of dropping the escalation:
+
+- The handoff to `implementation-plan` is **planning only**. Planning produces artifacts and keeps
+  its own approval gate before anything is implemented, so pre-authorizing the *handoff* grants no
+  implementation authority. The skill already said so, unchanged: *"Approval of an
+  `implementation-plan` route authorizes only the diagnosis handoff and planning; the later Execution
+  Contract and delivery gates separately own implementation, source/sidecar publication, target
+  merge/push, and release."*
+- Because the handoff carries no implementation authority, the fallback is folded into the **standard
+  Fix Authorization** so it is covered by default and never becomes a second ask. Delivered wording:
+  *"It also covers one exhaustion fallback: if that localized repair exhausts its three attempts,
+  re-diagnose and hand the confirmed diagnosis to `implementation-plan` without another ask. That
+  handoff is planning only, and planning keeps its own separate approval gate before anything is
+  implemented, so it grants no implementation authority and never converts the authorized
+  `localized` repair into a `broad/risky` one."* Implementation, delivery, target merge/push, and
+  release keep their existing separate gates.
+- Step 15 still runs before the escalation, so the away-from-keyboard user returns to **durable
+  artifacts plus a plan awaiting approval**, never a bare halt and never a silently widened repair.
+- In `implement` the same principle is enforced by the Plan-defect route's **existing**
+  qualification: routing is allowed only when it preserves approved semantics, scope, visible
+  behavior, risk, and manual exceptions. Delivered wording: *"Escalation changes method, never
+  authority: if routing it would change any of those, that is new semantic authority and you stop
+  here instead."*
+
+**How termination stays provable by counting.** At most **one** escalation per cluster identity
+(`implement`) or per confirmed mechanism (`diagnose-and-fix`); a relabeled or reclustered unit earns
+no second escalation; a second exhaustion of the same identity stops for the user. Delivered wording,
+`implement`: *"Allow at most one such escalation per cluster identity — if that same cluster exhausts
+3 attempts again after readiness is restored, stop for the user, and relabeling or reclustering earns
+no second escalation."* And `diagnose-and-fix`: *"at most one such escalation per confirmed
+mechanism, and a relabeled mechanism earns no second one. If the same mechanism exhausts three
+attempts again, stop for the user."* Worst case per unit is therefore 3 attempts → 1 escalation → 3
+attempts → stop. Ping-pong between implementation and planning is impossible by counting alone, with
+no judgement required.
+
+## 3. Add-ons, each judged on its own cost
+
+| # | Add-on | Pain it removes beyond the minimum | Files / lines touched | Checkable? | Verdict |
+|---|---|---|---|---|---|
+| 1 | Fold the two incidental asks into the one Fix Authorization (decision D/H) | Real: removes 2 mid-loop interruptions inside an already-approved repair | 1 file, 3 line ranges, ≈net +2 lines | Yes — count the "ask" points in the file | **ADOPT** |
+| 2 | Convergence test replacing the numeric cap (decision E) | None that the minimum does not already cover | 14 files, 38 lines | **No** — "new information?" has no failure signal | **REJECT** |
+| 3 | Orchestrator-vs-worker convergence split (nuance 2) | Only meaningful if #2 lands | 14 files | Partly | **REJECT** (moot without #2) |
+| 4 | New preflight section (decision F) | ~Nothing — 3 of 4 checks already exist and already sit before the authorization gate (§4) | +1 section per skill | Yes but redundant | **REJECT** |
+| 5 | Autonomy envelope as a time/token budget (decision H) | Speculative; agents cannot measure their own token spend reliably, so the budget would be aspirational | 2+ files | **No** | **REJECT** — the existing `approve auto-resolve` / `step-by-step` / `abort` choice at `implement/references/execution-contract.md:135-139` already sets the envelope once |
+| 6 | 13th shared reference for the convergence rule (§7) | None once #2 is rejected — there is no new rule to share | +1 file, 14 bindings | n/a | **REJECT** |
+| 7 | Raise the cap 3 → 5 | Speculative: would help only if halts are premature, which is unmeasured | 14 files, 38 lines | Yes | **DEFER** — if the user later has evidence of premature halts, the cheapest fix is a mechanical `3`→`5` sweep over the 38 lines and nothing else, as its own separate change |
+
+### Why the convergence test specifically fails its cost test
+
+- **It is unfalsifiable in the only place it matters.** `test_skill_prompts.py` and
+  `audit-skill.py` can check line caps, frontmatter, and link resolution. Neither can
+  check "was this attempt materially different?". A reviewer reading a transcript
+  cannot either, because the orchestrator's judgement is not recorded anywhere.
+- **The current rule already contains the useful half.** Every cap site already
+  requires the *material-delta* precondition — e.g. `implement/SKILL.md:34-36`,
+  `package-dispatch.md:133-134` ("Identity is not progress"),
+  `repair-agent-contract.md:38-40` ("a relevant material state/evidence/strategy delta
+  must close/narrow the gate…"). Convergence is *already* the gate on each attempt.
+  The number is only the outer bound. Replacing the number deletes the bound and keeps
+  what already exists.
+- **Non-termination becomes possible.** With the number gone, the only stopping
+  condition would be an agent's own judgement that it is not learning — exactly the
+  judgement a stuck agent is worst at making.
+- **The three unit types (nuance 1) survive untouched.** Because we keep the cap, the
+  empirical-question ledger, the code-repair cluster circuit, and the plan-defect
+  route stay distinct exactly as written today. No flattening risk at all.
+- **`empirical-spike`'s producer role (nuance 3) survives untouched.** Its cap
+  statement at `:23-25` is a *rejection* rule for malformed/over-cap/unchanged inbound
+  packets and needs a number to reject against. It never prompts or routes today
+  (`:20-22`) and this design does not touch it.
+
+## 4. Redundancy check: the preflight already exists
+
+Verified by reading `skills/diagnose-and-fix/SKILL.md`. The four requested preflight
+checks map onto existing numbered steps, and **all of them already run before** the
+single authorization ask at step 7:
+
+| Requested check | Already present at | Quote |
+|---|---|---|
+| Can reproduce | step 5 (`:71-72`) and status vocabulary in step 6 (`:74`) | "Reproduce and minimize the failure." / "`reproduced`, `not reproduced`, `deterministic failing test`, or `blocked`" |
+| Have testing authority | step 3 (`:63-67`) | "resolve testing authority… If authority is insufficient, invoke `testing` or stop with `blocked`/`not-run`" |
+| Have required access / credentials | step 4 (`:68-70`) + Stop-if (`:120`, `:126-127`) | "Ask exact approval before instrumentation, validation writes, unsafe commands, credentials, network, service use" / "Root cause is unconfirmed and next evidence requires unavailable input or an unapproved action." |
+| Change is reversible | **not stated as such**; nearest is step 6's "blast radius and `localized` versus `broad/risky` classification" (`:77`) | — |
+
+All four already precede the single authorization ask at step 7 (`:82`).
+Only the reversibility check is missing, and §2.1 supplies it as axis (ii) of the
+two-axis test, at the exact point where it is used. **No new preflight section.**
+Adding one would restate three obligations that already exist and already run early —
+the classic way these prompts bloat.
+
+## 5. Site-by-site map — all 38 cap lines
+
+Measured with:
+```
+grep -rniE "three[ -]?(total[ -])?attempt|three-total-attempt|attempts? ?(IDs? )?2[-–]3|attempts 1[-–]3|attempt 3|attempt-3|3 total|3 non-converging|3 attempts|3 materially|over-cap|two materially changed follow-ups|\(2 or 3\)|exceed three" \
+  --include='*.md' plugins/super-developer/
+```
+Result: **38 lines across 14 files.** The brief's list of 12 files / ~20 lines is
+wrong on both counts. Missing files were `plugins/super-developer/README.md` (2 lines)
+and `skills/implementation-plan/references/validation-checklist.md` (1 line).
+`CHANGELOG.md:54` also states the cap but is a historical record and must not change.
+
+**Disposition for all 38: KEEP AS-IS.** The recommended design does not alter the cap,
+so no site needs rewriting, delegating, or deleting. Listed in full so a reviewer can
+confirm nothing was quietly left inconsistent (the failure mode of reverted commit
+6e03ce6).
+
+| # | file:line | quote (short) | change |
+|---|---|---|---|
+| 1 | `references/package-lifecycle.md:80` | "three-attempt cap: after **3** non-converging repair attempts, stop rather than rename or recluster" | keep |
+| 2 | `README.md:27` | "one initial run and at most two materially changed follow-ups are allowed" | keep |
+| 3 | `README.md:242` | "…and three-attempt non-convergence still stop." | keep |
+| 4 | `skills/empirical-spike/SKILL.md:23` | "one logical question has at most three total attempts" | keep (nuance 3: rejection rule) |
+| 5 | `skills/empirical-spike/SKILL.md:24` | "attempt 1 is the initial run; attempts 2–3 are fresh invocations" | keep |
+| 6 | `skills/empirical-spike/SKILL.md:25` | "Reject out-of-order, over-cap, or unchanged follow-ups" | keep |
+| 7 | `skills/review-plan/references/plan-review-resolution.md:80` | "method, or signal at attempts 2–3" | keep |
+| 8 | `skills/review-plan/SKILL.md:33` | "attempts 2–3 are fresh invocations with incremented IDs" | keep |
+| 9 | `skills/review-plan/SKILL.md:34` | "Never retry unchanged or exceed three total attempts." | keep |
+| 10 | `skills/review-plan/SKILL.md:68` | "method, or signal at attempts 2–3" | keep |
+| 11 | `skills/review-plan/SKILL.md:102` | "A logical question reaches attempt 3 without accepted evidence" | keep |
+| 12 | `skills/review-code/references/pipeline-report.md:52` | "preserve logical identity through the three-attempt cap" | keep |
+| 13 | `skills/review-code/references/pipeline-report.md:66` | "a blocking seam finding that will not converge within 3 attempts" | keep — **CORRECTED: this is *not* an exhaustion trigger for `diagnose-and-fix`.** It is pipeline-mode only; nothing reuses it here (§2.2, B1) |
+| 14 | `skills/review-code/SKILL.md:126` | "preserve logical cluster identity and the three-attempt cap" | keep |
+| 15 | `skills/review-code/SKILL.md:143` | "A blocking seam finding will not converge within 3 attempts." | keep — **CORRECTED: not reused by §2.2, and it never bounded the `diagnose-and-fix` loop.** It is in `review-code`'s pipeline-mode Stop-if; `diagnose-and-fix` selects local mode (`review-code/SKILL.md:26`), and it would bound only `review-code`'s own loop in any case. The cap that actually bounds `diagnose-and-fix` is the new one in its step 12 |
+| 16 | `skills/implementation-plan/references/validation-checklist.md:23` | "no unchanged, over-cap, or unbounded question" | keep |
+| 17 | `skills/implementation-plan/SKILL.md:31` | "incremented attempt IDs 2–3, and a named corrected packet" | keep |
+| 18 | `skills/implementation-plan/SKILL.md:32` | "three total attempts or continually emerging/unbounded questions are non-convergence" | keep |
+| 19 | `skills/implementation-plan/SKILL.md:83` | "may invoke attempts 2–3 under the stable question ID" | keep |
+| 20 | `skills/implementation-plan/SKILL.md:84` | "never retry unchanged or exceed three total" | keep |
+| 21 | `skills/implementation-plan/SKILL.md:101` | "Stop on an unchanged/over-cap question" | keep |
+| 22 | `skills/implementation-plan/SKILL.md:131` | "exhausts attempt 3 without an accepted result" | keep |
+| 23 | `skills/implement/references/repair-agent-contract.md:28` | "Preserve its logical identity/three-attempt cap" | keep — **nuance 2: worker contract must keep a number** |
+| 24 | `skills/implement/references/package-integration-gates.md:96` | "attempt 1 is initial; attempts 2–3" | keep |
+| 25 | `skills/implement/references/package-integration-gates.md:97` | "Three total attempts exhaust the circuit" | keep |
+| 26 | `skills/implement/references/package-dispatch.md:133` | "Attempt 1 is initial; attempts 2–3 name a material code/diagnostic delta." | keep |
+| 27 | `skills/implement/references/package-dispatch.md:134` | "Identity is not progress and cannot reset the three-total-attempt cap." | keep |
+| 28 | `skills/implement/references/execution-contract.md:34` | "Each logical question has at most three total attempts" | keep |
+| 29 | `skills/implement/references/execution-contract.md:35` | "attempts 2–3 are each a fresh invocation with stable ID" | keep |
+| 30 | `skills/implement/references/execution-contract.md:70` | "stable logical-question ID; attempts 1–3" | keep |
+| 31 | `skills/implement/references/execution-contract.md:123` | "the existing three-total-attempt circuit; never retry unchanged" | keep |
+| 32 | `skills/implement/references/execution-contract.md:134` | "attempt-3 exhaustion, unbounded questions" | keep |
+| 33 | `skills/implement/SKILL.md:34` | "Attempt 1 is initial; attempts 2–3 must be fresh, materially changed" | keep |
+| 34 | `skills/implement/SKILL.md:35` | "Three total attempts exhaust the circuit" | keep |
+| 35 | `skills/implement/SKILL.md:45` | "invoke `empirical-spike` once per attempt under the three-attempt circuit" | keep |
+| 36 | `skills/implement/SKILL.md:77` | "incremented attempt ID (2 or 3)" | keep |
+| 37 | `skills/implement/SKILL.md:92` | "the three-total-attempt circuit" | keep |
+| 38 | `skills/implement/SKILL.md:137` | "exhausted 3 total materially changed attempts" | keep |
+
+### The six ranges that DO change (all in `skills/diagnose-and-fix/SKILL.md`)
+
+| file:line | quote (short) | change |
+|---|---|---|
+| `:22-23` | "Route cross-module/service, contract, schema, security, data, concurrency, performance, dependency, or otherwise broad/risky change through `implementation-plan`." | **rewrite** to the two-axis cost test (§2.1). Keep "Keep repairs minimal." verbatim. |
+| `:44-45` | "One response may authorize the displayed localized route through the selected branch delivery. Unnamed scope, delivery, or side effects remain unauthorized." | **rewrite** to also cover routine testing authority, named `preferences.yml` creation, and diagnosis delivery. Keep the "Unnamed … remain unauthorized" sentence verbatim. The "Target merge/push and cleanup stay at their existing owning boundaries." sentence continues onto `:45-46` and must be preserved intact. |
+| `:65-66` (step 3) | "or task-local Testing Authorization for an exact focused approval" | **append ≈9 words**: the Fix Authorization may supply it up front. Every other clause of step 3 unchanged. |
+| `:90-92` (step 9) | "require authorization for that exceptional write before creating it there; never create it in root or silently" | **narrow edit**: accept the Fix Authorization's named coverage in place of a second ask. "never create it in root or silently" stays verbatim. |
+| after `:107` (new step 15) | — | **add** the deliver-on-exhaustion step (§2.2) |
+| `:118-127` (Stop if) | (whole block) | **keep as-is.** Step 15 runs *before* the stop; the stop conditions themselves do not loosen. **DELIVERED / CORRECTED:** every stop *bullet* is indeed byte-identical, but a sentence was appended after the block — delivered `:156`, "Any stop reached after the fix loop has begun still performs step 15 before returning." — and `## Output` gained one sentence at delivered `:161`. So the section is unchanged; the file around it is not. |
+
+**DELIVERED / CORRECTED — the map above missed four real edits to the same file.** Baseline `:NN` /
+delivered `:NN` both given, measured by diffing `23e3e52` against the delivered tree:
+
+| baseline → delivered | what changed | why |
+|---|---|---|
+| `:66-67` → `:79` (step 3) | **added** the sentence "Resolve authority; never fabricate it." | not in the proposal; makes the step's authority rule explicit rather than implied by the fallbacks that follow |
+| `:68-70` → `:81-83` (step 4) | **narrowed:** "or task-local Testing Authorization" → "or **any** task-local Testing Authorization **the Fix Authorization did not already name**" | add-on 1 folds routine testing authority into the one Fix Authorization; without this narrowing step 4 would still demand the second ask that add-on 1 removes. The exact-approval obligation for instrumentation, unsafe commands, credentials, network, and service use is untouched. |
+| `:100-103` → `:114-123` (step 12) | **added** the explicit three-attempt cap and the escalate-once clause (6 lines) | §2.2's "no new exhaustion trigger is needed" was false; this is the bound that makes "deliver on exhaustion" fire at all (§12 item 1) |
+| `:44-45` → `:52-58` (Fix Authorization) | beyond the rewrite the map already lists, the block **also** gained the exhaustion-fallback sentences (§2.5) and a fifth bullet naming the routine enabling steps | the fallback must be covered by the one authorization or it becomes a second ask |
+
+Edits to the other two files are listed in §12 (rows 2–4) and quoted in §2.4/§2.5. Net effect on this
+file: 132 → 146 lines, 1286 → 1483 words (§8).
+
+## 6. Obligation inventory
+
+Every safety obligation currently expressed in or adjacent to the six changing ranges,
+where it lives afterwards, and how to prove it survived. Modelled directly on what
+commit 6e03ce6 silently dropped.
+
+**Column convention (DELIVERED / CORRECTED):** "Currently at" is a **baseline** (`23e3e52`) citation.
+The "Verification" column is the exception to the caveat at the top of this document: every
+expected value in it was **re-measured against the delivered tree** and is what the command returns
+today. Where a delivered value differs from the proposal's prediction, the row says so.
+
+**Scope of every check below (UPDATED):** `diagnose-and-fix` now carries part of this inventory in a
+skill-private reference, so a grep scoped to `SKILL.md` alone under-counts. Every check is therefore
+run over the **skill directory** — `SKILL.md` plus `references/` — with `grep -r`. Counts are totals
+across that directory (`grep -rh … | wc -l`), and citations are `file:line` relative to
+`skills/diagnose-and-fix/`. The obligation survives if the directory-wide total does not decrease;
+which file holds it is a routing decision, not a weakening. "Moved verbatim" below means the sentence
+text is unchanged apart from line rewrapping. See the extraction note after the table.
+
+| # | Obligation | Currently at | Afterwards | Verification (run from `plugins/super-developer/`, `D=skills/diagnose-and-fix/`) |
+|---|---|---|---|---|
+| 1 | "Keep repairs minimal." | `d&f:22` | `SKILL.md`, unchanged prefix | `grep -rh "Keep repairs minimal" $D \| wc -l` → `1` |
+| 2 | Broad/risky work routes to `implementation-plan` | `d&f:23` | `SKILL.md` (7 lines) plus one line each in the two references | `grep -rh "implementation-plan" $D \| wc -l` → `9` (baseline directory total was also `9`: 8 in `SKILL.md`, 1 in `references/fix-implementer-contract.md`; must be ≥ `9`) |
+| 3 | Preserve confirmed diagnosis + production-base/hotfix/target delivery context on planning handoff | `d&f:24-27` | `SKILL.md` `## Always`, unchanged | `grep -rh "production-base/hotfix/target delivery" $D \| wc -l` → `1` |
+| 4 | Exact **leases** remain mandatory | `d&f:46`, `:54` | **moved verbatim** to `references/orchestration-mechanics.md` | `grep -rnw "leases" $D` → `references/orchestration-mechanics.md:38` and `:45`. Use `-w`, or the word "releases" adds false hits |
+| 5 | **Ancestry checks** remain mandatory | `d&f:54` | **moved verbatim** to the same reference | `grep -rn "ancestry" $D` → `references/orchestration-mechanics.md:45` |
+| 6 | Separate target-merge / target-push bindings | `d&f:54` and step 13 `:104-106` | **moved verbatim** to the same reference | `grep -rn "target-merge/target-push" $D` → `references/orchestration-mechanics.md:45`; `grep -rh "target_push" $D \| wc -l` → `1` |
+| 7 | **Cleanup proofs** in the internal receipt | `d&f:50` | **moved verbatim** to the same reference | `grep -rn "cleanup proofs" $D` → `references/orchestration-mechanics.md:41` |
+| 8 | Untracked records include **Git/index-compatible mode** | `d&f:93` | **moved verbatim** — the `index-compatible` qualifier is the exact word 6e03ce6 dropped | `grep -rh "Git/index-compatible mode" $D \| wc -l` → `1` |
+| 9 | Untracked records include symlink target and **binary provenance** | `d&f:93`, `:99` | both `SKILL.md` copies **moved verbatim**; the `fix-implementer-contract.md` copy untouched | `grep -rh "binary provenance" $D \| wc -l` → `3`; `grep -rh "symlink target" $D \| wc -l` → `3` (both totals unchanged from baseline) |
+| 10 | Never infer approval from silence / "fix this" / diagnosis approval | `d&f:30` | `SKILL.md`, unchanged | `grep -rh "Never infer approval from silence" $D \| wc -l` → `1` |
+| 11 | No live incident containment or production mutation | `d&f:31-33`, step 8 `:86`, Stop-if `:124-125` | 3 lines still in `SKILL.md`; the hotfix route bullet moved to the reference | `grep -rn "containment" $D` → `SKILL.md:6`, `SKILL.md:36`, `SKILL.md:125`, `references/orchestration-mechanics.md:56`, `references/fix-implementer-contract.md:49` (5 hits; the baseline directory total was also 5) |
+| 12 | Root checkout never used for repair or delivery | `d&f:20-21` (Always) and `:87-88` (step 8) | both sentences still in `SKILL.md`; the reference restates it a third time | `grep -rh "Keep root checkout files/index user-owned" $D \| wc -l` → `1`; `grep -rh "use root as the repair or delivery checkout" $D \| wc -l` → `1`; `grep -rh "root checkout as the repair or delivery checkout" $D \| wc -l` → `1` |
+| 13 | Target merge/push and cleanup stay at existing owning boundaries | `d&f:45-46` (sentence wraps the line break) | unchanged sentence in `SKILL.md`; the reference adds an explicit restatement covering remote deletion and release | `grep -rh "existing owning" $D \| wc -l` → `1` (do **not** grep the full phrase; it is line-wrapped). The restatement: `grep -rh "keep their own separate approval boundaries" $D \| wc -l` → `1` |
+| 14 | Unnamed scope / delivery / side effects remain unauthorized | `d&f:44-45` | **PRESENT** in `SKILL.md`, wording byte-identical | **CORRECTED:** `grep -rh "remain unauthorized" $D \| wc -l` returns **`1`**, not the predicted `2`. The Fix Authorization sentence is intact but re-wrapped as "… side effects remain" / "unauthorized. …", so a single-line grep cannot see it. Prove it with the un-wrapped half instead: `grep -rh "Unnamed scope, delivery, or side effects remain" $D \| wc -l` → `1`. The obligation was **not** weakened; only the line break moved. Do not "fix" the prompt to satisfy a grep. |
+| 15 | Revalidate every binding immediately before its action; never silently absorb drift | `d&f:50-51`, `:53` | **moved verbatim** to the reference | `grep -rh "Never silently absorb drift" $D \| wc -l` → `1`; `grep -rh "Revalidate every binding" $D \| wc -l` → `1` |
+| 16 | Testing authority resolution incl. `invoke testing` / stop `blocked`/`not-run`; never report not-run as passed | `d&f:63-67` | **moved** to the reference — the three authority forms are now three bullets rather than one sentence, with no form, condition, or stop dropped; the stop rules moved verbatim; `SKILL.md` step 3 keeps the trigger, the load instruction, and the read-only carve-out | `grep -rn "never report not-run work as passed" $D` → `references/orchestration-mechanics.md:21`; `grep -rh "Resolve authority; never fabricate it" $D \| wc -l` → `1`; the up-front-coverage clause: `grep -rh "which the Fix Authorization may supply up front" $D \| wc -l` → `1` |
+| 17 | Exact approval before instrumentation / unsafe commands / credentials / network / service use; spikes in a throwaway worktree, history never promoted | `d&f:68-70` | `SKILL.md` step 4, **unchanged by this extraction** (it was already narrowed earlier so a Fix-Authorization-named task-local Testing Authorization is not a second ask) | `grep -rn "promote their history" $D` → `SKILL.md:74`; `grep -rh "the Fix Authorization did not already name" $D \| wc -l` → `1` |
+| 18 | `preferences.yml` never created in root or silently; gitignored local creation | `d&f:90-92` | the creation mechanics **moved** to the reference; only the clause join changed (`… there; never create it in root or silently` → `… there. Either way, never create it in root or silently`), so the phrase stays greppable; the Fix Authorization bullet naming the same gitignored local creation stays in `SKILL.md` | `grep -rh "never create it in root" $D \| wc -l` → `1`; `grep -rh "gitignored local" $D \| wc -l` → `2` (one in `SKILL.md`, one in the reference; total unchanged from baseline) |
+| 19 | Do not implement substantive edits inline | `d&f:94` | `SKILL.md` step 9, unchanged | `grep -rh "Do not implement substantive edits inline" $D \| wc -l` → `1` |
+| 20 | Never expand authority implicitly | `d&f:97` | `SKILL.md` step 10 (delivered `:88`) | `grep -rh "never expand authority implicitly" $D \| wc -l` → `1`. **CORRECTED — the second half of this row named the wrong file.** In `diagnose-and-fix`, `grep -rh "never authority" $D \| wc -l` returns **`0`**: that clause shipped in **`skills/implement/SKILL.md`** instead — `grep -c "never authority" skills/implement/SKILL.md` → **`1`**. In `diagnose-and-fix` the same authority boundary is carried by the Fix Authorization's planning-only fallback (`grep -rh "grants no implementation authority" $D \| wc -l` → `1`), by row 20's first check, and by the reference's "A binding records authority; it never widens it." (`grep -rh "it never widens it" $D \| wc -l` → `1`) |
+| 21 | Commit only under the exact receipt, CLEAN snapshot, reviewed-only staging; merge never pushes by itself | `d&f:104-106` | **moved verbatim** to the reference; `SKILL.md` step 13 keeps the gate and points at it, and step 15 still defers to the authorized delivery level | `grep -rn "merge never pushes by itself" $D` → `references/orchestration-mechanics.md:85`; `grep -rh "CLEAN unchanged snapshot" $D \| wc -l` → `1` |
+| 22 | Preserve useful fixtures; clean only approved throwaway artifacts | `d&f:107` | `SKILL.md` step 14, unchanged | `grep -rn "Preserve useful fixtures" $D` → `SKILL.md:101` |
+| 23 | Release / force-push / remote-delete keep separate approval boundaries | `d&f:45-46` plus the `worktree` and `release` skills | unchanged; no edit touches them | `git diff --stat -- plugins/super-developer/skills/release plugins/super-developer/skills/worktree` → empty |
+| 24 | The three-attempt cap and its statements | 38 lines, 14 files (§5) | **all unchanged**; the three lines in `diagnose-and-fix/SKILL.md` are byte-identical and only shift line number, and the new reference adds **none** | **RE-MEASURED:** the §5 grep now returns **44 lines / 15 files** on the delivered tree (§5 recorded 38 / 14 and §6 later recorded 43 / 15; commits after those measurements, not this extraction, account for the drift — the same command returns 44 / 15 both immediately before and immediately after this extraction). The check is therefore the stronger one: diff the pre- and post-change grep outputs and see **no removals and no rewordings**. Measured for this extraction: **0** added, **0** removed, **0** reworded cap lines; `grep -rniE "<§5 pattern>" $D` → 3 lines, all in `SKILL.md` (`:53`, `:94`, `:97`), byte-identical to baseline |
+
+Reviewer recipe: run every check above against the pre-change and post-change trees and
+diff the outputs. Because each one is now directory-scoped, a relocated obligation keeps its
+total and only its `file:line` citation moves. Rows whose **content** differs from the original
+proposal: 2 (6→9 directory-wide), 14 (2 hits → 1, by line-wrap only), 16 (two additions), 17
+(step 4 narrowed earlier), 18 (1→2), 20 (the "never authority" clause is in `implement`, not
+`diagnose-and-fix`), 24 (38/14 → 44/15, additions only). Rows 4–9, 15, 16, 18, 21 now resolve
+inside `references/orchestration-mechanics.md` with identical text. Rows 1, 3, 10, 12, 13, 19,
+22, 23 are unchanged in both text and value. The pre-existing cap lines of row 24 must stay
+byte-identical.
+
+**Extraction note (budget compliance).** `skills/diagnose-and-fix/SKILL.md` reached 168 lines /
+1860 words after the work in §2, which tripped two `audit-skill.py` budget warnings: over
+`SKILL_WORD_MAX` (1800) and outside `SKILL_WORD_TARGET` (600–1500). The obligations were
+**extracted, not compressed**, into a new skill-private reference
+`skills/diagnose-and-fix/references/orchestration-mechanics.md` (89 lines / 798 words): the
+internal-receipt and state-binding mechanics, the route/dispatch/review/delivery bindings, the
+testing-authority ladder, and the durable-evidence rules of step 15. The step 6 diagnosis report
+field list stays inline in `SKILL.md`, because step 6 is pre-authorization and the human reads it to
+decide. `SKILL.md` is now 146 lines / 1483 words and the audit reports `RESULT: PASS` with **no**
+warnings for it. Extraction was chosen over compression for three reasons: the warning text itself
+says "remove obligations rather than compressing prose"; denser prose would satisfy the word count
+only by making the same obligations harder for a mid-tier agent to execute, which is the failure
+mode `audit-skill.py`'s own comments call out; and compression is how commit 6e03ce6 silently lost
+ancestry checks, cleanup proofs, binary provenance and the `index-compatible` qualifier. Every
+moved obligation keeps a load path: a `## Load if needed` trigger naming the reference, plus an
+explicit pointer, naming the reference path, in each `## Do` step that needs it (3, 8, 9, 10, 11,
+12, 13, 15 — step 6 no longer delegates) and in the
+`## Fix Authorization and Internal Receipt` section. The Fix Authorization ask, the three-attempt
+cap and single re-diagnose escalation of step 12, and the `## Stop if` clause requiring step 15
+after the fix loop has begun all stay in `SKILL.md`, unchanged.
+
+## 7. Shared reference: NO
+
+Do not add a 13th shared reference. Justification:
+
+- Once the convergence test is rejected, **there is no new rule to share**. The
+  duplication that exists is 38 statements of `3`, which is cheap to read, impossible
+  to misread, and locally contextualised (each site names its own unit type — question
+  ledger, repair cluster, seam finding).
+- Consolidating would *relocate* burden, not reduce it: each of the 14 files would
+  still need a pointer line, so the line count barely moves while a new indirection
+  hop appears in every affected prompt. Against objective 2.
+- `audit-skill.py:449-450` fails a reference file that links another reference file, so
+  the 8 affected **reference** files could not use the ordinary `../../references/x.md`
+  form. (Proven live: `conceptualize` FAILS today on exactly this, at
+  `references/slice-template.md` → `../../../references/conceptualize-slice-authority.md`.)
+  The repo's existing workaround is the repo-root-relative form
+  `plugins/super-developer/references/x.md`, which `looks_like_backticked_path`
+  (`audit-skill.py:313`) does not classify as a local link — e.g.
+  `repair-agent-contract.md:22`. It works, but it means the link is *unverified by the
+  auditor*, so half the binding sites would be silently breakable. That is the exact
+  half-done-consolidation failure mode of 6e03ce6.
+- Recommendation: **leave the duplication alone.**
+
+## 8. Net volume delta (measured on the proposed text)
+
+| File | Now | After | Δ lines | Δ words |
+|---|---|---|---|---|
+| `skills/diagnose-and-fix/SKILL.md` | 132 lines / 1286 words | ≈145 lines / ≈1496 words | **+13** | **+210** |
+| all other 14 cap-bearing files | unchanged | unchanged | 0 | 0 |
+
+Measured components: `:22-23` 2 lines/19 words → 6 lines/102 words (+4/+83);
+`:44-45` 2/21 → 4/55 (+2/+34); new step 15 +5/+83; steps 3 and 9 ≈ +2/+10.
+
+**This design does not reduce total prompt volume — it adds 13 lines to one file.**
+Justification: the addition is one genuinely new obligation (deliver something rather
+than nothing) plus the prose needed to state a *test* instead of a *list*. The list it
+replaces was shorter but wrong. The rejected add-ons would have added an estimated
+several hundred lines across 14 files for no checkable benefit; rejecting them is where
+the volume discipline is applied.
+
+Budget compliance (measured caps from `audit-skill.py:31-36`): 145 lines < 200 hard
+cap. 1496 words is inside the 600–1500 skill target and far under the 1800 warning —
+but it is **within 4 words of the target ceiling**, so the implementer must count and,
+if it overruns, trim §2.1's third sentence rather than compress the prose.
+
+**DELIVERED / CORRECTED — the estimate above under-counted, because the scope grew (§12).** Measured
+in the delivered tree with `wc -l -w` and `audit-skill.py`:
+
+| File | Baseline `23e3e52` | Delivered | Δ lines | Δ words |
+|---|---|---|---|---|
+| `skills/diagnose-and-fix/SKILL.md` | 132 / 1286 | **146 / 1483** | +14 | +197 |
+| `skills/diagnose-and-fix/references/orchestration-mechanics.md` | new file | **89 / 798** | +89 | +798 |
+| `skills/diagnose-and-fix/references/fix-implementer-contract.md` | 96 / 900 | **100 / 980** | +4 | +80 |
+| `skills/implement/SKILL.md` | 147 / 1554 | **162 / 1791** | +15 | +237 |
+| all other cap-bearing files | unchanged | unchanged | 0 | 0 |
+
+All are inside the 200-line hard cap and under the 1800-word warning. After the §6 extraction
+`diagnose-and-fix/SKILL.md` is also inside the 600–1500 word *target*, so
+`audit-skill.py skills/diagnose-and-fix` prints `RESULT: PASS` with **no WARNINGS section at all**;
+it has 317 words of headroom against the 1800-word warning and 17 words against the 1500-word target
+ceiling, and that target ceiling is the binding constraint on any future edit to it.
+`orchestration-mechanics.md` at 798 words is inside the 300–1200 reference target.
+`implement/SKILL.md` still exceeds the 600–1500 word target and therefore still emits one
+`words outside target` warning, as it did before this change. No `diagnose-and-fix` file has a line
+over 120 characters; `implement/SKILL.md` has one, pre-existing at line 69 and untouched here.
+
+## 9. Risks
+
+| Risk | Severity | Mitigation / what a reviewer must scrutinise |
+|---|---|---|
+| **A genuinely risky bug now takes the localized path.** The two-axis test admits security, schema-adjacent, and concurrency defects that the category list excluded. | **Highest** — scrutinise hardest | Axis (ii) "bounded and cheaply reversible" plus the explicit `implementation-plan` list must both be read *conjunctively*. `review-code:40/74/96` supplies the security backstop. Reviewer should hand-test the wording against 5 real past defects and check the routing comes out right. |
+| Mid-tier agent reads only the first bullet and treats every bug as localized. | Medium | The second bullet must stay adjacent and start with the word "only". Do not split them across a section boundary. |
+| "Cheaply reversible" is itself a judgement. | Medium | Accepted, and bounded: it only ever *widens* the localized path, and everything on that path still passes `review-code` blocking gates and the existing delivery approvals. It never authorizes an action. |
+| Step 15 is read as licence to commit when delivery was `local only`. | Medium | The step names the constraint twice. Reviewer must confirm both sentences survive and that obligation-inventory row 21 is intact. |
+| Non-termination / runaway loops | **Low, by construction** | The numeric caps are untouched (row 24). No loop loses its bound. This is the single biggest advantage of the minimal design over the originally briefed one. **DELIVERED:** §2.5's escalation adds at most one extra bounded cycle per unit identity (3 → escalate once → 3 → stop), so the bound is still a finite count with no judgement in it. §2.2's correction also *added* a bound where there was none. |
+| Silent obligation loss (the 6e03ce6 failure) | Medium | §6 with 24 greps; row 24 must be byte-identical. |
+| `diagnose-and-fix` word count drifts past 1500 → new audit warning | Low | Measured in §8; implementer must recount. |
+| `README.md:242` and `CHANGELOG.md:54` describe the old routing wording | Low | Neither mentions the category list; both describe the cap, which is unchanged. Verify no README sentence claims security forces planning: `grep -n "security" plugins/super-developer/README.md`. |
+| **DELIVERED / KNOWN LIMITATION: `diagnose-and-fix`'s escalation count is session-local.** "At most one such escalation per confirmed mechanism" (delivered `skills/diagnose-and-fix/SKILL.md:121-123`) is counted in the running invocation only. The skill has no durable escalation ledger, so a fresh invocation on the same mechanism cannot see that an earlier session already escalated it. The 3 → escalate → 3 → stop bound therefore holds **within** a session, not across restarts. | Medium | Accepted as delivered, not fixed. Each cycle is still bounded and every escalation is planning-only with its own approval gate, so the worst case is repeated *planning* asks, never widened implementation authority. `DIAGNOSIS.md` (step 15) is the only cross-session trace — a reviewer or user who suspects a re-escalation loop should read it. `implement` is less exposed: its cluster identity lives in durable task artifacts. Making the bound durable would need a new artifact kind in `diagnose-and-fix`, which this change deliberately did not add. |
+| **DELIVERED / KNOWN LIMITATION: two dense spots, both followable but at the edge.** (a) `diagnose-and-fix` step 12 (delivered `:114-123`, 10 lines) now carries **sixteen** distinct obligations in one numbered step, counted: the review binding, `repair_owner`, the contract path, review-code's action gate, accept-on-`fix`, dispatch a fresh worker, validate it, rebind complete state, rerun review, "initial approval never repairs", the three-attempt cap, the material-delta precondition on attempts 2–3, never-retry-unchanged, escalate once via step 15, no second escalation for a relabeled mechanism, and stop-for-the-user on a second exhaustion — plus "never halt silently". (b) `implement`'s `## Stop if` is titled "the only reasons to re-enter the user", yet its Non-convergence bullet (delivered `:137-144`, 8 lines) spends 7 of them on a **"do not stop yet"** escalation clause — a *continue* rule inside a section a reader scans for *stop* rules. | Low | Both were reviewed as correct and are shipped as-is; no rewrite is proposed here. They are the **first two things to simplify** if either section is edited again — most likely by moving step 12's attempt-cap sentences into their own numbered step and lifting `implement`'s escalation clause above the Stop-if list. Any such edit must re-run §6 and respect the word headroom in §8 (`diagnose-and-fix/SKILL.md` has 317 words before the 1800-word audit warning and 17 before the 1500-word target ceiling). |
+
+## 10. Verification plan
+
+Baseline **measured in this worktree before any change**:
+
+```
+cd plugins/super-developer/assets && python3 -m unittest discover -s tests
+  → Ran 67 tests … FAILED (failures=1)
+  → the single failure is test_semgrep_rules.SemgrepRulesTest
+     .test_scan_invokes_structured_privacy_argv_and_writes_raw_summary
+     (macOS /private/var vs /var symlink) — pre-existing, unrelated
+
+for d in plugins/super-developer/skills/*/; do
+  python3 plugins/super-developer/skills/skill-authoring/scripts/audit-skill.py "$d"; done
+  → 12 PASS, 3 FAIL (pre-existing): code-doc (SKILL.md > 200 lines),
+    conceptualize (hidden second-hop reference in references/slice-template.md),
+    perspectives (folded description 487 > 280 chars)
+```
+
+After implementation, all three must hold **identically** — same 67/1, same 12/3, and
+`diagnose-and-fix` must still print `RESULT: PASS`. Then:
+
+1. Rerun the §5 grep → still exactly 38 lines / 14 files.
+2. Run all 24 §6 greps and diff against baseline. **CORRECTED:** the rows whose values differ are
+   **2, 14, 16, 17, 18, 20, 24** (not the predicted 2, 13, 14, 16, 18, 20 — row 13 does not move, and
+   rows 17 and 24 do); rows 4–7, 11, 21, 22 keep identical text at shifted line numbers. §6 now states
+   the delivered value for every row.
+3. `grep -c "cross-module/service" plugins/super-developer/skills/diagnose-and-fix/SKILL.md` → `0`.
+4. `wc -l -w plugins/super-developer/skills/diagnose-and-fix/SKILL.md` → ≤ 200 lines, ≤ 1500 words.
+
+**DELIVERED / CORRECTED:** the three baselines held exactly (67 tests / 1 pre-existing failure; 12
+PASS / 3 FAIL; `diagnose-and-fix` still `RESULT: PASS`). Check 4's ≤ 1500-word half was **not** met
+and was superseded during the work, but the final delivered file meets it: after the action-point
+mechanics were extracted into `references/orchestration-mechanics.md`, `SKILL.md` is 146 lines /
+1483 words — inside both the 600–1500 *target* and the 1800 *warning threshold* — and
+`audit-skill.py` reports `RESULT: PASS` with **no** WARNINGS section at all. Check 1 was
+superseded too: the grep now returns 43 lines / 15 files, because step 12's new cap and §2.5's
+escalation clauses match it. What must still hold is the stronger statement: the 38 pre-existing cap
+lines are byte-identical, provable by diffing the grep outputs and seeing additions only.
+
+## 11. Open questions for the user — ALL FOUR NOW CLOSED
+
+Each question is kept verbatim, with the decision recorded under it.
+
+1. **Risk appetite on the widened localized path.** Confirm that a *confirmed,
+   bounded, reversible* security or concurrency defect really should be fixed without
+   planning, backed only by `review-code`'s blocking security gate. This is the one
+   place where the design trades safety for speed.
+
+   **DECIDED — accepted by the user.** A confirmed, bounded, reversible defect is fixed on the
+   localized path whatever its category. The backstops are unchanged: `review-code`'s blocking
+   security/privacy/safety gate (`skills/review-code/SKILL.md:40`, `:74`, `:96`) and the worker's
+   scope-expansion stop, which still fires on unauthorized paths, changed public API/schema/contract,
+   unauthorized dependency/service/config changes, live actions, unsafe commands, or broader
+   verification, and which still forbids the worker widening its own authority
+   (`fix-implementer-contract.md:76-80`). This remains the design's highest-severity risk (§9 row 1)
+   and is the thing to re-examine first if a bad repair ever ships.
+2. **Where the rung-3 diagnosis file goes.** Step 15 says "in the approved bugfix
+   worktree". `diagnose-and-fix` has no artifact store, so this needs a path
+   convention (e.g. `docs/diagnosis/<name>.md`, or an untracked note). Left
+   unspecified deliberately; needs one decision.
+
+   **DECIDED — two conventions, one per skill, each reusing what already exists rather than inventing
+   an artifact kind.**
+   - `diagnose-and-fix` (no artifact store): the written diagnosis is **`DIAGNOSIS.md` at the root of
+     the approved bugfix worktree**, and the reproducing test goes in **the repository's normal test
+     location** — so it is a real test a human can run, not an orphan note. Delivered wording:
+     *"preserve the deterministic reproducing test, if one was produced, in the repository's normal
+     test location, and a short written diagnosis as `DIAGNOSIS.md` at that worktree's root"*. Under
+     `local only` **both stay uncommitted** in that worktree with their paths reported; they are
+     committed on the bugfix branch only when the authorization covers a commit. Never pushed, never
+     merged, and no new approval gate.
+   - `implement` (has an artifact store): stop evidence goes in the artifact root's **existing**
+     reports directory as **`.tasks/<feature>/reports/stop-<logical-id>.md`**, never the root
+     checkout. `references/artifact-store.md:69` already lists `reports` among
+     `.tasks/<feature>/{SPEC.md,tasks.json,packages,proofs,reports,reviews}`, so this adds no
+     directory and no artifact kind.
+3. **Add-on 7 (cap 3 → 5).** Only worth doing with evidence of premature halts. Does
+   the user have such evidence?
+
+   **NOT ADOPTED.** The cap stays at **3** everywhere. There is no evidence of premature halts, so
+   raising the number would have been speculative churn across 38 lines. The diagnosis was also
+   wrong-headed: the user's complaint is the **halt**, not the number, and 5 attempts still ends in a
+   halt. Exhaustion therefore **escalates** instead (§2.5), under two constraints:
+   **(a) authority-preserving** — escalation changes method, never authority; it is allowed only where
+   it preserves approved semantics, scope, visible behavior, risk, and manual exceptions, and in
+   `diagnose-and-fix` only because the handoff is planning-only with its own downstream approval gate;
+   **(b) one escalation per identity** — per cluster identity in `implement`, per confirmed mechanism
+   in `diagnose-and-fix`, with no reset by relabeling or reclustering, so termination stays provable
+   by counting.
+4. **Is `implement`'s empty-handed case actually a problem?** This spec asserts it is
+   not, because task artifacts, package branches, proof and report files are already
+   durable on stop. If the user has seen `implement` leave nothing usable, that
+   assertion is wrong and §2's scope must widen.
+
+   **RESOLVED — the assertion was wrong, and §2's scope widened accordingly.** See the correction in
+   §1: the cited `implement:47-48` covers **done** evidence only, and non-convergence can fire at
+   readiness before any package agent is dispatched, when no report exists. `implement/SKILL.md` now
+   carries a stop-evidence obligation on every Stop-if and exhausted circuit, with the location fixed
+   per q2. It is one requirement in the existing Stop-if block — no artifact store was invented and no
+   approval gate was added.
+
+## 12. Delivered scope versus the recommended minimum
+
+The delivered change **intentionally exceeds** §2's "minimum viable change". The excess is entirely
+accounted for, and each item is either a correction of an error in this spec or a consequence of one:
+
+| # | Beyond the minimum | Why it was unavoidable |
+|---|---|---|
+| 1 | Explicit three-attempt cap in `diagnose-and-fix` step 12 | §2.2's "no new trigger is needed" was false (blocking error B1); the loop was unbounded, so "deliver on exhaustion" had no exhaustion to fire on |
+| 2 | Stop-evidence obligation in `implement/SKILL.md` | open question 4's assertion was false; the empty-handed window is real at readiness |
+| 3 | Scope-expansion stop rekeyed in `fix-implementer-contract.md` | §2.1 routes confirmed cross-module/security/concurrency repairs to the localized path, and the worker's old category-based stop would have refused exactly those — a livelock |
+| 4 | Right-size clause in `fix-implementer-contract.md` (§2.4) | §2.1 removes the bug path's only over-engineering lens (`design-preflight.md:9`); nothing else replaced it |
+| 5 | Escalate once on exhaustion, both skills (§2.5) | the halt itself was the user's complaint; add-on 7 would not have fixed it |
+| 6 | Two artifact-path conventions (§11 q2) | open question 2 was left undecided, which meant every agent would invent its own path |
+
+Items 1–4 are corrections; 5–6 are the two decisions that closed the remaining open questions. What
+was rejected stayed rejected: no convergence test, no orchestrator/worker split, no preflight section,
+no autonomy envelope, no 13th shared reference, no reference-to-reference link, and no change to any
+pre-existing cap line.

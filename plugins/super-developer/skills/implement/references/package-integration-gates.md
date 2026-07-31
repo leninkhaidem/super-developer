@@ -95,8 +95,11 @@ probe while the circuit stays open.
 For confirmed blocking code findings, map affected packages/paths/checklist/proof/report/seams. One worker owns a
 cluster sharing cause, scope, and verification envelope. Preserve its stable ID: attempt 1 is initial; attempts 2–3
 must name a material code/diagnostic delta. Three total attempts exhaust the circuit; renaming/reclustering cannot
-reset it. Refresh only affected evidence and delta verification, then `validate-package-complete`. Stop on unchanged
-work, uncertain cleanup/readiness, missing authority/facts, scope/safety change, or risk.
+reset it. On exhaustion, re-classify the cluster once as a possible plan defect and route it through the plan-owned
+gate above when that preserves approved semantics, scope, user-visible behavior, risk, and manual exceptions;
+otherwise stop. One escalation per cluster identity: relabeling earns none, and the same cluster's second
+exhaustion stops. Refresh only affected evidence and delta verification, then `validate-package-complete`. Stop on
+unchanged work, uncertain cleanup/readiness, missing authority/facts, scope/safety change, or risk.
 
 ## Conflict Handling
 Resolve mechanical conflicts only in the integration worktree and never switch the root worktree. For substantive logic, API, contract, test, proof, package-scope, or design conflicts, abort the merge when possible and keep the package incomplete with a blocker naming the conflicting package/files. Do not dispatch dependent packages until conflicts and freshness gates close.
