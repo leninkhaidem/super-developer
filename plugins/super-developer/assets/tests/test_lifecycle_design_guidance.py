@@ -128,6 +128,34 @@ class LifecycleDesignGuidanceTests(unittest.TestCase):
         )
         self.assert_groups(self.shared, calibration, "calibration")
 
+    def test_delegated_workers_receive_and_read_shared_owner(self) -> None:
+        preflight = (PLUGIN_ROOT / CONSUMERS["preflight"]).read_text(encoding="utf-8")
+        assignment = preflight.split("## Challenger Assignment", 1)[1].split("## Bounded Output", 1)[0]
+        self.assert_groups(
+            assignment,
+            (
+                ("Shared clean-code contract", "${SUPER_DEVELOPER_PLUGIN_ROOT}/references/clean-code-rules.md"),
+                ("Read and apply", "complete shared", "Module", "Interface", "Seam", "Adapter"),
+                ("Depth", "Leverage", "Locality", "every smell", "evidence-calibrated"),
+                ("planner", "persist"),
+            ),
+            "Challenger Assignment routing",
+        )
+
+        fix = (PLUGIN_ROOT / CONSUMERS["fix-implementer"]).read_text(encoding="utf-8")
+        required_packet = fix.split("## Required Packet", 1)[1].split("## Write and Side-Effect Boundary", 1)[0]
+        ordered_workflow = fix.split("## Ordered Workflow", 1)[1].split("## Pipeline Freshness Handback", 1)[0]
+        self.assert_groups(
+            required_packet,
+            (("shared clean-code contract path", "${SUPER_DEVELOPER_PLUGIN_ROOT}/references/clean-code-rules.md"),),
+            "Fix Implementer Required Packet routing",
+        )
+        self.assert_groups(
+            ordered_workflow.lower(),
+            (("before any repair", "read and apply", "supplied shared clean-code contract", "self-review"),),
+            "Fix Implementer Ordered Workflow routing",
+        )
+
     def test_stage_owned_routes_use_shared_owner(self) -> None:
         route_terms = {
             "conceptualize": ("material Module/Interface", "Seam", "deletion-test", "Skip this ceremony"),
