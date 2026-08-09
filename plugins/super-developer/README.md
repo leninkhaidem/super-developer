@@ -270,6 +270,7 @@ plugins/super-developer/
 |   +-- semgrep_rules.py
 |   +-- sliceproof.py
 |   +-- tests/
+|       +-- test_lifecycle_design_guidance.py
 |       +-- test_semgrep_rules.py
 |       +-- test_skill_prompts.py
 |       +-- test_sliceproof.py

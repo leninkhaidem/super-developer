@@ -15,10 +15,11 @@ The eager workflow should be enough to guide the session. Load references only a
 - For each material question, provide your recommended answer and tradeoff-shaped options when useful.
 - Inspect the repo instead of asking when repo evidence can answer; ask only for remaining intent, preference, or risk acceptance.
 - Continue the loop until shared understanding is sufficient for implementation planning without inventing behavior.
-- Before recommending or settling a design branch, apply the shared right-sized-complexity rule: choose the
-  smallest complete design that satisfies accepted requirements while addressing evidenced risk. Every extra state, marker,
-  flag, abstraction, dependency, configuration, or control branch needs a named requirement/risk or must be cut;
-  never remove required validation, safety, or failure handling in the name of simplicity.
+- Before settling a material Module/Interface design branch, apply the shared codebase-design model and
+  right-sized-complexity rule: identify the owning Module, full caller Interface, Seam, justified Adapters,
+  Depth/Leverage/Locality, and deletion-test result. Skip this ceremony when no material Module/Interface decision
+  exists. Choose the smallest complete safe design; every extra state, abstraction, dependency, or branch needs a
+  named requirement/risk or must be cut, without removing required validation, failure handling, or verification.
 - Prefer explicit uncertainty over confident invention; name assumptions and unresolved branches instead of filling gaps silently.
 - Always derive a new concept slug autonomously from the concept itself. It is the default feature/artifact slug for `artifacts/<feature>`, `.worktrees/<feature>/artifacts`, `.planning/<concept-slug>/`, and later `.tasks/<feature>/`; never ask for routine slug naming or confirmation unless the user explicitly authorized slug selection or a path-safety/collision conflict blocks safe derivation.
 - When shared understanding materializes into a settled requirement, constraint, decision, non-goal, risk, blocker, accepted tradeoff, or planning implication, checkpoint it to the workspace instead of leaving it only in chat context.

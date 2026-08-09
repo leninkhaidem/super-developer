@@ -1,21 +1,21 @@
 # Design Preflight
 
 ## Purpose
-
 Design Preflight is a read-only adversarial planning challenge. It surfaces decisions and requirement-completeness gaps before writing `SPEC.md`, the registry, package Markdown, proof paths, or report paths.
 
-Completeness gaps include missing observable behaviors, edge cases, failure modes, defaults, or obligations a reasonable implementer would expect.
-
-The challenge is **two-sided**: it also right-sizes the design. It flags **over-engineering** — abstractions, layers, configuration, state, flags, extension points, dependencies, or package splits that are not traced to an accepted requirement, the `## Acceptance` criteria, or evidenced risk. The simplest design that fully satisfies the accepted requirements and Acceptance is the target; anything beyond that is speculative and should be cut, not planned.
-
-It is not an implementation plan, persisted transcript, or instruction stream for sub-agents.
+Completeness gaps include missing observable behavior, edge cases, failures, defaults, or expected obligations.
+The two-sided challenge also cuts abstractions, layers, config, state, flags, extensions, dependencies, or package
+splits not traced to requirements, Acceptance, or evidenced risk. It is not a plan, transcript, or sub-agent
+instruction stream.
 
 ## Trigger and Reuse
 
 Require this challenge for nontrivial/risky plans: architecture or data/permission/external/persistence changes;
-security, privacy, safety, reliability, migration, concurrency, rollback, destructive-action, or novel-harness risk;
-ambiguous requirements; cross-cutting changes; or semantic tradeoffs needed before package authoring. Skip narrow,
-mechanical, low-risk plans whose architecture and caller contract are clear.
+security, privacy, safety, reliability, migration, concurrency, rollback, destructive-action, novel-harness risk,
+ambiguity, cross-cutting changes, or semantic tradeoffs. For material design, apply the complete shared model and
+all smells: challenge shallow/pass-through Modules, wide/leaky Interfaces, hypothetical Seams, unjustified Adapters,
+scattered ownership, and tests reaching past the Interface. Persist only material implications. Skip narrow,
+mechanical plans with no material Module/Interface decision and a clear caller contract.
 
 Do not launch duplicate challengers when current read-only adversarial analysis already covers requirement
 completeness and overengineering for the same approved scope and current repository evidence, with no unresolved

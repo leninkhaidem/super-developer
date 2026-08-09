@@ -38,8 +38,12 @@ The repair agent must:
    authorize a bounded probe with a distinct identity/expected signal while the circuit remains open. Identity,
    commit, status, or report metadata alone is not progress; a relevant material state/evidence/strategy delta
    must close/narrow the gate, change ownership, or yield decisive evidence.
-10. When the repair changes implementation behavior, tests, proofs, or risk evidence, perform the compact repair self-review below before handoff. Pure mechanical stale-state refresh may report rechecked evidence instead.
-11. Never create worktrees, branches, perform merge operations, mark packages done, edit proof/report
+10. For substantive repair, apply the complete shared codebase-design model and all smell heuristics to changed
+    behavior and directly affected Interfaces, Seams, Adapters, callers, tests, and evidence. Fix material in-scope
+    risk, justify harmless shapes, and exclude unrelated legacy cleanup.
+11. When repair changes behavior, tests, proofs, or risk evidence, perform the compact self-review below. Pure
+    mechanical stale-state refresh may report rechecked evidence instead.
+12. Never create worktrees, branches, perform merge operations, mark packages done, edit proof/report
     lifecycle state by hand, treat review state as proof, checkpoint sidecars, or force-add/commit ignored
     `.tasks` proof/report artifacts to code branches.
 
@@ -61,12 +65,17 @@ REPAIR_SELF_REVIEW
 repair_diff_reviewed: yes
 criteria_or_findings_checked: <Slice IDs/proof rows/finding keys>
 risk_lenses_checked: <risk tags/lenses or none-applicable>
+design_and_smell_review: complete; material_findings=none|fixed:<items>; justified_non_actions=none|<evidence>
 complexity_justified: yes/no + reason — every abstraction, flag, layer, config, dependency, or extension point the repair adds traces to an assigned requirement or evidenced risk; speculative surface was cut
 tests_reviewed_as_evidence: <test files/commands/static inspections or none>
 issues_found_and_fixed: <short list or none>
 tests_and_proofs_consistent: yes/no + reason
 unresolved_concerns: none or exact blocker
 ```
+
+Only no-implementation-delta or purely mechanical evidence refresh may instead use
+`design_and_smell_review: not_applicable; reason=<concrete reason>`. Keep open issues in `unresolved_concerns` and
+do not return success with one open.
 
 ## Proof Repair Expectations
 

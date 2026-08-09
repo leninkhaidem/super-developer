@@ -25,11 +25,10 @@ The package agent must:
 3. Read `plugins/super-developer/references/clean-code-rules.md` and follow its Development Quality Contract.
 4. Sequence internal package dependencies coherently and keep commits traceable to package milestones.
 5. Start exploration with package Markdown `Primary Paths`, then broaden only when imports, tests, Slice obligations, or verification expectations require it.
-6. Before non-trivial edits, form a compact implementation strategy and reflect it in completion evidence.
-   The strategy must identify caller contract and failure/partial/invalid-input behavior, trust boundaries,
-   security/privacy/data/performance/concurrency implications, affected artifacts, natural implementation seam,
-   Slice-derived completeness/ambiguity checks, verification mapped to proof rows/expectations, and relevant
-   edge/failure cases; cite proof rows/verification outputs instead of restating them.
+6. Before non-trivial edits, form a compact strategy and reflect it in completion evidence. Identify caller
+   contract and failure/partial/invalid behavior, trust/risk implications, affected artifacts, natural Seam,
+   Slice completeness/ambiguity, verification rows, and edge cases. For material design, apply the complete shared
+   Module/Interface/Implementation/Depth/Seam/Adapter/Leverage/Locality model and all smell heuristics.
 7. Implement the complete in-scope behavior/risk class; do not patch only the literal happy path or example input when adjacent in-scope states share the same invariant.
 8. Preserve existing contracts unless the accepted package artifacts explicitly change them.
 9. Update affected callsites, tests, docs, generated artifacts, contracts, and examples within package scope.
@@ -54,9 +53,13 @@ Before returning, review your own package diff in behavior-first order:
 3. Derive which tests, commands, static inspections, or manual observations should prove the behavior, Slice-derived commitments, and risk cases.
 4. Review corresponding proofs as evidence quality: assertions, negative/failure/security/privacy/data/concurrency cases, mocks, skips, generated snapshots/contracts, and pollution-sensitive setup.
 5. Review remaining test-only/generated/config/docs changes only as needed for package scope and risk.
-6. Right-size pass: confirm every abstraction, flag, layer, configuration, dependency, or extension point you added traces to an assigned requirement or evidenced risk; cut speculative surface, unused extensibility, and premature optimization before handoff (Right-sized complexity rule in `clean-code-rules.md`).
+6. Apply every shared smell to the changed behavior and directly affected Interfaces, Seams, Adapters, callers,
+   tests, and evidence. Fix material in-scope risks; justify harmless shapes; exclude unrelated legacy cleanup.
+7. Right-size pass: trace every added abstraction, flag, layer, config, dependency, or extension point to an
+   assigned requirement/risk; cut speculative surface before handoff.
 
-If self-review finds an issue, fix it before handoff and rerun relevant targeted checks, or report the exact blocker when the fix requires scope expansion, unsafe commands, external facts, credentials, product/design decision, or unresolved Slice plan-defect resolution. Package verification consumes this self-review but never replaces it.
+Fix self-found issues and rerun relevant checks, or report the exact scope/safety/facts/decision blocker. Package
+verification consumes this self-review but never replaces it.
 
 Include this exact block in the completion report:
 
@@ -65,12 +68,17 @@ SELF_REVIEW
 diff_reviewed: yes
 criteria_checked: <Slice H3 IDs / verification expectations>
 risk_lenses_checked: <risk tags/lenses or none-applicable>
+design_and_smell_review: complete; material_findings=none|fixed:<items>; justified_non_actions=none|<evidence>
 complexity_justified: yes/no + reason — every added abstraction, flag, layer, config, dependency, or extension point traces to an assigned requirement or evidenced risk; speculative surface was cut
 tests_reviewed_as_evidence: <test files/commands/static inspections or none>
 issues_found_and_fixed: <short list or none>
 tests_and_proofs_consistent: yes/no + reason
 unresolved_concerns: none or exact blocker
 ```
+
+Only no-implementation-delta or purely mechanical evidence refresh may replace that aggregate field with
+`design_and_smell_review: not_applicable; reason=<concrete reason>`. Open issues belong in `unresolved_concerns`;
+never report success with one open.
 
 ## Proof Markdown Expectations
 
