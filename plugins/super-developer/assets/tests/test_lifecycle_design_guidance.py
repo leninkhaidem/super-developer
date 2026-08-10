@@ -204,9 +204,15 @@ class LifecycleDesignGuidanceTests(unittest.TestCase):
             "https://raw.githubusercontent.com/mattpocock/skills/84fdeffd12f2ee307994d1eb6feb48173b6e0502/skills/engineering/code-review/SKILL.md",
             "https://raw.githubusercontent.com/mattpocock/skills/84fdeffd12f2ee307994d1eb6feb48173b6e0502/LICENSE",
         )
-        self.assertIn("Matt Pocock's skills repository", self.shared)
-        self.assertIn("MIT licensed", self.shared)
-        self.assertTrue(all(url in self.shared for url in expected_urls))
+        readme = (PLUGIN_ROOT / "README.md").read_text(encoding="utf-8")
+        attribution_markers = (
+            "Matt Pocock's skills repository",
+            "84fdeffd12f2ee307994d1eb6feb48173b6e0502",
+            "MIT License",
+            *expected_urls,
+        )
+        self.assertTrue(all(marker in readme for marker in attribution_markers))
+        self.assertTrue(all(marker not in self.shared for marker in attribution_markers))
 
         matches = []
         for expected_digest, literal in GUARDED_PASSAGES:

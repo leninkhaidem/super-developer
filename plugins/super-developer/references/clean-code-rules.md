@@ -136,11 +136,3 @@ Quality Contract Evidence:
 
 Cite existing proof rows/reports rather than restating them. MUST NOT create a standalone quality report, artifact,
 registry field, lifecycle state, command ledger, or per-smell results.
-
-## Attribution
-
-Adapted from Matt Pocock's skills repository at pinned commit
-`84fdeffd12f2ee307994d1eb6feb48173b6e0502`, MIT licensed:
-- https://raw.githubusercontent.com/mattpocock/skills/84fdeffd12f2ee307994d1eb6feb48173b6e0502/skills/engineering/codebase-design/SKILL.md
-- https://raw.githubusercontent.com/mattpocock/skills/84fdeffd12f2ee307994d1eb6feb48173b6e0502/skills/engineering/code-review/SKILL.md
-- https://raw.githubusercontent.com/mattpocock/skills/84fdeffd12f2ee307994d1eb6feb48173b6e0502/LICENSE
