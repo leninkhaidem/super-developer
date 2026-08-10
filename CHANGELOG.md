@@ -6,6 +6,18 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [v2.2.0] - 2026-08-10
+
+### Added
+- Added a shared Module, Interface, Implementation, Depth, Seam, and Adapter design model plus evidence-calibrated guidance for 12 code smells across conceptualization, planning, implementation, repair, and review.
+
+### Changed
+- Changed code-writing handoffs to apply the complete design and smell review before review and report one aggregate result without forcing unrelated legacy cleanup.
+- Moved upstream attribution into the plugin README so agent-facing shared guidance stays focused on actionable instructions.
+
+### Fixed
+- Fixed delegated Design Preflight and review repair workers so they receive and read the shared quality contract before acting.
+
 ## [v2.1.0] - 2026-07-30
 
 ### Changed

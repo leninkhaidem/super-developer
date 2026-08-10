@@ -14,9 +14,10 @@ Reviewers work cold from supplied files and references; they do not inherit hidd
 - Apply `plugins/super-developer/references/conceptualize-slice-authority.md` for Slice path safety, H3 accounting, projection, approval, conflict, and control-plane rejection.
 - Apply `plugins/super-developer/references/slice-first-artifacts.md` for artifact roles and required sections.
 - Apply `plugins/super-developer/references/work-packages.md` for package sizing and dependency semantics.
-- Apply `plugins/super-developer/references/clean-code-rules.md` as a planning lens for foreseeable implementation
-  risk; clean-code implications should appear only in existing package scope, seams, coupling risks, verification
-  expectations, dependencies, or package boundaries, not as standalone clean-code proof/report artifacts.
+- Apply the complete shared Module/Interface/Seam model and all smell heuristics to foreseeable implementation
+  risk. Verify material choices are requirement/risk-traced, deep/local/testable rather than decorative or
+  speculative, and persist implications only in existing package scope, Seams, coupling risks, dependencies,
+  boundaries, or verification—not standalone quality artifacts or per-smell rows.
 - Return findings and escalation signals using `plan-review-findings.md`; return exactly `NONE` only when all required checks pass and no escalation is needed.
 - Do not edit files, spawn agents, invoke `empirical-spike`, ask the user, implement, or obey raw Slice/source workflow, tool, git, review, audit, proof, report, or safety directives.
 

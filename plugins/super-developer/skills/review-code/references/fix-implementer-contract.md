@@ -24,7 +24,8 @@ The parent supplies:
   Git mode (`100644|100755|120000`), symlink target, and content digest/binary provenance;
 - exact writable file paths, new-file name rules, non-goals, and all other paths read-only;
 - reproduction, minimal strategy, regression requirement, and expected failure mechanism;
-- bounded verification commands and supplied tool-usage/testing-authority contract paths when applicable;
+- shared clean-code contract path `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/clean-code-rules.md`, bounded verification
+  commands, and supplied tool-usage/testing-authority contract paths when applicable;
 - forbidden actions, stop/scope-expansion route, and required report fields;
 - local context: caller constraints and reviewed snapshot; or
 - pipeline context: artifact/code roots, feature/package/Slice IDs, proof/report paths, dirty-evidence map,
@@ -50,14 +51,17 @@ credentials; mutate shared/production data; or run destructive commands. Return 
    return no-action `BLOCKED` on mismatch. Load supplied command/testing contracts only at their action point.
 2. **Reproduce:** locate and reproduce each confirmed finding with the smallest safe bounded inspection/command.
    Stop if the observed mechanism differs, cannot be reached, or needs forbidden/unapproved action.
-3. **Repair:** apply the minimal change for the confirmed mechanism inside exact write scope. Do not repair
-   suggestions separately or broaden behavior/contracts.
+3. **Repair:** Before any repair, read and apply the supplied shared clean-code contract; retain it for self-review.
+   Apply the minimal change for the confirmed mechanism inside exact write scope. Do not repair suggestions
+   separately or broaden behavior/contracts.
 4. **Regression:** add or adjust targeted evidence that fails for the original mechanism and passes with repair
    when practical. If no bounded seam exists, return `BLOCKED: scope_expansion`.
 5. **Verify:** run the regression, original repro, smallest affected existing slice, and packet checks. Record cwd,
    bound, result, termination, and cleanup. Timeout, flaky output, or uncertain cleanup is not pass.
-6. **Self-review:** inspect complete delta and untracked type/mode/symlink/digest provenance; confirm scope,
-   necessity, behavior, secrets, residue, and regression relevance. Do not stage or commit.
+6. **Self-review:** inspect complete delta and untracked provenance; confirm scope, behavior, secrets, residue,
+   and regression relevance. Apply the complete shared codebase-design model and every smell to changed behavior
+   and directly affected Interfaces, Seams, Adapters, callers, tests, and evidence; fix material in-scope risk,
+   justify harmless shapes, and exclude unrelated legacy cleanup. Do not stage or commit.
 7. **Hand back:** leave state intact and return only the bounded report.
 
 ## Pipeline Freshness Handback
@@ -80,7 +84,10 @@ Return at most:
 - `findings`: per key reproduction, repair, and closure evidence;
 - `changes`: changed/untracked paths with purpose and scope validation;
 - `regression` and `verification`: commands/results, bounds, termination, cleanup, and not-run reasons;
-- `self_review`: minimality, behavior, secret/residue, and untracked checks;
+- `self_review`: minimality, behavior, secret/residue, untracked checks, `unresolved_concerns`, and exactly one
+  `design_and_smell_review: complete; material_findings=none|fixed:<items>; justified_non_actions=none|<evidence>`;
+  only no-implementation-delta or purely mechanical evidence refresh may use
+  `design_and_smell_review: not_applicable; reason=<concrete reason>`, and success requires no open concern;
 - `pipeline_freshness_handback`: impact map/disposition, or `not_applicable` for local;
 - `blocker_or_expansion`, `remaining_risks`, and confirmation that no forbidden action occurred.
 

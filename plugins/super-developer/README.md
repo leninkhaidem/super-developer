@@ -270,6 +270,7 @@ plugins/super-developer/
 |   +-- semgrep_rules.py
 |   +-- sliceproof.py
 |   +-- tests/
+|       +-- test_lifecycle_design_guidance.py
 |       +-- test_semgrep_rules.py
 |       +-- test_skill_prompts.py
 |       +-- test_sliceproof.py
@@ -370,6 +371,17 @@ plugins/super-developer/
 | Independent verification | Package reports, review-code readiness, and audit each protect a different gate. None replaces another. |
 | Read-only dashboards | Status views show mechanical signals without mutating lifecycle state or claiming semantic completion. |
 | Explicit git authority | Feature pushes, target merges, cleanup, and release operations happen only under their named contracts. |
+
+---
+
+## Upstream Attribution
+
+The design and review guidance adapts Matt Pocock's skills repository at pinned commit
+`84fdeffd12f2ee307994d1eb6feb48173b6e0502`, licensed under the MIT License:
+
+- https://raw.githubusercontent.com/mattpocock/skills/84fdeffd12f2ee307994d1eb6feb48173b6e0502/skills/engineering/codebase-design/SKILL.md
+- https://raw.githubusercontent.com/mattpocock/skills/84fdeffd12f2ee307994d1eb6feb48173b6e0502/skills/engineering/code-review/SKILL.md
+- https://raw.githubusercontent.com/mattpocock/skills/84fdeffd12f2ee307994d1eb6feb48173b6e0502/LICENSE
 
 ---
 

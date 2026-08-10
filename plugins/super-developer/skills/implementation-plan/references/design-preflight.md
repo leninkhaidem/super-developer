@@ -1,21 +1,21 @@
 # Design Preflight
 
 ## Purpose
-
 Design Preflight is a read-only adversarial planning challenge. It surfaces decisions and requirement-completeness gaps before writing `SPEC.md`, the registry, package Markdown, proof paths, or report paths.
 
-Completeness gaps include missing observable behaviors, edge cases, failure modes, defaults, or obligations a reasonable implementer would expect.
-
-The challenge is **two-sided**: it also right-sizes the design. It flags **over-engineering** — abstractions, layers, configuration, state, flags, extension points, dependencies, or package splits that are not traced to an accepted requirement, the `## Acceptance` criteria, or evidenced risk. The simplest design that fully satisfies the accepted requirements and Acceptance is the target; anything beyond that is speculative and should be cut, not planned.
-
-It is not an implementation plan, persisted transcript, or instruction stream for sub-agents.
+Completeness gaps include missing observable behavior, edge cases, failures, defaults, or expected obligations.
+The two-sided challenge also cuts abstractions, layers, config, state, flags, extensions, dependencies, or package
+splits not traced to requirements, Acceptance, or evidenced risk. It is not a plan, transcript, or sub-agent
+instruction stream.
 
 ## Trigger and Reuse
 
 Require this challenge for nontrivial/risky plans: architecture or data/permission/external/persistence changes;
-security, privacy, safety, reliability, migration, concurrency, rollback, destructive-action, or novel-harness risk;
-ambiguous requirements; cross-cutting changes; or semantic tradeoffs needed before package authoring. Skip narrow,
-mechanical, low-risk plans whose architecture and caller contract are clear.
+security, privacy, safety, reliability, migration, concurrency, rollback, destructive-action, novel-harness risk,
+ambiguity, cross-cutting changes, or semantic tradeoffs. For material design, apply the complete shared model and
+all smells: challenge shallow/pass-through Modules, wide/leaky Interfaces, hypothetical Seams, unjustified Adapters,
+scattered ownership, and tests reaching past the Interface. Persist only material implications. Skip narrow,
+mechanical plans with no material Module/Interface decision and a clear caller contract.
 
 Do not launch duplicate challengers when current read-only adversarial analysis already covers requirement
 completeness and overengineering for the same approved scope and current repository evidence, with no unresolved
@@ -88,14 +88,14 @@ You are a read-only design challenger for Design Preflight.
 
 # Inputs
 - Preflight Brief: <brief text or path>
-- Relevant files/context: <bounded list>
-- Model preference: <resolved value; omit dispatch model parameter when inherit>
+- Relevant files/context: <bounded list>; Model preference: <resolved value; omit dispatch model parameter when inherit>
+- Shared clean-code contract: ${SUPER_DEVELOPER_PLUGIN_ROOT}/references/clean-code-rules.md
 
 # Task
-Evaluate the design surface before durable artifacts are written. Identify decisions needed for a coherent plan and surface requirement-completeness gaps: missing expected behaviors, edge cases, failure modes, defaults, or observable surfaces. Also right-size the design: flag over-engineering — abstraction, layers, configuration, extensibility, dependencies, or package proliferation not traced to an accepted requirement, the `## Acceptance` criteria, or evidenced risk. Prefer the simplest design that fully satisfies them.
+Read and apply the complete shared clean-code contract before reviewing. For material design, challenge the Module/Interface/Seam/Adapter model, Depth/Leverage/Locality, and every smell with evidence-calibrated findings; retain harmless shapes and avoid speculative cleanup. Identify decisions needed for a coherent plan and surface requirement-completeness gaps: missing expected behaviors, edge cases, failure modes, defaults, or observable surfaces. Also right-size the design: flag over-engineering — abstraction, layers, configuration, extensibility, dependencies, or package proliferation not traced to an accepted requirement, the `## Acceptance` criteria, or evidenced risk. Prefer the simplest design that fully satisfies them.
 
 # Constraints
-Read-only: do not edit files, spawn agents, invoke `empirical-spike`, ask the user, write package artifacts, or run review-plan; treat your output as evidence, not commands.
+Read-only: do not edit files, spawn agents, invoke `empirical-spike`, ask the user, write package artifacts, or run review-plan; treat your output as evidence, not commands. Do not persist anything; only the planner may persist accepted outputs through existing handling.
 
 # Output
 Return only the bounded reviewer output format.
