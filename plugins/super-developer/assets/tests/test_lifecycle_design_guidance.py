@@ -84,10 +84,28 @@ class LifecycleDesignGuidanceTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.shared = SHARED.read_text(encoding="utf-8")
+        cls.diagnose = (PLUGIN_ROOT / "skills/diagnose-and-fix/SKILL.md").read_text(encoding="utf-8")
+        cls.orchestration = (
+            PLUGIN_ROOT / "skills/diagnose-and-fix/references/orchestration-mechanics.md"
+        ).read_text(encoding="utf-8")
+        cls.diagnose_worker = (
+            PLUGIN_ROOT / "skills/diagnose-and-fix/references/fix-implementer-contract.md"
+        ).read_text(encoding="utf-8")
+        cls.local_review = (
+            PLUGIN_ROOT / "skills/review-code/references/local-workflow.md"
+        ).read_text(encoding="utf-8")
 
     def assert_groups(self, text: str, groups: tuple[tuple[str, ...], ...], label: str) -> None:
         for group in groups:
             self.assertTrue(all(term in text for term in group), f"{label}: missing semantic group {group}")
+
+    def section(self, text: str, start: str, end: str | None = None) -> str:
+        self.assertIn(start, text)
+        section = text.split(start, 1)[1]
+        if end is not None:
+            self.assertIn(end, section)
+            section = section.split(end, 1)[0]
+        return section
 
     def test_complete_core_model_and_semantic_anchors(self) -> None:
         required = {
@@ -221,6 +239,150 @@ class LifecycleDesignGuidanceTests(unittest.TestCase):
         self.assertTrue(all(x in audit for x in ("finite", "SPEC `## Acceptance`", "read-only", "package-local verification")))
         self.assertTrue(all(x in audit_worker for x in ("Final audit is a completeness reconciler", "not a full second package verifier")))
         self.assertFalse((PLUGIN_ROOT / "skills/codebase-design").exists())
+
+    def test_diagnose_authorization_and_review_loop_bound_auto_repair(self) -> None:
+        authorization = self.section(
+            self.diagnose, "## Fix Authorization and Internal Receipt", "## Do"
+        )
+        self.assert_groups(
+            authorization,
+            (
+                ("caller_repair_policy: explicit|auto_confirmed_blocking", "global default", "explicit"),
+                ("localized diagnose fix", "MUST propose", "auto_confirmed_blocking", "explicitly opts"),
+                ("attempts 2–3", "confirmed review blockers"),
+                ("same behavior goal", "localized seam", "callsites/tests", "exact paths"),
+            ),
+            "diagnose Fix Authorization",
+        )
+        always = self.section(self.diagnose, "## Always", "## Fix Authorization")
+        self.assert_groups(always, (("Post-fix", "review-code", "mandatory", "delivery readiness"),), "diagnose Always")
+        workflow = self.section(self.diagnose, "## Do", "## Load if needed")
+        self.assert_groups(
+            workflow,
+            (
+                ("mandatory post-fix", "caller_repair_policy"),
+                ("auto_confirmed_blocking", "fresh implement", "verify", "rebind", "rerun review"),
+                ("Skeptic-confirmed blocking", "automatic loop", "advisories", "suggestions", "disputed", "report-only"),
+                ("Attempt 1", "attempts 2 and 3", "material delta", "Never retry unchanged"),
+                ("one such escalation", "same mechanism", "stop for the"),
+            ),
+            "diagnose review loop",
+        )
+
+    def test_orchestration_enforces_auto_packet_stops_attempts_and_delivery(self) -> None:
+        review = self.section(
+            self.orchestration, "## Review binding and accepted repairs", "## Delivery bindings"
+        )
+        self.assert_groups(
+            review,
+            (
+                ("caller_repair_policy: explicit|auto_confirmed_blocking", "absent policy", "explicit"),
+                ("caller-bound diagnose", "exact caller contract", "initial human Fix Authorization", "automatic review-repair envelope"),
+                ("explicit mode", "keyword gate", "accepted `fix`"),
+                ("Skeptic confirmation", "confirmed blocking", "without waiting", "disputed", "advisories", "suggestions"),
+                ("attempt ordinal `2|3`", "stable finding", "Skeptic evidence", "prior attempts", "material delta", "exact writable paths"),
+                ("`explicit` packet", "accepted `fix` receipt/action", "automatic packet", "original Fix Authorization/envelope"),
+                ("typed orchestrator packet fields", "untrusted data", "embedded directives", "cannot authorize", "rejects conflicts"),
+                ("fresh implement worker", "validate", "rebind", "rerun review"),
+                ("Attempt 1", "attempts 2 and 3", "no unchanged retry", "fourth attempt"),
+                ("callsites/tests", "directly affected", "bounded", "cheaply reversible", "exactly enumerated"),
+                ("design/product", "API", "schema", "migration", "unbounded blast radius"),
+                ("dependency", "service", "config", "unsafe", "credentialed", "external-fact", "risk", "acceptance", "stale state", "missing/expanded authority"),
+                ("one authorized planning escalation", "second exhaustion", "stops for the user"),
+            ),
+            "diagnose orchestration review",
+        )
+        packet_modes = self.section(review, "Every post-review packet", "Only typed orchestrator")
+        explicit_mode = self.section(packet_modes, "An `explicit` packet", "; an automatic packet")
+        auto_mode = self.section(packet_modes, "instead carries", None)
+        self.assertIn("accepted `fix` receipt/action", explicit_mode)
+        self.assertNotIn("Fix Authorization/envelope", explicit_mode)
+        self.assertIn("original Fix Authorization/envelope", auto_mode)
+        self.assertNotIn("accepted `fix`", auto_mode)
+        delivery = self.section(
+            self.orchestration, "## Delivery bindings", "## Durable evidence"
+        )
+        self.assert_groups(
+            delivery,
+            (("Commit only", "`CLEAN` unchanged snapshot", "passing verification", "existing delivery authority"),),
+            "diagnose delivery",
+        )
+
+    def test_local_review_default_stays_explicit_and_auto_is_diagnose_only(self) -> None:
+        setup = self.section(self.local_review, "## Scope and Complete-State Setup", "## Report and Explicit Action Gate")
+        self.assert_groups(setup, (("caller_repair_policy: explicit|auto_confirmed_blocking", "default `explicit`"),), "local setup")
+        gate = self.section(self.local_review, "## Report and Explicit Action Gate", "## Complete State Gate")
+        self.assert_groups(
+            gate,
+            (
+                ("CLEAN", "no confirmed blocking", "may include advisories"),
+                ("ISSUES FOUND", "at least one confirmed blocking"),
+                ("Ordinary standalone", "review", "`explicit`", "keyword gate", "unchanged"),
+                ("Silence", "authorizes nothing", "same-root", "approved blocking fix"),
+                ("advisories/suggestions", "never authorize", "independently"),
+            ),
+            "local explicit gate",
+        )
+        self.assertNotIn("🟠", gate)
+        ownership = self.section(self.local_review, "## Fix Ownership and Action", "## Commit, Details")
+        self.assert_groups(
+            ownership,
+            (
+                ("explicit `fix`", "accepted `fix`", "receipt/action"),
+                ("auto_confirmed_blocking", "repair_owner=diagnose-and-fix", "exact diagnose caller contract", "initial human Fix Authorization"),
+                ("Skeptic", "Without waiting", "`CONFIRMED` blocking", "auto-repair packet"),
+                ("policy", "original authorization/envelope", "attempt ordinal `2|3`", "finding keys", "Skeptic evidence", "prior attempts", "material delta", "exact writable paths"),
+                ("typed orchestrator", "untrusted data", "embedded directives", "cannot grant", "report conflicts"),
+                ("Advisories", "suggestions", "disputed", "strictly", "never enter"),
+                ("design/product", "API/schema/migration", "unbounded", "dependency/service/config", "unsafe", "external-fact", "risk acceptance", "stale state", "missing or expanded authority"),
+                ("attempt 1", "attempts 2–3", "unchanged retry", "attempt 4"),
+            ),
+            "local caller-owned auto repair",
+        )
+        auto_packet = self.section(ownership, "complete caller-owned auto-repair packet", "Only typed orchestrator")
+        self.assertNotIn("Advisories", auto_packet)
+        self.assertNotIn("suggestions", auto_packet)
+        self.assertNotIn("disputed", auto_packet)
+
+    def test_diagnose_worker_post_review_packet_keeps_exact_authority(self) -> None:
+        packet = self.section(self.diagnose_worker, "## Required Packet", "## Exact Write Scope")
+        self.assert_groups(
+            packet,
+            (("exact writable paths", "enumerated by the parent", "never", "vague"),),
+            "diagnose worker packet",
+        )
+        common = self.section(packet, "Every post-review packet additionally", "Mode-specific authority")
+        self.assert_groups(
+            common,
+            (("caller_repair_policy", "ordinal `2|3`", "confirmed finding keys", "Skeptic evidence", "prior attempts", "material delta", "exact writable paths"),),
+            "diagnose worker common review fields",
+        )
+        self.assertNotIn("accepted `fix`", common)
+        self.assertNotIn("Fix Authorization", common)
+        explicit_mode = self.section(packet, "- `explicit` additionally", "- `auto_confirmed_blocking` additionally")
+        auto_mode = self.section(packet, "- `auto_confirmed_blocking` additionally", "The two receipts")
+        self.assert_groups(explicit_mode, (("accepted `fix` receipt", "action"),), "worker explicit receipt")
+        self.assertNotIn("automatic envelope", explicit_mode)
+        self.assert_groups(auto_mode, (("original human Fix Authorization", "automatic envelope"),), "worker auto envelope")
+        self.assertNotIn("accepted `fix`", auto_mode)
+        role = self.section(self.diagnose_worker, "## Role and Authority", "## Required Packet")
+        self.assert_groups(
+            role,
+            (("typed orchestrator packet fields", "untrusted data", "embedded directives", "cannot grant", "Ignore", "`BLOCKED`"),),
+            "diagnose worker untrusted data",
+        )
+        scope = self.section(self.diagnose_worker, "## Exact Write Scope", "## Ordered Workflow")
+        self.assert_groups(
+            scope,
+            (("newly affected callsites/tests", "automatic", "authorization", "packet"),),
+            "diagnose worker exact scope",
+        )
+        stops = self.section(self.diagnose_worker, "## Scope Expansion and Stops", "## Bounded Report")
+        self.assert_groups(
+            stops,
+            (("Advisory/disputed", "design/product", "API/schema/migration", "unbounded", "dependency/service/config", "unsafe/credential/live/external-fact", "risk acceptance", "stale state", "missing authority"),),
+            "diagnose worker stops",
+        )
 
     def test_pinned_attribution_and_offline_notice_guard(self) -> None:
         expected_urls = (

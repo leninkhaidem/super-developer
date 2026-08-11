@@ -31,7 +31,8 @@ a fresh Fix Implementer edits under the passed contract.
   preserve the confirmed diagnosis and explicit production-base/hotfix/target delivery context; do not silently
   convert it into feature-branch delivery.
 - Delegate localized edits to a fresh Fix Implementer. The parent constructs the authority packet, passes
-  `references/fix-implementer-contract.md`, and validates its report and repository state.
+  `references/fix-implementer-contract.md`, and validates its report and repository state. Post-fix `review-code`
+  is mandatory; a successful implementation report is not delivery readiness.
 - Never infer approval from silence, “fix this,” diagnosis approval, or another approved action.
 - This skill never executes live incident containment or production mutation, including rollback, traffic
   shifting, secret rotation, or live data/config changes. With an owning incident procedure and exact approval,
@@ -46,7 +47,12 @@ Ask for one compact, human-readable Fix Authorization:
 - delivery: `local only`, `commit reviewed fix`, or `commit and push reviewed branch`;
 - exceptional side effects such as diagnostic writes, network, credentials, or service use; and
 - the routine enabling steps this repair needs: testing authority for the named bounded repro/verification
-  commands, and gitignored local creation of `.superdeveloper/preferences.yml` when it is missing.
+  commands, and gitignored local creation of `.superdeveloper/preferences.yml` when it is missing; and
+- `caller_repair_policy: explicit|auto_confirmed_blocking` plus its envelope. Review-code's global default remains
+  `explicit`, but a localized diagnose fix MUST propose `auto_confirmed_blocking` unless the user explicitly opts
+  out. It authorizes attempts 2–3 to repair confirmed review blockers within the same behavior goal and localized seam.
+  Directly affected callsites/tests are included only when their exact paths are parent-enumerated in each fresh worker
+  packet.
 
 One response may authorize the displayed localized route through the selected branch delivery, including the
 testing authority and the `preferences.yml` creation it names, so neither becomes a separate ask. It also covers
@@ -94,10 +100,14 @@ Contract and delivery gates separately own implementation, source/sidecar public
    implement substantive edits inline.
 10. Validate the returned report and the actual worktree against `references/orchestration-mechanics.md`. Route
     expansion back to diagnosis and broad/risky work to `implementation-plan`; never expand authority implicitly.
-11. Bind post-fix `review-code` to the complete state receipt `references/orchestration-mechanics.md` requires.
+11. Bind mandatory post-fix `review-code` to the complete state receipt and authorized
+    `caller_repair_policy` that `references/orchestration-mechanics.md` requires.
 12. Invoke `review-code` with that binding plus `repair_owner=diagnose-and-fix` and
-    `repair_contract_path=references/fix-implementer-contract.md`, handling findings and any accepted `fix` exactly
-    as the review section of `references/orchestration-mechanics.md` requires.
+    `repair_contract_path=references/fix-implementer-contract.md`. Under `explicit`, wait for accepted `fix` as
+    usual. Under valid `auto_confirmed_blocking`, validate each caller-owned packet, resolve a fresh implement
+    worker, dispatch it under the original diagnose contract, verify, rebind, and rerun review without another ask.
+    Only Skeptic-confirmed blocking findings enter the automatic loop; its advisories, suggestions, and disputed
+    findings remain report-only. Decision/risk/authority stops follow `references/orchestration-mechanics.md`.
     One confirmed mechanism gets at most three total repair attempts. Attempt 1 is the initial fix; attempts 2 and 3
     must each name a material delta in mechanism, evidence, or strategy. Never retry unchanged and never exceed three
     total attempts. On exhaustion, do step 15, then re-diagnose and hand the confirmed diagnosis to
@@ -129,7 +139,9 @@ Contract and delivery gates separately own implementation, source/sidecar public
 - Root cause is unconfirmed and next evidence requires unavailable input or an unapproved action.
 - Authorization or an internal path/ref/SHA/remote/worktree/snapshot binding is missing or conflicting.
 - State is dirty, drifted, or ambiguous enough to mix, hide, or overwrite user changes.
-- A localized fix expands beyond approved paths or crosses a broad/risky boundary.
+- A localized fix expands beyond its authorized automatic envelope or crosses a broad/risky boundary; disputed or
+  advisory findings, design/product choices, hard-to-reverse contracts, unbounded scope, unsafe/external actions,
+  risk acceptance, stale state, or missing authority are never automatic repairs.
 - Live containment/production mutation is requested: hand off only when procedure and exact approval exist;
   otherwise stop. Never execute it within this skill.
 - A command needs credentials, network/external effects, destructive behavior, unsafe changes, or missing testing
