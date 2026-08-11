@@ -75,7 +75,8 @@ CONSUMERS = {
     "plan-review": "skills/review-plan/references/plan-review-rubrics.md",
     "package": "skills/implement/references/package-agent-contract.md",
     "repair": "skills/implement/references/repair-agent-contract.md",
-    "fix-implementer": "skills/review-code/references/fix-implementer-contract.md",
+    "review-fix-implementer": "skills/review-code/references/fix-implementer-contract.md",
+    "diagnose-fix-implementer": "skills/diagnose-and-fix/references/fix-implementer-contract.md",
 }
 
 
@@ -142,19 +143,34 @@ class LifecycleDesignGuidanceTests(unittest.TestCase):
             "Challenger Assignment routing",
         )
 
-        fix = (PLUGIN_ROOT / CONSUMERS["fix-implementer"]).read_text(encoding="utf-8")
-        required_packet = fix.split("## Required Packet", 1)[1].split("## Write and Side-Effect Boundary", 1)[0]
-        ordered_workflow = fix.split("## Ordered Workflow", 1)[1].split("## Pipeline Freshness Handback", 1)[0]
-        self.assert_groups(
-            required_packet,
-            (("shared clean-code contract path", "${SUPER_DEVELOPER_PLUGIN_ROOT}/references/clean-code-rules.md"),),
-            "Fix Implementer Required Packet routing",
-        )
-        self.assert_groups(
-            ordered_workflow.lower(),
-            (("before any repair", "read and apply", "supplied shared clean-code contract", "self-review"),),
-            "Fix Implementer Ordered Workflow routing",
-        )
+        fix_contracts = {
+            "Review-Code Fix Implementer": (
+                CONSUMERS["review-fix-implementer"],
+                "## Write and Side-Effect Boundary",
+                "## Pipeline Freshness Handback",
+                "before any repair",
+            ),
+            "Diagnose-and-Fix Fix Implementer": (
+                CONSUMERS["diagnose-fix-implementer"],
+                "## Exact Write Scope",
+                "## Scope Expansion and Stops",
+                "before repair",
+            ),
+        }
+        for label, (relative, packet_end, workflow_end, timing) in fix_contracts.items():
+            fix = (PLUGIN_ROOT / relative).read_text(encoding="utf-8")
+            required_packet = fix.split("## Required Packet", 1)[1].split(packet_end, 1)[0]
+            ordered_workflow = fix.split("## Ordered Workflow", 1)[1].split(workflow_end, 1)[0]
+            self.assert_groups(
+                required_packet,
+                (("shared clean-code contract path", "${SUPER_DEVELOPER_PLUGIN_ROOT}/references/clean-code-rules.md"),),
+                f"{label} Required Packet routing",
+            )
+            self.assert_groups(
+                ordered_workflow.lower(),
+                ((timing, "read and apply", "supplied shared clean-code contract", "self-review"),),
+                f"{label} Ordered Workflow routing",
+            )
 
     def test_stage_owned_routes_use_shared_owner(self) -> None:
         route_terms = {
@@ -164,7 +180,8 @@ class LifecycleDesignGuidanceTests(unittest.TestCase):
             "plan-review": ("complete shared Module/Interface/Seam model", "all smell heuristics", "deep/local/testable"),
             "package": ("complete shared", "all smell heuristics", "before handoff"),
             "repair": ("complete shared codebase-design model", "all smell heuristics", "directly affected Interfaces"),
-            "fix-implementer": ("complete shared codebase-design model", "every smell", "directly affected Interfaces"),
+            "review-fix-implementer": ("complete shared codebase-design model", "every smell", "directly affected Interfaces"),
+            "diagnose-fix-implementer": ("complete shared codebase-design model", "every smell", "directly affected Interfaces"),
         }
         for role, relative in CONSUMERS.items():
             text = (PLUGIN_ROOT / relative).read_text(encoding="utf-8")
@@ -176,11 +193,18 @@ class LifecycleDesignGuidanceTests(unittest.TestCase):
     def test_aggregate_handoff_grammar_and_scope(self) -> None:
         grammar = "design_and_smell_review: complete; material_findings=none|fixed:<items>; justified_non_actions=none|<evidence>"
         not_applicable = "design_and_smell_review: not_applicable; reason=<concrete reason>"
-        for role in ("package", "repair", "fix-implementer"):
-            text = (PLUGIN_ROOT / CONSUMERS[role]).read_text(encoding="utf-8")
-            self.assertEqual(text.count(grammar), 1, f"{role}: aggregate grammar must occur once")
-            self.assertEqual(text.count(not_applicable), 1, f"{role}: mechanical alternative must occur once")
-            self.assertIn("unresolved_concerns", text)
+        report_sections = {
+            "package": (PLUGIN_ROOT / CONSUMERS["package"]).read_text(encoding="utf-8"),
+            "repair": (PLUGIN_ROOT / CONSUMERS["repair"]).read_text(encoding="utf-8"),
+        }
+        review_fix = (PLUGIN_ROOT / CONSUMERS["review-fix-implementer"]).read_text(encoding="utf-8")
+        report_sections["review-fix-implementer"] = review_fix.split("Return at most:", 1)[1]
+        diagnose_fix = (PLUGIN_ROOT / CONSUMERS["diagnose-fix-implementer"]).read_text(encoding="utf-8")
+        report_sections["diagnose-fix-implementer"] = diagnose_fix.split("## Bounded Report", 1)[1]
+        for role, report in report_sections.items():
+            self.assertEqual(report.count(grammar), 1, f"{role}: aggregate grammar must occur once in report")
+            self.assertEqual(report.count(not_applicable), 1, f"{role}: mechanical alternative must occur once in report")
+            self.assertIn("unresolved_concerns", report)
         scope_terms = (
             "changed behavior", "directly affected Interfaces", "Seams", "Adapters", "callers", "tests",
             "evidence", "unrelated", "per-smell evidence rows", "test-only variation",

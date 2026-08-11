@@ -27,6 +27,7 @@ The parent must supply:
 - exact writable paths/non-goals; a new regression file needs an exact parent, name rule, and purpose;
 - original repro, minimal fix strategy, regression/spec-test requirement, and expected failure reason;
 - required verification with bounded commands, outcomes, and applicable command budgets;
+- shared clean-code contract path `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/clean-code-rules.md`;
 - `tool_usage_contract_path` supplied by the parent for any nontrivial command;
 - testing authority for repro/verification when applicable: accepted workflow path/version and companions,
   routine-safe fallback provenance/bounds, task-local Testing Authorization, or explicit `not applicable`;
@@ -60,15 +61,19 @@ rotation, production config/data changes, or other incident containment. Do not 
    `BLOCKED`. Convert the repro into the approved durable test/fixture. When practical, show it fails on the
    starting implementation for the diagnosed reason, not an incidental error.
    If a durable seam is unavailable, stop and report the exact scope or planning decision needed.
-4. **Minimal fix:** apply only the smallest change that closes the confirmed mechanism. Preserve public behavior
-   outside the approved correction and avoid refactors, upgrades, broad hardening, and opportunistic repairs. Add no
+4. **Minimal fix:** Before repair, read and apply the supplied shared clean-code contract; retain it through
+   self-review. Apply only the smallest change that closes the confirmed mechanism. Preserve public behavior outside
+   the approved correction and avoid refactors, upgrades, broad hardening, and opportunistic repairs. Add no
    abstraction, flag, layer, configuration, or extension point that does not trace to the confirmed mechanism.
 5. **Verification:** rerun the regression, original repro, smallest affected existing test slice, and packet-listed
    checks. Record exact command, cwd, bound, exit/result, progress/termination, and cleanup. A timeout, flaky result,
    uncertain process termination, or uncertain cleanup is not a pass.
 6. **Self-review:** inspect the complete delta, including untracked type/mode/symlink/digest provenance. Confirm
-   paths are authorized, changes necessary, no secrets/residue remain, and regression tests the mechanism. Do not
-   stage or commit.
+   paths are authorized, changes necessary, no secrets/residue remain, and regression tests the mechanism. Apply the
+   complete shared codebase-design model—Module, Interface, Implementation, Depth, Seam, Adapter, Leverage, and
+   Locality—and every smell to changed behavior and directly affected Interfaces, Seams, Adapters, callers, tests,
+   and evidence. Fix material in-scope findings, justify harmless shapes, and exclude unrelated legacy cleanup. Do
+   not stage or commit.
 7. **Report:** return only the bounded fields below. Leave the worktree intact for parent validation and review.
 
 ## Scope Expansion and Stops
@@ -91,9 +96,13 @@ Return at most these fields:
 - `reproduction` and `regression`: commands/outcomes and failure-reason match;
 - `changes`: changed/untracked files with one-line purpose, plus write-scope validation;
 - `verification`: bounded commands/results, termination/cleanup, and not-run reasons;
-- `self_review`: scope, minimality, residual/generated/secret checks;
+- `self_review`: scope, minimality, residual/generated/secret checks, `unresolved_concerns`, and exactly one
+  `design_and_smell_review: complete; material_findings=none|fixed:<items>; justified_non_actions=none|<evidence>`;
+  only no-implementation-delta or purely mechanical evidence refresh may use
+  `design_and_smell_review: not_applicable; reason=<concrete reason>`;
 - `blocker_or_expansion`: missing/conflicting field or requested added authority;
-- `remaining_risks`: concrete unresolved risks only; and
+- `remaining_risks`: concrete unresolved risks only; any unresolved design or smell concern remains in this or the
+  existing blocker/scope-expansion surface rather than creating another review outcome; and
 - `forbidden_actions`: confirmation none occurred, or exact violation requiring immediate parent stop.
 
 The parent must compare this report and actual repository state with the original packet. Missing fields,
