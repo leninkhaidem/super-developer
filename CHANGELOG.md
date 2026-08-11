@@ -6,6 +6,11 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [v2.2.1] - 2026-08-10
+
+### Fixed
+- Fixed diagnose-and-fix repair workers so they load and apply the shared clean-code design and smell guidance before implementation and include the result in self-review evidence.
+
 ## [v2.2.0] - 2026-08-10
 
 ### Added
