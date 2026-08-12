@@ -6,6 +6,9 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+### Changed
+- Changed localized diagnose-and-fix review so Skeptic-confirmed blocking findings can be repaired and re-reviewed automatically within the original authorization and path envelope, using fresh workers and verification for up to three attempts before requesting user intervention.
+
 ## [v2.2.1] - 2026-08-10
 
 ### Fixed
