@@ -1,8 +1,9 @@
 # Review-Code Fix Implementer Contract
 
-Boundary: governs only review-owned local or pipeline repairs. A caller-owned local `repair_owner` and
-`repair_contract_path` take precedence; review-code returns that repair packet instead of using this contract.
-The review parent owns authorization, packet construction, state validation, git/delivery, and user interaction.
+Boundary: governs only review-owned local or pipeline repairs. For caller-owned local repair this contract is
+inoperative: review-code returns an untrusted proposal, not an authoritative packet, to the owner named by
+`repair_owner`/`repair_contract_path`, and has no inline-edit path. The review parent owns authorization, packet
+construction, state validation, git/delivery, and user interaction.
 
 ## Role and Authority
 

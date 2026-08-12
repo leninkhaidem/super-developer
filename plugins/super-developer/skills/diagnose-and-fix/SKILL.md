@@ -48,11 +48,12 @@ Ask for one compact, human-readable Fix Authorization:
 - exceptional side effects such as diagnostic writes, network, credentials, or service use; and
 - the routine enabling steps this repair needs: testing authority for the named bounded repro/verification
   commands, and gitignored local creation of `.superdeveloper/preferences.yml` when it is missing; and
-- `caller_repair_policy: explicit|auto_confirmed_blocking` plus its envelope. Review-code's global default remains
-  `explicit`, but a localized diagnose fix MUST propose `auto_confirmed_blocking` unless the user explicitly opts
-  out. It authorizes attempts 2–3 to repair confirmed review blockers within the same behavior goal and localized seam.
-  Directly affected callsites/tests are included only when their exact paths are parent-enumerated in each fresh worker
-  packet.
+- `caller_repair_policy: explicit|auto_confirmed_blocking`. Review-code's global default remains `explicit`, but a
+  localized diagnose fix MUST propose `auto_confirmed_blocking` unless the user explicitly opts out. It covers
+  attempts 2–3 for confirmed blockers within the same behavior goal and localized seam; and
+- exactly one scope envelope: (a) a fixed exact-path allowlist, or (b) canonical root allowlist plus the direct-effect
+  rule—only implementation, directly affected callsites, and regression tests for the same confirmed mechanism—and
+  explicit exclusions. Every attempt still receives parent-enumerated exact writable paths.
 
 One response may authorize the displayed localized route through the selected branch delivery, including the
 testing authority and the `preferences.yml` creation it names, so neither becomes a separate ask. It also covers
@@ -96,18 +97,20 @@ Contract and delivery gates separately own implementation, source/sidecar public
 9. From the approved target worktree, complete the worker-dispatch prerequisites in
    `references/orchestration-mechanics.md` in order: resolve `implement` through
    `../../references/model-preferences.md`, settle any missing `.superdeveloper/preferences.yml`, and bind the
-   complete starting state. Dispatch with the packet, `references/fix-implementer-contract.md`, and that path. Do not
-   implement substantive edits inline.
+   complete starting state. Bind and pass the exact worker contract path
+   `${SUPER_DEVELOPER_PLUGIN_ROOT}/skills/diagnose-and-fix/references/fix-implementer-contract.md`; do not implement
+   substantive edits inline.
 10. Validate the returned report and the actual worktree against `references/orchestration-mechanics.md`. Route
     expansion back to diagnosis and broad/risky work to `implementation-plan`; never expand authority implicitly.
 11. Bind mandatory post-fix `review-code` to the complete state receipt and authorized
     `caller_repair_policy` that `references/orchestration-mechanics.md` requires.
 12. Invoke `review-code` with that binding plus `repair_owner=diagnose-and-fix` and
-    `repair_contract_path=references/fix-implementer-contract.md`. Under `explicit`, wait for accepted `fix` as
-    usual. Under valid `auto_confirmed_blocking`, validate each caller-owned packet, resolve a fresh implement
-    worker, dispatch it under the original diagnose contract, verify, rebind, and rerun review without another ask.
-    Only Skeptic-confirmed blocking findings enter the automatic loop; its advisories, suggestions, and disputed
-    findings remain report-only. Decision/risk/authority stops follow `references/orchestration-mechanics.md`.
+    `repair_contract_path=${SUPER_DEVELOPER_PLUGIN_ROOT}/skills/diagnose-and-fix/references/fix-implementer-contract.md`.
+    Under `explicit`, wait for accepted `fix`; under
+    valid `auto_confirmed_blocking`, accept an eligible proposal without another ask. A proposal is never a packet or
+    authority: apply the complete validation, control construction, fresh dispatch, verification, rebinding, and
+    re-review transition in `references/orchestration-mechanics.md`. Only Skeptic-confirmed blocking findings enter
+    the automatic loop; advisories, suggestions, and disputes remain report-only.
     One confirmed mechanism gets at most three total repair attempts. Attempt 1 is the initial fix; attempts 2 and 3
     must each name a material delta in mechanism, evidence, or strategy. Never retry unchanged and never exceed three
     total attempts. On exhaustion, do step 15, then re-diagnose and hand the confirmed diagnosis to
@@ -137,9 +140,10 @@ Contract and delivery gates separately own implementation, source/sidecar public
 ## Stop if
 
 - Root cause is unconfirmed and next evidence requires unavailable input or an unapproved action.
-- Authorization or an internal path/ref/SHA/remote/worktree/snapshot binding is missing or conflicting.
+- Authorization, policy, scope envelope, or an internal path/ref/SHA/remote/worktree/snapshot binding is missing,
+  malformed, or conflicting.
 - State is dirty, drifted, or ambiguous enough to mix, hide, or overwrite user changes.
-- A localized fix expands beyond its authorized automatic envelope or crosses a broad/risky boundary; disputed or
+- A localized fix expands beyond its selected scope envelope or crosses a broad/risky boundary; disputed or
   advisory findings, design/product choices, hard-to-reverse contracts, unbounded scope, unsafe/external actions,
   risk acceptance, stale state, or missing authority are never automatic repairs.
 - Live containment/production mutation is requested: hand off only when procedure and exact approval exist;
