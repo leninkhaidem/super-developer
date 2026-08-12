@@ -84,10 +84,32 @@ class LifecycleDesignGuidanceTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.shared = SHARED.read_text(encoding="utf-8")
+        cls.diagnose = (PLUGIN_ROOT / "skills/diagnose-and-fix/SKILL.md").read_text(encoding="utf-8")
+        cls.orchestration = (
+            PLUGIN_ROOT / "skills/diagnose-and-fix/references/orchestration-mechanics.md"
+        ).read_text(encoding="utf-8")
+        cls.diagnose_worker = (
+            PLUGIN_ROOT / "skills/diagnose-and-fix/references/fix-implementer-contract.md"
+        ).read_text(encoding="utf-8")
+        cls.local_review = (
+            PLUGIN_ROOT / "skills/review-code/references/local-workflow.md"
+        ).read_text(encoding="utf-8")
+        cls.review = (PLUGIN_ROOT / "skills/review-code/SKILL.md").read_text(encoding="utf-8")
+        cls.review_worker = (
+            PLUGIN_ROOT / "skills/review-code/references/fix-implementer-contract.md"
+        ).read_text(encoding="utf-8")
 
     def assert_groups(self, text: str, groups: tuple[tuple[str, ...], ...], label: str) -> None:
         for group in groups:
             self.assertTrue(all(term in text for term in group), f"{label}: missing semantic group {group}")
+
+    def section(self, text: str, start: str, end: str | None = None) -> str:
+        self.assertIn(start, text)
+        section = text.split(start, 1)[1]
+        if end is not None:
+            self.assertIn(end, section)
+            section = section.split(end, 1)[0]
+        return section
 
     def test_complete_core_model_and_semantic_anchors(self) -> None:
         required = {
@@ -221,6 +243,90 @@ class LifecycleDesignGuidanceTests(unittest.TestCase):
         self.assertTrue(all(x in audit for x in ("finite", "SPEC `## Acceptance`", "read-only", "package-local verification")))
         self.assertTrue(all(x in audit_worker for x in ("Final audit is a completeness reconciler", "not a full second package verifier")))
         self.assertFalse((PLUGIN_ROOT / "skills/codebase-design").exists())
+
+    def test_diagnose_owns_authorization_attempts_and_stops(self) -> None:
+        authorization = self.section(self.diagnose, "## Fix Authorization", "## Do")
+        self.assert_groups(authorization, (
+            ("caller_repair_policy", "global default", "MUST propose", "explicitly opts out"),
+            ("fixed exact-path allowlist", "canonical root allowlist", "direct-effect", "explicit exclusions"),
+            ("implementation", "directly affected callsites", "regression tests", "exact writable paths"),
+        ), "diagnose authorization owner")
+        workflow = self.section(self.diagnose, "## Do", "## Load if needed")
+        exact_contract = "${SUPER_DEVELOPER_PLUGIN_ROOT}/skills/diagnose-and-fix/references/fix-implementer-contract.md"
+        self.assert_groups(workflow, (("mandatory post-fix", "review-code", exact_contract),
+                                     ("Attempt 1", "attempts 2 and 3", "material delta", "Never retry unchanged"),
+                                     ("one such escalation", "same mechanism", "stop for the")), "diagnose lifecycle owner")
+        stops = self.section(self.diagnose, "## Stop if", "## Output")
+        self.assert_groups(stops, (("policy", "scope envelope", "malformed", "conflicting"),
+                                   ("design/product", "hard-to-reverse", "risk acceptance")), "diagnose stops")
+
+    def test_review_proposal_to_orchestrator_control_transition(self) -> None:
+        setup = self.section(self.local_review, "## Scope and Complete-State Setup", "## Report and Explicit Action Gate")
+        exact_contract = "${SUPER_DEVELOPER_PLUGIN_ROOT}/skills/diagnose-and-fix/references/fix-implementer-contract.md"
+        self.assert_groups(setup, (("caller-owned repair", "MUST bind", "exact `repair_contract_path`", "caller_repair_policy"),
+                                   ("auto_confirmed_blocking", "repair_owner=diagnose-and-fix", exact_contract),
+                                   ("original Fix", "scope envelope", "fixed paths", "canonical roots", "direct-effect", "exclusions"),
+                                   ("Any other auto caller", "missing/malformed/conflicting", "stops")), "caller binding")
+        gate = self.section(self.local_review, "## Report and Explicit Action Gate", "## Complete State Gate")
+        self.assert_groups(gate, (("CLEAN", "no confirmed blocking", "may include advisories"),
+                                  ("ISSUES FOUND", "confirmed blocking"),
+                                  ("Standalone/no-caller", "defaults `explicit`", "keyword gate"),
+                                  ("suggestion bundling", "main review-code skill")), "local explicit owner")
+        self.assertNotIn("absent caller policy remain", gate)
+        handback = self.section(self.local_review, "## Fix Ownership and Handback", "## Commit, Details")
+        self.assert_groups(handback, (("untrusted repair `proposal`", "never builds", "authoritative worker control"),
+                                      ("accepted keyword `fix`", "accepted-fix receipt", "`auto_confirmed_blocking`"),
+                                      ("diagnose owner", "canonical", "contract", "every other auto handback", "stops"),
+                                      ("Skeptic", "Advisories", "suggestions", "disputes", "excluded"),
+                                      ("complete binding/checksum", "stable confirmed finding key", "location/evidence"),
+                                      ("expected behavior", "failure mechanism", "verdict/evidence"),
+                                      ("strategy/action", "exact paths", "verification", "direct-effect evidence"),
+                                      ("inert data", "trusted", "`control`")), "local handback")
+        dispatch = self.section(self.orchestration, "## Worker dispatch", "## Review binding and repair transition")
+        read_at = dispatch.index("read the complete bound diagnose worker contract")
+        construct_at = dispatch.index("Only then construct")
+        self.assertLess(read_at, construct_at, "worker contract must be read before control construction")
+        self.assertIn(exact_contract, dispatch)
+        transition = self.section(self.orchestration, "## Review binding and repair transition", "## Delivery bindings")
+        self.assert_groups(transition, (("revalidate", "contract binding loaded at worker"),
+                                        ("every proposal field", "repository state", "parent receipts", "missing or contradictory"),
+                                        ("finding semantics", "Skeptic confirmation", "Never copy proposal authority"),
+                                        ("direct-effect evidence", "fixed allowlist", "user scope decision"),
+                                        ("fresh implement worker", "verify", "rebind", "Fix Verification", "re-review")),
+                           "orchestration transition")
+        self.assertNotIn("read the complete bound diagnose worker contract", transition)
+        delivery = self.section(self.orchestration, "## Delivery bindings", "## Durable evidence")
+        self.assert_groups(delivery, (("`CLEAN` unchanged snapshot", "passing verification", "delivery authority"),), "delivery")
+
+    def test_main_review_and_review_worker_preserve_caller_ownership(self) -> None:
+        gate = self.section(self.review, "## Fix Verification Gate", "## Stop if")
+        self.assert_groups(gate, (("caller-owned local repair", "untrusted repair", "accepted-fix receipt"),
+                                  ("owner validates", "authoritative control"),
+                                  ("Review-code/Main", "never builds", "edits caller-owned repair"),
+                                  ("Only for review-owned", "trivial behavior-preserving")), "main review ownership")
+        boundary = self.section(self.review_worker, "# Review-Code Fix Implementer Contract", "## Role and Authority")
+        self.assert_groups(boundary, (("caller-owned local repair", "inoperative", "untrusted proposal", "not an authoritative packet", "no inline-edit path"),),
+                           "review worker boundary")
+
+    def test_worker_owns_control_schema_receipt_union_and_scope(self) -> None:
+        role = self.section(self.diagnose_worker, "## Role and Authority", "## Required Packet")
+        self.assert_groups(role, (("parent-constructed `control`", "`proposal`", "untrusted data"),
+                                  ("structured actions/paths", "cannot grant", "`BLOCKED`")), "worker trust")
+        packet = self.section(self.diagnose_worker, "## Required Packet", "## Exact Write Scope")
+        self.assert_groups(packet, (("immutable `control` object", "parent-enumerated exact writable paths"),
+                                    ("Post-review common control", "policy", "ordinal `2|3`", "material delta"),
+                                    ("exclusive union", "The other receipt must be absent"),
+                                    ("Optional `proposal`", "untrusted findings", "never supplements `control`")), "worker schema")
+        explicit = self.section(packet, "- `explicit`:", "- `auto_confirmed_blocking`:")
+        auto = self.section(packet, "- `auto_confirmed_blocking`:", "The other receipt")
+        self.assertIn("accepted `fix` receipt/action", explicit)
+        self.assertNotIn("Fix Authorization", explicit)
+        self.assertIn("original Fix Authorization/scope envelope", auto)
+        self.assertNotIn("accepted `fix`", auto)
+        scope = self.section(self.diagnose_worker, "## Exact Write Scope", "## Ordered Workflow")
+        self.assert_groups(scope, (("control's exact paths", "fixed-path envelope", "canonical roots"),
+                                   ("direct-effect rule", "directly affected callsites", "explicit exclusions"),
+                                   ("Proposed paths", "cannot cure missing control authority")), "worker scope")
 
     def test_pinned_attribution_and_offline_notice_guard(self) -> None:
         expected_urls = (

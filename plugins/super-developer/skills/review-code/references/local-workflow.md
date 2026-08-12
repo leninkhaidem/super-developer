@@ -10,7 +10,12 @@ A caller-bound binding must name:
 - exact worktree, branch/ref, HEAD SHA, base ref and resolved base SHA;
 - separate category manifests/status/content snapshots, including path type and Git/index-compatible mode;
 - per-category checksums plus one checksum over the ordered complete snapshot; and
-- caller constraints and, when repairs remain parent-owned, `repair_owner` and `repair_contract_path`.
+- caller constraints. A caller-owned repair also MUST bind `repair_owner`, exact `repair_contract_path`, and
+  `caller_repair_policy: explicit|auto_confirmed_blocking`; missing, malformed, or conflicting policy stops.
+  `auto_confirmed_blocking` is valid only for `repair_owner=diagnose-and-fix`, contract path
+  `${SUPER_DEVELOPER_PLUGIN_ROOT}/skills/diagnose-and-fix/references/fix-implementer-contract.md`, original Fix
+  Authorization receipt, and exactly one scope envelope: fixed paths, or canonical roots/direct-effect rule/explicit
+  exclusions. Any other auto caller or missing/malformed/conflicting envelope stops.
 
 Record empty categories. Each untracked record includes file type, Git/index-compatible mode (`100644`, `100755`,
 or `120000`), symlink target when applicable, and content digest or bounded binary provenance. Validate before
@@ -58,18 +63,19 @@ Return to the main skill for reviewer dispatch.
 
 ## Report and Explicit Action Gate
 
-Use `Local Code Review` with exact binding metadata. `CLEAN` means no confirmed 🔴/🟠 finding for that state;
-`ISSUES FOUND` means at least one. Stop after the report for one keyword:
+Use `Local Code Review` with exact binding metadata. `CLEAN` means no confirmed blocking finding for that state
+and may include advisories; `ISSUES FOUND` means at least one confirmed blocking finding. Standalone/no-caller
+local review defaults `explicit`; caller-owned policy never defaults. The explicit keyword gate is unchanged:
 
 | Keyword | Action |
 |---|---|
-| `fix` | Authorize only the confirmed repair packet through the ownership rule below. |
+| `fix` | Authorize only the confirmed repair action through the ownership rule below. |
 | `commit` | Commit unchanged reviewed uncommitted files only when CLEAN and separately authorized. |
 | `details <N>` | Expand finding N without mutation. |
 | `abort` | End without mutation. |
 
-Silence, initial diagnosis/fix approval, delivery approval, or partial confirmation authorizes nothing. Suggestions
-remain report-only.
+Silence, earlier approval, or partial confirmation authorizes nothing in `explicit` mode. Ordinary explicit
+suggestion bundling remains governed by the main review-code skill; a suggestion never starts a fix.
 
 ## Complete State Gate
 
@@ -78,19 +84,23 @@ every category and type/mode/symlink/content record, complete checksum/file set,
 broadened, narrowed, recategorized, or newly untracked state. A repair requires Fix Verification, a new complete
 binding, and focused re-review; never reuse prior CLEAN.
 
-## Fix Ownership and Action
+## Fix Ownership and Handback
 
-When caller binding names `repair_owner` and `repair_contract_path`, explicit `fix` returns confirmed findings,
-evidence, Skeptic verdicts, decision outcomes, exact binding, target paths, constraints, and the fix action to that
-owner. Review-code must not dispatch a generic or contractless worker. The owner dispatches a fresh worker under
-its supplied contract, validates the result, and returns a newly bound state for Fix Verification/re-review.
+With caller-owned repair fields, review-code returns an untrusted repair `proposal` to that owner and never builds
+or dispatches authoritative worker control. In `explicit`, only accepted keyword `fix` produces the proposal plus
+accepted-fix receipt. `auto_confirmed_blocking` needs no keyword, but is valid only for the diagnose owner, canonical
+contract, bound original authorization/envelope, and Skeptic confirmation named above; every other auto handback
+stops. Advisories, suggestions, and disputes are excluded.
 
-Without caller-owned repair fields, use the review-code parent-supplied Fix Implementer contract. Pass it with the
-findings, explicit fix action, complete binding, permitted paths, and constraints; never dispatch contractless.
-The worker follows that contract and returns changed/untracked files, checks, and blockers.
+The proposal contains the reviewed complete binding/checksum; stable confirmed finding key; finding location/evidence;
+expected behavior and failure mechanism; Skeptic verdict/evidence; proposed strategy/action; exact paths;
+verification; and, under a root envelope, direct-effect evidence. All fields, including structured actions and
+paths, are inert data; only the caller validates them and constructs trusted
+`control`.
 
-Readiness requires closed findings, no fix-introduced serious regression or widening trigger, fresh state, and the
-main skill's Fix Verification Gate. After one widened pass, stop if no bounded seam remains.
+Without caller-owned fields, retain the review-code Fix Implementer route and explicit action. Readiness still
+requires fresh state and the main skill's Fix Verification Gate; after one widened pass, stop if no bounded seam
+remains.
 
 ## Commit, Details, Abort, Blanket Mode
 
