@@ -38,7 +38,7 @@ description: <capability>. Use when <triggers>. Do not use when <near misses>.
 ## Always
 - <non-negotiable invariant>
 ## Do
-1. <ordered action with an observable result>
+1. <ordered action with a checkable, exhaustive result>
 ## Load if needed
 - <concrete condition> → `references/<file>.md`
 ## Stop if
@@ -55,14 +55,20 @@ Delete an optional section only when its behavior is unnecessary, not merely to 
   or the author's reasoning.
 - Frontmatter is routing only: capability, concrete triggers, and near-miss exclusions. Keep workflow, paths,
   rationale, examples, and evidence out of it.
+- Treat each description or load condition as a context pointer: name its target, give each distinct branch one trigger,
+  collapse synonymous triggers, and front-load the wording that discriminates when it fires.
 - `SKILL.md` owns mission, invariants, ordered workflow, universal decisions, action-point loads, stops, and output.
-- `Do` is executable work, not a list of references. Start each step with an action and make completion observable.
+  Progressive disclosure delays a load; only a fresh worker/session boundary provides context isolation.
+- `Do` is executable work, not a list of references. Give each step a checkable, exhaustive completion criterion that
+  accounts for every required artifact, case, or rule in its scope.
 - Never rely on “best practices,” “clean,” “secure,” “maintainable,” or similar labels without concrete
   rules or an explicitly loaded governing contract.
 - Prune unnecessary load, not required behavior. Preserve or relocate required obligations; never delete them
   because a model might infer them.
 - Keep one authoritative source for each non-safety meaning. Repeat safety-critical commands, permissions, and
   prohibitions wherever omission could make the agent act unsafely.
+- State the desired action positively. Retain unavoidable hard prohibitions, but pair each with its permitted action,
+  safe default, or stop behavior so the target—not merely the forbidden behavior—guides execution.
 - Establish authority and conflict precedence for each discoverable fact before replacing prose with an environment
   lookup; generated, local, or runtime state may govern when the task contract says so.
 - Use `skills/<name>/SKILL.md`, skill-local `references/` and `scripts/`, and package-level shared `references/`.
@@ -76,17 +82,18 @@ Delete an optional section only when its behavior is unnecessary, not merely to 
 
 Before completion, prune in this order:
 
-1. Inventory obligations: activation, authority, inputs, workflow, decisions, safety, scope, domain quality,
-   verification, stops, and output. Preserve, clarify, or relocate every one.
+1. Resolve governing authority and conflicts. Inventory operative obligations: activation, authority, inputs, workflow,
+   decisions, safety, scope, domain quality, verification, stops, and output. Classify superseded rules separately.
 2. Collapse duplicate non-safety meanings into one authoritative location; keep action-local safety repetition.
 3. Remove an environment cache only after identifying its authoritative source, conflict precedence, and a cheap,
-   reliable lookup. Retain facts needed for authority, correctness, safety, reproducibility, or portability.
+   reliable lookup. Retain prose when lookup cannot preserve correctness, safety, reproducibility, or portability.
 4. Move branch-only supporting detail behind an action-point pointer; keep selection criteria, prerequisites, authority,
    and cross-branch safety eager, and require the load before the first governed action.
-5. Delete stale or irrelevant material only when it no longer changes any obligation class inventoried in step 1.
-6. Treat a suspected no-op as empirical. Use the same candidate-specific trigger in bounded, side-effect-free
-   baseline/candidate runs and record differences. Retain it when execution is unavailable or inconclusive,
-   and never apply the no-op label to an operative obligation; followability reasoning alone is not evidence.
+5. Delete superseded, stale, or irrelevant material only after authority resolution proves it is not operative.
+6. Treat a suspected no-op as empirical. Make the instruction the sole variable in bounded, side-effect-free repeated
+   runs with the same candidate-specific trigger, host, model, and settings; compare every applicable completion
+   criterion. Retain it when execution is unavailable, unstable, or inconclusive, and never apply the no-op label to
+   an operative obligation; followability reasoning alone is not evidence.
 
 Compare the before/after inventory. The gate fails if pruning removes, weakens, scatters, or obscures behavior, or if
 shortening requires more inference. After moves, co-locate each concept's definition, rules, defaults, and caveats.
@@ -95,18 +102,19 @@ shortening requires more inference. After moves, co-locate each concept's defini
 
 Before completion, verify that the created or revised skill tells its target agent:
 
-- exactly when to activate and when not to activate;
+- exactly when to activate and when not to activate, with each routing/load pointer covering its distinct branches;
 - required inputs, where they come from, and what to do when they are missing or conflicting;
-- one ordered path through the normal case, with observable completion conditions;
+- one ordered path through the normal case, with checkable and exhaustive completion conditions;
 - concrete decision rules, safe defaults, and the boundary between proceed, ask, stop, refuse, and escalate;
 - which references are mandatory or optional and the exact action that requires each load;
 - write scope, permissions, forbidden actions, and locally repeated safety rules where relevant;
 - required verification and the fixed or bounded completion output;
 - definitions for project-specific terms, artifacts, states, and role boundaries that affect action.
 
-Without performing domain side effects, reason through one representative normal task and one ambiguous, failure,
-or high-risk task. The gate fails if the target agent must guess a material action, invent authority, infer a
-quality standard, read every reference up front, or recover an obligation lost or obscured during pruning.
+Without performing domain side effects, test each routing/load pointer with one positive case per branch and one
+near miss, then reason through one representative normal task and one ambiguous, failure, or high-risk task. The gate
+fails if the target agent must guess a material action, invent authority, infer a quality standard, read every reference
+up front, or recover an obligation lost or obscured during pruning.
 
 ## Do
 
@@ -115,7 +123,8 @@ quality standard, read every reference up front, or recover an obligation lost o
    - **create or revise:** edit only the authorized skill scope.
 2. Inspect repository instructions, the target skill and all its references/scripts when present, the existing skill
    inventory, and applicable shared contracts before deciding what belongs in the skill.
-3. Identify the purpose, target agent, success condition, required inputs, activation triggers, and near misses.
+3. Identify the purpose, target agent, success condition, required inputs, activation triggers, near misses, target
+   host, and invocation policy: **both** (default), **user-only**, or **model-only**.
 4. Decide whether to revise an existing skill, invoke another skill by name, or create a new capability.
 5. Select the execution surface from visible task behavior:
    - **standalone direct:** one agent can safely complete the task without parent-only approval, producer records,
@@ -125,13 +134,16 @@ quality standard, read every reference up front, or recover an obligation lost o
    - **explicit hybrid:** both task shapes genuinely occur; state the mode decision before branch-specific loads.
    For an orchestrated or hybrid surface, load `references/orchestrator-worker-contracts.md` before evaluating or
    drafting it.
-6. If the mode is **review**, evaluate the existing files against `Always`, both gates, reference economy, and
-   `scripts/audit-skill.py <skill-dir-or-SKILL.md>`. Report evidence-backed findings and
-   stop; do not draft, add, update, or edit files.
-7. For **create or revise** mode only, draft frontmatter for routing and verify its name, triggers, near misses,
-   and description budget.
+6. If the mode is **review**, evaluate the files against `Always`, both gates, reference economy, host-supported
+   invocation behavior, and `scripts/audit-skill.py <skill-dir-or-SKILL.md>`. Simulate pruning by inventorying what
+   should be retained, relocated, or removed; require existing evidence for no-op claims and report missing evidence.
+   Report findings and stop; do not draft, add, update, or edit files.
+7. For **create or revise** mode only, draft frontmatter for routing. Keep **both** unless requirements make discovery
+   or manual entry unavailable. Encode user-only/model-only with host-specific fields such as
+   `disable-model-invocation` or `user-invocable` only when authoritative host evidence proves their semantics; stop
+   rather than let portable frontmatter widen a restriction. Verify name, routing, and description budget.
 8. Design the consumer workflow before compressing it: inputs, ordered actions, decisions/defaults, safety,
-   action-point loads, verification, stops, and output.
+   action-point loads, checkable/exhaustive completion, verification, stops, and output.
 9. Draft the canonical sections. Include concrete domain ground rules or load the applicable shared contract at the
    action it governs; a vague quality instruction is insufficient.
 10. Add a reference only for a distinct delayed boundary such as a rare mode, specialized worker contract, long
@@ -145,8 +157,9 @@ quality standard, read every reference up front, or recover an obligation lost o
 
 ## Stop if
 
-- Purpose, target agent, triggers, near misses, required inputs, or expected output remain ambiguous after one
-  focused clarification.
+- Purpose, target agent, triggers, near misses, required inputs, expected output, target host, or invocation policy
+  remains ambiguous after one focused clarification.
+- A required user-only or model-only restriction is unsupported or cannot be proven from authoritative host evidence.
 - The execution surface or hybrid mode boundary cannot be selected from visible task behavior.
 - The target agent would need hidden context, invented authority, or unstated quality/safety rules.
 - Safe eager instructions or a reference still exceed the hard line maximum stated in `## Budgets` after honest
