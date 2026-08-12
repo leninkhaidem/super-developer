@@ -6,8 +6,14 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [v2.2.2] - 2026-08-12
+
+### Added
+- Added a lossless pruning gate for skill authoring that resolves authority, preserves operative obligations, removes duplicate or stale guidance safely, and requires controlled evidence before treating instructions as no-ops.
+
 ### Changed
 - Changed localized diagnose-and-fix review so Skeptic-confirmed blocking findings can be repaired and re-reviewed automatically within the original authorization and path envelope, using fresh workers and verification for up to three attempts before requesting user intervention.
+- Strengthened skill-authoring guidance with branch-aware routing, checkable and exhaustive completion criteria, positive safety targets, explicit context-isolation boundaries, and fail-closed host-specific invocation rules.
 
 ## [v2.2.1] - 2026-08-10
 
