@@ -62,7 +62,7 @@ A worker-contract reference usually contains:
 - boundary, role, authority source, and forbidden parent/worker actions;
 - required packet fields and fail-closed `BLOCKED` behavior for missing or conflicting authority;
 - mandatory packet/contract read before action, followed by action-point reads only where necessary;
-- ordered worker actions with decisions, defaults, and observable completion;
+- ordered worker actions with decisions, defaults, and checkable, exhaustive completion criteria;
 - write/edit scope and forbidden side effects;
 - validation expectations and failure routing;
 - bounded completion report fields.
