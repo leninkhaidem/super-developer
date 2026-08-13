@@ -135,9 +135,12 @@ up front, or recover an obligation lost or obscured during pruning.
    For an orchestrated or hybrid surface, load `references/orchestrator-worker-contracts.md` before evaluating or
    drafting it.
 6. If the mode is **review**, evaluate the files against `Always`, both gates, reference economy, host-supported
-   invocation behavior, and `scripts/audit-skill.py <skill-dir-or-SKILL.md>`. Simulate pruning by inventorying what
-   should be retained, relocated, or removed; require existing evidence for no-op claims and report missing evidence.
-   Report findings and stop; do not draft, add, update, or edit files.
+   invocation behavior, and
+   `${SUPER_DEVELOPER_PLUGIN_ROOT}/skills/skill-authoring/scripts/audit-skill.py <skill-dir-or-SKILL.md>`.
+   Never resolve that executable from the current directory or the target skill; do not move the shipped
+   [scripts/audit-skill.py](scripts/audit-skill.py). Simulate pruning by inventorying
+   what should be retained, relocated, or removed; require existing evidence for no-op claims and report missing
+   evidence. Report findings and stop; do not draft, add, update, or edit files.
 7. For **create or revise** mode only, draft frontmatter for routing. Keep **both** unless requirements make discovery
    or manual entry unavailable. Encode user-only/model-only with host-specific fields such as
    `disable-model-invocation` or `user-invocable` only when authoritative host evidence proves their semantics; stop
@@ -152,8 +155,10 @@ up front, or recover an obligation lost or obscured during pruning.
 11. Add or update a script when a repeatable check can be deterministic; do not encode semantic judgment as regex.
 12. Run the Pruning Gate; record deletions, relocations, no-op evidence, and intentional exceptions. Define jargon
     and split dense multi-decision steps.
-13. Run the Consumer Followability Gate, then run `scripts/audit-skill.py <skill-dir-or-SKILL.md>` and resolve every
-    error. Report target warnings and justified exceptions rather than hiding them.
+13. Run the Consumer Followability Gate, then run
+    `${SUPER_DEVELOPER_PLUGIN_ROOT}/skills/skill-authoring/scripts/audit-skill.py <skill-dir-or-SKILL.md>`
+    and resolve every error. Never resolve that executable from the current directory or the target skill.
+    Report target warnings and justified exceptions rather than hiding them.
 
 ## Stop if
 

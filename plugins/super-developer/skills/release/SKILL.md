@@ -37,8 +37,13 @@ with exact state, side effects, artifact-sidecar handling, and cleanup candidate
   integration ref/worktree from the exact fresh remote-base SHA; never ask the user to detach the root.
 - Clean up only exact feature branches, remote refs, artifact sidecar refs/worktrees, and worktrees named in the approved contract.
 - Sidecar cleanup is default when eligible after final base/target push sync; never merge `artifacts/<feature>` into the base branch.
-- After a base push, verify the intended commit, `origin/<base>`, and fresh remote base match. Require local
-  base equality only when it was the integration ref; a root-locked local base stays unchanged and may lag.
+- After the successful base push and `origin/<base>` == RESULT_SHA verification, update the canonical local
+  base checkout. Resolve `$PROJECT_ROOT`; `git fetch --prune --tags origin` from there; if that checkout is
+  clean, attached to `<base>`, and local HEAD is an ancestor of `origin/<base>`/`RESULT_SHA`, fast-forward
+  with `git merge --ff-only` to that result; verify root HEAD, local `<base>`, `origin/<base>`, and fresh
+  server SHA all equal RESULT_SHA. If the root is dirty, detached, not on `<base>`, or the update is not a
+  fast-forward: do not switch, reset, stash, clean, or force; report that the canonical checkout was not
+  updated and name the manual follow-up. Temporary lag is a stop/report condition, not a successful end state.
 - If partially complete, resume only from observed state that matches the intended prepare/publish commit,
   tag/release state when publishing, remote state, and notes.
 
@@ -61,8 +66,8 @@ with exact state, side effects, artifact-sidecar handling, and cleanup candidate
 4. Load `references/release-git-safety.md` before relying on remote refs, existing tags/releases, feature merge, publish, sidecar state, or cleanup.
 5. Stop before contract approval if local base is ahead/diverged from the fresh remote base, publish version sources disagree,
    a worktree has unrelated changes, the push target is ambiguous, remote state cannot be verified, or an existing
-   tag/release conflicts. A clean local base omitted from temporary integration may lag only when it is an
-   ancestor of the remote base.
+   tag/release conflicts. A clean local base omitted from temporary integration may be an ancestor of the remote
+   base; that lock is not a successful post-release end state.
 6. Load `references/release-contract.md` and present the compact Release Contract, including
    changelog format choices and default delete/remove cleanup candidates when needed.
    Ask once unless the current turn already approved the full contract.
@@ -74,7 +79,7 @@ with exact state, side effects, artifact-sidecar handling, and cleanup candidate
    - commit contracted prep/integration changes, using `release: vX.Y.Z` only for publish prep unless repo convention differs;
    - revalidate clean state, final diff, and publish-only tag/release absence or resume match;
    - push by the exact result-SHA/target-ref lease procedure, then verify result, `origin/<base>`, and fresh
-     remote base match; preserve a root-locked local base unchanged and prove it is an ancestor of result;
+     remote base match; apply the Always post-push fast-forward of the canonical local base checkout;
    - for `prepare-only`, push the base branch, run post-push sync verification, and perform contracted default cleanup for exact
      local/remote feature and sidecar refs/worktrees after verification;
    - for `publish`, push the base branch, run post-push sync verification, create/push annotated tag,
@@ -109,7 +114,7 @@ Return:
 - release mode and version action;
 - published URL or prepared integrated state;
 - base branch and commit SHA;
-- post-push result/remote sync and root-locked local-base status;
+- post-push result/remote sync and canonical-checkout fast-forward status, or the named follow-up if not updated;
 - tag/GitHub release status;
 - cleanup performed, blocked, or explicitly kept, including sidecar artifact cleanup;
 - completed side effects and remaining manual follow-up.

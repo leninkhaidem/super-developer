@@ -31,7 +31,7 @@ Mode: publish | prepare-only
 
 Base branch:
 - <base-branch>; target `refs/heads/<base>`; fresh remote-base SHA <full SHA>
-- Local base/root lock: <equal | ancestor left unchanged and allowed to lag | no local ref>
+- Local base/root lock: <on-base and eligible for post-push FF | locked/dirty/detached/not-on-base | no local ref>
 
 Feature branch:
 - <feature-branch or none>
@@ -65,8 +65,9 @@ Merge/release strategy:
 Remote actions:
 - Push exact result SHA to `refs/heads/<base>` after remote-SHA equality and ancestry proof, using the
   qualified exact lease bound to the fresh pre-target SHA
-- Post-push: verify result, `origin/<base>`, and fresh remote target match; require local-base equality only
-  for an existing base checkout, otherwise prove the unchanged root-locked local base is an ancestor of result
+- Post-push: verify result, `origin/<base>`, and fresh remote target match; then fetch and fast-forward the
+  canonical local base checkout when it is clean, attached to `<base>`, and an ancestor of RESULT_SHA;
+  otherwise report that it was not updated and name the manual follow-up. Temporary lag is not success.
 - Push tag vX.Y.Z to origin, if publishing
 - Create GitHub release for vX.Y.Z, if publishing
 - Delete remote feature branch: <origin/<feature-branch> after pushed-base inclusion verification, or keep because ... / no candidate found>

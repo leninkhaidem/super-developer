@@ -17,8 +17,11 @@ a fresh Fix Implementer edits under the passed contract.
   approval; production edits and side effects are not.
 - Confirm root cause only when evidence proves the mechanism. Otherwise return `blocked` or `not reproduced` with
   the exact artifact, access, command, or risk acceptance needed; do not substitute “likely.”
-- Keep root checkout files/index user-owned: never switch it, edit it, merge there, or use it for delivery.
-  Orchestration may run from `$PROJECT_ROOT` to manage approved non-root worktrees/refs through `worktree`.
+- Keep root checkout files/index user-owned: never switch it, merge there, or use it as the repair or
+  delivery checkout. The only root write in this workflow is authorized gitignored creation of
+  `$PROJECT_ROOT/.superdeveloper/preferences.yml` when missing; it grants no tracked source or index
+  change. Orchestration may run from `$PROJECT_ROOT` to manage approved non-root worktrees/refs through
+  `worktree`.
 - Keep repairs minimal. Classify a repair by cost, not by category. A repair is `localized` only when both (i) the
   mechanism is confirmed by evidence, ideally a deterministic failing test, and (ii) the change is bounded and
   cheaply reversible. Check (i) and (ii) separately and require both; neither one alone is enough. When both hold,
@@ -47,7 +50,7 @@ Ask for one compact, human-readable Fix Authorization:
 - delivery: `local only`, `commit reviewed fix`, or `commit and push reviewed branch`;
 - exceptional side effects such as diagnostic writes, network, credentials, or service use; and
 - the routine enabling steps this repair needs: testing authority for the named bounded repro/verification
-  commands, and gitignored local creation of `.superdeveloper/preferences.yml` when it is missing; and
+  commands, and gitignored creation of `$PROJECT_ROOT/.superdeveloper/preferences.yml` when missing; and
 - `caller_repair_policy: explicit|auto_confirmed_blocking`. Review-code's global default remains `explicit`, but a
   localized diagnose fix MUST propose `auto_confirmed_blocking` unless the user explicitly opts out. It covers
   attempts 2–3 for confirmed blockers within the same behavior goal and localized seam; and
@@ -96,8 +99,9 @@ Contract and delivery gates separately own implementation, source/sidecar public
    use root as the repair or delivery checkout.
 9. From the approved target worktree, complete the worker-dispatch prerequisites in
    `references/orchestration-mechanics.md` in order: resolve `implement` through
-   `../../references/model-preferences.md`, settle any missing `.superdeveloper/preferences.yml`, and bind the
-   complete starting state. Bind and pass the exact worker contract path
+   `../../references/model-preferences.md`, settle any missing
+   `$PROJECT_ROOT/.superdeveloper/preferences.yml` at the canonical primary root, and bind the complete
+   starting state. Bind and pass the exact worker contract path
    `${SUPER_DEVELOPER_PLUGIN_ROOT}/skills/diagnose-and-fix/references/fix-implementer-contract.md`; do not implement
    substantive edits inline.
 10. Validate the returned report and the actual worktree against `references/orchestration-mechanics.md`. Route

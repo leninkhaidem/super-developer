@@ -85,10 +85,31 @@ test "$(git rev-parse origin/<base>)" = "$RESULT_SHA"
 test "$(remote_sha)" = "$RESULT_SHA"
 ```
 
-Ancestry makes this lease push fast-forward only; it does not authorize history rewriting. For an existing base
-checkout, require its local base ref to equal `RESULT_SHA`. For temporary integration, keep the root/local base
-unchanged and prove its bound SHA is an ancestor of `RESULT_SHA`; report the intentional local lag rather than
-asking for detachment or forcing local/remote equality. Never force-reset or silently repair the local base.
+Ancestry makes this lease push fast-forward only; it does not authorize history rewriting. For an existing
+non-root base checkout, require its local base ref to equal `RESULT_SHA`. After that verification, update the
+canonical checkout already on `<base>`:
+
+```bash
+set -euo pipefail
+# PROJECT_ROOT already resolved via the worktree primary-root procedure
+TARGET_REF=refs/heads/<base>
+remote_sha() { git ls-remote --heads origin | awk -v r="$TARGET_REF" '$2 == r {print $1}'; }
+git -C "$PROJECT_ROOT" fetch --prune --tags origin
+ROOT_BRANCH=$(git -C "$PROJECT_ROOT" symbolic-ref --quiet --short HEAD || :)
+test -z "$(git -C "$PROJECT_ROOT" status --porcelain)"
+test "$ROOT_BRANCH" = "<base>"
+git -C "$PROJECT_ROOT" merge-base --is-ancestor HEAD "$RESULT_SHA"
+git -C "$PROJECT_ROOT" merge --ff-only "$RESULT_SHA"
+test "$(git -C "$PROJECT_ROOT" rev-parse HEAD)" = "$RESULT_SHA"
+test "$(git -C "$PROJECT_ROOT" rev-parse refs/heads/<base>)" = "$RESULT_SHA"
+test "$(git -C "$PROJECT_ROOT" rev-parse origin/<base>)" = "$RESULT_SHA"
+test "$(remote_sha)" = "$RESULT_SHA"
+```
+
+If the root is dirty, detached, not on `<base>`, or the update is not a fast-forward: do not switch, reset,
+stash, clean, or force; report that the canonical checkout was not updated and name the manual follow-up.
+Temporary lag is a stop/report condition, not a successful end state. Never force-reset or silently repair
+the local base.
 
 For `prepare-only`, verify the target then run contracted cleanup; never create/update tags or GitHub releases.
 For `publish`, verify the target, create/push the annotated tag, create the GitHub release, then clean up. Retain a
