@@ -57,8 +57,8 @@ Release checks to run:
 
 Merge/release strategy:
 - Merge <feature-branch> into <base-branch> with --no-ff, unless already merged
-- Worktree: <existing exact non-root base checkout | named temporary integration ref/path
-  created from the fresh remote-base SHA because the root checkout occupies `<base>`>
+- Worktree: <named temporary integration ref/path created from the fresh remote-base SHA;
+  never a second checkout of `<base>`>
 - Commit: <prepare-only integration/changelog commit message or publish release commit `release: vX.Y.Z`>
 - Annotated tag: vX.Y.Z if publishing; none in prepare-only
 

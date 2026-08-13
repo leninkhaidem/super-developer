@@ -38,9 +38,9 @@ with exact state, side effects, artifact-sidecar handling, and cleanup candidate
 - Clean up only exact feature branches, remote refs, artifact sidecar refs/worktrees, and worktrees named in the approved contract.
 - Sidecar cleanup is default when eligible after final base/target push sync; never merge `artifacts/<feature>` into the base branch.
 - After a successful base push and `origin/<base>` == RESULT_SHA, the release is not complete until the
-  canonical local base checkout is at RESULT_SHA. Resolve `$PROJECT_ROOT` with the `worktree` primary-root
-  procedure (`git-common-dir` + first porcelain worktree); `--show-toplevel`, cwd, and a linked worktree
-  must not anchor it. Apply the post-push fast-forward in `references/release-git-safety.md`.
+  canonical local base checkout is at RESULT_SHA. Resolve `$PROJECT_ROOT` and apply the post-push
+  fast-forward only as specified in `references/release-git-safety.md`. `--show-toplevel`, cwd, and a
+  linked worktree must not anchor it.
 - If that checkout is dirty, detached, not on `<base>`, or the update is not a fast-forward: do not switch,
   reset, stash, clean, or force. Stop before tag, GitHub release, and cleanup. Report the published result
   and the exact manual follow-up. Temporary lag is not a successful end state.
@@ -72,7 +72,7 @@ with exact state, side effects, artifact-sidecar handling, and cleanup candidate
    changelog format choices and default delete/remove cleanup candidates when needed.
    Ask once unless the current turn already approved the full contract.
 7. After approval, execute only contracted actions:
-   - merge with `--no-ff` from an exact non-root base checkout or the named temporary integration worktree;
+   - merge with `--no-ff` from the named temporary integration worktree; never occupy `<base>` there;
    - load `references/changelog-and-release-notes.md` when changelog or GitHub release notes are updated/drafted;
    - update contracted changelog/docs/version files, with `prepare-only` changelog entries under `Unreleased` and no version-file bump;
    - run contracted validation checks;

@@ -42,9 +42,9 @@ Stop on any mismatch. Do not move tags, overwrite releases, force-push, or force
 ## Merge Worktree
 
 Never switch or detach the user-owned root worktree. Refresh `origin`, bind the exact remote-base SHA, and require
-any local base ref to equal or be an ancestor of it. Use a clean non-root checkout already on that exact base when
-available. Otherwise create a named temporary integration branch/worktree from the remote-base SHA—not from the
-root checkout that occupies `<base>`:
+any local base ref to equal or be an ancestor of it. Always create a named temporary integration branch/worktree
+from the remote-base SHA. Do not use an existing checkout of `<base>`: a second occupant would keep the canonical
+root off `<base>` and block the post-push fast-forward. Stop if another worktree already occupies `<base>`:
 
 ```bash
 set -euo pipefail
@@ -86,12 +86,29 @@ test "$(git rev-parse origin/<base>)" = "$RESULT_SHA"
 test "$(remote_sha)" = "$RESULT_SHA"
 ```
 
-Ancestry makes this lease push fast-forward only; it does not authorize history rewriting. For an existing
-non-root base checkout, require its local base ref to equal `RESULT_SHA`. After that verification, update the
-canonical checkout already on `<base>`.
+Ancestry makes this lease push fast-forward only; it does not authorize history rewriting. After that
+verification, update the canonical checkout already on `<base>`. Resolve `$PROJECT_ROOT` with this procedure;
+`--show-toplevel`, cwd, and a linked or integration worktree must not anchor it:
 
-Resolve `$PROJECT_ROOT` with the `worktree` primary-root procedure (`git-common-dir` + first porcelain
-worktree record). `--show-toplevel`, cwd, and a linked or integration worktree must not anchor it. Then:
+```bash
+set -euo pipefail
+COMMON_GIT_DIR="$(git rev-parse --path-format=absolute --git-common-dir)"
+COMMON_GIT_DIR="$(cd "$COMMON_GIT_DIR" && pwd -P)"
+PROJECT_ROOT=""
+while IFS= read -r -d '' FIELD; do
+  case "$FIELD" in
+    "worktree "*) PROJECT_ROOT="${FIELD#worktree }"; break ;;
+  esac
+done < <(git --git-dir="$COMMON_GIT_DIR" worktree list --porcelain -z)
+test -n "$PROJECT_ROOT"
+PROJECT_ROOT="$(cd "$PROJECT_ROOT" && pwd -P)"
+PRIMARY_GIT_DIR="$(git -C "$PROJECT_ROOT" rev-parse --path-format=absolute --git-dir)"
+PRIMARY_GIT_DIR="$(cd "$PRIMARY_GIT_DIR" && pwd -P)"
+test "$PRIMARY_GIT_DIR" = "$COMMON_GIT_DIR"
+export PROJECT_ROOT
+```
+
+Stop on any failure. Then:
 
 ```bash
 set -euo pipefail
