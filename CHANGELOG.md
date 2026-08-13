@@ -6,6 +6,13 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [v2.2.3] - 2026-08-13
+
+### Fixed
+- Fixed Super Developer so developer preferences are always read and created at the canonical primary Git checkout, even when the agent is in a linked worktree.
+- Fixed skill-authoring so it runs its shipped audit helper from the plugin path instead of a current-directory or target-skill lookup.
+- Fixed release so a successful base push fast-forwards the canonical local main checkout when that checkout is clean and already on the base branch, instead of leaving it stale.
+
 ## [v2.2.2] - 2026-08-12
 
 ### Added
