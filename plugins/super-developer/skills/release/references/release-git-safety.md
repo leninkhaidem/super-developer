@@ -1,6 +1,7 @@
 # Release Git Safety
 
-Owns release-specific remote freshness, resume validation, merge worktree, tag/release checks, sidecar state, and cleanup safety.
+Owns release-specific remote freshness, resume validation, merge worktree, post-push canonical
+fast-forward, tag/release checks, sidecar state, and cleanup safety.
 
 ## Remote Freshness
 
@@ -43,7 +44,7 @@ Stop on any mismatch. Do not move tags, overwrite releases, force-push, or force
 Never switch or detach the user-owned root worktree. Refresh `origin`, bind the exact remote-base SHA, and require
 any local base ref to equal or be an ancestor of it. Use a clean non-root checkout already on that exact base when
 available. Otherwise create a named temporary integration branch/worktree from the remote-base SHA—not from the
-locked local branch:
+root checkout that occupies `<base>`:
 
 ```bash
 set -euo pipefail
@@ -87,11 +88,13 @@ test "$(remote_sha)" = "$RESULT_SHA"
 
 Ancestry makes this lease push fast-forward only; it does not authorize history rewriting. For an existing
 non-root base checkout, require its local base ref to equal `RESULT_SHA`. After that verification, update the
-canonical checkout already on `<base>`:
+canonical checkout already on `<base>`.
+
+Resolve `$PROJECT_ROOT` with the `worktree` primary-root procedure (`git-common-dir` + first porcelain
+worktree record). `--show-toplevel`, cwd, and a linked or integration worktree must not anchor it. Then:
 
 ```bash
 set -euo pipefail
-# PROJECT_ROOT already resolved via the worktree primary-root procedure
 TARGET_REF=refs/heads/<base>
 remote_sha() { git ls-remote --heads origin | awk -v r="$TARGET_REF" '$2 == r {print $1}'; }
 git -C "$PROJECT_ROOT" fetch --prune --tags origin
@@ -107,14 +110,14 @@ test "$(remote_sha)" = "$RESULT_SHA"
 ```
 
 If the root is dirty, detached, not on `<base>`, or the update is not a fast-forward: do not switch, reset,
-stash, clean, or force; report that the canonical checkout was not updated and name the manual follow-up.
-Temporary lag is a stop/report condition, not a successful end state. Never force-reset or silently repair
+stash, clean, or force. Stop before tag, GitHub release, and cleanup. Report the published base result and
+the exact manual follow-up. Temporary lag is not a successful end state. Never force-reset or silently repair
 the local base.
 
-For `prepare-only`, verify the target then run contracted cleanup; never create/update tags or GitHub releases.
-For `publish`, verify the target, create/push the annotated tag, create the GitHub release, then clean up. Retain a
-temporary integration ref/worktree on any failure and remove it normally only after every contracted action and
-other cleanup succeeds.
+For `prepare-only`, run contracted cleanup only after this fast-forward succeeds; never create/update tags or
+GitHub releases. For `publish`, create/push the annotated tag and create the GitHub release only after this
+fast-forward succeeds, then clean up. Retain a temporary integration ref/worktree on any failure and remove it
+normally only after every contracted action and other cleanup succeeds.
 
 ## Cleanup Safety
 
