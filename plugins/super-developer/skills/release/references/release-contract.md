@@ -6,8 +6,9 @@ Owns the one approval packet for a release attempt. Load before the first releas
 
 - Present the contract every time. Skip only the approval prompt when the current turn already
   unambiguously approves the full listed lifecycle.
-- The contract must list every side effect: file edits, merge, commits, base push, post-push base
-  sync verification, tag creation/push, GitHub release, artifact-sidecar actions, and local/remote cleanup.
+- The contract must list every side effect: file edits, merge, commits, canonical primary-checkout normalization
+  and fast-forward synchronization, base push, post-push server/origin verification, tag creation/push, GitHub
+  release, artifact-sidecar actions, and local/remote cleanup.
 - Keep release checks to validation commands. List changelog, docs, and version edits as planned file changes, not checks.
 - If state changes, changelog format choice is missing, or a new action is needed, stop for a revised contract.
 - Remote feature or sidecar branch deletion requires the exact `origin/<branch>` ref to be listed
@@ -19,6 +20,11 @@ Owns the one approval packet for a release attempt. Load before the first releas
 - Default cleanup is delete/remove. List `keep` only for a hard blocker or explicit user keep request.
 - Sidecar cleanup is separate from deliverable feature cleanup but defaults to exact
   removal/deletion when eligible; never merge `artifacts/<feature>` into the base branch.
+- Bind the canonical root branch, HEAD, clean status, and local-base SHA-or-empty before side effects. Require the
+  local base to equal or be an ancestor of fresh remote base, and preflight occupied-base blockers.
+  Immediately before the one base push, revalidate the binding, normalize root to the base branch if needed, and
+  fast-forward only to exact `RESULT_SHA`; never reset, force-update, stash, clean, merge divergent history, or
+  overwrite ignored, untracked, or tracked user files.
 
 ## Required Fields
 
@@ -31,7 +37,15 @@ Mode: publish | prepare-only
 
 Base branch:
 - <base-branch>; target `refs/heads/<base>`; fresh remote-base SHA <full SHA>
-- Local base/root lock: <equal | ancestor left unchanged and allowed to lag | no local ref>
+- Local base: <equal | ancestor to be fast-forwarded to RESULT_SHA before publication | no local ref>
+
+Canonical primary checkout:
+- Root path: <canonical primary root>
+- Preflight binding: branch <branch>; HEAD <full SHA>; status <clean>; base occupied elsewhere <yes/no>
+- Synchronizability: <already on clean base | safe normalization to base>; local base is equal/ancestor; no
+  occupied-branch or non-fast-forward blocker
+- Pre-push action: revalidate root/status/ref/occupancy; normalize to <base> if needed with no ignored-file
+  overwrite; merge --ff-only exact RESULT_SHA; permit no other tracked root mutation
 
 Feature branch:
 - <feature-branch or none>
@@ -63,10 +77,11 @@ Merge/release strategy:
 - Annotated tag: vX.Y.Z if publishing; none in prepare-only
 
 Remote actions:
-- Push exact result SHA to `refs/heads/<base>` after remote-SHA equality and ancestry proof, using the
-  qualified exact lease bound to the fresh pre-target SHA
-- Post-push: verify result, `origin/<base>`, and fresh remote target match; require local-base equality only
-  for an existing base checkout, otherwise prove the unchanged root-locked local base is an ancestor of result
+- Before publication, synchronize canonical root HEAD and local base to exact result, then re-prove the server's
+  expected SHA and its ancestry to result
+- Push exact result SHA to `refs/heads/<base>` exactly once, using the qualified exact lease bound to the fresh
+  pre-target SHA
+- Post-push: fetch, then verify clean root HEAD, local base, `origin/<base>`, and fresh server base all equal result
 - Push tag vX.Y.Z to origin, if publishing
 - Create GitHub release for vX.Y.Z, if publishing
 - Delete remote feature branch: <origin/<feature-branch> after pushed-base inclusion verification, or keep because ... / no candidate found>
@@ -90,7 +105,11 @@ Cleanup candidates:
 - Delete remote artifact ref: <origin/artifacts/<feature> by default after fresh remote verification, or keep because ...>
 
 Stop conditions:
-- <specific blocker>
+- Root is dirty or changed from its binding; base is occupied elsewhere when normalization is needed; local base or
+  root cannot fast-forward to exact `RESULT_SHA`
+- A pre-push failure stops publication: report partial local effects and retain every safety net
+- A push failure stops immediately: report partial local/remote effects and retain every safety net
+- A post-push failure stops cleanup: report partial published/verified effects and retain every safety net
 - <specific blocker>
 
 Approve this Release Contract? Reply with one:

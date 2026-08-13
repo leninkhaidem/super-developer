@@ -33,12 +33,17 @@ with exact state, side effects, artifact-sidecar handling, and cleanup candidate
 - `prepare-only` never bumps version files, creates/pushes/moves tags, or creates/updates a GitHub release.
 - Do not ask for staged re-approvals after approval; report checkpoints unless observed state invalidates the contract.
 - Use `--no-ff` when merging a feature branch into the base branch.
-- Never switch or detach the user-owned root worktree. If it locks the base branch, use a named temporary
-  integration ref/worktree from the exact fresh remote-base SHA; never ask the user to detach the root.
+- Never use the user-owned canonical root for integration or release edits. Bind its branch, HEAD, and status before
+  side effects and require it clean, unchanged, and safely synchronizable. A named temporary integration
+  ref/worktree from the exact fresh remote-base SHA remains required when root locks the base branch.
+- Immediately before the one base push, an approved Release Contract may normalize the canonical root to the base
+  branch when necessary and fast-forward it to exact `RESULT_SHA`. This exact release-sync action is the sole tracked
+  root-checkout mutation; never reset, force, stash, clean, merge divergent history, or overwrite ignored/user files.
 - Clean up only exact feature branches, remote refs, artifact sidecar refs/worktrees, and worktrees named in the approved contract.
 - Sidecar cleanup is default when eligible after final base/target push sync; never merge `artifacts/<feature>` into the base branch.
-- After a base push, verify the intended commit, `origin/<base>`, and fresh remote base match. Require local
-  base equality only when it was the integration ref; a root-locked local base stays unchanged and may lag.
+- Before the base push, synchronize the canonical primary checkout and local base to exact `RESULT_SHA`; then perform
+  the one exact-lease push. Fetch afterward and verify root HEAD, local base, `origin/<base>`, and fresh server base
+  all equal that result and the root remains clean.
 - If partially complete, resume only from observed state that matches the intended prepare/publish commit,
   tag/release state when publishing, remote state, and notes.
 
@@ -52,17 +57,22 @@ with exact state, side effects, artifact-sidecar handling, and cleanup candidate
    - otherwise use the only local `main`/`master`; ask if ambiguous.
 3. Preflight and report:
    - fresh remote-base SHA, local-base ancestry, and whether the protected root locks the local base;
-   - current working tree cleanliness and unrelated changes;
+   - canonical primary root path plus its bound branch, HEAD, and status; require it clean and unchanged, its local
+     base no more than an ancestor of fresh `origin/<base>`, the base branch not occupied by another worktree when
+     root normalization will be needed, and both root/base refs capable of the contracted fast-forward;
+   - current integration working tree cleanliness and unrelated changes;
    - version sources when publishing, and latest `vX.Y.Z` tag for changelog/source-range context;
    - feature branch merge status and candidate cleanup refs/worktrees, including default
      delete/remove disposition or hard blocker for any `artifacts/<feature>` sidecar;
    - `CHANGELOG.md` presence, most recent release format, and whether the proposed lightweight format needs user choice;
    - GitHub CLI auth/repo/release state when publishing.
 4. Load `references/release-git-safety.md` before relying on remote refs, existing tags/releases, feature merge, publish, sidecar state, or cleanup.
-5. Stop before contract approval if local base is ahead/diverged from the fresh remote base, publish version sources disagree,
-   a worktree has unrelated changes, the push target is ambiguous, remote state cannot be verified, or an existing
-   tag/release conflicts. A clean local base omitted from temporary integration may lag only when it is an
-   ancestor of the remote base.
+5. Stop before contract approval if local base is ahead/diverged from the fresh remote base, the canonical root is
+   dirty, drifted, or not safely synchronizable, the base branch is occupied elsewhere when root normalization is
+   needed, publish version sources disagree, a worktree has unrelated changes, the push target is ambiguous, remote
+   state cannot be verified, or an existing tag/release conflicts. A clean local base omitted from temporary
+   integration may lag only when it is an ancestor of the remote base and the contract will fast-forward it to the
+   exact release result immediately before publication.
 6. Load `references/release-contract.md` and present the compact Release Contract, including
    changelog format choices and default delete/remove cleanup candidates when needed.
    Ask once unless the current turn already approved the full contract.
@@ -73,15 +83,19 @@ with exact state, side effects, artifact-sidecar handling, and cleanup candidate
    - run contracted validation checks;
    - commit contracted prep/integration changes, using `release: vX.Y.Z` only for publish prep unless repo convention differs;
    - revalidate clean state, final diff, and publish-only tag/release absence or resume match;
-   - push by the exact result-SHA/target-ref lease procedure, then verify result, `origin/<base>`, and fresh
-     remote base match; preserve a root-locked local base unchanged and prove it is an ancestor of result;
-   - for `prepare-only`, push the base branch, run post-push sync verification, and perform contracted default cleanup for exact
-     local/remote feature and sidecar refs/worktrees after verification;
-   - for `publish`, push the base branch, run post-push sync verification, create/push annotated tag,
-     create GitHub release, then perform contracted default cleanup for exact feature/sidecar candidates
-     when applicable, and report URL;
+   - revalidate the root binding, normalize the canonical root to `<base>` if necessary, and fast-forward-only merge
+     exact `RESULT_SHA` there without overwriting ignored or user files;
+   - prove the server still equals `EXPECTED` and `EXPECTED` is an ancestor of `RESULT_SHA`, then perform exactly one
+     exact-lease result-SHA/target-ref base push, fetch, and verify canonical root HEAD, local `<base>`,
+     `origin/<base>`, and fresh server base equal the result while root status remains clean;
+   - for `prepare-only`, perform contracted default cleanup for exact local/remote feature and sidecar refs/worktrees
+     only after post-push verification;
+   - for `publish`, create/push the annotated tag and create the GitHub release only after post-push verification,
+     then perform contracted default cleanup for exact feature/sidecar candidates when applicable and report URL;
    - load `references/release-git-safety.md` before exact contracted cleanup.
-8. If any push, publish, or cleanup step fails, stop, report completed side effects, and do not continue cleanup automatically.
+8. Handle failures by phase. On a pre-push failure, stop before publication, report partial local effects, and
+   retain every safety net. On a push failure, report partial local/remote effects, retain every safety net, and
+   stop. On a post-push failure, report partial published/verified effects, retain every safety net, and stop cleanup.
 
 ## Load if needed
 
@@ -95,7 +109,9 @@ with exact state, side effects, artifact-sidecar handling, and cleanup candidate
 - Release mode, base branch, feature branch, repository, base push target, or cleanup candidate is ambiguous;
   GitHub publish target or publish version is ambiguous when publishing.
 - The requested action is not in the approved Release Contract.
-- Remote state is stale/unverifiable, local base is ahead/diverged, or the expected remote/result binding mismatches.
+- Remote state is stale/unverifiable, local base is ahead/diverged, the bound canonical root is dirty/drifted,
+  root normalization is blocked by an occupied base branch, a required root update is non-fast-forward, or an
+  expected root/local-base/origin/server/result binding mismatches.
 - Existing local/remote tag or GitHub release points anywhere other than the intended publish commit.
 - Merge conflict, failing release check, publish version-source disagreement, unrelated dirty files, missing credentials, or changed publish target appears.
 - Cleanup would touch an unnamed branch/ref/worktree, a dirty worktree, an unmerged branch,
@@ -109,7 +125,7 @@ Return:
 - release mode and version action;
 - published URL or prepared integrated state;
 - base branch and commit SHA;
-- post-push result/remote sync and root-locked local-base status;
+- post-push result/remote sync plus canonical-root branch, HEAD, local-base equality, and clean status;
 - tag/GitHub release status;
 - cleanup performed, blocked, or explicitly kept, including sidecar artifact cleanup;
 - completed side effects and remaining manual follow-up.

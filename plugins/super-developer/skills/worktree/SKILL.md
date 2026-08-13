@@ -9,8 +9,11 @@ description: >
 Protect the user-owned root worktree while using branch-isolated `.worktrees/` checkouts for
 package, bugfix, hotfix, spike, integration, target-merge, and artifact-sidecar work.
 ## Always
-- Root files/index are user-owned: never switch, edit, merge, or deliver there. Commands may run from
-  `$PROJECT_ROOT` to create/remove approved non-root worktrees/refs.
+- Root files/index are user-owned: never switch, edit, merge, or deliver there except for two exact operations:
+  create the gitignored developer-local `$PROJECT_ROOT/.superdeveloper/preferences.yml` when its governing contract
+  authorizes it, or perform an approved Release Contract's clean canonical-root base normalization and fast-forward
+  synchronization. Neither exception permits unrelated root changes. Commands may otherwise run from
+  `$PROJECT_ROOT` only to create/remove approved non-root worktrees/refs.
 - Resolve the primary root with the NUL-safe common-directory procedure below; `--show-toplevel` alone may be a
   linked worktree and must not anchor nested `.worktrees/`.
 - Keep agent-managed checkouts under `$PROJECT_ROOT/.worktrees/`; ensure `.worktrees/` is ignored.
@@ -72,7 +75,9 @@ inside a linked worktree.
 5. Load `references/bugfix-hotfix-workflow.md` for probe/bugfix/hotfix creation and delivery mechanics.
 6. For any receipt-bound probe cleanup load `references/probe-cleanup.md`; before any removal, push, merge, or
    teardown also load `references/cleanup-safety.md`.
-7. Run commands only from the worktree named by the loaded playbook; never repair convenience by switching the root worktree.
+7. Run commands only from the worktree named by the loaded playbook; never repair convenience by switching the root
+   worktree. Only the exact preferences creation and approved release synchronization exceptions in `Always` may
+   write or switch the canonical root.
 8. Report created refs/worktrees, current checkout paths, approval boundaries, and cleanup candidates before destructive steps.
 9. Stop instead of forcing branch deletion, worktree removal, target merge, target push, sidecar deletion, or remote action when proof or approval is missing.
 
@@ -131,7 +136,8 @@ creation base also has no unique commit. Otherwise preserve/report it. No packag
 
 ## Stop if
 
-- Root checkout files/index would be switched, written, merged, or used as the delivery checkout.
+- Root checkout files/index would be switched, written, merged, or used as the delivery checkout outside the exact
+  developer-local preferences creation or approved clean release fast-forward synchronization exceptions above.
 - `.worktrees/` is not ignored and cannot be safely ignored.
 - Base ref, feature ref, target ref, artifact ref, package branch, worktree path, or cleanup namespace is ambiguous.
 - A branch is already checked out elsewhere and the playbook does not provide a safe alternative.

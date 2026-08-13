@@ -18,7 +18,9 @@ a fresh Fix Implementer edits under the passed contract.
 - Confirm root cause only when evidence proves the mechanism. Otherwise return `blocked` or `not reproduced` with
   the exact artifact, access, command, or risk acceptance needed; do not substitute “likely.”
 - Keep root checkout files/index user-owned: never switch it, edit it, merge there, or use it for delivery.
-  Orchestration may run from `$PROJECT_ROOT` to manage approved non-root worktrees/refs through `worktree`.
+  The only root write in this workflow is creation of the exact gitignored developer-local
+  `$PROJECT_ROOT/.superdeveloper/preferences.yml` when authorized and missing; it grants no tracked source/index
+  change. Orchestration may run from `$PROJECT_ROOT` to manage approved non-root worktrees/refs through `worktree`.
 - Keep repairs minimal. Classify a repair by cost, not by category. A repair is `localized` only when both (i) the
   mechanism is confirmed by evidence, ideally a deterministic failing test, and (ii) the change is bounded and
   cheaply reversible. Check (i) and (ii) separately and require both; neither one alone is enough. When both hold,
@@ -95,9 +97,10 @@ Contract and delivery gates separately own implementation, source/sidecar public
    `references/orchestration-mechanics.md`, and invoke `worktree` for approved setup. Never
    use root as the repair or delivery checkout.
 9. From the approved target worktree, complete the worker-dispatch prerequisites in
-   `references/orchestration-mechanics.md` in order: resolve `implement` through
-   `../../references/model-preferences.md`, settle any missing `.superdeveloper/preferences.yml`, and bind the
-   complete starting state. Bind and pass the exact worker contract path
+   `references/orchestration-mechanics.md` in order: establish the canonical primary root and resolve `implement`
+   through `../../references/model-preferences.md`, settle any missing
+   `$PROJECT_ROOT/.superdeveloper/preferences.yml` only at that root, and bind the complete starting state. Bind and
+   pass the exact worker contract path
    `${SUPER_DEVELOPER_PLUGIN_ROOT}/skills/diagnose-and-fix/references/fix-implementer-contract.md`; do not implement
    substantive edits inline.
 10. Validate the returned report and the actual worktree against `references/orchestration-mechanics.md`. Route
