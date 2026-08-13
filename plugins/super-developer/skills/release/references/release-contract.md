@@ -31,7 +31,7 @@ Mode: publish | prepare-only
 
 Base branch:
 - <base-branch>; target `refs/heads/<base>`; fresh remote-base SHA <full SHA>
-- Local base/root lock: <equal | ancestor left unchanged and allowed to lag | no local ref>
+- Canonical checkout: <on-base and eligible for post-push FF | dirty/detached/not-on-base | no local ref>
 
 Feature branch:
 - <feature-branch or none>
@@ -57,16 +57,18 @@ Release checks to run:
 
 Merge/release strategy:
 - Merge <feature-branch> into <base-branch> with --no-ff, unless already merged
-- Worktree: <existing exact non-root base checkout | named temporary integration ref/path
-  created from the fresh remote-base SHA because the local base is locked/unavailable>
+- Worktree: <named temporary integration ref/path created from the fresh remote-base SHA;
+  never a second checkout of `<base>`>
 - Commit: <prepare-only integration/changelog commit message or publish release commit `release: vX.Y.Z`>
 - Annotated tag: vX.Y.Z if publishing; none in prepare-only
 
 Remote actions:
 - Push exact result SHA to `refs/heads/<base>` after remote-SHA equality and ancestry proof, using the
   qualified exact lease bound to the fresh pre-target SHA
-- Post-push: verify result, `origin/<base>`, and fresh remote target match; require local-base equality only
-  for an existing base checkout, otherwise prove the unchanged root-locked local base is an ancestor of result
+- Post-push: verify result, `origin/<base>`, and fresh remote target match; then apply the git-safety
+  canonical fast-forward. If that checkout is dirty, detached, not on `<base>`, or cannot fast-forward,
+  stop before tag, GitHub release, and cleanup; report the published result and the exact follow-up.
+  Temporary lag is not success.
 - Push tag vX.Y.Z to origin, if publishing
 - Create GitHub release for vX.Y.Z, if publishing
 - Delete remote feature branch: <origin/<feature-branch> after pushed-base inclusion verification, or keep because ... / no candidate found>

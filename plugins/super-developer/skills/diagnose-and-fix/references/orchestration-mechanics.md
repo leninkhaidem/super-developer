@@ -45,9 +45,9 @@ Bind the approved isolated route to explicit human names before any repository s
 ## Worker dispatch
 
 From the approved target worktree, resolve `implement` through the shared model-preferences contract before binding
-state. If `.superdeveloper/preferences.yml` is missing, display that shared contract's gitignored local creation; a
-Fix Authorization that named that exceptional write covers it, and otherwise ask before creating it there.
-Either way, never create it in root or silently.
+state. Apply that contract's canonical-root resolver, then read or create
+`$PROJECT_ROOT/.superdeveloper/preferences.yml`. Never resolve the file from the target worktree, another linked
+worktree, or cwd. Authorized Fix Authorization covers that exact write; otherwise ask. Never create it silently.
 
 Then bind HEAD and committed/staged/unstaged/untracked manifests/checksums. Untracked records include file type,
 Git/index-compatible mode, symlink target, and content digest or binary provenance. Before constructing initial or

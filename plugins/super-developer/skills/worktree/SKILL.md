@@ -9,8 +9,12 @@ description: >
 Protect the user-owned root worktree while using branch-isolated `.worktrees/` checkouts for
 package, bugfix, hotfix, spike, integration, target-merge, and artifact-sidecar work.
 ## Always
-- Root files/index are user-owned: never switch, edit, merge, or deliver there. Commands may run from
-  `$PROJECT_ROOT` to create/remove approved non-root worktrees/refs.
+- Root files/index are user-owned: never switch, merge, or deliver there. Commands may run from
+  `$PROJECT_ROOT` to create/remove approved non-root worktrees/refs. Two exact root exceptions:
+  authorized gitignored creation of `$PROJECT_ROOT/.superdeveloper/preferences.yml`, and an approved
+  Release Contract post-release fetch plus fast-forward of the canonical checkout already on the base
+  branch. Neither exception permits unrelated root edits, reset, stash, clean, force, or switching the
+  root onto another branch for convenience.
 - Resolve the primary root with the NUL-safe common-directory procedure below; `--show-toplevel` alone may be a
   linked worktree and must not anchor nested `.worktrees/`.
 - Keep agent-managed checkouts under `$PROJECT_ROOT/.worktrees/`; ensure `.worktrees/` is ignored.
@@ -131,7 +135,8 @@ creation base also has no unique commit. Otherwise preserve/report it. No packag
 
 ## Stop if
 
-- Root checkout files/index would be switched, written, merged, or used as the delivery checkout.
+- Root checkout files/index would be switched onto another branch, used as the delivery checkout, or
+  written except for the two exact Always root exceptions.
 - `.worktrees/` is not ignored and cannot be safely ignored.
 - Base ref, feature ref, target ref, artifact ref, package branch, worktree path, or cleanup namespace is ambiguous.
 - A branch is already checked out elsewhere and the playbook does not provide a safe alternative.
