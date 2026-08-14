@@ -37,7 +37,7 @@ marked `manual (approved)`, and is surfaced for approval at plan review.
 Non-negotiable user-stated constraints, approved scope limits, compatibility/security/performance policy, or Slice-derived constraints that apply feature-wide.
 
 ## Work Packages
-Manifest only. Package scope, Slice H3 assignments, verification expectations, dependencies, proof paths, and report paths live in package Markdown.
+Manifest only. Package scope, Slice H3 assignments, verification expectations, dependencies, and report paths live in package Markdown.
 - `packages/WP1.md` — <short title>
 
 ## Code References

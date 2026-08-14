@@ -84,7 +84,7 @@ questions, or encode the uncertainty in package Notes as though planning were co
    publication, final review/audit, target delivery, release/deploy, and post-delivery checks. If required build/test
    commands are not runnable, return a blocker before writing unverifiable acceptance.
 6. Keep `tasks.json` lightweight. Package Markdown owns scope, Slice/H3 assignment, paths, verification,
-   dependencies, proof path, and report path. Distill only approved empirical implications into owning fields;
+   dependencies, and report path. Distill only approved empirical implications into owning fields;
    never copy empirical reports, command transcripts, or disposable probe code into planned artifacts.
 7. If Semgrep is disabled, require no setup/scans. If enabled, detect stacks through normal analysis, use helper
    `index`/`retrieve`, never inspect `index.json` or hard-code mappings, and add package-scoped helper scan plus

@@ -50,9 +50,6 @@ Read-only checks:
 python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-plan \
   --artifact-root "$ARTIFACT_ROOT" --code-root "$CODE_ROOT" \
   ".tasks/<feature>/tasks.json"
-python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-proof \
-  --artifact-root "$ARTIFACT_ROOT" --code-root "$CODE_ROOT" \
-  ".tasks/<feature>/tasks.json" --package WP1
 python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-package-complete \
   --artifact-root "$ARTIFACT_ROOT" --code-root "$CODE_ROOT" \
   ".tasks/<feature>/tasks.json" --package WP1
@@ -61,71 +58,31 @@ python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-final \
   ".tasks/<feature>/tasks.json"
 ```
 
-`validate-package-complete` and `validate-final` confirm the declared lightweight package report and proof
-files exist and are non-empty; report shape is advisory, never a hard gate. They
-return JSON on stdout when successful. On failure, they return JSON on stderr with `errors` and a top-level
-`advisories` array. `context_only_slice_drift` advisories are non-blocking by default;
-`validate-final` aggregates advisories across packages and includes them even when hard errors also exist.
-
-Write command:
-
-```bash
-python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" create-proof \
-  --artifact-root "$ARTIFACT_ROOT" --code-root "$CODE_ROOT" \
-  ".tasks/<feature>/tasks.json" --package WP1
-```
+`validate-package-complete` is the only result command. It and `validate-final` are read-only: only the
+orchestrator or agent writes the result file. They return JSON on stdout when successful. On failure, they return
+JSON on stderr with `errors` and a top-level `advisories` array. `validate-final` aggregates advisories across
+packages and includes them even when hard errors also exist.
 
 ## Mechanical Boundaries
 
 `validate-plan` checks:
 
-- lightweight registry shape;
-- safe repo-relative SPEC, Slice, package, proof, and report paths;
-- non-empty `## Acceptance Checklist` per package and non-empty SPEC `## Acceptance`;
+- lightweight registry shape; new contracts omit `proof_path`;
+- safe repo-relative SPEC, Slice, package, and report paths;
+- non-empty `## Acceptance Checklist` per package with at least one executable item, and non-empty SPEC `## Acceptance`;
 - package dependency references and cycles;
 - package Markdown required sections;
-- package Markdown proof/report/dependency references;
+- package Markdown report/dependency references;
 - assigned Slice H3 IDs under `## Shared Understanding`.
 
-`create-proof` writes only the declared proof Markdown placeholder for one package. Existing filled,
-edited, or drifted proof content is never overwritten silently.
+`validate-package-complete` checks one selected new-shape package: checklist coverage, cheap pointer resolve
+(presence, non-placeholder, and safe path existence when the pointer looks like a path), Gaps metadata presence,
+and structural fail-closed (Verdict FAIL, any non-pass item, or any open blocker). A registry that still declares
+`proof_path` cannot cheap-PASS as new-shape. The helper does not run tests or judge semantics. Helper ok is not
+done; done is orchestrator re-run recorded PASS plus helper ok.
 
-`validate-proof` checks one package proof mechanically:
+`validate-final` runs plan and result checks for every package, requires every package to be `done`, and
+aggregates advisories across packages.
 
-- required sections and closure tables;
-- required Slice rows and verification expectation rows;
-- duplicate, unexpected, unsupported, placeholder, or blocking rows;
-- explicit approval, provenance, and scope for deferrals, non-applicable rows, gaps, or deviations;
-- non-placeholder command/file/completion evidence.
-
-`validate-package-complete` checks one selected package before done-status bookkeeping: plan/package
-shape, closed proof rows, and that the declared lightweight package-verification report and proof files exist and
-are non-empty. It is read-only, does not require the selected package status to already be `done`, reports
-`context_only` drift as advisories, and does not prove cited evidence is semantically sufficient.
-
-`validate-final` runs plan and proof checks for every package, requires every package to be `done`,
-confirms each package's lightweight report and proof exist, and aggregates advisories across packages.
-
-The helper does not run tests, inspect implementation semantics, judge proof
-truthfulness/sufficiency, mutate registry status, perform package
-verification, or replace review/audit.
-
-## Proof Replacement Safety
-
-Default behavior:
-
-- missing declared proof path: create the placeholder;
-- existing exact placeholder: return success without rewriting;
-- existing edited or filled proof: fail closed.
-
-Replacement of edited or filled proof content requires:
-
-```bash
-python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" create-proof \
-  --artifact-root "$ARTIFACT_ROOT" --code-root "$CODE_ROOT" \
-  ".tasks/<feature>/tasks.json" --package WP1 --force \
-  --approved-replacement "approved by <source>; provenance: <why replacement is valid>; scope: <exact evidence being replaced>"
-```
-
-The approval text must include approval, provenance, and scope. When replacement is approved, the
-helper preserves the previous proof beside the proof path before writing a new placeholder.
+The helper does not run tests, inspect implementation semantics, judge evidence
+truthfulness/sufficiency, mutate registry status, write the result file, or replace review/audit.

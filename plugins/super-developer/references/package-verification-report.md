@@ -21,8 +21,8 @@ PASS | FAIL
 ## Acceptance Checklist Result
 | Item | Result | Evidence |
 |---|---|---|
-| `AC-1` | pass | `test:path::test_name` (or command + observed result) |
-| `AC-2` | pass | manual (approved): observed <result> |
+| `AC-1` | pass | pointer: `test:path::test_name` — observed: exit 0; bounded output |
+| `AC-2` | pass | pointer: manual (approved) — observed: <result> |
 
 ## Blocking findings
 - none
@@ -32,21 +32,27 @@ PASS | FAIL
 
 ## Reviewed state
 - Worktree/ref/commit of the code verified: `<worktree>` `<ref>` `<commit>`
+
+## Gaps
+- none
 ```
 
 ## Rules
 
-- **PASS** requires every Acceptance Checklist item marked `pass` with a resolvable evidence pointer and no open
-  blocking finding. Any `fail` item or open blocking finding is **FAIL**.
+- **PASS** requires every Acceptance Checklist item marked `pass` with a pointer plus orchestrator-observed
+  output (exit/status and bounded output) and no open blocking finding. Missing, skipped, or failed observed
+  output is automatic FAIL. Any `fail` item or open blocking finding is **FAIL**.
 - **Severity bar:** only correctness / security / data-loss / contract-break go under `## Blocking findings`.
   Everything else is an `## Advisory note` — it never changes the verdict.
-- **Evidence authenticity:** an evidence pointer must resolve to real output (a test id + result, a command +
-  observed result, or a `manual (approved)` observation). Fabricated, skipped-without-approval, or hollow
-  evidence makes the item `fail`.
+- **Evidence authenticity:** a pointer plus observed output must resolve to real output (a test id + result, a
+  command + observed result, or a `manual (approved)` observation). A PASS row with a hollow non-path claim is
+  not a semantic done signal. The helper only checks presence, non-placeholder, and safe path existence when the
+  pointer looks like a path.
 - **Executable-by-default:** a `manual` result is acceptable only for an item the plan froze as a human-approved
-  `manual (approved)` exception at the plan gate.
-- Mechanical `sliceproof.py` output is advisory diagnostics, never a reason to FAIL a package whose checklist
-  passes. Note shape issues under Advisory; do not loop on paperwork.
+  `manual (approved)` exception at the plan gate. The orchestrator does not re-run manual items.
+- **Gaps** must be `none` or carry approval, provenance, and scope. The helper checks that metadata presence only.
+- Mechanical `sliceproof.py` output is structural fail-closed, never semantic authenticity. Helper ok alone is
+  not done.
 
 ## Re-verification after repair
 

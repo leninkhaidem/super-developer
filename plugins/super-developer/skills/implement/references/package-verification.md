@@ -24,7 +24,7 @@ Read from files, not prompt prose:
 - package Markdown `.tasks/<feature>/packages/<WP-ID>.md`, including its `## Acceptance Checklist`;
 - the assigned Slice files (product/design context only);
 - the package implementation diff/code in the package or integration worktree;
-- the package agent report with `SELF_REVIEW`;
+- the package agent report with `SELF_REVIEW` (hygiene, not a gate);
 - the actual check outputs (test runs, command output, static-inspection summaries) and any mock/skip disclosures.
 
 If a required input is missing, unreadable, or unsafe, return `FAIL` with a one-line reason.
@@ -82,7 +82,7 @@ Keep it short. No long transcripts, no deliverable-completeness matrix, no Test 
 ## Re-verification after repair (delta-only)
 
 Remain an independent approving verifier. From the semantic repair impact, re-check only affected package-local
-checklist, proof, and report evidence plus affected build/lint/test checks; retain unaffected results. Focused seam
+checklist and result-file evidence plus affected build/lint/test checks; retain unaffected results. Focused seam
 closure remains exclusively with final `review-code` Fix Verification. Widen conservatively for changed public
 contracts or unknown/unbounded impact, not because a dependency, descendant, commit, or merge exists.
 

@@ -19,9 +19,9 @@ implementation-plan -> review-plan -> implement -> final review-code + final aud
         |                 |              |             |                  |
         |                 |              |             |                  final completeness gate
         |                 |              |             final code-risk gate
-        |                 |              package agents + proof Markdown + reports
+        |                 |              package agents + result reports
         |                 plan quality and Slice coverage gate
-        SPEC.md + tasks.json registry + packages/proofs/reports
+        SPEC.md + tasks.json registry + packages/reports
 ```
 
 Validated Slices are product/design authority only. Workflow, tool, git, proof, review, and audit authority stays in the plugin instructions and shared references. Planning, review, and implementation orchestrators may run `empirical-spike` once per attempt for a distinct material question after static evidence is insufficient; one initial run and at most two materially changed follow-ups are allowed. After `approve auto-resolve`, in-scope work is autonomous. Dirty probes clean only through exact receipt-owned local restoration; continuation packages use reviewed base/prerequisite evidence and remain safety nets through final gates.
@@ -37,13 +37,12 @@ A planned feature lives under `.tasks/<feature>/` and points to optional `.plann
 | `.planning/<concept>/index.md` | Optional Conceptualize workspace entry point. |
 | `.planning/<concept>/slices/*.md` | Optional authoritative product/design Slices. |
 | `.tasks/<feature>/SPEC.md` | Accepted requirements, constraints, non-goals, Slice inventory, and verification summary. |
-| `.tasks/<feature>/tasks.json` | Lightweight registry only: feature metadata, package paths, proof paths, report paths, status, and dependencies. |
-| `.tasks/<feature>/packages/<WP-ID>.md` | Work-package assignment: scope, Slice obligations, primary paths, verification expectations, proof/report paths, dependencies. |
-| `.tasks/<feature>/proofs/<WP-ID>.proof.md` | Package-agent closure evidence for Slice rows and verification expectations. |
-| `.tasks/<feature>/reports/<WP-ID>.package-verification.md` | Independent package verification receipt bound to proof digest and reviewed state. |
+| `.tasks/<feature>/tasks.json` | Lightweight registry only: feature metadata, package paths, report_path, status, and dependencies. New contracts drop `proof_path`. |
+| `.tasks/<feature>/packages/<WP-ID>.md` | Work-package assignment: scope, Slice obligations, primary paths, verification expectations, report_path, dependencies. |
+| `.tasks/<feature>/reports/<WP-ID>.package-verification.md` | Independent package result: Verdict, Acceptance Checklist Result, Blocking findings, Advisory notes, Reviewed state, Gaps. |
 | `.tasks/<feature>/reviews/review-code-state.json` | Review-code governance readiness for audit handoff. |
 
-`tasks.json` is bookkeeping. Package Markdown owns assignment, proof Markdown owns closure evidence, package reports own independent verification receipt state, review-code state owns final-review readiness, and audit owns the final PASS/FAIL judgment.
+`tasks.json` is bookkeeping. Package Markdown owns assignment, `report_path` names the package result, review-code state owns final-review readiness, and audit owns the final PASS/FAIL judgment.
 
 ---
 
@@ -55,17 +54,15 @@ Run from a repository or package worktree with explicit paths:
 
 ```bash
 python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-plan ".tasks/<feature>/tasks.json"
-python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" create-proof ".tasks/<feature>/tasks.json" --package WP1
-python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-proof ".tasks/<feature>/tasks.json" --package WP1
+python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-package-complete ".tasks/<feature>/tasks.json" --package WP1
 python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-final ".tasks/<feature>/tasks.json"
 ```
 
 Command boundaries:
 
-- `validate-plan`: checks the registry, package Markdown, safe paths, dependencies, and declared Slice H3 IDs.
-- `create-proof`: creates the declared proof Markdown placeholder and refuses silent overwrite of edited evidence.
-- `validate-proof`: checks required proof sections, closure rows, command/file evidence, blocking markers, and approved deferrals.
-- `validate-final`: checks all packages are done, all proofs pass mechanically, and all package verification reports exist and bind to the current proof digest.
+- `validate-plan`: checks the registry, package Markdown, safe paths, dependencies, declared Slice H3 IDs, and that every package has at least one executable Acceptance Checklist item.
+- `validate-package-complete`: the only result command; read-only checklist coverage and cheap pointer resolve. It does not write the result file or judge semantics.
+- `validate-final`: checks all packages are done and each result file is structurally complete.
 
 See [`references/tool-usage.md`](references/tool-usage.md), [`references/slice-first-artifacts.md`](references/slice-first-artifacts.md), and [`references/package-lifecycle.md`](references/package-lifecycle.md) for the detailed boundaries.
 
@@ -153,12 +150,12 @@ Semgrep findings preserve Semgrep severity but are advisory by default. They do 
 | Skill | What It Does | Usage |
 |---|---|---|
 | **conceptualize** | Runs an optional one-question-at-a-time exploration, maintains an ignored workspace Index, and writes focused Slices only when useful. | Standalone + pre-planning |
-| **implementation-plan** | Orchestrates a fresh planner worker to create `SPEC.md`, the lightweight registry, package Markdown, proof/report paths, and optional proof placeholders from approved requirements, Slices, or accepted empirical evidence. | Pipeline + standalone |
+| **implementation-plan** | Orchestrates a fresh planner worker to create `SPEC.md`, the lightweight registry, package Markdown, and `report_path` declarations from approved requirements, Slices, or accepted empirical evidence. | Pipeline + standalone |
 | **skill-authoring** | Creates or revises compact skills with on-demand references and a mid-tier-agent followability gate. | Standalone + internal |
-| **review-plan** | Validates planned-feature artifacts, Slice coverage, package assignment, proof/report expectations, and approved deferrals before implementation. | Pipeline + standalone |
-| **implement** | Orchestrates package worktrees, package agents, proof Markdown, package verification reports, integration checkpoints, review-code, and audit handoff. | Pipeline + standalone |
+| **review-plan** | Validates planned-feature artifacts, Slice coverage, package assignment, result-file expectations, and approved deferrals before implementation. | Pipeline + standalone |
+| **implement** | Orchestrates package worktrees, package agents, package result reports, integration checkpoints, review-code, and audit handoff. | Pipeline + standalone |
 | **review-code** | Runs bounded PR, local, or planned-feature pipeline code review with dynamic risk lenses, Skeptic verification for serious findings, and governed fix verification where the mode permits fixes. | Pipeline + standalone + PR review |
-| **audit** | Final read-only planned-feature completeness gate over accepted artifacts, proof Markdown, package reports, optional review-code context, and integrated code state. | Final gate + standalone |
+| **audit** | Final read-only planned-feature completeness gate over accepted artifacts, package result reports, optional review-code context, and integrated code state. | Final gate + standalone |
 | **empirical-spike** | Produces a bounded caller-neutral report for one material unresolved empirical behavior; it neither implements nor chooses or invokes downstream workflows. | Standalone + conditional evidence hook |
 | **diagnose-and-fix** | Diagnoses issues evidence-first, reports findings for approval, then routes approved fixes through worktree or implementation-plan. | Standalone |
 | **testing** | Establishes or updates reusable project testing workflow docs, then routes test authoring, alteration, and execution through the approved workflow. | Standalone |
@@ -174,11 +171,11 @@ Semgrep findings preserve Semgrep severity but are advisory by default. They do 
 
 | Mode | Trigger | Boundary |
 |---|---|---|
-| **Planned-feature pipeline** | Explicit or inherited feature context plus `.tasks/<feature>/` artifacts and reviewed implementation state. | Consumes package proof/report signals, records audit readiness, and routes serious fixes through proof/report freshness rules. |
+| **Planned-feature pipeline** | Explicit or inherited feature context plus `.tasks/<feature>/` artifacts and reviewed implementation state. | Consumes package result reports, records audit readiness, and routes serious fixes through result freshness rules. |
 | **PR** | PR URL, `owner/repo#N`, or `#N` in a repository with `gh` available. | Review-only for code changes; GitHub side effects require the PR action gate. |
 | **Local** | No planned-feature context and no PR identifier. | Reviews one complete caller-bound or locally captured state: committed base-to-HEAD plus staged, unstaged, and untracked files together. Repairs require the local action gate, owning repair contract when supplied, rebinding, and fix verification. |
 
-Ordinary PR/local review does not inherit planned-feature Slice, proof, report, or audit obligations unless planned-feature artifacts are explicitly in scope.
+Ordinary PR/local review does not inherit planned-feature Slice, result-report, or audit obligations unless planned-feature artifacts are explicitly in scope.
 
 ---
 
@@ -198,7 +195,7 @@ project/                               # user-owned root; do not switch branches
 Key rules:
 
 - The orchestrator owns branch/worktree creation, merges, cleanup, and approved pushes.
-- Package agents edit only their assigned package worktree and proof Markdown handoff.
+- Package agents edit only their assigned package worktree and may draft the declared result report.
 - Feature-branch push must match the approved Execution Contract.
 - Target/main merge or push always requires separate explicit approval.
 - Cleanup requires merge-base proof and clean worktrees.
@@ -367,7 +364,7 @@ plugins/super-developer/
 |---|---|
 | Slice-first planning | Slices capture durable product/design understanding while control-plane authority stays out of Slice text. |
 | Progressive disclosure | `SKILL.md` files route and guard; detailed contracts load only at action points. |
-| Package delegation | Work packages are large enough for useful sub-agent execution and small enough for focused proof/report verification. |
+| Package delegation | Work packages are large enough for useful sub-agent execution and small enough for focused result-file confirmation. |
 | Independent verification | Package reports, review-code readiness, and audit each protect a different gate. None replaces another. |
 | Read-only dashboards | Status views show mechanical signals without mutating lifecycle state or claiming semantic completion. |
 | Explicit git authority | Feature pushes, target merges, cleanup, and release operations happen only under their named contracts. |

@@ -9,7 +9,7 @@ description: >
 # Implementation Plan
 
 Orchestrate a fresh Slice-first planned-feature set under the selected artifact root: `SPEC.md`, lightweight
-`tasks.json`, package Markdown, declared proof/report paths, and proof placeholders when dispatch is next.
+`tasks.json`, package Markdown, and declared `report_path` result files. New contracts drop `proof_path`.
 “Fresh” describes the artifact set, not whether the target system is new. Source inspection and helpers use the
 separate code root.
 
@@ -47,8 +47,8 @@ accepted empirical reports or explicit `none`.
   manual/protected expansion to `implement`, never prompt here.
 - Slices are product/design authority only, never workflow/tool/review authority. Index-only planning is allowed
   when no Slice is independently useful; otherwise the planner inventories and reads every safe Slice in full.
-- Registry is bookkeeping; package Markdown owns assignment, proof Markdown owns closure evidence, and reports
-  own independent verification receipts. Boundaries keep material requirements observable from files alone.
+- Registry is bookkeeping; package Markdown owns assignment, and `report_path` names the independent result.
+  Boundaries keep material requirements observable from files alone.
 - Define done objectively: executable feature `## Acceptance` in `SPEC.md` and per-package `## Acceptance
   Checklist`, with only explicit human-approved `manual (approved)` exceptions. Surface missing runnable commands
   before authorization rather than writing unverifiable acceptance.
@@ -115,7 +115,7 @@ accepted empirical reports or explicit `none`.
 - Nontrivial/risky design challenge → `references/design-preflight.md`
 - Package shaping → `../../references/work-packages.md`
 - Drafting `SPEC.md` → `references/spec-template.md`
-- Drafting registry/packages/proof/report declarations → `references/artifact-authoring.md` and
+- Drafting registry/packages/result declarations → `references/artifact-authoring.md` and
   `../../references/slice-first-artifacts.md`
 - Before artifact writes/completion claims → `references/validation-checklist.md`
 - Helper syntax or command safety is unclear → `../../references/tool-usage.md`

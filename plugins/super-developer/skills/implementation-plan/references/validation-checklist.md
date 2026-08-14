@@ -2,7 +2,7 @@
 
 Load immediately before writing `.tasks/<feature-name>/SPEC.md`, `tasks.json`, and package Markdown under the artifact root, then again after `sliceproof.py validate-plan` passes.
 
-Mechanical path, registry, package, proof, report, and H3 checks belong to `${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py`. This checklist catches planner-quality issues the helper cannot judge.
+Mechanical path, registry, package, result-file, and H3 checks belong to `${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py`. This checklist catches planner-quality issues the helper cannot judge.
 
 ## Pre-Write Gates
 
@@ -69,8 +69,8 @@ Do not create or overwrite `.tasks/<feature-name>/` artifacts until all applicab
 
 - Every package file exists before implementation dispatch.
 - H1 matches `# Work Package: <WP-ID> — <title>`.
-- Required sections are present and non-empty: `Scope`, `Assigned Slices`, `Primary Paths`, `Verification Expectations`, `Proof`, `Package Verification Report`, and `Dependencies`.
-- `## Acceptance Checklist` is present with one concrete item per `Must satisfy` obligation and material verification expectation; every item is an executable check or a human-approved `manual (approved)` exception, never aspirational prose.
+- Required sections are present and non-empty: `Scope`, `Assigned Slices`, `Primary Paths`, `Verification Expectations`, `Package Verification Report`, and `Dependencies`.
+- `## Acceptance Checklist` is present with one concrete item per `Must satisfy` obligation and material verification expectation; every item is an executable check or a human-approved `manual (approved)` exception, never aspirational prose. Reject a package whose only checks are manual unless that exception is surfaced.
 - Package Acceptance Checklists exclude source/sidecar publication, final review/audit, target delivery,
   release/deployment, and post-delivery validation; those checks belong only to feature/delivery acceptance.
 - Assigned Slice paths come from the authoritative inventory; no-Slice packages use `- None.`.
@@ -94,14 +94,14 @@ Do not create or overwrite `.tasks/<feature-name>/` artifacts until all applicab
   `fixture` are suspicious only when used with internal planning/package/staging meaning; legitimate
   domain, API, SDK, operator, explicit developer-diagnostic, or escaped raw user/provider uses are
   allowed when audience-appropriate.
-- Proof and report sections declare exactly one path each.
+- The Package Verification Report section declares exactly one `report_path`.
 - Dependencies match the registry. A continuation-created package's Notes name `BASE_KIND`, exact `BASE_REF`,
   `REVIEWED_BASE_SHA`, each prerequisite package ref/SHA, and the matching integration HEAD used for ancestry review.
 
 ## Registry
 
 - Contains only `feature`, `title`, `status`, `spec_path`, `authoritative_slices`, and `work_packages`.
-- Each package entry contains only `id`, `path`, `proof_path`, `report_path`, `status`, and `depends_on`.
+- Each package entry contains only `id`, `path`, `report_path`, `status`, and `depends_on`. New contracts omit `proof_path`.
 - `authoritative_slices` is the full safe Slice inventory, or empty only for Index-only/no-Slice plans.
 - Package IDs and dependencies are coherent, acyclic, and limited to real sequencing constraints rather than convenience serialization.
 - Registry paths match written package Markdown.
@@ -118,23 +118,12 @@ python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-plan \
   ".tasks/<feature-name>/tasks.json"
 ```
 
-If validation fails, fix artifacts and rerun before presenting success.
-
-If immediate package dispatch is approved, create proof placeholders:
-
-```bash
-cd <code-root>
-python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" create-proof \
-  --artifact-root <artifact-root> --code-root <code-root> \
-  ".tasks/<feature-name>/tasks.json" --package <WP-ID>
-```
-
-Do not use `--force` unless replacing existing proof content has explicit approval, provenance, scope, and preservation safeguards.
+If validation fails, fix artifacts and rerun before presenting success. Do not write eight-section proof placeholders.
 
 ## Post-Write Gates
 
 - Re-open written files from the artifact root rather than trusting drafts in memory.
-- Confirm SPEC, registry, package Markdown, proof paths, and report paths agree.
+- Confirm SPEC, registry, package Markdown, and report paths agree.
 - Confirm full Slice inventory matches between SPEC and registry.
 - Confirm every package-assigned H3 exists and every material H3 is assigned or approved otherwise.
 - Confirm helper success was not treated as semantic evidence sufficiency.
