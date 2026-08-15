@@ -109,7 +109,7 @@ Packages:
   known blockers/deferrals: <none or approved details>
 Pipeline:
 1. create fixed worktrees; create probes/continuation packages only under their exact runtime-validated envelope
-2. declare each package `report_path`; do not create eight-section proof placeholders
+2. declare each package `report_path`; create no undeclared artifact files
 3. run attempt-ledger probes; NUL-classify/restore owned dirty state before normal local cleanup, never force/network
 4. dispatch package agents with artifact-root package/Slice/report paths and package code worktrees
 5. require package-agent SELF_REVIEW; after return, re-run every executable frozen AC item into the result file

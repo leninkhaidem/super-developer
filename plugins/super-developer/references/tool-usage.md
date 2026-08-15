@@ -67,7 +67,7 @@ packages and includes them even when hard errors also exist.
 
 `validate-plan` checks:
 
-- lightweight registry shape; new contracts omit `proof_path`;
+- lightweight registry shape and allowed package keys;
 - safe repo-relative SPEC, Slice, package, and report paths;
 - non-empty `## Acceptance Checklist` per package with at least one executable item, and non-empty SPEC `## Acceptance`;
 - package dependency references and cycles;
@@ -78,7 +78,8 @@ packages and includes them even when hard errors also exist.
 `validate-package-complete` checks one selected new-shape package: checklist coverage, cheap pointer resolve
 (presence, non-placeholder, and safe path existence when the pointer looks like a path), Gaps metadata presence,
 and structural fail-closed (Verdict FAIL, any non-pass item, or any open blocker). A registry that still declares
-`proof_path` cannot cheap-PASS as new-shape. The helper does not run tests or judge semantics. Helper ok is not
+Legacy-shaped packages cannot pass new-shape validation. The helper does not run tests or judge semantics.
+Helper ok is not
 done; done is orchestrator re-run recorded PASS plus helper ok.
 
 `validate-final` runs plan and result checks for every package, requires every package to be `done`, and

@@ -57,7 +57,7 @@ PASS | FAIL
 ## Re-verification after repair
 
 Classify semantic impact rather than following dependency descendants. Re-check only affected package-local
-checklist/proof/report evidence plus fresh-for-the-stabilized-state affected build/lint/test evidence; retain
+checklist/result evidence plus fresh-for-the-stabilized-state affected build/lint/test evidence; retain
 unaffected results. Focused seam closure remains exclusively with final `review-code` Fix Verification. Unknown or
 unbounded consumers/invariants widen conservatively. Rewrite each affected report for the repaired state; the
 verifier remains separate from the implementer.

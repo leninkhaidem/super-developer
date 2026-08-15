@@ -9,7 +9,7 @@ description: >
 # Implementation Plan
 
 Orchestrate a fresh Slice-first planned-feature set under the selected artifact root: `SPEC.md`, lightweight
-`tasks.json`, package Markdown, and declared `report_path` result files. New contracts drop `proof_path`.
+`tasks.json`, package Markdown, and declared `report_path` result files.
 “Fresh” describes the artifact set, not whether the target system is new. Source inspection and helpers use the
 separate code root.
 
@@ -54,7 +54,7 @@ accepted empirical reports or explicit `none`.
   before authorization rather than writing unverifiable acceptance.
 - The planner applies the complete shared Module/Interface/Seam model and all smell heuristics while shaping
   packages, but persists only material requirement/risk-traced implications in existing scope, boundaries, risks,
-  dependencies, and verification fields; it creates no standalone quality proof/report or per-smell rows.
+  dependencies, and verification fields; it creates no standalone quality result artifact or per-smell rows.
 - Carry explicit artifact root/ref, code root, and resolved feature/artifact slug through packets, validation, and
   summaries. A Conceptualize slug remains the default absent approved full rename/migration metadata.
 - Resolve Semgrep before planner dispatch. Use supplied state without reopening opt-in; for direct invocation,

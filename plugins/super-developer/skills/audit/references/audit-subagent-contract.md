@@ -47,7 +47,9 @@ Work in order. Clean code cannot compensate for Slice/result gaps.
 For each package Markdown, verify scope, assigned Slice paths, `Must satisfy` and `Context only` IDs, report path, dependencies, primary paths, and verification expectations against registry, SPEC, and full Slice content. Fail omitted material H3s, context-only misuse, unapproved narrowing/deferral, locked-Slice contradictions, or hidden global obligations.
 
 ### 3. Result File Confirmation
-For each result file, verify every assigned `Must satisfy` H3 maps onto an Acceptance Checklist item; each executable item records a pointer plus orchestrator-observed output; Gaps are `none` or carry approval, provenance, and scope; no unresolved `TODO`, `OPEN`, placeholder, contradiction, or FAIL verdict remains. There is no Slice Closure Table or eight-section proof done-gate.
+For each result file, verify every assigned `Must satisfy` H3 maps onto an Acceptance Checklist item; each
+executable item records a pointer plus orchestrator-observed output; Gaps are `none` or carry approval, provenance,
+and scope; no unresolved `TODO`, `OPEN`, placeholder, contradiction, or FAIL verdict remains.
 
 Mechanical validation is necessary, never sufficient. Judge evidence sufficiency, and for each interface-bearing H3 carrying an `Interface contract`, disprove exact fulfillment and assign an exactness verdict per the authority reference, failing any non-`exact` result as `[INTERFACE-EXACTNESS]`.
 

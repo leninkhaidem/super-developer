@@ -29,7 +29,7 @@ The parent supplies:
   commands, and supplied tool-usage/testing-authority contract paths when applicable;
 - forbidden actions, stop/scope-expansion route, and required report fields;
 - local context: caller constraints and reviewed snapshot; or
-- pipeline context: artifact/code roots, feature/package/Slice IDs, proof/report paths, dirty-evidence map,
+- pipeline context: artifact/code roots, feature/package/Slice IDs, result paths, dirty-evidence map,
   source bindings, verification state, and freshness handback owner;
 - for cross-package repair, every affected package, writable path, and finding under one coherent seam authority
   and verification envelope; otherwise the parent must split the packet.
@@ -67,8 +67,8 @@ credentials; mutate shared/production data; or run destructive commands. Return 
 
 ## Pipeline Freshness Handback
 
-Pipeline workers never claim proof/report/Semgrep freshness, Fix Verification, or audit readiness. Return each
-affected package, checklist/proof/report row, seam, Slice H3, evidence anchor, Semgrep evidence, and verification
+Pipeline workers never claim result/Semgrep freshness, Fix Verification, or audit readiness. Return each affected
+package, result row, seam, Slice H3, evidence anchor, Semgrep evidence, and verification
 output as `no_impact|refresh_required|candidate_dirty`. The parent applies semantic package-lifecycle routing;
 unknown impact is `candidate_dirty`, while unaffected results remain reusable.
 

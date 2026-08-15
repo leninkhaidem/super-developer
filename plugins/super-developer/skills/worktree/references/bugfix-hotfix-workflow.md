@@ -89,7 +89,7 @@ When a confirmed broad/risky production repair is routed through planning, the d
 mechanism/evidence, behavior goal/non-goals, regression acceptance, residual risk, explicit production base
 ref/SHA, intended `hotfix/<name>`, and target ref. Planning authorization covers only that handoff; implementation
 and every remote/delivery action retain their owning approvals.
-Reuse ordinary SPEC/Slice/package/proof/report and verification gates—do not create a hotfix artifact taxonomy.
+Reuse ordinary SPEC/Slice/package/result and verification gates—do not create a hotfix artifact taxonomy.
 Carry delivery context through planning/review packets into the Execution Contract. Normal package refs/worktrees
 integrate into the named non-root `hotfix-<name>` worktree/ref from the explicit production base; do not synthesize
 `feature/<feature>`. Create an independent package from production base, or from `hotfix/<name>` after prerequisites:

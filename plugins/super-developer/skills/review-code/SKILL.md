@@ -13,7 +13,7 @@ Run bounded review; route report/actions by mode.
 ## Always
 
 - Select exactly one mode: PR, local, or planned-feature pipeline.
-- Keep PR/local review separate from Slice/proof/report/audit obligations unless pipeline artifacts are in scope.
+- Keep PR/local review separate from Slice/result/audit obligations unless pipeline artifacts are in scope.
 - Pipeline review checks one frozen integrated state for integration correctness (seams, shared contracts,
   coherence). It trusts fresh package-local verification and is not a whole-feature completeness gate.
 - `CLEAN` means no open blocking finding remains for the reviewed state; it is not audit PASS or merge readiness.
@@ -61,7 +61,8 @@ DISCOVERY_COVERAGE:
 ```
 
 Required lenses come from mode, diff surface, risk notes, changed files, security/privacy/safety sniff, and discovered risks. Pipeline lenses include seams,
-Slice/proof contradictions, proof-critical tests, public contracts, data integrity, performance/concurrency, package regressions, report freshness, and audit
+Slice/result contradictions, result-critical tests, public contracts, data integrity, performance/concurrency,
+package regressions, report freshness, and audit
 boundary.
 
 Before clean: every required lens has concrete evidence; no vague rows (`looks good`, `covered`, bare `N/A`). Give weak rows one focused follow-up. Use

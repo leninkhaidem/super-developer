@@ -48,7 +48,7 @@ Do not create or overwrite `.tasks/<feature-name>/` artifacts until all applicab
   operator logs, exports, SDK examples, prompts, or templates use audience/domain language
   rather than planning workflow/package/staging terminology.
 - Substantial independently actionable packages remain dependency-free unless one consumes a durable prerequisite;
-  temporary file/contract/proof overlap changes batching or serialization without inventing a dependency edge.
+  temporary file/contract/result overlap changes batching or serialization without inventing a dependency edge.
 - Tiny or tightly coupled edits are not split into separate packages solely to increase agent count.
 - Packages deliver substantial coherent planned outcomes, including substantial documentation/reference or
   other accepted deliverables; verification-only phases stay in package, wave, integration, or final verification
@@ -60,7 +60,7 @@ Do not create or overwrite `.tasks/<feature-name>/` artifacts until all applicab
 - `## Acceptance` is present, non-empty, and every item is an executable check (command/test/observable) or a human-approved `manual (approved)` exception; manual exceptions are surfaced for user approval at plan review.
 - Contains no invented product behavior, non-functional target, architecture, or success condition.
 - Contains no raw secrets, credentials, tokens, PII, or proprietary sensitive values.
-- Contains no implementation code, pseudo-code, line numbers, proof rows, review findings, transcript, or debate.
+- Contains no implementation code, pseudo-code, line numbers, result rows, review findings, transcript, or debate.
 - `Conceptualize Inputs`, `Authoritative Slices`, and `Work Packages` are manifests only.
 - Code References are verified path-only references or `None identified.`
 - Deferrals/out-of-scope treatment for material obligations includes approval provenance and scope.
@@ -83,7 +83,8 @@ Do not create or overwrite `.tasks/<feature-name>/` artifacts until all applicab
   runtime budgets to the resolved testing authority.
 - Each expectation maps to a concrete `## Acceptance Checklist` item so package verification can check it directly; a linked Slice obligation may share the same check.
 - Known risks such as interactive UI, retry/fail-closed, trigger precedence, lifecycle/restart/reaper, cache invalidation, model/default precedence, generated defaults, and state pollution are seeded when applicable.
-- Planning text says planner seeds do not limit verifier discovery and verifiers must inspect package scope, assigned Slices, changed code/diff, tests, and known failure modes.
+- Planning text says planner seeds do not limit enhanced-verifier discovery; when triggered, the verifier inspects
+  package scope, assigned Slices, changed code/diff, tests, and known failure modes.
 - When Semgrep is enabled, expectations use helper `retrieve` and
   `python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/semgrep_rules.py" scan ...` plus bounded
   consumption, cite `.tasks/<feature>/semgrep/` raw/summary paths plus digests, and avoid manual
@@ -101,11 +102,12 @@ Do not create or overwrite `.tasks/<feature-name>/` artifacts until all applicab
 ## Registry
 
 - Contains only `feature`, `title`, `status`, `spec_path`, `authoritative_slices`, and `work_packages`.
-- Each package entry contains only `id`, `path`, `report_path`, `status`, and `depends_on`. New contracts omit `proof_path`.
+- Each package entry contains only `id`, `path`, `report_path`, `status`, and `depends_on`.
 - `authoritative_slices` is the full safe Slice inventory, or empty only for Index-only/no-Slice plans.
 - Package IDs and dependencies are coherent, acyclic, and limited to real sequencing constraints rather than convenience serialization.
 - Registry paths match written package Markdown.
-- No package scope, Slice H3 assignments, primary paths, verification expectations, proof evidence, review findings, command output, or copied Slice prose are duplicated in the registry.
+- No package scope, Slice H3 assignments, primary paths, verification expectations, result evidence, review
+  findings, command output, or copied Slice prose are duplicated in the registry.
 
 ## Write and Validate
 
@@ -118,7 +120,7 @@ python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-plan \
   ".tasks/<feature-name>/tasks.json"
 ```
 
-If validation fails, fix artifacts and rerun before presenting success. Do not write eight-section proof placeholders.
+If validation fails, fix artifacts and rerun before presenting success. Implementation creates result reports.
 
 ## Post-Write Gates
 

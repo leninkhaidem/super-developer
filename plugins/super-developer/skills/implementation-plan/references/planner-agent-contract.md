@@ -93,7 +93,7 @@ questions, or encode the uncertainty in package Notes as though planning were co
 8. Load the validation checklist, then write only under the artifact root. Initial writes require overwrite
    approval; continuation repair uses its bound authority without reapproval. Code references stay code-root-relative.
 9. Re-open files, then from the code root run `sliceproof.py validate-plan` with explicit artifact/code roots.
-   Repair until pass or report the blocker. Create proof placeholders only when dispatch is already approved.
+   Repair until pass or report the blocker. Implementation creates the package result report.
 
 ## Output
 

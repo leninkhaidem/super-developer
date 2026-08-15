@@ -23,7 +23,10 @@ current-root artifact store is explicitly selected; code, plugin, and test paths
 
 ## Lightweight Registry
 
-`tasks.json` is bookkeeping only. It contains no package scope prose, Slice assignment details, proof evidence, review findings, lifecycle history, command output, or detailed task bodies.
+`tasks.json` is bookkeeping only. It contains no package scope prose, Slice assignment details, result evidence,
+review findings, lifecycle history, command output, or detailed task bodies.
+
+Legacy registry entries that declare `proof_path` are not new-shape and must not be migrated silently.
 
 Required shape:
 
@@ -99,11 +102,11 @@ A lightweight result confirming the package was verified against its frozen `## 
 `plugins/super-developer/references/package-verification-report.md` for the full shape. It contains, in order:
 
 - `### Verdict` with `PASS` or `FAIL`;
-- `## Acceptance Checklist Result` — each checklist item → `pass`/`fail` + one resolvable evidence pointer;
+- `## Acceptance Checklist Result` — each item → pass/fail, pointer, and orchestrator-observed output;
 - `## Blocking findings` — correctness/security/data-loss/contract-break findings, or `none`;
 - `## Advisory notes` — non-blocking observations, or `none`;
-- `## Reviewed state` — worktree/ref/commit of the verified code.
+- `## Reviewed state` — worktree/ref/commit of the verified code;
+- `## Gaps` — `none` or approved provenance and scope.
 
-PASS requires every checklist item `pass` with authentic evidence and no open blocking finding. There is no
-deliverable-completeness matrix, test-review receipt, or digest state-binding block. Mechanical helper output is
-advisory; it never fails a package whose checklist passes.
+PASS requires every checklist item `pass` with authentic observed evidence, no open blocking finding, and no
+unapproved gap. Mechanical helper output is structural only; it does not establish semantic completion.

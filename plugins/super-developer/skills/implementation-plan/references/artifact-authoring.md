@@ -4,10 +4,11 @@
 
 - Apply the packet-supplied canonical artifact-model contract; return `BLOCKED` if its labeled path is missing.
 - Write `.tasks/`, result `report_path` declarations, and Slice inventory paths under the artifact root; keep source/plugin/test paths code-root-relative.
-- `tasks.json` is a lightweight registry: feature metadata, Slice inventory, package paths, `report_path`, status signals, and dependencies only. New contracts omit `proof_path`.
+- `tasks.json` is a lightweight registry: feature metadata, Slice inventory, package paths, `report_path`, status
+  signals, and dependencies only.
 - Package Markdown is the package assignment source of truth.
 - Package result reports are declared during planning and written by the orchestrator or agent; they record each `## Acceptance Checklist` item as pass/fail with pointer plus observed output.
-- Do not duplicate package scope, assigned H3 IDs, primary paths, verification expectations, proof evidence, review findings, command output, or lifecycle history in the registry.
+- Do not duplicate package scope, assigned H3 IDs, primary paths, verification expectations, result evidence, review findings, command output, or lifecycle history in the registry.
 
 ## Registry Shape
 

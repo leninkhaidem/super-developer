@@ -8,10 +8,9 @@ description: >
 
 # Implement
 
-Deliver the reviewed plan autonomously after a single authorization. You (the main agent) orchestrate; package
-agents write code, tests, and docs; a verifier confirms each package is done; final `review-code` and `audit`
-confirm the whole feature works. After authorization you run **without re-prompting the user** until the feature
-is delivered or you hit a legitimate stop.
+Deliver the reviewed plan after one authorization. The main agent orchestrates; package agents write code, tests,
+and docs; enhanced-risk verification, final `review-code`, and `audit` cover risks executable checks cannot show.
+Run without re-prompting until delivery or a legitimate stop.
 
 Loop map: dispatch package waves → verify each against its Acceptance Checklist → repair blocking findings
 (bounded) → integrate → final `review-code` (seams) + `audit` (whole-feature Acceptance) → notify user done.
@@ -90,8 +89,8 @@ Loop map: dispatch package waves → verify each against its Acceptance Checklis
    equivalent code/artifact state, cwd, environment/data, isolation/order assumptions, and evidence mapping;
    distinct isolation, cleanup, nondeterministic, or package checks still run. Track the logical cluster through
    the three-total-attempt circuit. Advisory findings are recorded, not repaired.
-7. Treat package `done` as the local evidence fact established by verifier PASS and
-   `validate-package-complete` (see `references/package-integration-gates.md` and
+7. Treat package `done` as the local evidence fact established by orchestrator re-run PASS, enhanced-risk
+   verifier closure when applicable, and `validate-package-complete` (see `references/package-integration-gates.md` and
    `../../references/package-lifecycle.md`); it does not itself unlock downstream work. Merge through the
    integration worktree, close post-merge freshness, and complete the delivery-context gate before downstream
    unlock or progression. Only for delivery context `feature`, run the contracted non-force feature checkpoint
@@ -120,7 +119,7 @@ Loop map: dispatch package waves → verify each against its Acceptance Checklis
 - Package completion gate, integration, downstream unlocks, post-merge freshness →
   `references/package-integration-gates.md` and `../../references/package-lifecycle.md`
 - Dispatching a repair worker → pass `references/repair-agent-contract.md`
-- Dispatching the verifier → pass `references/package-verification.md`
+- Dispatching an enhanced-risk verifier → pass `references/package-verification.md`
 - Readiness, batching, or repair packet mechanics → `references/package-dispatch.md`
 - Package sizing/dependency semantics → `../../references/work-packages.md`
 - Artifact roles → `../../references/slice-first-artifacts.md`

@@ -19,9 +19,8 @@ Later evidence changes may stale completion through the existing freshness rules
 
 ## Result file
 Each package has one artifact-root result file declared as registry `report_path`:
-`.tasks/<feature>/reports/<WP-ID>.package-verification.md`. New contracts omit `proof_path` and do not use an
-eight-section proof or Slice Closure Table as a done-gate. The orchestrator or agent writes the result; the helper
-is read-only.
+`.tasks/<feature>/reports/<WP-ID>.package-verification.md`. The package agent drafts it, the orchestrator records
+its re-run evidence and any enhanced-verifier findings, and the helper remains read-only.
 
 ## Verification
 When a package agent returns, the implement orchestrator re-runs every executable frozen Acceptance Checklist

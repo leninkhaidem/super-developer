@@ -41,7 +41,7 @@ Project-local files are developer-local/gitignored by default:
 Task-scoped evidence is local/uncommitted under `.tasks/<feature>/semgrep/`:
 - `<WP-ID>.semgrep.json` and `<WP-ID>.semgrep-summary.json` for package scans.
 - `integration.semgrep.json` and `integration.semgrep-summary.json` for optional integrated scans.
-Raw JSON is evidence, not prompt context; consume it through bounded helper views. Proofs/reports
+Raw JSON is evidence, not prompt context; consume it through bounded helper views. Result reports
 cite raw path, raw digest, summary path, summary digest, scan scope, and concise finding/no-finding
 summary when Semgrep is enabled or contracted. Evidence outside `.tasks/<feature>/semgrep/`,
 unpaired stems, symlinks, traversal, or digest mismatches is stale/invalid.

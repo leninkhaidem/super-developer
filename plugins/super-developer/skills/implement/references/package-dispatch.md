@@ -55,7 +55,8 @@ reports only when observation is material, otherwise pass explicit report set `n
 plan artifacts, guess, or retry unchanged. Broad/costly execution requires clean readiness and targeted evidence
 when credible; a documented broad-only branch may use bounded preflight. Readiness is dispatch control, not confirmation.
 
-Do not create eight-section proof placeholders. Do not dispatch from a summary alone; workers receive safe paths and read authoritative files directly.
+Pass only declared artifact paths. Do not dispatch from a summary alone; workers receive safe paths and read
+authoritative files directly.
 
 ## Batch Selection and Runtime Adjustment
 
@@ -70,8 +71,8 @@ Choose the largest safe useful batch after readiness:
 
 State the batch rationale. The orchestrator may reorder work within reviewed artifacts. Any needed plan-owned
 scope, Slice, dependency, result-file, deferral, split, or merge correction follows the continuation/focused-review
-route; prompt only for changed semantics/scope/visible behavior/risk/manual exceptions. Every package still needs
-`SELF_REVIEW` and independent holistic verification. Load work-package/risk-probe rules only when triggered.
+route; prompt only for changed semantics/scope/visible behavior/risk/manual exceptions. Every package needs `SELF_REVIEW` and orchestrator re-run confirmation. Enhanced-risk packages also need the
+independent verifier. Load work-package/risk-probe rules only when triggered.
 
 ## Dispatch Packet Kernel
 
@@ -127,13 +128,13 @@ not progress and cannot reset the three-total-attempt cap. Stop for authority/sa
 
 ## Package Verifier Packet
 
-Required first reads: `plugins/super-developer/skills/implement/references/package-verification.md` and
-`plugins/super-developer/references/package-verification-report.md`. Include artifact/package/proof/report/Slice
-paths, reviewed code/ref, `SELF_REVIEW`, verification outputs, and optional Semgrep bindings. Require
-verifier-owned triggered risk selection from scope, Slices, changed code/diff, tests, expectations, and
-known failure modes; planner seeds do not limit verifier discovery. Require a concise PASS/FAIL report with the
-Acceptance Checklist Result and blocking/advisory findings; refresh a malformed report rather than bypass it. The verifier reads files directly
-and writes the report without hidden chat context.
+Dispatch only for an enhanced-risk package after the orchestrator re-run. Require first reads of
+`plugins/super-developer/skills/implement/references/package-verification.md` and
+`plugins/super-developer/references/package-verification-report.md`. Include artifact/package/result/Slice paths,
+reviewed code/ref, `SELF_REVIEW`, orchestrator-observed output, and optional Semgrep bindings. The verifier checks
+checklist-invisible blocking risk from scope, Slices, diff, tests, expectations, and known failure modes; planner
+seeds do not limit discovery. It returns PASS/FAIL plus blocking/advisory findings. The orchestrator records them
+in the same six-section result report; the verifier neither creates another artifact nor replaces observed output.
 
 ## Orchestrator Edit Boundary
 

@@ -3,7 +3,7 @@ Use this reference for planned-feature execution. Boundary: artifact sidecar set
 worktrees, package merge order, dependencies, and feature-push handoff. Parent supplies artifact-store root terms.
 ## Contract
 - One artifact sidecar per feature slug: orphan ref `artifacts/<feature>` at `.worktrees/<feature>/artifacts`.
-- The artifact sidecar contains `.planning/`, `.tasks/`, proof/report artifacts, and minimal metadata only.
+- The artifact sidecar contains `.planning/`, `.tasks/`, package result artifacts, and minimal metadata only.
 - The artifact sidecar is not a source checkout, feature branch, package branch, or target-merge branch.
 - One worktree/ref per reviewed package: `wp/<feature>/<WP-ID>` at `.worktrees/<feature>/wp-<WP-ID>`.
 - Auto-resolve may create, but never remove, focused-reviewed continuation packages; each artifact fixes `BASE_KIND`, exact `BASE_REF`, `REVIEWED_BASE_SHA`, and prerequisite ref/SHA evidence.
@@ -88,7 +88,7 @@ cd "$PROJECT_ROOT/.worktrees/<feature>/wp-<WP-ID>"
 # implement all work assigned to this package
 # commit the package's source/reference/test changes on wp/<feature>/<WP-ID>
 ```
-Proof/reports stay in the artifact root. Create no internal branches unless the plan split the package.
+Package result reports stay in the artifact root. Create no internal branches unless the plan split the package.
 ### 4. Create the integration worktree
 ```bash
 cd "$PROJECT_ROOT"

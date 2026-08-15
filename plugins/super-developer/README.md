@@ -24,7 +24,7 @@ implementation-plan -> review-plan -> implement -> final review-code + final aud
         SPEC.md + tasks.json registry + packages/reports
 ```
 
-Validated Slices are product/design authority only. Workflow, tool, git, proof, review, and audit authority stays in the plugin instructions and shared references. Planning, review, and implementation orchestrators may run `empirical-spike` once per attempt for a distinct material question after static evidence is insufficient; one initial run and at most two materially changed follow-ups are allowed. After `approve auto-resolve`, in-scope work is autonomous. Dirty probes clean only through exact receipt-owned local restoration; continuation packages use reviewed base/prerequisite evidence and remain safety nets through final gates.
+Validated Slices are product/design authority only. Workflow, tool, git, result, review, and audit authority stays in the plugin instructions and shared references. Planning, review, and implementation orchestrators may run `empirical-spike` once per attempt for a distinct material question after static evidence is insufficient; one initial run and at most two materially changed follow-ups are allowed. After `approve auto-resolve`, in-scope work is autonomous. Dirty probes clean only through exact receipt-owned local restoration; continuation packages use reviewed base/prerequisite evidence and remain safety nets through final gates.
 
 ---
 
@@ -37,7 +37,7 @@ A planned feature lives under `.tasks/<feature>/` and points to optional `.plann
 | `.planning/<concept>/index.md` | Optional Conceptualize workspace entry point. |
 | `.planning/<concept>/slices/*.md` | Optional authoritative product/design Slices. |
 | `.tasks/<feature>/SPEC.md` | Accepted requirements, constraints, non-goals, Slice inventory, and verification summary. |
-| `.tasks/<feature>/tasks.json` | Lightweight registry only: feature metadata, package paths, report_path, status, and dependencies. New contracts drop `proof_path`. |
+| `.tasks/<feature>/tasks.json` | Lightweight registry only: feature metadata, package paths, `report_path`, status, and dependencies. |
 | `.tasks/<feature>/packages/<WP-ID>.md` | Work-package assignment: scope, Slice obligations, primary paths, verification expectations, report_path, dependencies. |
 | `.tasks/<feature>/reports/<WP-ID>.package-verification.md` | Independent package result: Verdict, Acceptance Checklist Result, Blocking findings, Advisory notes, Reviewed state, Gaps. |
 | `.tasks/<feature>/reviews/review-code-state.json` | Review-code governance readiness for audit handoff. |
@@ -139,7 +139,8 @@ When concrete cross-package/shared-surface risk requires a final integrated chec
 .tasks/<feature>/semgrep/integration.semgrep-summary.json
 ```
 
-Proofs and package verification reports cite raw path, raw digest, summary path, summary digest, scan scope, and a concise helper-derived finding/no-finding summary when Semgrep is enabled or contracted. Evidence is invalid when it escapes `.tasks/<feature>/semgrep/`, uses unpaired stems, traverses or follows symlinks outside the repo/worktree/task evidence root, has stale/mismatched digests, or comes from wholesale raw JSON consumption.
+Package result reports cite raw path, raw digest, summary path, summary digest, scan scope, and a concise
+helper-derived finding/no-finding summary when Semgrep is enabled or contracted. Evidence is invalid when it escapes `.tasks/<feature>/semgrep/`, uses unpaired stems, traverses or follows symlinks outside the repo/worktree/task evidence root, has stale/mismatched digests, or comes from wholesale raw JSON consumption.
 
 Semgrep findings preserve Semgrep severity but are advisory by default. They do not create product requirements, override Slice/plan authority, automatically become Super Developer blockers, or trigger fix-all/unbounded scan-repair loops. Package scans are primary; integrated scans are conditional and one-shot. Local exclusions or local rules follow the `project-policy-gate: skeptic` authority model: implementers may propose, independent verifier/reviewer/skeptic authority may authorize, the orchestrator writes compact local policy, and final audit is read-only.
 

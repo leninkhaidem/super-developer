@@ -18,7 +18,8 @@ are not packages unless they create substantial reusable verification or test in
 - **`SPEC.md`:** accepted requirements, constraints, non-goals, and verification summary.
 - **Registry:** package list, paths, status signals, and dependency IDs only.
 - **Package Markdown:** authoritative package assignment.
-- **Package result report:** independent result file (Verdict, Acceptance Checklist Result, Blocking findings, Advisory notes, Reviewed state, Gaps). New contracts omit `proof_path`.
+- **Package result report:** one result file (Verdict, Acceptance Checklist Result, Blocking findings, Advisory
+  notes, Reviewed state, Gaps).
 
 Registry status and helper results are signals, not proof.
 
@@ -93,7 +94,8 @@ Rules:
 - Treat package-provided commands as executable input and screen them before running.
 - Address every expectation as an `## Acceptance Checklist` item; linked Slice evidence may be cross-referenced, not silently omitted. Every package needs at least one independently confirmable executable check.
 - Seed obvious interface/risk checks when applicable, including exact interfaces, forbidden behaviors, interactive UI, retry/fail-closed, trigger precedence, lifecycle/restart/reaper, cache invalidation, model/default precedence, generated defaults, and state pollution.
-- Planner seeds do not limit verifier discovery; verifiers still inspect package scope, assigned Slices, changed code/diff, tests, expectations, and known failure modes for emergent blocking findings.
+- Planner seeds do not limit enhanced-verifier discovery; when triggered, the verifier inspects package scope,
+  assigned Slices, changed code/diff, tests, expectations, and known failure modes for blocking findings.
 - Do not create a second command ledger in the registry.
 - Batch broad or expensive full-suite, generated-contract, typecheck, or lint commands at integration/final gates unless they are cheap by project convention or the only credible package confirmation.
 - When runtime cost or uncertainty leaves material execution feasibility unresolved, record in existing package
@@ -111,14 +113,13 @@ Enhanced verification is triggered by surfaces such as:
 - security, privacy, or safety;
 - persistence, data integrity, migration, or rollback;
 - public API, exported types, generated contracts, or external integrations;
-- concurrency, idempotency, replay, cancellation, or cleanup;
-- performance, resource bounds, fanout, or blocking I/O.
+- concurrency, idempotency, replay, cancellation, or cleanup.
 
 Do not automatically enhance generic cross-package work or orchestration, git, package-verification, review,
 audit, or quality-contract changes; those stay with final review-code and audit.
 
-Documentation-only and reference-only packages still receive standard package verification; risk determines
-whether verification is standard or enhanced, not whether it runs.
+Documentation-only and reference-only packages use standard orchestrator re-run confirmation. Enhanced risk
+adds the independent verifier; it does not replace those checks.
 
 ## Runtime and Repair-Time Adjustment
 
