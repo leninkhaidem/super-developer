@@ -6,6 +6,16 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [v2.3.0] - 2026-08-14
+
+### Added
+- Added confirmable work packages whose executable acceptance checks can pass before later packages exist, so each package delivers a runnable user-visible or infrastructure outcome.
+
+### Changed
+- Simplified new package completion to one six-section result report while preserving legacy task artifacts without silent migration.
+- Changed standard package confirmation so the orchestrator re-runs every executable acceptance check, with independent LLM verification reserved for security, persistence, public-contract, and concurrency risks.
+- Updated planning, implementation, review, audit, and worktree guidance to use the single result-report lifecycle consistently.
+
 ## [v2.2.3] - 2026-08-13
 
 ### Fixed
