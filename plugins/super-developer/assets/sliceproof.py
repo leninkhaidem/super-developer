@@ -1,20 +1,20 @@
 #!/usr/bin/env python3
 """Mechanical helper for Slice-first planned-feature artifacts.
 
-The helper performs deterministic structure, path-safety, proof-closure, and
-report-binding checks. It does not judge semantic proof quality, run tests,
-mutate package status, write review readiness, or replace review/audit gates.
+The helper performs deterministic structure, path-safety, checklist-coverage,
+and cheap pointer-resolve checks. It does not judge semantic evidence quality,
+run tests, mutate package status, write the result file, or replace review/audit.
+A registry package is new-shape iff it omits proof_path; new-shape PASS is never
+applied to a package that still declares that field.
 """
 
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import os
 import re
 import sys
-import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -26,28 +26,24 @@ H3_ID_RE = re.compile(r"^\s*###\s+`?([A-Z][A-Z0-9-]*-[0-9]{3})`?(?:\s+(?:—|-)\
 STATUS_VALUES = {"pending", "in_progress", "done", "blocked"}
 FEATURE_STATUS_VALUES = {"planned", "reviewed", "in_progress", "completed", "blocked", "on_hold"}
 REGISTRY_KEYS = {"feature", "title", "status", "spec_path", "authoritative_slices", "work_packages"}
-REGISTRY_PACKAGE_KEYS = {"id", "path", "proof_path", "report_path", "status", "depends_on"}
+REGISTRY_PACKAGE_KEYS = {"id", "path", "report_path", "status", "depends_on"}
+LEGACY_PACKAGE_KEYS = {"proof_path"}
 REQUIRED_PACKAGE_SECTIONS = {
     "Scope",
     "Assigned Slices",
     "Primary Paths",
     "Verification Expectations",
     "Acceptance Checklist",
-    "Proof",
     "Package Verification Report",
     "Dependencies",
 }
-REQUIRED_PROOF_SECTIONS = {
-    "Package Scope",
-    "Assigned Slice Scope",
-    "Slice Closure Table",
-    "Acceptance / Verification Closure",
-    "Commands Run",
-    "Files Changed / Inspected",
-    "Gaps, Deviations, or Deferred Items",
-    "Package Agent Completion Statement",
+REQUIRED_REPORT_SECTIONS = {
+    "Acceptance Checklist Result",
+    "Blocking findings",
+    "Advisory notes",
+    "Reviewed state",
+    "Gaps",
 }
-PROOF_STATUS_VALUES = {"PASS", "GAP", "DEFERRED", "N/A", "OPEN"}
 BLOCKING_MARKER_RE = re.compile(r"\b(?:TODO|OPEN|GAP)\b", re.IGNORECASE)
 UNRESOLVED_MARKER_RE = re.compile(r"\b(?:TODO|OPEN)\b", re.IGNORECASE)
 NEGATED_APPROVAL_RE = re.compile(
@@ -88,6 +84,13 @@ FORBIDDEN_REGISTRY_KEYS = {
     "verification_commands",
     "lifecycle",
 }
+TEST_ID_RE = re.compile(r"(?:^test:|::)", re.IGNORECASE)
+FILE_SUFFIX_RE = re.compile(r"\.[A-Za-z0-9]{1,8}$")
+COMMAND_INVOCATION_RE = re.compile(
+    r"(?:^|[`$'\"(])\s*(?:python3?|py|pytest|npm|pnpm|yarn|make|cargo|go|node|bash|sh|zsh)\b|"
+    r"\s(?:-[A-Za-z]|--[A-Za-z0-9-]+)\b|\s\|\s|&&|;",
+    re.IGNORECASE,
+)
 
 
 class SliceproofError(Exception):
@@ -124,7 +127,6 @@ class PackageMarkdown:
     primary_paths: list[str]
     verification_expectations: list[str]
     acceptance_checklist: list[str]
-    proof_path: str
     report_path: str
     dependencies: list[str]
 
@@ -144,6 +146,10 @@ class RegistryPackage:
     report_path: str
     status: str
     depends_on: list[str]
+
+    @property
+    def is_new_shape(self) -> bool:
+        return not self.proof_path.strip()
 
 
 @dataclass(frozen=True)
@@ -174,7 +180,6 @@ class PackageState:
     registry: Registry
     package: RegistryPackage
     package_md: PackageMarkdown
-    proof_path: Path
     report_path: Path
 
 
@@ -208,7 +213,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
             "Mechanical Slice-first planned-feature helper. Validation commands are read-only; "
-            "create-proof only writes the declared package proof Markdown placeholder."
+            "only the orchestrator or agent writes the package result file."
         )
     )
     root_options = argparse.ArgumentParser(add_help=False)
@@ -223,37 +228,10 @@ def build_parser() -> argparse.ArgumentParser:
     validate_plan.add_argument("tasks", type=Path, help="Path to .tasks/<feature>/tasks.json under the artifact root.")
     validate_plan.set_defaults(func=cmd_validate_plan)
 
-    create_proof = subparsers.add_parser(
-        "create-proof",
-        parents=[root_options],
-        help="Create a package proof Markdown placeholder from work-package Markdown.",
-    )
-    create_proof.add_argument("tasks", type=Path, help="Path to .tasks/<feature>/tasks.json under the artifact root.")
-    create_proof.add_argument("--package", required=True, help="Work package id, for example WP1.")
-    create_proof.add_argument(
-        "--force",
-        action="store_true",
-        help="Replace edited or filled proof content only with explicit approved replacement metadata.",
-    )
-    create_proof.add_argument(
-        "--approved-replacement",
-        help="Approval text containing explicit approved-by source, provenance, and scope for replacing edited or filled proof evidence.",
-    )
-    create_proof.set_defaults(func=cmd_create_proof)
-
-    validate_proof = subparsers.add_parser(
-        "validate-proof",
-        parents=[root_options],
-        help="Validate one package proof Markdown file mechanically.",
-    )
-    validate_proof.add_argument("tasks", type=Path, help="Path to .tasks/<feature>/tasks.json under the artifact root.")
-    validate_proof.add_argument("--package", required=True, help="Work package id, for example WP1.")
-    validate_proof.set_defaults(func=cmd_validate_proof)
-
     validate_package_complete = subparsers.add_parser(
         "validate-package-complete",
         parents=[root_options],
-        help="Validate one package proof and confirm the lightweight verification report exists before marking done.",
+        help="Read-only check of one package result: checklist coverage and cheap pointer resolve.",
     )
     validate_package_complete.add_argument("tasks", type=Path, help="Path to .tasks/<feature>/tasks.json under the artifact root.")
     validate_package_complete.add_argument("--package", required=True, help="Work package id, for example WP1.")
@@ -262,7 +240,7 @@ def build_parser() -> argparse.ArgumentParser:
     validate_final = subparsers.add_parser(
         "validate-final",
         parents=[root_options],
-        help="Validate all packages, proof Markdown, and that each lightweight verification report exists.",
+        help="Validate all packages are done and each new-shape result file is structurally complete.",
     )
     validate_final.add_argument("tasks", type=Path, help="Path to .tasks/<feature>/tasks.json under the artifact root.")
     validate_final.set_defaults(func=cmd_validate_final)
@@ -295,108 +273,21 @@ def cmd_validate_plan(args: argparse.Namespace) -> dict[str, Any]:
     }
 
 
-def cmd_create_proof(args: argparse.Namespace) -> dict[str, Any]:
-    if args.approved_replacement and not args.force:
-        raise SliceproofError(["create-proof: --approved-replacement requires --force"])
-    if args.approved_replacement is not None and not has_approval_provenance_scope(args.approved_replacement):
-        raise SliceproofError(
-            ["create-proof: --approved-replacement must include positive approval, provenance, and scope"]
-        )
-
-    preflight_registry = load_registry(args.tasks, artifact_root=args.artifact_root, code_root=args.code_root)
-    preflight_package = preflight_registry.package(args.package)
-    if preflight_package is not None and preflight_package.proof_path:
-        reject_existing_symlink_at_unresolved_path(
-            preflight_registry.root,
-            preflight_package.proof_path,
-            f"work_packages[{args.package}].proof_path",
-            expected_suffix=".proof.md",
-            error_message=f"create-proof: refusing to write through symlink proof path: {preflight_package.proof_path}",
-        )
-
-    registry, packages = load_and_validate_plan(args.tasks, artifact_root=args.artifact_root, code_root=args.code_root)
-    package = require_package(registry, args.package)
-    package_md = packages[package.package_id]
-    proof_path = resolve_safe_path(
-        registry.root,
-        package.proof_path,
-        f"work_packages[{package.package_id}].proof_path",
-        expected_suffix=".proof.md",
-        root_label="artifact root",
-    )
-    proof_text = render_proof_template(registry, package_md)
-    backup_path: Path | None = None
-
-    existed_before = proof_path.exists() or proof_path.is_symlink()
-    if existed_before:
-        if proof_path.is_symlink():
-            raise SliceproofError([f"create-proof: refusing to write through symlink proof path: {package.proof_path}"])
-        existing = read_text_file(proof_path, f"create-proof: existing proof {package.proof_path}")
-        if is_generated_placeholder(existing, proof_text):
-            return {
-                "package": package.package_id,
-                "proof_path": package.proof_path,
-                "created": False,
-                "already_existed": True,
-                "required_slice_rows": package_md.must_satisfy_ids,
-            }
-        if not args.force:
-            raise SliceproofError(
-                [f"create-proof: {package.proof_path} already exists and is not the current empty placeholder; refusing overwrite"]
-            )
-        if not args.approved_replacement:
-            raise SliceproofError(
-                [
-                    f"create-proof: {package.proof_path} contains edited or filled proof content; refusing --force "
-                    "without approved replacement metadata and preservation safeguards"
-                ]
-            )
-        backup_path = preserve_existing_proof(proof_path, existing)
-
-    ensure_directory(proof_path.parent, f"create-proof: proof directory for {package.proof_path}")
-    atomic_write_text(proof_path, proof_text)
-    result: dict[str, Any] = {
-        "package": package.package_id,
-        "proof_path": package.proof_path,
-        "created": True,
-        "already_existed": False,
-        "replaced_existing": existed_before,
-        "required_slice_rows": package_md.must_satisfy_ids,
-    }
-    if backup_path is not None:
-        result["preserved_existing_proof"] = str(backup_path.relative_to(registry.root))
-        result["approved_replacement"] = args.approved_replacement.strip()
-    return result
-
-
-def cmd_validate_proof(args: argparse.Namespace) -> dict[str, Any]:
-    state = load_package_state(args.tasks, args.package, artifact_root=args.artifact_root, code_root=args.code_root)
-    errors = validate_proof_markdown(state.proof_path, state.package_md)
-    if errors:
-        raise SliceproofError(errors)
-    return {
-        "package": state.package.package_id,
-        "proof_path": state.package.proof_path,
-        "required_slice_rows": state.package_md.must_satisfy_ids,
-        "verification_expectations": state.package_md.verification_expectations,
-    }
-
-
 def cmd_validate_package_complete(args: argparse.Namespace) -> dict[str, Any]:
     state = load_package_state(args.tasks, args.package, artifact_root=args.artifact_root, code_root=args.code_root)
-    errors = validate_proof_markdown(state.proof_path, state.package_md)
-    report_result = validate_report_markdown(state.report_path, state.proof_path, state.package_md)
+    errors = reject_non_new_shape(state.package)
+    report_result = validate_report_markdown(state.report_path, state.package, state.package_md, state.registry)
     errors.extend(report_result.errors)
     if errors:
         raise SliceproofError(errors, report_result.advisories)
     return {
         "package": state.package.package_id,
         "package_status": state.package.status,
-        "proof_path": state.package.proof_path,
         "report_path": state.package.report_path,
-        "required_slice_rows": state.package_md.must_satisfy_ids,
+        "new_shape": True,
+        "mechanical_only": True,
+        "semantic_done": False,
         "acceptance_checklist_items": state.package_md.acceptance_checklist,
-        "verification_expectation_rows": [f"VE-{index}" for index in range(1, len(state.package_md.verification_expectations) + 1)],
         "advisories": report_result.advisories,
     }
 
@@ -410,13 +301,7 @@ def cmd_validate_final(args: argparse.Namespace) -> dict[str, Any]:
         package_md = packages[package.package_id]
         if package.status != "done":
             errors.append(f"work_packages[{package.package_id}].status: expected 'done' for validate-final, got {package.status!r}")
-        proof_path = resolve_safe_path(
-            registry.root,
-            package.proof_path,
-            f"work_packages[{package.package_id}].proof_path",
-            expected_suffix=".proof.md",
-            root_label="artifact root",
-        )
+        errors.extend(reject_non_new_shape(package))
         report_path = resolve_safe_path(
             registry.root,
             package.report_path,
@@ -424,8 +309,7 @@ def cmd_validate_final(args: argparse.Namespace) -> dict[str, Any]:
             expected_suffix=".package-verification.md",
             root_label="artifact root",
         )
-        errors.extend(validate_proof_markdown(proof_path, package_md))
-        report_result = validate_report_markdown(report_path, proof_path, package_md)
+        report_result = validate_report_markdown(report_path, package, package_md, registry)
         advisories.extend(report_result.advisories)
         if not report_result.errors:
             validated_reports.append(package.report_path)
@@ -435,10 +319,19 @@ def cmd_validate_final(args: argparse.Namespace) -> dict[str, Any]:
     return {
         "feature": registry.feature,
         "packages": [package.package_id for package in registry.packages],
-        "proofs_validated": [package.proof_path for package in registry.packages],
         "reports_validated": validated_reports,
+        "mechanical_only": True,
+        "semantic_done": False,
         "advisories": advisories,
     }
+
+
+def reject_non_new_shape(package: RegistryPackage) -> list[str]:
+    if package.is_new_shape:
+        return []
+    return [
+        f"work_packages[{package.package_id}]: cannot apply new-shape PASS while proof_path is declared"
+    ]
 
 
 def load_package_state(
@@ -451,13 +344,6 @@ def load_package_state(
     registry, packages = load_and_validate_plan(tasks_path, artifact_root=artifact_root, code_root=code_root)
     package = require_package(registry, package_id)
     package_md = packages[package.package_id]
-    proof_path = resolve_safe_path(
-        registry.root,
-        package.proof_path,
-        f"work_packages[{package.package_id}].proof_path",
-        expected_suffix=".proof.md",
-        root_label="artifact root",
-    )
     report_path = resolve_safe_path(
         registry.root,
         package.report_path,
@@ -465,7 +351,7 @@ def load_package_state(
         expected_suffix=".package-verification.md",
         root_label="artifact root",
     )
-    return PackageState(registry, package, package_md, proof_path, report_path)
+    return PackageState(registry, package, package_md, report_path)
 
 
 def load_and_validate_plan(
@@ -556,12 +442,35 @@ def acceptance_item_id(item: str) -> str | None:
     return match.group(1) if match else None
 
 
-def validate_acceptance_items(items: list[str], label: str) -> list[str]:
+def is_manual_approved_item(item: str) -> bool:
+    return re.search(r"(?i)\bmanual\s*\(approved\)", item) is not None
+
+
+def is_executable_acceptance_item(item: str) -> bool:
+    check_match = re.search(r"(?i)\bcheck\s*:", item)
+    if check_match is None:
+        return False
+    payload = item[check_match.end():].strip()
+    payload = re.split(
+        r"(?:^|\s+)(?:—|–)\s*(?:expected|verify)\s*:",
+        payload,
+        maxsplit=1,
+        flags=re.IGNORECASE,
+    )[0].strip()
+    if is_placeholder_text(payload):
+        return False
+    if re.match(r"(?i)manual\s*\(approved\)", payload):
+        return False
+    return True
+
+
+def validate_acceptance_items(items: list[str], label: str, *, require_executable: bool = False) -> list[str]:
     """Right-sized checks on a frozen Acceptance list: real IDs, unique, not placeholders,
     and each item names an executable check or an approved manual exception. It does not (and
-    cannot) prove a check actually runs — the verifier agent owns that."""
+    cannot) prove a check actually runs — the verifier/orchestrator owns that."""
     errors: list[str] = []
     seen: set[str] = set()
+    executable = 0
     for index, item in enumerate(items, 1):
         text = item.strip()
         if is_placeholder_text(text):
@@ -588,10 +497,10 @@ def validate_acceptance_items(items: list[str], label: str) -> list[str]:
             errors.append(
                 f"{label}: item {item_id} must name an executable 'check:' or a 'manual (approved)' exception"
             )
-        elif manual_match is not None:
+        elif manual_match is not None and check_match is None:
             manual_description = body[manual_match.end():].strip()
             manual_description = re.sub(
-                r"(?i)^(?:—|–|-)?\s*verify\s*:\s*", "", manual_description
+                r"(?i)^(?:—|–|-)?\s*verify\s*:", "", manual_description
             ).strip(" \t—–-:")
             if is_placeholder_text(manual_description):
                 errors.append(
@@ -607,6 +516,20 @@ def validate_acceptance_items(items: list[str], label: str) -> list[str]:
             )[0].strip()
             if is_placeholder_text(check_payload):
                 errors.append(f"{label}: item {item_id} must include a non-empty 'check:' payload")
+            elif re.match(r"(?i)manual\s*\(approved\)", check_payload):
+                manual_description = re.sub(
+                    r"(?i)^manual\s*\(approved\)\s*", "", check_payload
+                ).strip(" \t—–-:")
+                if is_placeholder_text(manual_description) and not re.search(r"(?i)\bverify\s*:", body):
+                    errors.append(
+                        f"{label}: item {item_id} 'manual (approved)' exception must include a non-empty description"
+                    )
+            else:
+                executable += 1
+    if require_executable and executable == 0 and not errors:
+        errors.append(f"{label}: must include at least one independently confirmable executable check")
+    elif require_executable and executable == 0:
+        errors.append(f"{label}: must include at least one independently confirmable executable check")
     return errors
 
 
@@ -621,7 +544,7 @@ def validate_spec_acceptance(spec_path: Path) -> list[str]:
     items = parse_bullets(sections["Acceptance"], unwrap_path=False)
     if not items:
         return [f"{spec_path}: ## Acceptance must list at least one feature-level acceptance item"]
-    return validate_acceptance_items(items, f"{spec_path}: ## Acceptance")
+    return validate_acceptance_items(items, f"{spec_path}: ## Acceptance", require_executable=False)
 
 
 def validate_registry(registry: Registry) -> list[str]:
@@ -685,7 +608,8 @@ def validate_registry(registry: Registry) -> list[str]:
         if not isinstance(item, dict):
             errors.append(f"{prefix}: expected object")
             continue
-        for key in sorted(set(item) - REGISTRY_PACKAGE_KEYS):
+        allowed = REGISTRY_PACKAGE_KEYS | LEGACY_PACKAGE_KEYS
+        for key in sorted(set(item) - allowed):
             errors.append(f"{prefix}.{key}: unsupported package registry field")
         package_id = item.get("id")
         if not isinstance(package_id, str) or not PACKAGE_ID_RE.fullmatch(package_id):
@@ -695,7 +619,7 @@ def validate_registry(registry: Registry) -> list[str]:
                 errors.append(f"work_packages: duplicate package id {package_id}")
             seen_ids.add(package_id)
             package_ids.add(package_id)
-        path_suffixes = {"path": ".md", "proof_path": ".proof.md", "report_path": ".package-verification.md"}
+        path_suffixes = {"path": ".md", "report_path": ".package-verification.md"}
         for key, suffix in path_suffixes.items():
             path = item.get(key)
             if not isinstance(path, str) or not path.strip():
@@ -712,6 +636,21 @@ def validate_registry(registry: Registry) -> list[str]:
                 )
             except SliceproofError as exc:
                 errors.extend(exc.errors)
+        proof_path = item.get("proof_path")
+        if proof_path is not None:
+            if not isinstance(proof_path, str) or not proof_path.strip():
+                errors.append(f"{prefix}.proof_path: expected non-empty string when declared")
+            else:
+                try:
+                    resolve_safe_path(
+                        registry.root,
+                        proof_path,
+                        f"{prefix}.proof_path",
+                        expected_suffix=".proof.md",
+                        root_label="artifact root",
+                    )
+                except SliceproofError as exc:
+                    errors.extend(exc.errors)
         status = item.get("status")
         if not isinstance(status, str) or status not in STATUS_VALUES:
             errors.append(f"{prefix}.status: expected one of {sorted(STATUS_VALUES)}")
@@ -796,7 +735,6 @@ def parse_package_markdown(path: Path, package_id: str) -> PackageMarkdown:
     primary_paths = parse_bullets(sections["Primary Paths"], unwrap_path=True)
     verification_expectations = parse_bullets(sections["Verification Expectations"], unwrap_path=False)
     acceptance_checklist = parse_bullets(sections["Acceptance Checklist"], unwrap_path=False)
-    proof_paths = parse_bullets(sections["Proof"], unwrap_path=True)
     report_paths = parse_bullets(sections["Package Verification Report"], unwrap_path=True)
     dependencies = parse_dependencies(sections["Dependencies"])
 
@@ -807,9 +745,13 @@ def parse_package_markdown(path: Path, package_id: str) -> PackageMarkdown:
     if not acceptance_checklist:
         errors.append(f"{path}: ## Acceptance Checklist must list at least one checklist item")
     else:
-        errors.extend(validate_acceptance_items(acceptance_checklist, f"{path}: ## Acceptance Checklist"))
-    if len(proof_paths) != 1:
-        errors.append(f"{path}: ## Proof must list exactly one proof path")
+        errors.extend(
+            validate_acceptance_items(
+                acceptance_checklist,
+                f"{path}: ## Acceptance Checklist",
+                require_executable=True,
+            )
+        )
     if len(report_paths) != 1:
         errors.append(f"{path}: ## Package Verification Report must list exactly one report path")
     if errors:
@@ -822,7 +764,6 @@ def parse_package_markdown(path: Path, package_id: str) -> PackageMarkdown:
         primary_paths=primary_paths,
         verification_expectations=verification_expectations,
         acceptance_checklist=acceptance_checklist,
-        proof_path=proof_paths[0],
         report_path=report_paths[0],
         dependencies=dependencies,
     )
@@ -830,8 +771,6 @@ def parse_package_markdown(path: Path, package_id: str) -> PackageMarkdown:
 
 def validate_package_markdown(registry: Registry, package: RegistryPackage, package_md: PackageMarkdown) -> list[str]:
     errors: list[str] = []
-    if package_md.proof_path != package.proof_path:
-        errors.append(f"{package.path}: ## Proof path {package_md.proof_path!r} does not match registry proof_path {package.proof_path!r}")
     if package_md.report_path != package.report_path:
         errors.append(
             f"{package.path}: ## Package Verification Report path {package_md.report_path!r} does not match registry report_path {package.report_path!r}"
@@ -845,14 +784,16 @@ def validate_package_markdown(registry: Registry, package: RegistryPackage, pack
     if not authoritative and package_md.slice_refs:
         errors.append(f"{package.path}: assigned Slice references require authoritative_slices registry entries")
 
-    for key, value, suffix in (
-        ("proof path", package_md.proof_path, ".proof.md"),
-        ("report path", package_md.report_path, ".package-verification.md"),
-    ):
-        try:
-            resolve_safe_path(registry.root, value, f"{package.path}: {key}", expected_suffix=suffix, root_label="artifact root")
-        except SliceproofError as exc:
-            errors.extend(exc.errors)
+    try:
+        resolve_safe_path(
+            registry.root,
+            package_md.report_path,
+            f"{package.path}: report path",
+            expected_suffix=".package-verification.md",
+            root_label="artifact root",
+        )
+    except SliceproofError as exc:
+        errors.extend(exc.errors)
     for path in package_md.primary_paths:
         try:
             resolve_safe_path(registry.code_root, path, f"{package.path}: primary path {path!r}", root_label="code root")
@@ -1021,218 +962,6 @@ def extract_slice_h3_titles(path: Path) -> dict[str, str]:
     return titles
 
 
-def render_proof_template(registry: Registry, package_md: PackageMarkdown) -> str:
-    slice_titles = load_titles_for_package(registry.root, package_md)
-    lines: list[str] = [
-        f"# Package Proof: {package_md.package_id} — {package_md.title}",
-        "",
-        "## Package Scope",
-        package_md.scope,
-        "",
-        "## Assigned Slice Scope",
-    ]
-    if package_md.slice_refs:
-        for ref in package_md.slice_refs:
-            lines.append(f"- `{ref.path}`")
-            for slice_id in ref.must_satisfy:
-                title = slice_titles.get(ref.path, {}).get(slice_id, "")
-                lines.append(f"  - Must satisfy: `{slice_id}`{format_title(title)}")
-            for slice_id in ref.context_only:
-                title = slice_titles.get(ref.path, {}).get(slice_id, "")
-                lines.append(f"  - Context only: `{slice_id}`{format_title(title)}")
-    else:
-        lines.append("- None.")
-    lines.extend(
-        [
-            "",
-            "## Slice Closure Table",
-            "",
-            "| Slice ID | Required understanding | Implementation evidence | Verification evidence | Status |",
-            "|---|---|---|---|---|",
-        ]
-    )
-    for ref in package_md.slice_refs:
-        for slice_id in ref.must_satisfy:
-            title = slice_titles.get(ref.path, {}).get(slice_id, "")
-            lines.append(f"| `{slice_id}` | {escape_table_cell(title or slice_id)} | TODO | TODO | OPEN |")
-    lines.extend(
-        [
-            "",
-            "## Acceptance / Verification Closure",
-            "",
-            "| Expectation | Evidence | Status |",
-            "|---|---|---|",
-        ]
-    )
-    for expectation in package_md.verification_expectations:
-        lines.append(f"| {escape_table_cell(expectation)} | TODO | OPEN |")
-    lines.extend(
-        [
-            "",
-            "## Commands Run",
-            "- TODO",
-            "",
-            "## Files Changed / Inspected",
-            "- TODO",
-            "",
-            "## Gaps, Deviations, or Deferred Items",
-            "- None.",
-            "",
-            "## Package Agent Completion Statement",
-            "- TODO",
-            "",
-        ]
-    )
-    return "\n".join(lines)
-
-
-def validate_proof_markdown(proof_path: Path, package_md: PackageMarkdown) -> list[str]:
-    if not proof_path.is_file():
-        return [f"proof: file not found: {proof_path}"]
-    text = read_text_file(proof_path, f"proof {proof_path}")
-    errors: list[str] = []
-    sections = split_h2_sections(text)
-    for section in sorted(REQUIRED_PROOF_SECTIONS):
-        if section not in sections:
-            errors.append(f"{proof_path}: missing required section ## {section}")
-    if errors:
-        return errors
-
-    slice_rows = parse_table(sections["Slice Closure Table"])
-    expectation_rows = parse_table(sections["Acceptance / Verification Closure"])
-    errors.extend(validate_slice_rows(proof_path, package_md, slice_rows, sections))
-    errors.extend(validate_expectation_rows(proof_path, package_md, expectation_rows, sections))
-    for section in ("Commands Run", "Files Changed / Inspected", "Package Agent Completion Statement"):
-        body = sections[section]
-        if not body.strip() or is_placeholder_text(body):
-            errors.append(f"{proof_path}: ## {section} must contain non-placeholder evidence")
-        if BLOCKING_MARKER_RE.search(body):
-            errors.append(f"{proof_path}: ## {section} contains unresolved TODO/OPEN/GAP marker")
-    gaps_body = sections["Gaps, Deviations, or Deferred Items"]
-    if UNRESOLVED_MARKER_RE.search(gaps_body):
-        errors.append(f"{proof_path}: ## Gaps, Deviations, or Deferred Items contains unresolved TODO/OPEN marker")
-    if not is_empty_gaps_deviations_section(gaps_body) and not has_approval_provenance_scope(gaps_body):
-        errors.append(
-            f"{proof_path}: ## Gaps, Deviations, or Deferred Items contains gap/deviation text without approval, provenance, and scope"
-        )
-    return errors
-
-
-def validate_slice_rows(
-    proof_path: Path,
-    package_md: PackageMarkdown,
-    rows: list[ProofRow],
-    sections: dict[str, str],
-) -> list[str]:
-    errors: list[str] = []
-    required_columns = {"Slice ID", "Required understanding", "Implementation evidence", "Verification evidence", "Status"}
-    required_ids = set(package_md.must_satisfy_ids)
-    if rows and not required_columns.issubset(rows[0].cells):
-        errors.append(f"{proof_path}: ## Slice Closure Table missing columns {sorted(required_columns - set(rows[0].cells))}")
-        return errors
-    rows_by_id: dict[str, ProofRow] = {}
-    for index, row in enumerate(rows, start=1):
-        slice_id = clean_cell_id(row.cells.get("Slice ID", ""))
-        row_label = slice_id or f"Slice Closure Table row {index}"
-        if slice_id:
-            if slice_id in rows_by_id:
-                errors.append(f"{proof_path}: duplicate Slice Closure Table row for {slice_id}")
-            else:
-                rows_by_id[slice_id] = row
-            if slice_id not in required_ids:
-                errors.append(f"{proof_path}: unexpected Slice Closure Table row for {slice_id}")
-        errors.extend(validate_slice_row_status(proof_path, row, row_label, sections))
-    for slice_id in package_md.must_satisfy_ids:
-        if slice_id not in rows_by_id:
-            errors.append(f"{proof_path}: Slice Closure Table missing required row for {slice_id}")
-    return errors
-
-
-def validate_expectation_rows(
-    proof_path: Path,
-    package_md: PackageMarkdown,
-    rows: list[ProofRow],
-    sections: dict[str, str],
-) -> list[str]:
-    errors: list[str] = []
-    required_columns = {"Expectation", "Evidence", "Status"}
-    if rows and not required_columns.issubset(rows[0].cells):
-        errors.append(f"{proof_path}: ## Acceptance / Verification Closure missing columns {sorted(required_columns - set(rows[0].cells))}")
-        return errors
-    rows_by_expectation: dict[str, ProofRow] = {}
-    display_by_expectation: dict[str, str] = {}
-    required_expectations = {normalize_text(expectation) for expectation in package_md.verification_expectations}
-    for index, row in enumerate(rows, start=1):
-        expectation = row.cells.get("Expectation", "")
-        normalized = normalize_text(expectation)
-        row_label = f"expectation {expectation!r}" if normalized else f"Acceptance / Verification Closure row {index}"
-        if normalized:
-            if normalized in rows_by_expectation:
-                errors.append(f"{proof_path}: duplicate Acceptance / Verification Closure row for {display_by_expectation[normalized]!r}")
-            else:
-                rows_by_expectation[normalized] = row
-                display_by_expectation[normalized] = expectation
-            if normalized not in required_expectations:
-                errors.append(f"{proof_path}: unexpected Acceptance / Verification Closure row for {expectation!r}")
-        errors.extend(validate_expectation_row_status(proof_path, row, row_label, sections))
-    for expectation in package_md.verification_expectations:
-        row = rows_by_expectation.get(normalize_text(expectation))
-        if row is None:
-            errors.append(f"{proof_path}: Acceptance / Verification Closure missing expectation {expectation!r}")
-    return errors
-
-
-def validate_slice_row_status(proof_path: Path, row: ProofRow, row_label: str, sections: dict[str, str]) -> list[str]:
-    if not any(normalize_text(value) for value in row.cells.values()):
-        return []
-    errors: list[str] = []
-    implementation = row.cells.get("Implementation evidence", "")
-    verification = row.cells.get("Verification evidence", "")
-    status = normalize_status(row.cells.get("Status", ""))
-    row_text = "\n".join([implementation, verification, sections["Gaps, Deviations, or Deferred Items"]])
-    if status not in PROOF_STATUS_VALUES:
-        errors.append(f"{proof_path}: {row_label} status {status!r} is not supported")
-    elif status == "PASS":
-        if is_placeholder_text(implementation):
-            errors.append(f"{proof_path}: {row_label} implementation evidence is missing or placeholder")
-        if is_placeholder_text(verification):
-            errors.append(f"{proof_path}: {row_label} verification evidence is missing or placeholder")
-    elif status in {"OPEN", "GAP"}:
-        errors.append(f"{proof_path}: {row_label} status {status} blocks proof validation")
-    elif status == "DEFERRED":
-        if not has_approval_provenance_scope(row_text):
-            errors.append(f"{proof_path}: {row_label} DEFERRED requires approval, provenance, and scope metadata")
-    elif status == "N/A":
-        if not has_approval_provenance_scope(row_text) or "rationale" not in row_text.lower():
-            errors.append(f"{proof_path}: {row_label} N/A requires rationale plus approval, provenance, and scope metadata")
-    if BLOCKING_MARKER_RE.search(row.raw):
-        errors.append(f"{proof_path}: {row_label} row contains unresolved TODO/OPEN/GAP marker")
-    return errors
-
-
-def validate_expectation_row_status(proof_path: Path, row: ProofRow, row_label: str, sections: dict[str, str]) -> list[str]:
-    if not any(normalize_text(value) for value in row.cells.values()):
-        return []
-    errors: list[str] = []
-    evidence = row.cells.get("Evidence", "")
-    status = normalize_status(row.cells.get("Status", ""))
-    row_text = "\n".join([evidence, sections["Gaps, Deviations, or Deferred Items"]])
-    if status not in PROOF_STATUS_VALUES:
-        errors.append(f"{proof_path}: {row_label} status {status!r} is not supported")
-    elif status == "PASS":
-        if is_placeholder_text(evidence):
-            errors.append(f"{proof_path}: {row_label} evidence is missing or placeholder")
-    elif status in {"OPEN", "GAP"}:
-        errors.append(f"{proof_path}: {row_label} status {status} blocks proof validation")
-    elif status == "DEFERRED" and not has_approval_provenance_scope(row_text):
-        errors.append(f"{proof_path}: {row_label} DEFERRED requires approval, provenance, and scope metadata")
-    elif status == "N/A" and (not has_approval_provenance_scope(row_text) or "rationale" not in row_text.lower()):
-        errors.append(f"{proof_path}: {row_label} N/A requires rationale plus approval, provenance, and scope metadata")
-    if BLOCKING_MARKER_RE.search(row.raw):
-        errors.append(f"{proof_path}: {row_label} row contains unresolved TODO/OPEN/GAP marker")
-    return errors
-
-
 def report_verdicts(text: str) -> list[str]:
     unfenced_lines: list[str] = []
     active_fence: tuple[str, int] | None = None
@@ -1256,7 +985,8 @@ def parse_report_checklist_results(section_body: str) -> dict[str, tuple[str, st
         item_cell = extract_backticked_or_text(row.cells.get("Item", "").strip())
         item_id = acceptance_item_id(item_cell) or item_cell
         if item_id and item_id not in results:
-            results[item_id] = (row.cells.get("Result", "").strip(), row.cells.get("Evidence", "").strip())
+            evidence = row.cells.get("Evidence", "").strip() or row.cells.get("Pointer", "").strip()
+            results[item_id] = (row.cells.get("Result", "").strip(), evidence)
     for bullet in parse_bullets(section_body, unwrap_path=False):
         item_id = acceptance_item_id(bullet)
         if not item_id or item_id in results:
@@ -1270,20 +1000,93 @@ def parse_report_checklist_results(section_body: str) -> dict[str, tuple[str, st
     return results
 
 
-def validate_report_markdown(report_path: Path, proof_path: Path, package_md: PackageMarkdown) -> ReportValidationResult:
-    """Confirm the lightweight package verification report records the objective done-definition.
+def extract_pointer_text(evidence: str) -> str:
+    cleaned = re.sub(r"(?i)^(?:evidence|pointer|observed)\s*:\s*", "", evidence).strip(" \t—–-")
+    if not cleaned:
+        return ""
+    backticked = re.search(r"`([^`]+)`", cleaned)
+    if backticked:
+        return backticked.group(1).strip()
+    first = re.split(r"\s+[—–-]\s+|\s+\((?:exit|status|observed)\b", cleaned, maxsplit=1)[0]
+    return first.strip()
 
-    Report shape stays lightweight (no matrix/receipt/state-binding grammar), but the report must
-    mechanically show the closed-checklist outcome so a FAIL/garbage report cannot pass as complete:
-    verdict PASS, every frozen Acceptance Checklist item marked pass with evidence, no open blocking
-    finding, and a reviewed-state record. The verifier agent still owns semantic sufficiency.
+
+def is_test_id_pointer(value: str) -> bool:
+    return bool(TEST_ID_RE.search(value.strip()))
+
+
+def is_command_invocation(value: str) -> bool:
+    text = value.strip().strip("`")
+    if not text:
+        return False
+    if is_test_id_pointer(text):
+        return False
+    if COMMAND_INVOCATION_RE.search(text):
+        return True
+    return bool(re.search(r"\s", text)) and not looks_like_relative_path(text)
+
+
+def looks_like_relative_path(value: str) -> bool:
+    text = value.strip().strip("`")
+    if not text or "\\" in text or "\x00" in text:
+        return False
+    if text.startswith(("/", "~")) or ":" in text.split("/", 1)[0]:
+        return False
+    return "/" in text or bool(FILE_SUFFIX_RE.search(Path(text).name))
+
+
+def looks_like_path_pointer(value: str) -> bool:
+    text = value.strip().strip("`")
+    if not text or is_test_id_pointer(text) or is_command_invocation(text):
+        return False
+    if text.startswith(("/", "~")) or "\\" in text:
+        return True
+    return looks_like_relative_path(text)
+
+
+def pointer_root_for(registry: Registry, pointer: str) -> tuple[Path, str]:
+    if pointer.startswith((".tasks/", ".planning/")):
+        return registry.root, "artifact root"
+    return registry.code_root, "code root"
+
+
+def resolve_result_pointer(registry: Registry, pointer: str, label: str) -> None:
+    root, root_label = pointer_root_for(registry, pointer)
+    reject_existing_symlink_at_unresolved_path(
+        root,
+        pointer,
+        label,
+        error_message=f"{label}: refusing symlink-escaped pointer: {pointer}",
+    )
+    resolve_safe_path(root, pointer, label, must_exist_file=True, root_label=root_label)
+
+
+def validate_gaps_section(report_path: Path, gaps_body: str) -> list[str]:
+    if is_empty_gaps_deviations_section(gaps_body):
+        return []
+    if UNRESOLVED_MARKER_RE.search(gaps_body):
+        return [f"{report_path}: ## Gaps contains unresolved TODO/OPEN marker"]
+    if not has_approval_provenance_scope(gaps_body):
+        return [f"{report_path}: ## Gaps must be none or carry approval, provenance, and scope"]
+    return []
+
+
+def validate_report_markdown(
+    report_path: Path,
+    package: RegistryPackage,
+    package_md: PackageMarkdown,
+    registry: Registry,
+) -> ReportValidationResult:
+    """Confirm the result file records checklist coverage and cheap pointers.
+
+    The helper is not authenticity: it checks presence, non-placeholder text, and
+    safe path existence when a pointer looks like a path. It does not run tests
+    or judge semantic done.
     """
     if not report_path.is_file():
         return ReportValidationResult([f"report: file not found: {report_path}"], [])
     text = read_text_file(report_path, f"package verification report {report_path}")
     errors: list[str] = []
-    if not proof_path.is_file():
-        errors.append(f"proof: file not found: {proof_path}")
     if not text.strip():
         errors.append(f"{report_path}: package verification report must be non-empty")
         return ReportValidationResult(errors, [])
@@ -1298,19 +1101,22 @@ def validate_report_markdown(report_path: Path, proof_path: Path, package_md: Pa
         errors.append(f"{report_path}: report Verdict must be PASS (found {verdicts[0]})")
 
     sections = split_h2_sections(text)
+    for section in sorted(REQUIRED_REPORT_SECTIONS):
+        if section not in sections:
+            errors.append(f"{report_path}: missing ## {section} section")
 
     blocking_body = sections.get("Blocking findings")
-    if blocking_body is None:
-        errors.append(f"{report_path}: missing ## Blocking findings section")
-    else:
+    if blocking_body is not None:
         open_blockers = [b for b in parse_bullets(blocking_body, unwrap_path=False) if b.strip().lower() != "none"]
         if open_blockers:
             errors.append(f"{report_path}: report has open blocking findings: {open_blockers}")
 
+    gaps_body = sections.get("Gaps")
+    if gaps_body is not None:
+        errors.extend(validate_gaps_section(report_path, gaps_body))
+
     result_body = sections.get("Acceptance Checklist Result")
-    if result_body is None:
-        errors.append(f"{report_path}: missing ## Acceptance Checklist Result section")
-    else:
+    if result_body is not None:
         results = parse_report_checklist_results(result_body)
         for item in package_md.acceptance_checklist:
             item_id = acceptance_item_id(item)
@@ -1322,14 +1128,25 @@ def validate_report_markdown(report_path: Path, proof_path: Path, package_md: Pa
             result_value, evidence = results[item_id]
             if result_value.lower() != "pass":
                 errors.append(f"{report_path}: checklist item {item_id} result must be pass (found {result_value!r})")
-            elif is_placeholder_text(evidence):
+                continue
+            pointer = extract_pointer_text(evidence)
+            if is_placeholder_text(evidence) or is_placeholder_text(pointer):
                 errors.append(f"{report_path}: checklist item {item_id} is marked pass without evidence")
+                continue
+            if looks_like_path_pointer(pointer):
+                try:
+                    resolve_result_pointer(registry, pointer, f"{report_path}: checklist item {item_id} pointer")
+                except SliceproofError as exc:
+                    errors.extend(exc.errors)
 
     reviewed_body = sections.get("Reviewed state")
-    if not reviewed_body or not reviewed_body.strip():
+    if reviewed_body is not None and not reviewed_body.strip():
         errors.append(f"{report_path}: missing or empty ## Reviewed state section")
+    elif "Reviewed state" not in sections:
+        pass
 
     return ReportValidationResult(errors, [])
+
 
 def parse_table(body: str) -> list[ProofRow]:
     rows: list[tuple[list[str], str]] = []
@@ -1462,23 +1279,6 @@ def require_package(registry: Registry, package_id: str) -> RegistryPackage:
     return package
 
 
-def is_generated_placeholder(existing: str, generated: str) -> bool:
-    return normalize_generated_placeholder(existing) == normalize_generated_placeholder(generated)
-
-
-def normalize_generated_placeholder(value: str) -> str:
-    return value.replace("\r\n", "\n").rstrip("\n")
-
-
-def preserve_existing_proof(proof_path: Path, existing: str) -> Path:
-    digest = hashlib.sha256(existing.encode("utf-8")).hexdigest()[:12]
-    backup_path = proof_path.with_name(f"{proof_path.name}.preserved.{digest}.bak")
-    if backup_path.is_symlink():
-        raise SliceproofError([f"create-proof: preservation backup path is a symlink: {backup_path}"])
-    write_text_exclusive_no_follow(backup_path, existing, "create-proof: preservation backup")
-    return backup_path
-
-
 def read_text_file(path: Path, label: str) -> str:
     try:
         return path.read_text(encoding="utf-8")
@@ -1488,61 +1288,6 @@ def read_text_file(path: Path, label: str) -> str:
         raise SliceproofError([f"{label}: unable to decode UTF-8 text from {path}: {exc}"])
     except OSError as exc:
         raise SliceproofError([f"{label}: unable to read {path}: {exc}"])
-
-
-def ensure_directory(path: Path, label: str) -> None:
-    try:
-        path.mkdir(parents=True, exist_ok=True)
-    except OSError as exc:
-        raise SliceproofError([f"{label}: unable to create directory {path}: {exc}"])
-
-
-def write_text_exclusive_no_follow(path: Path, content: str, label: str) -> None:
-    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
-    if hasattr(os, "O_NOFOLLOW"):
-        flags |= os.O_NOFOLLOW
-    fd: int | None = None
-    try:
-        fd = os.open(path, flags, 0o600)
-        with os.fdopen(fd, "w", encoding="utf-8") as handle:
-            fd = None
-            handle.write(content)
-    except FileExistsError:
-        raise SliceproofError([f"{label} already exists: {path}"])
-    except OSError as exc:
-        raise SliceproofError([f"{label}: unable to create {path}: {exc}"])
-    finally:
-        if fd is not None:
-            os.close(fd)
-
-
-def atomic_write_text(path: Path, content: str) -> None:
-    tmp_fd: int | None = None
-    tmp_name: str | None = None
-    try:
-        tmp_fd, tmp_name = tempfile.mkstemp(prefix=f".{path.name}.", suffix=".tmp", dir=str(path.parent))
-        with os.fdopen(tmp_fd, "w", encoding="utf-8") as handle:
-            tmp_fd = None
-            handle.write(content)
-        os.replace(tmp_name, path)
-        tmp_name = None
-    except OSError as exc:
-        raise SliceproofError([f"unable to write {path}: {exc}"])
-    finally:
-        if tmp_fd is not None:
-            os.close(tmp_fd)
-        if tmp_name is not None:
-            try:
-                os.unlink(tmp_name)
-            except FileNotFoundError:
-                pass
-
-
-def load_titles_for_package(root: Path, package_md: PackageMarkdown) -> dict[str, dict[str, str]]:
-    titles: dict[str, dict[str, str]] = {}
-    for ref in package_md.slice_refs:
-        titles[ref.path] = extract_slice_h3_titles(resolve_safe_path(root, ref.path, f"assigned Slice {ref.path!r}", expected_suffix=".md", must_exist_file=True))
-    return titles
 
 
 def extract_backticked_or_text(value: str) -> str:
@@ -1631,14 +1376,6 @@ def is_approval_placeholder_value(value: str) -> bool:
 def normalize_approval_placeholder_value(value: str) -> str:
     normalized = normalize_text(value).strip(" -*`'\".:?!").lower()
     return re.sub(r"[\s_-]+", " ", normalized)
-
-
-def format_title(title: str) -> str:
-    return f" — {title}" if title else ""
-
-
-def escape_table_cell(value: str) -> str:
-    return value.replace("|", "\\|")
 
 
 def advance_markdown_fence(

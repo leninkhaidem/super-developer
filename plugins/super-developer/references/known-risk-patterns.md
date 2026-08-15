@@ -31,7 +31,7 @@ This is a probe library only; do not persist these prompts as registry fields or
   cleanup survives timeout or interruption.
 - **Timeout and fail-fast amplification** — When an action can inherit an outer timeout or one failure can suppress
   later evidence, verify action-level bounds, failure isolation, progress, and targeted execution before breadth.
-- **Proof/report freshness** — When repairs, merge resolutions, or artifact edits touch proof-cited files,
+- **Result freshness** — When repairs, merge resolutions, or artifact edits touch result-cited files,
   verification output, assigned Slice scope, package reports, or review readiness, restore freshness explicitly.
 
 ## Use

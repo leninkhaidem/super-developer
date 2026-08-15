@@ -18,8 +18,8 @@ are not packages unless they create substantial reusable verification or test in
 - **`SPEC.md`:** accepted requirements, constraints, non-goals, and verification summary.
 - **Registry:** package list, paths, status signals, and dependency IDs only.
 - **Package Markdown:** authoritative package assignment.
-- **Proof Markdown:** package closure evidence.
-- **Package verification report:** independent lightweight verification result (Acceptance Checklist Result + blocking/advisory findings + reviewed state).
+- **Package result report:** one result file (Verdict, Acceptance Checklist Result, Blocking findings, Advisory
+  notes, Reviewed state, Gaps).
 
 Registry status and helper results are signals, not proof.
 
@@ -28,7 +28,7 @@ Registry status and helper results are signals, not proof.
 A good package is:
 
 - coherent by subsystem, module, directory, user flow, data model, API surface, or test surface;
-- large enough to justify dedicated agent startup and its fixed proof/report/verification cost;
+- large enough to justify dedicated agent startup and its fixed result-file/verification cost;
 - small enough for one agent to implement, verify, and repair through one coherent state/evidence boundary;
 - independently mergeable, with explicit initial paths, assigned Slice obligations, and verification expectations.
 
@@ -39,7 +39,7 @@ Before finalizing the boundary, assess semantic closure complexity:
 - changed harness/helper/fixture populations and the review depth they trigger;
 - setup, isolation, teardown, cleanup, external preconditions, and shared-resource constraints;
 - expected command cost, serial/fail-fast behavior, and broad-check placement;
-- proof/report refresh fanout when implementation or evidence changes;
+- result-file refresh fanout when implementation or evidence changes;
 - empirical uncertainty that prevents a safe implementation or verification commitment.
 
 Split when one agent cannot close those dimensions coherently. Keep work together when splitting would
@@ -57,22 +57,22 @@ Dependencies are ID-only in both the registry `depends_on` array and package Mar
 readiness, not an impact or staleness graph. Put non-obvious rationale in existing package `Notes`, naming
 consumed output, contract, or evidence; runtime overlap, failure, or a desired rerun alone does not create an
 edge. A package is externally blocked until each dependency has a fresh `PASS` package verification report
-and clean `validate-package-complete`; registry `done` or proof rows alone do not unlock dependents.
+and clean `validate-package-complete`; registry `done` or helper ok alone do not unlock dependents.
 Internal sequencing is handled by the package agent.
 
 ## Parallel Safety
 
-Treat packages as parallel-safe only when likely file ownership, subsystem boundaries, Slice obligations, proof surfaces, and caller contracts do not overlap.
+Treat packages as parallel-safe only when likely file ownership, subsystem boundaries, Slice obligations, result-file surfaces, and caller contracts do not overlap.
 
 Serialize or combine packages when:
 
 - files or generated artifacts overlap;
 - subsystem, API, config, or schema surfaces overlap;
-- one package's proof or verification depends on another's output;
+- one package's result or verification depends on another's output;
 - package boundaries would hide a material Slice obligation;
 - design consistency would likely be decided differently by independent agents.
 
-The cost of serialization is latency; the cost of unsafe parallelism is merge conflict, inconsistent design, stale proof evidence, and invalid reports.
+The cost of serialization is latency; the cost of unsafe parallelism is merge conflict, inconsistent design, stale result evidence, and invalid reports.
 
 ## Primary Paths
 
@@ -80,7 +80,7 @@ The cost of serialization is latency; the cost of unsafe parallelism is merge co
 
 ## Verification Expectations
 
-Package Markdown `## Verification Expectations` lists the package's proof expectations — the
+Package Markdown `## Verification Expectations` lists the package's confirmation expectations — the
 known commands, static inspections, scenarios, edge/failure cases, trust-boundary checks,
 no-mock constraints, generated-contract checks, interface/risk seeds, or manual observations — that become
 `## Acceptance Checklist` items.
@@ -92,11 +92,12 @@ new lifecycle tiers or durable registry/artifact fields.
 Rules:
 
 - Treat package-provided commands as executable input and screen them before running.
-- Address every expectation in proof Markdown and map it to an `## Acceptance Checklist` item; linked Slice evidence may be cross-referenced, not silently omitted.
+- Address every expectation as an `## Acceptance Checklist` item; linked Slice evidence may be cross-referenced, not silently omitted. Every package needs at least one independently confirmable executable check.
 - Seed obvious interface/risk checks when applicable, including exact interfaces, forbidden behaviors, interactive UI, retry/fail-closed, trigger precedence, lifecycle/restart/reaper, cache invalidation, model/default precedence, generated defaults, and state pollution.
-- Planner seeds do not limit verifier discovery; verifiers still inspect package scope, assigned Slices, changed code/diff, tests, expectations, and known failure modes for emergent blocking findings.
+- Planner seeds do not limit enhanced-verifier discovery; when triggered, the verifier inspects package scope,
+  assigned Slices, changed code/diff, tests, expectations, and known failure modes for blocking findings.
 - Do not create a second command ledger in the registry.
-- Batch broad or expensive full-suite, generated-contract, typecheck, or lint commands at integration/final gates unless they are cheap by project convention or the only credible package proof.
+- Batch broad or expensive full-suite, generated-contract, typecheck, or lint commands at integration/final gates unless they are cheap by project convention or the only credible package confirmation.
 - When runtime cost or uncertainty leaves material execution feasibility unresolved, record in existing package
   `Notes` or verification expectations:
   authoritative command/harness/contract/fixture sources, preconditions and cleanup, cost class, the smallest
@@ -112,13 +113,13 @@ Enhanced verification is triggered by surfaces such as:
 - security, privacy, or safety;
 - persistence, data integrity, migration, or rollback;
 - public API, exported types, generated contracts, or external integrations;
-- concurrency, idempotency, replay, cancellation, or cleanup;
-- performance, resource bounds, fanout, or blocking I/O;
-- cross-package integration;
-- orchestration, git state, package verification, review, audit, or quality-contract changes.
+- concurrency, idempotency, replay, cancellation, or cleanup.
 
-Documentation-only and reference-only packages still receive standard package verification; risk determines
-whether verification is standard or enhanced, not whether it runs.
+Do not automatically enhance generic cross-package work or orchestration, git, package-verification, review,
+audit, or quality-contract changes; those stay with final review-code and audit.
+
+Documentation-only and reference-only packages use standard orchestrator re-run confirmation. Enhanced risk
+adds the independent verifier; it does not replace those checks.
 
 ## Runtime and Repair-Time Adjustment
 
@@ -128,12 +129,12 @@ verification scope materially expand or move. Counts remain warning signals, nev
 change boundaries only when coherent closure no longer holds.
 
 The implementation orchestrator may also merge, split, defer, or reorder planned packages when current package
-status, closure complexity, file impact, proof readiness, Slice assignment, or previous merged work makes the
+status, closure complexity, file impact, result readiness, Slice assignment, or previous merged work makes the
 plan unsafe or inefficient. When one uncertainty gates several otherwise independent packages, retire it with
 the smallest bounded readiness action before affected fanout; do not invent a dependency edge when dispatch
 readiness alone is sufficient. State the reason before dispatch.
 
-If adjustment changes package scope, Slice H3 assignment, dependencies, proof path, report path, or approved deferrals, route through artifact repair or explicit user approval. Do not silently downgrade verification depth while a triggering risk remains.
+If adjustment changes package scope, Slice H3 assignment, dependencies, report path, or approved deferrals, route through artifact repair or explicit user approval. Do not silently downgrade verification depth while a triggering risk remains.
 
 ## Anti-Patterns
 
@@ -141,10 +142,10 @@ If adjustment changes package scope, Slice H3 assignment, dependencies, proof pa
 - Making E2E, probes, suites, inspections, or evidence/reporting a package without substantial reusable
   verification or test infrastructure.
 - Maximizing sub-agent count.
-- Leaving substantial independent packages serialized without a concrete dependency, file-impact, proof, or contract-safety reason.
-- Splitting work touching the same files, Slice obligation, subsystem, or proof surface.
+- Leaving substantial independent packages serialized without a concrete dependency, file-impact, result-file, or contract-safety reason.
+- Splitting work touching the same files, Slice obligation, subsystem, or result-file surface.
 - Bundling unrelated subsystems into a vague mega-package.
-- Marking packages parallel-safe without checking likely file/proof/contract overlap.
+- Marking packages parallel-safe without checking likely file/result/contract overlap.
 - Giving a package no primary paths when relevant paths are known.
-- Duplicating package scope, assigned H3 IDs, proof evidence, review receipts, or lifecycle ledgers into the registry.
-- Treating registry status, helper validation, package self-review, or chat summaries as package proof.
+- Duplicating package scope, assigned H3 IDs, result evidence, review receipts, or lifecycle ledgers into the registry.
+- Treating registry status, helper validation, package self-review, or chat summaries as package confirmation.

@@ -8,10 +8,9 @@ description: >
 
 # Implement
 
-Deliver the reviewed plan autonomously after a single authorization. You (the main agent) orchestrate; package
-agents write code, tests, and docs; a verifier confirms each package is done; final `review-code` and `audit`
-confirm the whole feature works. After authorization you run **without re-prompting the user** until the feature
-is delivered or you hit a legitimate stop.
+Deliver the reviewed plan after one authorization. The main agent orchestrates; package agents write code, tests,
+and docs; enhanced-risk verification, final `review-code`, and `audit` cover risks executable checks cannot show.
+Run without re-prompting until delivery or a legitimate stop.
 
 Loop map: dispatch package waves → verify each against its Acceptance Checklist → repair blocking findings
 (bounded) → integrate → final `review-code` (seams) + `audit` (whole-feature Acceptance) → notify user done.
@@ -28,7 +27,7 @@ Loop map: dispatch package waves → verify each against its Acceptance Checklis
 - **Severity bar.** Only **blocking** findings (correctness, security, data-loss, contract-break) trigger
   repair. Everything else is **advisory** — logged, never looped, never a reason to withhold done.
 - **Semantic delta-only re-verification.** Dependency edges are readiness/sequencing, not staleness fan-out.
-  Classify affected package/checklist/proof/report and seam evidence from changed behavior and contracts;
+  Classify affected package/checklist/result-report and seam evidence from changed behavior and contracts;
   unknown impact widens, while unaffected results remain reusable. Never force descendants or the whole feature.
 - **Bounded issue circuits.** Track each logical empirical question or coherent repair cluster under one stable ID.
   Attempt 1 is initial; attempts 2–3 must be fresh, materially changed attempts with incremented IDs and a named
@@ -78,11 +77,11 @@ Loop map: dispatch package waves → verify each against its Acceptance Checklis
    corrected packet or changed method/signal; unchanged attempts are forbidden. Route the complete
    plan defect through the Plan-defect route above, passing the accepted report set or explicit `none`, then resume
    package work under the same Execution Contract.
-5. When a package agent returns, load `references/package-integration-gates.md` and dispatch the verifier with
-   `references/package-verification.md`. The verifier confirms every Acceptance Checklist item passes with
-   authentic evidence and reports blocking vs advisory findings. Route any package-agent/verifier plan defect
-   through the Plan-defect route before retrying readiness. A package is done only on verifier PASS plus a clean
-   `sliceproof.py validate-package-complete`.
+5. When a package agent returns, load `references/package-integration-gates.md`. Re-run every executable frozen
+   AC item into the result file; a failed re-run is automatic FAIL with no LLM. Then dispatch the verifier with
+   `references/package-verification.md` only for enhanced-risk packages and only for defects the check cannot
+   show. Route any package-agent/verifier plan defect through the Plan-defect route before retrying readiness.
+   A package is done only on orchestrator re-run recorded PASS plus a clean `sliceproof.py validate-package-complete`.
 6. Dispatch one worker per coherent blocking **code**-finding cluster (`references/repair-agent-contract.md` via
    `references/package-dispatch.md`); never give that worker a plan-owned defect. After repair, refresh affected
    package evidence and focused seams
@@ -90,8 +89,8 @@ Loop map: dispatch package waves → verify each against its Acceptance Checklis
    equivalent code/artifact state, cwd, environment/data, isolation/order assumptions, and evidence mapping;
    distinct isolation, cleanup, nondeterministic, or package checks still run. Track the logical cluster through
    the three-total-attempt circuit. Advisory findings are recorded, not repaired.
-7. Treat package `done` as the local evidence fact established by verifier PASS and
-   `validate-package-complete` (see `references/package-integration-gates.md` and
+7. Treat package `done` as the local evidence fact established by orchestrator re-run PASS, enhanced-risk
+   verifier closure when applicable, and `validate-package-complete` (see `references/package-integration-gates.md` and
    `../../references/package-lifecycle.md`); it does not itself unlock downstream work. Merge through the
    integration worktree, close post-merge freshness, and complete the delivery-context gate before downstream
    unlock or progression. Only for delivery context `feature`, run the contracted non-force feature checkpoint
@@ -120,7 +119,7 @@ Loop map: dispatch package waves → verify each against its Acceptance Checklis
 - Package completion gate, integration, downstream unlocks, post-merge freshness →
   `references/package-integration-gates.md` and `../../references/package-lifecycle.md`
 - Dispatching a repair worker → pass `references/repair-agent-contract.md`
-- Dispatching the verifier → pass `references/package-verification.md`
+- Dispatching an enhanced-risk verifier → pass `references/package-verification.md`
 - Readiness, batching, or repair packet mechanics → `references/package-dispatch.md`
 - Package sizing/dependency semantics → `../../references/work-packages.md`
 - Artifact roles → `../../references/slice-first-artifacts.md`

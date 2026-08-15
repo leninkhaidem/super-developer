@@ -54,7 +54,7 @@ passed on the integrated code. It does not re-derive completeness by opinion or 
    recorded at the plan gate.
 7. Dispatch one fresh cold read-only auditor for the freeze. After any blocking repair, require a new integrated
    freeze; focused review-code Fix Verification may restore `CLEAN` but cannot substitute for this audit. Supply
-   complete retained plus refreshed package/checklist/proof/report and feature Acceptance evidence.
+   complete retained plus refreshed package/checklist/result and feature Acceptance evidence.
 8. The auditor reconciles all evidence and issues a complete PASS/FAIL, while selectively falsifying high-value
    claims rather than automatically rerunning unaffected checks. Preserve its report and repair targets.
 

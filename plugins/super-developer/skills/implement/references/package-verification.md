@@ -1,13 +1,13 @@
 # Package Verification Contract
 
-Load only for a package verifier in the planned-feature pipeline. You confirm that a package is **actually
-done** by checking its **closed Acceptance Checklist** against real, executed evidence. You do not invent new
-requirements, re-open settled decisions, or re-review clean neighboring work.
+Load only for an enhanced-risk package verifier after the orchestrator has re-run the frozen Acceptance Checklist.
+Check checklist-invisible blocking risk; do not invent requirements, re-open settled decisions, replace observed
+output, or re-review clean neighboring work.
 
 ## The one rule
 
-A package is **done** when **every item on its frozen Acceptance Checklist passes with authentic evidence and
-no open blocking finding remains.** That is the whole gate. Nothing else fails a package.
+Return PASS when the orchestrator-observed checklist evidence is authentic and no checklist-invisible blocking
+finding remains. Return FAIL only for a real correctness, security, data-loss, or contract-break defect.
 
 - The Acceptance Checklist is **closed and frozen** — it comes from the package Markdown `## Acceptance
   Checklist` section (authored during planning, approved at the plan gate). Check *exactly* those items. Do not add
@@ -24,7 +24,7 @@ Read from files, not prompt prose:
 - package Markdown `.tasks/<feature>/packages/<WP-ID>.md`, including its `## Acceptance Checklist`;
 - the assigned Slice files (product/design context only);
 - the package implementation diff/code in the package or integration worktree;
-- the package agent report with `SELF_REVIEW`;
+- the package agent report with `SELF_REVIEW` (hygiene, not a gate);
 - the actual check outputs (test runs, command output, static-inspection summaries) and any mock/skip disclosures.
 
 If a required input is missing, unreadable, or unsafe, return `FAIL` with a one-line reason.
@@ -57,8 +57,8 @@ Classify every finding:
 When unsure whether a finding is blocking, ask: *does it make the software wrong, unsafe, lose data, or break a
 stated contract?* If not, it is advisory. Do not manufacture blockers.
 
-Shape/format diagnostics from `sliceproof.py` are **advisory** — a malformed report row does not fail a package
-whose checks pass. Note it for cleanup; do not loop on paperwork.
+A `sliceproof.py` structural error blocks mechanical completion but is not a semantic defect. Correct the result
+shape without starting a code-repair loop.
 
 ## PASS / FAIL
 
@@ -67,22 +67,25 @@ Return **FAIL** with the specific blocking findings only. List advisory findings
 non-blocking. Never return FAIL solely for advisory issues, report formatting, or "insufficient completeness"
 beyond the frozen checklist.
 
-## Report (one lightweight result)
+## Result Handoff
 
-Write/return a concise result for the durable package report path
-(`.tasks/<feature>/reports/<WP-ID>.package-verification.md`):
+Return the verifier verdict plus blocking/advisory findings to the orchestrator. The orchestrator records them in
+the single durable report at `.tasks/<feature>/reports/<WP-ID>.package-verification.md`; do not create another
+artifact or replace orchestrator-observed output. The report has exactly this semantic shape:
 
-- `## Acceptance Checklist Result` — each item id → `pass`/`fail` + one-line evidence pointer;
-- `## Blocking findings` — the blocking findings, or `none`;
-- `## Advisory notes` — advisory findings, or `none`;
-- `## Reviewed state` — worktree/ref/commit of the code you verified.
+- `### Verdict` — `PASS` or `FAIL`;
+- `## Acceptance Checklist Result` — each item → pass/fail, pointer, and orchestrator-observed output;
+- `## Blocking findings` — blocking findings, or `none`;
+- `## Advisory notes` — non-blocking observations, or `none`;
+- `## Reviewed state` — worktree/ref/commit;
+- `## Gaps` — `none` or approved provenance and scope.
 
-Keep it short. No long transcripts, no deliverable-completeness matrix, no Test Review Scope receipt grammar.
+Keep the handoff short. No long transcripts or additional receipt/matrix artifacts.
 
 ## Re-verification after repair (delta-only)
 
 Remain an independent approving verifier. From the semantic repair impact, re-check only affected package-local
-checklist, proof, and report evidence plus affected build/lint/test checks; retain unaffected results. Focused seam
+checklist and result-file evidence plus affected build/lint/test checks; retain unaffected results. Focused seam
 closure remains exclusively with final `review-code` Fix Verification. Widen conservatively for changed public
 contracts or unknown/unbounded impact, not because a dependency, descendant, commit, or merge exists.
 

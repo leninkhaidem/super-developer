@@ -18,13 +18,15 @@ current-root artifact store is explicitly selected; code, plugin, and test paths
 - `.tasks/<feature>/SPEC.md` — accepted requirements, constraints, non-goals, Slice inventory, and the executable feature-level `## Acceptance` gate.
 - `.tasks/<feature>/tasks.json` — lightweight registry only.
 - `.tasks/<feature>/packages/<WP-ID>.md` — package assignment, including the frozen `## Acceptance Checklist`.
-- `.tasks/<feature>/proofs/<WP-ID>.proof.md` — package closure evidence.
-- `.tasks/<feature>/reports/<WP-ID>.package-verification.md` — lightweight independent package verification result (Acceptance Checklist Result + blocking/advisory findings + reviewed state).
+- `.tasks/<feature>/reports/<WP-ID>.package-verification.md` — independent package result (Verdict, Acceptance Checklist Result, Blocking findings, Advisory notes, Reviewed state, Gaps).
 - `.tasks/<feature>/semgrep/<WP-ID>.semgrep.json` and `.semgrep-summary.json` — optional local Semgrep evidence when enabled or contracted.
 
 ## Lightweight Registry
 
-`tasks.json` is bookkeeping only. It contains no package scope prose, Slice assignment details, proof evidence, review findings, lifecycle history, command output, or detailed task bodies.
+`tasks.json` is bookkeeping only. It contains no package scope prose, Slice assignment details, result evidence,
+review findings, lifecycle history, command output, or detailed task bodies.
+
+Legacy registry entries that declare `proof_path` are not new-shape and must not be migrated silently.
 
 Required shape:
 
@@ -39,7 +41,6 @@ Required shape:
     {
       "id": "WP1",
       "path": ".tasks/<feature>/packages/WP1.md",
-      "proof_path": ".tasks/<feature>/proofs/WP1.proof.md",
       "report_path": ".tasks/<feature>/reports/WP1.package-verification.md",
       "status": "pending",
       "depends_on": []
@@ -86,9 +87,6 @@ Context only:
 ## Acceptance Checklist
 - AC-1: <package outcome> — check: `<command or test id>` — expected: <observable pass condition>
 
-## Proof
-- `.tasks/<feature>/proofs/WP1.proof.md`
-
 ## Package Verification Report
 - `.tasks/<feature>/reports/WP1.package-verification.md`
 
@@ -96,22 +94,7 @@ Context only:
 - None.
 ```
 
-`Must satisfy` Slice IDs require proof rows. `Context only` IDs must be read and respected but do not create closure rows unless another package owns them. `## Acceptance Checklist` is the frozen closed done-definition (see `package-lifecycle.md`).
-
-## Proof Markdown Closure
-
-A package proof file must contain:
-
-- `## Package Scope`
-- `## Assigned Slice Scope`
-- `## Slice Closure Table`
-- `## Acceptance / Verification Closure`
-- `## Commands Run`
-- `## Files Changed / Inspected`
-- `## Gaps, Deviations, or Deferred Items`
-- `## Package Agent Completion Statement`
-
-Closure tables use `PASS`, `DEFERRED`, or `N/A`. `OPEN` and `GAP` block closure. `DEFERRED`, `N/A`, or any non-empty gap/deviation text requires explicit approval, provenance, and scope. Missing rows, duplicate rows, placeholder evidence, unresolved markers, and unapproved gap text fail closed.
+`Must satisfy` Slice IDs map onto Acceptance Checklist items. `Context only` IDs must be read and respected but do not create result rows unless another package owns them. `## Acceptance Checklist` is the frozen closed done-definition (see `package-lifecycle.md`). Every package needs at least one independently confirmable executable check.
 
 ## Package Verification Report
 
@@ -119,11 +102,11 @@ A lightweight result confirming the package was verified against its frozen `## 
 `plugins/super-developer/references/package-verification-report.md` for the full shape. It contains, in order:
 
 - `### Verdict` with `PASS` or `FAIL`;
-- `## Acceptance Checklist Result` — each checklist item → `pass`/`fail` + one resolvable evidence pointer;
+- `## Acceptance Checklist Result` — each item → pass/fail, pointer, and orchestrator-observed output;
 - `## Blocking findings` — correctness/security/data-loss/contract-break findings, or `none`;
 - `## Advisory notes` — non-blocking observations, or `none`;
-- `## Reviewed state` — worktree/ref/commit of the verified code.
+- `## Reviewed state` — worktree/ref/commit of the verified code;
+- `## Gaps` — `none` or approved provenance and scope.
 
-PASS requires every checklist item `pass` with authentic evidence and no open blocking finding. There is no
-deliverable-completeness matrix, test-review receipt, or digest state-binding block. Mechanical helper output is
-advisory; it never fails a package whose checklist passes.
+PASS requires every checklist item `pass` with authentic observed evidence, no open blocking finding, and no
+unapproved gap. Mechanical helper output is structural only; it does not establish semantic completion.

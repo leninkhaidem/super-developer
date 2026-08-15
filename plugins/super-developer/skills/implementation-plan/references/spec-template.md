@@ -1,6 +1,7 @@
 # SPEC.md Template and Purity Rules
 
-`SPEC.md` is a concise requirements and manifest file. It is not package assignment, proof evidence, architecture debate, implementation transcript, or a replacement for authoritative Slices.
+`SPEC.md` is a concise requirements and manifest file. It is not package assignment, result evidence,
+architecture debate, implementation transcript, or a replacement for authoritative Slices.
 
 ## Template
 
@@ -37,7 +38,7 @@ marked `manual (approved)`, and is surfaced for approval at plan review.
 Non-negotiable user-stated constraints, approved scope limits, compatibility/security/performance policy, or Slice-derived constraints that apply feature-wide.
 
 ## Work Packages
-Manifest only. Package scope, Slice H3 assignments, verification expectations, dependencies, proof paths, and report paths live in package Markdown.
+Manifest only. Package scope, Slice H3 assignments, verification expectations, dependencies, and report paths live in package Markdown.
 - `packages/WP1.md` — <short title>
 
 ## Code References
@@ -66,7 +67,7 @@ User-approved exclusions, deferred items, or boundaries. Include approval proven
 
 ## Fail Closed When
 
-- Raw Slice text, source excerpts, transcripts, debate, implementation sequencing, proof rows, review findings, line numbers, code snippets, or diffs are copied into `SPEC.md`.
+- Raw Slice text, source excerpts, transcripts, debate, implementation sequencing, result rows, review findings, line numbers, code snippets, or diffs are copied into `SPEC.md`.
 - Feature-level requirements omit user-stated or safely projected commitments.
 - `## Acceptance` is missing, empty, or contains an item that is neither an executable check nor a human-approved `manual (approved)` exception.
 - An approved deferral/exclusion lacks provenance and scope.

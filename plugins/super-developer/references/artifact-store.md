@@ -19,7 +19,7 @@ the workflow or helper reference that owns that action.
 - Code root/worktree: the active source checkout used for production, reference, test, and validation code.
   It may be the main repo, an integration worktree, a package worktree, or an audit worktree.
 - Artifact paths are rooted at the artifact root: `.planning/<concept-slug>/`,
-  `.tasks/<feature>/`, package proofs/reports, review state, Semgrep evidence when enabled, and minimal
+  `.tasks/<feature>/`, package result reports, review state, Semgrep evidence when enabled, and minimal
   lifecycle metadata.
 - Code paths are rooted at the code root/worktree: source files, plugin files, tests, scripts, generated code,
   and command execution that requires a real code checkout.
@@ -66,7 +66,7 @@ Feature slug `auth` with packages `WP1`/`WP2`. Everything lives under `$PROJECT_
 ```text
 .worktrees/auth/
   artifacts/   branch artifacts/auth    <- THE artifact root: one, fixed for the whole feature.
-               holds .planning/<slug>/ and .tasks/auth/{SPEC.md,tasks.json,packages,proofs,reports,reviews}
+               holds .planning/<slug>/ and .tasks/auth/{SPEC.md,tasks.json,packages,reports,reviews}
   wp-WP1/      branch wp/auth/WP1        <- code root while implementing/verifying WP1
   wp-WP2/      branch wp/auth/WP2        <- code root while implementing/verifying WP2
   merge/       branch feature/auth       <- code root for validate-final and audit (integrated state)
@@ -75,16 +75,16 @@ Feature slug `auth` with packages `WP1`/`WP2`. Everything lives under `$PROJECT_
 The artifact root never changes. The code root is whichever worktree holds the code under check, so it
 differs per task: a package worktree for package work, `merge/` for integrated/final checks.
 
-WP1's package agent edits source only in `.worktrees/auth/wp-WP1/`, but reads/writes its proof at
-`.worktrees/auth/artifacts/.tasks/auth/proofs/WP1.proof.md` — a different worktree, reached by the absolute
-artifact-root path the orchestrator supplies (the proof is not present in the WP1 worktree).
+WP1's package agent edits source only in `.worktrees/auth/wp-WP1/`, but the result file lives at
+`.worktrees/auth/artifacts/.tasks/auth/reports/WP1.package-verification.md` — a different worktree, reached by
+the absolute artifact-root path the orchestrator supplies (the report is not present in the WP1 worktree).
 
 Resolved helper calls — `$ARTIFACT_ROOT` is constant, `$CODE_ROOT` is per task, `tasks.json` is
 artifact-root-relative:
 
 ```bash
-# WP1 proof check: code root is WP1's worktree
-python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-proof \
+# WP1 result check: code root is WP1's worktree
+python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-package-complete \
   --artifact-root "$PROJECT_ROOT/.worktrees/auth/artifacts" \
   --code-root "$PROJECT_ROOT/.worktrees/auth/wp-WP1" \
   ".tasks/auth/tasks.json" --package WP1
@@ -109,7 +109,7 @@ python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-final \
 - Do not checkpoint after every incidental edit, and do not push `main`, `feature/<feature>`, or
   `wp/<feature>/<WP-ID>` as an artifact side effect.
 - Package-delivery checkpoint: the sidecar checkpoint associated with a work-package delivery boundary after
-  package proof/report artifacts are written.
+  package result-file artifacts are written.
 - Active sidecar: any feature package, integration, review, audit, target-merge, or release work still needs
   the artifact root, or final target merge/push is incomplete.
 - Cleanup eligibility: after final target merge/push only; local or remote sidecar deletion still requires the

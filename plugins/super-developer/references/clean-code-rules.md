@@ -122,7 +122,7 @@ dependency/service, destructive action, credentials/facts, migration, or materia
 
 ## Quality Contract Evidence
 
-Material implementation/repair reports MUST use existing proof/report surfaces and include:
+Material implementation/repair reports MUST use the existing result-report surface and include:
 
 ```markdown
 Quality Contract Evidence:
@@ -134,5 +134,5 @@ Quality Contract Evidence:
 - Rule exceptions: <MUST/ground-rule exception and justification, or none>
 ```
 
-Cite existing proof rows/reports rather than restating them. MUST NOT create a standalone quality report, artifact,
+Cite existing result rows rather than restating them. MUST NOT create a standalone quality report, artifact,
 registry field, lifecycle state, command ledger, or per-smell results.

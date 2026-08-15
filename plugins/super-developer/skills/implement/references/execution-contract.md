@@ -37,7 +37,7 @@ This reference owns the user-facing implement approval template and its approval
   exists for it. Code repair clusters use the separate circuit in pipeline step 13.
 - Step-by-step mode asks before each major gate, package wave, repair loop, source push, and final handoff.
 ## Do
-1. Validate `.tasks/<feature>/`, package/proof/report/Slice paths, current git refs, and—when execution
+1. Validate `.tasks/<feature>/`, package/report/Slice paths, current git refs, and—when execution
    feasibility is triggered—the testing-authority provenance and command/write bounds.
 2. Name delivery context, roots/refs, fixed worktrees, probe receipts, continuation `BASE_KIND`/exact `BASE_REF`/
    `REVIEWED_BASE_SHA`/prerequisites, optional sidecar command, and context-applicable source command: repeated feature checkpoints only for `feature`,
@@ -60,7 +60,7 @@ Git refs:
   artifact ref: artifacts/<feature>
   target ref: <target-ref>
 Roots:
-  artifact root: .worktrees/<feature>/artifacts (owns .planning/.tasks, proofs, reports, reviews)
+  artifact root: .worktrees/<feature>/artifacts (owns .planning/.tasks, reports, reviews)
   code root: <root or integration/package worktree used for source validation>
 Testing authority:
   source: <accepted/current workflow + companions | routine-safe fallback | task-local authorization | not triggered>
@@ -97,7 +97,6 @@ Semgrep:
 Packages:
 - <WP-ID>: <title>
   package: <artifact-root>/.tasks/<feature>/packages/<WP-ID>.md
-  proof: <artifact-root>/.tasks/<feature>/proofs/<WP-ID>.proof.md
   report: <artifact-root>/.tasks/<feature>/reports/<WP-ID>.package-verification.md
   primary paths: <paths or none>
   assigned Slices/H3 IDs: <slice paths + H3 IDs or none>
@@ -110,11 +109,11 @@ Packages:
   known blockers/deferrals: <none or approved details>
 Pipeline:
 1. create fixed worktrees; create probes/continuation packages only under their exact runtime-validated envelope
-2. create proof placeholders in the artifact root with explicit `--artifact-root`/`--code-root` helper flags
+2. declare each package `report_path`; create no undeclared artifact files
 3. run attempt-ledger probes; NUL-classify/restore owned dirty state before normal local cleanup, never force/network
-4. dispatch package agents with artifact-root package/Slice/proof/report paths and package code worktrees
-5. require package-agent SELF_REVIEW and artifact-root proof Markdown evidence
-6. run root-aware `validate-proof`, package verification with a fresh PASS report, then `validate-package-complete`
+4. dispatch package agents with artifact-root package/Slice/report paths and package code worktrees
+5. require package-agent SELF_REVIEW; after return, re-run every executable frozen AC item into the result file
+6. treat a failed re-run as automatic FAIL with no LLM; then run root-aware `validate-package-complete`
 7. merge each accepted source-only package branch into the integration worktree after its gates pass
 8. refresh affected evidence/seams; only for delivery context `feature`, checkpoint and require remote feature SHA = integration `HEAD` before downstream progression; retain all safety nets on failure/divergence
 9. planned-hotfix has no feature ref/SHA or package-boundary source push; run its separately listed `hotfix/<name>` publication only at its source-push gate; publish sidecar only when listed
@@ -130,7 +129,7 @@ Pipeline:
 14. stabilize repairs; deduplicate commands only for equivalent state/cwd/environment/isolation/evidence mappings; establish a new freeze and require focused review-code closure plus a fresh cold complete same-freeze audit PASS
 15. retain all package safety nets to final cleanup; then run only independently listed sidecar/source pushes
 Stop conditions:
-- unsafe, contradictory, out-of-contract, uncertain, or unowned artifact/code/package/proof/report/Slice/worktree state
+- unsafe, contradictory, out-of-contract, uncertain, or unowned artifact/code/package/report/Slice/worktree state
 - genuine requirement/scope/user-visible behavior/Slice semantic/manual-exception change or risk acceptance
 - missing credentials/external facts, or command/write authority absent from this Execution Contract
 - destructive/external/service/dependency action not explicitly listed and approved

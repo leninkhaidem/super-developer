@@ -1,7 +1,7 @@
 # Local Code Review Workflow
 
 Local mode owns offline state capture, report, explicit actions, and commit gates. It does not inherit
-planned-feature proof/report/audit duties. Review the complete relevant state, including mixed categories.
+planned-feature result/audit duties. Review the complete relevant state, including mixed categories.
 
 ## Scope and Complete-State Setup
 

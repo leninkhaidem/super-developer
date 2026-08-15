@@ -1,9 +1,9 @@
-# Package Lifecycle, Proof, and Report
+# Package Lifecycle and Result File
 
 ## Boundary
-This reference owns package completion, proof creation, the verification report, and re-verification after
-repair. Artifact shapes live in `slice-first-artifacts.md`; package sizing lives in `work-packages.md`; command
-shapes live in `tool-usage.md`. The report shape is in `package-verification-report.md`.
+This reference owns package completion, the result file, and re-verification after repair. Artifact shapes live
+in `slice-first-artifacts.md`; package sizing lives in `work-packages.md`; command shapes live in `tool-usage.md`.
+The report shape is in `package-verification-report.md`.
 
 ## Status Signals
 Registry package status is routing only: `pending`, `in_progress`, `blocked`, or `done`. Status does not prove
@@ -17,37 +17,23 @@ Package completion is a local evidence fact: source/sidecar publication, final r
 release/deployment, and post-delivery validation are downstream gates and cannot be checklist prerequisites.
 Later evidence changes may stale completion through the existing freshness rules; publication cannot create it.
 
-## Proof
-Each package has one artifact-root proof file declared in the registry and package Markdown:
-`.tasks/<feature>/proofs/<WP-ID>.proof.md`. The package agent fills its own proof (implementation and evidence
-notes) and commits; it does not mark packages done or edit unrelated proofs.
-
-Create the placeholder before dispatch:
-```bash
-python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" create-proof \
-  --artifact-root "$ARTIFACT_ROOT" --code-root "$CODE_ROOT" \
-  ".tasks/<feature>/tasks.json" --package WP1
-```
-Overwrite safety: a missing proof is created; an existing exact placeholder is idempotent; an edited/filled proof
-fails closed unless `--force --approved-replacement` carries approval, provenance, and scope. Filled evidence is
-never silently erased.
+## Result file
+Each package has one artifact-root result file declared as registry `report_path`:
+`.tasks/<feature>/reports/<WP-ID>.package-verification.md`. The package agent drafts it, the orchestrator records
+its re-run evidence and any enhanced-verifier findings, and the helper remains read-only.
 
 ## Verification
-When a package agent returns, an independent verifier checks the package against its Acceptance Checklist per
-`../skills/implement/references/package-verification.md` and writes the lightweight report
-(`package-verification-report.md`). Mechanical helpers are advisory support, never the semantic gate:
-```bash
-python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-proof \
-  --artifact-root "$ARTIFACT_ROOT" --code-root "$CODE_ROOT" \
-  ".tasks/<feature>/tasks.json" --package WP1
-```
+When a package agent returns, the implement orchestrator re-runs every executable frozen Acceptance Checklist
+item into that same result file. A failed re-run is automatic FAIL with no LLM. An independent verifier runs only
+for enhanced-risk packages and only for defects the check cannot show. Mechanical helpers are advisory support,
+never the semantic gate.
 
 ## Completion gate
 A package becomes `done` only when:
-1. package Markdown and proof validate mechanically (`validate-proof`);
-2. the verifier returned **PASS** — every Acceptance Checklist item passes with authentic evidence, no open
-   blocking finding;
-3. the lightweight report exists and `validate-package-complete` succeeds;
+1. the orchestrator re-run recorded PASS for every executable frozen AC item;
+2. the result file records every item pass with observed output, no open blocking finding, and Gaps `none` or
+   approved metadata;
+3. `validate-package-complete` succeeds as a read-only structural check;
 4. any blocking-finding repairs are closed.
 
 ```bash
@@ -70,7 +56,7 @@ contracts; generated artifacts, configuration, and migrations; dynamic or unknow
 harnesses, and oracles; security, data, concurrency, and global invariants; merge resolutions; and evidence-only
 invalidation. Unknown or unbounded impact widens conservatively, while unaffected results remain reusable.
 
-Refresh only each affected package's checklist/proof/report evidence plus focused seam closure. Stabilize the
+Refresh only each affected package's checklist/result-file evidence plus focused seam closure. Stabilize the
 repaired state, then run or reuse the deduplicated minimum union of commands only when code/artifact state, cwd,
 environment/data, isolation/order assumptions, and evidence mapping are equivalent. Authentic exact-state
 output may be reused; distinct package, isolation, cleanup, and nondeterministic checks still run.

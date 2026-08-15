@@ -1,7 +1,7 @@
 # Design Preflight
 
 ## Purpose
-Design Preflight is a read-only adversarial planning challenge. It surfaces decisions and requirement-completeness gaps before writing `SPEC.md`, the registry, package Markdown, proof paths, or report paths.
+Design Preflight is a read-only adversarial planning challenge. It surfaces decisions and requirement-completeness gaps before writing `SPEC.md`, the registry, package Markdown, or result `report_path`s.
 
 Completeness gaps include missing observable behavior, edge cases, failures, defaults, or expected obligations.
 The two-sided challenge also cuts abstractions, layers, config, state, flags, extensions, dependencies, or package
@@ -51,7 +51,7 @@ Persist accepted outcomes only in the artifact that owns them:
 
 - `SPEC.md` for product requirements, constraints, non-goals, acceptance summary, or approved scope/override notes;
 - package Markdown for package boundaries, assigned Slice scope, sequencing, notes, dependencies, and verification expectations;
-- proof Markdown expectations through package closure rows and verification expectations;
+- result-file expectations through package Acceptance Checklist items and verification expectations;
 - Slice approval/deferral metadata when a Slice-derived commitment changes, narrows, or is excluded;
 - registry bookkeeping only for package paths, statuses, and dependencies.
 
