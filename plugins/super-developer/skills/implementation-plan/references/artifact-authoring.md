@@ -136,7 +136,9 @@ When Semgrep is enabled, keep verification expectations helper-owned and package
 - Verification expectations are package-specific and cover relevant edge, failure, trust-boundary, data,
   security, privacy, performance, concurrency, generated-contract, audience-surface, and lifecycle cases.
   Exclude dimensions the SPEC `## Trust Context` places outside the feature's boundary with one
-  `not-applicable: <dimensions>` line, never per-dimension prose repeated on every package. Material unresolved
+  `not-applicable: <dimensions>` line, never per-dimension prose repeated on every package. That line may only
+  name dimensions the SPEC already placed out of boundary — a package cannot widen its own exclusions — and never
+  covers a dimension this package's own behavior touches. Material unresolved
   empirical behavior blocks authoring: before writes return
   `BLOCKED: empirical_evidence_needed` to the orchestrator; never invoke `empirical-spike` or hide it in `Notes`.
   For non-blocking execution feasibility, record repo-backed sources/bounds and testing-authority provenance.

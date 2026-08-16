@@ -22,6 +22,8 @@ finding remains. Return FAIL only for a real correctness, security, data-loss, o
 Read from files, not prompt prose:
 
 - package Markdown `.tasks/<feature>/packages/<WP-ID>.md`, including its `## Acceptance Checklist`;
+- `.tasks/<feature>/SPEC.md` for `## Trust Context`; when that section is absent, assume the strictest surface and
+  classify as if the feature were publicly exposed — an unstated boundary never relaxes anything;
 - the assigned Slice files (product/design context only);
 - the package implementation diff/code in the package or integration worktree;
 - the package agent report with `SELF_REVIEW` (hygiene, not a gate);
@@ -73,9 +75,9 @@ Name the authority each blocking finding acts under:
 
 A finding with no warrant is not blocking — but do not discard it. Report it as advisory, or, when it names a real
 obligation the frozen checklist fails to capture, record `warrant: plan-gap` under `## Plan gaps` with the missing
-obligation stated plainly. Plan gaps do not change the verdict; the orchestrator routes them to planning
-continuation. A verifier never fails a package to force in a requirement the plan does not contain, and never
-stays silent about one the plan lacks.
+obligation stated plainly. A plan gap does not change the verdict, but it does keep the package from `done` until
+the orchestrator routes it through planning continuation. A verifier never fails a package to force in a
+requirement the plan does not contain, and never stays silent about one the plan lacks.
 
 A `sliceproof.py` structural error blocks mechanical completion but is not a semantic defect. Correct the result
 shape without starting a code-repair loop.
@@ -93,11 +95,11 @@ Return the verifier verdict plus blocking/advisory findings to the orchestrator.
 the single durable report at `.tasks/<feature>/reports/<WP-ID>.package-verification.md`; do not create another
 artifact or replace orchestrator-observed output. The report has exactly this semantic shape:
 
-- `### Verdict` — `PASS` or `FAIL`;
+- `### Verdict` — `PASS` or `FAIL` (the orchestrator replaces any drafted `PENDING_VERIFICATION`);
 - `## Acceptance Checklist Result` — each item → pass/fail, pointer, and orchestrator-observed output;
 - `## Blocking findings` — blocking findings each carrying a `warrant:`, or `none`;
 - `## Advisory notes` — non-blocking observations, or `none`;
-- `## Plan gaps` — obligations the frozen checklist omits (`warrant: plan-gap`), or `none`;
+- `## Plan gaps` — obligations the frozen checklist omits (`warrant: plan-gap`), or `none`; routed, not repaired;
 - `## Reviewed state` — worktree/ref/commit;
 - `## Gaps` — `none` or approved provenance and scope.
 

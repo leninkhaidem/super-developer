@@ -54,8 +54,9 @@ PASS | FAIL | PENDING_VERIFICATION
 - **Warrant:** every blocking finding carries `warrant: AC-<id>`, `warrant: regression:<ref>`, or
   `warrant: override:<class>`. An unwarranted finding is not blocking: it becomes an advisory note, or a
   `## Plan gaps` entry (`warrant: plan-gap`) when it names a real obligation the frozen checklist omits.
-  `## Plan gaps` never changes the verdict; the orchestrator routes it to planning continuation so a missing
-  requirement is neither forced in by a verifier nor lost.
+  A plan gap never changes the verdict and never starts a code repair loop, but it is a plan defect: while it
+  stays open the package does not become `done` and does not unlock dependents. The orchestrator routes it to
+  planning continuation, so a missing requirement is neither forced in by a verifier nor lost.
 - **Evidence authenticity:** a pointer plus observed output must resolve to real output (a test id + result, a
   command + observed result, or a `manual (approved)` observation). A PASS row with a hollow non-path claim is
   not a semantic done signal. The helper only checks presence, non-placeholder, and safe path existence when the

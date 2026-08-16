@@ -13,6 +13,7 @@ The format is based on Keep a Changelog.
 - Added a SPEC `## Trust Context` section recording actors, trust boundary, data sensitivity, and deployment surface as approved fact, so plan review and package verification scope assurance depth to the declared boundary rather than assuming a hostile public surface by default.
 - Added non-blocking plan-quality trip-wires to `sliceproof.py validate-plan` for compound acceptance claims and oversized package checklists, with an explicit `Closure justification:` note clearing the size signal.
 - Added a `PENDING_VERIFICATION` drafting verdict so a finished implementer report states an honest unverified position instead of claiming a verdict nobody observed; the helper treats it as not complete and it never satisfies a completion gate.
+- Added a `plan_gap_open` helper advisory so an open `## Plan gaps` entry is mechanically observable rather than relying on an agent to route it voluntarily, and made an open gap block package `done` and dependent unlock under the existing Plan-Defect Continuation Gate while still never failing the package verdict.
 - Added first-failure classification to the repair circuit, so repeated findings that show the acceptance evidence itself cannot decide an obligation route to planning continuation for checklist repair instead of one-defect-at-a-time patching, without resetting the attempt cap or its single escalation.
 
 ### Changed
@@ -20,7 +21,8 @@ The format is based on Keep a Changelog.
 - Clarified `semantic_done` in every helper result with a `semantic_done_note` stating that the helper performs a structural check only and that completion authority stays with the orchestrator re-run, report evidence, and review/audit.
 
 ### Fixed
-- Fixed the verdict parser so multi-word verdict tokens are reported intact rather than truncated at the first underscore.
+- Fixed the report verdict parser, which matched only letters and so truncated an underscored token at its first segment: `PASS_PENDING` and `PASS_WITH_NOTES` were read as `PASS` and accepted as a passing verdict. Underscored tokens are now matched in full and correctly rejected.
+- Fixed `Closure justification:` detection so a fenced example, a placeholder value, or an empty value no longer clears the package closure-size advisory.
 
 ## [v2.3.0] - 2026-08-14
 

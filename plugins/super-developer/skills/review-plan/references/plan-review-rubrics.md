@@ -62,6 +62,8 @@ Check whether:
 - `SPEC.md` records requirements, constraints, non-goals, Slice inventory, accepted deferrals, and acceptance summary without burying package assignment;
 - `SPEC.md` has a `## Trust Context` stating actors, trust boundary, data sensitivity, and deployment surface, and
   no dimension it places out of boundary is relied on by a requirement, constraint, or Slice commitment;
+- every package `not-applicable:` line names only dimensions the SPEC already excluded, and none of them is
+  touched by that package's own behavior; a package cannot widen its own exclusions;
 - the registry contains only feature/package bookkeeping and safe paths;
 - every package Markdown file has coherent scope, assigned Slice paths/H3 IDs, context-only reasons, primary paths, verification expectations, report path, and dependencies;
 - every package has at least one independently confirmable executable Acceptance Checklist item;

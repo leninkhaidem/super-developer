@@ -48,7 +48,10 @@ REQUIRED_REPORT_SECTIONS = {
 # warning signals rather than universal thresholds (references/work-packages.md). They exist to force an
 # explicit closure justification or an atomicity re-read, not to impose a package-size cap.
 AC_CLAIM_SPLIT_RE = re.compile(r"\b(?:check|expected|verify|rejects)\s*:", re.IGNORECASE)
-AC_CONJUNCTION_RE = re.compile(r"\band\b", re.IGNORECASE)
+# Counts coordinators joining clauses: 'and'/'plus', '&', and comma/semicolon list separators. This is a coarse
+# textual proxy, not a parse: it over-fires on coordinated noun phrases ('UTF-8 and UTF-16') and under-fires on
+# prose that hides coordination. It is advisory-only for exactly that reason - a human confirms atomicity.
+AC_CONJUNCTION_RE = re.compile(r"(?:\b(?:and|plus)\b|&|;|,)", re.IGNORECASE)
 AC_CONJUNCTION_ADVISORY_MIN = 2
 AC_COUNT_ADVISORY_MAX = 8
 CLOSURE_JUSTIFICATION_RE = re.compile(r"^\s*[-*]?\s*closure justification\s*:", re.IGNORECASE | re.MULTILINE)
@@ -763,7 +766,7 @@ def acceptance_quality_advisories(
                 "package": package_id,
                 "source": source,
                 "acceptance_items": count,
-                "message": f"{count} acceptance items exceeds the {AC_COUNT_ADVISORY_MAX}-item advisory band; record a 'Closure justification:' note or reassess the package boundary",
+                "message": f"{count} acceptance items exceeds the {AC_COUNT_ADVISORY_MAX}-item advisory band; record a 'Closure justification:' note stating the one coherent closure this size buys. Atomic items raise counts by design; never split a package merely to lower this number",
             }
         )
     return advisories
@@ -832,7 +835,7 @@ def parse_package_markdown(path: Path, package_id: str) -> PackageMarkdown:
             package_id,
             acceptance_checklist,
             str(path),
-            has_closure_justification=bool(CLOSURE_JUSTIFICATION_RE.search(text)),
+            has_closure_justification=has_closure_justification(text),
         ),
     )
 
@@ -1030,7 +1033,8 @@ def extract_slice_h3_titles(path: Path) -> dict[str, str]:
     return titles
 
 
-def report_verdicts(text: str) -> list[str]:
+def strip_fenced_blocks(text: str) -> str:
+    """Drop fenced code blocks so example Markdown cannot be read as a real declaration."""
     unfenced_lines: list[str] = []
     active_fence: tuple[str, int] | None = None
     for line in text.splitlines():
@@ -1038,7 +1042,20 @@ def report_verdicts(text: str) -> list[str]:
         active_fence, is_fence_marker = advance_markdown_fence(line, active_fence)
         if not was_in_fence and not is_fence_marker:
             unfenced_lines.append(line)
-    unfenced_text = "\n".join(unfenced_lines)
+    return "\n".join(unfenced_lines)
+
+
+def has_closure_justification(text: str) -> bool:
+    """True only for a real, non-placeholder ``Closure justification:`` line outside fenced examples."""
+    for line in strip_fenced_blocks(text).splitlines():
+        match = CLOSURE_JUSTIFICATION_RE.match(line)
+        if match and not is_placeholder_text(line[match.end():]):
+            return True
+    return False
+
+
+def report_verdicts(text: str) -> list[str]:
+    unfenced_text = strip_fenced_blocks(text)
     return [
         match.group(1).upper()
         for match in re.finditer(r"(?im)^#{2,4}\s*Verdict\s*$\s*\n+\s*([A-Za-z_]+)", unfenced_text)
@@ -1213,7 +1230,22 @@ def validate_report_markdown(
     elif "Reviewed state" not in sections:
         pass
 
-    return ReportValidationResult(errors, [])
+    advisories: list[dict[str, Any]] = []
+    plan_gaps_body = sections.get("Plan gaps")
+    if plan_gaps_body is not None:
+        open_gaps = [entry for entry in parse_bullets(plan_gaps_body, unwrap_path=False) if entry.strip().lower() != "none"]
+        if open_gaps:
+            advisories.append(
+                {
+                    "kind": "plan_gap_open",
+                    "package": package.package_id,
+                    "source": str(report_path),
+                    "entries": open_gaps,
+                    "message": "open ## Plan gaps entry: route through planning continuation and close it before done or dependent unlock",
+                }
+            )
+
+    return ReportValidationResult(errors, advisories)
 
 
 def parse_table(body: str) -> list[ProofRow]:

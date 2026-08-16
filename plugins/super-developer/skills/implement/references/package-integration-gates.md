@@ -27,8 +27,9 @@ For each returned package:
 7. The orchestrator writes or refreshes the single declared result report with: `### Verdict`,
    `## Acceptance Checklist Result` (item, pass/fail, pointer, and observed output), `## Blocking findings`
    (each carrying a `warrant:`), `## Advisory notes`, `## Plan gaps`, `## Reviewed state`, and `## Gaps`. Record
-   enhanced verifier findings there when applicable. Route each `## Plan gaps` entry to planning continuation; it
-   never changes the verdict or withholds done.
+   enhanced verifier findings there when applicable. Each `## Plan gaps` entry is a plan defect under the
+   Plan-Defect Continuation Gate below: it does not fail the verdict, but route it through planning continuation
+   and close it before `done` or any dependent unlock.
 8. Reject a missing, failed, placeholder, or stale result report, or any Acceptance Checklist Result that cannot
    be resolved to real evidence; refresh rather than bypass.
 9. Run the pre-done completion helper after the result exists and before accepting/merging as complete,

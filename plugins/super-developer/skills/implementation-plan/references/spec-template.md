@@ -64,6 +64,9 @@ User-approved exclusions, deferred items, or boundaries. Include approval proven
 - Include normative product content only when stated, explicitly approved, or safely projected from authoritative Slice product/design commitments.
 - Do not invent product behavior, architecture, performance targets, security rules, compatibility constraints, or success criteria to make the spec feel complete.
 - Every `## Acceptance` item is an executable check unless it carries an explicit human-approved `manual (approved)` exception; never leave a feature-level outcome unverifiable and silent.
+- `## Trust Context` is required for newly authored SPECs. A pre-existing SPEC without it is not retroactively
+  invalid: treat its absence as the strictest surface and add the section at the next planning continuation that
+  touches requirements, rather than blocking in-flight work.
 - `## Trust Context` records observed or user-approved fact, never a convenience downgrade to quiet reviewers.
   An absent, vague, or unapproved context defaults to the strictest surface. It cannot place a dimension out of
   boundary that a requirement, constraint, or Slice commitment depends on, and it is surfaced for approval at
