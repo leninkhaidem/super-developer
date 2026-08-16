@@ -49,7 +49,9 @@ report set or explicit `none`, and changed artifact scope.
    missing/stale testing provenance. Then run a lightweight **security-surface pre-screen** over
    `SPEC.md`, package Markdown, and Slices for signals: authentication/authorization, credentials/secrets/tokens,
    PII or sensitive data, permissions, cryptography, external network/integration, persistence/migration,
-   untrusted or user-supplied input, file/path handling, subprocess/shell, or deserialization. This summary is
+   untrusted or user-supplied input, file/path handling, subprocess/shell, or deserialization. Read the SPEC
+   `## Trust Context` and weigh each signal against the declared boundary; a missing, vague, or unapproved context
+   is treated as the strictest surface. This summary is
    informational — proceed to review without blocking unless a Stop-if decision is pending.
 4. Load `../../references/model-preferences.md`. In initial mode dispatch the existing first review wave: holistic
    Plan Reviewer/Triage plus parallel Security/Failure-Mode Reviewer when pre-screened. In continuation-focused

@@ -780,6 +780,171 @@ class SliceproofTests(unittest.TestCase):
             "\n".join(json.loads(result.stderr)["errors"]),
         )
 
+    def test_validate_package_complete_rejects_pass_prefixed_verdict_tokens(self) -> None:
+        for token in ("PASS_PENDING", "PASS_WITH_NOTES"):
+            with self.subTest(token=token):
+                self.fixture.write_completed_report()
+                report = self.fixture.report_path.read_text(encoding="utf-8").replace(
+                    "### Verdict\nPASS", f"### Verdict\n{token}", 1
+                )
+                self.fixture.report_path.write_text(report, encoding="utf-8")
+                result = self.fixture.run(
+                    "validate-package-complete",
+                    *self.fixture.root_args(),
+                    str(self.fixture.tasks_path),
+                    "--package",
+                    "WP1",
+                )
+                self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+                self.assertIn(
+                    f"Verdict must be PASS (found {token})",
+                    "\n".join(json.loads(result.stderr)["errors"]),
+                )
+
+    def test_validate_package_complete_advises_on_open_plan_gap(self) -> None:
+        self.fixture.write_completed_report()
+        report = self.fixture.report_path.read_text(encoding="utf-8")
+        report += "\n## Plan gaps\n- warrant: plan-gap — cancellation path is not on the frozen checklist.\n"
+        self.fixture.report_path.write_text(report, encoding="utf-8")
+        result = self.fixture.run(
+            "validate-package-complete",
+            *self.fixture.root_args(),
+            str(self.fixture.tasks_path),
+            "--package",
+            "WP1",
+        )
+        self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+        payload = json.loads(result.stdout)
+        gaps = [item for item in payload["advisories"] if item["kind"] == "plan_gap_open"]
+        self.assertEqual(1, len(gaps), payload["advisories"])
+        self.assertEqual("WP1", gaps[0]["package"])
+
+    def test_validate_plan_closure_justification_ignores_fenced_and_placeholder_values(self) -> None:
+        oversized = "\n".join(
+            f"- AC-{index}: fixture outcome {index} — check: `pytest tests/test_{index}.py` — expected: exit 0."
+            for index in range(1, 11)
+        )
+        for note, expect_cleared in (
+            ("\n## Notes\n```md\n- Closure justification: example only\n```\n", False),
+            ("\n## Notes\n- Closure justification: TODO\n", False),
+            ("\n## Notes\n- Closure justification: one lifecycle; splitting duplicates the harness.\n", True),
+        ):
+            with self.subTest(note=note.strip()[:40]):
+                self.fixture.package_path.write_text(
+                    self.fixture.package_text(acceptance_checklist=oversized) + note,
+                    encoding="utf-8",
+                )
+                result = self.fixture.run("validate-plan", str(self.fixture.tasks_path))
+                self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+                closure = [
+                    item
+                    for item in json.loads(result.stdout)["advisories"]
+                    if item["kind"] == "closure_size"
+                ]
+                self.assertEqual(0 if expect_cleared else 1, len(closure))
+
+    def test_validate_package_complete_reports_pending_verification_verdict_intact(self) -> None:
+        self.fixture.write_completed_report()
+        report = self.fixture.report_path.read_text(encoding="utf-8").replace(
+            "### Verdict\nPASS", "### Verdict\nPENDING_VERIFICATION", 1
+        )
+        self.fixture.report_path.write_text(report, encoding="utf-8")
+        result = self.fixture.run(
+            "validate-package-complete",
+            *self.fixture.root_args(),
+            str(self.fixture.tasks_path),
+            "--package",
+            "WP1",
+        )
+        self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+        errors = "\n".join(json.loads(result.stderr)["errors"])
+        self.assertIn("Verdict must be PASS (found PENDING_VERIFICATION)", errors)
+
+    def test_validate_plan_flags_compound_acceptance_claims_without_blocking(self) -> None:
+        self.fixture.package_path.write_text(
+            self.fixture.package_text(
+                acceptance_checklist=(
+                    "- AC-1: ingestion validates schema and rejects future rows and enforces the cap "
+                    "— check: `pytest tests/test_a.py` — expected: exit 0.\n"
+                    "- AC-2: helper emits the summary — check: `pytest tests/test_b.py` — expected: exit 0."
+                )
+            ),
+            encoding="utf-8",
+        )
+        result = self.fixture.run("validate-plan", str(self.fixture.tasks_path))
+        self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+        payload = json.loads(result.stdout)
+        self.assertTrue(payload["ok"])
+        self.assertFalse(payload["semantic_done"])
+        atomicity = [item for item in payload["advisories"] if item["kind"] == "acceptance_atomicity"]
+        self.assertEqual(["AC-1"], [item["item"] for item in atomicity])
+        self.assertEqual("WP1", atomicity[0]["package"])
+
+    def test_validate_plan_atomicity_advisory_covers_comma_separated_claims(self) -> None:
+        self.fixture.package_path.write_text(
+            self.fixture.package_text(
+                acceptance_checklist=(
+                    "- AC-1: validates schema, rejects future rows, enforces the cap "
+                    "— check: `pytest tests/test_a.py` — expected: exit 0.\n"
+                    "- AC-2: emits the summary — check: `pytest tests/test_b.py` — expected: exit 0."
+                )
+            ),
+            encoding="utf-8",
+        )
+        result = self.fixture.run("validate-plan", str(self.fixture.tasks_path))
+        self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+        atomicity = [
+            item for item in json.loads(result.stdout)["advisories"] if item["kind"] == "acceptance_atomicity"
+        ]
+        self.assertEqual(["AC-1"], [item["item"] for item in atomicity])
+
+    def test_validate_plan_closure_size_advisory_clears_with_recorded_justification(self) -> None:
+        oversized = "\n".join(
+            f"- AC-{index}: fixture outcome {index} — check: `pytest tests/test_{index}.py` — expected: exit 0."
+            for index in range(1, 11)
+        )
+        self.fixture.package_path.write_text(
+            self.fixture.package_text(acceptance_checklist=oversized),
+            encoding="utf-8",
+        )
+        flagged = self.fixture.run("validate-plan", str(self.fixture.tasks_path))
+        self.assertEqual(0, flagged.returncode, flagged.stdout + flagged.stderr)
+        flagged_payload = json.loads(flagged.stdout)
+        closure = [item for item in flagged_payload["advisories"] if item["kind"] == "closure_size"]
+        self.assertEqual(1, len(closure), flagged_payload["advisories"])
+        self.assertEqual(10, closure[0]["acceptance_items"])
+
+        self.fixture.package_path.write_text(
+            self.fixture.package_path.read_text(encoding="utf-8")
+            + "\n## Notes\n- Closure justification: one ingestion lifecycle; splitting duplicates the shared harness.\n",
+            encoding="utf-8",
+        )
+        justified = self.fixture.run("validate-plan", str(self.fixture.tasks_path))
+        self.assertEqual(0, justified.returncode, justified.stdout + justified.stderr)
+        justified_payload = json.loads(justified.stdout)
+        self.assertEqual(
+            [],
+            [item for item in justified_payload["advisories"] if item["kind"] == "closure_size"],
+        )
+
+    def test_validate_plan_atomicity_advisory_ignores_check_and_rejects_clauses(self) -> None:
+        self.fixture.package_path.write_text(
+            self.fixture.package_text(
+                acceptance_checklist=(
+                    "- AC-1: helper rejects alias spellings — check: `pytest tests/test_a.py` "
+                    "— expected: exit 0 and bounded output — rejects: accepting `--dryrun` and `--dry_run`."
+                )
+            ),
+            encoding="utf-8",
+        )
+        result = self.fixture.run("validate-plan", str(self.fixture.tasks_path))
+        self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+        payload = json.loads(result.stdout)
+        self.assertEqual(
+            [],
+            [item for item in payload["advisories"] if item["kind"] == "acceptance_atomicity"],
+        )
+
     def test_validate_plan_requires_non_empty_spec_acceptance(self) -> None:
         present = self.fixture.run("validate-plan", str(self.fixture.tasks_path))
         self.assertEqual(0, present.returncode, present.stdout + present.stderr)

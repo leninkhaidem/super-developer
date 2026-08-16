@@ -131,10 +131,11 @@ not progress and cannot reset the three-total-attempt cap. Stop for authority/sa
 Dispatch only for an enhanced-risk package after the orchestrator re-run. Require first reads of
 `plugins/super-developer/skills/implement/references/package-verification.md` and
 `plugins/super-developer/references/package-verification-report.md`. Include artifact/package/result/Slice paths,
-reviewed code/ref, `SELF_REVIEW`, orchestrator-observed output, and optional Semgrep bindings. The verifier checks
+reviewed code/ref, `SELF_REVIEW`, orchestrator-observed output, `SPEC.md` for `## Trust Context`, and optional
+Semgrep bindings. The verifier checks
 checklist-invisible blocking risk from scope, Slices, diff, tests, expectations, and known failure modes; planner
 seeds do not limit discovery. It returns PASS/FAIL plus blocking/advisory findings. The orchestrator records them
-in the same six-section result report; the verifier neither creates another artifact nor replaces observed output.
+in the same result report; the verifier neither creates another artifact nor replaces observed output.
 
 ## Orchestrator Edit Boundary
 

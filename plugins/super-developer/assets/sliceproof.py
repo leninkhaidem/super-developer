@@ -15,7 +15,7 @@ import json
 import os
 import re
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -44,6 +44,22 @@ REQUIRED_REPORT_SECTIONS = {
     "Reviewed state",
     "Gaps",
 }
+# Plan-quality trip-wires. These are countable proxies only: they never fail validation, because counts are
+# warning signals rather than universal thresholds (references/work-packages.md). They exist to force an
+# explicit closure justification or an atomicity re-read, not to impose a package-size cap.
+AC_CLAIM_SPLIT_RE = re.compile(r"\b(?:check|expected|verify|rejects)\s*:", re.IGNORECASE)
+# Counts coordinators joining clauses: 'and'/'plus', '&', and comma/semicolon list separators. This is a coarse
+# textual proxy, not a parse: it over-fires on coordinated noun phrases ('UTF-8 and UTF-16') and under-fires on
+# prose that hides coordination. It is advisory-only for exactly that reason - a human confirms atomicity.
+AC_CONJUNCTION_RE = re.compile(r"(?:\b(?:and|plus)\b|&|;|,)", re.IGNORECASE)
+AC_CONJUNCTION_ADVISORY_MIN = 2
+AC_COUNT_ADVISORY_MAX = 8
+CLOSURE_JUSTIFICATION_RE = re.compile(r"^\s*[-*]?\s*closure justification\s*:", re.IGNORECASE | re.MULTILINE)
+# semantic_done is always False by design. It is not a failure signal and not a lifecycle state: this helper
+# checks structure only, so orchestrator checklist re-run, report evidence, and review/audit own completion.
+SEMANTIC_DONE_NOTE = (
+    "structural check only; orchestrator checklist re-run, report evidence, and review/audit own semantic completion"
+)
 BLOCKING_MARKER_RE = re.compile(r"\b(?:TODO|OPEN|GAP)\b", re.IGNORECASE)
 UNRESOLVED_MARKER_RE = re.compile(r"\b(?:TODO|OPEN)\b", re.IGNORECASE)
 NEGATED_APPROVAL_RE = re.compile(
@@ -129,6 +145,7 @@ class PackageMarkdown:
     acceptance_checklist: list[str]
     report_path: str
     dependencies: list[str]
+    plan_advisories: list[dict[str, Any]] = field(default_factory=list)
 
     @property
     def must_satisfy_ids(self) -> list[str]:
@@ -270,6 +287,10 @@ def cmd_validate_plan(args: argparse.Namespace) -> dict[str, Any]:
         "packages": [package.package_id for package in registry.packages],
         "validated_package_markdown": sorted(packages),
         "validated_slices": sorted(registry.authoritative_slices),
+        "mechanical_only": True,
+        "semantic_done": False,
+        "semantic_done_note": SEMANTIC_DONE_NOTE,
+        "advisories": [advisory for package_id in sorted(packages) for advisory in packages[package_id].plan_advisories],
     }
 
 
@@ -287,6 +308,7 @@ def cmd_validate_package_complete(args: argparse.Namespace) -> dict[str, Any]:
         "new_shape": True,
         "mechanical_only": True,
         "semantic_done": False,
+        "semantic_done_note": SEMANTIC_DONE_NOTE,
         "acceptance_checklist_items": state.package_md.acceptance_checklist,
         "advisories": report_result.advisories,
     }
@@ -322,6 +344,7 @@ def cmd_validate_final(args: argparse.Namespace) -> dict[str, Any]:
         "reports_validated": validated_reports,
         "mechanical_only": True,
         "semantic_done": False,
+        "semantic_done_note": SEMANTIC_DONE_NOTE,
         "advisories": advisories,
     }
 
@@ -707,6 +730,48 @@ def validate_dependency_cycles(packages_data: list[Any]) -> list[str]:
     return errors
 
 
+def acceptance_quality_advisories(
+    package_id: str,
+    acceptance_checklist: list[str],
+    source: str,
+    *,
+    has_closure_justification: bool,
+) -> list[dict[str, Any]]:
+    """Non-blocking plan-quality signals for acceptance atomicity and package closure size.
+
+    These never fail validation and never split a package. A compound claim only earns a re-read, and an
+    oversized checklist only earns an explicit ``Closure justification:`` note, because counts are warning
+    signals rather than universal thresholds.
+    """
+    advisories: list[dict[str, Any]] = []
+    for item in acceptance_checklist:
+        claim = AC_CLAIM_SPLIT_RE.split(item, maxsplit=1)[0]
+        conjunctions = len(AC_CONJUNCTION_RE.findall(claim))
+        if conjunctions >= AC_CONJUNCTION_ADVISORY_MIN:
+            advisories.append(
+                {
+                    "kind": "acceptance_atomicity",
+                    "package": package_id,
+                    "source": source,
+                    "item": acceptance_item_id(item) or claim.strip()[:60],
+                    "conjunctions": conjunctions,
+                    "message": "checklist claim chains multiple concerns; confirm one behavioral claim, one observable boundary, one primary check, one failure condition",
+                }
+            )
+    count = len(acceptance_checklist)
+    if count > AC_COUNT_ADVISORY_MAX and not has_closure_justification:
+        advisories.append(
+            {
+                "kind": "closure_size",
+                "package": package_id,
+                "source": source,
+                "acceptance_items": count,
+                "message": f"{count} acceptance items exceeds the {AC_COUNT_ADVISORY_MAX}-item advisory band; record a 'Closure justification:' note stating the one coherent closure this size buys. Atomic items raise counts by design; never split a package merely to lower this number",
+            }
+        )
+    return advisories
+
+
 def parse_package_markdown(path: Path, package_id: str) -> PackageMarkdown:
     text = read_text_file(path, f"package Markdown {path}")
     errors: list[str] = []
@@ -766,6 +831,12 @@ def parse_package_markdown(path: Path, package_id: str) -> PackageMarkdown:
         acceptance_checklist=acceptance_checklist,
         report_path=report_paths[0],
         dependencies=dependencies,
+        plan_advisories=acceptance_quality_advisories(
+            package_id,
+            acceptance_checklist,
+            str(path),
+            has_closure_justification=has_closure_justification(text),
+        ),
     )
 
 
@@ -962,7 +1033,8 @@ def extract_slice_h3_titles(path: Path) -> dict[str, str]:
     return titles
 
 
-def report_verdicts(text: str) -> list[str]:
+def strip_fenced_blocks(text: str) -> str:
+    """Drop fenced code blocks so example Markdown cannot be read as a real declaration."""
     unfenced_lines: list[str] = []
     active_fence: tuple[str, int] | None = None
     for line in text.splitlines():
@@ -970,10 +1042,23 @@ def report_verdicts(text: str) -> list[str]:
         active_fence, is_fence_marker = advance_markdown_fence(line, active_fence)
         if not was_in_fence and not is_fence_marker:
             unfenced_lines.append(line)
-    unfenced_text = "\n".join(unfenced_lines)
+    return "\n".join(unfenced_lines)
+
+
+def has_closure_justification(text: str) -> bool:
+    """True only for a real, non-placeholder ``Closure justification:`` line outside fenced examples."""
+    for line in strip_fenced_blocks(text).splitlines():
+        match = CLOSURE_JUSTIFICATION_RE.match(line)
+        if match and not is_placeholder_text(line[match.end():]):
+            return True
+    return False
+
+
+def report_verdicts(text: str) -> list[str]:
+    unfenced_text = strip_fenced_blocks(text)
     return [
         match.group(1).upper()
-        for match in re.finditer(r"(?im)^#{2,4}\s*Verdict\s*$\s*\n+\s*([A-Za-z]+)", unfenced_text)
+        for match in re.finditer(r"(?im)^#{2,4}\s*Verdict\s*$\s*\n+\s*([A-Za-z_]+)", unfenced_text)
     ]
 
 
@@ -1145,7 +1230,22 @@ def validate_report_markdown(
     elif "Reviewed state" not in sections:
         pass
 
-    return ReportValidationResult(errors, [])
+    advisories: list[dict[str, Any]] = []
+    plan_gaps_body = sections.get("Plan gaps")
+    if plan_gaps_body is not None:
+        open_gaps = [entry for entry in parse_bullets(plan_gaps_body, unwrap_path=False) if entry.strip().lower() != "none"]
+        if open_gaps:
+            advisories.append(
+                {
+                    "kind": "plan_gap_open",
+                    "package": package.package_id,
+                    "source": str(report_path),
+                    "entries": open_gaps,
+                    "message": "open ## Plan gaps entry: route through planning continuation and close it before done or dependent unlock",
+                }
+            )
+
+    return ReportValidationResult(errors, advisories)
 
 
 def parse_table(body: str) -> list[ProofRow]:

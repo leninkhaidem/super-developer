@@ -34,7 +34,10 @@ A package becomes `done` only when:
 2. the result file records every item pass with observed output, no open blocking finding, and Gaps `none` or
    approved metadata;
 3. `validate-package-complete` succeeds as a read-only structural check;
-4. any blocking-finding repairs are closed.
+4. any blocking-finding repairs are closed;
+5. every `## Plan gaps` entry is closed — routed through planning continuation and re-verified, or durably approved
+   as out of scope. `validate-package-complete` reports each open entry as a `plan_gap_open` advisory; treat that
+   advisory as an unmet completion condition, never as an optional note.
 
 ```bash
 python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-package-complete \
@@ -49,6 +52,20 @@ Only **blocking** findings — correctness, security, data-loss, contract-break 
 repair. Everything else is **advisory**: recorded in the report, never looped, never a reason to withhold done.
 Do not manufacture blockers from style, taste, or speculative completeness.
 
+Every blocking finding carries a warrant naming the authority it acts under: `warrant: AC-<id>` for a violated
+frozen item, `warrant: regression:<ref>` for broken existing behavior, or `warrant: override:<class>` for a severe
+correctness/security/data-loss defect the checklist cannot see. An unwarranted finding is not blocking. It becomes
+an advisory note, or — when it names a real obligation the frozen checklist omits — a `## Plan gaps` entry
+(`warrant: plan-gap`). A plan gap is a plan defect, not code-repair work: it does not fail the package verdict and
+never starts a repair loop, but while it stays open the package does not become `done` and does not unlock
+dependents. The consuming orchestrator routes it through planning continuation and re-verifies against the
+repaired checklist, so a missing requirement is neither forced in by a verifier nor silently lost.
+
+Scope assurance depth to the SPEC `## Trust Context`. Inside a declared trusted boundary, hostile-input,
+authentication, race-hardening, and adversarial-filesystem concerns are advisory unless a frozen item,
+requirement, or Slice obligation names them. Trust Context never scopes the control-plane boundary and never
+downgrades a defect in behavior the package actually promises.
+
 ## Repair impact and re-verification (delta-only, bounded)
 Dependency edges express readiness/sequencing only: descendants are not staleness fan-out. Classify semantic
 impact from the diff and changed behavior/evidence. Include direct owners and consumers; observable/public
@@ -60,6 +77,12 @@ Refresh only each affected package's checklist/result-file evidence plus focused
 repaired state, then run or reuse the deduplicated minimum union of commands only when code/artifact state, cwd,
 environment/data, isolation/order assumptions, and evidence mapping are equivalent. Authentic exact-state
 output may be reused; distinct package, isolation, cleanup, and nondeterministic checks still run.
+
+Classify each confirmed finding before repairing it: implementation defect, missing regression evidence, plan
+defect, newly proposed requirement, or advisory. When repeated findings show the acceptance evidence itself cannot
+decide the obligation — rather than the code being wrong — that is a plan defect: route it through planning
+continuation to repair the checklist instead of patching one defect at a time. Routing preserves the attempt cap
+and its single escalation below; it never resets them.
 
 Cluster confirmed findings only when they share a root cause, writable scope, and verification envelope; assign
 one repair worker per coherent cluster. Preserve logical cluster identity across retries and the existing

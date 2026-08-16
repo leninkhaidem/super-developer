@@ -16,7 +16,7 @@ Canonical path: `.tasks/<feature>/reports/<WP-ID>.package-verification.md`.
 ## Package Verification: <WP-ID>
 
 ### Verdict
-PASS | FAIL
+PASS | FAIL | PENDING_VERIFICATION
 
 ## Acceptance Checklist Result
 | Item | Result | Evidence |
@@ -30,6 +30,9 @@ PASS | FAIL
 ## Advisory notes
 - <non-blocking observation>, or none
 
+## Plan gaps
+- none
+
 ## Reviewed state
 - Worktree/ref/commit of the code verified: `<worktree>` `<ref>` `<commit>`
 
@@ -42,8 +45,18 @@ PASS | FAIL
 - **PASS** requires every Acceptance Checklist item marked `pass` with a pointer plus orchestrator-observed
   output (exit/status and bounded output) and no open blocking finding. Missing, skipped, or failed observed
   output is automatic FAIL. Any `fail` item or open blocking finding is **FAIL**.
+- **PENDING_VERIFICATION** is the drafting-stage value only: the package agent finished implementing and the
+  orchestrator has not yet re-run the frozen checklist. It states an honest unverified position instead of
+  claiming a verdict no one observed. The helper treats it as not complete, and it never satisfies a completion
+  gate; the orchestrator replaces it with `PASS` or `FAIL` from its own re-run.
 - **Severity bar:** only correctness / security / data-loss / contract-break go under `## Blocking findings`.
   Everything else is an `## Advisory note` — it never changes the verdict.
+- **Warrant:** every blocking finding carries `warrant: AC-<id>`, `warrant: regression:<ref>`, or
+  `warrant: override:<class>`. An unwarranted finding is not blocking: it becomes an advisory note, or a
+  `## Plan gaps` entry (`warrant: plan-gap`) when it names a real obligation the frozen checklist omits.
+  A plan gap never changes the verdict and never starts a code repair loop, but it is a plan defect: while it
+  stays open the package does not become `done` and does not unlock dependents. The orchestrator routes it to
+  planning continuation, so a missing requirement is neither forced in by a verifier nor lost.
 - **Evidence authenticity:** a pointer plus observed output must resolve to real output (a test id + result, a
   command + observed result, or a `manual (approved)` observation). A PASS row with a hollow non-path claim is
   not a semantic done signal. The helper only checks presence, non-placeholder, and safe path existence when the
@@ -51,6 +64,8 @@ PASS | FAIL
 - **Executable-by-default:** a `manual` result is acceptable only for an item the plan froze as a human-approved
   `manual (approved)` exception at the plan gate. The orchestrator does not re-run manual items.
 - **Gaps** must be `none` or carry approval, provenance, and scope. The helper checks that metadata presence only.
+- `## Plan gaps` is not a helper-required section: an absent section reads as `none`, so reports written before it
+  existed stay valid and no migration is forced. Write it whenever a real omitted obligation was found.
 - Mechanical `sliceproof.py` output is structural fail-closed, never semantic authenticity. Helper ok alone is
   not done.
 

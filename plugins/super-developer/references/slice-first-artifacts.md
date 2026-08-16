@@ -18,7 +18,7 @@ current-root artifact store is explicitly selected; code, plugin, and test paths
 - `.tasks/<feature>/SPEC.md` — accepted requirements, constraints, non-goals, Slice inventory, and the executable feature-level `## Acceptance` gate.
 - `.tasks/<feature>/tasks.json` — lightweight registry only.
 - `.tasks/<feature>/packages/<WP-ID>.md` — package assignment, including the frozen `## Acceptance Checklist`.
-- `.tasks/<feature>/reports/<WP-ID>.package-verification.md` — independent package result (Verdict, Acceptance Checklist Result, Blocking findings, Advisory notes, Reviewed state, Gaps).
+- `.tasks/<feature>/reports/<WP-ID>.package-verification.md` — independent package result (Verdict, Acceptance Checklist Result, Blocking findings, Advisory notes, Plan gaps, Reviewed state, Gaps).
 - `.tasks/<feature>/semgrep/<WP-ID>.semgrep.json` and `.semgrep-summary.json` — optional local Semgrep evidence when enabled or contracted.
 
 ## Lightweight Registry
@@ -101,10 +101,12 @@ Context only:
 A lightweight result confirming the package was verified against its frozen `## Acceptance Checklist`. See
 `plugins/super-developer/references/package-verification-report.md` for the full shape. It contains, in order:
 
-- `### Verdict` with `PASS` or `FAIL`;
+- `### Verdict` with `PASS` or `FAIL`, or drafting-stage `PENDING_VERIFICATION` before the orchestrator re-run;
 - `## Acceptance Checklist Result` — each item → pass/fail, pointer, and orchestrator-observed output;
 - `## Blocking findings` — correctness/security/data-loss/contract-break findings, or `none`;
 - `## Advisory notes` — non-blocking observations, or `none`;
+- `## Plan gaps` — obligations the frozen checklist omits (`warrant: plan-gap`), or `none`; routed to planning
+  continuation rather than repaired, and closed before `done`;
 - `## Reviewed state` — worktree/ref/commit of the verified code;
 - `## Gaps` — `none` or approved provenance and scope.
 

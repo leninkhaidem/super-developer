@@ -25,8 +25,10 @@ For each returned package:
 6. For enhanced-risk packages only, dispatch the independent verifier after the orchestrator re-run. The verifier
    checks checklist-invisible blocking risk and returns its verdict and findings; standard-risk packages skip it.
 7. The orchestrator writes or refreshes the single declared result report with: `### Verdict`,
-   `## Acceptance Checklist Result` (item, pass/fail, pointer, and observed output), `## Blocking findings`,
-   `## Advisory notes`, `## Reviewed state`, and `## Gaps`. Record enhanced verifier findings there when applicable.
+   `## Acceptance Checklist Result` (item, pass/fail, pointer, and observed output), `## Blocking findings`
+   (each carrying a `warrant:`), `## Advisory notes`, `## Plan gaps`, `## Reviewed state`, and `## Gaps`. Record
+   enhanced verifier findings there when applicable. A `## Plan gaps` entry does not fail the verdict; handle it
+   under the Plan-Defect Continuation Gate below.
 8. Reject a missing, failed, placeholder, or stale result report, or any Acceptance Checklist Result that cannot
    be resolved to real evidence; refresh rather than bypass.
 9. Run the pre-done completion helper after the result exists and before accepting/merging as complete,
@@ -80,8 +82,8 @@ or send the defect to an ordinary code repair worker while it remains unresolved
 ## Report Shape and Re-Verification
 Package result reports use the shape from `plugins/super-developer/references/package-verification-report.md`:
 `## Package Verification: <WP-ID>` with `### Verdict`, `## Acceptance Checklist Result` (including pointer and
-orchestrator-observed output), `## Blocking findings`, `## Advisory notes`, `## Reviewed state`, and `## Gaps`.
-There is no separate matrix, receipt, or state-binding artifact.
+orchestrator-observed output), `## Blocking findings`, `## Advisory notes`, `## Plan gaps`, `## Reviewed state`,
+and `## Gaps`. There is no separate matrix, receipt, or state-binding artifact.
 
 After a blocking repair, re-verify affected checklist/result-file evidence and focused seams delta-only, then
 rewrite affected reports. Stabilize state and run/reuse the minimum command union only when code/artifact state,
