@@ -57,6 +57,26 @@ Classify every finding:
 When unsure whether a finding is blocking, ask: *does it make the software wrong, unsafe, lose data, or break a
 stated contract?* If not, it is advisory. Do not manufacture blockers.
 
+Read the SPEC `## Trust Context` before classifying. Weigh hostile-input, authentication, race-hardening, and
+adversarial-filesystem concerns against the declared boundary: inside a trusted boundary they are advisory unless
+a frozen item, requirement, or Slice obligation names them. Trust Context never scopes the control-plane boundary
+above, and never downgrades a defect in behavior the package actually promises.
+
+### Warrant (required on every blocking finding)
+
+Name the authority each blocking finding acts under:
+
+- `warrant: AC-<id>` — it violates that frozen Acceptance Checklist item;
+- `warrant: regression:<ref>` — it breaks existing verified behavior beyond this package's change;
+- `warrant: override:<class>` — a severe correctness, security, or data-loss defect the frozen checklist cannot
+  see; name the class.
+
+A finding with no warrant is not blocking — but do not discard it. Report it as advisory, or, when it names a real
+obligation the frozen checklist fails to capture, record `warrant: plan-gap` under `## Plan gaps` with the missing
+obligation stated plainly. Plan gaps do not change the verdict; the orchestrator routes them to planning
+continuation. A verifier never fails a package to force in a requirement the plan does not contain, and never
+stays silent about one the plan lacks.
+
 A `sliceproof.py` structural error blocks mechanical completion but is not a semantic defect. Correct the result
 shape without starting a code-repair loop.
 
@@ -75,8 +95,9 @@ artifact or replace orchestrator-observed output. The report has exactly this se
 
 - `### Verdict` — `PASS` or `FAIL`;
 - `## Acceptance Checklist Result` — each item → pass/fail, pointer, and orchestrator-observed output;
-- `## Blocking findings` — blocking findings, or `none`;
+- `## Blocking findings` — blocking findings each carrying a `warrant:`, or `none`;
 - `## Advisory notes` — non-blocking observations, or `none`;
+- `## Plan gaps` — obligations the frozen checklist omits (`warrant: plan-gap`), or `none`;
 - `## Reviewed state` — worktree/ref/commit;
 - `## Gaps` — `none` or approved provenance and scope.
 

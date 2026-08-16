@@ -6,6 +6,16 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+### Added
+- Added an atomicity rule for package acceptance criteria so each frozen checklist item carries one behavioral claim, one observable boundary, one primary check, and one failure condition, preventing a compound item from passing on partial proof where no downstream role may renegotiate the done-definition.
+- Added a falsification pointer (`rejects:`) to acceptance items that prove a Slice forbidden behavior, naming the wrong-but-plausible implementation the check must fail against, so a green checklist cannot be built from checks that would also pass against the counterfeit.
+- Added a required warrant on every blocking package-verification finding (`AC-<id>`, `regression:<ref>`, or `override:<class>`), plus a non-blocking `## Plan gaps` report section that routes unwarranted-but-real obligations to planning continuation instead of failing the package or discarding the concern.
+- Added a SPEC `## Trust Context` section recording actors, trust boundary, data sensitivity, and deployment surface as approved fact, so plan review and package verification scope assurance depth to the declared boundary rather than assuming a hostile public surface by default.
+- Added non-blocking plan-quality trip-wires to `sliceproof.py validate-plan` for compound acceptance claims and oversized package checklists, with an explicit `Closure justification:` note clearing the size signal.
+
+### Changed
+- Changed package verification expectations so dimensions the Trust Context places out of boundary are excluded once as a single `not-applicable:` line instead of per-dimension prose repeated on every package.
+
 ## [v2.3.0] - 2026-08-14
 
 ### Added

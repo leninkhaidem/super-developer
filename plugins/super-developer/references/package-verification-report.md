@@ -30,6 +30,9 @@ PASS | FAIL
 ## Advisory notes
 - <non-blocking observation>, or none
 
+## Plan gaps
+- none
+
 ## Reviewed state
 - Worktree/ref/commit of the code verified: `<worktree>` `<ref>` `<commit>`
 
@@ -44,6 +47,11 @@ PASS | FAIL
   output is automatic FAIL. Any `fail` item or open blocking finding is **FAIL**.
 - **Severity bar:** only correctness / security / data-loss / contract-break go under `## Blocking findings`.
   Everything else is an `## Advisory note` — it never changes the verdict.
+- **Warrant:** every blocking finding carries `warrant: AC-<id>`, `warrant: regression:<ref>`, or
+  `warrant: override:<class>`. An unwarranted finding is not blocking: it becomes an advisory note, or a
+  `## Plan gaps` entry (`warrant: plan-gap`) when it names a real obligation the frozen checklist omits.
+  `## Plan gaps` never changes the verdict; the orchestrator routes it to planning continuation so a missing
+  requirement is neither forced in by a verifier nor lost.
 - **Evidence authenticity:** a pointer plus observed output must resolve to real output (a test id + result, a
   command + observed result, or a `manual (approved)` observation). A PASS row with a hollow non-path claim is
   not a semantic done signal. The helper only checks presence, non-placeholder, and safe path existence when the

@@ -15,7 +15,7 @@ import json
 import os
 import re
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -44,6 +44,14 @@ REQUIRED_REPORT_SECTIONS = {
     "Reviewed state",
     "Gaps",
 }
+# Plan-quality trip-wires. These are countable proxies only: they never fail validation, because counts are
+# warning signals rather than universal thresholds (references/work-packages.md). They exist to force an
+# explicit closure justification or an atomicity re-read, not to impose a package-size cap.
+AC_CLAIM_SPLIT_RE = re.compile(r"\b(?:check|expected|verify|rejects)\s*:", re.IGNORECASE)
+AC_CONJUNCTION_RE = re.compile(r"\band\b", re.IGNORECASE)
+AC_CONJUNCTION_ADVISORY_MIN = 2
+AC_COUNT_ADVISORY_MAX = 8
+CLOSURE_JUSTIFICATION_RE = re.compile(r"^\s*[-*]?\s*closure justification\s*:", re.IGNORECASE | re.MULTILINE)
 BLOCKING_MARKER_RE = re.compile(r"\b(?:TODO|OPEN|GAP)\b", re.IGNORECASE)
 UNRESOLVED_MARKER_RE = re.compile(r"\b(?:TODO|OPEN)\b", re.IGNORECASE)
 NEGATED_APPROVAL_RE = re.compile(
@@ -129,6 +137,7 @@ class PackageMarkdown:
     acceptance_checklist: list[str]
     report_path: str
     dependencies: list[str]
+    plan_advisories: list[dict[str, Any]] = field(default_factory=list)
 
     @property
     def must_satisfy_ids(self) -> list[str]:
@@ -270,6 +279,9 @@ def cmd_validate_plan(args: argparse.Namespace) -> dict[str, Any]:
         "packages": [package.package_id for package in registry.packages],
         "validated_package_markdown": sorted(packages),
         "validated_slices": sorted(registry.authoritative_slices),
+        "mechanical_only": True,
+        "semantic_done": False,
+        "advisories": [advisory for package_id in sorted(packages) for advisory in packages[package_id].plan_advisories],
     }
 
 
@@ -707,6 +719,48 @@ def validate_dependency_cycles(packages_data: list[Any]) -> list[str]:
     return errors
 
 
+def acceptance_quality_advisories(
+    package_id: str,
+    acceptance_checklist: list[str],
+    source: str,
+    *,
+    has_closure_justification: bool,
+) -> list[dict[str, Any]]:
+    """Non-blocking plan-quality signals for acceptance atomicity and package closure size.
+
+    These never fail validation and never split a package. A compound claim only earns a re-read, and an
+    oversized checklist only earns an explicit ``Closure justification:`` note, because counts are warning
+    signals rather than universal thresholds.
+    """
+    advisories: list[dict[str, Any]] = []
+    for item in acceptance_checklist:
+        claim = AC_CLAIM_SPLIT_RE.split(item, maxsplit=1)[0]
+        conjunctions = len(AC_CONJUNCTION_RE.findall(claim))
+        if conjunctions >= AC_CONJUNCTION_ADVISORY_MIN:
+            advisories.append(
+                {
+                    "kind": "acceptance_atomicity",
+                    "package": package_id,
+                    "source": source,
+                    "item": acceptance_item_id(item) or claim.strip()[:60],
+                    "conjunctions": conjunctions,
+                    "message": "checklist claim chains multiple concerns; confirm one behavioral claim, one observable boundary, one primary check, one failure condition",
+                }
+            )
+    count = len(acceptance_checklist)
+    if count > AC_COUNT_ADVISORY_MAX and not has_closure_justification:
+        advisories.append(
+            {
+                "kind": "closure_size",
+                "package": package_id,
+                "source": source,
+                "acceptance_items": count,
+                "message": f"{count} acceptance items exceeds the {AC_COUNT_ADVISORY_MAX}-item advisory band; record a 'Closure justification:' note or reassess the package boundary",
+            }
+        )
+    return advisories
+
+
 def parse_package_markdown(path: Path, package_id: str) -> PackageMarkdown:
     text = read_text_file(path, f"package Markdown {path}")
     errors: list[str] = []
@@ -766,6 +820,12 @@ def parse_package_markdown(path: Path, package_id: str) -> PackageMarkdown:
         acceptance_checklist=acceptance_checklist,
         report_path=report_paths[0],
         dependencies=dependencies,
+        plan_advisories=acceptance_quality_advisories(
+            package_id,
+            acceptance_checklist,
+            str(path),
+            has_closure_justification=bool(CLOSURE_JUSTIFICATION_RE.search(text)),
+        ),
     )
 
 

@@ -49,6 +49,18 @@ Only **blocking** findings — correctness, security, data-loss, contract-break 
 repair. Everything else is **advisory**: recorded in the report, never looped, never a reason to withhold done.
 Do not manufacture blockers from style, taste, or speculative completeness.
 
+Every blocking finding carries a warrant naming the authority it acts under: `warrant: AC-<id>` for a violated
+frozen item, `warrant: regression:<ref>` for broken existing behavior, or `warrant: override:<class>` for a severe
+correctness/security/data-loss defect the checklist cannot see. An unwarranted finding is not blocking. It becomes
+an advisory note, or — when it names a real obligation the frozen checklist omits — a `## Plan gaps` entry
+(`warrant: plan-gap`). Plan gaps never change the verdict or withhold done; the orchestrator routes them to
+planning continuation, so a missing requirement is neither forced in by a verifier nor silently lost.
+
+Scope assurance depth to the SPEC `## Trust Context`. Inside a declared trusted boundary, hostile-input,
+authentication, race-hardening, and adversarial-filesystem concerns are advisory unless a frozen item,
+requirement, or Slice obligation names them. Trust Context never scopes the control-plane boundary and never
+downgrades a defect in behavior the package actually promises.
+
 ## Repair impact and re-verification (delta-only, bounded)
 Dependency edges express readiness/sequencing only: descendants are not staleness fan-out. Classify semantic
 impact from the diff and changed behavior/evidence. Include direct owners and consumers; observable/public

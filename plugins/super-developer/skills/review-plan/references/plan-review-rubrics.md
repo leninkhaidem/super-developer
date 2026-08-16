@@ -60,9 +60,18 @@ If Pass 1 finds a semantic blocker likely to change the plan, keep Pass 2 to obv
 Check whether:
 
 - `SPEC.md` records requirements, constraints, non-goals, Slice inventory, accepted deferrals, and acceptance summary without burying package assignment;
+- `SPEC.md` has a `## Trust Context` stating actors, trust boundary, data sensitivity, and deployment surface, and
+  no dimension it places out of boundary is relied on by a requirement, constraint, or Slice commitment;
 - the registry contains only feature/package bookkeeping and safe paths;
 - every package Markdown file has coherent scope, assigned Slice paths/H3 IDs, context-only reasons, primary paths, verification expectations, report path, and dependencies;
 - every package has at least one independently confirmable executable Acceptance Checklist item;
+- each Acceptance Checklist item is **atomic**: one behavioral claim, one observable boundary, one primary check,
+  one failure condition. An item chaining unrelated concerns — separate resource limits, distinct subsystems, or
+  independent assertions joined by `and` — is a finding, because the frozen checklist can then pass on partial
+  proof and no downstream role may renegotiate it;
+- every item proving a Slice `Forbidden behaviors` clause states `rejects:` naming the wrong-but-plausible
+  implementation it fails against, and the named check would genuinely fail if that counterfeit were substituted;
+  a check that would pass against its own counterfeit is not evidence;
 - package Markdown report paths match the registry and are usable by `sliceproof.py`;
 - package dependencies and parallel assumptions are safe, with ID-only dependency edges limited to durable prerequisites and non-obvious consumed output, contract, or evidence rationale recorded in package `Notes`;
 - verification expectations are observable and tied to Slice/package obligations and changed behavior;
@@ -97,6 +106,9 @@ Run when the orchestrator's security-surface pre-screen tripped (first wave, par
 
 Check whether:
 
+- the `## Trust Context` is factual and approved rather than a convenience downgrade that quiets this review;
+  treat an absent, vague, or unapproved context as the strictest surface, and check that security expectations
+  match the declared boundary instead of a default-hostile assumption;
 - failures surface truthfully instead of plausible success;
 - security, privacy, and safety invariants are explicit and verifiable;
 - destructive, irreversible, externally visible, or credential-sensitive actions are gated;

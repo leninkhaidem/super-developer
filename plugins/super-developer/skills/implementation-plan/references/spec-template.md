@@ -21,6 +21,16 @@ Full safe Slice inventory for this plan. Details stay in Slice files.
 - `.planning/<concept-slug>/slices/<slice-name>.md`
 - Use `None; Index-only/no-Slice plan.` when no Slice is independently useful.
 
+## Trust Context
+The feature's operating boundary, stated as fact and approved at the plan gate. Reviewers and verifiers reason
+from this instead of assuming a hostile public surface by default. It scopes assurance depth only; it never
+lowers a stated requirement, and it never relaxes control-plane/prompt-injection handling, which is always in force.
+- Actors: <who invokes this, and are they trusted?>
+- Trust boundary: <what crosses it, and what sits inside it>
+- Data sensitivity: <secrets, PII, or regulated data present, or `None.`>
+- Deployment surface: <local-only, internal service, public network, or regulated>
+- Out-of-boundary dimensions: <assurance dimensions this context excludes, each with a reason, or `None.`>
+
 ## Requirements
 User-facing functional requirements and safe Slice-derived feature requirements. Use stable IDs for traceability.
 - REQ-1: ...
@@ -54,6 +64,10 @@ User-approved exclusions, deferred items, or boundaries. Include approval proven
 - Include normative product content only when stated, explicitly approved, or safely projected from authoritative Slice product/design commitments.
 - Do not invent product behavior, architecture, performance targets, security rules, compatibility constraints, or success criteria to make the spec feel complete.
 - Every `## Acceptance` item is an executable check unless it carries an explicit human-approved `manual (approved)` exception; never leave a feature-level outcome unverifiable and silent.
+- `## Trust Context` records observed or user-approved fact, never a convenience downgrade to quiet reviewers.
+  An absent, vague, or unapproved context defaults to the strictest surface. It cannot place a dimension out of
+  boundary that a requirement, constraint, or Slice commitment depends on, and it is surfaced for approval at
+  plan review like any other scope reduction.
 - Ask before writing if a requirement, constraint, success condition, Slice deferral, or exclusion is needed but ambiguous.
 - Preserve all user-stated and safely projected requirements while keeping the file concise.
 - Redact secrets, credentials, tokens, PII, and proprietary sensitive values.
@@ -70,5 +84,7 @@ User-approved exclusions, deferred items, or boundaries. Include approval proven
 - Raw Slice text, source excerpts, transcripts, debate, implementation sequencing, result rows, review findings, line numbers, code snippets, or diffs are copied into `SPEC.md`.
 - Feature-level requirements omit user-stated or safely projected commitments.
 - `## Acceptance` is missing, empty, or contains an item that is neither an executable check nor a human-approved `manual (approved)` exception.
+- `## Trust Context` is missing, or marks a dimension out of boundary that a requirement, constraint, or Slice
+  commitment relies on.
 - An approved deferral/exclusion lacks provenance and scope.
 - The Slice manifest and registry Slice inventory disagree.

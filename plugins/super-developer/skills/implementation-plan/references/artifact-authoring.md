@@ -66,6 +66,8 @@ Use an empty `authoritative_slices` array only for Index-only or no-Slice plans 
 ## Acceptance Checklist
 - AC-1: <package-level outcome that proves this package is done> — check: `<command or test id>` — expected: <observable pass condition>
 - AC-2: <outcome that cannot be automated> — check: manual (approved) — verify: <exact manual step and expected result>
+- AC-3: <outcome a forbidden behavior constrains> — check: `<test id>` — expected: <pass condition>
+  — rejects: <wrong-but-plausible implementation this check fails against>
 
 ## Package Verification Report
 - `.tasks/<feature-name>/reports/WP1.package-verification.md`
@@ -118,13 +120,24 @@ When Semgrep is enabled, keep verification expectations helper-owned and package
   per material verification expectation, each an **executable** check (command, test id, or observable output)
   unless it carries a human-approved `manual (approved)` exception. The verifier checks exactly this list —
   nothing invented — so items are concrete and runnable, not aspirational prose.
+- **Atomic items.** Each item makes one behavioral claim with one observable boundary, one primary check, and one
+  failure condition. Split an item whose claim chains unrelated concerns — separate resource limits, distinct
+  subsystems, or independent assertions joined by `and`; a single claim with compound setup stays one item.
+  A compound item leaves the frozen done-definition ambiguous exactly where no downstream role may renegotiate it,
+  so it passes on partial proof.
+- **Falsification pointer.** An item proving a Slice `Forbidden behaviors` clause states `rejects:` — the
+  wrong-but-plausible implementation the check fails against. Ask: would this check still pass if that counterfeit
+  were substituted? If yes, the check is not evidence. Items with no forbidden behavior in scope omit `rejects:`;
+  this is a targeted defense against a green checklist that proves nothing, not a field to fill on every row.
 - `Context only` IDs are required reading/context; do not use them to hide package obligations.
 - Every material H3 in the full Slice inventory must be assigned, context-only with a concrete reason, or explicitly approved as deferred/out of scope/rejected.
 - Primary paths are code-root-relative starting points, not hard boundaries; the result `report_path` is declared during planning, with evidence produced later.
 - Apply shared closure-complexity rules; counts are warnings, not thresholds, and fixed package gates count.
 - Verification expectations are package-specific and cover relevant edge, failure, trust-boundary, data,
-  security, privacy, performance, concurrency, generated-contract, audience-surface, and lifecycle cases or state
-  why not applicable. Material unresolved empirical behavior blocks authoring: before writes return
+  security, privacy, performance, concurrency, generated-contract, audience-surface, and lifecycle cases.
+  Exclude dimensions the SPEC `## Trust Context` places outside the feature's boundary with one
+  `not-applicable: <dimensions>` line, never per-dimension prose repeated on every package. Material unresolved
+  empirical behavior blocks authoring: before writes return
   `BLOCKED: empirical_evidence_needed` to the orchestrator; never invoke `empirical-spike` or hide it in `Notes`.
   For non-blocking execution feasibility, record repo-backed sources/bounds and testing-authority provenance.
 - Each listed expectation becomes a concrete `## Acceptance Checklist` item in package order; if a Slice obligation proves it, the same check may cover both.
@@ -140,6 +153,8 @@ When Semgrep is enabled, keep verification expectations helper-owned and package
 - Registry contains package assignment or evidence details.
 - Package Markdown omits a required section or declared report path.
 - A package omits `## Acceptance Checklist`, or a checklist item is neither an executable check nor a human-approved `manual (approved)` exception.
+- A checklist item chains unrelated behavioral claims instead of splitting into atomic items.
+- An item proving a Slice `Forbidden behaviors` clause names no rejected counterfeit implementation.
 - A package boundary hides a material Slice obligation.
 - Verification expectations are generic boilerplate, omit visible interface/risk seeds, or imply verifier discovery is limited to planner-declared risks.
 - A package changes externally observable surfaces without identifying them or without an audience-language/leakage verification expectation.
