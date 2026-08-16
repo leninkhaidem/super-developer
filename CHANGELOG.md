@@ -6,6 +6,14 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+### Fixed
+- Fixed the v2.4.0 plan-quality trip-wires, which fired on effectively every real package and therefore carried no information. Measured against this repository's own six committed packages, the closure-size band flagged 6/6 and the atomicity proxy flagged 80% of items. Closure size is now relative — a package is flagged only when it exceeds twice its own plan's median, and stays silent when a plan has too few packages to have a distribution — and the atomicity proxy no longer counts comma and semicolon separators, which fired on 73-80% of real items at every threshold. The same measurement now yields 0/6 packages and 9% of items, while an injected 40-item outlier is still caught.
+- Fixed the plan-gap completion gate, which was documented but never wired: `validate-package-complete` reported success with an open `## Plan gaps` entry, `implement`'s done-definition omitted plan gaps while stating that advisory findings never withhold done, and a test asserted the incorrect success. An open entry is now a validation error rather than an advisory, so the helper's success signal cannot claim structural completion while a known obligation is missing.
+- Fixed the falsification pointer missing the defect class that motivated it: `rejects:` is keyed to Slice `Forbidden behaviors`, which is mandatory only for interface-bearing H3s, and the `Exact interface` enumeration excluded behavioral bounds. Complexity, causal-ordering, and access-barrier claims are now interface-bearing, so they inherit mandatory forbidden behaviors and a falsification pointer.
+
+### Changed
+- Collapsed the package result report contract from ten restatements across the skill set to one authoritative source in `package-verification-report.md`, with consumers pointing at it instead of repeating its section list. The duplication had already caused one propagation defect during v2.4.0 development.
+
 ## [v2.4.0] - 2026-08-16
 
 ### Added

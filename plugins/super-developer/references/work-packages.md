@@ -18,8 +18,7 @@ are not packages unless they create substantial reusable verification or test in
 - **`SPEC.md`:** accepted requirements, constraints, non-goals, and verification summary.
 - **Registry:** package list, paths, status signals, and dependency IDs only.
 - **Package Markdown:** authoritative package assignment.
-- **Package result report:** one result file (Verdict, Acceptance Checklist Result, Blocking findings, Advisory
-  notes, Plan gaps, Reviewed state, Gaps).
+- **Package result report:** one result file whose shape is owned by `package-verification-report.md`.
 
 Registry status and helper results are signals, not proof.
 
@@ -46,13 +45,15 @@ Split when one agent cannot close those dimensions coherently. Keep work togethe
 multiply shared harness ownership, duplicate evidence, or add more fixed gate cost than it removes. Counts of
 files, scenarios, or commands are warning signals, never universal thresholds.
 
-`sliceproof.py validate-plan` emits non-blocking advisories when an acceptance claim is compound or a checklist
-exceeds its advisory size band. They request a decision, never a split: either rebalance the boundary, or record a
-`Closure justification:` line in package `Notes` naming the one coherent closure that size buys and what splitting
-would duplicate. Recording that line clears the size signal. Never split a package merely to lower a count.
+`sliceproof.py validate-plan` emits two non-blocking advisories. `acceptance_atomicity` marks a claim chaining
+several coordinators. `closure_size` marks a package that is a clear outlier against its own plan's median — it is
+relative, never an absolute band, and stays silent when a plan is too small to have a distribution, because atomic
+items raise counts by design and a uniformly large plan is a design choice rather than a defect. Both request a
+decision, never a split: either rebalance the boundary, or record a `Closure justification:` line in package
+`Notes` naming the one coherent closure that size buys and what splitting would duplicate. Recording that line
+clears the size signal. Never split a package merely to lower a count.
 
-Return unresolved material
-empirical uncertainty to the owning orchestrator for conditional `empirical-spike`; do not guess boundaries.
+Return unresolved material empirical uncertainty to the owning orchestrator for conditional `empirical-spike`; do not guess boundaries.
 Avoid tiny packages unless risk or isolation justifies their fixed lifecycle cost.
 
 ## IDs and Dependencies

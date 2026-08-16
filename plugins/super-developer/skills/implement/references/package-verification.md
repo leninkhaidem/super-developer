@@ -93,15 +93,9 @@ beyond the frozen checklist.
 
 Return the verifier verdict plus blocking/advisory findings to the orchestrator. The orchestrator records them in
 the single durable report at `.tasks/<feature>/reports/<WP-ID>.package-verification.md`; do not create another
-artifact or replace orchestrator-observed output. The report has exactly this semantic shape:
-
-- `### Verdict` — `PASS` or `FAIL` (the orchestrator replaces any drafted `PENDING_VERIFICATION`);
-- `## Acceptance Checklist Result` — each item → pass/fail, pointer, and orchestrator-observed output;
-- `## Blocking findings` — blocking findings each carrying a `warrant:`, or `none`;
-- `## Advisory notes` — non-blocking observations, or `none`;
-- `## Plan gaps` — obligations the frozen checklist omits (`warrant: plan-gap`), or `none`; routed, not repaired;
-- `## Reviewed state` — worktree/ref/commit;
-- `## Gaps` — `none` or approved provenance and scope.
+artifact or replace orchestrator-observed output. `plugins/super-developer/references/package-verification-report.md`
+owns the report's section list and verdict values. Two dispositions govern what you return into it: every blocking
+finding carries a `warrant:`, and a `## Plan gaps` entry is routed to planning continuation rather than repaired.
 
 Keep the handoff short. No long transcripts or additional receipt/matrix artifacts.
 

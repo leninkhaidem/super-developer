@@ -14,6 +14,7 @@ import argparse
 import json
 import os
 import re
+import statistics
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -48,12 +49,16 @@ REQUIRED_REPORT_SECTIONS = {
 # warning signals rather than universal thresholds (references/work-packages.md). They exist to force an
 # explicit closure justification or an atomicity re-read, not to impose a package-size cap.
 AC_CLAIM_SPLIT_RE = re.compile(r"\b(?:check|expected|verify|rejects)\s*:", re.IGNORECASE)
-# Counts coordinators joining clauses: 'and'/'plus', '&', and comma/semicolon list separators. This is a coarse
-# textual proxy, not a parse: it over-fires on coordinated noun phrases ('UTF-8 and UTF-16') and under-fires on
-# prose that hides coordination. It is advisory-only for exactly that reason - a human confirms atomicity.
-AC_CONJUNCTION_RE = re.compile(r"(?:\b(?:and|plus)\b|&|;|,)", re.IGNORECASE)
-AC_CONJUNCTION_ADVISORY_MIN = 2
-AC_COUNT_ADVISORY_MAX = 8
+# Counts explicit coordinators joining clauses. Calibrated against this repo's own committed packages: comma and
+# semicolon separators were tried and rejected because they fire on 73-80% of real acceptance items regardless of
+# threshold, and a signal that fires on the norm carries no information. Tuned for precision, not recall (~9% of
+# real items): the plan reviewer reads semantically and owns recall, so this proxy only needs to be worth reading.
+AC_CONJUNCTION_RE = re.compile(r"(?:\b(?:and|plus)\b|&)", re.IGNORECASE)
+AC_CONJUNCTION_ADVISORY_MIN = 3
+# Closure size is relative, never a universal threshold (references/work-packages.md): a package is flagged only
+# when it is a clear outlier against its own plan's median. Needs a real distribution to compare against.
+CLOSURE_SIZE_MEDIAN_MULTIPLE = 2.0
+CLOSURE_SIZE_MIN_PACKAGES = 3
 CLOSURE_JUSTIFICATION_RE = re.compile(r"^\s*[-*]?\s*closure justification\s*:", re.IGNORECASE | re.MULTILINE)
 # semantic_done is always False by design. It is not a failure signal and not a lifecycle state: this helper
 # checks structure only, so orchestrator checklist re-run, report evidence, and review/audit own completion.
@@ -146,6 +151,8 @@ class PackageMarkdown:
     report_path: str
     dependencies: list[str]
     plan_advisories: list[dict[str, Any]] = field(default_factory=list)
+    has_closure_justification: bool = False
+    source: str = ""
 
     @property
     def must_satisfy_ids(self) -> list[str]:
@@ -290,7 +297,8 @@ def cmd_validate_plan(args: argparse.Namespace) -> dict[str, Any]:
         "mechanical_only": True,
         "semantic_done": False,
         "semantic_done_note": SEMANTIC_DONE_NOTE,
-        "advisories": [advisory for package_id in sorted(packages) for advisory in packages[package_id].plan_advisories],
+        "advisories": [advisory for package_id in sorted(packages) for advisory in packages[package_id].plan_advisories]
+        + closure_size_advisories(packages),
     }
 
 
@@ -734,15 +742,8 @@ def acceptance_quality_advisories(
     package_id: str,
     acceptance_checklist: list[str],
     source: str,
-    *,
-    has_closure_justification: bool,
 ) -> list[dict[str, Any]]:
-    """Non-blocking plan-quality signals for acceptance atomicity and package closure size.
-
-    These never fail validation and never split a package. A compound claim only earns a re-read, and an
-    oversized checklist only earns an explicit ``Closure justification:`` note, because counts are warning
-    signals rather than universal thresholds.
-    """
+    """Non-blocking atomicity signal for acceptance claims. Never fails validation, never splits a package."""
     advisories: list[dict[str, Any]] = []
     for item in acceptance_checklist:
         claim = AC_CLAIM_SPLIT_RE.split(item, maxsplit=1)[0]
@@ -758,15 +759,37 @@ def acceptance_quality_advisories(
                     "message": "checklist claim chains multiple concerns; confirm one behavioral claim, one observable boundary, one primary check, one failure condition",
                 }
             )
-    count = len(acceptance_checklist)
-    if count > AC_COUNT_ADVISORY_MAX and not has_closure_justification:
+    return advisories
+
+
+def closure_size_advisories(packages: dict[str, PackageMarkdown]) -> list[dict[str, Any]]:
+    """Flag packages that are clear closure-size outliers against their own plan's median.
+
+    Relative by design. An absolute band was tried and rejected: it fired on every real package in this
+    repository, and atomic acceptance items raise counts by design. With fewer than
+    ``CLOSURE_SIZE_MIN_PACKAGES`` packages there is no distribution to compare against, so stay silent rather
+    than invent a threshold. Never a reason to split; it asks for a recorded ``Closure justification:``.
+    """
+    sized = {pid: len(pkg.acceptance_checklist) for pid, pkg in packages.items()}
+    if len(sized) < CLOSURE_SIZE_MIN_PACKAGES:
+        return []
+    median = statistics.median(sized.values())
+    if median <= 0:
+        return []
+    limit = median * CLOSURE_SIZE_MEDIAN_MULTIPLE
+    advisories: list[dict[str, Any]] = []
+    for package_id in sorted(sized):
+        count = sized[package_id]
+        if count <= limit or packages[package_id].has_closure_justification:
+            continue
         advisories.append(
             {
                 "kind": "closure_size",
                 "package": package_id,
-                "source": source,
+                "source": packages[package_id].source,
                 "acceptance_items": count,
-                "message": f"{count} acceptance items exceeds the {AC_COUNT_ADVISORY_MAX}-item advisory band; record a 'Closure justification:' note stating the one coherent closure this size buys. Atomic items raise counts by design; never split a package merely to lower this number",
+                "plan_median": median,
+                "message": f"{count} acceptance items is more than {CLOSURE_SIZE_MEDIAN_MULTIPLE:g}x this plan's median of {median:g}; record a 'Closure justification:' note stating the one coherent closure this size buys. Never split a package merely to lower this number",
             }
         )
     return advisories
@@ -831,12 +854,9 @@ def parse_package_markdown(path: Path, package_id: str) -> PackageMarkdown:
         acceptance_checklist=acceptance_checklist,
         report_path=report_paths[0],
         dependencies=dependencies,
-        plan_advisories=acceptance_quality_advisories(
-            package_id,
-            acceptance_checklist,
-            str(path),
-            has_closure_justification=has_closure_justification(text),
-        ),
+        plan_advisories=acceptance_quality_advisories(package_id, acceptance_checklist, str(path)),
+        has_closure_justification=has_closure_justification(text),
+        source=str(path),
     )
 
 
@@ -1230,22 +1250,19 @@ def validate_report_markdown(
     elif "Reviewed state" not in sections:
         pass
 
-    advisories: list[dict[str, Any]] = []
+    # An open plan gap is a completion blocker, not a note: the package is not done until it is routed through
+    # planning continuation and closed. It is an error rather than an advisory so this command's success signal
+    # cannot say "structurally complete" while a known obligation is missing.
     plan_gaps_body = sections.get("Plan gaps")
     if plan_gaps_body is not None:
         open_gaps = [entry for entry in parse_bullets(plan_gaps_body, unwrap_path=False) if entry.strip().lower() != "none"]
         if open_gaps:
-            advisories.append(
-                {
-                    "kind": "plan_gap_open",
-                    "package": package.package_id,
-                    "source": str(report_path),
-                    "entries": open_gaps,
-                    "message": "open ## Plan gaps entry: route through planning continuation and close it before done or dependent unlock",
-                }
+            errors.append(
+                f"{report_path}: ## Plan gaps has {len(open_gaps)} open entry/entries; route each through planning "
+                f"continuation and close it before done or dependent unlock: {open_gaps}"
             )
 
-    return ReportValidationResult(errors, advisories)
+    return ReportValidationResult(errors, [])
 
 
 def parse_table(body: str) -> list[ProofRow]:

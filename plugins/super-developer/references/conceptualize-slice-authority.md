@@ -49,7 +49,7 @@ Author the contract inside the H3 with these exact labels so every downstream co
 **Interface contract**
 - Must exist: <concrete obligation>
 - Consumer: <agent role, user, or component that invokes it>
-- Exact interface: <command shape, API/function, flag, path, config key, output path, lifecycle trigger, or ownership boundary — whichever apply>
+- Exact interface: <command shape, API/function, flag, path, config key, output path, lifecycle trigger, ownership boundary, or behavioral bound such as complexity, causal ordering, or an access barrier — whichever apply>
 - Forbidden behaviors: <explicit negative constraints>
 - Expected evidence: <what the result file should cite>
 - Non-compliance: <what counts as a violation>
