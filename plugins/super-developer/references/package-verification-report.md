@@ -63,6 +63,10 @@ PASS | FAIL | PENDING_VERIFICATION
   a `closed:` note naming the planning continuation that repaired it, or recorded approval, provenance, and scope
   when it was durably approved as out of scope. Removing the line to reach a clean exit code destroys the audit
   trail this section exists to create, and is the one disposition the gate treats as never acceptable.
+  Write the closure in plain words. Any substantive note counts — `closed: repaired by WP1b` and
+  `closed: WP1b adds the missing cancellation AC` both close the entry, and the gap's own wording is free, so an
+  entry describing "the open-file limit" or "the TODO scanner" closes normally. Only a closure that records
+  nothing (`closed: yes`, `closed: TBD`, empty) or that still calls itself open leaves the entry open.
 - **Evidence authenticity:** a pointer plus observed output must resolve to real output (a test id + result, a
   command + observed result, or a `manual (approved)` observation). A PASS row with a hollow non-path claim is
   not a semantic done signal. The helper only checks presence, non-placeholder, and safe path existence when the
@@ -70,8 +74,10 @@ PASS | FAIL | PENDING_VERIFICATION
 - **Executable-by-default:** a `manual` result is acceptable only for an item the plan froze as a human-approved
   `manual (approved)` exception at the plan gate. The orchestrator does not re-run manual items.
 - **Gaps** must be `none` or carry approval, provenance, and scope. The helper checks that metadata presence only.
-- `## Plan gaps` is not a helper-required section: an absent section reads as `none`, so reports written before it
-  existed stay valid and no migration is forced. Write it whenever a real omitted obligation was found.
+- **`## Plan gaps` is a required section, and its dispositions are bullets.** Finding nothing is the written claim
+  `- none`, never an omission: reports are gitignored, so a deleted section, an emptied one, an entry rewritten as
+  prose, or an entry hidden in a code fence would leave nothing for audit to read. Each of those fails the helper.
+  Copy the template above and the section is already there.
 - Mechanical `sliceproof.py` output is structural fail-closed, never semantic authenticity. Helper ok alone is
   not done.
 

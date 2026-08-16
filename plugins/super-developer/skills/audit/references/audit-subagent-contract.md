@@ -57,8 +57,9 @@ Mechanical validation is necessary, never sufficient. Judge evidence sufficiency
 ### 4. Package Reports and Checklist Reconciliation
 For each lightweight package report, require verdict `PASS`, every `## Acceptance Checklist Result` item marked
 `pass` with a resolvable evidence pointer, no open `## Blocking findings`, a `## Reviewed state` naming the
-verified worktree/ref/commit, its `## Plan gaps` disposition (every entry routed through planning continuation and
-closed, or durably approved as out of scope — an open gap on a `done` package is a `[RESULT-GAP]` blocker), and
+verified worktree/ref/commit, its `## Plan gaps` disposition (the section is mandatory; every entry routed through
+planning continuation and closed, or durably approved as out of scope — an open gap, a missing section, or a
+`- none` contradicted by the report's own findings on a `done` package is a `[RESULT-GAP]` blocker), and
 — when Semgrep is enabled — its recorded scan evidence. Advisory notes never
 change the verdict.
 

@@ -14,6 +14,7 @@ from pathlib import Path
 
 ASSETS_DIR = Path(__file__).resolve().parents[1]
 SLICEPROOF_PATH = ASSETS_DIR / "sliceproof.py"
+REPORT_CONTRACT_PATH = ASSETS_DIR.parent / "references" / "package-verification-report.md"
 REPORT_COMMIT = "0123456789abcdef0123456789abcdef01234567"
 
 
@@ -255,6 +256,7 @@ class SliceproofFixture:
         commit: str | None = None,
         ac2_pointer: str | None = None,
         gaps: str = "- none",
+        plan_gaps: str = "- none",
     ) -> str:
         worktree = str(self.repo.resolve(strict=False)) if worktree is None else worktree
         git_ref = "wp/fixture/WP1" if git_ref is None else git_ref
@@ -276,6 +278,9 @@ class SliceproofFixture:
 
             ## Advisory notes
             - none
+
+            ## Plan gaps
+            {plan_gaps}
 
             ## Reviewed state
             - Worktree: `{worktree}`
@@ -339,6 +344,21 @@ class SliceproofFixture:
         ])
         package_path.write_text("\n".join(package_lines), encoding="utf-8")
         report_path.write_text(self.report_text(git_ref=f"wp/fixture/{package_id}"), encoding="utf-8")
+
+
+class ReportContractTemplateTests(unittest.TestCase):
+    """The canonical template must hand authors every required section.
+
+    A required section is only frictionless if copying the contract's own template satisfies it. If the two ever
+    drift, every report authored from the contract fails the helper for a reason the contract does not mention.
+    """
+
+    def test_contract_template_carries_every_required_report_section(self) -> None:
+        contract = REPORT_CONTRACT_PATH.read_text(encoding="utf-8")
+        fences = re.findall(r"^```md\n(.*?)^```", contract, flags=re.DOTALL | re.MULTILINE)
+        self.assertTrue(fences, f"{REPORT_CONTRACT_PATH} no longer contains a ```md report template")
+        template_sections = set(SLICEPROOF.split_h2_sections(fences[0]))
+        self.assertEqual(set(), SLICEPROOF.REQUIRED_REPORT_SECTIONS - template_sections)
 
 
 class SliceproofTests(unittest.TestCase):
@@ -801,9 +821,15 @@ class SliceproofTests(unittest.TestCase):
                     "\n".join(json.loads(result.stderr)["errors"]),
                 )
 
-    def run_with_plan_gaps(self, body: str):
+    PLAN_GAPS_SLOT = "## Plan gaps\n- none"
+
+    def run_with_plan_gaps(self, body: str | None):
+        """Rewrite the report's ``## Plan gaps`` section, or drop it entirely when ``body`` is None."""
         self.fixture.write_completed_report()
-        report = self.fixture.report_path.read_text(encoding="utf-8") + f"\n## Plan gaps\n{body}\n"
+        original = self.fixture.report_path.read_text(encoding="utf-8")
+        self.assertIn(self.PLAN_GAPS_SLOT, original)
+        replacement = "" if body is None else f"## Plan gaps\n{body}"
+        report = original.replace(self.PLAN_GAPS_SLOT, replacement, 1)
         self.fixture.report_path.write_text(report, encoding="utf-8")
         return self.fixture.run(
             "validate-package-complete", *self.fixture.root_args(), str(self.fixture.tasks_path), "--package", "WP1"
@@ -814,15 +840,61 @@ class SliceproofTests(unittest.TestCase):
         self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
         self.assertIn("still open", "\n".join(json.loads(result.stderr)["errors"]))
 
+    def test_validate_package_complete_requires_a_written_plan_gaps_disposition(self) -> None:
+        """Reports are gitignored, so a deleted section leaves no diff to audit. Requiring the section makes the
+        cheapest escape a written `- none` rather than an invisible absence; prose, a fence, and an empty section
+        are refused so an entry cannot be dissolved back into one."""
+        for label, body, expected in (
+            ("section deleted", None, "missing ## Plan gaps section"),
+            ("empty section", "", "bulleted list"),
+            ("prose, not a bullet", "warrant: plan-gap \u2014 cancellation path is missing.", "bulleted list"),
+            (
+                "entry hidden in a code fence",
+                "```\n- warrant: plan-gap \u2014 cancellation path is missing.\n```",
+                "bulleted list",
+            ),
+        ):
+            with self.subTest(shape=label):
+                result = self.run_with_plan_gaps(body)
+                self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+                self.assertIn(expected, "\n".join(json.loads(result.stderr)["errors"]))
+
     def test_validate_package_complete_accepts_plan_gaps_closed_in_place(self) -> None:
-        """Closure must never require erasure: both lifecycle closure routes keep the record of the omitted
-        requirement in the report. A gap deleted to reach a clean exit code destroys the audit trail this
-        section exists to preserve, so every closed shape here must pass while still being present."""
+        """Closure must never require erasure, and must never punish an accurate description. Both lifecycle
+        routes keep the record of the omitted requirement in the report, and any substantive free-text closure
+        counts -- including one whose wording overlaps the placeholder and unresolved-marker vocabularies."""
         for label, body in (
             ("none", "- none"),
+            ("none upper case", "- NONE"),
+            # Parity with ## Gaps, which accepts a terminating period through is_empty_gaps_deviations_section.
+            ("none with terminator", "- None."),
             (
                 "repaired via continuation",
                 "- warrant: plan-gap \u2014 cancellation path. closed: repaired by continuation package WP1b, AC-7 added.",
+            ),
+            # Free text is taken as written: "missing" is an approval-placeholder token, yet this closure is real.
+            (
+                "free-text closure naming the continuation",
+                "- warrant: plan-gap \u2014 cancellation path. closed: WP1b adds the missing cancellation AC",
+            ),
+            ("short but specific closure", "- warrant: plan-gap \u2014 cancellation path. closed: repaired by WP1b"),
+            # Sentence-cased keyword: closure detection folds case, so `Closed:` is the same disposition.
+            ("sentence-cased closure keyword", "- warrant: plan-gap \u2014 cancellation path. Closed: repaired by WP1b"),
+            # A backticked continuation name is ordinary Markdown; entries are read whole, not unwrapped to it.
+            (
+                "backticked continuation name",
+                "- warrant: plan-gap \u2014 cancellation path. closed: repaired by `WP1b`",
+            ),
+            # "gap" is the vocabulary of this section: a closure is free to use it without being read as unresolved.
+            ("closure naming the gap it closed", "- warrant: plan-gap \u2014 cancellation path. closed: the gap is now AC-7"),
+            # The marker scan is scoped to the closure value, so a gap *described* with OPEN/TODO stays closable.
+            (
+                "unresolved marker in the description only",
+                "- warrant: plan-gap \u2014 the open-file limit. closed: repaired by WP1b",
+            ),
+            (
+                "todo in the description only",
+                "- warrant: plan-gap \u2014 the TODO scanner is unbounded. closed: repaired by WP1b",
             ),
             (
                 "durably approved out of scope",
@@ -838,15 +910,45 @@ class SliceproofTests(unittest.TestCase):
         for label, body in (
             ("todo marker", "- warrant: plan-gap \u2014 cancellation path. closed: TODO"),
             ("placeholder closure", "- warrant: plan-gap \u2014 cancellation path. closed: TBD"),
+            ("bare affirmation", "- warrant: plan-gap \u2014 cancellation path. closed: yes"),
+            ("bare denial", "- warrant: plan-gap \u2014 cancellation path. closed: no"),
+            ("bare completion claim", "- warrant: plan-gap \u2014 cancellation path. closed: done"),
+            # Case folding: an upper-case non-answer is the same non-answer.
+            ("bare non-answer upper case", "- warrant: plan-gap \u2014 cancellation path. closed: N/A"),
+            # Terminator folding: normalization strips a trailing period, so "Pending." is still contentless.
+            ("bare non-answer with terminator", "- warrant: plan-gap \u2014 cancellation path. closed: Pending."),
             ("empty closure", "- warrant: plan-gap \u2014 cancellation path. closed:"),
+            # Punctuation-only closure: the captured value normalises to nothing, so it records nothing.
+            ("punctuation-only closure", "- warrant: plan-gap \u2014 cancellation path. closed: --"),
+            ("period-only closure", "- warrant: plan-gap \u2014 cancellation path. closed: ."),
             ("approval alone", "- warrant: plan-gap \u2014 cancellation path. Approved by user."),
+            # The gap description is free prose and must never decide the gate. An open entry whose wording
+            # happens to contain "none" is still open; only a `- none` disposition clears the section.
+            ("open entry whose text contains none", "- warrant: plan-gap \u2014 none of the cancellation paths are covered"),
+            # Near-miss tokens must not read as a closure route.
+            ("disclosed is not closed", "- warrant: plan-gap \u2014 cancellation path. disclosed: to the user"),
+            ("unclosed is not closed", "- warrant: plan-gap \u2014 cancellation path. unclosed: still pending"),
             (
                 "approval and provenance but no scope",
                 "- warrant: plan-gap \u2014 cancellation path. Approved by user; provenance: plan gate 2026-08-16.",
             ),
-            # Discriminating case for the unresolved-marker branch: the closure value itself is clean, so only
-            # the marker scan can catch the contradiction of an entry that is closed and still open.
-            ("clean closure with unresolved marker", "- warrant: plan-gap \u2014 TODO confirm scope. closed: repaired by WP1b."),
+            # Discriminating case for the unresolved-marker branch, scoped to the closure value: a closure that
+            # admits the gap is still open contradicts itself. Only the marker scan catches it.
+            (
+                "closure that is still open",
+                "- warrant: plan-gap \u2014 cancellation path. closed: repaired by WP1b but still open",
+            ),
+            # Every closure on the entry must hold: a real one must not launder a contentless second one.
+            (
+                "one real and one contentless closure",
+                "- warrant: plan-gap \u2014 two omissions. closed: repaired by WP1b; closed: TBD",
+            ),
+            # A single open entry alongside a closed one must still fail: every entry is checked.
+            (
+                "second entry still open",
+                "- warrant: plan-gap \u2014 cancellation path. closed: repaired by WP1b\n"
+                "- warrant: plan-gap \u2014 retry budget is not on the frozen checklist",
+            ),
         ):
             with self.subTest(shape=label):
                 result = self.run_with_plan_gaps(body)

@@ -45,7 +45,9 @@ For each returned package:
     default, while reviewer authority may escalate material risk. An open `## Plan gaps` entry is not an advisory:
     the helper fails `validate-package-complete` until each entry is closed in place, either by a `closed:` note
     naming the planning continuation that repaired it or by recorded approval, provenance, and scope when it was
-    durably approved as out of scope. Never delete an entry to clear the gate; the record is the point.
+    durably approved as out of scope. Never delete an entry to clear the gate; the record is the point. The section
+    is required and read as bullets, so write `- none` when nothing was omitted; a deleted, emptied, un-bulleted, or
+    fenced section fails. Any substantive `closed:` wording counts, so state the closure plainly.
 11. Confirm package branches did not force-add or commit ignored `.tasks` result artifacts. If they did, preserve
     artifacts in the artifact root, repair the branch to code/doc changes only, and keep the package incomplete.
 12. Merge each accepted package branch at most once through the integration worktree using the `worktree` skill.
@@ -132,7 +134,7 @@ state, keep package scans primary and run one integrated scan only for named cro
 and do not widen/fix/rescan without a newly named surface. Raw direct `semgrep` scans are invalid evidence.
 
 Finalize runtime evidence, termination, and cleanup; refresh affected result-file state.
-Then run from the code root for every included artifact root/task set, preserving JSON advisories:
+Then run from the code root for every included artifact root/task set:
 
 ```bash
 python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-final \

@@ -37,23 +37,16 @@ REQUIRED_PACKAGE_SECTIONS = {
     "Package Verification Report",
     "Dependencies",
 }
+# ``Plan gaps`` is required so that finding nothing is an affirmative ``- none`` an auditor can read, not a silent
+# absence. Reports are gitignored, so a deleted section leaves no diff: only a written claim can be audited.
 REQUIRED_REPORT_SECTIONS = {
     "Acceptance Checklist Result",
     "Blocking findings",
     "Advisory notes",
+    "Plan gaps",
     "Reviewed state",
     "Gaps",
 }
-# Plan-quality trip-wires. These are countable proxies only: they never fail validation, because counts are
-# warning signals rather than universal thresholds (references/work-packages.md). They exist to force an
-# explicit closure justification or an atomicity re-read, not to impose a package-size cap.
-# Counts explicit coordinators joining clauses. Calibrated against this repo's own committed packages: comma and
-# semicolon separators were tried and rejected because they fire on 73-80% of real acceptance items regardless of
-# threshold, and a signal that fires on the norm carries no information. Tuned for precision, not recall (~9% of
-# real items): the plan reviewer reads semantically and owns recall, so this proxy only needs to be worth reading.
-# Closure size is relative, never a universal threshold (references/work-packages.md): a package is flagged only
-# when it is a clear outlier against its own plan's median. Needs a real distribution to compare against.
-CLOSURE_JUSTIFICATION_RE = re.compile(r"^\s*[-*]?\s*closure justification\s*:", re.IGNORECASE | re.MULTILINE)
 # semantic_done is always False by design. It is not a failure signal and not a lifecycle state: this helper
 # checks structure only, so orchestrator checklist re-run, report evidence, and review/audit own completion.
 SEMANTIC_DONE_NOTE = (
@@ -81,6 +74,15 @@ APPROVAL_METADATA_VALUE_RE = re.compile(
     re.IGNORECASE,
 )
 PLAN_GAP_CLOSURE_RE = re.compile(r"\bclosed\s*:\s*(?P<value>[^;\n|]+)", re.IGNORECASE)
+# A plan-gap closure is free text and is accepted as written. Only a bare non-answer is rejected, so an accurate
+# short closure such as "repaired by WP1b" costs nothing while "yes" or "TBD" records nothing.
+CONTENTLESS_CLOSURE_VALUES = frozenset(
+    {
+        "yes", "no", "ok", "n/a", "na", "none", "nil",
+        "done", "fixed", "closed", "resolved", "complete", "completed",
+        "tbd", "to be determined", "todo", "pending",
+    }
+)
 APPROVAL_PLACEHOLDER_TOKEN_RE = re.compile(
     r"(?:^|[^a-z0-9])"
     r"(?:none|no|n/a|na|tbd|to\s+be\s+determined|todo|open|gap|unknown|unconfirmed|missing|absent|"
@@ -996,7 +998,6 @@ def strip_fenced_blocks(text: str) -> str:
     return "\n".join(unfenced_lines)
 
 
-
 def report_verdicts(text: str) -> list[str]:
     unfenced_text = strip_fenced_blocks(text)
     return [
@@ -1092,17 +1093,22 @@ def resolve_result_pointer(registry: Registry, pointer: str, label: str) -> None
 def validate_plan_gaps_section(report_path: Path, plan_gaps_body: str) -> list[str]:
     """Require every ``## Plan gaps`` entry to be closed in place, never deleted.
 
-    A plan gap closes on one of the two routes ``package-lifecycle.md`` recognises: repaired through planning
-    continuation (``closed:``), or durably approved as out of scope (approval + provenance + scope, the same bar
-    ``## Gaps`` already holds). Both keep the record; neither is satisfied by removing the line.
+    Entries are bullets on the same terms ``## Gaps`` already holds: an empty section, prose, or fenced text is
+    not a disposition, so it cannot dissolve an entry into an invisible absence. A gap closes on one of the two
+    routes ``package-lifecycle.md`` recognises: repaired through planning continuation (``closed:``), or durably
+    approved as out of scope (approval + provenance + scope). Both keep the record; neither is satisfied by
+    removing the line.
     """
+    entries = parse_bullets(plan_gaps_body, unwrap_path=False)
+    if not entries:
+        return [
+            f"{report_path}: ## Plan gaps must be a bulleted list of entries, or `- none` when the frozen "
+            f"checklist omitted nothing. An empty section, prose, or fenced text is not a disposition."
+        ]
+    if is_empty_gaps_deviations_section(plan_gaps_body):
+        return []
     errors: list[str] = []
-    for entry in parse_bullets(plan_gaps_body, unwrap_path=False):
-        if entry.strip().lower() == "none":
-            continue
-        if UNRESOLVED_MARKER_RE.search(entry):
-            errors.append(f"{report_path}: ## Plan gaps entry still carries an unresolved TODO/OPEN marker: {entry}")
-            continue
+    for entry in entries:
         if has_plan_gap_closure(entry) or has_approval_provenance_scope(entry):
             continue
         errors.append(
@@ -1202,10 +1208,10 @@ def validate_report_markdown(
     # cannot say "structurally complete" while a known obligation is missing.
     #
     # Closure must never mean erasure. An entry closes in place by recording how it closed, so the audit trail of
-    # the omitted requirement survives into the report. Deleting the entry to reach a clean exit code would
-    # destroy exactly what this section exists to preserve, so a recorded closure is cheaper than a deletion.
+    # the omitted requirement survives into the report. The section is required and its dispositions are bullets,
+    # so the cheapest escape is writing `- none` -- a falsehood an auditor can read -- not an invisible deletion.
     plan_gaps_body = sections.get("Plan gaps")
-    if plan_gaps_body is not None:
+    if plan_gaps_body is not None:  # absence is already reported by the required-section check above
         errors.extend(validate_plan_gaps_section(report_path, plan_gaps_body))
 
     return ReportValidationResult(errors, [])
@@ -1405,9 +1411,23 @@ def is_empty_gaps_deviations_section(value: str) -> bool:
 
 
 def has_plan_gap_closure(value: str) -> bool:
-    """True when a plan-gap entry records a real ``closed:`` route rather than a placeholder."""
+    """True when a plan-gap entry records a substantive ``closed:`` route.
+
+    Closure text is free prose and is taken as written: describing a gap accurately must never cost anything.
+    Only a closure that says nothing is rejected. The unresolved-marker scan is deliberately scoped to the
+    closure value, so a gap whose *description* names "the open-file limit" or "the TODO scanner" stays closable.
+    """
     closures = [match.group("value") for match in PLAN_GAP_CLOSURE_RE.finditer(value)]
-    return bool(closures) and all(not is_approval_placeholder_value(closure) for closure in closures)
+    return bool(closures) and all(is_substantive_closure(closure) for closure in closures)
+
+
+def is_substantive_closure(value: str) -> bool:
+    # normalize_approval_placeholder_value is reused for case/punctuation folding only; the approval placeholder
+    # detector itself is not applied here, because it searches free text for words a real closure may contain.
+    normalized = normalize_approval_placeholder_value(value)
+    if not normalized or normalized in CONTENTLESS_CLOSURE_VALUES:
+        return False
+    return UNRESOLVED_MARKER_RE.search(value) is None
 
 
 def has_approval_provenance_scope(value: str) -> bool:
