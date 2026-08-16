@@ -18,7 +18,8 @@ Fail if any required input is missing, unsafe, unreadable, malformed, stale, roo
 4. `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/package-lifecycle.md`
 5. every artifact set's artifact-root `.tasks/<feature>/SPEC.md` and `.tasks/<feature>/tasks.json`
 6. every artifact-root registry package Markdown and lightweight package verification report,
-   including its `## Acceptance Checklist Result`, `## Blocking findings`, `## Advisory notes`, and `## Reviewed state`
+   including its `## Acceptance Checklist Result`, `## Blocking findings`, `## Advisory notes`, `## Plan gaps`,
+   and `## Reviewed state`
 7. every orchestrator-screened Slice in the selected artifact workspace and every Slice referenced by
    SPEC/package Markdown
 8. Semgrep raw/summary summaries through bounded helper views when enabled/contracted; never raw JSON wholesale

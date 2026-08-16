@@ -780,6 +780,23 @@ class SliceproofTests(unittest.TestCase):
             "\n".join(json.loads(result.stderr)["errors"]),
         )
 
+    def test_validate_package_complete_reports_pending_verification_verdict_intact(self) -> None:
+        self.fixture.write_completed_report()
+        report = self.fixture.report_path.read_text(encoding="utf-8").replace(
+            "### Verdict\nPASS", "### Verdict\nPENDING_VERIFICATION", 1
+        )
+        self.fixture.report_path.write_text(report, encoding="utf-8")
+        result = self.fixture.run(
+            "validate-package-complete",
+            *self.fixture.root_args(),
+            str(self.fixture.tasks_path),
+            "--package",
+            "WP1",
+        )
+        self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+        errors = "\n".join(json.loads(result.stderr)["errors"])
+        self.assertIn("Verdict must be PASS (found PENDING_VERIFICATION)", errors)
+
     def test_validate_plan_flags_compound_acceptance_claims_without_blocking(self) -> None:
         self.fixture.package_path.write_text(
             self.fixture.package_text(

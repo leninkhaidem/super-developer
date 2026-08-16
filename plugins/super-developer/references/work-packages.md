@@ -19,7 +19,7 @@ are not packages unless they create substantial reusable verification or test in
 - **Registry:** package list, paths, status signals, and dependency IDs only.
 - **Package Markdown:** authoritative package assignment.
 - **Package result report:** one result file (Verdict, Acceptance Checklist Result, Blocking findings, Advisory
-  notes, Reviewed state, Gaps).
+  notes, Plan gaps, Reviewed state, Gaps).
 
 Registry status and helper results are signals, not proof.
 
@@ -44,7 +44,14 @@ Before finalizing the boundary, assess semantic closure complexity:
 
 Split when one agent cannot close those dimensions coherently. Keep work together when splitting would
 multiply shared harness ownership, duplicate evidence, or add more fixed gate cost than it removes. Counts of
-files, scenarios, or commands are warning signals, never universal thresholds. Return unresolved material
+files, scenarios, or commands are warning signals, never universal thresholds.
+
+`sliceproof.py validate-plan` emits non-blocking advisories when an acceptance claim is compound or a checklist
+exceeds its advisory size band. They request a decision, never a split: either rebalance the boundary, or record a
+`Closure justification:` line in package `Notes` naming the one coherent closure that size buys and what splitting
+would duplicate. Recording that line clears the size signal. Never split a package merely to lower a count.
+
+Return unresolved material
 empirical uncertainty to the owning orchestrator for conditional `empirical-spike`; do not guess boundaries.
 Avoid tiny packages unless risk or isolation justifies their fixed lifecycle cost.
 

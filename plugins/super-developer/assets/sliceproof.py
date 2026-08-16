@@ -52,6 +52,11 @@ AC_CONJUNCTION_RE = re.compile(r"\band\b", re.IGNORECASE)
 AC_CONJUNCTION_ADVISORY_MIN = 2
 AC_COUNT_ADVISORY_MAX = 8
 CLOSURE_JUSTIFICATION_RE = re.compile(r"^\s*[-*]?\s*closure justification\s*:", re.IGNORECASE | re.MULTILINE)
+# semantic_done is always False by design. It is not a failure signal and not a lifecycle state: this helper
+# checks structure only, so orchestrator checklist re-run, report evidence, and review/audit own completion.
+SEMANTIC_DONE_NOTE = (
+    "structural check only; orchestrator checklist re-run, report evidence, and review/audit own semantic completion"
+)
 BLOCKING_MARKER_RE = re.compile(r"\b(?:TODO|OPEN|GAP)\b", re.IGNORECASE)
 UNRESOLVED_MARKER_RE = re.compile(r"\b(?:TODO|OPEN)\b", re.IGNORECASE)
 NEGATED_APPROVAL_RE = re.compile(
@@ -281,6 +286,7 @@ def cmd_validate_plan(args: argparse.Namespace) -> dict[str, Any]:
         "validated_slices": sorted(registry.authoritative_slices),
         "mechanical_only": True,
         "semantic_done": False,
+        "semantic_done_note": SEMANTIC_DONE_NOTE,
         "advisories": [advisory for package_id in sorted(packages) for advisory in packages[package_id].plan_advisories],
     }
 
@@ -299,6 +305,7 @@ def cmd_validate_package_complete(args: argparse.Namespace) -> dict[str, Any]:
         "new_shape": True,
         "mechanical_only": True,
         "semantic_done": False,
+        "semantic_done_note": SEMANTIC_DONE_NOTE,
         "acceptance_checklist_items": state.package_md.acceptance_checklist,
         "advisories": report_result.advisories,
     }
@@ -334,6 +341,7 @@ def cmd_validate_final(args: argparse.Namespace) -> dict[str, Any]:
         "reports_validated": validated_reports,
         "mechanical_only": True,
         "semantic_done": False,
+        "semantic_done_note": SEMANTIC_DONE_NOTE,
         "advisories": advisories,
     }
 
@@ -1033,7 +1041,7 @@ def report_verdicts(text: str) -> list[str]:
     unfenced_text = "\n".join(unfenced_lines)
     return [
         match.group(1).upper()
-        for match in re.finditer(r"(?im)^#{2,4}\s*Verdict\s*$\s*\n+\s*([A-Za-z]+)", unfenced_text)
+        for match in re.finditer(r"(?im)^#{2,4}\s*Verdict\s*$\s*\n+\s*([A-Za-z_]+)", unfenced_text)
     ]
 
 

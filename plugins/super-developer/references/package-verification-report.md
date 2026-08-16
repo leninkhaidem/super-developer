@@ -16,7 +16,7 @@ Canonical path: `.tasks/<feature>/reports/<WP-ID>.package-verification.md`.
 ## Package Verification: <WP-ID>
 
 ### Verdict
-PASS | FAIL
+PASS | FAIL | PENDING_VERIFICATION
 
 ## Acceptance Checklist Result
 | Item | Result | Evidence |
@@ -45,6 +45,10 @@ PASS | FAIL
 - **PASS** requires every Acceptance Checklist item marked `pass` with a pointer plus orchestrator-observed
   output (exit/status and bounded output) and no open blocking finding. Missing, skipped, or failed observed
   output is automatic FAIL. Any `fail` item or open blocking finding is **FAIL**.
+- **PENDING_VERIFICATION** is the drafting-stage value only: the package agent finished implementing and the
+  orchestrator has not yet re-run the frozen checklist. It states an honest unverified position instead of
+  claiming a verdict no one observed. The helper treats it as not complete, and it never satisfies a completion
+  gate; the orchestrator replaces it with `PASS` or `FAIL` from its own re-run.
 - **Severity bar:** only correctness / security / data-loss / contract-break go under `## Blocking findings`.
   Everything else is an `## Advisory note` — it never changes the verdict.
 - **Warrant:** every blocking finding carries `warrant: AC-<id>`, `warrant: regression:<ref>`, or
@@ -59,6 +63,8 @@ PASS | FAIL
 - **Executable-by-default:** a `manual` result is acceptable only for an item the plan froze as a human-approved
   `manual (approved)` exception at the plan gate. The orchestrator does not re-run manual items.
 - **Gaps** must be `none` or carry approval, provenance, and scope. The helper checks that metadata presence only.
+- `## Plan gaps` is not a helper-required section: an absent section reads as `none`, so reports written before it
+  existed stay valid and no migration is forced. Write it whenever a real omitted obligation was found.
 - Mechanical `sliceproof.py` output is structural fail-closed, never semantic authenticity. Helper ok alone is
   not done.
 

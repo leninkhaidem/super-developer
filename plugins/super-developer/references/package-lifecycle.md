@@ -73,6 +73,12 @@ repaired state, then run or reuse the deduplicated minimum union of commands onl
 environment/data, isolation/order assumptions, and evidence mapping are equivalent. Authentic exact-state
 output may be reused; distinct package, isolation, cleanup, and nondeterministic checks still run.
 
+Classify each confirmed finding before repairing it: implementation defect, missing regression evidence, plan
+defect, newly proposed requirement, or advisory. When repeated findings show the acceptance evidence itself cannot
+decide the obligation — rather than the code being wrong — that is a plan defect: route it through planning
+continuation to repair the checklist instead of patching one defect at a time. Routing preserves the attempt cap
+and its single escalation below; it never resets them.
+
 Cluster confirmed findings only when they share a root cause, writable scope, and verification envelope; assign
 one repair worker per coherent cluster. Preserve logical cluster identity across retries and the existing
 three-attempt cap: after **3** non-converging repair attempts, never rename or recluster. A plan-owned cluster

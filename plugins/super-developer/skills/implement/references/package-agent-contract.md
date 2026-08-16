@@ -89,8 +89,10 @@ The orchestrator re-runs every executable frozen AC item into that same file aft
 helper ok as done.
 
 Before handoff, the result must include Verdict, Acceptance Checklist Result, Blocking findings, Advisory notes,
-Reviewed state, and Gaps. Each executable item needs a pointer plus observed output. Gaps are `none` or carry
-approval, provenance, and scope. A hollow non-path PASS is not a semantic done signal.
+Plan gaps, Reviewed state, and Gaps. Each executable item needs a pointer plus observed output. Gaps are `none` or
+carry approval, provenance, and scope. A hollow non-path PASS is not a semantic done signal. Draft the Verdict as
+`PENDING_VERIFICATION` when you have finished implementing but the orchestrator has not yet re-run the checklist;
+claim `PASS` only for a state you observed passing.
 
 ## Completion Report
 

@@ -12,9 +12,15 @@ The format is based on Keep a Changelog.
 - Added a required warrant on every blocking package-verification finding (`AC-<id>`, `regression:<ref>`, or `override:<class>`), plus a non-blocking `## Plan gaps` report section that routes unwarranted-but-real obligations to planning continuation instead of failing the package or discarding the concern.
 - Added a SPEC `## Trust Context` section recording actors, trust boundary, data sensitivity, and deployment surface as approved fact, so plan review and package verification scope assurance depth to the declared boundary rather than assuming a hostile public surface by default.
 - Added non-blocking plan-quality trip-wires to `sliceproof.py validate-plan` for compound acceptance claims and oversized package checklists, with an explicit `Closure justification:` note clearing the size signal.
+- Added a `PENDING_VERIFICATION` drafting verdict so a finished implementer report states an honest unverified position instead of claiming a verdict nobody observed; the helper treats it as not complete and it never satisfies a completion gate.
+- Added first-failure classification to the repair circuit, so repeated findings that show the acceptance evidence itself cannot decide an obligation route to planning continuation for checklist repair instead of one-defect-at-a-time patching, without resetting the attempt cap or its single escalation.
 
 ### Changed
 - Changed package verification expectations so dimensions the Trust Context places out of boundary are excluded once as a single `not-applicable:` line instead of per-dimension prose repeated on every package.
+- Clarified `semantic_done` in every helper result with a `semantic_done_note` stating that the helper performs a structural check only and that completion authority stays with the orchestrator re-run, report evidence, and review/audit.
+
+### Fixed
+- Fixed the verdict parser so multi-word verdict tokens are reported intact rather than truncated at the first underscore.
 
 ## [v2.3.0] - 2026-08-14
 
