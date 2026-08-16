@@ -74,15 +74,22 @@ APPROVAL_METADATA_VALUE_RE = re.compile(
     re.IGNORECASE,
 )
 PLAN_GAP_CLOSURE_RE = re.compile(r"\bclosed\s*:\s*(?P<value>[^;\n|]+)", re.IGNORECASE)
+# `warrant:` is how the report contract opens a plan-gap entry, so a nested bullet that starts one is a new
+# disposition rather than detail for the entry above it.
+PLAN_GAP_ENTRY_RE = re.compile(r"^warrant\s*:", re.IGNORECASE)
 # A plan-gap closure is free text and is accepted as written. Only a bare non-answer is rejected, so an accurate
-# short closure such as "repaired by WP1b" costs nothing while "yes" or "TBD" records nothing.
+# short closure such as "repaired by WP1b" costs nothing while "yes" or "TBD" records nothing. "false" denies the
+# closure outright and "null" is the same non-answer as "nil".
 CONTENTLESS_CLOSURE_VALUES = frozenset(
     {
-        "yes", "no", "ok", "n/a", "na", "none", "nil",
+        "yes", "no", "ok", "n/a", "na", "none", "nil", "null", "false",
         "done", "fixed", "closed", "resolved", "complete", "completed",
         "tbd", "to be determined", "todo", "pending",
     }
 )
+HTML_COMMENT_RE = re.compile(r"<!--.*?-->", re.DOTALL)
+# Zero-width and format characters render nothing, so they cannot carry a written disposition.
+INVISIBLE_CHAR_RE = re.compile(r"[\u00ad\u200b-\u200f\u2028\u2029\u202a-\u202e\u2060-\u2064\ufeff]")
 APPROVAL_PLACEHOLDER_TOKEN_RE = re.compile(
     r"(?:^|[^a-z0-9])"
     r"(?:none|no|n/a|na|tbd|to\s+be\s+determined|todo|open|gap|unknown|unconfirmed|missing|absent|"
@@ -1415,26 +1422,52 @@ def parse_plan_gap_entries(body: str) -> list[str]:
 
     Reports are hand-written and long entries wrap, which is this repository's own house style. Reading only the
     first physical line would reject a closure recorded on a continuation or sub-bullet and push the author toward
-    ``- none``, which is the erasure this section exists to prevent. A top-level bullet opens an entry; any deeper
-    bullet or non-bullet line continues it. Fenced text is still not a disposition.
+    ``- none``, which is the erasure this section exists to prevent, so nested detail folds into the bullets that
+    contain it. Folding everything would let a closed neighbour swallow an open one, so a bullet opens its own
+    entry when Markdown renders it as a sibling, and when it starts a new ``warrant:`` at any depth. Visible prose
+    ahead of the first bullet is an entry too: anything Markdown renders as a disposition is read. Fenced text is
+    not a disposition, and the fence state machine is the shared one, so a ``~~~`` line cannot close a ``` block.
     """
-    entries: list[str] = []
-    in_fence = False
+    entries: list[list[str]] = []
+    open_bullets: list[tuple[int, int]] = []
+    preamble: list[str] = []
+    active_fence: tuple[str, int] | None = None
     for raw_line in body.splitlines():
-        line = raw_line.strip()
-        if is_fence(line):
-            in_fence = not in_fence
+        was_in_fence = active_fence is not None
+        active_fence, is_fence_marker = advance_markdown_fence(raw_line, active_fence)
+        if was_in_fence or is_fence_marker:
             continue
-        if in_fence or not line:
+        line = raw_line.strip()
+        if not line:
             continue
         indent = len(raw_line) - len(raw_line.lstrip())
-        stripped = re.sub(r"^(?:[-*]\s+|\d+\.\s+)", "", line)
-        is_bullet = stripped != line
-        if is_bullet and indent == 0:
-            entries.append(stripped)
-        elif entries:
-            entries[-1] = f"{entries[-1]} {stripped}"
-    return [entry.strip() for entry in entries if entry.strip()]
+        # A `- ` list item's content starts at column 2, so a bullet indented less than that is a sibling rather
+        # than nested detail. Treating it as nested is how a closed entry could hide the open one below it.
+        if indent <= 1:
+            indent = 0
+        text = re.sub(r"^(?:[-*]\s+|\d+\.\s+)", "", line)
+        if text == line:
+            # Wrapped or lazy continuation prose: it belongs to every bullet still open around it.
+            if not open_bullets:
+                preamble.append(line)
+                continue
+            for _, index in open_bullets:
+                entries[index].append(text)
+            continue
+        while open_bullets and indent <= open_bullets[-1][0]:
+            open_bullets.pop()
+        nested = bool(open_bullets)
+        for _, index in open_bullets:
+            entries[index].append(text)
+        if nested and not PLAN_GAP_ENTRY_RE.match(text):
+            # Nested detail that opens no new warrant belongs to the entry above it. Closures, evidence, and
+            # owners are all written this way, so folding them keeps ordinary authoring free of dispositions.
+            continue
+        if preamble and not entries:
+            entries.append([" ".join(preamble)])
+        entries.append([text])
+        open_bullets.append((indent, len(entries) - 1))
+    return [entry for entry in (" ".join(parts).strip() for parts in entries) if entry]
 
 
 def has_plan_gap_closure(value: str) -> bool:
@@ -1449,8 +1482,9 @@ def has_plan_gap_closure(value: str) -> bool:
 
 
 def is_substantive_closure(value: str) -> bool:
-    # normalize_approval_placeholder_value is reused for case/punctuation folding only; the approval placeholder
-    # detector itself is not applied here, because it searches free text for words a real closure may contain.
+    # normalize_approval_placeholder_value is reused for case/punctuation folding and for dropping text that
+    # renders nothing; the approval placeholder detector itself is not applied here, because it searches free
+    # text for words a real closure may contain.
     normalized = normalize_approval_placeholder_value(value)
     if not normalized or normalized in CONTENTLESS_CLOSURE_VALUES:
         return False
@@ -1490,7 +1524,10 @@ def is_approval_placeholder_value(value: str) -> bool:
 
 
 def normalize_approval_placeholder_value(value: str) -> str:
-    normalized = normalize_text(value).strip(" -*`'\".:?!").lower()
+    # Text that renders nothing records nothing: an HTML comment and zero-width/format characters are dropped
+    # before folding, so an invisible value cannot pass as a written disposition.
+    visible = INVISIBLE_CHAR_RE.sub("", HTML_COMMENT_RE.sub("", value))
+    normalized = normalize_text(visible).strip(" -*`'\".:?!").lower()
     return re.sub(r"[\s_-]+", " ", normalized)
 
 

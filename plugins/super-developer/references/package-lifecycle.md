@@ -10,9 +10,12 @@ Registry package status is routing only: `pending`, `in_progress`, `blocked`, or
 correctness. Dashboards may show status, dependency readiness, and helper results as mechanical signals only.
 
 ## Definition of done
-A package is **done** when its **frozen `## Acceptance Checklist`** (in the package Markdown, approved at the plan gate)
-passes: every item shows a real passing check with authentic evidence, and no open blocking finding remains.
-That checklist is the closed, objective done-definition — the verifier checks exactly it, inventing nothing.
+The **frozen `## Acceptance Checklist`** (in the package Markdown, approved at the plan gate) decides the report
+**verdict**: PASS needs every item to show a real passing check with authentic evidence, and no open blocking
+finding. That checklist is the closed, objective verdict-definition — the verifier checks exactly it, inventing
+nothing. A package is **done** when that verdict is PASS *and* every `## Plan gaps` entry is closed in place or
+durably approved as out of scope. A plan gap never changes the verdict, and it never starts a repair loop, but it
+is a plan defect: while one stays open the package is not done. The full gate is under `## Completion gate`.
 Package completion is a local evidence fact: source/sidecar publication, final review/audit, target delivery,
 release/deployment, and post-delivery validation are downstream gates and cannot be checklist prerequisites.
 Later evidence changes may stale completion through the existing freshness rules; publication cannot create it.

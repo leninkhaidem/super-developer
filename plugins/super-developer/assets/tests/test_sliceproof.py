@@ -970,6 +970,131 @@ class SliceproofTests(unittest.TestCase):
                 result = self.run_with_plan_gaps(body)
                 self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
 
+    CLOSED_BULLET = "- warrant: plan-gap \u2014 cancellation. closed: repaired by WP1b"
+    OPEN_BULLET = "- warrant: plan-gap \u2014 cancellation path is not on the frozen checklist."
+
+    def test_validate_package_complete_reads_every_visible_plan_gap_bullet(self) -> None:
+        """Whatever Markdown renders as a disposition must be read. Grouping wrapped lines is what lets a closure
+        live on a continuation, but it must never let a closed neighbour swallow a bullet the reader can still
+        see, and prose ahead of the first bullet is just as visible. The two frictionless shapes -- a wrapped
+        closure and a sub-bullet closure -- must keep costing the author nothing."""
+        for label, body, expect_ok in (
+            # A bullet is present, so the section is a list; the prose above it is a second visible entry.
+            (
+                "prose before the first bullet",
+                "warrant: plan-gap \u2014 OPEN cancellation gap.\n" + self.CLOSED_BULLET,
+                False,
+            ),
+            # One space of indent is below the `- ` content column: an unmistakable sibling.
+            ("one-space sibling bullet", self.CLOSED_BULLET + "\n " + self.OPEN_BULLET, False),
+            # A sibling is a sibling whether or not it names a warrant, so the outer level alone has to open an
+            # entry. Reading indent by the content column is what keeps this bullet from folding out of sight.
+            (
+                "one-space sibling that opens no warrant",
+                self.CLOSED_BULLET + "\n - the retry budget is still absent",
+                False,
+            ),
+            # A deeper bullet that opens another `warrant:` is a new disposition, not detail, so folding it away
+            # would let the closed entry above it hide an open gap.
+            ("two-space nested bullet", self.CLOSED_BULLET + "\n  " + self.OPEN_BULLET, False),
+            ("three-space nested bullet", self.CLOSED_BULLET + "\n   " + self.OPEN_BULLET, False),
+            # Detail under a closed entry opens no warrant, so it costs the author nothing. Demanding a
+            # disposition for every `evidence:` or `owner:` line is the friction that pushes authors to `- none`.
+            ("detail sub-bullet under a closed entry", self.CLOSED_BULLET + "\n  - evidence: see §3", True),
+            (
+                "several detail sub-bullets under a closed entry",
+                self.CLOSED_BULLET + "\n  - evidence: see §3\n  - owner: WP1b",
+                True,
+            ),
+            # Only a bullet that *starts* a warrant opens an entry. Matching the word anywhere would turn a
+            # detail line that merely refers to the gap into an open disposition the author never wrote.
+            (
+                "detail sub-bullet mentioning a warrant mid-text",
+                self.CLOSED_BULLET + "\n  - evidence: the warrant: plan-gap note in §3",
+                True,
+            ),
+            (
+                "wrapped continuation closure",
+                "- warrant: plan-gap \u2014 cancellation path.\n  closed: repaired by WP1b",
+                True,
+            ),
+            (
+                "nested sub-bullet closure",
+                "- warrant: plan-gap \u2014 cancellation path.\n  - closed: repaired by WP1b",
+                True,
+            ),
+            # A sub-bullet that wraps still closes the entry above it: the continuation belongs to both.
+            (
+                "wrapped closure inside a sub-bullet",
+                "- warrant: plan-gap \u2014 cancellation path.\n  - the frozen checklist omits cancellation\n"
+                "    closed: repaired by WP1b",
+                True,
+            ),
+        ):
+            with self.subTest(shape=label):
+                result = self.run_with_plan_gaps(body)
+                if expect_ok:
+                    self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+                else:
+                    self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+
+    def test_validate_package_complete_reads_plan_gaps_past_mismatched_fences(self) -> None:
+        """A fence closes only on its own delimiter. Toggling on any fence line would let a `~~~` inside a
+        ``` block reopen it, so an entry after the real close would read as fenced and vanish."""
+        for label, body, expect_ok in (
+            (
+                "tilde line inside a backtick fence",
+                self.CLOSED_BULLET + "\n```\n~~~\n```\n" + self.OPEN_BULLET,
+                False,
+            ),
+            (
+                "backtick line inside a tilde fence",
+                self.CLOSED_BULLET + "\n~~~\n```\n~~~\n" + self.OPEN_BULLET,
+                False,
+            ),
+            # Control: genuinely fenced text is an example, not a disposition, and stays unread.
+            (
+                "genuinely fenced open bullet",
+                self.CLOSED_BULLET + "\n```\n" + self.OPEN_BULLET + "\n```",
+                True,
+            ),
+        ):
+            with self.subTest(shape=label):
+                result = self.run_with_plan_gaps(body)
+                if expect_ok:
+                    self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+                else:
+                    self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+
+    def test_validate_package_complete_rejects_plan_gap_closures_that_render_nothing(self) -> None:
+        """A closure is read as written, so it must actually be written. Text that renders as nothing at all, or
+        that denies the closure outright, records nothing an auditor can read; free prose still costs nothing."""
+        for label, body, expect_ok in (
+            ("html comment closure", "- warrant: plan-gap \u2014 cancellation path. closed: <!-- -->", False),
+            ("zero-width closure", "- warrant: plan-gap \u2014 cancellation path. closed: \u200b", False),
+            ("false denies the closure", "- warrant: plan-gap \u2014 cancellation path. closed: false", False),
+            ("null is the same non-answer as nil", "- warrant: plan-gap \u2014 cancellation path. closed: null", False),
+            # Controls: substantive free prose is taken as written, including wording the placeholder scan knows.
+            ("short specific closure", "- warrant: plan-gap \u2014 cancellation path. closed: repaired by WP1b", True),
+            (
+                "closure naming the missing AC",
+                "- warrant: plan-gap \u2014 cancellation path. closed: WP1b adds the missing cancellation AC",
+                True,
+            ),
+            # A comment beside real prose only drops the part that renders nothing.
+            (
+                "commented aside beside real prose",
+                "- warrant: plan-gap \u2014 cancellation path. closed: repaired by WP1b <!-- see thread -->",
+                True,
+            ),
+        ):
+            with self.subTest(closure=label):
+                result = self.run_with_plan_gaps(body)
+                if expect_ok:
+                    self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+                else:
+                    self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+
     def test_validate_package_complete_rejects_placeholder_plan_gap_closure(self) -> None:
         for label, body in (
             ("todo marker", "- warrant: plan-gap \u2014 cancellation path. closed: TODO"),
