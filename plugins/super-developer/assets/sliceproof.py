@@ -76,7 +76,7 @@ APPROVAL_METADATA_VALUE_RE = re.compile(
 PLAN_GAP_CLOSURE_RE = re.compile(r"\bclosed\s*:\s*(?P<value>[^;\n|]+)", re.IGNORECASE)
 # `warrant:` is how the report contract opens a plan-gap entry, so a nested bullet that starts one is a new
 # disposition rather than detail for the entry above it.
-PLAN_GAP_ENTRY_RE = re.compile(r"^[*_`]*warrant[*_`]*\s*:", re.IGNORECASE)
+PLAN_GAP_ENTRY_RE = re.compile(r"^[*_`]*warrant[*_`]*\s*:[\s*_`]*plan[-\s]?gap", re.IGNORECASE)
 # A plan-gap closure is free text and is accepted as written. Only a bare non-answer is rejected, so an accurate
 # short closure such as "repaired by WP1b" costs nothing while "yes" or "TBD" records nothing. "false" denies the
 # closure outright and "null" is the same non-answer as "nil".
@@ -1412,7 +1412,7 @@ def is_empty_gaps_deviations_section(value: str) -> bool:
         stripped = line.strip()
         if not stripped:
             continue
-        if not re.fullmatch(r"(?:[-*+]\s+|\d+\.\s+)?None\.?", stripped, flags=re.IGNORECASE):
+        if not re.fullmatch(r"(?:[-*+]\s+|\d+[.)]\s+)?None\.?", stripped, flags=re.IGNORECASE):
             return False
     return True
 
@@ -1433,38 +1433,42 @@ def parse_plan_gap_entries(body: str) -> list[str]:
     preamble: list[str] = []
     active_fence: tuple[str, int] | None = None
     # A comment renders nothing, so a closure written inside one would clear a gap the reader still sees as open.
-    for raw_line in HTML_COMMENT_RE.sub("", body).splitlines():
+    # Newlines are kept so a multi-line comment cannot splice two lines into one, and fences are still read from
+    # the original text so that removing a comment can neither create nor destroy a fence.
+    visible = HTML_COMMENT_RE.sub(lambda match: "\n" * match.group(0).count("\n"), body)
+    for raw_line, visible_line in zip(body.splitlines(), visible.splitlines()):
         was_in_fence = active_fence is not None
         active_fence, is_fence_marker = advance_markdown_fence(raw_line, active_fence)
         if was_in_fence or is_fence_marker:
             continue
-        line = raw_line.strip()
+        line = visible_line.strip()
         if not line:
             continue
         # Tabs indent by more than one column, so measuring them as one character would read a tabbed sub-bullet
         # as a sibling and reject the closure written on it.
-        expanded = raw_line.expandtabs(4)
+        expanded = visible_line.expandtabs(4)
         indent = len(expanded) - len(expanded.lstrip())
         # A `- ` list item's content starts at column 2, so a bullet indented less than that is a sibling rather
         # than nested detail. Treating it as nested is how a closed entry could hide the open one below it.
         if indent <= 1:
             indent = 0
-        text = re.sub(r"^(?:[-*+]\s+|\d+\.\s+)", "", line)
+        text = re.sub(r"^(?:[-*+]\s+|\d+[.)]\s+)", "", line)
         if text == line:
-            # Wrapped or lazy continuation prose: it belongs to every bullet still open around it.
+            # Wrapped or lazy continuation prose belongs to the innermost entry still open around it, the same
+            # entry a reader would attach it to.
             if not open_bullets:
                 preamble.append(line)
                 continue
-            for _, index in open_bullets:
-                entries[index].append(text)
+            entries[open_bullets[-1][1]].append(text)
             continue
         while open_bullets and indent <= open_bullets[-1][0]:
             open_bullets.pop()
-        if bool(open_bullets) and not PLAN_GAP_ENTRY_RE.match(text):
+        if open_bullets and not PLAN_GAP_ENTRY_RE.match(text):
             # Nested detail that opens no new warrant belongs to the entry above it. Closures, evidence, and
             # owners are all written this way, so folding them keeps ordinary authoring free of dispositions.
-            for _, index in open_bullets:
-                entries[index].append(text)
+            # It reaches only the innermost open entry: a closure written under one gap must not close the
+            # separate gap that happens to enclose it.
+            entries[open_bullets[-1][1]].append(text)
             continue
         # A bullet that opens its own warrant is not folded upward: its closure would otherwise close the still
         # open entry containing it.

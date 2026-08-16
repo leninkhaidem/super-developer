@@ -1045,6 +1045,53 @@ class SliceproofTests(unittest.TestCase):
                 self.CLOSED_BULLET + "\n  - **warrant:** plan-gap — retry budget is absent",
                 False,
             ),
+            # Only `warrant: plan-gap` opens an entry, so a detail line that merely discusses the field is
+            # detail. Treating any `warrant:` as an entry charged this line a disposition it never needed.
+            (
+                "detail sub-bullet about the warrant field",
+                self.CLOSED_BULLET + "\n  - *warrant*: field is now documented in the contract",
+                True,
+            ),
+            # `1)` is an ordered marker too. Reading only `1.` hid this gap and rejected an honest `1)` section.
+            ("paren-ordered sibling gap", self.CLOSED_BULLET + "\n1) " + self.OPEN_BULLET[2:], False),
+            ("paren-ordered closed entry", "1) " + self.CLOSED_BULLET[2:], True),
+            # A closure belongs to the gap it is written under. Folding it into every enclosing bullet let a
+            # nested gap's repair silently close the separate, still-open gap around it.
+            (
+                "nested gap closure does not reach the open gap enclosing it",
+                "- warrant: plan-gap — cancellation is absent\n"
+                "  - warrant: plan-gap — retry budget is absent\n"
+                "    closed: repaired by WP1b\n"
+                "  - evidence: see §3",
+                False,
+            ),
+            (
+                "nested gap sub-bullet closure does not reach the gap enclosing it",
+                "- warrant: plan-gap — cancellation is absent\n"
+                "  - warrant: plan-gap — retry budget is absent\n"
+                "    - closed: repaired by WP1b",
+                False,
+            ),
+            # Comments are removed without disturbing line structure: stripping must not fuse two lines into
+            # one, and must not turn the text beside a comment into a fence that swallows what follows.
+            (
+                "comment beside a fence marker",
+                self.CLOSED_BULLET + "\n<!-- -->```\n" + self.OPEN_BULLET,
+                False,
+            ),
+            (
+                "multi-line comment does not splice the next entry away",
+                self.CLOSED_BULLET + "\n<!-- x\ny -->- warrant: plan-gap — retry budget is absent",
+                False,
+            ),
+            # Removing a comment must not renumber the lines, or the fence machine reads the wrong ones and a
+            # gap after a fenced example disappears while still rendering.
+            (
+                "multi-line comment keeps fences aligned with the gap after them",
+                self.CLOSED_BULLET + "\n<!-- x\ny -->\n```\nexample\n```\n" + self.OPEN_BULLET,
+                False,
+            ),
+            ("paren-ordered none", "1) none", True),
             (
                 "wrapped continuation closure",
                 "- warrant: plan-gap \u2014 cancellation path.\n  closed: repaired by WP1b",

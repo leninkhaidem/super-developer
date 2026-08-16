@@ -70,9 +70,10 @@ PASS | FAIL | PENDING_VERIFICATION
   comment, zero-width characters) or that still calls itself open — a closure whose own text carries `TODO` or
   `open` — leaves the entry open. Put such words in the gap description ahead of `closed:`, or after a `;`,
   since only the closure value itself is read. Entries may wrap across lines and carry sub-bullets: a sub-bullet
-  closure closes the bullet above it, and ordinary detail such as evidence or an owner needs no disposition of
-  its own. A bullet starts a *new* entry, needing its own closure, when it opens another `warrant:` or sits at
-  the outer level, so a closed entry can never absorb the open one beneath it.
+  closure closes the entry above it, and ordinary detail such as evidence or an owner needs no disposition of
+  its own. A bullet starts a *new* entry, needing its own closure, when it opens another `warrant: plan-gap` or
+  sits at the outer level, so a closed entry can never absorb the open one beneath it. A closure reaches only
+  the entry it is written under, so repairing a nested gap never closes the separate gap enclosing it.
 - **Evidence authenticity:** a pointer plus observed output must resolve to real output (a test id + result, a
   command + observed result, or a `manual (approved)` observation). A PASS row with a hollow non-path claim is
   not a semantic done signal. The helper only checks presence, non-placeholder, and safe path existence when the
