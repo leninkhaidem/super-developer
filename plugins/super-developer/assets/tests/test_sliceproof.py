@@ -1088,7 +1088,7 @@ class SliceproofTests(unittest.TestCase):
             # treating it as a fence would swallow every gap after it while the reader still sees them.
             (
                 "fence marker inside a comment is not a fence",
-                self.CLOSED_BULLET + "\n<!-- draft\n``` -->\n" + self.OPEN_BULLET + "\n```",
+                self.CLOSED_BULLET + "\n<!-- draft\n``` -->\n" + self.OPEN_BULLET,
                 False,
             ),
             (
@@ -1125,6 +1125,9 @@ class SliceproofTests(unittest.TestCase):
                 True,
             ),
             ("paren-ordered none", "1) none", True),
+            # `- none` is the written claim whether or not an example sits beside it. Reading emptiness from the
+            # raw body instead of the parsed entries made the fenced text turn `none` into an open entry.
+            ("fenced example beside a written none", "- none\n```\n- warrant: plan-gap — sample\n```", True),
             (
                 "wrapped continuation closure",
                 "- warrant: plan-gap \u2014 cancellation path.\n  closed: repaired by WP1b",
@@ -1177,6 +1180,31 @@ class SliceproofTests(unittest.TestCase):
                     self.assertEqual(0, result.returncode, result.stdout + result.stderr)
                 else:
                     self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+
+    def test_plan_gap_fence_shapes_fail_on_the_open_gap_not_a_broken_section(self) -> None:
+        """A fence the parser wrongly honours never closes, so it eats the headings after the section and the run
+        still fails -- on the wrong thing. Only the message separates a caught gap from a corrupted report, so
+        these shapes assert it rather than the exit code alone."""
+        for label, body in (
+            ("comment beside a fence marker", self.CLOSED_BULLET + "\n<!-- -->```\n" + self.OPEN_BULLET),
+            ("fence marker inside a comment", self.CLOSED_BULLET + "\n<!-- draft\n``` -->\n" + self.OPEN_BULLET),
+            ("commented-out fenced example", self.CLOSED_BULLET + "\n<!-- ```\nx\n``` -->\n" + self.OPEN_BULLET),
+            ("real fence between two gaps", self.CLOSED_BULLET + "\n```\nexample\n```\n" + self.OPEN_BULLET),
+        ):
+            with self.subTest(shape=label):
+                result = self.run_with_plan_gaps(body)
+                errors = json.loads(result.stderr)["errors"]
+                self.assertEqual(1, len(errors), errors)
+                self.assertIn("still open", errors[0])
+
+    def test_section_split_ignores_fences_that_only_exist_inside_comments(self) -> None:
+        """`split_h2_sections` decides where every section ends, so a fence it wrongly honours swallows the
+        headings after it. It shares one fence reader with the plan-gap parser precisely so the two cannot
+        disagree about what a fence is."""
+        text = "## Plan gaps\n- none\n<!-- ```\nx\n``` -->\n\n## Gaps\n- none\n"
+        self.assertEqual({"Plan gaps", "Gaps"}, set(SLICEPROOF.split_h2_sections(text)))
+        fenced = "## Plan gaps\n- none\n```\n## Not a heading\n```\n\n## Gaps\n- none\n"
+        self.assertEqual({"Plan gaps", "Gaps"}, set(SLICEPROOF.split_h2_sections(fenced)))
 
     def test_invisible_stripping_is_scoped_to_the_closure_value(self) -> None:
         """Dropping invisible characters makes a closure honest, but the approval detector reads whole words, so

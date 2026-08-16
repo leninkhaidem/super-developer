@@ -15,6 +15,7 @@ import json
 import os
 import re
 import sys
+from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -950,15 +951,31 @@ def parse_bullets(body: str, *, unwrap_path: bool) -> list[str]:
     return [value for value in values if value]
 
 
+def iter_markdown_lines(text: str) -> Iterator[tuple[str, str, bool]]:
+    """Yield ``(raw_line, visible_line, fenced)`` for Markdown that may contain HTML comments.
+
+    ``visible_line`` has comments removed while keeping the line count, so a comment spanning two lines cannot
+    splice them together. A fence counts only when both texts show one: a marker written inside a comment renders
+    as nothing, and a marker that appears only once a comment is removed was never written. Reading a fence that
+    is not really there silently swallows everything after it, so both callers share this one implementation.
+    """
+    visible_text = HTML_COMMENT_RE.sub(lambda match: "\n" * match.group(0).count("\n"), text)
+    active_fence: tuple[str, int] | None = None
+    for raw_line, visible_line in zip(text.splitlines(), visible_text.splitlines()):
+        was_in_fence = active_fence is not None
+        next_fence, is_fence_marker = advance_markdown_fence(raw_line, active_fence)
+        if is_fence_marker and not advance_markdown_fence(visible_line, active_fence)[1]:
+            next_fence, is_fence_marker = active_fence, False
+        active_fence = next_fence
+        yield raw_line, visible_line, was_in_fence or is_fence_marker
+
+
 def split_h2_sections(text: str) -> dict[str, str]:
     sections: dict[str, list[str]] = {}
     current: str | None = None
-    active_fence: tuple[str, int] | None = None
-    for raw_line in text.splitlines():
+    for raw_line, _visible_line, fenced in iter_markdown_lines(text):
         line = raw_line.rstrip("\n")
-        was_in_fence = active_fence is not None
-        active_fence, is_fence_marker = advance_markdown_fence(line, active_fence)
-        if was_in_fence or is_fence_marker:
+        if fenced:
             if current is not None:
                 sections[current].append(line)
             continue
@@ -1112,7 +1129,9 @@ def validate_plan_gaps_section(report_path: Path, plan_gaps_body: str) -> list[s
             f"{report_path}: ## Plan gaps must be a bulleted list of entries, or `- none` when the frozen "
             f"checklist omitted nothing. An empty section, prose, or fenced text is not a disposition."
         ]
-    if is_empty_gaps_deviations_section(plan_gaps_body):
+    # Emptiness is read from the parsed entries, not the raw body, so a fenced example beside `- none` cannot
+    # turn the written claim into an entry that reads as open.
+    if all(re.fullmatch(r"None\.?", entry, flags=re.IGNORECASE) for entry in entries):
         return []
     errors: list[str] = []
     for entry in entries:
@@ -1431,20 +1450,9 @@ def parse_plan_gap_entries(body: str) -> list[str]:
     entries: list[list[str]] = []
     open_bullets: list[tuple[int, int]] = []
     preamble: list[str] = []
-    active_fence: tuple[str, int] | None = None
     # A comment renders nothing, so a closure written inside one would clear a gap the reader still sees as open.
-    # Newlines are kept so a multi-line comment cannot splice two lines into one, and fences are still read from
-    # the original text so that removing a comment can neither create nor destroy a fence.
-    visible = HTML_COMMENT_RE.sub(lambda match: "\n" * match.group(0).count("\n"), body)
-    for raw_line, visible_line in zip(body.splitlines(), visible.splitlines()):
-        was_in_fence = active_fence is not None
-        next_fence, is_fence_marker = advance_markdown_fence(raw_line, active_fence)
-        # A fence has to be real in both texts. One written inside a comment renders as nothing, and one that
-        # appears only once a comment is removed was never written; either would hide the gaps that follow it.
-        if is_fence_marker and not advance_markdown_fence(visible_line, active_fence)[1]:
-            next_fence, is_fence_marker = active_fence, False
-        active_fence = next_fence
-        if was_in_fence or is_fence_marker:
+    for _raw_line, visible_line, fenced in iter_markdown_lines(body):
+        if fenced:
             continue
         line = visible_line.strip()
         if not line:
