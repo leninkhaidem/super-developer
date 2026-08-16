@@ -76,7 +76,7 @@ APPROVAL_METADATA_VALUE_RE = re.compile(
 PLAN_GAP_CLOSURE_RE = re.compile(r"\bclosed\s*:\s*(?P<value>[^;\n|]+)", re.IGNORECASE)
 # `warrant:` is how the report contract opens a plan-gap entry, so a nested bullet that starts one is a new
 # disposition rather than detail for the entry above it.
-PLAN_GAP_ENTRY_RE = re.compile(r"^warrant\s*:", re.IGNORECASE)
+PLAN_GAP_ENTRY_RE = re.compile(r"^[*_`]*warrant[*_`]*\s*:", re.IGNORECASE)
 # A plan-gap closure is free text and is accepted as written. Only a bare non-answer is rejected, so an accurate
 # short closure such as "repaired by WP1b" costs nothing while "yes" or "TBD" records nothing. "false" denies the
 # closure outright and "null" is the same non-answer as "nil".
@@ -1412,7 +1412,7 @@ def is_empty_gaps_deviations_section(value: str) -> bool:
         stripped = line.strip()
         if not stripped:
             continue
-        if not re.fullmatch(r"(?:[-*]\s+|\d+\.\s+)?None\.?", stripped, flags=re.IGNORECASE):
+        if not re.fullmatch(r"(?:[-*+]\s+|\d+\.\s+)?None\.?", stripped, flags=re.IGNORECASE):
             return False
     return True
 
@@ -1432,7 +1432,8 @@ def parse_plan_gap_entries(body: str) -> list[str]:
     open_bullets: list[tuple[int, int]] = []
     preamble: list[str] = []
     active_fence: tuple[str, int] | None = None
-    for raw_line in body.splitlines():
+    # A comment renders nothing, so a closure written inside one would clear a gap the reader still sees as open.
+    for raw_line in HTML_COMMENT_RE.sub("", body).splitlines():
         was_in_fence = active_fence is not None
         active_fence, is_fence_marker = advance_markdown_fence(raw_line, active_fence)
         if was_in_fence or is_fence_marker:
@@ -1440,12 +1441,15 @@ def parse_plan_gap_entries(body: str) -> list[str]:
         line = raw_line.strip()
         if not line:
             continue
-        indent = len(raw_line) - len(raw_line.lstrip())
+        # Tabs indent by more than one column, so measuring them as one character would read a tabbed sub-bullet
+        # as a sibling and reject the closure written on it.
+        expanded = raw_line.expandtabs(4)
+        indent = len(expanded) - len(expanded.lstrip())
         # A `- ` list item's content starts at column 2, so a bullet indented less than that is a sibling rather
         # than nested detail. Treating it as nested is how a closed entry could hide the open one below it.
         if indent <= 1:
             indent = 0
-        text = re.sub(r"^(?:[-*]\s+|\d+\.\s+)", "", line)
+        text = re.sub(r"^(?:[-*+]\s+|\d+\.\s+)", "", line)
         if text == line:
             # Wrapped or lazy continuation prose: it belongs to every bullet still open around it.
             if not open_bullets:
@@ -1456,13 +1460,14 @@ def parse_plan_gap_entries(body: str) -> list[str]:
             continue
         while open_bullets and indent <= open_bullets[-1][0]:
             open_bullets.pop()
-        nested = bool(open_bullets)
-        for _, index in open_bullets:
-            entries[index].append(text)
-        if nested and not PLAN_GAP_ENTRY_RE.match(text):
+        if bool(open_bullets) and not PLAN_GAP_ENTRY_RE.match(text):
             # Nested detail that opens no new warrant belongs to the entry above it. Closures, evidence, and
             # owners are all written this way, so folding them keeps ordinary authoring free of dispositions.
+            for _, index in open_bullets:
+                entries[index].append(text)
             continue
+        # A bullet that opens its own warrant is not folded upward: its closure would otherwise close the still
+        # open entry containing it.
         if preamble and not entries:
             entries.append([" ".join(preamble)])
         entries.append([text])
@@ -1482,10 +1487,13 @@ def has_plan_gap_closure(value: str) -> bool:
 
 
 def is_substantive_closure(value: str) -> bool:
-    # normalize_approval_placeholder_value is reused for case/punctuation folding and for dropping text that
-    # renders nothing; the approval placeholder detector itself is not applied here, because it searches free
-    # text for words a real closure may contain.
-    normalized = normalize_approval_placeholder_value(value)
+    # Text that renders nothing records nothing, so a comment or zero-width run is dropped before the value is
+    # weighed. This is scoped to the closure rather than folded into the shared normalizer, where removing an
+    # invisible separator would instead *hide* a placeholder word from the approval detector.
+    visible = INVISIBLE_CHAR_RE.sub("", HTML_COMMENT_RE.sub("", value))
+    # normalize_approval_placeholder_value is reused for case/punctuation folding only; the approval placeholder
+    # detector itself is not applied here, because it searches free text for words a real closure may contain.
+    normalized = normalize_approval_placeholder_value(visible)
     if not normalized or normalized in CONTENTLESS_CLOSURE_VALUES:
         return False
     return UNRESOLVED_MARKER_RE.search(value) is None
@@ -1524,10 +1532,7 @@ def is_approval_placeholder_value(value: str) -> bool:
 
 
 def normalize_approval_placeholder_value(value: str) -> str:
-    # Text that renders nothing records nothing: an HTML comment and zero-width/format characters are dropped
-    # before folding, so an invisible value cannot pass as a written disposition.
-    visible = INVISIBLE_CHAR_RE.sub("", HTML_COMMENT_RE.sub("", value))
-    normalized = normalize_text(visible).strip(" -*`'\".:?!").lower()
+    normalized = normalize_text(value).strip(" -*`'\".:?!").lower()
     return re.sub(r"[\s_-]+", " ", normalized)
 
 

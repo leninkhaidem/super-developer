@@ -1013,6 +1013,38 @@ class SliceproofTests(unittest.TestCase):
                 self.CLOSED_BULLET + "\n  - evidence: the warrant: plan-gap note in §3",
                 True,
             ),
+            # `+` is a CommonMark bullet. Reading only `-` and `*` would render this gap to the author while
+            # hiding it from the gate, and would reject a `+` section that is honestly closed.
+            ("plus-marker sibling gap", self.CLOSED_BULLET + "\n+ " + self.OPEN_BULLET[2:], False),
+            ("plus-marker closed entry", "+ " + self.CLOSED_BULLET[2:], True),
+            ("plus-marker none", "+ none", True),
+            # A tab indents past the content column, so measuring it as one character would read these as
+            # siblings and reject a closure the author did write.
+            (
+                "tab-indented sub-bullet closure",
+                "- warrant: plan-gap — cancellation path.\n\t- closed: repaired by WP1b",
+                True,
+            ),
+            ("tab-indented detail under a closed entry", self.CLOSED_BULLET + "\n\t- evidence: see §3", True),
+            # A closure inside a comment renders nothing, so it cannot clear a gap the reader still sees.
+            (
+                "closure hidden in an HTML comment",
+                "- warrant: plan-gap — cancellation is absent <!-- closed: repaired by WP1b -->",
+                False,
+            ),
+            # A nested warrant carries its own closure. Folding it upward would let it close the open entry it
+            # sits inside, which is the swallowing this parser exists to prevent.
+            (
+                "child warrant closure does not close an open parent",
+                "- warrant: plan-gap — cancellation is absent\n  - warrant: plan-gap — retry; closed: WP1b",
+                False,
+            ),
+            # Emphasis around the field name still opens an entry; otherwise a bolded nested gap folds away.
+            (
+                "emphasised nested warrant",
+                self.CLOSED_BULLET + "\n  - **warrant:** plan-gap — retry budget is absent",
+                False,
+            ),
             (
                 "wrapped continuation closure",
                 "- warrant: plan-gap \u2014 cancellation path.\n  closed: repaired by WP1b",
@@ -1065,6 +1097,15 @@ class SliceproofTests(unittest.TestCase):
                     self.assertEqual(0, result.returncode, result.stdout + result.stderr)
                 else:
                     self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+
+    def test_invisible_stripping_is_scoped_to_the_closure_value(self) -> None:
+        """Dropping invisible characters makes a closure honest, but the approval detector reads whole words, so
+        doing it there would splice a placeholder into a longer token and hide it. The two must stay separate."""
+        for value in ("x\u200bnone", "2\u200btbd"):
+            with self.subTest(value=value):
+                self.assertTrue(SLICEPROOF.is_approval_placeholder_value(value))
+        self.assertFalse(SLICEPROOF.is_substantive_closure("\u200b"))
+        self.assertTrue(SLICEPROOF.is_substantive_closure("repaired by WP1b"))
 
     def test_validate_package_complete_rejects_plan_gap_closures_that_render_nothing(self) -> None:
         """A closure is read as written, so it must actually be written. Text that renders as nothing at all, or

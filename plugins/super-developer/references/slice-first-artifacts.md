@@ -94,7 +94,7 @@ Context only:
 - None.
 ```
 
-`Must satisfy` Slice IDs map onto Acceptance Checklist items. `Context only` IDs must be read and respected but do not create result rows unless another package owns them. `## Acceptance Checklist` is the frozen closed done-definition (see `package-lifecycle.md`). Every package needs at least one independently confirmable executable check.
+`Must satisfy` Slice IDs map onto Acceptance Checklist items. `Context only` IDs must be read and respected but do not create result rows unless another package owns them. `## Acceptance Checklist` is the frozen closed definition of the package verdict (see `package-lifecycle.md`, which also requires every plan gap closed before the package is done). Every package needs at least one independently confirmable executable check.
 
 ## Package Verification Report
 
