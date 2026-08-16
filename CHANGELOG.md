@@ -6,6 +6,8 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [v2.4.0] - 2026-08-16
+
 ### Added
 - Added an atomicity rule for package acceptance criteria so each frozen checklist item carries one behavioral claim, one observable boundary, one primary check, and one failure condition, preventing a compound item from passing on partial proof where no downstream role may renegotiate the done-definition.
 - Added a falsification pointer (`rejects:`) to acceptance items that prove a Slice forbidden behavior, naming the wrong-but-plausible implementation the check must fail against, so a green checklist cannot be built from checks that would also pass against the counterfeit.
