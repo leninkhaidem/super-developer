@@ -34,8 +34,9 @@ A package becomes `done` only when:
 2. the result file records every item pass with observed output, no open blocking finding, and Gaps `none` or
    approved metadata;
 3. `validate-package-complete` succeeds as a read-only structural check;
-4. any blocking-finding repairs are closed;
-5. every `## Plan gaps` entry is closed — routed through planning continuation and re-verified (record `closed:`
+4. the enhanced-risk verifier closed, when one was applicable;
+5. any blocking-finding repairs are closed;
+6. every `## Plan gaps` entry is closed — routed through planning continuation and re-verified (record `closed:`
    naming it in plain words), or durably approved as out of scope (record approval, provenance, and scope). Close
    every entry in place; never delete one to clear the gate, because the record of the omitted obligation is the
    point. The section is required and its dispositions are bullets, so finding nothing is the written claim

@@ -43,11 +43,10 @@ For each returned package:
     the enhanced verifier when applicable, and final audit. Classify `context_only_slice_drift` yourself — it is a
     reviewer judgement, never a helper output — routing it to affected-surface classification as non-blocking by
     default, while reviewer authority may escalate material risk. An open `## Plan gaps` entry is not an advisory:
-    the helper fails `validate-package-complete` until each entry is closed in place, either by a `closed:` note
-    naming the planning continuation that repaired it or by recorded approval, provenance, and scope when it was
-    durably approved as out of scope. Never delete an entry to clear the gate; the record is the point. The section
-    is required and read as bullets, so write `- none` when nothing was omitted; a deleted, emptied, un-bulleted, or
-    fenced section fails. Any substantive `closed:` wording counts, so state the closure plainly.
+    the helper fails `validate-package-complete` until every entry is closed in place, on the routes and in the
+    shapes `plugins/super-developer/references/package-verification-report.md` defines. Never delete an entry to
+    clear the gate;
+    the record is the point.
 11. Confirm package branches did not force-add or commit ignored `.tasks` result artifacts. If they did, preserve
     artifacts in the artifact root, repair the branch to code/doc changes only, and keep the package incomplete.
 12. Merge each accepted package branch at most once through the integration worktree using the `worktree` skill.

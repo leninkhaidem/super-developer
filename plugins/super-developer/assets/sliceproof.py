@@ -1099,7 +1099,7 @@ def validate_plan_gaps_section(report_path: Path, plan_gaps_body: str) -> list[s
     approved as out of scope (approval + provenance + scope). Both keep the record; neither is satisfied by
     removing the line.
     """
-    entries = parse_bullets(plan_gaps_body, unwrap_path=False)
+    entries = parse_plan_gap_entries(plan_gaps_body)
     if not entries:
         return [
             f"{report_path}: ## Plan gaps must be a bulleted list of entries, or `- none` when the frozen "
@@ -1408,6 +1408,33 @@ def is_empty_gaps_deviations_section(value: str) -> bool:
         if not re.fullmatch(r"(?:[-*]\s+|\d+\.\s+)?None\.?", stripped, flags=re.IGNORECASE):
             return False
     return True
+
+
+def parse_plan_gap_entries(body: str) -> list[str]:
+    """Split ``## Plan gaps`` into entries, keeping wrapped and nested lines with the entry they belong to.
+
+    Reports are hand-written and long entries wrap, which is this repository's own house style. Reading only the
+    first physical line would reject a closure recorded on a continuation or sub-bullet and push the author toward
+    ``- none``, which is the erasure this section exists to prevent. A top-level bullet opens an entry; any deeper
+    bullet or non-bullet line continues it. Fenced text is still not a disposition.
+    """
+    entries: list[str] = []
+    in_fence = False
+    for raw_line in body.splitlines():
+        line = raw_line.strip()
+        if is_fence(line):
+            in_fence = not in_fence
+            continue
+        if in_fence or not line:
+            continue
+        indent = len(raw_line) - len(raw_line.lstrip())
+        stripped = re.sub(r"^(?:[-*]\s+|\d+\.\s+)", "", line)
+        is_bullet = stripped != line
+        if is_bullet and indent == 0:
+            entries.append(stripped)
+        elif entries:
+            entries[-1] = f"{entries[-1]} {stripped}"
+    return [entry.strip() for entry in entries if entry.strip()]
 
 
 def has_plan_gap_closure(value: str) -> bool:

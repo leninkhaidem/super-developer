@@ -8,10 +8,9 @@ The format is based on Keep a Changelog.
 
 ### Removed
 - Removed the two v2.4.0 plan-quality trip-wires (`acceptance_atomicity`, `closure_size`) rather than tuning them a
-  third time. Measured against this repository's own committed packages, the size band flagged every package and the
-  conjunction proxy flagged roughly four fifths of items; a later mutation check showed the proxy also fired on
-  ordinary coordinated noun lists while missing genuinely chained clauses, so it was anti-correlated with the defect
-  it targeted. A signal that fires on the norm teaches agents to silence it. Both judgements were already owned
+  third time. Both were countable proxies for judgements that are not countable: the size band flagged package after
+  package, and the conjunction proxy fired on ordinary coordinated noun lists while missing the genuinely chained
+  clauses it existed to catch, leaving it anti-correlated with the defect it targeted. A signal that fires on the norm teaches agents to silence it. Both judgements were already owned
   semantically by the plan reviewer and the authoring rules, which are unchanged, so nothing was lost by deleting the
   textual proxies. This restores the project's own rule that scripts perform deterministic validation while prose
   owns judgement.

@@ -906,6 +906,53 @@ class SliceproofTests(unittest.TestCase):
                 result = self.run_with_plan_gaps(body)
                 self.assertEqual(0, result.returncode, result.stdout + result.stderr)
 
+    def test_validate_package_complete_accepts_wrapped_and_nested_plan_gap_closures(self) -> None:
+        """Long entries wrap, which is this repository's own house style. If a closure recorded on a continuation
+        or sub-bullet read as still open, the cheapest recovery would be `- none` — the erasure this gate exists
+        to prevent. `## Gaps` already accepts these shapes, so plan gaps must too."""
+        for label, body in (
+            (
+                "wrapped closure",
+                "- warrant: plan-gap \u2014 cancellation path is not on the checklist.\n"
+                "  closed: repaired by continuation package WP1b, AC-7 added.",
+            ),
+            (
+                "sub-bullet closure",
+                "- warrant: plan-gap \u2014 cancellation path.\n  - closed: repaired by continuation package WP1b.",
+            ),
+            (
+                "lazy continuation",
+                "- warrant: plan-gap \u2014 cancellation path.\nclosed: repaired by continuation package WP1b.",
+            ),
+            (
+                "wrapped approval route",
+                "- warrant: plan-gap \u2014 cancellation path. Approved by user;\n"
+                "  provenance: plan gate 2026-08-16; scope: deferred to the resilience feature.",
+            ),
+            (
+                "two wrapped entries both closed",
+                "- warrant: plan-gap \u2014 A.\n  closed: repaired by WP1b.\n"
+                "- warrant: plan-gap \u2014 B.\n  closed: repaired by WP1c.",
+            ),
+        ):
+            with self.subTest(shape=label):
+                result = self.run_with_plan_gaps(body)
+                self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+
+    def test_validate_package_complete_finds_an_open_entry_in_any_position(self) -> None:
+        """Grouping wrapped lines must not let an open entry hide behind a closed neighbour, in either order,
+        and a stray `- none` beside a real entry must not clear the section."""
+        for label, body in (
+            ("second entry open", "- warrant: plan-gap \u2014 A.\n  closed: repaired by WP1b.\n- warrant: plan-gap \u2014 B is missed."),
+            ("first entry open", "- warrant: plan-gap \u2014 A is missed.\n- warrant: plan-gap \u2014 B.\n  closed: repaired by WP1c."),
+            ("none before a real entry", "- none\n- warrant: plan-gap \u2014 X is not on the checklist"),
+            ("none after a real entry", "- warrant: plan-gap \u2014 X is not on the checklist\n- none"),
+            ("wrapped but still open", "- warrant: plan-gap \u2014 the cancellation path\n  is not on the frozen checklist."),
+        ):
+            with self.subTest(shape=label):
+                result = self.run_with_plan_gaps(body)
+                self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+
     def test_validate_package_complete_rejects_placeholder_plan_gap_closure(self) -> None:
         for label, body in (
             ("todo marker", "- warrant: plan-gap \u2014 cancellation path. closed: TODO"),
