@@ -36,7 +36,8 @@ A package becomes `done` only when:
 3. `validate-package-complete` succeeds as a read-only structural check;
 4. any blocking-finding repairs are closed;
 5. every `## Plan gaps` entry is closed — routed through planning continuation and re-verified, or durably approved
-   as out of scope.
+   as out of scope. `validate-package-complete` reports each open entry as a `plan_gap_open` advisory; treat that
+   advisory as an unmet completion condition, never as an optional note.
 
 ```bash
 python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-package-complete \
@@ -55,10 +56,10 @@ Every blocking finding carries a warrant naming the authority it acts under: `wa
 frozen item, `warrant: regression:<ref>` for broken existing behavior, or `warrant: override:<class>` for a severe
 correctness/security/data-loss defect the checklist cannot see. An unwarranted finding is not blocking. It becomes
 an advisory note, or — when it names a real obligation the frozen checklist omits — a `## Plan gaps` entry
-(`warrant: plan-gap`). A plan gap is a plan defect under the Plan-Defect Continuation Gate: it does not fail the
-package verdict and never starts a code repair loop, but while it stays open the package does not become `done`
-and does not unlock dependents. The orchestrator routes it through planning continuation and re-verifies against
-the repaired checklist, so a missing requirement is neither forced in by a verifier nor silently lost.
+(`warrant: plan-gap`). A plan gap is a plan defect, not code-repair work: it does not fail the package verdict and
+never starts a repair loop, but while it stays open the package does not become `done` and does not unlock
+dependents. The consuming orchestrator routes it through planning continuation and re-verifies against the
+repaired checklist, so a missing requirement is neither forced in by a verifier nor silently lost.
 
 Scope assurance depth to the SPEC `## Trust Context`. Inside a declared trusted boundary, hostile-input,
 authentication, race-hardening, and adversarial-filesystem concerns are advisory unless a frozen item,
