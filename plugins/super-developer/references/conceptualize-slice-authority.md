@@ -37,7 +37,7 @@ Cross-role consumers rely on these durable authoring invariants:
 
 ## Interface Contracts
 
-A material H3 is *interface-bearing* when a reasonable implementation could satisfy its words and still be wrong (wrong command, API, flag, path, config key, output, or lifecycle trigger). Apply one test per material H3:
+A material H3 is *interface-bearing* when a reasonable implementation could satisfy its words and still be wrong — wrong command, API, flag, path, config key, output, or lifecycle trigger, or a violated behavioral bound such as complexity, causal ordering, or an access barrier. Behavioral bounds count: an implementation can honour every named surface and still breach the bound the words assumed. Apply one test per material H3:
 
 > Could a reasonable implementation satisfy these words and still be wrong?
 

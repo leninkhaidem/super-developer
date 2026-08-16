@@ -55,9 +55,14 @@ PASS | FAIL | PENDING_VERIFICATION
   `warrant: override:<class>`. An unwarranted finding is not blocking: it becomes an advisory note, or a
   `## Plan gaps` entry (`warrant: plan-gap`) when it names a real obligation the frozen checklist omits.
   A plan gap never changes the verdict and never starts a code repair loop, but it is a plan defect, not an
-  advisory: while it stays open `validate-package-complete` fails, the package does not become `done`, and
-  dependents do not unlock. The orchestrator routes it to planning continuation, so a missing requirement is
-  neither forced in by a verifier nor lost.
+  advisory: while it stays open `validate-package-complete` and `validate-final` fail, the package does not become
+  `done`, and dependents do not unlock. The orchestrator routes it to planning continuation, so a missing
+  requirement is neither forced in by a verifier nor lost.
+- **Closing a plan gap never means deleting it.** An entry closes *in place*, on one of the two routes
+  `package-lifecycle.md` recognises, so the report keeps the record of what was once missing:
+  a `closed:` note naming the planning continuation that repaired it, or recorded approval, provenance, and scope
+  when it was durably approved as out of scope. Removing the line to reach a clean exit code destroys the audit
+  trail this section exists to create, and is the one disposition the gate treats as never acceptable.
 - **Evidence authenticity:** a pointer plus observed output must resolve to real output (a test id + result, a
   command + observed result, or a `manual (approved)` observation). A PASS row with a hollow non-path claim is
   not a semantic done signal. The helper only checks presence, non-placeholder, and safe path existence when the

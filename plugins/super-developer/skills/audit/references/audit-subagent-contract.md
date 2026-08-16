@@ -15,7 +15,8 @@ Fail if any required input is missing, unsafe, unreadable, malformed, stale, roo
 1. `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/conceptualize-slice-authority.md`
 2. `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/clean-code-rules.md`
 3. `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/slice-first-artifacts.md`
-4. `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/package-lifecycle.md`
+4. `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/package-lifecycle.md`, then
+   `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/package-verification-report.md` for the report shape item 6 requires
 5. every artifact set's artifact-root `.tasks/<feature>/SPEC.md` and `.tasks/<feature>/tasks.json`
 6. every artifact-root registry package Markdown and lightweight package verification report, reading every
    section `plugins/super-developer/references/package-verification-report.md` defines

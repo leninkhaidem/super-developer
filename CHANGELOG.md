@@ -6,13 +6,39 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+### Removed
+- Removed the two v2.4.0 plan-quality trip-wires (`acceptance_atomicity`, `closure_size`) rather than tuning them a
+  third time. Measured against this repository's own committed packages, the size band flagged every package and the
+  conjunction proxy flagged roughly four fifths of items; a later mutation check showed the proxy also fired on
+  ordinary coordinated noun lists while missing genuinely chained clauses, so it was anti-correlated with the defect
+  it targeted. A signal that fires on the norm teaches agents to silence it. Both judgements were already owned
+  semantically by the plan reviewer and the authoring rules, which are unchanged, so nothing was lost by deleting the
+  textual proxies. This restores the project's own rule that scripts perform deterministic validation while prose
+  owns judgement.
+
 ### Fixed
-- Fixed the v2.4.0 plan-quality trip-wires, which fired on effectively every real package and therefore carried no information. Measured against this repository's own six committed packages, the closure-size band flagged 6/6 and the atomicity proxy flagged 80% of items. Closure size is now relative — a package is flagged only when it exceeds twice its own plan's median, and stays silent when a plan has too few packages to have a distribution — and the atomicity proxy no longer counts comma and semicolon separators, which fired on 73-80% of real items at every threshold. The same measurement now yields 0/6 packages and 9% of items, while an injected 40-item outlier is still caught.
-- Fixed the plan-gap completion gate, which was documented but never wired: `validate-package-complete` reported success with an open `## Plan gaps` entry, `implement`'s done-definition omitted plan gaps while stating that advisory findings never withhold done, and a test asserted the incorrect success. An open entry is now a validation error rather than an advisory, so the helper's success signal cannot claim structural completion while a known obligation is missing.
-- Fixed the falsification pointer missing the defect class that motivated it: `rejects:` is keyed to Slice `Forbidden behaviors`, which is mandatory only for interface-bearing H3s, and the `Exact interface` enumeration excluded behavioral bounds. Complexity, causal-ordering, and access-barrier claims are now interface-bearing, so they inherit mandatory forbidden behaviors and a falsification pointer.
+- Fixed the plan-gap completion gate, which was documented in v2.4.0 but never wired: `validate-package-complete`
+  reported success with an open `## Plan gaps` entry, `implement`'s done-definition omitted plan gaps while stating
+  that advisory findings never withhold done, and a test asserted the incorrect success. An open entry is now a
+  validation error, so the helper's success signal cannot claim structural completion while a known obligation is
+  missing.
+- Fixed plan-gap closure so that it can never require erasure. Entries close in place on either lifecycle route --
+  a `closed:` note naming the planning continuation that repaired it, or recorded approval, provenance, and scope
+  when durably approved as out of scope -- mirroring the bar `## Gaps` already held. Without this, the only way to
+  reach a clean exit code was to delete the record of the omitted requirement, which is precisely the loss the
+  section exists to prevent.
+- Fixed the falsification pointer missing the defect class that motivated it. `rejects:` is keyed to Slice
+  `Forbidden behaviors`, which is mandatory only for interface-bearing H3s, and the interface-bearing *test* named
+  only concrete surfaces. Behavioral bounds -- complexity, causal ordering, access barriers -- now count in the test
+  itself and in the Slice template, so an implementation that honours every named surface while breaching an assumed
+  bound is interface-bearing and inherits a falsification pointer.
 
 ### Changed
-- Collapsed the package result report contract from ten restatements across the skill set to one authoritative source in `package-verification-report.md`, with consumers pointing at it instead of repeating its section list. The duplication had already caused one propagation defect during v2.4.0 development.
+- Collapsed the package result report contract to one authoritative definition in `package-verification-report.md`,
+  with consumers pointing at it instead of restating its section list. Disposition rules stay with the actors that
+  need them. The duplication had already caused one propagation defect during v2.4.0 development.
+- Corrected `context_only_slice_drift` guidance, which instructed agents to capture it from helper JSON although no
+  script has ever emitted it. It is a reviewer classification.
 
 ## [v2.4.0] - 2026-08-16
 

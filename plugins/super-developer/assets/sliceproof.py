@@ -14,9 +14,8 @@ import argparse
 import json
 import os
 import re
-import statistics
 import sys
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -48,17 +47,12 @@ REQUIRED_REPORT_SECTIONS = {
 # Plan-quality trip-wires. These are countable proxies only: they never fail validation, because counts are
 # warning signals rather than universal thresholds (references/work-packages.md). They exist to force an
 # explicit closure justification or an atomicity re-read, not to impose a package-size cap.
-AC_CLAIM_SPLIT_RE = re.compile(r"\b(?:check|expected|verify|rejects)\s*:", re.IGNORECASE)
 # Counts explicit coordinators joining clauses. Calibrated against this repo's own committed packages: comma and
 # semicolon separators were tried and rejected because they fire on 73-80% of real acceptance items regardless of
 # threshold, and a signal that fires on the norm carries no information. Tuned for precision, not recall (~9% of
 # real items): the plan reviewer reads semantically and owns recall, so this proxy only needs to be worth reading.
-AC_CONJUNCTION_RE = re.compile(r"(?:\b(?:and|plus)\b|&)", re.IGNORECASE)
-AC_CONJUNCTION_ADVISORY_MIN = 3
 # Closure size is relative, never a universal threshold (references/work-packages.md): a package is flagged only
 # when it is a clear outlier against its own plan's median. Needs a real distribution to compare against.
-CLOSURE_SIZE_MEDIAN_MULTIPLE = 2.0
-CLOSURE_SIZE_MIN_PACKAGES = 3
 CLOSURE_JUSTIFICATION_RE = re.compile(r"^\s*[-*]?\s*closure justification\s*:", re.IGNORECASE | re.MULTILINE)
 # semantic_done is always False by design. It is not a failure signal and not a lifecycle state: this helper
 # checks structure only, so orchestrator checklist re-run, report evidence, and review/audit own completion.
@@ -86,6 +80,7 @@ APPROVAL_METADATA_VALUE_RE = re.compile(
     r"\b(?P<field>provenance|scope)\s*:\s*(?P<value>[^;\n|]+)",
     re.IGNORECASE,
 )
+PLAN_GAP_CLOSURE_RE = re.compile(r"\bclosed\s*:\s*(?P<value>[^;\n|]+)", re.IGNORECASE)
 APPROVAL_PLACEHOLDER_TOKEN_RE = re.compile(
     r"(?:^|[^a-z0-9])"
     r"(?:none|no|n/a|na|tbd|to\s+be\s+determined|todo|open|gap|unknown|unconfirmed|missing|absent|"
@@ -150,9 +145,6 @@ class PackageMarkdown:
     acceptance_checklist: list[str]
     report_path: str
     dependencies: list[str]
-    plan_advisories: list[dict[str, Any]] = field(default_factory=list)
-    has_closure_justification: bool = False
-    source: str = ""
 
     @property
     def must_satisfy_ids(self) -> list[str]:
@@ -297,8 +289,7 @@ def cmd_validate_plan(args: argparse.Namespace) -> dict[str, Any]:
         "mechanical_only": True,
         "semantic_done": False,
         "semantic_done_note": SEMANTIC_DONE_NOTE,
-        "advisories": [advisory for package_id in sorted(packages) for advisory in packages[package_id].plan_advisories]
-        + closure_size_advisories(packages),
+        "advisories": [],
     }
 
 
@@ -738,63 +729,6 @@ def validate_dependency_cycles(packages_data: list[Any]) -> list[str]:
     return errors
 
 
-def acceptance_quality_advisories(
-    package_id: str,
-    acceptance_checklist: list[str],
-    source: str,
-) -> list[dict[str, Any]]:
-    """Non-blocking atomicity signal for acceptance claims. Never fails validation, never splits a package."""
-    advisories: list[dict[str, Any]] = []
-    for item in acceptance_checklist:
-        claim = AC_CLAIM_SPLIT_RE.split(item, maxsplit=1)[0]
-        conjunctions = len(AC_CONJUNCTION_RE.findall(claim))
-        if conjunctions >= AC_CONJUNCTION_ADVISORY_MIN:
-            advisories.append(
-                {
-                    "kind": "acceptance_atomicity",
-                    "package": package_id,
-                    "source": source,
-                    "item": acceptance_item_id(item) or claim.strip()[:60],
-                    "conjunctions": conjunctions,
-                    "message": "checklist claim chains multiple concerns; confirm one behavioral claim, one observable boundary, one primary check, one failure condition",
-                }
-            )
-    return advisories
-
-
-def closure_size_advisories(packages: dict[str, PackageMarkdown]) -> list[dict[str, Any]]:
-    """Flag packages that are clear closure-size outliers against their own plan's median.
-
-    Relative by design. An absolute band was tried and rejected: it fired on every real package in this
-    repository, and atomic acceptance items raise counts by design. With fewer than
-    ``CLOSURE_SIZE_MIN_PACKAGES`` packages there is no distribution to compare against, so stay silent rather
-    than invent a threshold. Never a reason to split; it asks for a recorded ``Closure justification:``.
-    """
-    sized = {pid: len(pkg.acceptance_checklist) for pid, pkg in packages.items()}
-    if len(sized) < CLOSURE_SIZE_MIN_PACKAGES:
-        return []
-    median = statistics.median(sized.values())
-    if median <= 0:
-        return []
-    limit = median * CLOSURE_SIZE_MEDIAN_MULTIPLE
-    advisories: list[dict[str, Any]] = []
-    for package_id in sorted(sized):
-        count = sized[package_id]
-        if count <= limit or packages[package_id].has_closure_justification:
-            continue
-        advisories.append(
-            {
-                "kind": "closure_size",
-                "package": package_id,
-                "source": packages[package_id].source,
-                "acceptance_items": count,
-                "plan_median": median,
-                "message": f"{count} acceptance items is more than {CLOSURE_SIZE_MEDIAN_MULTIPLE:g}x this plan's median of {median:g}; record a 'Closure justification:' note stating the one coherent closure this size buys. Never split a package merely to lower this number",
-            }
-        )
-    return advisories
-
-
 def parse_package_markdown(path: Path, package_id: str) -> PackageMarkdown:
     text = read_text_file(path, f"package Markdown {path}")
     errors: list[str] = []
@@ -854,9 +788,6 @@ def parse_package_markdown(path: Path, package_id: str) -> PackageMarkdown:
         acceptance_checklist=acceptance_checklist,
         report_path=report_paths[0],
         dependencies=dependencies,
-        plan_advisories=acceptance_quality_advisories(package_id, acceptance_checklist, str(path)),
-        has_closure_justification=has_closure_justification(text),
-        source=str(path),
     )
 
 
@@ -1065,14 +996,6 @@ def strip_fenced_blocks(text: str) -> str:
     return "\n".join(unfenced_lines)
 
 
-def has_closure_justification(text: str) -> bool:
-    """True only for a real, non-placeholder ``Closure justification:`` line outside fenced examples."""
-    for line in strip_fenced_blocks(text).splitlines():
-        match = CLOSURE_JUSTIFICATION_RE.match(line)
-        if match and not is_placeholder_text(line[match.end():]):
-            return True
-    return False
-
 
 def report_verdicts(text: str) -> list[str]:
     unfenced_text = strip_fenced_blocks(text)
@@ -1166,6 +1089,30 @@ def resolve_result_pointer(registry: Registry, pointer: str, label: str) -> None
     resolve_safe_path(root, pointer, label, must_exist_file=True, root_label=root_label)
 
 
+def validate_plan_gaps_section(report_path: Path, plan_gaps_body: str) -> list[str]:
+    """Require every ``## Plan gaps`` entry to be closed in place, never deleted.
+
+    A plan gap closes on one of the two routes ``package-lifecycle.md`` recognises: repaired through planning
+    continuation (``closed:``), or durably approved as out of scope (approval + provenance + scope, the same bar
+    ``## Gaps`` already holds). Both keep the record; neither is satisfied by removing the line.
+    """
+    errors: list[str] = []
+    for entry in parse_bullets(plan_gaps_body, unwrap_path=False):
+        if entry.strip().lower() == "none":
+            continue
+        if UNRESOLVED_MARKER_RE.search(entry):
+            errors.append(f"{report_path}: ## Plan gaps entry still carries an unresolved TODO/OPEN marker: {entry}")
+            continue
+        if has_plan_gap_closure(entry) or has_approval_provenance_scope(entry):
+            continue
+        errors.append(
+            f"{report_path}: ## Plan gaps entry is still open; close it in place with a 'closed:' note naming the "
+            f"planning continuation that repaired it, or with approval, provenance, and scope if it was durably "
+            f"approved as out of scope. Never delete the entry to clear this: {entry}"
+        )
+    return errors
+
+
 def validate_gaps_section(report_path: Path, gaps_body: str) -> list[str]:
     if is_empty_gaps_deviations_section(gaps_body):
         return []
@@ -1253,14 +1200,13 @@ def validate_report_markdown(
     # An open plan gap is a completion blocker, not a note: the package is not done until it is routed through
     # planning continuation and closed. It is an error rather than an advisory so this command's success signal
     # cannot say "structurally complete" while a known obligation is missing.
+    #
+    # Closure must never mean erasure. An entry closes in place by recording how it closed, so the audit trail of
+    # the omitted requirement survives into the report. Deleting the entry to reach a clean exit code would
+    # destroy exactly what this section exists to preserve, so a recorded closure is cheaper than a deletion.
     plan_gaps_body = sections.get("Plan gaps")
     if plan_gaps_body is not None:
-        open_gaps = [entry for entry in parse_bullets(plan_gaps_body, unwrap_path=False) if entry.strip().lower() != "none"]
-        if open_gaps:
-            errors.append(
-                f"{report_path}: ## Plan gaps has {len(open_gaps)} open entry/entries; route each through planning "
-                f"continuation and close it before done or dependent unlock: {open_gaps}"
-            )
+        errors.extend(validate_plan_gaps_section(report_path, plan_gaps_body))
 
     return ReportValidationResult(errors, [])
 
@@ -1456,6 +1402,12 @@ def is_empty_gaps_deviations_section(value: str) -> bool:
         if not re.fullmatch(r"(?:[-*]\s+|\d+\.\s+)?None\.?", stripped, flags=re.IGNORECASE):
             return False
     return True
+
+
+def has_plan_gap_closure(value: str) -> bool:
+    """True when a plan-gap entry records a real ``closed:`` route rather than a placeholder."""
+    closures = [match.group("value") for match in PLAN_GAP_CLOSURE_RE.finditer(value)]
+    return bool(closures) and all(not is_approval_placeholder_value(closure) for closure in closures)
 
 
 def has_approval_provenance_scope(value: str) -> bool:

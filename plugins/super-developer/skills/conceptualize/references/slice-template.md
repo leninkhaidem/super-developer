@@ -23,7 +23,7 @@ For each material H3, preserve all applicable context a future agent would need 
 - **Rejected alternatives / non-goals, when important** — options the user ruled out or approaches future agents should not reintroduce.
 - **Edge cases / failure modes** — boundaries, exceptions, risk cases, or known tricky scenarios.
 - **Verification expectations** — what implementation, review, or audit should prove.
-- **Interface contract — when interface-bearing** — if a reasonable implementation could satisfy the words and still be wrong (wrong command, API, flag, path, or output), capture an inline interface contract per `../../../references/conceptualize-slice-authority.md`, including its mandatory forbidden behaviors.
+- **Interface contract — when interface-bearing** — if a reasonable implementation could satisfy the words and still be wrong (wrong command, API, flag, path, or output, or a violated behavioral bound such as complexity, causal ordering, or an access barrier), capture an inline interface contract per `../../../references/conceptualize-slice-authority.md`, including its mandatory forbidden behaviors.
 - **No hidden unresolved questions** — if planning would need an answer, resolve it before handoff. Planning-ready Slices must not rely on chat context.
 
 Do not force every H3 to contain every bullet. Capture only applicable items, but fail closed if later planning would need hidden chat context to understand the requirement.

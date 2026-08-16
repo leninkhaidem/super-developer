@@ -76,7 +76,8 @@ Name the authority each blocking finding acts under:
 A finding with no warrant is not blocking — but do not discard it. Report it as advisory, or, when it names a real
 obligation the frozen checklist fails to capture, record `warrant: plan-gap` under `## Plan gaps` with the missing
 obligation stated plainly. A plan gap does not change the verdict, but it does keep the package from `done` until
-the orchestrator routes it through planning continuation. A verifier never fails a package to force in a
+the orchestrator routes it through planning continuation and records the closure on the entry itself — never by
+deleting it. A verifier never fails a package to force in a
 requirement the plan does not contain, and never stays silent about one the plan lacks.
 
 A `sliceproof.py` structural error blocks mechanical completion but is not a semantic defect. Correct the result

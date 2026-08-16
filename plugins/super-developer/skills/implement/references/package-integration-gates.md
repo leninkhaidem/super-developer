@@ -40,10 +40,12 @@ For each returned package:
    ```
 
 10. Treat helper success as a mechanical signal only; semantic truthfulness remains with the orchestrator re-run,
-    the enhanced verifier when applicable, and final audit. Capture JSON advisories; route
-    `context_only_slice_drift` to affected-surface classification as non-blocking by default, while reviewer
-    authority may escalate material risk. An open `## Plan gaps` entry is not an advisory: the helper fails
-    `validate-package-complete` until it is routed through planning continuation and closed.
+    the enhanced verifier when applicable, and final audit. Classify `context_only_slice_drift` yourself — it is a
+    reviewer judgement, never a helper output — routing it to affected-surface classification as non-blocking by
+    default, while reviewer authority may escalate material risk. An open `## Plan gaps` entry is not an advisory:
+    the helper fails `validate-package-complete` until each entry is closed in place, either by a `closed:` note
+    naming the planning continuation that repaired it or by recorded approval, provenance, and scope when it was
+    durably approved as out of scope. Never delete an entry to clear the gate; the record is the point.
 11. Confirm package branches did not force-add or commit ignored `.tasks` result artifacts. If they did, preserve
     artifacts in the artifact root, repair the branch to code/doc changes only, and keep the package incomplete.
 12. Merge each accepted package branch at most once through the integration worktree using the `worktree` skill.

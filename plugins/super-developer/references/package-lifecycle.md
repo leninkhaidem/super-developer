@@ -35,9 +35,11 @@ A package becomes `done` only when:
    approved metadata;
 3. `validate-package-complete` succeeds as a read-only structural check;
 4. any blocking-finding repairs are closed;
-5. every `## Plan gaps` entry is closed — routed through planning continuation and re-verified, or durably approved
-   as out of scope. `validate-package-complete` fails while any entry stays open, so an unrouted gap cannot read as
-   structural completion.
+5. every `## Plan gaps` entry is closed — routed through planning continuation and re-verified (record `closed:`
+   naming it), or durably approved as out of scope (record approval, provenance, and scope). Close every entry in
+   place; never delete one to clear the gate, because the record of the omitted obligation is the point.
+   `validate-package-complete` fails while any entry stays open, so an unrouted gap cannot read as structural
+   completion.
 
 ```bash
 python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-package-complete \
