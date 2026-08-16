@@ -67,8 +67,8 @@ PASS | FAIL | PENDING_VERIFICATION
   `closed: WP1b adds the missing cancellation AC` both close the entry, and the gap's own wording is free, so an
   entry describing "the open-file limit" or "the TODO scanner" closes normally. Only a closure that records
   nothing (`closed: yes`, `closed: TBD`, empty) or that still calls itself open — a closure whose own text
-  carries `TODO` or `open` — leaves the entry open. Put such words in the gap description, which is free prose;
-  only the closure value is read. Entries may wrap across lines or carry sub-bullets.
+  carries `TODO` or `open` — leaves the entry open. Put such words in the gap description ahead of `closed:`,
+  or after a `;`, since only the closure value itself is read. Entries may wrap across lines or carry sub-bullets.
 - **Evidence authenticity:** a pointer plus observed output must resolve to real output (a test id + result, a
   command + observed result, or a `manual (approved)` observation). A PASS row with a hollow non-path claim is
   not a semantic done signal. The helper only checks presence, non-placeholder, and safe path existence when the

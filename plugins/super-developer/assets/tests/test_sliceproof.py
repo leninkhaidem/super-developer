@@ -939,6 +939,23 @@ class SliceproofTests(unittest.TestCase):
                 result = self.run_with_plan_gaps(body)
                 self.assertEqual(0, result.returncode, result.stdout + result.stderr)
 
+    def test_validate_package_complete_reads_plan_gaps_in_every_bullet_marker(self) -> None:
+        """Reports are hand-written, so `-`, `*`, and ordered markers must all open an entry and carry their own
+        wrapped continuations. A marker the parser silently ignored would make a real gap unreadable."""
+        for label, body, expect_ok in (
+            ("dash closed", "- warrant: plan-gap \u2014 X.\n  closed: repaired by WP1b.", True),
+            ("star closed", "* warrant: plan-gap \u2014 X.\n  closed: repaired by WP1b.", True),
+            ("ordered closed", "1. warrant: plan-gap \u2014 X.\n   closed: repaired by WP1b.", True),
+            ("star open", "* warrant: plan-gap \u2014 X is not on the frozen checklist.", False),
+            ("ordered open", "1. warrant: plan-gap \u2014 X is not on the frozen checklist.", False),
+        ):
+            with self.subTest(marker=label):
+                result = self.run_with_plan_gaps(body)
+                if expect_ok:
+                    self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+                else:
+                    self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+
     def test_validate_package_complete_finds_an_open_entry_in_any_position(self) -> None:
         """Grouping wrapped lines must not let an open entry hide behind a closed neighbour, in either order,
         and a stray `- none` beside a real entry must not clear the section."""
