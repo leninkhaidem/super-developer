@@ -1081,15 +1081,48 @@ class SliceproofTests(unittest.TestCase):
             ),
             (
                 "multi-line comment does not splice the next entry away",
-                self.CLOSED_BULLET + "\n<!-- x\ny -->- warrant: plan-gap — retry budget is absent",
+                self.CLOSED_BULLET + "<!-- c\n--> - warrant: plan-gap — retry budget is absent",
                 False,
             ),
-            # Removing a comment must not renumber the lines, or the fence machine reads the wrong ones and a
-            # gap after a fenced example disappears while still rendering.
+            # A fence has to be real in both texts. A marker written inside a comment renders as nothing, so
+            # treating it as a fence would swallow every gap after it while the reader still sees them.
             (
-                "multi-line comment keeps fences aligned with the gap after them",
-                self.CLOSED_BULLET + "\n<!-- x\ny -->\n```\nexample\n```\n" + self.OPEN_BULLET,
+                "fence marker inside a comment is not a fence",
+                self.CLOSED_BULLET + "\n<!-- draft\n``` -->\n" + self.OPEN_BULLET + "\n```",
                 False,
+            ),
+            (
+                "commented-out fenced example is not a fence",
+                self.CLOSED_BULLET + "\n<!-- ```\nx\n``` -->\n" + self.OPEN_BULLET,
+                False,
+            ),
+            # ...and the converse: a marker that only appears once a comment is removed was never written.
+            (
+                "comment beside a fence marker forges no fence",
+                self.CLOSED_BULLET + "\n<!-- -->```\n" + self.OPEN_BULLET,
+                False,
+            ),
+            # A genuine fenced example between two gaps still hides only itself.
+            (
+                "real fence between gaps hides only the fenced text",
+                self.CLOSED_BULLET + "\n```\nexample\n```\n" + self.OPEN_BULLET,
+                False,
+            ),
+            # Each gap is closed under itself. Sending a closure to the outermost entry instead of the nearest
+            # one would leave the inner gap open while silently closing the outer.
+            (
+                "sibling gaps each closed beneath themselves",
+                "- warrant: plan-gap — cancellation is absent\n  closed: fixed by WP1a\n"
+                "  - warrant: plan-gap — retry budget is absent\n    closed: fixed by WP1b",
+                True,
+            ),
+            # The same, with each closure written as a sub-bullet rather than a continuation line: both routes
+            # have to reach the nearest gap, not the outermost one.
+            (
+                "nested gaps each closed by their own sub-bullet",
+                "- warrant: plan-gap — cancellation is absent\n  - closed: fixed by WP1a\n"
+                "  - warrant: plan-gap — retry budget is absent\n    - closed: fixed by WP1b",
+                True,
             ),
             ("paren-ordered none", "1) none", True),
             (

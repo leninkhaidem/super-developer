@@ -1438,7 +1438,12 @@ def parse_plan_gap_entries(body: str) -> list[str]:
     visible = HTML_COMMENT_RE.sub(lambda match: "\n" * match.group(0).count("\n"), body)
     for raw_line, visible_line in zip(body.splitlines(), visible.splitlines()):
         was_in_fence = active_fence is not None
-        active_fence, is_fence_marker = advance_markdown_fence(raw_line, active_fence)
+        next_fence, is_fence_marker = advance_markdown_fence(raw_line, active_fence)
+        # A fence has to be real in both texts. One written inside a comment renders as nothing, and one that
+        # appears only once a comment is removed was never written; either would hide the gaps that follow it.
+        if is_fence_marker and not advance_markdown_fence(visible_line, active_fence)[1]:
+            next_fence, is_fence_marker = active_fence, False
+        active_fence = next_fence
         if was_in_fence or is_fence_marker:
             continue
         line = visible_line.strip()
