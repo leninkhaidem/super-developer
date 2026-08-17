@@ -74,13 +74,15 @@ Name the authority each blocking finding acts under:
   see; name the class.
 
 A finding with no warrant is not blocking — but do not discard it. Report it as advisory, or, when it names a real
-obligation the frozen checklist fails to capture, record `warrant: plan-gap` under `## Plan gaps` with the missing
-obligation stated plainly. Word the gap however it reads most accurately; that wording is never held against you.
-`## Plan gaps` is a required report section whose dispositions are bullets, so return `- none` when the checklist
-omitted nothing rather than leaving the section out, empty, un-bulleted, or fenced. A plan gap does not change the
-verdict, but it does keep the package from `done` until the orchestrator routes it through planning continuation
-and records the closure on the entry itself — never by deleting it. A verifier never fails a package to force in a
-requirement the plan does not contain, and never stays silent about one the plan lacks.
+obligation the frozen checklist fails to capture, record it under `## Plan gaps`. Use sole exact lowercase `- none`
+or one or more entries that start at column zero with exact `- warrant: plan-gap`, each on a single physical line
+with its repaired or approved disposition on that same physical line. Blank separator lines and trailing whitespace
+are allowed; wrapping, nesting, alternate markers, indentation, comments, fences, prose, malformed warrants, and
+mixed `none` are not. This strict grammar is enforced immediately for new runs with no compatibility path,
+fallback, migration, adapter, flag, or hidden mode. The helper owns mechanical shape and open-state detection;
+verifiers and auditors own semantic truthfulness and evidence sufficiency. A plan gap does not change the verdict,
+but it keeps the package from `done` until planning continuation closes the entry in place. A verifier never fails a
+package to force in a requirement the plan does not contain, and never stays silent about one the plan lacks.
 
 A `sliceproof.py` structural error blocks mechanical completion but is not a semantic defect. Correct the result
 shape without starting a code-repair loop.

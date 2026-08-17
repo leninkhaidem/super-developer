@@ -835,463 +835,168 @@ class SliceproofTests(unittest.TestCase):
             "validate-package-complete", *self.fixture.root_args(), str(self.fixture.tasks_path), "--package", "WP1"
         )
 
-    def test_validate_package_complete_fails_on_open_plan_gap(self) -> None:
-        result = self.run_with_plan_gaps("- warrant: plan-gap \u2014 cancellation path is not on the frozen checklist.")
-        self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
-        self.assertIn("still open", "\n".join(json.loads(result.stderr)["errors"]))
+    def run_plan_gap_routes(self, body: str | None) -> dict[str, subprocess.CompletedProcess[str]]:
+        """Exercise one report body through both completion commands."""
+        self.fixture.write_completed_report()
+        original = self.fixture.report_path.read_text(encoding="utf-8")
+        replacement = "" if body is None else f"## Plan gaps\n{body}"
+        self.fixture.report_path.write_text(
+            original.replace(self.PLAN_GAPS_SLOT, replacement, 1), encoding="utf-8"
+        )
+        package = self.fixture.run(
+            "validate-package-complete",
+            *self.fixture.root_args(),
+            str(self.fixture.tasks_path),
+            "--package",
+            "WP1",
+        )
+        plan = self.fixture.plan()
+        plan["work_packages"][0]["status"] = "done"
+        self.fixture.write_plan(plan)
+        final = self.fixture.run(
+            "validate-final", *self.fixture.root_args(), str(self.fixture.tasks_path)
+        )
+        return {"package": package, "final": final}
 
-    def test_validate_package_complete_requires_a_written_plan_gaps_disposition(self) -> None:
-        """Reports are gitignored, so a deleted section leaves no diff to audit. Requiring the section makes the
-        cheapest escape a written `- none` rather than an invisible absence; prose, a fence, and an empty section
-        are refused so an entry cannot be dissolved back into one."""
-        for label, body, expected in (
-            ("section deleted", None, "missing ## Plan gaps section"),
-            ("empty section", "", "bulleted list"),
-            ("prose, not a bullet", "warrant: plan-gap \u2014 cancellation path is missing.", "bulleted list"),
-            (
-                "entry hidden in a code fence",
-                "```\n- warrant: plan-gap \u2014 cancellation path is missing.\n```",
-                "bulleted list",
-            ),
-        ):
-            with self.subTest(shape=label):
-                result = self.run_with_plan_gaps(body)
+    def assert_plan_gap_failure(self, body: str | None, expected: str) -> None:
+        for route, result in self.run_plan_gap_routes(body).items():
+            with self.subTest(route=route, body=body):
                 self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
-                self.assertIn(expected, "\n".join(json.loads(result.stderr)["errors"]))
-
-    def test_validate_package_complete_accepts_plan_gaps_closed_in_place(self) -> None:
-        """Closure must never require erasure, and must never punish an accurate description. Both lifecycle
-        routes keep the record of the omitted requirement in the report, and any substantive free-text closure
-        counts -- including one whose wording overlaps the placeholder and unresolved-marker vocabularies."""
-        for label, body in (
-            ("none", "- none"),
-            ("none upper case", "- NONE"),
-            # Parity with ## Gaps, which accepts a terminating period through is_empty_gaps_deviations_section.
-            ("none with terminator", "- None."),
-            (
-                "repaired via continuation",
-                "- warrant: plan-gap \u2014 cancellation path. closed: repaired by continuation package WP1b, AC-7 added.",
-            ),
-            # Free text is taken as written: "missing" is an approval-placeholder token, yet this closure is real.
-            (
-                "free-text closure naming the continuation",
-                "- warrant: plan-gap \u2014 cancellation path. closed: WP1b adds the missing cancellation AC",
-            ),
-            ("short but specific closure", "- warrant: plan-gap \u2014 cancellation path. closed: repaired by WP1b"),
-            # Sentence-cased keyword: closure detection folds case, so `Closed:` is the same disposition.
-            ("sentence-cased closure keyword", "- warrant: plan-gap \u2014 cancellation path. Closed: repaired by WP1b"),
-            # A backticked continuation name is ordinary Markdown; entries are read whole, not unwrapped to it.
-            (
-                "backticked continuation name",
-                "- warrant: plan-gap \u2014 cancellation path. closed: repaired by `WP1b`",
-            ),
-            # "gap" is the vocabulary of this section: a closure is free to use it without being read as unresolved.
-            ("closure naming the gap it closed", "- warrant: plan-gap \u2014 cancellation path. closed: the gap is now AC-7"),
-            # The marker scan is scoped to the closure value, so a gap *described* with OPEN/TODO stays closable.
-            (
-                "unresolved marker in the description only",
-                "- warrant: plan-gap \u2014 the open-file limit. closed: repaired by WP1b",
-            ),
-            (
-                "todo in the description only",
-                "- warrant: plan-gap \u2014 the TODO scanner is unbounded. closed: repaired by WP1b",
-            ),
-            (
-                "durably approved out of scope",
-                "- warrant: plan-gap \u2014 cancellation path. Approved by user; provenance: plan gate 2026-08-16; "
-                "scope: deferred to the resilience feature.",
-            ),
-        ):
-            with self.subTest(closure=label):
-                result = self.run_with_plan_gaps(body)
-                self.assertEqual(0, result.returncode, result.stdout + result.stderr)
-
-    def test_validate_package_complete_accepts_wrapped_and_nested_plan_gap_closures(self) -> None:
-        """Long entries wrap, which is this repository's own house style. If a closure recorded on a continuation
-        or sub-bullet read as still open, the cheapest recovery would be `- none` — the erasure this gate exists
-        to prevent. `## Gaps` already accepts these shapes, so plan gaps must too."""
-        for label, body in (
-            (
-                "wrapped closure",
-                "- warrant: plan-gap \u2014 cancellation path is not on the checklist.\n"
-                "  closed: repaired by continuation package WP1b, AC-7 added.",
-            ),
-            (
-                "sub-bullet closure",
-                "- warrant: plan-gap \u2014 cancellation path.\n  - closed: repaired by continuation package WP1b.",
-            ),
-            (
-                "lazy continuation",
-                "- warrant: plan-gap \u2014 cancellation path.\nclosed: repaired by continuation package WP1b.",
-            ),
-            (
-                "wrapped approval route",
-                "- warrant: plan-gap \u2014 cancellation path. Approved by user;\n"
-                "  provenance: plan gate 2026-08-16; scope: deferred to the resilience feature.",
-            ),
-            (
-                "two wrapped entries both closed",
-                "- warrant: plan-gap \u2014 A.\n  closed: repaired by WP1b.\n"
-                "- warrant: plan-gap \u2014 B.\n  closed: repaired by WP1c.",
-            ),
-        ):
-            with self.subTest(shape=label):
-                result = self.run_with_plan_gaps(body)
-                self.assertEqual(0, result.returncode, result.stdout + result.stderr)
-
-    def test_validate_package_complete_reads_plan_gaps_in_every_bullet_marker(self) -> None:
-        """Reports are hand-written, so `-`, `*`, and ordered markers must all open an entry and carry their own
-        wrapped continuations. A marker the parser silently ignored would make a real gap unreadable."""
-        for label, body, expect_ok in (
-            ("dash closed", "- warrant: plan-gap \u2014 X.\n  closed: repaired by WP1b.", True),
-            ("star closed", "* warrant: plan-gap \u2014 X.\n  closed: repaired by WP1b.", True),
-            ("ordered closed", "1. warrant: plan-gap \u2014 X.\n   closed: repaired by WP1b.", True),
-            ("star open", "* warrant: plan-gap \u2014 X is not on the frozen checklist.", False),
-            ("ordered open", "1. warrant: plan-gap \u2014 X is not on the frozen checklist.", False),
-        ):
-            with self.subTest(marker=label):
-                result = self.run_with_plan_gaps(body)
-                if expect_ok:
-                    self.assertEqual(0, result.returncode, result.stdout + result.stderr)
-                else:
-                    self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
-
-    def test_validate_package_complete_finds_an_open_entry_in_any_position(self) -> None:
-        """Grouping wrapped lines must not let an open entry hide behind a closed neighbour, in either order,
-        and a stray `- none` beside a real entry must not clear the section."""
-        for label, body in (
-            ("second entry open", "- warrant: plan-gap \u2014 A.\n  closed: repaired by WP1b.\n- warrant: plan-gap \u2014 B is missed."),
-            ("first entry open", "- warrant: plan-gap \u2014 A is missed.\n- warrant: plan-gap \u2014 B.\n  closed: repaired by WP1c."),
-            ("none before a real entry", "- none\n- warrant: plan-gap \u2014 X is not on the checklist"),
-            ("none after a real entry", "- warrant: plan-gap \u2014 X is not on the checklist\n- none"),
-            ("wrapped but still open", "- warrant: plan-gap \u2014 the cancellation path\n  is not on the frozen checklist."),
-        ):
-            with self.subTest(shape=label):
-                result = self.run_with_plan_gaps(body)
-                self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
-
-    CLOSED_BULLET = "- warrant: plan-gap \u2014 cancellation. closed: repaired by WP1b"
-    OPEN_BULLET = "- warrant: plan-gap \u2014 cancellation path is not on the frozen checklist."
-
-    def test_validate_package_complete_reads_every_visible_plan_gap_bullet(self) -> None:
-        """Whatever Markdown renders as a disposition must be read. Grouping wrapped lines is what lets a closure
-        live on a continuation, but it must never let a closed neighbour swallow a bullet the reader can still
-        see, and prose ahead of the first bullet is just as visible. The two frictionless shapes -- a wrapped
-        closure and a sub-bullet closure -- must keep costing the author nothing."""
-        for label, body, expect_ok in (
-            # A bullet is present, so the section is a list; the prose above it is a second visible entry.
-            (
-                "prose before the first bullet",
-                "warrant: plan-gap \u2014 OPEN cancellation gap.\n" + self.CLOSED_BULLET,
-                False,
-            ),
-            # One space of indent is below the `- ` content column: an unmistakable sibling.
-            ("one-space sibling bullet", self.CLOSED_BULLET + "\n " + self.OPEN_BULLET, False),
-            # A sibling is a sibling whether or not it names a warrant, so the outer level alone has to open an
-            # entry. Reading indent by the content column is what keeps this bullet from folding out of sight.
-            (
-                "one-space sibling that opens no warrant",
-                self.CLOSED_BULLET + "\n - the retry budget is still absent",
-                False,
-            ),
-            # A deeper bullet that opens another `warrant:` is a new disposition, not detail, so folding it away
-            # would let the closed entry above it hide an open gap.
-            ("two-space nested bullet", self.CLOSED_BULLET + "\n  " + self.OPEN_BULLET, False),
-            ("three-space nested bullet", self.CLOSED_BULLET + "\n   " + self.OPEN_BULLET, False),
-            # Detail under a closed entry opens no warrant, so it costs the author nothing. Demanding a
-            # disposition for every `evidence:` or `owner:` line is the friction that pushes authors to `- none`.
-            ("detail sub-bullet under a closed entry", self.CLOSED_BULLET + "\n  - evidence: see §3", True),
-            (
-                "several detail sub-bullets under a closed entry",
-                self.CLOSED_BULLET + "\n  - evidence: see §3\n  - owner: WP1b",
-                True,
-            ),
-            # Only a bullet that *starts* a warrant opens an entry. Matching the word anywhere would turn a
-            # detail line that merely refers to the gap into an open disposition the author never wrote.
-            (
-                "detail sub-bullet mentioning a warrant mid-text",
-                self.CLOSED_BULLET + "\n  - evidence: the warrant: plan-gap note in §3",
-                True,
-            ),
-            # `+` is a CommonMark bullet. Reading only `-` and `*` would render this gap to the author while
-            # hiding it from the gate, and would reject a `+` section that is honestly closed.
-            ("plus-marker sibling gap", self.CLOSED_BULLET + "\n+ " + self.OPEN_BULLET[2:], False),
-            ("plus-marker closed entry", "+ " + self.CLOSED_BULLET[2:], True),
-            ("plus-marker none", "+ none", True),
-            # A tab indents past the content column, so measuring it as one character would read these as
-            # siblings and reject a closure the author did write.
-            (
-                "tab-indented sub-bullet closure",
-                "- warrant: plan-gap — cancellation path.\n\t- closed: repaired by WP1b",
-                True,
-            ),
-            ("tab-indented detail under a closed entry", self.CLOSED_BULLET + "\n\t- evidence: see §3", True),
-            # A closure inside a comment renders nothing, so it cannot clear a gap the reader still sees.
-            (
-                "closure hidden in an HTML comment",
-                "- warrant: plan-gap — cancellation is absent <!-- closed: repaired by WP1b -->",
-                False,
-            ),
-            # A nested warrant carries its own closure. Folding it upward would let it close the open entry it
-            # sits inside, which is the swallowing this parser exists to prevent.
-            (
-                "child warrant closure does not close an open parent",
-                "- warrant: plan-gap — cancellation is absent\n  - warrant: plan-gap — retry; closed: WP1b",
-                False,
-            ),
-            # Emphasis around the field name still opens an entry; otherwise a bolded nested gap folds away.
-            (
-                "emphasised nested warrant",
-                self.CLOSED_BULLET + "\n  - **warrant:** plan-gap — retry budget is absent",
-                False,
-            ),
-            # Only `warrant: plan-gap` opens an entry, so a detail line that merely discusses the field is
-            # detail. Treating any `warrant:` as an entry charged this line a disposition it never needed.
-            (
-                "detail sub-bullet about the warrant field",
-                self.CLOSED_BULLET + "\n  - *warrant*: field is now documented in the contract",
-                True,
-            ),
-            # `1)` is an ordered marker too. Reading only `1.` hid this gap and rejected an honest `1)` section.
-            ("paren-ordered sibling gap", self.CLOSED_BULLET + "\n1) " + self.OPEN_BULLET[2:], False),
-            ("paren-ordered closed entry", "1) " + self.CLOSED_BULLET[2:], True),
-            # A closure belongs to the gap it is written under. Folding it into every enclosing bullet let a
-            # nested gap's repair silently close the separate, still-open gap around it.
-            (
-                "nested gap closure does not reach the open gap enclosing it",
-                "- warrant: plan-gap — cancellation is absent\n"
-                "  - warrant: plan-gap — retry budget is absent\n"
-                "    closed: repaired by WP1b\n"
-                "  - evidence: see §3",
-                False,
-            ),
-            (
-                "nested gap sub-bullet closure does not reach the gap enclosing it",
-                "- warrant: plan-gap — cancellation is absent\n"
-                "  - warrant: plan-gap — retry budget is absent\n"
-                "    - closed: repaired by WP1b",
-                False,
-            ),
-            # Comments are removed without disturbing line structure: stripping must not fuse two lines into
-            # one, and must not turn the text beside a comment into a fence that swallows what follows.
-            (
-                "comment beside a fence marker",
-                self.CLOSED_BULLET + "\n<!-- -->```\n" + self.OPEN_BULLET,
-                False,
-            ),
-            (
-                "multi-line comment does not splice the next entry away",
-                self.CLOSED_BULLET + "<!-- c\n--> - warrant: plan-gap — retry budget is absent",
-                False,
-            ),
-            # A fence has to be real in both texts. A marker written inside a comment renders as nothing, so
-            # treating it as a fence would swallow every gap after it while the reader still sees them.
-            (
-                "fence marker inside a comment is not a fence",
-                self.CLOSED_BULLET + "\n<!-- draft\n``` -->\n" + self.OPEN_BULLET,
-                False,
-            ),
-            (
-                "commented-out fenced example is not a fence",
-                self.CLOSED_BULLET + "\n<!-- ```\nx\n``` -->\n" + self.OPEN_BULLET,
-                False,
-            ),
-            # ...and the converse: a marker that only appears once a comment is removed was never written.
-            (
-                "comment beside a fence marker forges no fence",
-                self.CLOSED_BULLET + "\n<!-- -->```\n" + self.OPEN_BULLET,
-                False,
-            ),
-            # A genuine fenced example between two gaps still hides only itself.
-            (
-                "real fence between gaps hides only the fenced text",
-                self.CLOSED_BULLET + "\n```\nexample\n```\n" + self.OPEN_BULLET,
-                False,
-            ),
-            # Each gap is closed under itself. Sending a closure to the outermost entry instead of the nearest
-            # one would leave the inner gap open while silently closing the outer.
-            (
-                "sibling gaps each closed beneath themselves",
-                "- warrant: plan-gap — cancellation is absent\n  closed: fixed by WP1a\n"
-                "  - warrant: plan-gap — retry budget is absent\n    closed: fixed by WP1b",
-                True,
-            ),
-            # The same, with each closure written as a sub-bullet rather than a continuation line: both routes
-            # have to reach the nearest gap, not the outermost one.
-            (
-                "nested gaps each closed by their own sub-bullet",
-                "- warrant: plan-gap — cancellation is absent\n  - closed: fixed by WP1a\n"
-                "  - warrant: plan-gap — retry budget is absent\n    - closed: fixed by WP1b",
-                True,
-            ),
-            ("paren-ordered none", "1) none", True),
-            # `- none` is the written claim whether or not an example sits beside it. Reading emptiness from the
-            # raw body instead of the parsed entries made the fenced text turn `none` into an open entry.
-            ("fenced example beside a written none", "- none\n```\n- warrant: plan-gap — sample\n```", True),
-            (
-                "wrapped continuation closure",
-                "- warrant: plan-gap \u2014 cancellation path.\n  closed: repaired by WP1b",
-                True,
-            ),
-            (
-                "nested sub-bullet closure",
-                "- warrant: plan-gap \u2014 cancellation path.\n  - closed: repaired by WP1b",
-                True,
-            ),
-            # A sub-bullet that wraps still closes the entry above it: the continuation belongs to both.
-            (
-                "wrapped closure inside a sub-bullet",
-                "- warrant: plan-gap \u2014 cancellation path.\n  - the frozen checklist omits cancellation\n"
-                "    closed: repaired by WP1b",
-                True,
-            ),
-        ):
-            with self.subTest(shape=label):
-                result = self.run_with_plan_gaps(body)
-                if expect_ok:
-                    self.assertEqual(0, result.returncode, result.stdout + result.stderr)
-                else:
-                    self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
-
-    def test_validate_package_complete_reads_plan_gaps_past_mismatched_fences(self) -> None:
-        """A fence closes only on its own delimiter. Toggling on any fence line would let a `~~~` inside a
-        ``` block reopen it, so an entry after the real close would read as fenced and vanish."""
-        for label, body, expect_ok in (
-            (
-                "tilde line inside a backtick fence",
-                self.CLOSED_BULLET + "\n```\n~~~\n```\n" + self.OPEN_BULLET,
-                False,
-            ),
-            (
-                "backtick line inside a tilde fence",
-                self.CLOSED_BULLET + "\n~~~\n```\n~~~\n" + self.OPEN_BULLET,
-                False,
-            ),
-            # Control: genuinely fenced text is an example, not a disposition, and stays unread.
-            (
-                "genuinely fenced open bullet",
-                self.CLOSED_BULLET + "\n```\n" + self.OPEN_BULLET + "\n```",
-                True,
-            ),
-        ):
-            with self.subTest(shape=label):
-                result = self.run_with_plan_gaps(body)
-                if expect_ok:
-                    self.assertEqual(0, result.returncode, result.stdout + result.stderr)
-                else:
-                    self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
-
-    def test_plan_gap_fence_shapes_fail_on_the_open_gap_not_a_broken_section(self) -> None:
-        """A fence the parser wrongly honours never closes, so it eats the headings after the section and the run
-        still fails -- on the wrong thing. Only the message separates a caught gap from a corrupted report, so
-        these shapes assert it rather than the exit code alone."""
-        for label, body in (
-            ("comment beside a fence marker", self.CLOSED_BULLET + "\n<!-- -->```\n" + self.OPEN_BULLET),
-            ("fence marker inside a comment", self.CLOSED_BULLET + "\n<!-- draft\n``` -->\n" + self.OPEN_BULLET),
-            ("commented-out fenced example", self.CLOSED_BULLET + "\n<!-- ```\nx\n``` -->\n" + self.OPEN_BULLET),
-            ("real fence between two gaps", self.CLOSED_BULLET + "\n```\nexample\n```\n" + self.OPEN_BULLET),
-        ):
-            with self.subTest(shape=label):
-                result = self.run_with_plan_gaps(body)
                 errors = json.loads(result.stderr)["errors"]
-                self.assertEqual(1, len(errors), errors)
-                self.assertIn("still open", errors[0])
+                self.assertTrue(any(expected in error and "## Plan gaps" in error for error in errors), errors)
+                self.assertFalse(any("missing ## Gaps section" in error for error in errors), errors)
 
-    def test_section_split_ignores_fences_that_only_exist_inside_comments(self) -> None:
-        """`split_h2_sections` decides where every section ends, so a fence it wrongly honours swallows the
-        headings after it. It shares one fence reader with the plan-gap parser precisely so the two cannot
-        disagree about what a fence is."""
-        text = "## Plan gaps\n- none\n<!-- ```\nx\n``` -->\n\n## Gaps\n- none\n"
-        self.assertEqual({"Plan gaps", "Gaps"}, set(SLICEPROOF.split_h2_sections(text)))
-        fenced = "## Plan gaps\n- none\n```\n## Not a heading\n```\n\n## Gaps\n- none\n"
-        self.assertEqual({"Plan gaps", "Gaps"}, set(SLICEPROOF.split_h2_sections(fenced)))
-
-    def test_invisible_stripping_is_scoped_to_the_closure_value(self) -> None:
-        """Dropping invisible characters makes a closure honest, but the approval detector reads whole words, so
-        doing it there would splice a placeholder into a longer token and hide it. The two must stay separate."""
-        for value in ("x\u200bnone", "2\u200btbd"):
-            with self.subTest(value=value):
-                self.assertTrue(SLICEPROOF.is_approval_placeholder_value(value))
-        self.assertFalse(SLICEPROOF.is_substantive_closure("\u200b"))
-        self.assertTrue(SLICEPROOF.is_substantive_closure("repaired by WP1b"))
-
-    def test_validate_package_complete_rejects_plan_gap_closures_that_render_nothing(self) -> None:
-        """A closure is read as written, so it must actually be written. Text that renders as nothing at all, or
-        that denies the closure outright, records nothing an auditor can read; free prose still costs nothing."""
-        for label, body, expect_ok in (
-            ("html comment closure", "- warrant: plan-gap \u2014 cancellation path. closed: <!-- -->", False),
-            ("zero-width closure", "- warrant: plan-gap \u2014 cancellation path. closed: \u200b", False),
-            ("false denies the closure", "- warrant: plan-gap \u2014 cancellation path. closed: false", False),
-            ("null is the same non-answer as nil", "- warrant: plan-gap \u2014 cancellation path. closed: null", False),
-            # Controls: substantive free prose is taken as written, including wording the placeholder scan knows.
-            ("short specific closure", "- warrant: plan-gap \u2014 cancellation path. closed: repaired by WP1b", True),
-            (
-                "closure naming the missing AC",
-                "- warrant: plan-gap \u2014 cancellation path. closed: WP1b adds the missing cancellation AC",
-                True,
-            ),
-            # A comment beside real prose only drops the part that renders nothing.
-            (
-                "commented aside beside real prose",
-                "- warrant: plan-gap \u2014 cancellation path. closed: repaired by WP1b <!-- see thread -->",
-                True,
-            ),
-        ):
-            with self.subTest(closure=label):
-                result = self.run_with_plan_gaps(body)
-                if expect_ok:
+    def test_plan_gap_flat_grammar_accepts_canonical_shapes_in_both_routes(self) -> None:
+        cases = (
+            "- none",
+            "\n- none   \t\n",
+            "- warrant: plan-gap — cancellation. closed: repaired by WP1b",
+            "- warrant: plan-gap — cancellation. Closed: WP1b adds the missing AC",
+            "- warrant: plan-gap — cancellation. Approved by user; provenance: plan gate 2026-08-16; scope: resilience feature.",
+            "- warrant: plan-gap — A. closed: repaired by WP1b\n\n- warrant: plan-gap — B. closed: repaired by WP1c   ",
+        )
+        for body in cases:
+            for route, result in self.run_plan_gap_routes(body).items():
+                with self.subTest(route=route, body=body):
                     self.assertEqual(0, result.returncode, result.stdout + result.stderr)
-                else:
-                    self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
 
-    def test_validate_package_complete_rejects_placeholder_plan_gap_closure(self) -> None:
-        for label, body in (
-            ("todo marker", "- warrant: plan-gap \u2014 cancellation path. closed: TODO"),
-            ("placeholder closure", "- warrant: plan-gap \u2014 cancellation path. closed: TBD"),
-            ("bare affirmation", "- warrant: plan-gap \u2014 cancellation path. closed: yes"),
-            ("bare denial", "- warrant: plan-gap \u2014 cancellation path. closed: no"),
-            ("bare completion claim", "- warrant: plan-gap \u2014 cancellation path. closed: done"),
-            # Case folding: an upper-case non-answer is the same non-answer.
-            ("bare non-answer upper case", "- warrant: plan-gap \u2014 cancellation path. closed: N/A"),
-            # Terminator folding: normalization strips a trailing period, so "Pending." is still contentless.
-            ("bare non-answer with terminator", "- warrant: plan-gap \u2014 cancellation path. closed: Pending."),
-            ("empty closure", "- warrant: plan-gap \u2014 cancellation path. closed:"),
-            # Punctuation-only closure: the captured value normalises to nothing, so it records nothing.
-            ("punctuation-only closure", "- warrant: plan-gap \u2014 cancellation path. closed: --"),
-            ("period-only closure", "- warrant: plan-gap \u2014 cancellation path. closed: ."),
-            ("approval alone", "- warrant: plan-gap \u2014 cancellation path. Approved by user."),
-            # The gap description is free prose and must never decide the gate. An open entry whose wording
-            # happens to contain "none" is still open; only a `- none` disposition clears the section.
-            ("open entry whose text contains none", "- warrant: plan-gap \u2014 none of the cancellation paths are covered"),
-            # Near-miss tokens must not read as a closure route.
-            ("disclosed is not closed", "- warrant: plan-gap \u2014 cancellation path. disclosed: to the user"),
-            ("unclosed is not closed", "- warrant: plan-gap \u2014 cancellation path. unclosed: still pending"),
-            (
-                "approval and provenance but no scope",
-                "- warrant: plan-gap \u2014 cancellation path. Approved by user; provenance: plan gate 2026-08-16.",
-            ),
-            # Discriminating case for the unresolved-marker branch, scoped to the closure value: a closure that
-            # admits the gap is still open contradicts itself. Only the marker scan catches it.
-            (
-                "closure that is still open",
-                "- warrant: plan-gap \u2014 cancellation path. closed: repaired by WP1b but still open",
-            ),
-            # Every closure on the entry must hold: a real one must not launder a contentless second one.
-            (
-                "one real and one contentless closure",
-                "- warrant: plan-gap \u2014 two omissions. closed: repaired by WP1b; closed: TBD",
-            ),
-            # A single open entry alongside a closed one must still fail: every entry is checked.
-            (
-                "second entry still open",
-                "- warrant: plan-gap \u2014 cancellation path. closed: repaired by WP1b\n"
-                "- warrant: plan-gap \u2014 retry budget is not on the frozen checklist",
-            ),
-        ):
-            with self.subTest(shape=label):
-                result = self.run_with_plan_gaps(body)
-                self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+    def test_plan_gap_flat_grammar_rejects_noncanonical_shapes_in_both_routes(self) -> None:
+        self.assert_plan_gap_failure(None, "missing ## Plan gaps section")
+        closed = "- warrant: plan-gap — cancellation. closed: repaired by WP1b"
+        cases = (
+            "",
+            "   ",
+            "- NONE",
+            "- none.",
+            "- none\n" + closed,
+            "-",
+            "- ",
+            "- cancellation. closed: repaired by WP1b",
+            "- warrant plan-gap — cancellation. closed: repaired by WP1b",
+            "- warrant: Plan-gap — cancellation. closed: repaired by WP1b",
+            "- warrant: plan gap — cancellation. closed: repaired by WP1b",
+            "- warrant: plan-gapish — cancellation. closed: repaired by WP1b",
+            " " + closed,
+            "\t" + closed,
+            closed + "\n continuation text",
+            closed + "\n  closed: repaired by WP1c",
+            closed + "\n  - evidence: fixture",
+            "* warrant: plan-gap — cancellation. closed: repaired by WP1b",
+            "+ warrant: plan-gap — cancellation. closed: repaired by WP1b",
+            "1. warrant: plan-gap — cancellation. closed: repaired by WP1b",
+            "<!-- plan gap -->",
+            closed + " <!-- comment -->",
+            "```\n" + closed + "\n```",
+            "prose about a plan gap",
+            closed + "\nunknown nonblank line",
+            closed + "\n " + closed,
+            closed + "\n\t" + closed,
+        )
+        for body in cases:
+            self.assert_plan_gap_failure(body, "single-line entries beginning exactly")
 
+    def test_plan_gap_flat_grammar_rejects_open_dispositions_in_both_routes(self) -> None:
+        cases = (
+            "- warrant: plan-gap — cancellation is missing",
+            "- warrant: plan-gap — cancellation. closed:",
+            "- warrant: plan-gap — cancellation. closed: TBD",
+            "- warrant: plan-gap — cancellation. closed: repaired but still open",
+            "- warrant: plan-gap — cancellation. Approved by user; provenance: plan gate 2026-08-16.",
+            "- warrant: plan-gap — A. closed: repaired by WP1b\n- warrant: plan-gap — B remains missing",
+        )
+        for body in cases:
+            self.assert_plan_gap_failure(body, "entry is still open")
+
+    def test_plan_gap_flat_grammar_preserves_cli_schema_and_semantic_boundary(self) -> None:
+        success_keys = {
+            "package": {
+                "ok", "command", "package", "package_status", "report_path", "new_shape",
+                "mechanical_only", "semantic_done", "semantic_done_note",
+                "acceptance_checklist_items", "advisories",
+            },
+            "final": {
+                "ok", "command", "feature", "packages", "reports_validated", "mechanical_only",
+                "semantic_done", "semantic_done_note", "advisories",
+            },
+        }
+        for route, result in self.run_plan_gap_routes("- none").items():
+            data = json.loads(result.stdout)
+            self.assertEqual(success_keys[route], set(data))
+            self.assertTrue(data["mechanical_only"])
+            self.assertFalse(data["semantic_done"])
+            self.assertNotIn("score", json.dumps(data).lower())
+
+        for route, result in self.run_plan_gap_routes("prose").items():
+            data = json.loads(result.stderr)
+            self.assertEqual({"ok", "command", "errors", "advisories"}, set(data))
+            self.assertFalse(data["ok"])
+            self.assertNotIn("score", json.dumps(data).lower())
+
+    def test_plan_gap_contract_guidance_matches_flat_grammar(self) -> None:
+        repo_root = ASSETS_DIR.parents[2]
+        changed = {
+            "report": REPORT_CONTRACT_PATH,
+            "verifier": repo_root / "plugins/super-developer/skills/implement/references/package-verification.md",
+            "changelog": repo_root / "CHANGELOG.md",
+        }
+        changed_text = {
+            actor: " ".join(path.read_text(encoding="utf-8").lower().split())
+            for actor, path in changed.items()
+        }
+        for actor, text in changed_text.items():
+            with self.subTest(actor=actor):
+                self.assertIn("column zero", text)
+                self.assertIn("single physical line", text)
+                self.assertIn("immediate", text)
+                self.assertIn("new runs", text)
+                self.assertIn("no compatibility", text)
+                self.assertIn("same physical line", text)
+                self.assertIn("semantic", text)
+                self.assertIn("mechanical", text)
+
+        report = changed_text["report"]
+        changelog = changed_text["changelog"]
+        self.assertNotIn("entries may wrap", report)
+        self.assertNotIn("sub-bullet closure closes", report)
+        self.assertNotIn("`- none.`", changelog)
+        self.assertNotIn("`- none.` or `- none.`", changelog)
+
+        lifecycle = " ".join(
+            (repo_root / "plugins/super-developer/references/package-lifecycle.md")
+            .read_text(encoding="utf-8")
+            .lower()
+            .split()
+        )
+        audit = " ".join(
+            (repo_root / "plugins/super-developer/skills/audit/references/audit-subagent-contract.md")
+            .read_text(encoding="utf-8")
+            .lower()
+            .split()
+        )
+        self.assertIn("package-verification-report.md` owns the section's required shape", lifecycle)
+        self.assertIn("while one stays open the package is not done", lifecycle)
+        self.assertIn("judge evidence sufficiency", audit)
+        self.assertIn("contradictions", audit)
 
     def test_validate_package_complete_reports_pending_verification_verdict_intact(self) -> None:
         self.fixture.write_completed_report()

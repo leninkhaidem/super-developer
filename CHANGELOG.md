@@ -18,28 +18,14 @@ The format is based on Keep a Changelog.
   outlived the code they described and still quoted their retired hit-rate figures.
 
 ### Fixed
-- Fixed the plan-gap completion gate, which was documented in v2.4.0 but never wired: `validate-package-complete`
-  reported success with an open `## Plan gaps` entry, `implement`'s done-definition omitted plan gaps while stating
-  that advisory findings never withhold done, and a test asserted the incorrect success. An open entry is now a
-  validation error, so the helper's success signal cannot claim structural completion while a known obligation is
-  missing.
-- Fixed plan-gap closure so that it can never require erasure. Entries close in place on either lifecycle route --
-  a `closed:` note naming the planning continuation that repaired it, or recorded approval, provenance, and scope
-  when durably approved as out of scope -- mirroring the bar `## Gaps` already held. Without this, the only way to
-  reach a clean exit code was to delete the record of the omitted requirement, which is precisely the loss the
-  section exists to prevent.
-- Fixed the escape that made the two fixes above unenforceable: `## Plan gaps` was optional, so an agent blocked by
-  an open entry could delete the section, empty it, unbullet it into prose, or fence it and exit 0, and gitignored
-  reports leave no diff to catch that. The section is now required and its dispositions are bullets, so the cheapest
-  escape is writing `- none` -- a claim audit can read and contradict -- instead of an invisible absence. The
-  contract said as much already and the implementation did not; both now agree.
-- Fixed a closure gate that rejected honest work and accepted empty work. It ran the shared approval-placeholder
-  detector over free text, so `closed: WP1b adds the missing cancellation AC` failed on the word "missing" while
-  `closed: yes` passed, and it scanned for TODO/OPEN across the whole entry, so a gap about "the open-file limit"
-  could never be closed at all. Any substantive closure now passes; only a bare non-answer or a closure that still
-  calls itself open is refused, and the marker scan is scoped to the closure value so gap wording stays free.
-- Fixed `## Plan gaps` / `## Gaps` divergence on the empty disposition: `- None.` and `- none.` failed the former
-  and passed the latter. Both now share `is_empty_gaps_deviations_section`.
+- Replaced the permissive Plan-gap Markdown ownership parser with a strict flat grammar: use sole exact lowercase
+  `- none`, or column zero `- warrant: plan-gap` entries on a single physical line with each disposition on that
+  same physical line. Blank separator lines and trailing whitespace remain allowed; wrapping, nesting, alternate
+  markers, indentation, comments, fences, prose, malformed warrants, and mixed `none` now fail structurally.
+- Applied the grammar immediately for new runs with no compatibility path, migration, fallback, adapter, flag, or
+  hidden mode. The helper remains a mechanical structure/open-state gate; verifiers and auditors retain semantic
+  truthfulness and evidence-sufficiency ownership. The existing repaired and approved out-of-scope disposition
+  recognizers, required section, JSON envelopes, and completion behavior remain intact.
 - Fixed the falsification pointer missing the defect class that motivated it. `rejects:` is keyed to Slice
   `Forbidden behaviors`, which is mandatory only for interface-bearing H3s, and the interface-bearing *test* named
   only concrete surfaces. Behavioral bounds -- complexity, causal ordering, access barriers -- now count in the test

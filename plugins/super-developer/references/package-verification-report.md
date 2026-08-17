@@ -58,22 +58,14 @@ PASS | FAIL | PENDING_VERIFICATION
   advisory: while it stays open `validate-package-complete` and `validate-final` fail, the package does not become
   `done`, and dependents do not unlock. The orchestrator routes it to planning continuation, so a missing
   requirement is neither forced in by a verifier nor lost.
-- **Closing a plan gap never means deleting it.** An entry closes *in place*, on one of the two routes
-  `package-lifecycle.md` recognises, so the report keeps the record of what was once missing:
-  a `closed:` note naming the planning continuation that repaired it, or recorded approval, provenance, and scope
-  when it was durably approved as out of scope. Removing the line to reach a clean exit code destroys the audit
-  trail this section exists to create, and is the one disposition the gate treats as never acceptable.
-  Write the closure in plain words. Any substantive note counts — `closed: repaired by WP1b` and
-  `closed: WP1b adds the missing cancellation AC` both close the entry, and the gap's own wording is free, so an
-  entry describing "the open-file limit" or "the TODO scanner" closes normally. Only a closure that records
-  nothing (`closed: yes`, `closed: TBD`, `closed: false`, or text that renders nothing at all — empty, an HTML
-  comment, zero-width characters) or that still calls itself open — a closure whose own text carries `TODO` or
-  `open` — leaves the entry open. Put such words in the gap description ahead of `closed:`, or after a `;`,
-  since only the closure value itself is read. Entries may wrap across lines and carry sub-bullets: a sub-bullet
-  closure closes the entry above it, and ordinary detail such as evidence or an owner needs no disposition of
-  its own. A bullet starts a *new* entry, needing its own closure, when it opens another `warrant: plan-gap` or
-  sits at the outer level, so a closed entry can never absorb the open one beneath it. A closure reaches only
-  the entry it is written under, so repairing a nested gap never closes the separate gap enclosing it.
+- **Closing a plan gap never means deleting it.** Every real entry starts at column zero with exact
+  `- warrant: plan-gap`, occupies a single physical line, and carries its disposition on that same physical line.
+  The two dispositions remain a substantive `closed:` note or durable out-of-scope approval with non-placeholder
+  approval, provenance, and scope. Blank separator lines and trailing whitespace are allowed. Leading indentation,
+  wrapping, nesting, alternate markers, comments, fences, prose, malformed warrants, and mixed `- none` are not.
+  The empty disposition is sole exact lowercase `- none`. Enforcement is immediate for new runs, with no
+  compatibility path, fallback, migration, adapter, flag, or hidden mode. The helper validates this mechanical
+  shape and disposition presence only; verifiers and auditors retain semantic truthfulness and sufficiency judgment.
 - **Evidence authenticity:** a pointer plus observed output must resolve to real output (a test id + result, a
   command + observed result, or a `manual (approved)` observation). A PASS row with a hollow non-path claim is
   not a semantic done signal. The helper only checks presence, non-placeholder, and safe path existence when the
@@ -81,10 +73,10 @@ PASS | FAIL | PENDING_VERIFICATION
 - **Executable-by-default:** a `manual` result is acceptable only for an item the plan froze as a human-approved
   `manual (approved)` exception at the plan gate. The orchestrator does not re-run manual items.
 - **Gaps** must be `none` or carry approval, provenance, and scope. The helper checks that metadata presence only.
-- **`## Plan gaps` is a required section, and its dispositions are bullets.** Finding nothing is the written claim
-  `- none`, never an omission: reports are gitignored, so a deleted section, an emptied one, an entry rewritten as
-  prose, or an entry hidden in a code fence would leave nothing for audit to read. Each of those fails the helper.
-  Copy the template above and the section is already there.
+- **`## Plan gaps` is required and uses only the flat grammar above.** Finding nothing is the sole exact written
+  claim `- none`, never an omission. Every other nonblank physical line must be a canonical real entry; the helper
+  does not interpret Markdown ownership or silently discard unknown content. Copy the template above and the section
+  is already valid.
 - Mechanical `sliceproof.py` output is structural fail-closed, never semantic authenticity. Helper ok alone is
   not done.
 

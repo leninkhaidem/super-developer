@@ -75,9 +75,7 @@ APPROVAL_METADATA_VALUE_RE = re.compile(
     re.IGNORECASE,
 )
 PLAN_GAP_CLOSURE_RE = re.compile(r"\bclosed\s*:\s*(?P<value>[^;\n|]+)", re.IGNORECASE)
-# `warrant:` is how the report contract opens a plan-gap entry, so a nested bullet that starts one is a new
-# disposition rather than detail for the entry above it.
-PLAN_GAP_ENTRY_RE = re.compile(r"^[*_`]*warrant[*_`]*\s*:[\s*_`]*plan[-\s]?gap", re.IGNORECASE)
+PLAN_GAP_PREFIX = "- warrant: plan-gap"
 # A plan-gap closure is free text and is accepted as written. Only a bare non-answer is rejected, so an accurate
 # short closure such as "repaired by WP1b" costs nothing while "yes" or "TBD" records nothing. "false" denies the
 # closure outright and "null" is the same non-answer as "nil".
@@ -985,7 +983,9 @@ def split_h2_sections(text: str) -> dict[str, str]:
             continue
         if current is not None:
             sections[current].append(line)
-    return {name: "\n".join(lines).strip() for name, lines in sections.items()}
+    # Remove section-separator newlines only. Leading spaces and tabs are report grammar,
+    # so callers that validate physical lines must receive them unchanged.
+    return {name: "\n".join(lines).strip("\n") for name, lines in sections.items()}
 
 
 def extract_slice_h3_titles(path: Path) -> dict[str, str]:
@@ -1115,32 +1115,32 @@ def resolve_result_pointer(registry: Registry, pointer: str, label: str) -> None
 
 
 def validate_plan_gaps_section(report_path: Path, plan_gaps_body: str) -> list[str]:
-    """Require every ``## Plan gaps`` entry to be closed in place, never deleted.
-
-    Entries are bullets on the same terms ``## Gaps`` already holds: an empty section, prose, or fenced text is
-    not a disposition, so it cannot dissolve an entry into an invisible absence. A gap closes on one of the two
-    routes ``package-lifecycle.md`` recognises: repaired through planning continuation (``closed:``), or durably
-    approved as out of scope (approval + provenance + scope). Both keep the record; neither is satisfied by
-    removing the line.
-    """
-    entries = parse_plan_gap_entries(plan_gaps_body)
-    if not entries:
-        return [
-            f"{report_path}: ## Plan gaps must be a bulleted list of entries, or `- none` when the frozen "
-            f"checklist omitted nothing. An empty section, prose, or fenced text is not a disposition."
-        ]
-    # Emptiness is read from the parsed entries, not the raw body, so a fenced example beside `- none` cannot
-    # turn the written claim into an entry that reads as open.
-    if all(re.fullmatch(r"None\.?", entry, flags=re.IGNORECASE) for entry in entries):
+    """Validate the strict flat physical-line grammar and require closed entries."""
+    lines = [raw_line.rstrip() for raw_line in plan_gaps_body.splitlines() if raw_line.rstrip()]
+    if lines == ["- none"]:
         return []
+    if not lines or any(
+        not line.startswith(PLAN_GAP_PREFIX)
+        or (len(line) > len(PLAN_GAP_PREFIX) and line[len(PLAN_GAP_PREFIX)].isalnum())
+        or "<!--" in line
+        or "-->" in line
+        or "```" in line
+        or "~~~" in line
+        for line in lines
+    ):
+        return [
+            f"{report_path}: ## Plan gaps must contain sole exact `- none` or one or more column-zero, "
+            f"single-line entries beginning exactly `{PLAN_GAP_PREFIX}`; blank separator lines and trailing "
+            f"whitespace are allowed, but every other physical line is noncanonical."
+        ]
+
     errors: list[str] = []
-    for entry in entries:
+    for entry in lines:
         if has_plan_gap_closure(entry) or has_approval_provenance_scope(entry):
             continue
         errors.append(
-            f"{report_path}: ## Plan gaps entry is still open; close it in place with a 'closed:' note naming the "
-            f"planning continuation that repaired it, or with approval, provenance, and scope if it was durably "
-            f"approved as out of scope. Never delete the entry to clear this: {entry}"
+            f"{report_path}: ## Plan gaps entry is still open; close it on the same physical line with a "
+            f"substantive 'closed:' note, or with non-placeholder approval, provenance, and scope: {entry}"
         )
     return errors
 
@@ -1434,62 +1434,6 @@ def is_empty_gaps_deviations_section(value: str) -> bool:
         if not re.fullmatch(r"(?:[-*+]\s+|\d+[.)]\s+)?None\.?", stripped, flags=re.IGNORECASE):
             return False
     return True
-
-
-def parse_plan_gap_entries(body: str) -> list[str]:
-    """Split ``## Plan gaps`` into entries, keeping wrapped and nested lines with the entry they belong to.
-
-    Reports are hand-written and long entries wrap, which is this repository's own house style. Reading only the
-    first physical line would reject a closure recorded on a continuation or sub-bullet and push the author toward
-    ``- none``, which is the erasure this section exists to prevent, so nested detail folds into the bullets that
-    contain it. Folding everything would let a closed neighbour swallow an open one, so a bullet opens its own
-    entry when Markdown renders it as a sibling, and when it starts a new ``warrant:`` at any depth. Visible prose
-    ahead of the first bullet is an entry too: anything Markdown renders as a disposition is read. Fenced text is
-    not a disposition, and the fence state machine is the shared one, so a ``~~~`` line cannot close a ``` block.
-    """
-    entries: list[list[str]] = []
-    open_bullets: list[tuple[int, int]] = []
-    preamble: list[str] = []
-    # A comment renders nothing, so a closure written inside one would clear a gap the reader still sees as open.
-    for _raw_line, visible_line, fenced in iter_markdown_lines(body):
-        if fenced:
-            continue
-        line = visible_line.strip()
-        if not line:
-            continue
-        # Tabs indent by more than one column, so measuring them as one character would read a tabbed sub-bullet
-        # as a sibling and reject the closure written on it.
-        expanded = visible_line.expandtabs(4)
-        indent = len(expanded) - len(expanded.lstrip())
-        # A `- ` list item's content starts at column 2, so a bullet indented less than that is a sibling rather
-        # than nested detail. Treating it as nested is how a closed entry could hide the open one below it.
-        if indent <= 1:
-            indent = 0
-        text = re.sub(r"^(?:[-*+]\s+|\d+[.)]\s+)", "", line)
-        if text == line:
-            # Wrapped or lazy continuation prose belongs to the innermost entry still open around it, the same
-            # entry a reader would attach it to.
-            if not open_bullets:
-                preamble.append(line)
-                continue
-            entries[open_bullets[-1][1]].append(text)
-            continue
-        while open_bullets and indent <= open_bullets[-1][0]:
-            open_bullets.pop()
-        if open_bullets and not PLAN_GAP_ENTRY_RE.match(text):
-            # Nested detail that opens no new warrant belongs to the entry above it. Closures, evidence, and
-            # owners are all written this way, so folding them keeps ordinary authoring free of dispositions.
-            # It reaches only the innermost open entry: a closure written under one gap must not close the
-            # separate gap that happens to enclose it.
-            entries[open_bullets[-1][1]].append(text)
-            continue
-        # A bullet that opens its own warrant is not folded upward: its closure would otherwise close the still
-        # open entry containing it.
-        if preamble and not entries:
-            entries.append([" ".join(preamble)])
-        entries.append([text])
-        open_bullets.append((indent, len(entries) - 1))
-    return [entry for entry in (" ".join(parts).strip() for parts in entries) if entry]
 
 
 def has_plan_gap_closure(value: str) -> bool:
