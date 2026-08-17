@@ -14,6 +14,7 @@ from pathlib import Path
 
 ASSETS_DIR = Path(__file__).resolve().parents[1]
 SLICEPROOF_PATH = ASSETS_DIR / "sliceproof.py"
+REPORT_CONTRACT_PATH = ASSETS_DIR.parent / "references" / "package-verification-report.md"
 REPORT_COMMIT = "0123456789abcdef0123456789abcdef01234567"
 
 
@@ -255,6 +256,7 @@ class SliceproofFixture:
         commit: str | None = None,
         ac2_pointer: str | None = None,
         gaps: str = "- none",
+        plan_gaps: str = "- none",
     ) -> str:
         worktree = str(self.repo.resolve(strict=False)) if worktree is None else worktree
         git_ref = "wp/fixture/WP1" if git_ref is None else git_ref
@@ -276,6 +278,9 @@ class SliceproofFixture:
 
             ## Advisory notes
             - none
+
+            ## Plan gaps
+            {plan_gaps}
 
             ## Reviewed state
             - Worktree: `{worktree}`
@@ -339,6 +344,21 @@ class SliceproofFixture:
         ])
         package_path.write_text("\n".join(package_lines), encoding="utf-8")
         report_path.write_text(self.report_text(git_ref=f"wp/fixture/{package_id}"), encoding="utf-8")
+
+
+class ReportContractTemplateTests(unittest.TestCase):
+    """The canonical template must hand authors every required section.
+
+    A required section is only frictionless if copying the contract's own template satisfies it. If the two ever
+    drift, every report authored from the contract fails the helper for a reason the contract does not mention.
+    """
+
+    def test_contract_template_carries_every_required_report_section(self) -> None:
+        contract = REPORT_CONTRACT_PATH.read_text(encoding="utf-8")
+        fences = re.findall(r"^```md\n(.*?)^```", contract, flags=re.DOTALL | re.MULTILINE)
+        self.assertTrue(fences, f"{REPORT_CONTRACT_PATH} no longer contains a ```md report template")
+        template_sections = set(SLICEPROOF.split_h2_sections(fences[0]))
+        self.assertEqual(set(), SLICEPROOF.REQUIRED_REPORT_SECTIONS - template_sections)
 
 
 class SliceproofTests(unittest.TestCase):
@@ -801,47 +821,241 @@ class SliceproofTests(unittest.TestCase):
                     "\n".join(json.loads(result.stderr)["errors"]),
                 )
 
-    def test_validate_package_complete_advises_on_open_plan_gap(self) -> None:
+    PLAN_GAPS_SLOT = "## Plan gaps\n- none"
+
+    def run_with_plan_gaps(self, body: str | None):
+        """Rewrite the report's ``## Plan gaps`` section, or drop it entirely when ``body`` is None."""
         self.fixture.write_completed_report()
-        report = self.fixture.report_path.read_text(encoding="utf-8")
-        report += "\n## Plan gaps\n- warrant: plan-gap — cancellation path is not on the frozen checklist.\n"
+        original = self.fixture.report_path.read_text(encoding="utf-8")
+        self.assertIn(self.PLAN_GAPS_SLOT, original)
+        replacement = "" if body is None else f"## Plan gaps\n{body}"
+        report = original.replace(self.PLAN_GAPS_SLOT, replacement, 1)
         self.fixture.report_path.write_text(report, encoding="utf-8")
-        result = self.fixture.run(
+        return self.fixture.run(
+            "validate-package-complete", *self.fixture.root_args(), str(self.fixture.tasks_path), "--package", "WP1"
+        )
+
+    def run_plan_gap_routes(self, body: str | None) -> dict[str, subprocess.CompletedProcess[str]]:
+        """Exercise one Plan-gaps body through both completion commands."""
+        replacement = "" if body is None else f"## Plan gaps\n{body}"
+        return self.run_plan_gap_report_replacement(replacement)
+
+    def run_plan_gap_report_replacement(
+        self, replacement: str
+    ) -> dict[str, subprocess.CompletedProcess[str]]:
+        """Exercise an exact replacement for the canonical Plan-gaps section through both routes."""
+        self.fixture.write_completed_report()
+        original = self.fixture.report_path.read_text(encoding="utf-8")
+        self.fixture.report_path.write_text(
+            original.replace(self.PLAN_GAPS_SLOT, replacement, 1), encoding="utf-8"
+        )
+        package = self.fixture.run(
             "validate-package-complete",
             *self.fixture.root_args(),
             str(self.fixture.tasks_path),
             "--package",
             "WP1",
         )
-        self.assertEqual(0, result.returncode, result.stdout + result.stderr)
-        payload = json.loads(result.stdout)
-        gaps = [item for item in payload["advisories"] if item["kind"] == "plan_gap_open"]
-        self.assertEqual(1, len(gaps), payload["advisories"])
-        self.assertEqual("WP1", gaps[0]["package"])
-
-    def test_validate_plan_closure_justification_ignores_fenced_and_placeholder_values(self) -> None:
-        oversized = "\n".join(
-            f"- AC-{index}: fixture outcome {index} — check: `pytest tests/test_{index}.py` — expected: exit 0."
-            for index in range(1, 11)
+        plan = self.fixture.plan()
+        plan["work_packages"][0]["status"] = "done"
+        self.fixture.write_plan(plan)
+        final = self.fixture.run(
+            "validate-final", *self.fixture.root_args(), str(self.fixture.tasks_path)
         )
-        for note, expect_cleared in (
-            ("\n## Notes\n```md\n- Closure justification: example only\n```\n", False),
-            ("\n## Notes\n- Closure justification: TODO\n", False),
-            ("\n## Notes\n- Closure justification: one lifecycle; splitting duplicates the harness.\n", True),
-        ):
-            with self.subTest(note=note.strip()[:40]):
-                self.fixture.package_path.write_text(
-                    self.fixture.package_text(acceptance_checklist=oversized) + note,
-                    encoding="utf-8",
-                )
-                result = self.fixture.run("validate-plan", str(self.fixture.tasks_path))
+        return {"package": package, "final": final}
+
+    def assert_plan_gap_failure(self, body: str | None, expected: str) -> None:
+        for route, result in self.run_plan_gap_routes(body).items():
+            with self.subTest(route=route, body=body):
+                self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+                errors = json.loads(result.stderr)["errors"]
+                self.assertTrue(any(expected in error and "## Plan gaps" in error for error in errors), errors)
+                self.assertFalse(any("missing ## Gaps section" in error for error in errors), errors)
+
+    def test_plan_gap_flat_grammar_accepts_canonical_shapes_in_both_routes(self) -> None:
+        cases = (
+            "- none",
+            "\n- none   \t\n",
+            "- warrant: plan-gap — cancellation. closed: repaired by WP1b",
+            "- warrant: plan-gap — cancellation. Closed: WP1b adds the missing AC",
+            "- warrant: plan-gap — cancellation. Approved by user; provenance: plan gate 2026-08-16; scope: resilience feature.",
+            "- warrant: plan-gap — A. closed: repaired by WP1b\n\n- warrant: plan-gap — B. closed: repaired by WP1c   ",
+        )
+        for body in cases:
+            for route, result in self.run_plan_gap_routes(body).items():
+                with self.subTest(route=route, body=body):
+                    self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+
+    def test_plan_gap_flat_grammar_rejects_noncanonical_shapes_in_both_routes(self) -> None:
+        self.assert_plan_gap_failure(None, "missing ## Plan gaps section")
+
+        hidden_sections = (
+            ("terminated HTML comment", "<!--\n## Plan gaps\n- none\n## -->", False),
+            ("unclosed HTML comment through EOF", "<!--\n## Plan gaps\n- none", True),
+        )
+        for name, replacement, hides_gaps in hidden_sections:
+            for route, result in self.run_plan_gap_report_replacement(replacement).items():
+                with self.subTest(route=route, body=name):
+                    self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+                    errors = json.loads(result.stderr)["errors"]
+                    self.assertTrue(any("missing ## Plan gaps section" in error for error in errors), errors)
+                    self.assertEqual(
+                        hides_gaps,
+                        any("missing ## Gaps section" in error for error in errors),
+                        errors,
+                    )
+
+        fenced_comment = "```md\n<!--\n## hidden example\n```\n\n## Plan gaps\n- none"
+        for route, result in self.run_plan_gap_report_replacement(fenced_comment).items():
+            with self.subTest(route=route, body="unclosed comment literal inside real fence"):
                 self.assertEqual(0, result.returncode, result.stdout + result.stderr)
-                closure = [
-                    item
-                    for item in json.loads(result.stdout)["advisories"]
-                    if item["kind"] == "closure_size"
-                ]
-                self.assertEqual(0 if expect_cleared else 1, len(closure))
+
+        closed = "- warrant: plan-gap — cancellation. closed: repaired by WP1b"
+        cases = (
+            "",
+            "   ",
+            "- NONE",
+            "- none.",
+            "- none\n" + closed,
+            "-",
+            "- ",
+            "- cancellation. closed: repaired by WP1b",
+            "- warrant plan-gap — cancellation. closed: repaired by WP1b",
+            "- warrant: Plan-gap — cancellation. closed: repaired by WP1b",
+            "- warrant: plan gap — cancellation. closed: repaired by WP1b",
+            "- warrant: plan-gapish — cancellation. closed: repaired by WP1b",
+            "- warrant: plan-gap_foo — cancellation. closed: repaired by WP1b",
+            "- warrant: plan-gap\u200bfoo — cancellation. closed: repaired by WP1b",
+            "- warrant: plan-gap\u0301 — cancellation. closed: repaired by WP1b",
+            " " + closed,
+            "\t" + closed,
+            closed + "\n continuation text",
+            closed + "\n  closed: repaired by WP1c",
+            closed + "\n  - evidence: fixture",
+            "* warrant: plan-gap — cancellation. closed: repaired by WP1b",
+            "+ warrant: plan-gap — cancellation. closed: repaired by WP1b",
+            "1. warrant: plan-gap — cancellation. closed: repaired by WP1b",
+            "<!-- plan gap -->",
+            closed + " <!-- comment -->",
+            "```\n" + closed + "\n```",
+            "prose about a plan gap",
+            closed + "\nunknown nonblank line",
+            closed + "\n " + closed,
+            closed + "\n\t" + closed,
+        )
+        for body in cases:
+            self.assert_plan_gap_failure(body, "single-line entries beginning exactly")
+
+    def test_plan_gap_flat_grammar_rejects_open_dispositions_in_both_routes(self) -> None:
+        cases = (
+            "- warrant: plan-gap — cancellation is missing",
+            "- warrant: plan-gap — cancellation. closed:",
+            "- warrant: plan-gap — cancellation. closed: TBD",
+            "- warrant: plan-gap — cancellation. closed: repaired but still open",
+            "- warrant: plan-gap — cancellation. Approved by user; provenance: plan gate 2026-08-16.",
+            "- warrant: plan-gap — A. closed: repaired by WP1b\n- warrant: plan-gap — B remains missing",
+        )
+        for body in cases:
+            self.assert_plan_gap_failure(body, "entry is still open")
+
+    def test_plan_gap_flat_grammar_preserves_cli_schema_and_semantic_boundary(self) -> None:
+        success_keys = {
+            "package": {
+                "ok", "command", "package", "package_status", "report_path", "new_shape",
+                "mechanical_only", "semantic_done", "semantic_done_note",
+                "acceptance_checklist_items", "advisories",
+            },
+            "final": {
+                "ok", "command", "feature", "packages", "reports_validated", "mechanical_only",
+                "semantic_done", "semantic_done_note", "advisories",
+            },
+        }
+        for route, result in self.run_plan_gap_routes("- none").items():
+            data = json.loads(result.stdout)
+            self.assertEqual(success_keys[route], set(data))
+            self.assertTrue(data["mechanical_only"])
+            self.assertFalse(data["semantic_done"])
+            self.assertNotIn("score", json.dumps(data).lower())
+
+        for route, result in self.run_plan_gap_routes("prose").items():
+            data = json.loads(result.stderr)
+            self.assertEqual({"ok", "command", "errors", "advisories"}, set(data))
+            self.assertFalse(data["ok"])
+            self.assertNotIn("score", json.dumps(data).lower())
+
+    def test_plan_gap_contract_guidance_matches_flat_grammar(self) -> None:
+        repo_root = ASSETS_DIR.parents[2]
+        report = " ".join(REPORT_CONTRACT_PATH.read_text(encoding="utf-8").lower().split())
+        verifier = " ".join(
+            (repo_root / "plugins/super-developer/skills/implement/references/package-verification.md")
+            .read_text(encoding="utf-8")
+            .lower()
+            .split()
+        )
+        changelog = " ".join((repo_root / "CHANGELOG.md").read_text(encoding="utf-8").lower().split())
+
+        # The shared report contract is the grammar authority and describes the honest open-to-closed lifecycle.
+        for phrase in (
+            "single grammar authority",
+            "canonical open entry",
+            "no disposition",
+            "intentionally fails completion",
+            "entry is still open",
+            "planning then closes the same entry in place",
+            "free-prose `closed:` value",
+            "rendered-empty",
+            "comment-or-invisible-only",
+            "`todo` or `open` inside the closure value",
+            "before `closed:`",
+            "after the closure-value delimiter",
+            "flat mechanical shape and the listed mechanical open-state rules",
+        ):
+            self.assertIn(phrase, report)
+        for contentless in SLICEPROOF.CONTENTLESS_CLOSURE_VALUES:
+            with self.subTest(contentless=contentless):
+                self.assertRegex(report, rf"(?<![a-z]){re.escape(contentless)}(?![a-z])")
+
+        # Verifiers return what they found without fabricating a planning decision; the orchestrator owns closure.
+        self.assertIn("package-verification-report.md` is the single grammar authority", verifier)
+        self.assertIn("canonical open form", verifier)
+        self.assertIn("never invent a disposition", verifier)
+        self.assertIn("orchestrator", verifier)
+        self.assertIn("planning continuation", verifier)
+        self.assertIn("closes the same entry in place", verifier)
+
+        # Preserve the release guidance for strict new-run grammar without duplicating it in verifier guidance.
+        for phrase in (
+            "column zero",
+            "single physical line",
+            "immediately",
+            "new runs",
+            "no compatibility",
+            "same physical line",
+            "semantic",
+            "mechanical",
+        ):
+            self.assertIn(phrase, changelog)
+        self.assertNotIn("entries may wrap", report)
+        self.assertNotIn("sub-bullet closure closes", report)
+        self.assertNotIn("`- none.`", changelog)
+        self.assertNotIn("`- none.` or `- none.`", changelog)
+
+        lifecycle = " ".join(
+            (repo_root / "plugins/super-developer/references/package-lifecycle.md")
+            .read_text(encoding="utf-8")
+            .lower()
+            .split()
+        )
+        audit = " ".join(
+            (repo_root / "plugins/super-developer/skills/audit/references/audit-subagent-contract.md")
+            .read_text(encoding="utf-8")
+            .lower()
+            .split()
+        )
+        self.assertIn("package-verification-report.md` owns the section's required shape", lifecycle)
+        self.assertIn("while one stays open the package is not done", lifecycle)
+        self.assertIn("judge evidence sufficiency", audit)
+        self.assertIn("contradictions", audit)
 
     def test_validate_package_complete_reports_pending_verification_verdict_intact(self) -> None:
         self.fixture.write_completed_report()
@@ -860,90 +1074,6 @@ class SliceproofTests(unittest.TestCase):
         errors = "\n".join(json.loads(result.stderr)["errors"])
         self.assertIn("Verdict must be PASS (found PENDING_VERIFICATION)", errors)
 
-    def test_validate_plan_flags_compound_acceptance_claims_without_blocking(self) -> None:
-        self.fixture.package_path.write_text(
-            self.fixture.package_text(
-                acceptance_checklist=(
-                    "- AC-1: ingestion validates schema and rejects future rows and enforces the cap "
-                    "— check: `pytest tests/test_a.py` — expected: exit 0.\n"
-                    "- AC-2: helper emits the summary — check: `pytest tests/test_b.py` — expected: exit 0."
-                )
-            ),
-            encoding="utf-8",
-        )
-        result = self.fixture.run("validate-plan", str(self.fixture.tasks_path))
-        self.assertEqual(0, result.returncode, result.stdout + result.stderr)
-        payload = json.loads(result.stdout)
-        self.assertTrue(payload["ok"])
-        self.assertFalse(payload["semantic_done"])
-        atomicity = [item for item in payload["advisories"] if item["kind"] == "acceptance_atomicity"]
-        self.assertEqual(["AC-1"], [item["item"] for item in atomicity])
-        self.assertEqual("WP1", atomicity[0]["package"])
-
-    def test_validate_plan_atomicity_advisory_covers_comma_separated_claims(self) -> None:
-        self.fixture.package_path.write_text(
-            self.fixture.package_text(
-                acceptance_checklist=(
-                    "- AC-1: validates schema, rejects future rows, enforces the cap "
-                    "— check: `pytest tests/test_a.py` — expected: exit 0.\n"
-                    "- AC-2: emits the summary — check: `pytest tests/test_b.py` — expected: exit 0."
-                )
-            ),
-            encoding="utf-8",
-        )
-        result = self.fixture.run("validate-plan", str(self.fixture.tasks_path))
-        self.assertEqual(0, result.returncode, result.stdout + result.stderr)
-        atomicity = [
-            item for item in json.loads(result.stdout)["advisories"] if item["kind"] == "acceptance_atomicity"
-        ]
-        self.assertEqual(["AC-1"], [item["item"] for item in atomicity])
-
-    def test_validate_plan_closure_size_advisory_clears_with_recorded_justification(self) -> None:
-        oversized = "\n".join(
-            f"- AC-{index}: fixture outcome {index} — check: `pytest tests/test_{index}.py` — expected: exit 0."
-            for index in range(1, 11)
-        )
-        self.fixture.package_path.write_text(
-            self.fixture.package_text(acceptance_checklist=oversized),
-            encoding="utf-8",
-        )
-        flagged = self.fixture.run("validate-plan", str(self.fixture.tasks_path))
-        self.assertEqual(0, flagged.returncode, flagged.stdout + flagged.stderr)
-        flagged_payload = json.loads(flagged.stdout)
-        closure = [item for item in flagged_payload["advisories"] if item["kind"] == "closure_size"]
-        self.assertEqual(1, len(closure), flagged_payload["advisories"])
-        self.assertEqual(10, closure[0]["acceptance_items"])
-
-        self.fixture.package_path.write_text(
-            self.fixture.package_path.read_text(encoding="utf-8")
-            + "\n## Notes\n- Closure justification: one ingestion lifecycle; splitting duplicates the shared harness.\n",
-            encoding="utf-8",
-        )
-        justified = self.fixture.run("validate-plan", str(self.fixture.tasks_path))
-        self.assertEqual(0, justified.returncode, justified.stdout + justified.stderr)
-        justified_payload = json.loads(justified.stdout)
-        self.assertEqual(
-            [],
-            [item for item in justified_payload["advisories"] if item["kind"] == "closure_size"],
-        )
-
-    def test_validate_plan_atomicity_advisory_ignores_check_and_rejects_clauses(self) -> None:
-        self.fixture.package_path.write_text(
-            self.fixture.package_text(
-                acceptance_checklist=(
-                    "- AC-1: helper rejects alias spellings — check: `pytest tests/test_a.py` "
-                    "— expected: exit 0 and bounded output — rejects: accepting `--dryrun` and `--dry_run`."
-                )
-            ),
-            encoding="utf-8",
-        )
-        result = self.fixture.run("validate-plan", str(self.fixture.tasks_path))
-        self.assertEqual(0, result.returncode, result.stdout + result.stderr)
-        payload = json.loads(result.stdout)
-        self.assertEqual(
-            [],
-            [item for item in payload["advisories"] if item["kind"] == "acceptance_atomicity"],
-        )
 
     def test_validate_plan_requires_non_empty_spec_acceptance(self) -> None:
         present = self.fixture.run("validate-plan", str(self.fixture.tasks_path))

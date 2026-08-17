@@ -15,7 +15,8 @@ import json
 import os
 import re
 import sys
-from dataclasses import dataclass, field
+from collections.abc import Iterator
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -37,24 +38,16 @@ REQUIRED_PACKAGE_SECTIONS = {
     "Package Verification Report",
     "Dependencies",
 }
+# ``Plan gaps`` is required so that finding nothing is an affirmative ``- none`` an auditor can read, not a silent
+# absence. Reports are gitignored, so a deleted section leaves no diff: only a written claim can be audited.
 REQUIRED_REPORT_SECTIONS = {
     "Acceptance Checklist Result",
     "Blocking findings",
     "Advisory notes",
+    "Plan gaps",
     "Reviewed state",
     "Gaps",
 }
-# Plan-quality trip-wires. These are countable proxies only: they never fail validation, because counts are
-# warning signals rather than universal thresholds (references/work-packages.md). They exist to force an
-# explicit closure justification or an atomicity re-read, not to impose a package-size cap.
-AC_CLAIM_SPLIT_RE = re.compile(r"\b(?:check|expected|verify|rejects)\s*:", re.IGNORECASE)
-# Counts coordinators joining clauses: 'and'/'plus', '&', and comma/semicolon list separators. This is a coarse
-# textual proxy, not a parse: it over-fires on coordinated noun phrases ('UTF-8 and UTF-16') and under-fires on
-# prose that hides coordination. It is advisory-only for exactly that reason - a human confirms atomicity.
-AC_CONJUNCTION_RE = re.compile(r"(?:\b(?:and|plus)\b|&|;|,)", re.IGNORECASE)
-AC_CONJUNCTION_ADVISORY_MIN = 2
-AC_COUNT_ADVISORY_MAX = 8
-CLOSURE_JUSTIFICATION_RE = re.compile(r"^\s*[-*]?\s*closure justification\s*:", re.IGNORECASE | re.MULTILINE)
 # semantic_done is always False by design. It is not a failure signal and not a lifecycle state: this helper
 # checks structure only, so orchestrator checklist re-run, report evidence, and review/audit own completion.
 SEMANTIC_DONE_NOTE = (
@@ -81,6 +74,21 @@ APPROVAL_METADATA_VALUE_RE = re.compile(
     r"\b(?P<field>provenance|scope)\s*:\s*(?P<value>[^;\n|]+)",
     re.IGNORECASE,
 )
+PLAN_GAP_CLOSURE_RE = re.compile(r"\bclosed\s*:\s*(?P<value>[^;\n|]+)", re.IGNORECASE)
+PLAN_GAP_PREFIX = "- warrant: plan-gap"
+# A plan-gap closure is free text and is accepted as written. Only a bare non-answer is rejected, so an accurate
+# short closure such as "repaired by WP1b" costs nothing while "yes" or "TBD" records nothing. "false" denies the
+# closure outright and "null" is the same non-answer as "nil".
+CONTENTLESS_CLOSURE_VALUES = frozenset(
+    {
+        "yes", "no", "ok", "n/a", "na", "none", "nil", "null", "false",
+        "done", "fixed", "closed", "resolved", "complete", "completed",
+        "tbd", "to be determined", "todo", "pending",
+    }
+)
+HTML_COMMENT_RE = re.compile(r"<!--.*?-->", re.DOTALL)
+# Zero-width and format characters render nothing, so they cannot carry a written disposition.
+INVISIBLE_CHAR_RE = re.compile(r"[\u00ad\u200b-\u200f\u2028\u2029\u202a-\u202e\u2060-\u2064\ufeff]")
 APPROVAL_PLACEHOLDER_TOKEN_RE = re.compile(
     r"(?:^|[^a-z0-9])"
     r"(?:none|no|n/a|na|tbd|to\s+be\s+determined|todo|open|gap|unknown|unconfirmed|missing|absent|"
@@ -145,7 +153,6 @@ class PackageMarkdown:
     acceptance_checklist: list[str]
     report_path: str
     dependencies: list[str]
-    plan_advisories: list[dict[str, Any]] = field(default_factory=list)
 
     @property
     def must_satisfy_ids(self) -> list[str]:
@@ -290,7 +297,7 @@ def cmd_validate_plan(args: argparse.Namespace) -> dict[str, Any]:
         "mechanical_only": True,
         "semantic_done": False,
         "semantic_done_note": SEMANTIC_DONE_NOTE,
-        "advisories": [advisory for package_id in sorted(packages) for advisory in packages[package_id].plan_advisories],
+        "advisories": [],
     }
 
 
@@ -730,48 +737,6 @@ def validate_dependency_cycles(packages_data: list[Any]) -> list[str]:
     return errors
 
 
-def acceptance_quality_advisories(
-    package_id: str,
-    acceptance_checklist: list[str],
-    source: str,
-    *,
-    has_closure_justification: bool,
-) -> list[dict[str, Any]]:
-    """Non-blocking plan-quality signals for acceptance atomicity and package closure size.
-
-    These never fail validation and never split a package. A compound claim only earns a re-read, and an
-    oversized checklist only earns an explicit ``Closure justification:`` note, because counts are warning
-    signals rather than universal thresholds.
-    """
-    advisories: list[dict[str, Any]] = []
-    for item in acceptance_checklist:
-        claim = AC_CLAIM_SPLIT_RE.split(item, maxsplit=1)[0]
-        conjunctions = len(AC_CONJUNCTION_RE.findall(claim))
-        if conjunctions >= AC_CONJUNCTION_ADVISORY_MIN:
-            advisories.append(
-                {
-                    "kind": "acceptance_atomicity",
-                    "package": package_id,
-                    "source": source,
-                    "item": acceptance_item_id(item) or claim.strip()[:60],
-                    "conjunctions": conjunctions,
-                    "message": "checklist claim chains multiple concerns; confirm one behavioral claim, one observable boundary, one primary check, one failure condition",
-                }
-            )
-    count = len(acceptance_checklist)
-    if count > AC_COUNT_ADVISORY_MAX and not has_closure_justification:
-        advisories.append(
-            {
-                "kind": "closure_size",
-                "package": package_id,
-                "source": source,
-                "acceptance_items": count,
-                "message": f"{count} acceptance items exceeds the {AC_COUNT_ADVISORY_MAX}-item advisory band; record a 'Closure justification:' note stating the one coherent closure this size buys. Atomic items raise counts by design; never split a package merely to lower this number",
-            }
-        )
-    return advisories
-
-
 def parse_package_markdown(path: Path, package_id: str) -> PackageMarkdown:
     text = read_text_file(path, f"package Markdown {path}")
     errors: list[str] = []
@@ -831,12 +796,6 @@ def parse_package_markdown(path: Path, package_id: str) -> PackageMarkdown:
         acceptance_checklist=acceptance_checklist,
         report_path=report_paths[0],
         dependencies=dependencies,
-        plan_advisories=acceptance_quality_advisories(
-            package_id,
-            acceptance_checklist,
-            str(path),
-            has_closure_justification=has_closure_justification(text),
-        ),
     )
 
 
@@ -990,25 +949,72 @@ def parse_bullets(body: str, *, unwrap_path: bool) -> list[str]:
     return [value for value in values if value]
 
 
+def iter_markdown_lines(text: str) -> Iterator[tuple[str, str, bool]]:
+    """Yield ``(raw_line, visible_line, fenced)`` for Markdown that may contain HTML comments.
+
+    Comments fail closed through their terminator or EOF, without treating comment-like text inside a real fence
+    as markup. A fence counts only when both raw and visible text show one: a marker inside a comment renders as
+    nothing, and a marker exposed only by removing a comment was never written.
+    """
+    active_fence: tuple[str, int] | None = None
+    in_comment = False
+    for raw_line in text.splitlines():
+        if active_fence is not None:
+            active_fence, is_fence_marker = advance_markdown_fence(raw_line, active_fence)
+            yield raw_line, raw_line, True
+            continue
+
+        visible_parts: list[str] = []
+        remainder = raw_line
+        next_in_comment = in_comment
+        while remainder:
+            if next_in_comment:
+                terminator = remainder.find("-->")
+                if terminator < 0:
+                    remainder = ""
+                    continue
+                remainder = remainder[terminator + 3 :]
+                next_in_comment = False
+                continue
+            opener = remainder.find("<!--")
+            if opener < 0:
+                visible_parts.append(remainder)
+                remainder = ""
+                continue
+            visible_parts.append(remainder[:opener])
+            remainder = remainder[opener + 4 :]
+            next_in_comment = True
+        visible_line = "".join(visible_parts)
+
+        next_fence, is_fence_marker = advance_markdown_fence(raw_line, None)
+        if is_fence_marker and advance_markdown_fence(visible_line, None)[1]:
+            active_fence = next_fence
+        else:
+            is_fence_marker = False
+            in_comment = next_in_comment
+        yield raw_line, visible_line, is_fence_marker
+
+
 def split_h2_sections(text: str) -> dict[str, str]:
     sections: dict[str, list[str]] = {}
     current: str | None = None
-    active_fence: tuple[str, int] | None = None
-    for raw_line in text.splitlines():
+    for raw_line, visible_line, fenced in iter_markdown_lines(text):
         line = raw_line.rstrip("\n")
-        was_in_fence = active_fence is not None
-        active_fence, is_fence_marker = advance_markdown_fence(line, active_fence)
-        if was_in_fence or is_fence_marker:
+        if fenced:
             if current is not None:
                 sections[current].append(line)
             continue
-        if line.startswith("## ") and not line.startswith("### "):
+        # A section heading must be wholly visible. Reading raw headings from inside or partly inside an HTML
+        # comment lets invisible required sections satisfy report validation.
+        if raw_line == visible_line and line.startswith("## ") and not line.startswith("### "):
             current = line[3:].strip()
             sections.setdefault(current, [])
             continue
         if current is not None:
             sections[current].append(line)
-    return {name: "\n".join(lines).strip() for name, lines in sections.items()}
+    # Remove section-separator newlines only. Leading spaces and tabs are report grammar,
+    # so callers that validate physical lines must receive them unchanged.
+    return {name: "\n".join(lines).strip("\n") for name, lines in sections.items()}
 
 
 def extract_slice_h3_titles(path: Path) -> dict[str, str]:
@@ -1043,15 +1049,6 @@ def strip_fenced_blocks(text: str) -> str:
         if not was_in_fence and not is_fence_marker:
             unfenced_lines.append(line)
     return "\n".join(unfenced_lines)
-
-
-def has_closure_justification(text: str) -> bool:
-    """True only for a real, non-placeholder ``Closure justification:`` line outside fenced examples."""
-    for line in strip_fenced_blocks(text).splitlines():
-        match = CLOSURE_JUSTIFICATION_RE.match(line)
-        if match and not is_placeholder_text(line[match.end():]):
-            return True
-    return False
 
 
 def report_verdicts(text: str) -> list[str]:
@@ -1146,6 +1143,40 @@ def resolve_result_pointer(registry: Registry, pointer: str, label: str) -> None
     resolve_safe_path(root, pointer, label, must_exist_file=True, root_label=root_label)
 
 
+def validate_plan_gaps_section(report_path: Path, plan_gaps_body: str) -> list[str]:
+    """Validate the strict flat physical-line grammar and require closed entries."""
+    lines = [raw_line.rstrip() for raw_line in plan_gaps_body.splitlines() if raw_line.rstrip()]
+    if lines == ["- none"]:
+        return []
+    if not lines or any(
+        not line.startswith(PLAN_GAP_PREFIX)
+        or (
+            line[len(PLAN_GAP_PREFIX) : len(PLAN_GAP_PREFIX) + 1]
+            and line[len(PLAN_GAP_PREFIX)] not in " \t—–-:;,.!?([{"
+        )
+        or "<!--" in line
+        or "-->" in line
+        or "```" in line
+        or "~~~" in line
+        for line in lines
+    ):
+        return [
+            f"{report_path}: ## Plan gaps must contain sole exact `- none` or one or more column-zero, "
+            f"single-line entries beginning exactly `{PLAN_GAP_PREFIX}`; blank separator lines and trailing "
+            f"whitespace are allowed, but every other physical line is noncanonical."
+        ]
+
+    errors: list[str] = []
+    for entry in lines:
+        if has_plan_gap_closure(entry) or has_approval_provenance_scope(entry):
+            continue
+        errors.append(
+            f"{report_path}: ## Plan gaps entry is still open; close it on the same physical line with a "
+            f"substantive 'closed:' note, or with non-placeholder approval, provenance, and scope: {entry}"
+        )
+    return errors
+
+
 def validate_gaps_section(report_path: Path, gaps_body: str) -> list[str]:
     if is_empty_gaps_deviations_section(gaps_body):
         return []
@@ -1230,22 +1261,18 @@ def validate_report_markdown(
     elif "Reviewed state" not in sections:
         pass
 
-    advisories: list[dict[str, Any]] = []
+    # An open plan gap is a completion blocker, not a note: the package is not done until it is routed through
+    # planning continuation and closed. It is an error rather than an advisory so this command's success signal
+    # cannot say "structurally complete" while a known obligation is missing.
+    #
+    # Closure must never mean erasure. An entry closes in place by recording how it closed, so the audit trail of
+    # the omitted requirement survives into the report. The section is required and its dispositions are bullets,
+    # so the cheapest escape is writing `- none` -- a falsehood an auditor can read -- not an invisible deletion.
     plan_gaps_body = sections.get("Plan gaps")
-    if plan_gaps_body is not None:
-        open_gaps = [entry for entry in parse_bullets(plan_gaps_body, unwrap_path=False) if entry.strip().lower() != "none"]
-        if open_gaps:
-            advisories.append(
-                {
-                    "kind": "plan_gap_open",
-                    "package": package.package_id,
-                    "source": str(report_path),
-                    "entries": open_gaps,
-                    "message": "open ## Plan gaps entry: route through planning continuation and close it before done or dependent unlock",
-                }
-            )
+    if plan_gaps_body is not None:  # absence is already reported by the required-section check above
+        errors.extend(validate_plan_gaps_section(report_path, plan_gaps_body))
 
-    return ReportValidationResult(errors, advisories)
+    return ReportValidationResult(errors, [])
 
 
 def parse_table(body: str) -> list[ProofRow]:
@@ -1436,9 +1463,33 @@ def is_empty_gaps_deviations_section(value: str) -> bool:
         stripped = line.strip()
         if not stripped:
             continue
-        if not re.fullmatch(r"(?:[-*]\s+|\d+\.\s+)?None\.?", stripped, flags=re.IGNORECASE):
+        if not re.fullmatch(r"(?:[-*+]\s+|\d+[.)]\s+)?None\.?", stripped, flags=re.IGNORECASE):
             return False
     return True
+
+
+def has_plan_gap_closure(value: str) -> bool:
+    """True when a plan-gap entry records a substantive ``closed:`` route.
+
+    Closure text is free prose and is taken as written: describing a gap accurately must never cost anything.
+    Only a closure that says nothing is rejected. The unresolved-marker scan is deliberately scoped to the
+    closure value, so a gap whose *description* names "the open-file limit" or "the TODO scanner" stays closable.
+    """
+    closures = [match.group("value") for match in PLAN_GAP_CLOSURE_RE.finditer(value)]
+    return bool(closures) and all(is_substantive_closure(closure) for closure in closures)
+
+
+def is_substantive_closure(value: str) -> bool:
+    # Text that renders nothing records nothing, so a comment or zero-width run is dropped before the value is
+    # weighed. This is scoped to the closure rather than folded into the shared normalizer, where removing an
+    # invisible separator would instead *hide* a placeholder word from the approval detector.
+    visible = INVISIBLE_CHAR_RE.sub("", HTML_COMMENT_RE.sub("", value))
+    # normalize_approval_placeholder_value is reused for case/punctuation folding only; the approval placeholder
+    # detector itself is not applied here, because it searches free text for words a real closure may contain.
+    normalized = normalize_approval_placeholder_value(visible)
+    if not normalized or normalized in CONTENTLESS_CLOSURE_VALUES:
+        return False
+    return UNRESOLVED_MARKER_RE.search(value) is None
 
 
 def has_approval_provenance_scope(value: str) -> bool:

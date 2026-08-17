@@ -15,11 +15,11 @@ Fail if any required input is missing, unsafe, unreadable, malformed, stale, roo
 1. `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/conceptualize-slice-authority.md`
 2. `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/clean-code-rules.md`
 3. `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/slice-first-artifacts.md`
-4. `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/package-lifecycle.md`
+4. `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/package-lifecycle.md`, then
+   `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/package-verification-report.md` for the report shape item 6 requires
 5. every artifact set's artifact-root `.tasks/<feature>/SPEC.md` and `.tasks/<feature>/tasks.json`
-6. every artifact-root registry package Markdown and lightweight package verification report,
-   including its `## Acceptance Checklist Result`, `## Blocking findings`, `## Advisory notes`, `## Plan gaps`,
-   and `## Reviewed state`
+6. every artifact-root registry package Markdown and lightweight package verification report, reading every
+   section `plugins/super-developer/references/package-verification-report.md` defines
 7. every orchestrator-screened Slice in the selected artifact workspace and every Slice referenced by
    SPEC/package Markdown
 8. Semgrep raw/summary summaries through bounded helper views when enabled/contracted; never raw JSON wholesale
@@ -57,8 +57,9 @@ Mechanical validation is necessary, never sufficient. Judge evidence sufficiency
 ### 4. Package Reports and Checklist Reconciliation
 For each lightweight package report, require verdict `PASS`, every `## Acceptance Checklist Result` item marked
 `pass` with a resolvable evidence pointer, no open `## Blocking findings`, a `## Reviewed state` naming the
-verified worktree/ref/commit, its `## Plan gaps` disposition (every entry routed through planning continuation and
-closed, or durably approved as out of scope — an open gap on a `done` package is a `[RESULT-GAP]` blocker), and
+verified worktree/ref/commit, its `## Plan gaps` disposition (the section is mandatory; every entry routed through
+planning continuation and closed, or durably approved as out of scope — an open gap, a missing section, or a
+`- none` contradicted by the report's own findings on a `done` package is a `[RESULT-GAP]` blocker), and
 — when Semgrep is enabled — its recorded scan evidence. Advisory notes never
 change the verdict.
 

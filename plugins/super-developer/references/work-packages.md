@@ -18,8 +18,7 @@ are not packages unless they create substantial reusable verification or test in
 - **`SPEC.md`:** accepted requirements, constraints, non-goals, and verification summary.
 - **Registry:** package list, paths, status signals, and dependency IDs only.
 - **Package Markdown:** authoritative package assignment.
-- **Package result report:** one result file (Verdict, Acceptance Checklist Result, Blocking findings, Advisory
-  notes, Plan gaps, Reviewed state, Gaps).
+- **Package result report:** one result file whose shape is owned by `package-verification-report.md`.
 
 Registry status and helper results are signals, not proof.
 
@@ -46,13 +45,12 @@ Split when one agent cannot close those dimensions coherently. Keep work togethe
 multiply shared harness ownership, duplicate evidence, or add more fixed gate cost than it removes. Counts of
 files, scenarios, or commands are warning signals, never universal thresholds.
 
-`sliceproof.py validate-plan` emits non-blocking advisories when an acceptance claim is compound or a checklist
-exceeds its advisory size band. They request a decision, never a split: either rebalance the boundary, or record a
-`Closure justification:` line in package `Notes` naming the one coherent closure that size buys and what splitting
-would duplicate. Recording that line clears the size signal. Never split a package merely to lower a count.
+Closure size and claim atomicity are review judgements, not helper checks. `sliceproof.py` deliberately measures
+neither: both were tried as textual proxies and removed, because a size band flagged every real package here and a
+conjunction count fired on ordinary noun lists while missing genuinely chained clauses. A proxy that fires on the
+norm teaches agents to silence it. The plan reviewer owns both signals and reads them semantically.
 
-Return unresolved material
-empirical uncertainty to the owning orchestrator for conditional `empirical-spike`; do not guess boundaries.
+Return unresolved material empirical uncertainty to the owning orchestrator for conditional `empirical-spike`; do not guess boundaries.
 Avoid tiny packages unless risk or isolation justifies their fixed lifecycle cost.
 
 ## IDs and Dependencies

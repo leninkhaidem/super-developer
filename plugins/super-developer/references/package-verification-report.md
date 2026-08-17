@@ -54,9 +54,28 @@ PASS | FAIL | PENDING_VERIFICATION
 - **Warrant:** every blocking finding carries `warrant: AC-<id>`, `warrant: regression:<ref>`, or
   `warrant: override:<class>`. An unwarranted finding is not blocking: it becomes an advisory note, or a
   `## Plan gaps` entry (`warrant: plan-gap`) when it names a real obligation the frozen checklist omits.
-  A plan gap never changes the verdict and never starts a code repair loop, but it is a plan defect: while it
-  stays open the package does not become `done` and does not unlock dependents. The orchestrator routes it to
-  planning continuation, so a missing requirement is neither forced in by a verifier nor lost.
+  A plan gap never changes the verdict and never starts a code repair loop, but it is a plan defect, not an
+  advisory: while it stays open `validate-package-complete` and `validate-final` fail, the package does not become
+  `done`, and dependents do not unlock. The orchestrator routes it to planning continuation, so a missing
+  requirement is neither forced in by a verifier nor lost.
+- **This file is the single grammar authority for `## Plan gaps`.** Every real entry starts at column zero with
+  exact `- warrant: plan-gap` and occupies one single physical line. A newly discovered omission uses the canonical
+  open entry `- warrant: plan-gap — <plain obligation>` with no disposition. This honest open form intentionally
+  fails completion with `entry is still open`; the orchestrator routes it to planning continuation instead of anyone
+  fabricating a decision. Planning then closes the same entry in place on that physical line by appending one of the
+  two dispositions: a substantive `closed:` note, or durable out-of-scope approval with non-placeholder approval,
+  provenance, and scope. Closing a plan gap never means deleting it.
+- A closure uses a free-prose `closed:` value. The helper rejects a rendered-empty value, including a
+  comment-or-invisible-only value, and these exact contentless values after case, punctuation, and spacing
+  normalization: `yes`, `no`, `ok`, `n/a`, `na`, `none`, `nil`, `null`, `false`, `done`, `fixed`, `closed`,
+  `resolved`, `complete`, `completed`, `tbd`, `to be determined`, `todo`, and `pending`. It also rejects `TODO` or
+  `OPEN` inside the closure value. Those terms may truthfully appear in the obligation description before `closed:`,
+  or after the closure-value delimiter (`;` or `|`), without opening the closure because they are outside its value.
+- Blank separator lines and trailing whitespace are allowed. Leading indentation, wrapping, nesting, alternate
+  markers, comments, fences, prose, malformed warrants, and mixed `- none` are not. The empty disposition is sole
+  exact lowercase `- none`. Enforcement is immediate for new runs, with no compatibility path, fallback, migration,
+  adapter, flag, or hidden mode. The helper validates the flat mechanical shape and the listed mechanical open-state
+  rules; verifiers and auditors retain semantic truthfulness and sufficiency judgment.
 - **Evidence authenticity:** a pointer plus observed output must resolve to real output (a test id + result, a
   command + observed result, or a `manual (approved)` observation). A PASS row with a hollow non-path claim is
   not a semantic done signal. The helper only checks presence, non-placeholder, and safe path existence when the
@@ -64,8 +83,10 @@ PASS | FAIL | PENDING_VERIFICATION
 - **Executable-by-default:** a `manual` result is acceptable only for an item the plan froze as a human-approved
   `manual (approved)` exception at the plan gate. The orchestrator does not re-run manual items.
 - **Gaps** must be `none` or carry approval, provenance, and scope. The helper checks that metadata presence only.
-- `## Plan gaps` is not a helper-required section: an absent section reads as `none`, so reports written before it
-  existed stay valid and no migration is forced. Write it whenever a real omitted obligation was found.
+- **`## Plan gaps` is required and uses only the flat grammar above.** Finding nothing is the sole exact written
+  claim `- none`, never an omission. Every other nonblank physical line must be a canonical real entry; the helper
+  does not interpret Markdown ownership or silently discard unknown content. Copy the template above and the section
+  is already valid.
 - Mechanical `sliceproof.py` output is structural fail-closed, never semantic authenticity. Helper ok alone is
   not done.
 

@@ -60,8 +60,8 @@ python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-final \
 
 `validate-package-complete` is the only result command. It and `validate-final` are read-only: only the
 orchestrator or agent writes the result file. They return JSON on stdout when successful. On failure, they return
-JSON on stderr with `errors` and a top-level `advisories` array. `validate-final` aggregates advisories across
-packages and includes them even when hard errors also exist.
+JSON on stderr with `errors`. Both also carry a top-level `advisories` array, but the helper emits no advisories:
+it is always `[]`, kept only so the JSON shape stays stable. Read `errors`; there is no advisory channel to route.
 
 ## Mechanical Boundaries
 
@@ -77,13 +77,13 @@ packages and includes them even when hard errors also exist.
 
 `validate-package-complete` checks one selected new-shape package: checklist coverage, cheap pointer resolve
 (presence, non-placeholder, and safe path existence when the pointer looks like a path), Gaps metadata presence,
-and structural fail-closed (Verdict FAIL, any non-pass item, or any open blocker). A registry that still declares
+Plan gaps present and every entry closed in place, and structural fail-closed (Verdict FAIL, any non-pass item, or
+any open blocker). A registry that still declares
 Legacy-shaped packages cannot pass new-shape validation. The helper does not run tests or judge semantics.
 Helper ok is not
 done; done is orchestrator re-run recorded PASS plus helper ok.
 
-`validate-final` runs plan and result checks for every package, requires every package to be `done`, and
-aggregates advisories across packages.
+`validate-final` runs plan and result checks for every package and requires every package to be `done`.
 
 The helper does not run tests, inspect implementation semantics, judge evidence
 truthfulness/sufficiency, mutate registry status, write the result file, or replace review/audit.

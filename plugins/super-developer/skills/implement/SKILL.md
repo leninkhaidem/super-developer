@@ -22,10 +22,12 @@ Loop map: dispatch package waves → verify each against its Acceptance Checklis
   same-requirement plan repair/focused re-review, repairs, code review, audit, evidence, checkpoints, or contracted
   pushes. Present no execution decision unless a Stop-if boundary is reached.
 - **Done means evidence, not opinion.** A package is done only when **every item on its frozen `## Acceptance
-  Checklist` (in the package Markdown) passes with authentic evidence and no open blocking finding remains.**
-  The feature is delivered only when the SPEC `## Acceptance` end-to-end checks pass on integrated code.
+  Checklist` (in the package Markdown) passes with authentic evidence, no open blocking finding remains, and every
+  `## Plan gaps` entry is closed.** The feature is delivered only when the SPEC `## Acceptance` checks pass on
+  integrated code.
 - **Severity bar.** Only **blocking** findings (correctness, security, data-loss, contract-break) trigger
-  repair. Everything else is **advisory** — logged, never looped, never a reason to withhold done.
+  repair. Advisory findings are logged, never looped, never a reason to withhold done. A plan gap is neither: it
+  never triggers repair, but it blocks done until routed through planning continuation.
 - **Semantic delta-only re-verification.** Dependency edges are readiness/sequencing, not staleness fan-out.
   Classify affected package/checklist/result-report and seam evidence from changed behavior and contracts;
   unknown impact widens, while unaffected results remain reusable. Never force descendants or the whole feature.
@@ -39,7 +41,7 @@ Loop map: dispatch package waves → verify each against its Acceptance Checklis
   `review-plan` `implementation-continuation-focused`; restore readiness and continue. Never send it to a code
   repair worker. Return to the user only when this route reaches a Stop-if boundary.
 - The main agent orchestrates only (validate, dispatch, verify handoffs, merge, route repairs, checkpoint);
-  package agents do the substantive code/test/doc/evidence work. Verifier, reviewer, and auditor are read-only.
+  package agents do the substantive work. Verifier, reviewer, and auditor are read-only.
 - Prefer repository/official evidence. For plan-owned material readiness gaps, inventory bounded logical questions
   and invoke `empirical-spike` once per attempt under the three-attempt circuit. Parallelize independent questions;
   sequence only when accepted evidence creates the next question. Retain context; the producer never prompts/routes.
@@ -81,7 +83,7 @@ Loop map: dispatch package waves → verify each against its Acceptance Checklis
    AC item into the result file; a failed re-run is automatic FAIL with no LLM. Then dispatch the verifier with
    `references/package-verification.md` only for enhanced-risk packages and only for defects the check cannot
    show. Route any package-agent/verifier plan defect through the Plan-defect route before retrying readiness.
-   A package is done only on orchestrator re-run recorded PASS plus a clean `sliceproof.py validate-package-complete`.
+   `../../references/package-lifecycle.md` owns the completion conditions.
 6. Dispatch one worker per coherent blocking **code**-finding cluster (`references/repair-agent-contract.md` via
    `references/package-dispatch.md`); never give that worker a plan-owned defect. After repair, refresh affected
    package evidence and focused seams
@@ -89,9 +91,8 @@ Loop map: dispatch package waves → verify each against its Acceptance Checklis
    equivalent code/artifact state, cwd, environment/data, isolation/order assumptions, and evidence mapping;
    distinct isolation, cleanup, nondeterministic, or package checks still run. Track the logical cluster through
    the three-total-attempt circuit. Advisory findings are recorded, not repaired.
-7. Treat package `done` as the local evidence fact established by orchestrator re-run PASS, enhanced-risk
-   verifier closure when applicable, and `validate-package-complete` (see `references/package-integration-gates.md` and
-   `../../references/package-lifecycle.md`); it does not itself unlock downstream work. Merge through the
+7. Treat package `done` as a local evidence fact only (conditions in `references/package-integration-gates.md`
+   and `../../references/package-lifecycle.md`); it does not itself unlock downstream work. Merge through the
    integration worktree, close post-merge freshness, and complete the delivery-context gate before downstream
    unlock or progression. Only for delivery context `feature`, run the contracted non-force feature checkpoint
    and verify remote feature SHA = integration `HEAD`; stop on failure/divergence. Planned-hotfix has no feature

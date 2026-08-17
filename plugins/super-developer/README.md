@@ -39,7 +39,7 @@ A planned feature lives under `.tasks/<feature>/` and points to optional `.plann
 | `.tasks/<feature>/SPEC.md` | Accepted requirements, constraints, non-goals, Slice inventory, and verification summary. |
 | `.tasks/<feature>/tasks.json` | Lightweight registry only: feature metadata, package paths, `report_path`, status, and dependencies. |
 | `.tasks/<feature>/packages/<WP-ID>.md` | Work-package assignment: scope, Slice obligations, primary paths, verification expectations, report_path, dependencies. |
-| `.tasks/<feature>/reports/<WP-ID>.package-verification.md` | Independent package result: Verdict, Acceptance Checklist Result, Blocking findings, Advisory notes, Plan gaps, Reviewed state, Gaps. |
+| `.tasks/<feature>/reports/<WP-ID>.package-verification.md` | Independent package result; section shape owned by `references/package-verification-report.md`. |
 | `.tasks/<feature>/reviews/review-code-state.json` | Review-code governance readiness for audit handoff. |
 
 `tasks.json` is bookkeeping. Package Markdown owns assignment, `report_path` names the package result, review-code state owns final-review readiness, and audit owns the final PASS/FAIL judgment.

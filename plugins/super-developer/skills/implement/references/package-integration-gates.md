@@ -24,11 +24,10 @@ For each returned package:
    commit/ref. Do not commit ignored `.tasks` result artifacts.
 6. For enhanced-risk packages only, dispatch the independent verifier after the orchestrator re-run. The verifier
    checks checklist-invisible blocking risk and returns its verdict and findings; standard-risk packages skip it.
-7. The orchestrator writes or refreshes the single declared result report with: `### Verdict`,
-   `## Acceptance Checklist Result` (item, pass/fail, pointer, and observed output), `## Blocking findings`
-   (each carrying a `warrant:`), `## Advisory notes`, `## Plan gaps`, `## Reviewed state`, and `## Gaps`. Record
-   enhanced verifier findings there when applicable. A `## Plan gaps` entry does not fail the verdict; handle it
-   under the Plan-Defect Continuation Gate below.
+7. The orchestrator writes or refreshes the single declared result report in the shape owned by
+   `plugins/super-developer/references/package-verification-report.md`, recording enhanced verifier findings there
+   when applicable. A `## Plan gaps` entry does not fail the verdict; handle it under the Plan-Defect Continuation
+   Gate below, which blocks `done` and dependent unlock until it is closed.
 8. Reject a missing, failed, placeholder, or stale result report, or any Acceptance Checklist Result that cannot
    be resolved to real evidence; refresh rather than bypass.
 9. Run the pre-done completion helper after the result exists and before accepting/merging as complete,
@@ -41,9 +40,13 @@ For each returned package:
    ```
 
 10. Treat helper success as a mechanical signal only; semantic truthfulness remains with the orchestrator re-run,
-    the enhanced verifier when applicable, and final audit. Capture JSON advisories; route
-    `context_only_slice_drift` to affected-surface classification as non-blocking by default, while reviewer
-    authority may escalate material risk.
+    the enhanced verifier when applicable, and final audit. Classify `context_only_slice_drift` yourself — it is a
+    reviewer judgement, never a helper output — routing it to affected-surface classification as non-blocking by
+    default, while reviewer authority may escalate material risk. An open `## Plan gaps` entry is not an advisory:
+    the helper fails `validate-package-complete` until every entry is closed in place, on the routes and in the
+    shapes `plugins/super-developer/references/package-verification-report.md` defines. Never delete an entry to
+    clear the gate;
+    the record is the point.
 11. Confirm package branches did not force-add or commit ignored `.tasks` result artifacts. If they did, preserve
     artifacts in the artifact root, repair the branch to code/doc changes only, and keep the package incomplete.
 12. Merge each accepted package branch at most once through the integration worktree using the `worktree` skill.
@@ -80,10 +83,8 @@ readiness, and continue autonomously. Otherwise use `implement` Stop if. Never a
 or send the defect to an ordinary code repair worker while it remains unresolved.
 
 ## Report Shape and Re-Verification
-Package result reports use the shape from `plugins/super-developer/references/package-verification-report.md`:
-`## Package Verification: <WP-ID>` with `### Verdict`, `## Acceptance Checklist Result` (including pointer and
-orchestrator-observed output), `## Blocking findings`, `## Advisory notes`, `## Plan gaps`, `## Reviewed state`,
-and `## Gaps`. There is no separate matrix, receipt, or state-binding artifact.
+Package result reports use the shape from `plugins/super-developer/references/package-verification-report.md`.
+There is no separate matrix, receipt, or state-binding artifact.
 
 After a blocking repair, re-verify affected checklist/result-file evidence and focused seams delta-only, then
 rewrite affected reports. Stabilize state and run/reuse the minimum command union only when code/artifact state,
@@ -132,7 +133,7 @@ state, keep package scans primary and run one integrated scan only for named cro
 and do not widen/fix/rescan without a newly named surface. Raw direct `semgrep` scans are invalid evidence.
 
 Finalize runtime evidence, termination, and cleanup; refresh affected result-file state.
-Then run from the code root for every included artifact root/task set, preserving JSON advisories:
+Then run from the code root for every included artifact root/task set:
 
 ```bash
 python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-final \

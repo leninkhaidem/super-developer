@@ -10,9 +10,12 @@ Registry package status is routing only: `pending`, `in_progress`, `blocked`, or
 correctness. Dashboards may show status, dependency readiness, and helper results as mechanical signals only.
 
 ## Definition of done
-A package is **done** when its **frozen `## Acceptance Checklist`** (in the package Markdown, approved at the plan gate)
-passes: every item shows a real passing check with authentic evidence, and no open blocking finding remains.
-That checklist is the closed, objective done-definition — the verifier checks exactly it, inventing nothing.
+The **frozen `## Acceptance Checklist`** (in the package Markdown, approved at the plan gate) decides the report
+**verdict**: PASS needs every item to show a real passing check with authentic evidence, and no open blocking
+finding. That checklist is the closed, objective verdict-definition — the verifier checks exactly it, inventing
+nothing. A package is **done** when that verdict is PASS *and* every `## Plan gaps` entry is closed in place or
+durably approved as out of scope. A plan gap never changes the verdict, and it never starts a repair loop, but it
+is a plan defect: while one stays open the package is not done. The full gate is under `## Completion gate`.
 Package completion is a local evidence fact: source/sidecar publication, final review/audit, target delivery,
 release/deployment, and post-delivery validation are downstream gates and cannot be checklist prerequisites.
 Later evidence changes may stale completion through the existing freshness rules; publication cannot create it.
@@ -34,10 +37,13 @@ A package becomes `done` only when:
 2. the result file records every item pass with observed output, no open blocking finding, and Gaps `none` or
    approved metadata;
 3. `validate-package-complete` succeeds as a read-only structural check;
-4. any blocking-finding repairs are closed;
-5. every `## Plan gaps` entry is closed — routed through planning continuation and re-verified, or durably approved
-   as out of scope. `validate-package-complete` reports each open entry as a `plan_gap_open` advisory; treat that
-   advisory as an unmet completion condition, never as an optional note.
+4. the enhanced-risk verifier closed, when one was applicable;
+5. any blocking-finding repairs are closed;
+6. every `## Plan gaps` entry is closed on one of two routes — routed through planning continuation and
+   re-verified (record `closed:` naming it in plain words), or durably approved as out of scope (record approval,
+   provenance, and scope). Close every entry in place; never delete one to clear the gate, because the record of
+   the omitted obligation is the point. `package-verification-report.md` owns the section's required shape, and
+   the helper fails while any entry stays open.
 
 ```bash
 python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-package-complete \

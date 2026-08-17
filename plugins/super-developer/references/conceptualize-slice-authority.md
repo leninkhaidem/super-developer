@@ -37,7 +37,7 @@ Cross-role consumers rely on these durable authoring invariants:
 
 ## Interface Contracts
 
-A material H3 is *interface-bearing* when a reasonable implementation could satisfy its words and still be wrong (wrong command, API, flag, path, config key, output, or lifecycle trigger). Apply one test per material H3:
+A material H3 is *interface-bearing* when a reasonable implementation could satisfy its words and still be wrong — wrong command, API, flag, path, config key, output, or lifecycle trigger, or a violated behavioral bound such as complexity, causal ordering, or an access barrier. Behavioral bounds count: an implementation can honour every named surface and still breach the bound the words assumed. Apply one test per material H3:
 
 > Could a reasonable implementation satisfy these words and still be wrong?
 
@@ -49,7 +49,7 @@ Author the contract inside the H3 with these exact labels so every downstream co
 **Interface contract**
 - Must exist: <concrete obligation>
 - Consumer: <agent role, user, or component that invokes it>
-- Exact interface: <command shape, API/function, flag, path, config key, output path, lifecycle trigger, or ownership boundary — whichever apply>
+- Exact interface: <command shape, API/function, flag, path, config key, output path, lifecycle trigger, ownership boundary, or behavioral bound such as complexity, causal ordering, or an access barrier — whichever apply>
 - Forbidden behaviors: <explicit negative constraints>
 - Expected evidence: <what the result file should cite>
 - Non-compliance: <what counts as a violation>

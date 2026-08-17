@@ -6,6 +6,39 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+### Removed
+- Removed the two v2.4.0 plan-quality trip-wires (`acceptance_atomicity`, `closure_size`) rather than tuning them a
+  third time. Both were countable proxies for judgements that are not countable: the size band flagged package after
+  package, and the conjunction proxy fired on ordinary coordinated noun lists while missing the genuinely chained
+  clauses it existed to catch, leaving it anti-correlated with the defect it targeted. A signal that fires on the norm teaches agents to silence it. Both judgements were already owned
+  semantically by the plan reviewer and the authoring rules, which are unchanged, so nothing was lost by deleting the
+  textual proxies. This restores the project's own rule that scripts perform deterministic validation while prose
+  owns judgement.
+- Removed the trip-wires' orphaned calibration comment and the now-unreferenced `CLOSURE_JUSTIFICATION_RE`, which
+  outlived the code they described and still quoted their retired hit-rate figures.
+
+### Fixed
+- Replaced the permissive Plan-gap Markdown ownership parser with a strict flat grammar: use sole exact lowercase
+  `- none`, or column zero `- warrant: plan-gap` entries on a single physical line with each disposition on that
+  same physical line. Blank separator lines and trailing whitespace remain allowed; wrapping, nesting, alternate
+  markers, indentation, comments, fences, prose, malformed warrants, and mixed `none` now fail structurally.
+- Applied the grammar immediately for new runs with no compatibility path, migration, fallback, adapter, flag, or
+  hidden mode. The helper remains a mechanical structure/open-state gate; verifiers and auditors retain semantic
+  truthfulness and evidence-sufficiency ownership. The existing repaired and approved out-of-scope disposition
+  recognizers, required section, JSON envelopes, and completion behavior remain intact.
+- Fixed the falsification pointer missing the defect class that motivated it. `rejects:` is keyed to Slice
+  `Forbidden behaviors`, which is mandatory only for interface-bearing H3s, and the interface-bearing *test* named
+  only concrete surfaces. Behavioral bounds -- complexity, causal ordering, access barriers -- now count in the test
+  itself and in the Slice template, so an implementation that honours every named surface while breaching an assumed
+  bound is interface-bearing and inherits a falsification pointer.
+
+### Changed
+- Collapsed the package result report contract to one authoritative definition in `package-verification-report.md`,
+  with consumers pointing at it instead of restating its section list. Disposition rules stay with the actors that
+  need them. The duplication had already caused one propagation defect during v2.4.0 development.
+- Corrected `context_only_slice_drift` guidance, which instructed agents to capture it from helper JSON although no
+  script has ever emitted it. It is a reviewer classification.
+
 ## [v2.4.0] - 2026-08-16
 
 ### Added

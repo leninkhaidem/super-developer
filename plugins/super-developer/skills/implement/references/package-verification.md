@@ -74,9 +74,14 @@ Name the authority each blocking finding acts under:
   see; name the class.
 
 A finding with no warrant is not blocking — but do not discard it. Report it as advisory, or, when it names a real
-obligation the frozen checklist fails to capture, record `warrant: plan-gap` under `## Plan gaps` with the missing
-obligation stated plainly. A plan gap does not change the verdict, but it does keep the package from `done` until
-the orchestrator routes it through planning continuation. A verifier never fails a package to force in a
+obligation the frozen checklist fails to capture, record it under `## Plan gaps`.
+`plugins/super-developer/references/package-verification-report.md` is the single grammar authority for that section,
+including its canonical open form, closure form, and acceptance boundary. Return a newly discovered gap in the
+canonical open form with the plain missing obligation; never invent a disposition before planning has made one. The
+orchestrator records and routes that open entry to planning continuation, which closes the same entry in place after
+the plan is repaired or an out-of-scope disposition is durably approved. The helper owns mechanical shape and
+open-state detection; verifiers and auditors own semantic truthfulness and evidence sufficiency. A plan gap does not
+change the verdict, but it keeps the package from `done` until closed. A verifier never fails a package to force in a
 requirement the plan does not contain, and never stays silent about one the plan lacks.
 
 A `sliceproof.py` structural error blocks mechanical completion but is not a semantic defect. Correct the result
@@ -93,15 +98,9 @@ beyond the frozen checklist.
 
 Return the verifier verdict plus blocking/advisory findings to the orchestrator. The orchestrator records them in
 the single durable report at `.tasks/<feature>/reports/<WP-ID>.package-verification.md`; do not create another
-artifact or replace orchestrator-observed output. The report has exactly this semantic shape:
-
-- `### Verdict` — `PASS` or `FAIL` (the orchestrator replaces any drafted `PENDING_VERIFICATION`);
-- `## Acceptance Checklist Result` — each item → pass/fail, pointer, and orchestrator-observed output;
-- `## Blocking findings` — blocking findings each carrying a `warrant:`, or `none`;
-- `## Advisory notes` — non-blocking observations, or `none`;
-- `## Plan gaps` — obligations the frozen checklist omits (`warrant: plan-gap`), or `none`; routed, not repaired;
-- `## Reviewed state` — worktree/ref/commit;
-- `## Gaps` — `none` or approved provenance and scope.
+artifact or replace orchestrator-observed output. `plugins/super-developer/references/package-verification-report.md`
+owns the report's section list and verdict values. Two dispositions govern what you return into it: every blocking
+finding carries a `warrant:`, and a `## Plan gaps` entry is routed to planning continuation rather than repaired.
 
 Keep the handoff short. No long transcripts or additional receipt/matrix artifacts.
 
