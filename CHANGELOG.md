@@ -6,6 +6,8 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [v2.4.1] - 2026-08-17
+
 ### Removed
 - Removed the two v2.4.0 plan-quality trip-wires (`acceptance_atomicity`, `closure_size`) rather than tuning them a
   third time. Both were countable proxies for judgements that are not countable: the size band flagged package after

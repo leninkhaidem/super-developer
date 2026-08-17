@@ -1,6 +1,6 @@
 {
   "name": "super-developer",
-  "version": "2.4.0",
+  "version": "2.4.1",
   "description": "A cohesive development workflow engine \u2014 from ideation through evidence-first planning, implementation, auditing, code review, documentation, and gated release publishing. Orchestrates parallel sub-agents with git worktree isolation.",
   "author": {
     "name": "lenin khaidem",
