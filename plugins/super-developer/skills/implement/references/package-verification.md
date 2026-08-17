@@ -74,15 +74,15 @@ Name the authority each blocking finding acts under:
   see; name the class.
 
 A finding with no warrant is not blocking — but do not discard it. Report it as advisory, or, when it names a real
-obligation the frozen checklist fails to capture, record it under `## Plan gaps`. Use sole exact lowercase `- none`
-or one or more entries that start at column zero with exact `- warrant: plan-gap`, each on a single physical line
-with its repaired or approved disposition on that same physical line. Blank separator lines and trailing whitespace
-are allowed; wrapping, nesting, alternate markers, indentation, comments, fences, prose, malformed warrants, and
-mixed `none` are not. This strict grammar is enforced immediately for new runs with no compatibility path,
-fallback, migration, adapter, flag, or hidden mode. The helper owns mechanical shape and open-state detection;
-verifiers and auditors own semantic truthfulness and evidence sufficiency. A plan gap does not change the verdict,
-but it keeps the package from `done` until planning continuation closes the entry in place. A verifier never fails a
-package to force in a requirement the plan does not contain, and never stays silent about one the plan lacks.
+obligation the frozen checklist fails to capture, record it under `## Plan gaps`.
+`plugins/super-developer/references/package-verification-report.md` is the single grammar authority for that section,
+including its canonical open form, closure form, and acceptance boundary. Return a newly discovered gap in the
+canonical open form with the plain missing obligation; never invent a disposition before planning has made one. The
+orchestrator records and routes that open entry to planning continuation, which closes the same entry in place after
+the plan is repaired or an out-of-scope disposition is durably approved. The helper owns mechanical shape and
+open-state detection; verifiers and auditors own semantic truthfulness and evidence sufficiency. A plan gap does not
+change the verdict, but it keeps the package from `done` until closed. A verifier never fails a package to force in a
+requirement the plan does not contain, and never stays silent about one the plan lacks.
 
 A `sliceproof.py` structural error blocks mechanical completion but is not a semantic defect. Correct the result
 shape without starting a code-repair loop.

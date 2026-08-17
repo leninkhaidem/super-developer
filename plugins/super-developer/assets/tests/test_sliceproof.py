@@ -985,28 +985,56 @@ class SliceproofTests(unittest.TestCase):
 
     def test_plan_gap_contract_guidance_matches_flat_grammar(self) -> None:
         repo_root = ASSETS_DIR.parents[2]
-        changed = {
-            "report": REPORT_CONTRACT_PATH,
-            "verifier": repo_root / "plugins/super-developer/skills/implement/references/package-verification.md",
-            "changelog": repo_root / "CHANGELOG.md",
-        }
-        changed_text = {
-            actor: " ".join(path.read_text(encoding="utf-8").lower().split())
-            for actor, path in changed.items()
-        }
-        for actor, text in changed_text.items():
-            with self.subTest(actor=actor):
-                self.assertIn("column zero", text)
-                self.assertIn("single physical line", text)
-                self.assertIn("immediate", text)
-                self.assertIn("new runs", text)
-                self.assertIn("no compatibility", text)
-                self.assertIn("same physical line", text)
-                self.assertIn("semantic", text)
-                self.assertIn("mechanical", text)
+        report = " ".join(REPORT_CONTRACT_PATH.read_text(encoding="utf-8").lower().split())
+        verifier = " ".join(
+            (repo_root / "plugins/super-developer/skills/implement/references/package-verification.md")
+            .read_text(encoding="utf-8")
+            .lower()
+            .split()
+        )
+        changelog = " ".join((repo_root / "CHANGELOG.md").read_text(encoding="utf-8").lower().split())
 
-        report = changed_text["report"]
-        changelog = changed_text["changelog"]
+        # The shared report contract is the grammar authority and describes the honest open-to-closed lifecycle.
+        for phrase in (
+            "single grammar authority",
+            "canonical open entry",
+            "no disposition",
+            "intentionally fails completion",
+            "entry is still open",
+            "planning then closes the same entry in place",
+            "free-prose `closed:` value",
+            "rendered-empty",
+            "comment-or-invisible-only",
+            "`todo` or `open` inside the closure value",
+            "before `closed:`",
+            "after the closure-value delimiter",
+            "flat mechanical shape and the listed mechanical open-state rules",
+        ):
+            self.assertIn(phrase, report)
+        for contentless in SLICEPROOF.CONTENTLESS_CLOSURE_VALUES:
+            with self.subTest(contentless=contentless):
+                self.assertRegex(report, rf"(?<![a-z]){re.escape(contentless)}(?![a-z])")
+
+        # Verifiers return what they found without fabricating a planning decision; the orchestrator owns closure.
+        self.assertIn("package-verification-report.md` is the single grammar authority", verifier)
+        self.assertIn("canonical open form", verifier)
+        self.assertIn("never invent a disposition", verifier)
+        self.assertIn("orchestrator", verifier)
+        self.assertIn("planning continuation", verifier)
+        self.assertIn("closes the same entry in place", verifier)
+
+        # Preserve the release guidance for strict new-run grammar without duplicating it in verifier guidance.
+        for phrase in (
+            "column zero",
+            "single physical line",
+            "immediately",
+            "new runs",
+            "no compatibility",
+            "same physical line",
+            "semantic",
+            "mechanical",
+        ):
+            self.assertIn(phrase, changelog)
         self.assertNotIn("entries may wrap", report)
         self.assertNotIn("sub-bullet closure closes", report)
         self.assertNotIn("`- none.`", changelog)

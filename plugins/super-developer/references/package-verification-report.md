@@ -58,14 +58,24 @@ PASS | FAIL | PENDING_VERIFICATION
   advisory: while it stays open `validate-package-complete` and `validate-final` fail, the package does not become
   `done`, and dependents do not unlock. The orchestrator routes it to planning continuation, so a missing
   requirement is neither forced in by a verifier nor lost.
-- **Closing a plan gap never means deleting it.** Every real entry starts at column zero with exact
-  `- warrant: plan-gap`, occupies a single physical line, and carries its disposition on that same physical line.
-  The two dispositions remain a substantive `closed:` note or durable out-of-scope approval with non-placeholder
-  approval, provenance, and scope. Blank separator lines and trailing whitespace are allowed. Leading indentation,
-  wrapping, nesting, alternate markers, comments, fences, prose, malformed warrants, and mixed `- none` are not.
-  The empty disposition is sole exact lowercase `- none`. Enforcement is immediate for new runs, with no
-  compatibility path, fallback, migration, adapter, flag, or hidden mode. The helper validates this mechanical
-  shape and disposition presence only; verifiers and auditors retain semantic truthfulness and sufficiency judgment.
+- **This file is the single grammar authority for `## Plan gaps`.** Every real entry starts at column zero with
+  exact `- warrant: plan-gap` and occupies one single physical line. A newly discovered omission uses the canonical
+  open entry `- warrant: plan-gap — <plain obligation>` with no disposition. This honest open form intentionally
+  fails completion with `entry is still open`; the orchestrator routes it to planning continuation instead of anyone
+  fabricating a decision. Planning then closes the same entry in place on that physical line by appending one of the
+  two dispositions: a substantive `closed:` note, or durable out-of-scope approval with non-placeholder approval,
+  provenance, and scope. Closing a plan gap never means deleting it.
+- A closure uses a free-prose `closed:` value. The helper rejects a rendered-empty value, including a
+  comment-or-invisible-only value, and these exact contentless values after case, punctuation, and spacing
+  normalization: `yes`, `no`, `ok`, `n/a`, `na`, `none`, `nil`, `null`, `false`, `done`, `fixed`, `closed`,
+  `resolved`, `complete`, `completed`, `tbd`, `to be determined`, `todo`, and `pending`. It also rejects `TODO` or
+  `OPEN` inside the closure value. Those terms may truthfully appear in the obligation description before `closed:`,
+  or after the closure-value delimiter (`;` or `|`), without opening the closure because they are outside its value.
+- Blank separator lines and trailing whitespace are allowed. Leading indentation, wrapping, nesting, alternate
+  markers, comments, fences, prose, malformed warrants, and mixed `- none` are not. The empty disposition is sole
+  exact lowercase `- none`. Enforcement is immediate for new runs, with no compatibility path, fallback, migration,
+  adapter, flag, or hidden mode. The helper validates the flat mechanical shape and the listed mechanical open-state
+  rules; verifiers and auditors retain semantic truthfulness and sufficiency judgment.
 - **Evidence authenticity:** a pointer plus observed output must resolve to real output (a test id + result, a
   command + observed result, or a `manual (approved)` observation). A PASS row with a hollow non-path claim is
   not a semantic done signal. The helper only checks presence, non-placeholder, and safe path existence when the
