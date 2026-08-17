@@ -836,10 +836,16 @@ class SliceproofTests(unittest.TestCase):
         )
 
     def run_plan_gap_routes(self, body: str | None) -> dict[str, subprocess.CompletedProcess[str]]:
-        """Exercise one report body through both completion commands."""
+        """Exercise one Plan-gaps body through both completion commands."""
+        replacement = "" if body is None else f"## Plan gaps\n{body}"
+        return self.run_plan_gap_report_replacement(replacement)
+
+    def run_plan_gap_report_replacement(
+        self, replacement: str
+    ) -> dict[str, subprocess.CompletedProcess[str]]:
+        """Exercise an exact replacement for the canonical Plan-gaps section through both routes."""
         self.fixture.write_completed_report()
         original = self.fixture.report_path.read_text(encoding="utf-8")
-        replacement = "" if body is None else f"## Plan gaps\n{body}"
         self.fixture.report_path.write_text(
             original.replace(self.PLAN_GAPS_SLOT, replacement, 1), encoding="utf-8"
         )
@@ -883,30 +889,26 @@ class SliceproofTests(unittest.TestCase):
     def test_plan_gap_flat_grammar_rejects_noncanonical_shapes_in_both_routes(self) -> None:
         self.assert_plan_gap_failure(None, "missing ## Plan gaps section")
 
-        self.fixture.write_completed_report()
-        original = self.fixture.report_path.read_text(encoding="utf-8")
-        self.fixture.report_path.write_text(
-            original.replace(self.PLAN_GAPS_SLOT, "<!--\n## Plan gaps\n- none\n## -->", 1),
-            encoding="utf-8",
+        hidden_sections = (
+            ("terminated HTML comment", "<!--\n## Plan gaps\n- none\n## -->", False),
+            ("unclosed HTML comment through EOF", "<!--\n## Plan gaps\n- none", True),
         )
-        self.fixture.write_plan(self.fixture.plan())
-        package = self.fixture.run(
-            "validate-package-complete",
-            *self.fixture.root_args(),
-            str(self.fixture.tasks_path),
-            "--package",
-            "WP1",
-        )
-        plan = self.fixture.plan()
-        plan["work_packages"][0]["status"] = "done"
-        self.fixture.write_plan(plan)
-        final = self.fixture.run("validate-final", *self.fixture.root_args(), str(self.fixture.tasks_path))
-        for route, result in {"package": package, "final": final}.items():
-            with self.subTest(route=route, body="whole section hidden in HTML comment"):
-                self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
-                errors = json.loads(result.stderr)["errors"]
-                self.assertTrue(any("missing ## Plan gaps section" in error for error in errors), errors)
-                self.assertFalse(any("missing ## Gaps section" in error for error in errors), errors)
+        for name, replacement, hides_gaps in hidden_sections:
+            for route, result in self.run_plan_gap_report_replacement(replacement).items():
+                with self.subTest(route=route, body=name):
+                    self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+                    errors = json.loads(result.stderr)["errors"]
+                    self.assertTrue(any("missing ## Plan gaps section" in error for error in errors), errors)
+                    self.assertEqual(
+                        hides_gaps,
+                        any("missing ## Gaps section" in error for error in errors),
+                        errors,
+                    )
+
+        fenced_comment = "```md\n<!--\n## hidden example\n```\n\n## Plan gaps\n- none"
+        for route, result in self.run_plan_gap_report_replacement(fenced_comment).items():
+            with self.subTest(route=route, body="unclosed comment literal inside real fence"):
+                self.assertEqual(0, result.returncode, result.stdout + result.stderr)
 
         closed = "- warrant: plan-gap — cancellation. closed: repaired by WP1b"
         cases = (

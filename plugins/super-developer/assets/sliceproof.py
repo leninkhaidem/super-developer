@@ -952,20 +952,47 @@ def parse_bullets(body: str, *, unwrap_path: bool) -> list[str]:
 def iter_markdown_lines(text: str) -> Iterator[tuple[str, str, bool]]:
     """Yield ``(raw_line, visible_line, fenced)`` for Markdown that may contain HTML comments.
 
-    ``visible_line`` has comments removed while keeping the line count, so a comment spanning two lines cannot
-    splice them together. A fence counts only when both texts show one: a marker written inside a comment renders
-    as nothing, and a marker that appears only once a comment is removed was never written. Reading a fence that
-    is not really there silently swallows everything after it, so both callers share this one implementation.
+    Comments fail closed through their terminator or EOF, without treating comment-like text inside a real fence
+    as markup. A fence counts only when both raw and visible text show one: a marker inside a comment renders as
+    nothing, and a marker exposed only by removing a comment was never written.
     """
-    visible_text = HTML_COMMENT_RE.sub(lambda match: "\n" * match.group(0).count("\n"), text)
     active_fence: tuple[str, int] | None = None
-    for raw_line, visible_line in zip(text.splitlines(), visible_text.splitlines()):
-        was_in_fence = active_fence is not None
-        next_fence, is_fence_marker = advance_markdown_fence(raw_line, active_fence)
-        if is_fence_marker and not advance_markdown_fence(visible_line, active_fence)[1]:
-            next_fence, is_fence_marker = active_fence, False
-        active_fence = next_fence
-        yield raw_line, visible_line, was_in_fence or is_fence_marker
+    in_comment = False
+    for raw_line in text.splitlines():
+        if active_fence is not None:
+            active_fence, is_fence_marker = advance_markdown_fence(raw_line, active_fence)
+            yield raw_line, raw_line, True
+            continue
+
+        visible_parts: list[str] = []
+        remainder = raw_line
+        next_in_comment = in_comment
+        while remainder:
+            if next_in_comment:
+                terminator = remainder.find("-->")
+                if terminator < 0:
+                    remainder = ""
+                    continue
+                remainder = remainder[terminator + 3 :]
+                next_in_comment = False
+                continue
+            opener = remainder.find("<!--")
+            if opener < 0:
+                visible_parts.append(remainder)
+                remainder = ""
+                continue
+            visible_parts.append(remainder[:opener])
+            remainder = remainder[opener + 4 :]
+            next_in_comment = True
+        visible_line = "".join(visible_parts)
+
+        next_fence, is_fence_marker = advance_markdown_fence(raw_line, None)
+        if is_fence_marker and advance_markdown_fence(visible_line, None)[1]:
+            active_fence = next_fence
+        else:
+            is_fence_marker = False
+            in_comment = next_in_comment
+        yield raw_line, visible_line, is_fence_marker
 
 
 def split_h2_sections(text: str) -> dict[str, str]:
