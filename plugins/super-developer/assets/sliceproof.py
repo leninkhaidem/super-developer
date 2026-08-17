@@ -971,13 +971,15 @@ def iter_markdown_lines(text: str) -> Iterator[tuple[str, str, bool]]:
 def split_h2_sections(text: str) -> dict[str, str]:
     sections: dict[str, list[str]] = {}
     current: str | None = None
-    for raw_line, _visible_line, fenced in iter_markdown_lines(text):
+    for raw_line, visible_line, fenced in iter_markdown_lines(text):
         line = raw_line.rstrip("\n")
         if fenced:
             if current is not None:
                 sections[current].append(line)
             continue
-        if line.startswith("## ") and not line.startswith("### "):
+        # A section heading must be wholly visible. Reading raw headings from inside or partly inside an HTML
+        # comment lets invisible required sections satisfy report validation.
+        if raw_line == visible_line and line.startswith("## ") and not line.startswith("### "):
             current = line[3:].strip()
             sections.setdefault(current, [])
             continue
@@ -1121,7 +1123,10 @@ def validate_plan_gaps_section(report_path: Path, plan_gaps_body: str) -> list[s
         return []
     if not lines or any(
         not line.startswith(PLAN_GAP_PREFIX)
-        or (len(line) > len(PLAN_GAP_PREFIX) and line[len(PLAN_GAP_PREFIX)].isalnum())
+        or (
+            line[len(PLAN_GAP_PREFIX) : len(PLAN_GAP_PREFIX) + 1]
+            and line[len(PLAN_GAP_PREFIX)] not in " \t—–-:;,.!?([{"
+        )
         or "<!--" in line
         or "-->" in line
         or "```" in line

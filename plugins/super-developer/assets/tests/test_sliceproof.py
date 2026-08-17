@@ -882,6 +882,32 @@ class SliceproofTests(unittest.TestCase):
 
     def test_plan_gap_flat_grammar_rejects_noncanonical_shapes_in_both_routes(self) -> None:
         self.assert_plan_gap_failure(None, "missing ## Plan gaps section")
+
+        self.fixture.write_completed_report()
+        original = self.fixture.report_path.read_text(encoding="utf-8")
+        self.fixture.report_path.write_text(
+            original.replace(self.PLAN_GAPS_SLOT, "<!--\n## Plan gaps\n- none\n## -->", 1),
+            encoding="utf-8",
+        )
+        self.fixture.write_plan(self.fixture.plan())
+        package = self.fixture.run(
+            "validate-package-complete",
+            *self.fixture.root_args(),
+            str(self.fixture.tasks_path),
+            "--package",
+            "WP1",
+        )
+        plan = self.fixture.plan()
+        plan["work_packages"][0]["status"] = "done"
+        self.fixture.write_plan(plan)
+        final = self.fixture.run("validate-final", *self.fixture.root_args(), str(self.fixture.tasks_path))
+        for route, result in {"package": package, "final": final}.items():
+            with self.subTest(route=route, body="whole section hidden in HTML comment"):
+                self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+                errors = json.loads(result.stderr)["errors"]
+                self.assertTrue(any("missing ## Plan gaps section" in error for error in errors), errors)
+                self.assertFalse(any("missing ## Gaps section" in error for error in errors), errors)
+
         closed = "- warrant: plan-gap — cancellation. closed: repaired by WP1b"
         cases = (
             "",
@@ -896,6 +922,9 @@ class SliceproofTests(unittest.TestCase):
             "- warrant: Plan-gap — cancellation. closed: repaired by WP1b",
             "- warrant: plan gap — cancellation. closed: repaired by WP1b",
             "- warrant: plan-gapish — cancellation. closed: repaired by WP1b",
+            "- warrant: plan-gap_foo — cancellation. closed: repaired by WP1b",
+            "- warrant: plan-gap\u200bfoo — cancellation. closed: repaired by WP1b",
+            "- warrant: plan-gap\u0301 — cancellation. closed: repaired by WP1b",
             " " + closed,
             "\t" + closed,
             closed + "\n continuation text",
