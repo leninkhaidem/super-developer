@@ -72,7 +72,11 @@ Do not create or overwrite `.tasks/<feature-name>/` artifacts until all applicab
 - Every package file exists before implementation dispatch.
 - H1 matches `# Work Package: <WP-ID> — <title>`.
 - Required sections are present and non-empty: `Scope`, `Assigned Slices`, `Primary Paths`, `Verification Expectations`, `Package Verification Report`, and `Dependencies`.
-- `## Acceptance Checklist` is present with one concrete item per `Must satisfy` obligation and material verification expectation; every item is an executable check or a human-approved `manual (approved)` exception, never aspirational prose. Reject a package whose only checks are manual unless that exception is surfaced.
+- `## Acceptance Checklist` is present with complete, traceable coverage of every `Must satisfy` obligation and
+  material verification expectation. Facets of one behavioral claim with one observable boundary may share an item;
+  genuinely distinct behavioral claims remain separate. Every item is an executable check or a human-approved
+  `manual (approved)` exception, never aspirational prose. Reject a package whose only checks are manual unless that
+  exception is surfaced.
 - Every checklist item is atomic: one behavioral claim, one observable boundary, one primary check, one failure
   condition. Split items chaining unrelated concerns with `and`.
 - Items proving a Slice `Forbidden behaviors` clause state `rejects:` naming the counterfeit implementation the
