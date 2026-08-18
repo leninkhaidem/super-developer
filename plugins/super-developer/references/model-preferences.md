@@ -41,8 +41,10 @@ models:
   implementation-plan: inherit
   design-preflight: adaptive
   implement: adaptive
+  package-verifier: adaptive
   review-plan: adaptive
   review-code: inherit
+  audit: adaptive
   skeptic-agent: adaptive
 
 semgrep:
@@ -63,9 +65,11 @@ Model preferences live under `models:`:
 - `default-model` — fallback for every role.
 - `implementation-plan` — delegated planning artifact writer.
 - `design-preflight` — Design Preflight challenger sub-agents.
-- `implement` — package implementation agents.
-- `review-plan` — plan-review standard reviewers.
+- `implement` — package implementation and repair agents.
+- `package-verifier` — the independent enhanced-risk package verifier.
+- `review-plan` — plan-review standard reviewers, including the Security/Failure-Mode reviewer.
 - `review-code` — code and specialist reviewers.
+- `audit` — the cold read-only auditor.
 - `skeptic-agent` — adversarial reviewers across skills.
 
 ## Values
@@ -79,8 +83,10 @@ Adaptive defaults:
 - `implementation-plan`: inherit unless local policy overrides.
 - `design-preflight`: planning/challenge-aware selection, stronger for high-risk challenger lenses.
 - `implement`: stronger model for complex/ambiguous packages; standard model for simple, patterned packages.
+- `package-verifier`: stronger model, because this role exists only for defects an executable check cannot show.
 - `review-plan`: standard model.
 - `review-code`: standard model.
+- `audit`: stronger model.
 - `skeptic-agent`: strongest available model.
 
 ## Resolution

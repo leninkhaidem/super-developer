@@ -69,17 +69,27 @@ Confirm each report's reviewed state resolves to the final integrated state or t
 
 ### 5. Targeted Skeptical Backstop
 
-Final audit is a completeness reconciler plus targeted skeptic backstop, not a full second package verifier or
-re-review of every clean low-risk checklist item. It selectively falsifies claims and trusts fresh package-local
-work unless reconciliation, contradiction, integration, or high-value skepticism disproves it. Selectively
-falsify each report's Acceptance Checklist Result against its package-owned reviewed delta and the integrated
-diff. A mechanical helper pass proves only shape/path/reference validity; auditor judgment owns contradictions,
-dishonest `pass` claims, and semantic sufficiency. Separately classify and review integration-only or
-merge-resolution test-relevant changes under the same depth invariants; widen on canonical deep triggers,
-omissions, contradictions, or weak evidence. Also probe interface-bearing behavior,
-verifier-selected triggered risk, global/cross-package seams,
-stacked-feature obligations, weak evidence, stale reports, and high-value behavior,
-including claims cheaply disprovable from code/tests.
+Final audit is a complete reconciliation plus targeted skeptic backstop, not a full second package verifier or a
+second package-test review. Complete every artifact, Slice, result, checklist, reviewed-state, and feature
+Acceptance reconciliation above; then focus semantic code inspection on integrated production behavior, global
+and cross-package seams, shared/public contracts, caller/callee behavior, whole-feature coherence,
+integration-only or merge-resolution production changes, and triggered security/privacy/data/concurrency/lifecycle
+risk. Trust fresh package-local test-quality review while retaining auditor judgment over contradictions, hollow or
+dishonest `pass` claims, and semantic evidence sufficiency.
+
+Do not routinely inspect the entire test diff, reread verified package-local tests, fixtures, or snapshots item by
+item, or rerun package-local checks. Inspect tests or underlying evidence only when:
+
+- evidence is missing, vague, stale, or contradictory;
+- a suspected production defect is cheaply falsifiable through a targeted test;
+- integration or merge resolution changed the relevant production or test surface;
+- production behavior triggers a material security/privacy/data/concurrency/lifecycle risk; or
+- verifier/reviewer evidence identifies a specific weakness.
+
+Inspect the minimum relevant tests or evidence needed to resolve the trigger, then stop. Widen only when that result
+exposes another concrete defect, contradiction, evidence gap, or unbounded affected surface. These limits do not
+reduce full Slice/result/Acceptance reconciliation, interface-exactness checks, reviewed-state binding, or the duty
+to reject forged, hollow, or semantically insufficient evidence.
 
 ### 6. Optional Review-Code Context and Code State
 When review-code state/report is supplied or safely available from the artifact root, validate same
@@ -88,11 +98,11 @@ completed widening/no serious regression, and true `closure_status.ready_for_aud
 `closure_status.proofs_and_reports_fresh`.
 
 Audit-block review-code context only when it contradicts Slice/result/checklist/code evidence or the audit
-was asked to rely on unsafe/stale context. Inspect code/tests/build artifacts only as needed to verify claims,
-global behavior, SPEC requirements, checklist evidence, and MUST-level blockers. Use `clean-code-rules.md` for
-fake success, missing verification, caller-contract failure, unsafe trust boundaries,
-security/privacy/safety/data risk, public-contract breaks, unresolved requirements, missing completion
-evidence, or material brittleness.
+was asked to rely on unsafe/stale context. Inspect integrated production code and build artifacts as needed to
+verify global behavior, SPEC requirements, checklist evidence, and MUST-level blockers; test inspection remains
+bounded by step 5. Use `clean-code-rules.md` for fake success, missing verification, caller-contract failure,
+unsafe trust boundaries, security/privacy/safety/data risk, public-contract breaks, unresolved requirements,
+missing completion evidence, or material brittleness.
 
 ### 7. Global Completeness
 Cross-check all task sets, Slices, SPECs, packages, result files, optional review-code context, and final code for material Slice fulfillment, weak/stale evidence, unapproved deferrals, scope drift, unresolved questions, contradictions, global seams, API/schema/data/migration, security/privacy/safety requirements, accepted tradeoffs, and rare package-verifier misses.

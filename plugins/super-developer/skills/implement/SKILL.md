@@ -8,19 +8,18 @@ description: >
 
 # Implement
 
-Deliver the reviewed plan after one authorization. The main agent orchestrates; package agents write code, tests,
-and docs; enhanced-risk verification, final `review-code`, and `audit` cover risks executable checks cannot show.
-Run without re-prompting until delivery or a legitimate stop.
+After authorization, the main agent orchestrates without re-prompting until a legitimate stop; package agents
+implement. Enhanced-risk verification, final `review-code`, and `audit` cover checklist-invisible risks.
 
-Loop map: dispatch package waves → verify each against its Acceptance Checklist → repair blocking findings
-(bounded) → integrate → final `review-code` (seams) + `audit` (whole-feature Acceptance) → notify user done.
+Loop: dispatch waves → verify each against its Acceptance Checklist → repair blockers (bounded) → integrate → final
+`review-code` (seams) + `audit` (whole-feature Acceptance) → notify user done.
 
 ## Always
 
-- **One authorization, then autonomous.** After `approve auto-resolve`, do not ask again for in-scope code/test
+- **One authorization; autonomous thereafter.** After `approve auto-resolve`, do not ask again for in-scope code/test
   writes, bounded empirical probes and receipt-owned probe cleanup, corrected-packet/changed-method follow-ups,
   same-requirement plan repair/focused re-review, repairs, code review, audit, evidence, checkpoints, or contracted
-  pushes. Present no execution decision unless a Stop-if boundary is reached.
+  pushes.
 - **Done means evidence, not opinion.** A package is done only when **every item on its frozen `## Acceptance
   Checklist` (in the package Markdown) passes with authentic evidence, no open blocking finding remains, and every
   `## Plan gaps` entry is closed.** The feature is delivered only when the SPEC `## Acceptance` checks pass on
@@ -67,8 +66,13 @@ Loop map: dispatch package waves → verify each against its Acceptance Checklis
    bounded dynamic worktree authority envelope, packages and Acceptance, covered writes/commands/pushes, and stops.
    `auto-resolve` consolidates all of it into one approval.
 3. After approval, use `worktree` to create/resume fixed worktrees, create continuation packages only at their
-   focused-reviewed exact base ref/SHA and prerequisites, and create/clean receipt-owned probes only under the envelope; never clean packages before final whole-feature gates.
-4. Load `references/package-dispatch.md`; run readiness and dispatch the largest safe ready batch. Preserve the
+   focused-reviewed exact base ref/SHA and prerequisites, and create/clean receipt-owned probes only under the
+   envelope; never clean packages before final whole-feature gates.
+4. Load `references/package-dispatch.md`, `../../references/work-packages.md`, and
+   `../../references/model-preferences.md`. Before batch selection, classify every ready package as `standard` or
+   `enhanced` from `work-packages.md` triggers; keep the classification in memory and supply it to dispatch. Resolve
+   each dispatched role's model before dispatching. Run readiness and
+   dispatch the largest safe ready batch. Preserve the
    Execution Contract, roots/refs, artifacts, package/integration state, decisions, approvals, and evidence for any
    plan defect. For each unresolved empirical question, assign one stable logical-question ID and dispatch attempt 1
    as one fresh `empirical-spike` invocation. Independent questions may run in parallel; only accepted evidence may
@@ -122,7 +126,6 @@ Loop map: dispatch package waves → verify each against its Acceptance Checklis
 - Dispatching a repair worker → pass `references/repair-agent-contract.md`
 - Dispatching an enhanced-risk verifier → pass `references/package-verification.md`
 - Readiness, batching, or repair packet mechanics → `references/package-dispatch.md`
-- Package sizing/dependency semantics → `../../references/work-packages.md`
 - Artifact roles → `../../references/slice-first-artifacts.md`
 - Slice authority dispute → `../../references/conceptualize-slice-authority.md`
 - Cleanup, target merge/push, or teardown beyond the contracted source push → `worktree` skill

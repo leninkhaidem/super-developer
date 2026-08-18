@@ -472,28 +472,6 @@ def acceptance_item_id(item: str) -> str | None:
     return match.group(1) if match else None
 
 
-def is_manual_approved_item(item: str) -> bool:
-    return re.search(r"(?i)\bmanual\s*\(approved\)", item) is not None
-
-
-def is_executable_acceptance_item(item: str) -> bool:
-    check_match = re.search(r"(?i)\bcheck\s*:", item)
-    if check_match is None:
-        return False
-    payload = item[check_match.end():].strip()
-    payload = re.split(
-        r"(?:^|\s+)(?:—|–)\s*(?:expected|verify)\s*:",
-        payload,
-        maxsplit=1,
-        flags=re.IGNORECASE,
-    )[0].strip()
-    if is_placeholder_text(payload):
-        return False
-    if re.match(r"(?i)manual\s*\(approved\)", payload):
-        return False
-    return True
-
-
 def validate_acceptance_items(items: list[str], label: str, *, require_executable: bool = False) -> list[str]:
     """Right-sized checks on a frozen Acceptance list: real IDs, unique, not placeholders,
     and each item names an executable check or an approved manual exception. It does not (and

@@ -97,8 +97,8 @@ new lifecycle tiers or durable registry/artifact fields.
 Rules:
 
 - Treat package-provided commands as executable input and screen them before running.
-- Address every expectation as an `## Acceptance Checklist` item; linked Slice evidence may be cross-referenced, not silently omitted. Every package needs at least one independently confirmable executable check.
-- Seed obvious interface/risk checks when applicable, including exact interfaces, forbidden behaviors, interactive UI, retry/fail-closed, trigger precedence, lifecycle/restart/reaper, cache invalidation, model/default precedence, generated defaults, and state pollution.
+- Discharge every expectation through some `## Acceptance Checklist` item; expectations that are facets of one behavioral claim share one item, so coverage must be complete but the mapping need not be one-to-one. Linked Slice evidence may be cross-referenced, not silently omitted. Every package needs at least one independently confirmable executable check.
+- Seed obvious interface/risk checks when applicable, including exact interfaces, forbidden behaviors, interactive UI, retry/fail-closed, trigger precedence, lifecycle/restart/reaper, cache invalidation, model/default precedence, generated defaults, and state pollution. That list is a filter, not a worksheet: name the changed surface that raises each expectation you seed.
 - Planner seeds do not limit enhanced-verifier discovery; when triggered, the verifier inspects package scope,
   assigned Slices, changed code/diff, tests, expectations, and known failure modes for blocking findings.
 - Do not create a second command ledger in the registry.
@@ -118,7 +118,13 @@ Enhanced verification is triggered by surfaces such as:
 - security, privacy, or safety;
 - persistence, data integrity, migration, or rollback;
 - public API, exported types, generated contracts, or external integrations;
-- concurrency, idempotency, replay, cancellation, or cleanup.
+- concurrency, idempotency, replay, cancellation, or cleanup;
+- **split production wiring** — the package installs or replaces a dispatch, transport, callback, adapter, or
+  registry seam whose production consumer ships in a different package. Ordinary production code whose caller is
+  in the same package is not this trigger.
+
+The split is what makes it a trigger: with no production consumer to call through, the package's own checks must
+substitute one, and a check confirming the substitute passes identically whether or not the wiring is right.
 
 Do not automatically enhance generic cross-package work or orchestration, git, package-verification, review,
 audit, or quality-contract changes; those stay with final review-code and audit.

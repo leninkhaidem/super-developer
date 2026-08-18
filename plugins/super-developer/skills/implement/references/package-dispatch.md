@@ -71,8 +71,10 @@ Choose the largest safe useful batch after readiness:
 
 State the batch rationale. The orchestrator may reorder work within reviewed artifacts. Any needed plan-owned
 scope, Slice, dependency, result-file, deferral, split, or merge correction follows the continuation/focused-review
-route; prompt only for changed semantics/scope/visible behavior/risk/manual exceptions. Every package needs `SELF_REVIEW` and orchestrator re-run confirmation. Enhanced-risk packages also need the
-independent verifier. Load work-package/risk-probe rules only when triggered.
+route; prompt only for changed semantics/scope/visible behavior/risk/manual exceptions. Consume the orchestrator's
+explicit in-memory `standard`/`enhanced` classification for every ready package; do not infer or recompute depth
+here. Every package needs `SELF_REVIEW` and orchestrator re-run confirmation. Packages classified `enhanced` also
+need the independent verifier.
 
 ## Dispatch Packet Kernel
 
@@ -82,12 +84,17 @@ Every package, repair, or verifier packet is compact and pointer-based. Include:
 - approved dependencies/commands, triggered testing-authority provenance, and project instructions;
 - each executable command's identity, cwd, provenance, scope, timeout, progress/completion signal, termination,
   cleanup, expected writes, and whether it is readiness, targeted, broad, or final;
-- triggered readiness result/blockers only when applicable; for repair, attempt identity, prior outcome,
-  relevant delta, circuit state, and permitted next action;
+- triggered readiness result/blockers only when applicable; for package dispatch, the orchestrator's explicit
+  `standard`/`enhanced` classification; for repair, attempt identity, prior outcome, relevant delta, circuit state,
+  and permitted next action;
 - resolved Semgrep state; when enabled, require only
   `python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/semgrep_rules.py" scan ...`, bounded consumption, expected
   `.tasks/<feature>/semgrep/` paths/digests, and advisory findings; forbid raw direct `semgrep` scans or JSON dumps;
 - no copied package/Slice/result bodies, hidden chat summaries, or model override unless intentionally resolved.
+
+An **interrupted** dispatch — cancelled, timed out, or ended before returning — produced no result: its partial
+findings may seed a fresh packet as context, but never stand in for the verdict or close the gate it was sent to
+close. Re-dispatch the role fresh.
 
 Screen Slice paths against the artifact root: reject absolute, drive-qualified, home/shell-expanded, empty or
 traversal segments, duplicates, symlink escapes, missing/unreadable files, out-of-workspace paths, or mixed

@@ -72,7 +72,11 @@ Do not create or overwrite `.tasks/<feature-name>/` artifacts until all applicab
 - Every package file exists before implementation dispatch.
 - H1 matches `# Work Package: <WP-ID> — <title>`.
 - Required sections are present and non-empty: `Scope`, `Assigned Slices`, `Primary Paths`, `Verification Expectations`, `Package Verification Report`, and `Dependencies`.
-- `## Acceptance Checklist` is present with one concrete item per `Must satisfy` obligation and material verification expectation; every item is an executable check or a human-approved `manual (approved)` exception, never aspirational prose. Reject a package whose only checks are manual unless that exception is surfaced.
+- `## Acceptance Checklist` is present with complete, traceable coverage of every `Must satisfy` obligation and
+  material verification expectation. Facets of one behavioral claim with one observable boundary may share an item;
+  genuinely distinct behavioral claims remain separate. Every item is an executable check or a human-approved
+  `manual (approved)` exception, never aspirational prose. Reject a package whose only checks are manual unless that
+  exception is surfaced.
 - Every checklist item is atomic: one behavioral claim, one observable boundary, one primary check, one failure
   condition. Split items chaining unrelated concerns with `and`.
 - Items proving a Slice `Forbidden behaviors` clause state `rejects:` naming the counterfeit implementation the
@@ -88,7 +92,7 @@ Do not create or overwrite `.tasks/<feature-name>/` artifacts until all applicab
   cases; dimensions the SPEC `## Trust Context` places out of boundary are excluded once as a single
   `not-applicable: <dimensions>` line, not per-dimension prose on every package. Triggered
   execution-feasibility profiles are repo-backed and leave exact runtime budgets to the resolved testing authority.
-- Each expectation maps to a concrete `## Acceptance Checklist` item so package verification can check it directly; a linked Slice obligation may share the same check.
+- Each expectation is discharged by a concrete `## Acceptance Checklist` item so package verification can check it directly; expectations that are facets of one behavioral claim share one item, and a linked Slice obligation may share the same check.
 - Known risks such as interactive UI, retry/fail-closed, trigger precedence, lifecycle/restart/reaper, cache invalidation, model/default precedence, generated defaults, and state pollution are seeded when applicable.
 - Planning text says planner seeds do not limit enhanced-verifier discovery; when triggered, the verifier inspects
   package scope, assigned Slices, changed code/diff, tests, and known failure modes.

@@ -12,9 +12,9 @@ A caller-bound binding must name:
 - per-category checksums plus one checksum over the ordered complete snapshot; and
 - caller constraints. A caller-owned repair also MUST bind `repair_owner`, exact `repair_contract_path`, and
   `caller_repair_policy: explicit|auto_confirmed_blocking`; missing, malformed, or conflicting policy stops.
-  `auto_confirmed_blocking` is valid only for `repair_owner=diagnose-and-fix`, contract path
-  `${SUPER_DEVELOPER_PLUGIN_ROOT}/skills/diagnose-and-fix/references/fix-implementer-contract.md`, original Fix
-  Authorization receipt, and exactly one scope envelope: fixed paths, or canonical roots/direct-effect rule/explicit
+  `auto_confirmed_blocking` is valid only for `repair_owner=diagnose-and-fix` and the exact
+  `repair_contract_path` supplied by the `diagnose-and-fix` handoff. It also requires the original Fix
+  Authorization receipt and exactly one scope envelope: fixed paths, or canonical roots/direct-effect rule/explicit
   exclusions. Any other auto caller or missing/malformed/conflicting envelope stops.
 
 Record empty categories. Each untracked record includes file type, Git/index-compatible mode (`100644`, `100755`,
