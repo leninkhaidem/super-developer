@@ -1,21 +1,33 @@
 # Pipeline Review Workflow
 
-Pipeline mode reviews **one frozen integrated feature state** for **integration correctness**: cross-package
-seams, shared contracts, and whole-feature coherence. It trusts fresh package-local verification and does not
-re-review clean package code or re-derive whole-feature completeness (audit owns that).
+Pipeline mode reviews **one frozen integrated feature state** for **production integration correctness**. It
+trusts fresh package-local verification and does not repeat package-test review or re-derive whole-feature
+completeness (audit owns that).
 
 ## What you review
 
-Integration-first, and only this:
+Review production behavior deeply across:
 
-- cross-package seams and caller/callee integration;
-- shared contracts and public API/interface consistency across packages;
+- cross-package seams and caller/callee behavior;
+- shared/public contracts and API/interface consistency;
 - whole-feature coherence and cross-package contradictions;
-- data integrity, security/privacy/safety, and concurrency issues that only appear when packages combine.
+- integration-only and merge-resolution production changes; and
+- triggered security, privacy, data, concurrency, and lifecycle risks.
 
-**Do not** re-open package-local code unless there is a real cross-package seam problem, a contradiction, or a
-package result that is missing or reports an open blocking finding. Do not revalidate each package's Acceptance
-Checklist item by item — trust the package verifier's PASS.
+Start from production code, integrated state, and verifier evidence. Do not routinely inspect the entire test diff,
+line-review already verified package-local tests, fixtures, or snapshots, or rerun package-local checks. Trust a
+fresh package verifier PASS unless one of these widening triggers applies:
+
+- evidence is missing, vague, stale, or contradictory;
+- a suspected production defect is cheaply falsifiable through a targeted test;
+- integration or merge resolution changed the relevant production or test surface;
+- production behavior triggers a material security/privacy/data/concurrency/lifecycle risk; or
+- verifier/reviewer evidence identifies a specific weakness.
+
+When triggered, inspect only the minimum relevant tests or evidence needed to resolve the question. Stop when it is
+resolved; widen further only when the result exposes another concrete defect, contradiction, or evidence gap. A
+missing report or open blocking finding routes back to package verification rather than authorizing a routine
+package-wide rereview.
 
 ## Inputs
 

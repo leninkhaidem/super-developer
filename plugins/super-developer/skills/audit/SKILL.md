@@ -15,8 +15,10 @@ passed on the integrated code. It does not re-derive completeness by opinion or 
 ## Always
 
 - **Read-only.** Never edit code, artifacts, package results, Slices, or status.
-- **Finite checklist confirmation, not rediscovery.** Confirm the frozen checklists passed; do not invent new
-  "completeness" requirements. Audit trusts fresh package-local verification.
+- **Finite checklist confirmation, not rediscovery.** Completely reconcile frozen artifacts, Slices, results, and
+  feature Acceptance, while focusing semantic code inspection on integrated production behavior and global seams.
+  Trust fresh package-local verification, including its test-quality review; do not reread verified tests item by
+  item.
 - The gate is objective: a package's `## Acceptance Checklist` items each showing a real passing check decide its
   report verdict, and it is done only if that verdict holds **and** every `## Plan gaps` entry is closed in place
   or durably approved as out of scope; the feature is delivered iff SPEC `## Acceptance` passed on the integrated
@@ -57,8 +59,9 @@ passed on the integrated code. It does not re-derive completeness by opinion or 
    fresh cold read-only auditor for the freeze at that model. After any blocking repair, require a new integrated
    freeze; focused review-code Fix Verification may restore `CLEAN` but cannot substitute for this audit. Supply
    complete retained plus refreshed package/checklist/result and feature Acceptance evidence.
-8. The auditor reconciles all evidence and issues a complete PASS/FAIL, while selectively falsifying high-value
-   claims rather than automatically rerunning unaffected checks. Preserve its report and repair targets.
+8. The auditor reconciles all evidence and issues a complete PASS/FAIL. Semantic code inspection starts with
+   integrated production behavior and global seams; test inspection follows the bounded widening gate in
+   `references/audit-subagent-contract.md`. Preserve the report and repair targets.
 
 ## Load if needed
 

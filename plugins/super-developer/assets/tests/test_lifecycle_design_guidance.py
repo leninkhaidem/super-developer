@@ -241,7 +241,21 @@ class LifecycleDesignGuidanceTests(unittest.TestCase):
         self.assertTrue(all(x in review for x in ("two tiers", "BLOCKING", "ADVISORY", "Skeptic", "Fix Verification", "integration-first", "clean-code-rules.md")))
         self.assertTrue(all(x in verifier for x in ("closed and frozen", "Acceptance Checklist", "blocking", "advisory")))
         self.assertTrue(all(x in audit for x in ("finite", "SPEC `## Acceptance`", "read-only", "package-local verification")))
-        self.assertTrue(all(x in audit_worker for x in ("Final audit is a completeness reconciler", "not a full second package verifier")))
+        self.assertTrue(all(x in audit_worker for x in ("Final audit is a complete reconciliation", "not a full second package verifier")))
+
+        pipeline = (PLUGIN_ROOT / "skills/review-code/references/pipeline-report.md").read_text(encoding="utf-8")
+        bounded_test_review = (
+            "Do not routinely inspect the entire test diff",
+            "evidence is missing, vague, stale, or contradictory",
+            "suspected production defect is cheaply falsifiable through a targeted test",
+            "integration or merge resolution changed the relevant production or test surface",
+            "security/privacy/data/concurrency/lifecycle risk",
+            "verifier/reviewer evidence identifies a specific weakness",
+            "minimum relevant tests or evidence",
+        )
+        self.assertTrue(all(x in pipeline for x in bounded_test_review))
+        self.assertTrue(all(x in audit_worker for x in bounded_test_review))
+        self.assertIn("forged, hollow, or semantically insufficient evidence", audit_worker)
         self.assertFalse((PLUGIN_ROOT / "skills/codebase-design").exists())
 
     def test_diagnose_owns_authorization_attempts_and_stops(self) -> None:
@@ -264,7 +278,7 @@ class LifecycleDesignGuidanceTests(unittest.TestCase):
         setup = self.section(self.local_review, "## Scope and Complete-State Setup", "## Report and Explicit Action Gate")
         exact_contract = "${SUPER_DEVELOPER_PLUGIN_ROOT}/skills/diagnose-and-fix/references/fix-implementer-contract.md"
         self.assert_groups(setup, (("caller-owned repair", "MUST bind", "exact `repair_contract_path`", "caller_repair_policy"),
-                                   ("auto_confirmed_blocking", "repair_owner=diagnose-and-fix", exact_contract),
+                                   ("auto_confirmed_blocking", "repair_owner=diagnose-and-fix", "supplied by the `diagnose-and-fix` handoff"),
                                    ("original Fix", "scope envelope", "fixed paths", "canonical roots", "direct-effect", "exclusions"),
                                    ("Any other auto caller", "missing/malformed/conflicting", "stops")), "caller binding")
         gate = self.section(self.local_review, "## Report and Explicit Action Gate", "## Complete State Gate")

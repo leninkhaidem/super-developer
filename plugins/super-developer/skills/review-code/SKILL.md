@@ -14,8 +14,10 @@ Run bounded review; route report/actions by mode.
 
 - Select exactly one mode: PR, local, or planned-feature pipeline.
 - Keep PR/local review separate from Slice/result/audit obligations unless pipeline artifacts are in scope.
-- Pipeline review checks one frozen integrated state for integration correctness (seams, shared contracts,
-  coherence). It trusts fresh package-local verification and is not a whole-feature completeness gate.
+- Pipeline review checks one frozen integrated state for production integration correctness: cross-package seams,
+  shared/public contracts, caller/callee behavior, whole-feature coherence, integration-only changes, and triggered
+  security/privacy/data/concurrency/lifecycle risk. It trusts fresh package-local verification and is not a
+  whole-feature completeness gate or a second package-test review.
 - `CLEAN` means no open blocking finding remains for the reviewed state; it is not audit PASS or merge readiness.
 - Main agent owns orchestration, state gates, reports, and action routing; semantic review/role work happen through dispatched sub-agents. No mutation until the active mode allows it.
 - Revalidate reviewed-state metadata before posting, fixing, committing, evidence refresh, or audit-context handoff.
@@ -41,13 +43,13 @@ Run bounded review; route report/actions by mode.
   data/persistence/change-safety; performance/concurrency; or public-contract/architecture/integration.
 - Add Skeptic only for serious findings, risky-clean coverage, cross-batch serious conflicts, or required mode gates. Caps include Skeptic: normal 2, risky 3.
 - Resolve reviewer model only when local policy matters (`../../references/model-preferences.md`); pass `../../references/clean-code-rules.md` without loading it in the orchestrator.
-- For changed test-relevant surfaces, confirm the change is covered by a check that actually ran; do not
-  impose receipt-grammar ceremony. Trust clean package-local verification and review the integrated test delta
-  for seam coverage only.
+- For changed test-relevant surfaces, confirm the change is covered by a check that actually ran; do not impose
+  receipt-grammar ceremony. In pipeline mode, do not routinely inspect the full test diff, line-review already
+  verified package-local tests/fixtures/snapshots, or rerun package-local checks. Follow the bounded widening gate
+  in `references/pipeline-report.md` and inspect only the minimum evidence needed.
 - In pipeline mode, add Slice-first artifact-root context (package IDs, result report paths, Slice/H3 IDs,
-  Acceptance Checklist results, integrated code state) and stay integration-first: trust fresh package-local
-  verification; reopen local code only for a real seam problem, contradiction, or a package result reporting an
-  open blocking finding. Route product/design Slice drift as advisory unless it is a real integration contradiction.
+  Acceptance Checklist results, integrated code state) and stay production-integration-first. Route
+  product/design Slice drift as advisory unless it is a real integration contradiction.
 
 ## Coverage Gate
 

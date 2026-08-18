@@ -28,6 +28,9 @@ The format is based on Keep a Changelog.
   the gate it was sent to close.
 
 ### Changed
+- Refined final pipeline review and audit to concentrate semantic inspection on integrated production behavior and
+  global seams, trust fresh package-local test review by default, and inspect only minimum relevant tests when
+  concrete evidence, integration-change, defect-falsification, or high-risk triggers require widening.
 - Changed `implement` and `audit` to load `model-preferences.md` before dispatching. Neither skill loaded it, so
   package agents, repair workers, the enhanced-risk verifier, and the cold auditor were dispatched with no
   preference resolution even though `models.implement` was already resolvable from `diagnose-and-fix`.
