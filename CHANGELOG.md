@@ -6,6 +6,8 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [v2.4.2] - 2026-08-18
+
 ### Added
 - Added a **split production wiring** trigger for enhanced package verification: a package that installs or
   replaces a dispatch, transport, callback, adapter, or registry seam whose production consumer ships in a
