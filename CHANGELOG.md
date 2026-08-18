@@ -6,6 +6,51 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+### Added
+- Added a **split production wiring** trigger for enhanced package verification: a package that installs or
+  replaces a dispatch, transport, callback, adapter, or registry seam whose production consumer ships in a
+  different package now gets the independent verifier. The split is what makes it a trigger — with no production
+  consumer to call through, the package's own checks must substitute one, and a check confirming the substitute
+  passes identically whether or not the wiring is right. The orchestrator re-run cannot see that, because it
+  re-runs the same check for the same green, and downstream roles trust fresh package-local verification. Ordinary
+  production code whose caller sits in the same package is deliberately not covered.
+- Added a production-path clause to the package verifier's evidence-authenticity check: an item claiming behavior
+  on a production path must exercise the wiring surface the package itself owns — the real registration, factory,
+  or dispatch entry — rather than a test-local stand-in for it, and standing in for the package's own end is
+  blocking under `warrant: AC-<id>`. Substituting the *far* end stays legitimate, so packages remain confirmable
+  before their consumers exist and the seam still closes at final `review-code`.
+- Added `package-verifier` and `audit` model preference keys, so the independent verifier and the cold auditor
+  resolve a model from preferences instead of inheriting whatever the orchestrator happened to be running.
+- Added a plan-review check that a package's declared verification depth matches the triggers, so the new routing
+  does not depend on planner diligence alone. The reviewer already loads `work-packages.md`; nothing else changes.
+- Added an interrupted-dispatch rule to the dispatch packet kernel: a cancelled or timed-out dispatch produced no
+  result, so its partial findings may seed a fresh packet as context but never stand in for the verdict or close
+  the gate it was sent to close.
+
+### Changed
+- Changed `implement` and `audit` to load `model-preferences.md` before dispatching. Neither skill loaded it, so
+  package agents, repair workers, the enhanced-risk verifier, and the cold auditor were dispatched with no
+  preference resolution even though `models.implement` was already resolvable from `diagnose-and-fix`.
+- Changed the frozen-checklist mapping from one item per obligation and per verification expectation to complete
+  coverage without a one-to-one requirement: expectations that are facets of one behavioral claim with one
+  observable boundary are discharged by a single item naming each. The 1:1 rule sized checklists by the seed
+  catalog rather than by the package, and every surplus item cost a test, an evidence row, and a re-run on each
+  repair. Splitting genuinely distinct claims is still required by the atomicity rule and is unaffected. The same
+  coverage phrasing and the anti-boilerplate qualifier now appear in `work-packages.md`, which plan reviewers read
+  — left stale, it would have let a reviewer reject the merged items the relaxation exists to permit.
+- Changed the `rejects:` falsification rule to prefer observable consequence — output, state, error, resource
+  bound — over a structural assertion on the implementation. A structural assertion stays available as a named
+  last resort where no observable signal distinguishes the counterfeit, such as a retention bound with no
+  deterministic collection point or a cache whose only signal is load count; the item says why. Asserting
+  mechanism where an observable consequence does exist is the defect.
+- Changed the verifier's delta-only re-verification so a repair touching the package's own wiring surface is
+  re-checked exactly as at first verification. Closing a seam *across* packages remains exclusively with final
+  `review-code` Fix Verification.
+
+### Removed
+- Removed `is_manual_approved_item` and `is_executable_acceptance_item` from `sliceproof.py`. Both had no call
+  sites and no tests; `validate_acceptance_items` implements the same logic inline.
+
 ## [v2.4.1] - 2026-08-17
 
 ### Removed

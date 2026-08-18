@@ -88,7 +88,7 @@ Do not create or overwrite `.tasks/<feature-name>/` artifacts until all applicab
   cases; dimensions the SPEC `## Trust Context` places out of boundary are excluded once as a single
   `not-applicable: <dimensions>` line, not per-dimension prose on every package. Triggered
   execution-feasibility profiles are repo-backed and leave exact runtime budgets to the resolved testing authority.
-- Each expectation maps to a concrete `## Acceptance Checklist` item so package verification can check it directly; a linked Slice obligation may share the same check.
+- Each expectation is discharged by a concrete `## Acceptance Checklist` item so package verification can check it directly; expectations that are facets of one behavioral claim share one item, and a linked Slice obligation may share the same check.
 - Known risks such as interactive UI, retry/fail-closed, trigger precedence, lifecycle/restart/reaper, cache invalidation, model/default precedence, generated defaults, and state pollution are seeded when applicable.
 - Planning text says planner seeds do not limit enhanced-verifier discovery; when triggered, the verifier inspects
   package scope, assigned Slices, changed code/diff, tests, and known failure modes.

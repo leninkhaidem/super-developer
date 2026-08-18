@@ -53,7 +53,8 @@ passed on the integrated code. It does not re-derive completeness by opinion or 
 6. Confirm the feature-level `## Acceptance` checks were run against the integrated code and passed, with real
    captured output. A manual-verification exception is acceptable only if it was the human-approved exception
    recorded at the plan gate.
-7. Dispatch one fresh cold read-only auditor for the freeze. After any blocking repair, require a new integrated
+7. Load `../../references/model-preferences.md` and resolve the `audit` role model from the file. Dispatch one
+   fresh cold read-only auditor for the freeze at that model. After any blocking repair, require a new integrated
    freeze; focused review-code Fix Verification may restore `CLEAN` but cannot substitute for this audit. Supply
    complete retained plus refreshed package/checklist/result and feature Acceptance evidence.
 8. The auditor reconciles all evidence and issues a complete PASS/FAIL, while selectively falsifying high-value
@@ -62,6 +63,7 @@ passed on the integrated code. It does not re-derive completeness by opinion or 
 ## Load if needed
 
 - Helper command safety → `../../references/tool-usage.md`.
+- Resolving the auditor model → `../../references/model-preferences.md`.
 - Slice authority dispute → `../../references/conceptualize-slice-authority.md`.
 - Artifact shapes → `../../references/slice-first-artifacts.md`.
 - Auditor packet and report contract → `references/audit-subagent-contract.md`.

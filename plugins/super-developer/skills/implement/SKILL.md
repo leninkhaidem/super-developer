@@ -68,7 +68,8 @@ Loop map: dispatch package waves → verify each against its Acceptance Checklis
    `auto-resolve` consolidates all of it into one approval.
 3. After approval, use `worktree` to create/resume fixed worktrees, create continuation packages only at their
    focused-reviewed exact base ref/SHA and prerequisites, and create/clean receipt-owned probes only under the envelope; never clean packages before final whole-feature gates.
-4. Load `references/package-dispatch.md`; run readiness and dispatch the largest safe ready batch. Preserve the
+4. Load `references/package-dispatch.md` and `../../references/model-preferences.md`; resolve each dispatched
+   role's model before dispatching. Run readiness and dispatch the largest safe ready batch. Preserve the
    Execution Contract, roots/refs, artifacts, package/integration state, decisions, approvals, and evidence for any
    plan defect. For each unresolved empirical question, assign one stable logical-question ID and dispatch attempt 1
    as one fresh `empirical-spike` invocation. Independent questions may run in parallel; only accepted evidence may

@@ -74,9 +74,16 @@ Check whether:
 - every item proving a Slice `Forbidden behaviors` clause states `rejects:` naming the wrong-but-plausible
   implementation it fails against, and the named check would genuinely fail if that counterfeit were substituted;
   a check that would pass against its own counterfeit is not evidence;
+- an item that separates itself from its counterfeit by a structural assertion on the implementation — a named
+  type or data structure, a call count, source text, or syntax-tree shape — says why no observable consequence was
+  available. Such an assertion is legitimate where none is, and a finding where one is: it pins an implementation
+  no requirement asked for, so it fails a correct rewrite while proving nothing a caller can see;
 - package Markdown report paths match the registry and are usable by `sliceproof.py`;
 - package dependencies and parallel assumptions are safe, with ID-only dependency edges limited to durable prerequisites and non-obvious consumed output, contract, or evidence rationale recorded in package `Notes`;
 - verification expectations are observable and tied to Slice/package obligations and changed behavior;
+- declared verification depth matches the triggers in `plugins/super-developer/references/work-packages.md`; in
+  particular a package installing or replacing a seam whose production consumer ships in another package is
+  enhanced, since its own checks must substitute that consumer;
 - package Acceptance Checklists do not depend on source/sidecar publication, final review/audit, target delivery,
   release/deployment, or post-delivery validation;
 - triggered execution-feasibility profiles are file-backed, executable under the resolved testing authority,

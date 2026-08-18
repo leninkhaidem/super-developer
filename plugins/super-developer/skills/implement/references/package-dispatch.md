@@ -89,6 +89,10 @@ Every package, repair, or verifier packet is compact and pointer-based. Include:
   `.tasks/<feature>/semgrep/` paths/digests, and advisory findings; forbid raw direct `semgrep` scans or JSON dumps;
 - no copied package/Slice/result bodies, hidden chat summaries, or model override unless intentionally resolved.
 
+An **interrupted** dispatch — cancelled, timed out, or ended before returning — produced no result: its partial
+findings may seed a fresh packet as context, but never stand in for the verdict or close the gate it was sent to
+close. Re-dispatch the role fresh.
+
 Screen Slice paths against the artifact root: reject absolute, drive-qualified, home/shell-expanded, empty or
 traversal segments, duplicates, symlink escapes, missing/unreadable files, out-of-workspace paths, or mixed
 concept workspaces.

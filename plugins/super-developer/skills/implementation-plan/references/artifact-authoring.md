@@ -116,10 +116,11 @@ When Semgrep is enabled, keep verification expectations helper-owned and package
   with internal planning/staging meaning; legitimate domain, API, SDK, operator, developer-diagnostic, or escaped
   raw user/provider uses are allowed when audience-appropriate.
 - `Must satisfy` IDs are package closure obligations and map onto Acceptance Checklist items.
-- `## Acceptance Checklist` is the **closed, frozen done-definition**: one item per `Must satisfy` obligation and
-  per material verification expectation, each an **executable** check (command, test id, or observable output)
-  unless it carries a human-approved `manual (approved)` exception. The verifier checks exactly this list —
-  nothing invented — so items are concrete and runnable, not aspirational prose.
+- `## Acceptance Checklist` is the **closed, frozen done-definition**: every `Must satisfy` obligation and every
+  material verification expectation is discharged by some item, each an **executable** check (command, test id, or
+  observable output) unless it carries a human-approved `manual (approved)` exception. The verifier checks exactly
+  this list — nothing invented — so items are concrete and runnable, not aspirational prose. Coverage must be
+  complete; the mapping need not be one-to-one.
 - **Atomic items.** Each item makes one behavioral claim with one observable boundary, one primary check, and one
   failure condition. Split an item whose claim chains unrelated concerns — separate resource limits, distinct
   subsystems, or independent assertions joined by `and`; a single claim with compound setup stays one item.
@@ -129,6 +130,14 @@ When Semgrep is enabled, keep verification expectations helper-owned and package
   wrong-but-plausible implementation the check fails against. Ask: would this check still pass if that counterfeit
   were substituted? If yes, the check is not evidence. Items with no forbidden behavior in scope omit `rejects:`;
   this is a targeted defense against a green checklist that proves nothing, not a field to fill on every row.
+- **Prefer consequence over mechanism.** Separate an item from its `rejects:` counterfeit through observable
+  behavior — output, state, error, resource bound — wherever such a signal exists. A structural assertion on the
+  implementation itself (a named type or data structure, a call count, source text, syntax-tree shape) is a
+  legitimate last resort, not a default: it pins an implementation the requirement never asked for, so it fails a
+  correct rewrite while proving nothing a caller can observe. Reach for it only where no observable consequence
+  distinguishes the counterfeit — a retention bound with no deterministic collection point, a cache whose only
+  distinguishing signal is load count — and say in the item why the observable route is unavailable. Where an
+  observable consequence does exist, asserting mechanism instead is a defect.
 - `Context only` IDs are required reading/context; do not use them to hide package obligations.
 - Every material H3 in the full Slice inventory must be assigned, context-only with a concrete reason, or explicitly approved as deferred/out of scope/rejected.
 - Primary paths are code-root-relative starting points, not hard boundaries; the result `report_path` is declared during planning, with evidence produced later.
@@ -142,8 +151,13 @@ When Semgrep is enabled, keep verification expectations helper-owned and package
   empirical behavior blocks authoring: before writes return
   `BLOCKED: empirical_evidence_needed` to the orchestrator; never invoke `empirical-spike` or hide it in `Notes`.
   For non-blocking execution feasibility, record repo-backed sources/bounds and testing-authority provenance.
-- Each listed expectation becomes a concrete `## Acceptance Checklist` item in package order; if a Slice obligation proves it, the same check may cover both.
+- Every listed expectation is discharged by a concrete `## Acceptance Checklist` item, in package order. Where
+  expectations are facets of one behavioral claim with one observable boundary, one item discharges them all —
+  name each in that item so coverage stays legible. A Slice obligation and an expectation proving the same claim
+  share one check. Splitting one claim across several items buys no assurance and costs a test, an evidence row,
+  and a re-run each; splitting **distinct** claims is required by the atomicity rule above and is not this.
 - Seed visible interface/risk expectations without boilerplate: exact interfaces, forbidden behaviors, interactive UI, retry/fail-closed, trigger precedence, lifecycle/restart/reaper, cache invalidation, model/default precedence, generated defaults, and state pollution when applicable.
+  That list is a filter, not a worksheet: name the changed surface that raises each expectation you seed.
 - Planner seeds do not limit verifier discovery; verifier packets still require inspection of package scope, assigned Slices, changed code/diff, tests, verification expectations, and known failure modes for emergent blocking findings.
 - For externally observable surfaces, verification expectations include surface-appropriate checks
   that delivered text, examples, errors, exports, logs, or prompts are audience-appropriate,
