@@ -6,7 +6,7 @@ A marketplace for portable coding-assistant workflow skills, currently packaged 
 
 | Plugin | Description |
 |---|---|
-| [**super-developer**](plugins/super-developer/) | Full development lifecycle — divergent ideation, evidence-first planning and bug fixing, Slice-first planning, testing workflow strategy and delegated test work, parallel implementation with git worktree isolation, final review-code/audit gates, README polish, and release publishing. 15 skills. |
+| [**super-developer**](plugins/super-developer/) | Full development lifecycle — divergent ideation, evidence-first planning and bug fixing, Slice-first planning, testing workflow strategy and delegated test work, parallel implementation with git worktree isolation, final review-code/audit gates, README polish, release publishing, and standalone interactive walkthroughs. 16 skills. |
 
 More plugins coming soon: GitHub issue management, and others.
 
@@ -43,7 +43,7 @@ More plugins coming soon: GitHub issue management, and others.
 
 ### super-developer
 
-Orchestrates the full development lifecycle with 15 skills:
+Includes 16 skills for the development lifecycle and standalone tasks:
 
 ```
 conceptualize → implementation-plan → review-plan → implement → final review-code + final audit → release
@@ -53,7 +53,7 @@ The optional `conceptualize` stage maintains a minimal planning index and writes
 
 Optional Semgrep validation is disabled by default in the developer-local `.superdeveloper/preferences.yml`. First opt-in names any approved rule-cache clone or `git pull --ff-only`; routine scans stay local and run through the shipped helper, never raw Semgrep commands. Findings are advisory, evidence stays under `.tasks/<feature>/semgrep/`, and final audit remains read-only.
 
-Plus standalone skills: **conceptualize** (minimal pre-planning index with optional handoff slices), **perspectives** (divergent problem-solving), **empirical-spike** (bounded caller-neutral evidence when static sources cannot resolve a material behavior), **diagnose-and-fix** (evidence-first issue diagnosis with approval-gated fix routing), **testing** (establishes/updates reusable project testing workflows and routes authoring/execution through approved workflow docs), **review-code** (works independently for PR and local code review), **code-doc** (generate comprehensive codebase documentation via hybrid analysis), **readme-polish** (improve repository README and metadata), and **release** (prepare/publish releases with approval gates).
+Plus standalone skills: **conceptualize** (minimal pre-planning index with optional handoff slices), **perspectives** (divergent problem-solving), **empirical-spike** (bounded caller-neutral evidence when static sources cannot resolve a material behavior), **diagnose-and-fix** (evidence-first issue diagnosis with approval-gated fix routing), **testing** (establishes/updates reusable project testing workflows and routes authoring/execution through approved workflow docs), **review-code** (works independently for PR and local code review), **code-doc** (generate comprehensive codebase documentation via hybrid analysis), **readme-polish** (improve repository README and metadata), **release** (prepare/publish releases with approval gates), and **walk-me-through** (explicitly user-invoked, read-only interactive teaching with ASCII diagrams for practical ownership; not a lifecycle stage).
 
 See the [full documentation](plugins/super-developer/README.md).
 

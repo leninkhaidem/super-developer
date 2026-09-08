@@ -2,7 +2,7 @@
 
 Super Developer is a portable coding-assistant workflow, packaged as a Claude Code plugin, for moving from exploration to Slice-first planning, isolated implementation, bounded code review, final audit, documentation, and release preparation.
 
-One plugin. 15 skills. No manual git juggling.
+One plugin. 16 skills. No manual git juggling.
 
 ---
 
@@ -163,6 +163,7 @@ Semgrep findings preserve Semgrep severity but are advisory by default. They do 
 | **perspectives** | Explores architecture or design options from multiple angles with a final skeptic synthesis. | Standalone |
 | **worktree** | Provides git worktree runbooks for planned features, bugfixes, hotfixes, spikes, cleanup, and target-merge safety. | Internal + standalone |
 | **code-doc** | Generates or updates codebase documentation through scout, analysis, synthesis, review, and handoff stages. | Standalone |
+| **walk-me-through** | Teaches features, PRs, releases, and code changes through read-only interactive walkthroughs with ASCII diagrams for practical ownership. | Standalone; explicit user invocation only |
 | **readme-polish** | Authors or polishes a repository README and optional repository metadata without expanding into whole-codebase docs. | Standalone |
 | **release** | Prepares and publishes releases behind a single release contract covering checks, pushes, tags, notes, and cleanup. | Standalone |
 
@@ -256,6 +257,16 @@ Useful standalone prompts:
 > Document this codebase
 ```
 
+### Interactive walkthrough (explicit invocation only)
+
+`walk-me-through` is standalone, read-only teaching for practical ownership, not a lifecycle stage or an automatic follow-up. It uses evidence-grounded explanations and compact ASCII diagrams to clarify behavior, decisions, risks, and where changes would begin.
+
+Invoke it explicitly in Claude Code, replacing `<target>` with a feature, PR, release, or code change:
+
+```text
+/super-developer:walk-me-through <target>
+```
+
 ---
 
 ## Plugin Structure
@@ -330,6 +341,7 @@ plugins/super-developer/
 |   |   +-- references/core/generic-testing.md
 |   |   +-- references/web/application-testing.md
 |   |   +-- references/web/browser-e2e-stack-setup.md
+|   +-- walk-me-through/SKILL.md
 |   +-- worktree/
 |   |   +-- SKILL.md
 |   |   +-- references/bugfix-hotfix-workflow.md

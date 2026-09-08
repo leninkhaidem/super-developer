@@ -6,6 +6,17 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [v2.5.0] - 2026-09-08
+
+### Added
+- Added `walk-me-through`, an explicitly user-invoked, read-only interactive teaching skill for features, PRs,
+  releases, and code changes. Evidence-grounded explanations and relevant ASCII diagrams build practical
+  ownership of behavior, decisions, risks, and where future changes would begin.
+
+### Changed
+- Updated the READMEs, skill catalog, plugin structure, and marketplace description to reflect 16 skills and
+  document explicit walkthrough invocation as a standalone tool, not a lifecycle stage or automatic follow-up.
+
 ## [v2.4.2] - 2026-08-18
 
 ### Added
