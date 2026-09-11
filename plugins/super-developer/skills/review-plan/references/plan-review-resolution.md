@@ -10,9 +10,10 @@ requirements and Execution Contract; same-requirement repair/re-review is autono
 
 ### mechanical defect
 
-A formatting, ID, dependency, locator, path, package/result reference, H3 reference, or consistency issue
-whose correction does not change semantics. In initial mode fix it through the existing artifact-authoring path.
-In continuation-focused mode include it in the `implementation-plan` continuation packet; do not patch inline.
+Only the parent-supplied mechanical-amendment whitelist qualifies; the parent loads it before inline correction.
+The owning orchestrator may apply a proven presentation or duplicate-locator correction and revalidate without
+fresh semantic review. IDs, dependencies, H3 assignments, Acceptance commands, evidence, and approval meaning
+are not mechanical merely because the edit is short. Route all other plan defects through the planner.
 
 ### true blocker
 
@@ -73,13 +74,12 @@ approved outcomes, Slice commitments, risk, and closure meaning remain preserved
 
 1. Group duplicate findings by target and issue.
 2. Classify each finding.
-3. In initial mode apply authorized mechanical fixes. In continuation-focused mode collect every plan-owned defect
-   for the planning continuation; neither this orchestrator nor a code repair worker patches it.
-4. For `empirical_evidence_needed`, preserve review context and assign each bounded question a stable logical ID.
-   Accept `resolved-static`, `supported`, or `rejected` only after validating identity, provenance, method, authority,
-   bounds, limitations, and cleanup. Correct `blocked`/`inconclusive` only through an authorized changed packet,
-   method, or signal at attempts 2–3; unresolved initial mode stops and continuation returns protected/out-of-contract
-   gaps to `implement`. Parallelize independent questions; sequence only when accepted evidence creates a new one.
+3. In either mode apply only authorized mechanical corrections under the loaded amendment contract. Collect
+   all other plan-owned defects for the ordinary initial path or caller-owned planning continuation; never send
+   them to a code repair worker.
+4. For `empirical_evidence_needed`, preserve review context and question identity/history. The parent loads
+   the shared bounded-attempts contract before any attempt; apply its evidence and progress rules.
+   Unresolved initial mode stops and continuation returns protected/out-of-contract gaps to `implement`.
 5. In initial mode persist accepted empirical outcomes in the owning artifacts above under the Semantic Change Rule,
    rerun mechanical validation and focused re-review, then proceed to the ordinary plan gate. Initial mode never
    invokes a planning continuation.

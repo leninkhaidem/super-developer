@@ -55,7 +55,11 @@ Avoid tiny packages unless risk or isolation justifies their fixed lifecycle cos
 
 ## IDs and Dependencies
 
-Package IDs use contiguous `WP<N>` values (`WP1`, `WP2`, ...). Renumber when packages are reordered, split, or merged so the sequence has no gaps.
+Package IDs use stable `WP<N>` values (`WP1`, `WP2`, ...). Registry order is presentation only; gaps are valid.
+Never renumber or reuse IDs because packages were reordered, split, merged, deferred, or retired. If scope is amended
+without replacing the work identity, keep the original ID. If a replacement is needed, preserve existing references,
+reports, and worktrees, allocate fresh unused IDs, and retire old packages only through the lifecycle using existing
+statuses and notes; do not add registry fields or invent statuses.
 
 Dependencies are ID-only in both the registry `depends_on` array and package Markdown
 `## Dependencies`; they must agree. They are durable sequencing prerequisites and a lower bound on
@@ -92,7 +96,10 @@ no-mock constraints, generated-contract checks, interface/risk seeds, or manual 
 
 Use only the existing depth vocabulary: `standard`/`enhanced` package verification,
 `baseline-only`/`sampled`/`deep` test review, and `focused`/`full` reruns. These are orthogonal decisions, not
-new lifecycle tiers or durable registry/artifact fields.
+new lifecycle tiers or registry fields. Record the selected `standard`/`enhanced` package-verification profile and
+the evidence/risk reason in package `Notes`, not `tasks.json`. The planner may seed triggers; the implement
+orchestrator maintains the classification before dispatch and must not downgrade it while a triggering risk remains
+without a grounded reason.
 
 Rules:
 

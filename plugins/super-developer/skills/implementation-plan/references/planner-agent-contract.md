@@ -17,6 +17,7 @@ The packet provides:
   and prerequisite package ref/SHAs/ancestry evidence; no caller-selected arbitrary package base;
 - complete accepted empirical reports with stable logical-question/attempt IDs, provenance, method, authority,
   bounds/outcomes, limitations, and cleanup, or explicit `none` for a non-empirical plan defect;
+- bounded-attempt history/provenance for empirical or repair circuits, or explicit none when no circuit applies;
 - testing-authority provenance for triggered feasibility, omitted when clearly non-triggered;
 - safe Conceptualize workspace, Index, and Slice paths relative to the artifact root when known;
 - initial overwrite approval for `.tasks/<feature>/`, or continuation repair authority;
@@ -37,6 +38,9 @@ Load each labeled contract only at its action:
 - clean-code and work-package contracts while shaping packages;
 - canonical artifact model and artifact-authoring before drafting registry/packages;
 - validation checklist before any write, overwrite, or completion claim;
+- bounded-attempts before empirical-question or repair-attempt accounting;
+- plan-amendments before judging a proposed mechanical amendment; it grants only the owning orchestrator's exact
+  inline correction and gives this worker no widened artifact authority;
 - testing authority while shaping a triggered execution-feasibility profile;
 - tool usage only when helper syntax or command safety is unclear;
 - Semgrep policy only when enabled or expected as evidence.
@@ -73,7 +77,9 @@ questions, or encode the uncertainty in package Notes as though planning were co
    repair the supplied non-empirical or empirical plan defect autonomously; return `BLOCKED` before writes only if
    semantics/scope/visible behavior/risk/manual exceptions or contract authority would change. Apply the empirical
    boundary before any artifact write and never treat explicit report set `none` as missing evidence by itself.
-4. Draft `SPEC.md`, package split, registry, and packages. A continuation-created package records `BASE_KIND`,
+4. Draft `SPEC.md`, package split, registry, and packages. Preserve stable package IDs; gaps and reordered
+   registry arrays are valid, and replacements allocate fresh unused IDs rather than renumbering or reusing retired
+   IDs. A continuation-created package records `BASE_KIND`,
    exact `BASE_REF`, candidate `REVIEWED_BASE_SHA`, and prerequisite ref/SHAs: independent = approved original base;
    dependent = exact current `feature/<feature>`/integration SHA containing every prerequisite SHA. Focused review
    must bind the candidate SHA before creation; a later moved ref is rejected rather than recomputed and accepted.
@@ -84,7 +90,8 @@ questions, or encode the uncertainty in package Notes as though planning were co
    publication, final review/audit, target delivery, release/deploy, and post-delivery checks. If required build/test
    commands are not runnable, return a blocker before writing unverifiable acceptance.
 6. Keep `tasks.json` lightweight. Package Markdown owns scope, Slice/H3 assignment, paths, verification,
-   dependencies, and report path. Distill only approved empirical implications into owning fields;
+   dependencies, report path, and any `standard`/`enhanced` verification-profile seed plus evidence/risk reason in
+   existing Notes or expectations. Distill only approved empirical implications into owning fields;
    never copy empirical reports, command transcripts, or disposable probe code into planned artifacts.
 7. If Semgrep is disabled, require no setup/scans. If enabled, detect stacks through normal analysis, use helper
    `index`/`retrieve`, never inspect `index.json` or hard-code mappings, and add package-scoped helper scan plus

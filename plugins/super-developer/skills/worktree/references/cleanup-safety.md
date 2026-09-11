@@ -1,6 +1,8 @@
 # Cleanup and Delivery Safety
-Load before removal, pushes, target merge, or teardown. Every block is fresh Bash with `set -euo pipefail`; failed
-proof stops later SHA capture, push, removal, or deletion. Root checkout files/index remain untouched.
+Load before removal, pushes, target merge, or teardown. For planned-feature source publication, consume the
+parent-supplied source-publication contract loaded at this action by `worktree`. Every block is fresh Bash with
+`set -euo pipefail`; failed proof stops later SHA capture, push, removal, or deletion. Root checkout files/index
+remain untouched.
 ## Cleanup Authority Binding
 Normal cleanup binds canonical path, HEAD/complete state, full direct ref/SHA, landing/base state when required,
 and remote expected state only for separately authorized remote actions. Recapture immediately; direct-ref deletion
@@ -13,9 +15,10 @@ no tracking config and `remote_action=none`; perform no network/credential check
 remote ref stays untouched. Any unowned/uncertain delta preserves the probe and stops.
 Continuation package worktrees/refs—active or retired—never use receipt-bound probe cleanup and remain through final gates.
 ## Package Cleanup — Whole Feature Only
-No active or retired package cleanup occurs before all packages, final integrated review/audit, remote feature
-synchronization and contracted later delivery gates pass. Planned-hotfix applies the same tip eligibility at its
-separate final cleanup gate against final hotfix integration HEAD.
+No active or retired package cleanup occurs before all packages, final integrated review/audit, every source
+publication gate actually due under the approved policy, and contracted later delivery gates pass. `local-only` or
+publication not yet due creates no remote-synchronization prerequisite. Planned hotfix applies the same tip
+eligibility at its separate final cleanup gate against final hotfix integration HEAD.
 At final cleanup, bind kind (`initial|continuation`), creation base SHA, tip/ref, path/HEAD/state, and final clean
 integration HEAD/state. Remove only when tip is integrated, or a continuation tip equals its creation base:
 ```bash
@@ -36,25 +39,20 @@ if git symbolic-ref -q "$REF"; then exit 1; fi
 git update-ref --no-deref -d "$REF" "$TIP"
 ```
 If unique unmerged commits remain, retain and report the safety net. Never force, reset, stash, or delete it.
-## Normal Feature Checkpoints and Sidecar Pushes
-The feature-checkpoint block applies only to delivery context `feature`; its Execution Contract covers every
-repetition and implies no user-known SHA/snapshot fields. Planned-hotfix creates no feature ref/SHA and retains
-its separately contracted `hotfix/<name>` source publication:
-```bash
-set -euo pipefail
-cd "$PROJECT_ROOT/.worktrees/<feature>/merge"
-test "$(git symbolic-ref --short HEAD)" = "feature/<feature>"; test -z "$(git status --porcelain)"
-LOCAL_SHA="$(git rev-parse HEAD)"
-git push origin "HEAD:refs/heads/feature/<feature>"
-REMOTE_LINE="$(git ls-remote --heads origin refs/heads/feature/<feature>)"; test -n "$REMOTE_LINE"
-REMOTE_SHA="${REMOTE_LINE%%$'\t'*}"; test "$REMOTE_SHA" = "$LOCAL_SHA"
-```
+## Feature Source and Sidecar Publication
+For delivery context `feature`, use only the loaded source-publication policy and exact scheduled command. Preserve a
+local recovery commit/ref for every package. A `local-only` or non-due gate performs no source network action; a due
+remote gate stops on any network/credential/push/SHA-verification failure. Planned hotfix creates no feature ref and
+uses only its separately contracted exact `hotfix/<name>` source gate.
+
+Sidecar publication remains independently authorized and runs only from its artifact worktree:
 ```bash
 set -euo pipefail
 cd "$PROJECT_ROOT/.worktrees/<feature>/artifacts"
 git push -u origin artifacts/<feature>
 ```
-Neither approves target delivery or cleanup; never merge artifact refs into code history.
+Neither source nor sidecar publication approves the other, target delivery, or cleanup. Never merge artifact refs
+into code history.
 ## Immutable Target Merge and Push
 Merge approval binds source/pre-target SHAs, snapshot, strategy, integration ref/worktree. Compare immutable SHAs:
 ```bash

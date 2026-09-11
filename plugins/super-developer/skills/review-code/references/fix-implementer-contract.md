@@ -19,6 +19,11 @@ stale, unsafe, ambiguous, or conflicting input means no repository action and `B
 The parent supplies:
 
 - packet ID, contract path, `mode: local|pipeline`, and recorded explicit fix authorization;
+- for pipeline packets, the exact parent-owned `bounded-attempts.md` contract path/contents plus current attempt
+  binding. The parent loads that contract before retry routing; it owns retry numbering, the three-attempt circuit,
+  and the single code-to-plan reclassification. This worker reports the supplied attempt and never resets, renames,
+  reclusters, or reclassifies it. This is pipeline-only: it does not change PR behavior (which has no fix path) or
+  local repair authorization and verification;
 - confirmed finding keys, evidence, Skeptic verdicts, decisions, expected behavior, and repair goal;
 - exact repository/worktree, branch/ref, base ref/SHA, HEAD SHA, and complete starting-state binding;
 - separate category manifests/content checksums plus complete checksum; untracked records include file type,
@@ -30,7 +35,8 @@ The parent supplies:
 - forbidden actions, stop/scope-expansion route, and required report fields;
 - local context: caller constraints and reviewed snapshot; or
 - pipeline context: artifact/code roots, feature/package/Slice IDs, result paths, dirty-evidence map,
-  source bindings, verification state, and freshness handback owner;
+  source bindings, verification state, freshness handback owner, and the exact parent-supplied
+  bounded-attempts contract path/contents plus current attempt binding;
 - for cross-package repair, every affected package, writable path, and finding under one coherent seam authority
   and verification envelope; otherwise the parent must split the packet.
 

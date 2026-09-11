@@ -252,6 +252,15 @@ def build_parser() -> argparse.ArgumentParser:
     validate_plan.add_argument("tasks", type=Path, help="Path to .tasks/<feature>/tasks.json under the artifact root.")
     validate_plan.set_defaults(func=cmd_validate_plan)
 
+    render_report = subparsers.add_parser(
+        "render-report",
+        parents=[root_options],
+        help="Render a read-only PENDING_VERIFICATION package report skeleton to stdout.",
+    )
+    render_report.add_argument("tasks", type=Path, help="Path to .tasks/<feature>/tasks.json under the artifact root.")
+    render_report.add_argument("--package", required=True, help="Work package id, for example WP1.")
+    render_report.set_defaults(func=cmd_render_report)
+
     validate_package_complete = subparsers.add_parser(
         "validate-package-complete",
         parents=[root_options],
@@ -299,6 +308,14 @@ def cmd_validate_plan(args: argparse.Namespace) -> dict[str, Any]:
         "semantic_done_note": SEMANTIC_DONE_NOTE,
         "advisories": [],
     }
+
+
+def cmd_render_report(args: argparse.Namespace) -> RawText:
+    state = load_package_state(args.tasks, args.package, artifact_root=args.artifact_root, code_root=args.code_root)
+    errors = reject_non_new_shape(state.package)
+    if errors:
+        raise SliceproofError(errors)
+    return RawText(render_report_skeleton(state.package, state.package_md))
 
 
 def cmd_validate_package_complete(args: argparse.Namespace) -> dict[str, Any]:
@@ -1251,6 +1268,51 @@ def validate_report_markdown(
         errors.extend(validate_plan_gaps_section(report_path, plan_gaps_body))
 
     return ReportValidationResult(errors, [])
+
+
+def render_report_skeleton(package: RegistryPackage, package_md: PackageMarkdown) -> str:
+    rows: list[str] = []
+    for item in package_md.acceptance_checklist:
+        item_id = acceptance_item_id(item)
+        if item_id is None:
+            raise SliceproofError([
+                f"{package.path}: ## Acceptance Checklist item has no stable ID: {item!r}"
+            ])
+        rows.append(
+            "| "
+            + markdown_table_cell(f"`{item_id}`")
+            + " | pending | "
+            + markdown_table_cell(
+                f"missing evidence: {item_id} not verified; replace with pointer plus observed output."
+            )
+            + " |"
+        )
+    table_rows = "\n".join(rows)
+    return (
+        f"## Package Verification: {package.package_id}\n\n"
+        "### Verdict\n"
+        "PENDING_VERIFICATION\n\n"
+        "## Acceptance Checklist Result\n"
+        "| Item | Result | Evidence |\n"
+        "|---|---|---|\n"
+        f"{table_rows}\n\n"
+        "## Blocking findings\n"
+        "- none\n\n"
+        "## Advisory notes\n"
+        "- generated skeleton only; replace pending rows with verifier-observed evidence.\n\n"
+        "## Plan gaps\n"
+        "- none\n\n"
+        "## Reviewed state\n"
+        "- Worktree/ref/commit of the code verified: pending; missing verifier-observed state.\n\n"
+        "## Gaps\n"
+        "- none\n"
+    )
+
+
+def markdown_table_cell(value: str) -> str:
+    text = value.replace("\r\n", "\n").replace("\r", "\n")
+    text = text.replace("\\", "\\\\").replace("|", "\\|")
+    return text.replace("\n", "<br>")
 
 
 def parse_table(body: str) -> list[ProofRow]:

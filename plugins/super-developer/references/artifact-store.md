@@ -12,10 +12,11 @@ the workflow or helper reference that owns that action.
   `.worktrees/<feature>/artifacts`.
 - Artifact branch/ref: the orphan, artifacts-only sidecar branch `artifacts/<feature>` checked out at the
   artifact root.
-- Sidecar setup ordering: create the orphan worktree before the first artifact write (Conceptualize owns
-  first creation, or implementation-plan for direct plans). `git worktree add` refuses a non-empty path,
-  and `--orphan` needs git >= 2.42; on older git, stop and report the version gap. Local creation is a
-  no-push setup action, distinct from the gated checkpoint push and the gated cleanup.
+- Sidecar setup ordering: create the orphan worktree immediately before the first actual durable artifact write;
+  the workflow that performs that write owns setup. Merely invoking Conceptualize, planning, or another consumer,
+  resolving a slug, or returning a chat-only result creates nothing. `git worktree add` refuses a non-empty path,
+  and `--orphan` needs git >= 2.42; on older git, stop and report the version gap. Local creation is a no-push setup
+  action, distinct from gated checkpoint publication and cleanup.
 - Code root/worktree: the active source checkout used for production, reference, test, and validation code.
   It may be the main repo, an integration worktree, a package worktree, or an audit worktree.
 - Artifact paths are rooted at the artifact root: `.planning/<concept-slug>/`,
@@ -103,9 +104,10 @@ python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-final \
 - Publication authorization is action/ref-specific: source or target publication never authorizes a sidecar
   push, or vice versa. One approval may list both exact actions. Without sidecar publication authorization,
   valid local artifacts remain usable but must be reported as unpublished.
-- Checkpoint-eligible gates: after Conceptualize before planning, after accepted review-plan before
-  implementation, after each package delivery/WP merge-push boundary, and after final integrated
-  review/audit acceptance before target merge/cleanup. Eligibility does not authorize publication.
+- Checkpoint-eligible gates: after Conceptualize actually writes durable artifacts and before planning, after
+  accepted review-plan before implementation, after each package delivery boundary, and after final integrated
+  review/audit acceptance before target merge/cleanup. Invocation or a chat-only result is not eligible. Source
+  merge/publication cadence does not alter sidecar eligibility or authorization.
 - Do not checkpoint after every incidental edit, and do not push `main`, `feature/<feature>`, or
   `wp/<feature>/<WP-ID>` as an artifact side effect.
 - Package-delivery checkpoint: the sidecar checkpoint associated with a work-package delivery boundary after

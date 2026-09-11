@@ -90,22 +90,23 @@ decide the obligation — rather than the code being wrong — that is a plan de
 continuation to repair the checklist instead of patching one defect at a time. Routing preserves the attempt cap
 and its single escalation below; it never resets them.
 
-Cluster confirmed findings only when they share a root cause, writable scope, and verification envelope; assign
-one repair worker per coherent cluster. Preserve logical cluster identity across retries and the existing
-three-attempt cap: after **3** non-converging repair attempts, never rename or recluster. A plan-owned cluster
-stops there. A **code** repair cluster is re-classified once as a possible plan defect and routed through planning
-continuation when that preserves approved semantics, scope, user-visible behavior, risk, and manual exceptions;
-otherwise it stops. At most one such escalation per cluster identity, relabeling earns no second one, and the same
-cluster's second exhaustion of **3** attempts stops. Widen only for semantically affected surfaces, never merely
-because a dependency, commit, or merge exists.
+Before repair dispatch, the orchestrator loads `bounded-attempts.md`, the sole owner of cluster identity,
+material progress, attempt caps, and the single code-to-plan escalation. Preserve that history through planning
+continuation and focused re-review. Widen only for semantically affected surfaces, never merely because a
+package dependency, commit, or merge exists. Proven mechanical artifact corrections may use
+`plan-amendments.md` after the owner loads it; Acceptance/evidence/Plan-gap changes never use that exception.
 
 ## Final readiness
 Before final `review-code` and `audit`, every package is `done`, the integrated code is assembled, and the
 feature-level `## Acceptance` (SPEC) checks pass against the integrated state with captured output. Freeze that
-state; run `sliceproof.py validate-final` per artifact root as advisory diagnostics. `review-code` reviews
-integration seams; `audit` confirms every package checklist and the feature Acceptance passed. Their outputs are
-not freeze inputs.
+state; run `sliceproof.py validate-final` per artifact root as advisory diagnostics. `review-code` discovers production/integration defects, including standard-package production deltas;
+`audit` reconciles every package checklist and feature Acceptance, widening into code on concrete evidence or
+risk triggers. They are independent sibling gates: delivery needs same-state `CLEAN` and `PASS`.
+Their generated outputs are not freeze inputs.
 
 ## Observability
 Non-gating traces may surface version, stage/package timing, command identity/outcome, readiness, and repair
-progress. They never mutate state, act as proof, or present timing as completion.
+progress. During actual runs, summarize available handoff counts, user interruptions, repeated checks, repair
+cycles, and unique confirmed findings per gate in the existing final report. Reuse host timing/usage data when
+available; otherwise say not measured. Do not add mandatory telemetry, a new ledger, or a benchmark prerequisite.
+These observations never mutate state, act as proof, or present timing as completion.

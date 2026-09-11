@@ -25,6 +25,8 @@ Do not create or overwrite `.tasks/<feature-name>/` artifacts until all applicab
 - The planner worker did not invoke a spike. Unresolved material behavior produced
   `BLOCKED: empirical_evidence_needed` before any artifact write and returned to the orchestrator.
 - Mode authority is valid. Initial mode retains gates. Continuation names stage/defect and reports or `none`.
+  The only inline exception is a `plan-amendments.md` mechanical correction owned by the orchestrator: exact edit,
+  unchanged meaning, active write authority, and no worker-widened scope. Semantic changes use normal repair/review.
   Every new continuation package records `BASE_KIND`, exact `BASE_REF`, candidate `REVIEWED_BASE_SHA`, and prerequisite
   ref/SHAs: independent uses approved original base; dependent uses that exact feature/integration SHA with all
   prerequisites as ancestors. Focused review binds the SHA; no arbitrary base or moved-ref recomputation.
@@ -107,15 +109,20 @@ Do not create or overwrite `.tasks/<feature-name>/` artifacts until all applicab
   domain, API, SDK, operator, explicit developer-diagnostic, or escaped raw user/provider uses are
   allowed when audience-appropriate.
 - The Package Verification Report section declares exactly one `report_path`.
-- Dependencies match the registry. A continuation-created package's Notes name `BASE_KIND`, exact `BASE_REF`,
-  `REVIEWED_BASE_SHA`, each prerequisite package ref/SHA, and the matching integration HEAD used for ancestry review.
+- Dependencies match the registry. Package IDs are stable: gaps and registry reorder are valid; renumbering or ID
+  reuse after split/merge/deferral/retirement is invalid. A continuation-created package's Notes name `BASE_KIND`,
+  exact `BASE_REF`, `REVIEWED_BASE_SHA`, each prerequisite package ref/SHA, and the matching integration HEAD used
+  for ancestry review.
+- Package Notes or expectations record any `standard`/`enhanced` verification-profile seed and evidence/risk reason;
+  the registry has no verification-depth or evidence fields.
 
 ## Registry
 
 - Contains only `feature`, `title`, `status`, `spec_path`, `authoritative_slices`, and `work_packages`.
 - Each package entry contains only `id`, `path`, `report_path`, `status`, and `depends_on`.
 - `authoritative_slices` is the full safe Slice inventory, or empty only for Index-only/no-Slice plans.
-- Package IDs and dependencies are coherent, acyclic, and limited to real sequencing constraints rather than convenience serialization.
+- Package IDs are stable `WP<N>` values; gaps and reordered arrays are valid, and IDs are never renumbered or reused.
+- Dependencies are coherent, acyclic, and limited to real sequencing constraints rather than convenience serialization.
 - Registry paths match written package Markdown.
 - No package scope, Slice H3 assignments, primary paths, verification expectations, result evidence, review
   findings, command output, or copied Slice prose are duplicated in the registry.

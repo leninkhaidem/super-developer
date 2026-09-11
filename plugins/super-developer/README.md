@@ -8,11 +8,12 @@ One plugin. 16 skills. No manual git juggling.
 
 ## What It Does
 
-Super Developer replaces scattered prompts with a file-backed workflow. New and existing-system changes use one
-fresh Slice-first planned-feature artifact model:
+Super Developer scales the workflow to the work. Clear, bounded, low-risk changes use a task-appropriate direct
+route with accepted scope and credible verification, not mandatory planning files. Explicit plan requests and
+changes needing durable coordination, substantial design, or material risk decisions use this planned-feature model:
 
 ```text
-conceptualize (optional Index + Slices)
+conceptualize (optional; conversation first)
         |
         v
 implementation-plan -> review-plan -> implement -> final review-code + final audit
@@ -23,6 +24,11 @@ implementation-plan -> review-plan -> implement -> final review-code + final aud
         |                 plan quality and Slice coverage gate
         SPEC.md + tasks.json registry + packages/reports
 ```
+
+Conceptualize creates no files or worktrees merely because it was invoked. It checkpoints settled understanding
+when durability is useful or necessary, or documentation is explicitly requested—not after every statement.
+Simple outcomes may remain in chat; a compact Index or focused Slices serve complex discussions and handoffs.
+See [`references/change-routing.md`](references/change-routing.md) for the route decision.
 
 Validated Slices are product/design authority only. Workflow, tool, git, result, review, and audit authority stays in the plugin instructions and shared references. Planning, review, and implementation orchestrators may run `empirical-spike` once per attempt for a distinct material question after static evidence is insufficient; one initial run and at most two materially changed follow-ups are allowed. After `approve auto-resolve`, in-scope work is autonomous. Dirty probes clean only through exact receipt-owned local restoration; continuation packages use reviewed base/prerequisite evidence and remain safety nets through final gates.
 
@@ -38,7 +44,7 @@ A planned feature lives under `.tasks/<feature>/` and points to optional `.plann
 | `.planning/<concept>/slices/*.md` | Optional authoritative product/design Slices. |
 | `.tasks/<feature>/SPEC.md` | Accepted requirements, constraints, non-goals, Slice inventory, and verification summary. |
 | `.tasks/<feature>/tasks.json` | Lightweight registry only: feature metadata, package paths, `report_path`, status, and dependencies. |
-| `.tasks/<feature>/packages/<WP-ID>.md` | Work-package assignment: scope, Slice obligations, primary paths, verification expectations, report_path, dependencies. |
+| `.tasks/<feature>/packages/<WP-ID>.md` | Stable-ID assignment: scope, Slice obligations, primary paths, Acceptance, report path, dependencies, and verification depth/reason in Notes. |
 | `.tasks/<feature>/reports/<WP-ID>.package-verification.md` | Independent package result; section shape owned by `references/package-verification-report.md`. |
 | `.tasks/<feature>/reviews/review-code-state.json` | Review-code governance readiness for audit handoff. |
 
@@ -54,6 +60,7 @@ Run from a repository or package worktree with explicit paths:
 
 ```bash
 python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-plan ".tasks/<feature>/tasks.json"
+python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" render-report ".tasks/<feature>/tasks.json" --package WP1
 python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-package-complete ".tasks/<feature>/tasks.json" --package WP1
 python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-final ".tasks/<feature>/tasks.json"
 ```
@@ -61,7 +68,8 @@ python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-final ".t
 Command boundaries:
 
 - `validate-plan`: checks the registry, package Markdown, safe paths, dependencies, declared Slice H3 IDs, and that every package has at least one executable Acceptance Checklist item.
-- `validate-package-complete`: the only result command; read-only checklist coverage and cheap pointer resolve. It does not write the result file or judge semantics.
+- `render-report`: emits an unverified result skeleton to stdout from the package Acceptance Checklist. It never writes files, runs checks, or invents passing evidence; preserve any existing result and Plan-gap history.
+- `validate-package-complete`: read-only checklist coverage and cheap pointer resolve. It does not write the result file or judge semantics.
 - `validate-final`: checks all packages are done and each result file is structurally complete.
 
 See [`references/tool-usage.md`](references/tool-usage.md), [`references/slice-first-artifacts.md`](references/slice-first-artifacts.md), and [`references/package-lifecycle.md`](references/package-lifecycle.md) for the detailed boundaries.
@@ -150,7 +158,7 @@ Semgrep findings preserve Semgrep severity but are advisory by default. They do 
 
 | Skill | What It Does | Usage |
 |---|---|---|
-| **conceptualize** | Runs an optional one-question-at-a-time exploration, maintains an ignored workspace Index, and writes focused Slices only when useful. | Standalone + pre-planning |
+| **conceptualize** | Explores one decision at a time; captures settled understanding at useful durability boundaries, with chat-only outcomes valid for simple work. | Standalone + pre-planning |
 | **implementation-plan** | Orchestrates a fresh planner worker to create `SPEC.md`, the lightweight registry, package Markdown, and `report_path` declarations from approved requirements, Slices, or accepted empirical evidence. | Pipeline + standalone |
 | **skill-authoring** | Creates or revises compact skills with on-demand references and a mid-tier-agent followability gate. | Standalone + internal |
 | **review-plan** | Validates planned-feature artifacts, Slice coverage, package assignment, result-file expectations, and approved deferrals before implementation. | Pipeline + standalone |
@@ -198,7 +206,8 @@ Key rules:
 
 - The orchestrator owns branch/worktree creation, merges, cleanup, and approved pushes.
 - Package agents edit only their assigned package worktree and may draft the declared result report.
-- Feature-branch push must match the approved Execution Contract.
+- Feature-source publication cadence is explicit: local-only (no remote authorization), per-package, milestone, or final. Only a due, authorized publication gate requires a remote checkpoint; verified local integration can otherwise unlock dependents.
+- Feature-branch pushes must match the approved Execution Contract; sidecar publication is separately authorized.
 - Target/main merge or push always requires separate explicit approval.
 - Cleanup requires merge-base proof and clean worktrees.
 
@@ -238,7 +247,17 @@ Claude Code discovers packaged skills automatically. Other hosts need equivalent
 > Plan this feature
 ```
 
-A delegated planner writes the task artifacts; after initial plan review, `implement` presents an Execution Contract. Auto-resolve covers bounded code/probes/tests, plan continuation/focused review, repairs, verification, review-code, and audit. Probe cleanup is local, manifest-bound, and non-force; continuation package worktrees are retained until final ancestry/no-unique-commit cleanup. Credentials, protected actions, semantic/risk/manual changes, target delivery, and uncertainty still stop, as does three-attempt non-convergence for an empirical question or a plan-owned cluster. A code repair cluster's first attempt-3 exhaustion is instead re-classified once and continues through the plan-defect route; its second exhaustion stops.
+A delegated planner writes the task artifacts and the draft flows directly into review—no extra draft-confirmation gate. The reviewed plan requires approval. `implement` presents a concise Execution Contract summary of changes, allowed actions, verification, and stops, with detailed machinery retained for agents. Ready plan and execution decisions may share one presentation, but both must be explicitly authorized. Auto-resolve covers bounded code/probes/tests, plan continuation/focused review, repairs, verification, review-code, and audit. Probe cleanup is local, manifest-bound, and non-force; continuation package worktrees are retained until final ancestry/no-unique-commit cleanup. Credentials, protected actions, semantic/risk/manual changes, target delivery, and uncertainty still stop, as does three-attempt non-convergence for an empirical question or a plan-owned cluster. A code repair cluster's first attempt-3 exhaustion is instead re-classified once and continues through the plan-defect route; its second exhaustion stops.
+
+Final `review-code` is primary production-defect discovery, including changes from standard packages without a
+separate verifier. The independent cold `audit` reconciles complete delivery evidence and inspects code when
+concrete evidence/risk triggers warrant it. Same-state `CLEAN` and `PASS` are both required; neither gate
+substitutes for the other. Mechanical-only artifact corrections can avoid a planner/reviewer relaunch, but never
+change Acceptance, commands, dependency meaning, approvals, or evidence.
+
+To evaluate ceremony, record available handoffs, interruptions, repeated checks, repair cycles, and unique
+confirmed findings in existing final reports. Timing is optional observed data—not a completion gate or a new
+telemetry requirement.
 
 Useful standalone prompts:
 
@@ -279,18 +298,25 @@ plugins/super-developer/
 |   +-- semgrep_rules.py
 |   +-- sliceproof.py
 |   +-- tests/
+|       +-- test_conceptualize_capture_policy.py
 |       +-- test_lifecycle_design_guidance.py
 |       +-- test_semgrep_rules.py
 |       +-- test_skill_prompts.py
 |       +-- test_sliceproof.py
 +-- references/
+|   +-- artifact-store.md
+|   +-- bounded-attempts.md
+|   +-- change-routing.md
 |   +-- clean-code-rules.md
 |   +-- conceptualize-slice-authority.md
 |   +-- decision-prompts.md
 |   +-- known-risk-patterns.md
 |   +-- model-preferences.md
 |   +-- package-lifecycle.md
+|   +-- package-verification-report.md
+|   +-- plan-amendments.md
 |   +-- semgrep.md
+|   +-- source-publication.md
 |   +-- slice-first-artifacts.md
 |   +-- tool-usage.md
 |   +-- work-packages.md
@@ -375,7 +401,8 @@ plugins/super-developer/
 
 | Principle | Why it matters |
 |---|---|
-| Slice-first planning | Slices capture durable product/design understanding while control-plane authority stays out of Slice text. |
+| Conversation-first discovery | Write settled understanding when durability matters; do not create artifacts merely because a skill ran. |
+| Slice-first planning | Existing Slices remain durable product/design authority while control-plane authority stays out of Slice text. |
 | Progressive disclosure | `SKILL.md` files route and guard; detailed contracts load only at action points. |
 | Package delegation | Work packages are large enough for useful sub-agent execution and small enough for focused result-file confirmation. |
 | Independent verification | Package reports, review-code readiness, and audit each protect a different gate. None replaces another. |

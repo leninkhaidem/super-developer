@@ -1,6 +1,7 @@
 # Feature Package Workflow
 Use this reference for planned-feature execution. Boundary: artifact sidecar setup/checkpoints, package/integration
-worktrees, package merge order, dependencies, and feature-push handoff. Parent supplies artifact-store root terms.
+worktrees, merge order, dependencies, and feature-source handoff. The caller supplies artifact-root terms and the
+parent-supplied source-publication contract before selecting or executing a source gate.
 ## Contract
 - One artifact sidecar per feature slug: orphan ref `artifacts/<feature>` at `.worktrees/<feature>/artifacts`.
 - The artifact sidecar contains `.planning/`, `.tasks/`, package result artifacts, and minimal metadata only.
@@ -10,8 +11,9 @@ worktrees, package merge order, dependencies, and feature-push handoff. Parent s
 - The feature ref is `feature/<feature>` and its integration worktree is `.worktrees/<feature>/merge`.
 - Stacked-feature final readiness names the top code state plus every relevant base/follow-up artifact set.
 - Package agents implement inside assigned package worktrees only.
-- The orchestrator creates fixed resources or runtime-validates the dynamic envelope, then owns merges/checkpoints/
-  cleanup; package agents do none of those actions.
+- The orchestrator creates fixed resources or runtime-validates the dynamic envelope, then owns merges, scheduled
+  publication, and cleanup; package agents do none of those actions. Each accepted package retains a local recovery
+  commit/ref regardless of publication policy.
 - Never put worktree-managed development in the root worktree or assume the root is on `main`.
 ## Directory Layout
 ```text
@@ -34,8 +36,9 @@ Keep `.worktrees/` ignored before creating these paths.
 `<feature>` is the resolved feature/artifact slug; never prompt for routine naming or silently remap artifact,
 branch, or worktree paths. `<WP-ID>` names a package; `<base-ref>` defaults to `main` but may be a stacked feature; `<target-ref>` is later approved and defaults to `main`.
 ## Artifact Sidecar Setup
-Create the sidecar before the first artifact write because `git worktree add` refuses a non-empty path.
-`--orphan` needs git >= 2.42; on older git, stop and report rather than improvising.
+Create the sidecar immediately before the first actual durable artifact write because `git worktree add` refuses a
+non-empty path. Workflow invocation, discussion, or slug resolution alone is not a creation trigger. `--orphan`
+needs git >= 2.42; on older git, stop and report rather than improvising.
 ```bash
 cd "$PROJECT_ROOT"
 mkdir -p .worktrees/<feature>
@@ -96,29 +99,25 @@ git worktree add .worktrees/<feature>/merge feature/<feature>
 cd .worktrees/<feature>/merge
 ```
 This is the only checkout of `feature/<feature>`. Keep it through final delivery and approved cleanup.
-### 5. Merge and remotely checkpoint each accepted package
-After package completion gates, merge:
+### 5. Merge and apply the selected source cadence
+After package completion gates, stabilize the package's local recovery commit/ref and merge:
 ```bash
 set -euo pipefail
 cd "$PROJECT_ROOT/.worktrees/<feature>/merge"
 git merge wp/<feature>/<WP-ID> --no-edit
 ```
-Close parent-owned post-merge freshness/repair gates, then checkpoint:
-```bash
-set -euo pipefail
-cd "$PROJECT_ROOT/.worktrees/<feature>/merge"
-test "$(git symbolic-ref --short HEAD)" = "feature/<feature>"; test -z "$(git status --porcelain)"
-LOCAL_SHA="$(git rev-parse HEAD)"
-git push origin "HEAD:refs/heads/feature/<feature>"
-REMOTE_LINE="$(git ls-remote --heads origin refs/heads/feature/<feature>)"; test -n "$REMOTE_LINE"
-REMOTE_SHA="${REMOTE_LINE%%$'\t'*}"; test "$REMOTE_SHA" = "$LOCAL_SHA"
-```
-Non-force pushes serialize through integration; failure, mismatch, or divergence stops progression. The checkpoint
-publishes only `feature/<feature>` and never authorizes target work. Retain every active/retired package worktree/
-ref plus integration/artifacts through final gates; retirement alone never authorizes cleanup.
+Close parent-owned post-merge freshness/repair gates, then consult the loaded publication policy. `local-only` and
+a non-due `milestone`/`final` gate perform no network action and do not block local verified downstream readiness.
+At a due `per-package` or `milestone` gate, run the shared reference's exact scheduled push; do not duplicate or alter
+it here. The gate closes only after the remote feature SHA equals integration `HEAD`; any network, credential, push,
+non-fast-forward, missing result, or mismatch failure stops progression. Final pushes and the contracted final
+catch-up for other remote cadences wait for sibling same-freeze review-code CLEAN and audit PASS. Publication
+only ever pushes `feature/<feature>` and never authorizes target or
+sidecar work. Retain all package/integration/artifact safety nets through final gates.
 ## Sidecar Checkpoints
-Checkpoint at parent-supplied artifact-store gates (post-Conceptualize, post-review-plan, each package delivery,
-final review/audit), never after every incidental edit.
+A sidecar is checkpoint-eligible only at the artifact-store gates (after an actual Conceptualize artifact write,
+accepted review-plan, each package delivery, and final review/audit), never after invocation or every incidental edit.
+Run a checkpoint only when that exact sidecar push is independently authorized.
 From the artifact worktree only:
 ```bash
 cd "$PROJECT_ROOT/.worktrees/<feature>/artifacts"
@@ -146,5 +145,7 @@ Clean up only the namespace being finalized. Package IDs such as `WP1` can repea
 - A sidecar checkpoint would push anything except `origin artifacts/<feature>` from the artifact worktree.
 - A package needs predecessor output that has not merged into `feature/<feature>`.
 - Package ownership/dependencies do not permit parallel package work.
-- A feature checkpoint is uncontracted/non-fast-forward, mismatches integration `HEAD`, or any package cleanup is requested before final whole-feature gates.
+- Feature-source policy is absent/ambiguous, a remote cadence lacks explicit authorization, a milestone lacks an
+  exact trigger/checkpoint, a push is not due, or a scheduled push fails/does not verify remote SHA.
+- Any package cleanup is requested before final whole-feature gates.
 - A target merge, target push, cleanup, force action, or remote deletion is requested inside this playbook.

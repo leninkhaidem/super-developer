@@ -23,7 +23,9 @@ package, bugfix, hotfix, spike, integration, target-merge, and artifact-sidecar 
 - Planned-package branches use `wp/<feature>/<WP-ID>` with worktrees at `.worktrees/<feature>/wp-<WP-ID>`.
   Normal feature work integrates into `feature/<feature>`; a planned production hotfix integrates into the exact
   non-root `hotfix/<name>` worktree/ref from its explicit production base and creates no feature ref.
-- Artifact sidecars use orphan ref `artifacts/<feature>` at `.worktrees/<feature>/artifacts`; they are not source checkouts or deliverable refs.
+- Artifact sidecars use orphan ref `artifacts/<feature>` at `.worktrees/<feature>/artifacts`; they are not source
+  checkouts or deliverable refs. Create one only immediately before the first actual durable artifact write, not
+  merely because `conceptualize`, planning, or another workflow was invoked.
 - Package agents never create worktrees, branches, merges, target pushes, or cleanup operations.
 - An auto-resolve Execution Contract may authorize matching probes and focused-reviewed continuation packages;
   exact current-task approval may authorize one diagnostic probe. Both probe routes bind expected base/full ref/path,
@@ -33,9 +35,12 @@ package, bugfix, hotfix, spike, integration, target-merge, and artifact-sidecar 
 - Other planned setup may visibly propose `main` only when its contract allows. Bugfix/hotfix/spike bases are
   explicit and never inferred.
 - A branch checked out in one worktree is locked for other worktrees; create separate refs instead of reusing checkouts.
-- Retain every active or retired package worktree/ref through final gates. Whole-feature cleanup removes one only
-  when exact bindings pass and its tip is integrated, or a continuation package has no commit beyond creation base.
-- Feature checkpoint, sidecar push, target merge, target push, and cleanup are separate boundaries.
+- Stabilize each accepted package in a local recovery commit/ref and retain every active or retired package
+  worktree/ref through final gates. Whole-feature cleanup removes one only when exact bindings pass and its tip is
+  integrated, or a continuation package has no commit beyond creation base.
+- Feature-source publication, sidecar push, target merge, target push, and cleanup are separate boundaries.
+  Load `../../references/source-publication.md` before choosing or executing planned-feature source publication;
+  absent explicit remote authorization its policy is `local-only`.
 - Never merge or push `<target-ref>`/`main` without explicit approval for that exact target.
 - Keep integration, target-merge, and active artifact sidecar worktrees until the authorized lifecycle boundary is complete.
 - Clean up only the named feature namespace; never remove another active feature's worktrees or refs.
@@ -71,8 +76,10 @@ inside a linked worktree.
    hotfix, disposable probe, auto-resolve dynamic resource, cleanup, source push, or target merge.
 2. Resolve root, state, refs, and paths. Probe creation validates its envelope or exact current-task approval, then
    records a receipt; cleanup validates both authority and receipt. Other base/target refs are never inferred.
-3. For planned-feature artifact sidecars, load `../../references/artifact-store.md` before setup, checkpoint, or cleanup.
-4. Load `references/feature-package-workflow.md` for normal planned-feature package, integration, sidecar setup, and checkpoint commands.
+3. For planned-feature artifacts, load `../../references/artifact-store.md`; create/resume a sidecar only when an
+   actual durable write is now required, or load its checkpoint/cleanup rules at those actions.
+4. Load `references/feature-package-workflow.md` for normal package/integration/sidecar commands. Before selecting or
+   executing a feature-source publication gate, also load `../../references/source-publication.md`.
 5. Load `references/bugfix-hotfix-workflow.md` for probe/bugfix/hotfix creation and delivery mechanics.
 6. For any receipt-bound probe cleanup load `references/probe-cleanup.md`; before any removal, push, merge, or
    teardown also load `references/cleanup-safety.md`.
@@ -83,7 +90,9 @@ inside a linked worktree.
 ## Load if needed
 
 - Planned feature/package commands → `references/feature-package-workflow.md`
-- Artifact-root/code-root terms for sidecars → `../../references/artifact-store.md`
+- Feature-source cadence or scheduled push → `../../references/source-publication.md`
+- Artifact-root/code-root terms, first durable sidecar write, sidecar checkpoint →
+  `../../references/artifact-store.md`
 - Bugfix, hotfix, or probe creation → `references/bugfix-hotfix-workflow.md`
 - Receipt-bound probe cleanup → `references/probe-cleanup.md` plus `references/cleanup-safety.md`
 - Other cleanup, branch removal, push, merge, or teardown → `references/cleanup-safety.md`
@@ -121,9 +130,10 @@ creation base also has no unique commit. Otherwise preserve/report it. No packag
   packages. Neither grants package cleanup, remote action, or implementation.
 - Sidecar checkpoints push only `origin artifacts/<feature>` from `.worktrees/<feature>/artifacts` at accepted gates.
 - Diagnose bugfix/hotfix branch publication binds remote/ref, source SHA, snapshot, and expected remote SHA/absence.
-- Normal planned-feature contracts cover the repeated non-force `feature/<feature>` checkpoint after each
-  accepted package merge and remote-SHA verification. Sidecar and planned-hotfix pushes remain separately gated;
-  do not claim those contracts contain user-known SHA/snapshot fields.
+- Planned-feature source uses exactly the approved `per-package`, precise `milestone`, `final`, or `local-only`
+  policy. Non-due/local-only performs no network action and cannot block local downstream readiness. Every due push
+  must verify remote feature SHA equals integration `HEAD`; failure stops with local recovery refs retained.
+  Sidecar and planned-hotfix pushes remain separately gated.
 - Target merge binds source/pre-target SHAs, snapshot, strategy, and non-root worktree. Target push separately binds
   result and expected remote SHA; exact lease plus ancestry enforces compare-and-swap without non-FF rewrite.
 - Cleanup binds path/HEAD/index/state, direct ref/SHA, landing/base ancestry when required, ownership, and action.
@@ -142,7 +152,9 @@ creation base also has no unique commit. Otherwise preserve/report it. No packag
 - A branch is already checked out elsewhere and the playbook does not provide a safe alternative.
 - Merge-base proof fails for package branch cleanup.
 - A sidecar checkpoint would push anything except `origin artifacts/<feature>` from the artifact worktree.
-- A feature push was not named in the approved Execution Contract.
+- A feature push is not due under the approved cadence, was not explicitly authorized, or cannot verify remote SHA
+  after success. At a due gate, any network/credential/push/mismatch failure stops; at a non-due/local-only gate no
+  source network action runs and no publication stop is raised.
 - A target merge or target push lacks its separate exact ref/SHA approval.
 - Any active or retired package cleanup is requested before final whole-feature gates. Planned-hotfix follows its
   separately contracted publication/cleanup gate.

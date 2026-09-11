@@ -1,9 +1,8 @@
 ---
 name: review-plan
 description: >
-  Validates Slice-first planned-feature artifacts for initial approval or focused same-requirement re-review during
-  implementation. Use to review, validate, or approve a plan. Do not use to perform implementation, code review,
-  audit, dashboard status, or ordinary PR review.
+  Validates planned-feature artifacts for initial approval or focused same-requirement re-review.
+  Use to review, validate, or approve a plan. Do not use for implementation, code review, audit, or dashboard status.
 ---
 
 # Review Plan
@@ -31,10 +30,11 @@ report set or explicit `none`, and changed artifact scope.
   exception returns to the user-facing gate.
 - Keep artifact root, code root, artifact ref, and resolved feature/artifact slug explicit in the gate, reviewer packets, validation commands, and summaries. Preserve supplied planned-hotfix delivery context without inventing a feature ref.
 - Do not create package result reports, mark packages complete, run code review, or execute implementation inline.
-- Prefer repository/official evidence. Track each material empirical question under a stable logical-question ID:
-  attempt 1 is one fresh `empirical-spike` invocation; attempts 2–3 are fresh invocations with incremented IDs and
-  a named corrected packet or changed method/signal. Never retry unchanged or exceed three total attempts.
-  Parallelize independent questions; sequence only when accepted evidence creates a new question. Retain context.
+- Prefer repository/official evidence. Before the first empirical or repair attempt, load
+  `../../references/bounded-attempts.md`; retain context and supplied identity/history through focused re-review.
+  Unchanged retries and stage-boundary counter resets are forbidden.
+- Only a proven nonsemantic correction under `../../references/plan-amendments.md` may bypass a fresh
+  planner/focused semantic review; required initial review and user approval remain mandatory.
 
 ## Do
 
@@ -66,20 +66,22 @@ report set or explicit `none`, and changed artifact scope.
    `../../references/work-packages.md`, conditional `../../references/conceptualize-slice-authority.md`, and
    `../../references/clean-code-rules.md`; never pass hidden chat or copied Slice prose.
 7. If findings exist, load `references/plan-review-resolution.md`; initial mode retains its repair/decision gates.
-   For each empirical blocker in either mode, preserve review state and start its stable ledger at attempt 1.
-   Accept `resolved-static`, `supported`, or `rejected` only after validating identity, provenance, method, authority,
-   bounds, limitations, and cleanup. Correct `blocked`/`inconclusive` only through an authorized changed packet,
-   method, or signal at attempts 2–3; unresolved initial mode stops and continuation returns protected/out-of-contract
-   gaps to `implement`. Parallelize independent questions and sequence only evidence-created questions.
+   For each empirical blocker, preserve review state and supplied attempt history; only a genuinely new question
+   starts attempt 1. Apply the loaded bounded-attempts contract to evidence acceptance and follow-ups.
+   Unresolved initial mode stops; continuation returns protected/out-of-contract gaps to `implement`.
    In initial mode persist accepted empirical outcomes in owning artifacts under the resolution reference's Semantic
    Change Rule, rerun validation and focused re-review, then present the ordinary plan gate; never invoke a planning
    continuation. Only in continuation-focused mode route same-requirement plan findings and accepted reports or
    explicit `none` through caller-owned `implementation-plan` `implementation-continuation`; then rerun validation/
-   focused review and autonomously restore readiness. Never patch continuation findings inline or send them to a
-   code repair worker. Load `../../references/decision-prompts.md` only for structured decisions in initial mode.
+   focused review and autonomously restore readiness. First classify exact mechanical candidates under
+   `../../references/plan-amendments.md`; only that exception permits inline correction. Never send a plan-owned
+   defect to a code repair worker. Load `../../references/decision-prompts.md` only for initial structured decisions.
 8. In initial mode present the existing plan gate with roots/ref, deliverables, reviewers/escalations,
    refinements/deferrals/dismissals, closure/dependency rationale, feasibility profiles, Acceptance, every manual
-   exception, and remaining risks. In continuation-focused mode present no gate when requirements/behavior/risk/
+   exception, and remaining risks. When implementation is requested and its complete Execution Contract is
+   ready, the plan decision and execution authorization may share one concise presentation; obtain both
+   explicitly and never infer execution authority from plan approval alone.
+   In continuation-focused mode present no gate when requirements/behavior/risk/
    manual exceptions are unchanged; return any such decision to `implement` for its legitimate user stop.
 9. After initial approval update registry status to `reviewed`; checkpoint `origin artifacts/<feature>` through
    `worktree` only when authorized, otherwise report valid unpublished artifacts, and invoke `implement` only when

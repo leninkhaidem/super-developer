@@ -42,6 +42,8 @@ Use an empty `authoritative_slices` array only for Index-only or no-Slice plans 
 - `spec_path` points to the written `SPEC.md` file.
 - `authoritative_slices` lists the full safe Slice inventory when Slices exist.
 - Each package entry contains only `id`, `path`, `report_path`, `status`, and `depends_on`.
+- Package IDs are stable `WP<N>` values. Gaps and reordered registry arrays are valid; never renumber or reuse IDs
+  after reorder, split, merge, deferral, or retirement. Allocate fresh unused IDs for replacements.
 - Dependencies are ID-only durable sequencing prerequisites and must match package Markdown; rationale belongs in package `Notes`.
 - Keep registry, package, report, and Slice paths artifact-root-relative POSIX paths.
 - Reject absolute, traversal, home, drive-qualified, empty-segment, symlink-escape, or out-of-root paths.
@@ -76,7 +78,8 @@ Use an empty `authoritative_slices` array only for Index-only or no-Slice plans 
 - None.
 
 ## Notes
-- Optional: deferrals, risk/replan triggers, closure/execution profile, constraints, and sequencing rationale.
+- Optional: deferrals, verification profile (`standard`/`enhanced`) plus evidence/risk reason, risk/replan triggers,
+  closure/execution profile, constraints, and sequencing rationale.
 ```
 
 `sliceproof.py` mechanically requires `Scope`, `Assigned Slices`, `Primary Paths`, `Verification Expectations`, `Package Verification Report`, and `Dependencies`. `Notes` is optional. `## Acceptance Checklist` is the frozen closed done-definition for the package (see Package Rules); extra sections are allowed.
@@ -163,6 +166,7 @@ When Semgrep is enabled, keep verification expectations helper-owned and package
   that delivered text, examples, errors, exports, logs, or prompts are audience-appropriate,
   actionable where needed, redacted when sensitive, and free of planning/workflow leakage.
 - Dependencies are ID-only durable sequencing prerequisites and must match the registry. Put non-obvious consumed output, contract, or evidence rationale in `Notes`; runtime impact or failure alone does not create an edge, and edges must not merely serialize independent work.
+- Record `standard`/`enhanced` verification profile seeds and evidence/risk reasons in `Notes` or expectations, never as registry fields. Planner seeds do not authorize later ungrounded downgrades while a risk trigger remains.
 
 ## Fail Closed When
 

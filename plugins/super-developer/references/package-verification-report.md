@@ -40,6 +40,11 @@ PASS | FAIL | PENDING_VERIFICATION
 - none
 ```
 
+For the first report only, an authorized result writer may create the missing `report_path` from
+`sliceproof.py render-report` stdout, then edit that file with real verification evidence. The write is create-only:
+never overwrite an existing report, erase prior result rows, or remove existing `## Plan gaps` history. A rendered
+skeleton is intentionally unverified and cannot satisfy completion.
+
 ## Rules
 
 - **PASS** requires every Acceptance Checklist item marked `pass` with a pointer plus orchestrator-observed

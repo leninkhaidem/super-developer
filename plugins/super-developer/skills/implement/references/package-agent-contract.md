@@ -36,7 +36,9 @@ The package agent must:
 11. If assigned Slice content is unprojected, conflicts with `SPEC.md`, work-package Markdown, accepted scope metadata, result rows, or workflow contracts, report a Slice plan defect instead of silently accepting it or implementing directly from raw Slice prose.
 12. Run safe assigned verification commands plus targeted checks/inspections needed to prove the package. Prefer targeted checks that prove assigned Slice obligations and touched behavior; do not run broad expensive suites by default unless assigned, cheap by convention, or the only credible proof. Apply each packet-provided command identity, timeout, progress/completion signal, termination, and cleanup rule. Stop before risky execution when a bound is missing. Treat timeout or uncertain cleanup as non-pass, return after a failed bounded stage, and never rerun unchanged state or inflate a timeout without relevant evidence.
     Agent-selected hygiene checks must not invent blocking formatting policy. Unless repository-declared CI, pre-commit, package verification expectations, assigned commands, or project instructions require Git's default whitespace semantics, run optional diff hygiene as `git -c core.whitespace=-blank-at-eof diff --check`; a lone `new blank line at EOF` observation is non-blocking. Run and report repository-declared or assigned checks exactly, preserving their normal pass/fail meaning.
-13. Fill or refresh only the assigned result report in the artifact root before handoff. `SELF_REVIEW` is
+13. Fill or refresh only the assigned result report in the artifact root before handoff. If the report is missing,
+    use `sliceproof.py render-report` only as a read-only stdout skeleton for a caller-authorized create-only write;
+    if it already exists, edit it in place and preserve prior result rows and Plan-gaps history. `SELF_REVIEW` is
     hygiene, not a gate.
 14. Before handoff, perform the mandatory package self-review below and fix self-found issues or report an exact blocker.
 15. Never create worktrees, branches, perform merge operations, mark packages done, edit Slices/package
@@ -85,6 +87,15 @@ never report success with one open.
 ## Result File Expectations
 
 If assigned, update only the artifact-root `.tasks/<feature>/reports/<WP-ID>.package-verification.md` file.
+For a missing first report, the safe skeleton source is:
+
+```bash
+python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" render-report \
+  --artifact-root "$ARTIFACT_ROOT" --code-root "$CODE_ROOT" \
+  ".tasks/<feature>/tasks.json" --package WP1
+```
+
+A caller-authorized write must be create-only; never overwrite an existing report or erase result/Plan-gaps history.
 The orchestrator re-runs every executable frozen AC item into that same file after you return. Do not treat
 helper ok as done.
 

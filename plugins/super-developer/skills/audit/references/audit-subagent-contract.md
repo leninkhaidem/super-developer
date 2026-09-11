@@ -1,6 +1,9 @@
 # Audit Worker Contract
 
-Load only when `audit/SKILL.md` dispatches the final auditor. Owns the cold packet, procedure, report, handoff, and PASS/FAIL rules. The auditor receives no conversation history. Its lens is completion: Slice obligations, package closure, Acceptance Checklist results, result-file authenticity, optional review-code context, final integrated code, and quality blockers.
+Load only when `audit/SKILL.md` dispatches the final auditor. Owns the independent cold packet, procedure, report,
+handoff, and PASS/FAIL rules. The auditor receives no conversation history and is separate from the implementer,
+Code Reviewer, and Fix Verification worker. Its primary lens is complete artifact/Slice/Acceptance reconciliation;
+semantic production inspection is a targeted backstop, not an unconditional global review.
 
 ## Required Packet and First Reads
 The packet must provide safe paths or explicit `none` for optional artifacts:
@@ -71,11 +74,13 @@ Confirm each report's reviewed state resolves to the final integrated state or t
 
 Final audit is a complete reconciliation plus targeted skeptic backstop, not a full second package verifier or a
 second package-test review. Complete every artifact, Slice, result, checklist, reviewed-state, and feature
-Acceptance reconciliation above; then focus semantic code inspection on integrated production behavior, global
-and cross-package seams, shared/public contracts, caller/callee behavior, whole-feature coherence,
-integration-only or merge-resolution production changes, and triggered security/privacy/data/concurrency/lifecycle
-risk. Trust fresh package-local test-quality review while retaining auditor judgment over contradictions, hollow or
-dishonest `pass` claims, and semantic evidence sufficiency.
+Acceptance reconciliation above; do not perform an unconditional global production review. Semantic code inspection
+widens only for a concrete trigger: missing, vague, stale, contradictory, hollow, or dishonest evidence; targeted
+falsification of a claim; integration or merge resolution changing the relevant production surface; a material
+security/privacy/data/concurrency/lifecycle risk; or verifier/reviewer evidence identifying a specific weakness.
+When triggered, inspect the minimum integrated production behavior, global/cross-package seam, shared/public
+contract, caller/callee path, or whole-feature contradiction needed to resolve it. Trust fresh package-local
+test-quality review while retaining auditor judgment over contradictions and semantic evidence sufficiency.
 
 Do not routinely inspect the entire test diff, reread verified package-local tests, fixtures, or snapshots item by
 item, or rerun package-local checks. Inspect tests or underlying evidence only when:
@@ -89,7 +94,8 @@ item, or rerun package-local checks. Inspect tests or underlying evidence only w
 Inspect the minimum relevant tests or evidence needed to resolve the trigger, then stop. Widen only when that result
 exposes another concrete defect, contradiction, evidence gap, or unbounded affected surface. These limits do not
 reduce full Slice/result/Acceptance reconciliation, interface-exactness checks, reviewed-state binding, or the duty
-to reject forged, hollow, or semantically insufficient evidence.
+to reject forged, hollow, or semantically insufficient evidence. A real correctness, security, data-loss, or contract
+defect exposed by a trigger remains blocking; bounded inspection never licenses a fake pass.
 
 ### 6. Optional Review-Code Context and Code State
 When review-code state/report is supplied or safely available from the artifact root, validate same
@@ -97,15 +103,22 @@ feature/top state, `mode: "pipeline"`, `state: "ready_for_audit"`, empty `findin
 completed widening/no serious regression, and true `closure_status.ready_for_audit` plus
 `closure_status.proofs_and_reports_fresh`.
 
-Audit-block review-code context only when it contradicts Slice/result/checklist/code evidence or the audit
-was asked to rely on unsafe/stale context. Inspect integrated production code and build artifacts as needed to
-verify global behavior, SPEC requirements, checklist evidence, and MUST-level blockers; test inspection remains
-bounded by step 5. Use `clean-code-rules.md` for fake success, missing verification, caller-contract failure,
-unsafe trust boundaries, security/privacy/safety/data risk, public-contract breaks, unresolved requirements,
-missing completion evidence, or material brittleness.
+Review-code and audit are sibling checks, not an ordering chain. If context is `none`, audit proceeds without it;
+if supplied, bind it to this exact state and use it only as context. Absence or non-clean optional context does not
+by itself fail audit, though final delivery still needs same-freeze review `CLEAN` and audit `PASS`. Audit-block
+review-code context only when it contradicts Slice/result/checklist/code evidence or the audit was asked to rely on
+unsafe/stale context. Inspect integrated production code and build artifacts only as needed to resolve a concrete
+trigger, verify SPEC/checklist claims, or identify a MUST-level blocker; test inspection remains bounded by step 5.
+Use `clean-code-rules.md` for fake success, missing verification, caller-contract failure, unsafe trust boundaries,
+security/privacy/safety/data risk, public-contract breaks, unresolved requirements, missing completion evidence, or
+material brittleness.
 
 ### 7. Global Completeness
-Cross-check all task sets, Slices, SPECs, packages, result files, optional review-code context, and final code for material Slice fulfillment, weak/stale evidence, unapproved deferrals, scope drift, unresolved questions, contradictions, global seams, API/schema/data/migration, security/privacy/safety requirements, accepted tradeoffs, and rare package-verifier misses.
+Cross-check all task sets, Slices, SPECs, packages, result files, optional review-code context, and final code for
+material Slice fulfillment, weak/stale evidence, unapproved deferrals, scope drift, unresolved questions,
+contradictions, API/schema/data/migration, security/privacy/safety requirements, accepted tradeoffs, and rare
+package-verifier misses. This is complete artifact/Slice/Acceptance reconciliation, not an unconditional global
+production review; use step 5 triggers for any semantic code widening, including global seams or integration behavior.
 
 ## Blocking Categories
 Use concise categories: `[SLICE-GAP]`, `[UNASSIGNED-SLICE]`, `[RESULT-GAP]`, `[RESULT-CONTRADICTION]`, `[PACKAGE-VERIFY]`, `[CHECKLIST-GAP]`, `[REPORT-GAP]`, `[STACK-GAP]`, `[SEMGREP-EVIDENCE]`, `[REVIEW-CONTEXT]`, `[IMPLEMENTATION-GAP]`, `[INTEGRATION-GAP]`, `[INTERFACE-EXACTNESS]`, `[UNAPPROVED-DEFERRAL]`, `[UNRESOLVED-QUESTION]`, `[QUALITY-BLOCKER]`, `[CONTROL-PLANE]`, `[ADVISORY]`. Advisory items block only when they expose a real completion or safety issue.
@@ -154,9 +167,9 @@ PASS requires complete Slice inventory for every included task set, each materia
 ## Repair Handoff
 When audit fails, provide the minimal affected set: Slice IDs/paths, packages, result rows/sections, package reports, affected checklist items, invalid evidence refs, relevant review-code fields, code/test paths, required verification, and affected-surface classification for focused or full audit rerun.
 
-The auditor does not edit files. After a blocking repair, package verification refreshes semantically affected
-checklist/result and focused seam evidence plus feature Acceptance; unaffected results remain reusable and
-unknown impact widens. Audit itself is never focused closure: for the new integrated freeze, one fresh cold
-auditor reconciles complete retained plus refreshed evidence and issues a complete PASS/FAIL for that same freeze.
-Focused review-code Fix Verification may restore `CLEAN` but cannot substitute for audit. Keep implementer,
+The auditor does not edit files. After a blocking repair, refresh only semantically affected checklist/result
+evidence and affected-only focused code Fix Verification for production/seam surfaces plus feature Acceptance;
+unaffected results remain reusable and unknown impact widens. Then establish a new integrated freeze and dispatch one
+fresh cold auditor to perform this complete reconciliation. Audit itself is never focused closure: focused Fix
+Verification may restore `CLEAN`, but a new cold reconciliation must issue the same-freeze `PASS`. Keep implementer,
 package verifier, Fix Verification, and auditor separate; generated outputs are not freeze inputs.

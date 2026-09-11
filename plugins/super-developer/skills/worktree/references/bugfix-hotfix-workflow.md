@@ -90,17 +90,20 @@ mechanism/evidence, behavior goal/non-goals, regression acceptance, residual ris
 ref/SHA, intended `hotfix/<name>`, and target ref. Planning authorization covers only that handoff; implementation
 and every remote/delivery action retain their owning approvals.
 Reuse ordinary SPEC/Slice/package/result and verification gates—do not create a hotfix artifact taxonomy.
-Carry delivery context through planning/review packets into the Execution Contract. Normal package refs/worktrees
-integrate into the named non-root `hotfix-<name>` worktree/ref from the explicit production base; do not synthesize
-`feature/<feature>`. Create an independent package from production base, or from `hotfix/<name>` after prerequisites:
+Carry delivery context through planning/review packets into the Execution Contract. Stabilize and retain a local
+recovery commit/ref for each accepted package. Normal package refs/worktrees integrate into the named non-root
+`hotfix-<name>` worktree/ref from the explicit production base; do not synthesize `feature/<feature>` or apply the
+feature-source cadence contract. Create an independent package from production base, or from `hotfix/<name>` after
+prerequisites:
 ```bash
 set -euo pipefail
 cd "$PROJECT_ROOT"
 git worktree add .worktrees/<feature>/wp-<WP-ID> -b wp/<feature>/<WP-ID> <production-base-sha-or-hotfix-ref>
 git -C "$PROJECT_ROOT/.worktrees/hotfix-<name>" merge wp/<feature>/<WP-ID> --no-edit
 ```
-The reviewed hotfix branch uses the exact non-force source-push command listed in the Execution Contract and
-publishes only that branch; target merge/push, release/deployment, live mutation, sidecar publication, and cleanup remain separate boundaries.
+The reviewed hotfix branch uses the exact non-force source-push command and one explicit gate listed in the
+Execution Contract and publishes only `hotfix/<name>`; package boundaries never publish a feature ref. Target
+merge/push, release/deployment, live mutation, sidecar publication, and cleanup remain separate boundaries.
 
 ## Non-Root Immutable Integration
 

@@ -1,8 +1,9 @@
 # Implement Package Dispatch
 
-Load after plan validation and artifact inspection. This reference owns package selection, conditional
-execution readiness, safe batching, and pointer-based package/repair/verifier dispatch. Worker contracts
-define worker behavior.
+Load after plan validation and artifact inspection. This reference owns package selection, persisted verification
+depth, conditional execution readiness, safe batching, and pointer-based package/repair/verifier dispatch. Worker
+contracts define worker behavior. Before any empirical or repair dispatch, consume the parent-supplied
+bounded-attempts contract loaded and included at this action by `implement`.
 
 ## Context Boundary
 
@@ -30,6 +31,9 @@ Before dispatch, confirm:
 - `sliceproof.py validate-plan` passed and package/report paths agree under the artifact root;
 - required package sections are non-empty, assigned Slice paths/H3 IDs are safe and valid, and every package has
   at least one executable Acceptance Checklist item;
+- before first dispatch, the existing package `## Notes` contains
+  `Verification depth: standard|enhanced — reason: <concrete current-scope reason>` derived from the risk triggers in
+  `work-packages.md`; no registry field duplicates it;
 - a continuation-created package supplies focused-reviewed `BASE_KIND`, exact `BASE_REF`, `REVIEWED_BASE_SHA`, and
   prerequisite ref/SHAs. Independent requires approved original base; create only if the ref and dependent integration HEAD equal that SHA with every prerequisite SHA as ancestor. Never accept a moved base.
 
@@ -70,11 +74,13 @@ Choose the largest safe useful batch after readiness:
 5. Branch downstream packages only after prerequisite package branches merge.
 
 State the batch rationale. The orchestrator may reorder work within reviewed artifacts. Any needed plan-owned
-scope, Slice, dependency, result-file, deferral, split, or merge correction follows the continuation/focused-review
-route; prompt only for changed semantics/scope/visible behavior/risk/manual exceptions. Consume the orchestrator's
-explicit in-memory `standard`/`enhanced` classification for every ready package; do not infer or recompute depth
-here. Every package needs `SELF_REVIEW` and orchestrator re-run confirmation. Packages classified `enhanced` also
-need the independent verifier.
+scope, Slice, dependency, result-file, deferral, split, merge, obligation, command/evidence, or risk correction follows
+the continuation/focused-review route; prompt only for changed semantics/scope/visible behavior/risk/manual
+exceptions. Before first dispatch, determine and persist each ready package's depth/reason in existing Notes. Reassess
+only after an accepted material scope/risk delta: update when depth or its concrete reason changes, otherwise leave the
+note untouched. Never silently downgrade; a downgrade requires evidence that all enhanced triggers were removed by
+that approved delta. Pass persisted metadata; do not infer it from registry or memory.
+Every package needs `SELF_REVIEW` and orchestrator re-run confirmation; `enhanced` also needs the verifier.
 
 ## Dispatch Packet Kernel
 
@@ -84,9 +90,9 @@ Every package, repair, or verifier packet is compact and pointer-based. Include:
 - approved dependencies/commands, triggered testing-authority provenance, and project instructions;
 - each executable command's identity, cwd, provenance, scope, timeout, progress/completion signal, termination,
   cleanup, expected writes, and whether it is readiness, targeted, broad, or final;
-- triggered readiness result/blockers only when applicable; for package dispatch, the orchestrator's explicit
-  `standard`/`enhanced` classification; for repair, attempt identity, prior outcome, relevant delta, circuit state,
-  and permitted next action;
+- triggered readiness result/blockers only when applicable; for package dispatch, the Notes path plus persisted
+  `standard`/`enhanced` depth and concrete reason; for repair, the bounded-attempt logical ID, ordinal, prior outcomes,
+  material delta, escalation state, and permitted next action;
 - resolved Semgrep state; when enabled, require only
   `python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/semgrep_rules.py" scan ...`, bounded consumption, expected
   `.tasks/<feature>/semgrep/` paths/digests, and advisory findings; forbid raw direct `semgrep` scans or JSON dumps;
@@ -129,23 +135,27 @@ Dispatch only a blocking code defect; plan-owned defects must complete planning 
 Classify semantic impact from the diff, not dependency descendants: owners/consumers, observable contracts,
 generated/config/migration surfaces, dynamic consumers, shared harnesses/oracles, global risk invariants, merge
 resolutions, and evidence invalidation. Include artifact paths; affected packages/Slices/result/checklist/seams;
-findings, failed observations, and screened commands. Cluster only a shared cause, writable scope, and verification
-envelope under one stable ID. Attempt 1 is initial; attempts 2–3 name a material code/diagnostic delta. Identity is
-not progress and cannot reset the three-total-attempt cap. Stop for authority/safety/facts/risk or unchanged work.
+findings, failed observations, screened commands, and the package Notes depth/reason. Cluster only a shared cause,
+writable scope, and verification envelope. Use the loaded bounded-attempt contract for identity, permitted material
+follow-up, one code reclassification, and stop; missing history or unchanged work stops rather than resets.
 
 ## Package Verifier Packet
 
-Dispatch only for an enhanced-risk package after the orchestrator re-run. Require first reads of
-`plugins/super-developer/skills/implement/references/package-verification.md` and
-`plugins/super-developer/references/package-verification-report.md`. Include artifact/package/result/Slice paths,
-reviewed code/ref, `SELF_REVIEW`, orchestrator-observed output, `SPEC.md` for `## Trust Context`, and optional
-Semgrep bindings. The verifier checks
+Dispatch only for a package whose existing Notes records `enhanced` after the orchestrator re-run. Require first reads
+of `plugins/super-developer/skills/implement/references/package-verification.md` and
+`plugins/super-developer/references/package-verification-report.md`. Include Notes path, persisted depth/reason,
+artifact/package/result/Slice paths, reviewed code/ref, `SELF_REVIEW`, orchestrator-observed output, `SPEC.md` for
+`## Trust Context`, and optional Semgrep bindings. The verifier checks
 checklist-invisible blocking risk from scope, Slices, diff, tests, expectations, and known failure modes; planner
 seeds do not limit discovery. It returns PASS/FAIL plus blocking/advisory findings. The orchestrator records them
 in the same result report; the verifier neither creates another artifact nor replaces observed output.
 
 ## Orchestrator Edit Boundary
 
-The orchestrator does not implement code behavior or plan-owned repairs inline. Direct edits are limited to
-workflow metadata, handoff/validation bookkeeping, mechanical integration state, and status transitions; plan
-artifacts are repaired only by the planner route above.
+The orchestrator does not implement code behavior or plan-owned repairs inline. It may update required verification
+depth workflow metadata in existing package Notes under the approved Execution Contract; that record cannot change
+package risk authority. Before classifying or applying any other proposed plan-artifact amendment, consume the
+parent-supplied plan-amendments contract loaded and included at this action by `implement`, and apply only its exact
+nonsemantic rule. Actual obligations, commands/evidence, risk, scope, dependency, acceptance, or finding closure uses
+planning continuation and focused review. Other direct edits stay limited to handoff/validation bookkeeping,
+mechanical integration state, and status transitions.
