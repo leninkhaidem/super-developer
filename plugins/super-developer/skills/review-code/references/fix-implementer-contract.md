@@ -19,11 +19,9 @@ stale, unsafe, ambiguous, or conflicting input means no repository action and `B
 The parent supplies:
 
 - packet ID, contract path, `mode: local|pipeline`, and recorded explicit fix authorization;
-- for pipeline packets, the exact parent-owned `bounded-attempts.md` contract path/contents plus current attempt
-  binding. The parent loads that contract before retry routing; it owns retry numbering, the three-attempt circuit,
-  and the single code-to-plan reclassification. This worker reports the supplied attempt and never resets, renames,
-  reclusters, or reclassifies it. This is pipeline-only: it does not change PR behavior (which has no fix path) or
-  local repair authorization and verification;
+- exact parent-supplied `bounded-attempts.md` path, shared remaining repair time/interval deadline, logical ID,
+  round/progress history, and next falsifiable strategy. The parent owns continuation and reassessment; the worker
+  never resets history/budget or infers permission from an ordinal. Local explicit approval and PR's no-fix rule remain;
 - confirmed finding keys, evidence, Skeptic verdicts, decisions, expected behavior, and repair goal;
 - exact repository/worktree, branch/ref, base ref/SHA, HEAD SHA, and complete starting-state binding;
 - separate category manifests/content checksums plus complete checksum; untracked records include file type,
@@ -35,8 +33,7 @@ The parent supplies:
 - forbidden actions, stop/scope-expansion route, and required report fields;
 - local context: caller constraints and reviewed snapshot; or
 - pipeline context: artifact/code roots, feature/package/Slice IDs, result paths, dirty-evidence map,
-  source bindings, verification state, freshness handback owner, and the exact parent-supplied
-  bounded-attempts contract path/contents plus current attempt binding;
+  source bindings, verification state, and freshness handback owner;
 - for cross-package repair, every affected package, writable path, and finding under one coherent seam authority
   and verification envelope; otherwise the parent must split the packet.
 
@@ -54,8 +51,9 @@ credentials; mutate shared/production data; or run destructive commands. Return 
 
 ## Ordered Workflow
 
-1. **Preflight:** read packet/contract, validate mode authority and paths, recapture complete starting state, and
-   return no-action `BLOCKED` on mismatch. Load supplied command/testing contracts only at their action point.
+1. **Preflight:** read packet/contract and supplied bounded-work policy; validate shared deadline/history, mode
+   authority and paths, and recapture complete starting state. Missing bounds or mismatch return no-action `BLOCKED`.
+   Load supplied command/testing contracts only at their action point.
 2. **Reproduce:** locate and reproduce each confirmed finding with the smallest safe bounded inspection/command.
    Stop if the observed mechanism differs, cannot be reached, or needs forbidden/unapproved action.
 3. **Repair:** Before any repair, read and apply the supplied shared clean-code contract; retain it for self-review.
@@ -64,7 +62,8 @@ credentials; mutate shared/production data; or run destructive commands. Return 
 4. **Regression:** add or adjust targeted evidence that fails for the original mechanism and passes with repair
    when practical. If no bounded seam exists, return `BLOCKED: scope_expansion`.
 5. **Verify:** run the regression, original repro, smallest affected existing slice, and packet checks. Record cwd,
-   bound, result, termination, and cleanup. Timeout, flaky output, or uncertain cleanup is not pass.
+   bound, elapsed time, result, termination, and cleanup. Normal evidence-backed edit/test cycles are not failed
+   rounds and may continue within the shared deadline. Timeout, flaky output, or uncertain cleanup is not pass.
 6. **Self-review:** inspect complete delta and untracked provenance; confirm scope, behavior, secrets, residue,
    and regression relevance. Apply the complete shared codebase-design model and every smell to changed behavior
    and directly affected Interfaces, Seams, Adapters, callers, tests, and evidence; fix material in-scope risk,
@@ -90,7 +89,8 @@ Return at most:
 - `state`: mode, worktree/ref/base, starting comparisons, ending HEAD and complete state;
 - `findings`: per key reproduction, repair, and closure evidence;
 - `changes`: changed/untracked paths with purpose and scope validation;
-- `regression` and `verification`: commands/results, bounds, termination, cleanup, and not-run reasons;
+- `regression` and `verification`: commands/results, bounds, elapsed time, observed progress, termination/cleanup,
+  and not-run reasons;
 - `self_review`: minimality, behavior, secret/residue, untracked checks, `unresolved_concerns`, and exactly one
   `design_and_smell_review: complete; material_findings=none|fixed:<items>; justified_non_actions=none|<evidence>`;
   only no-implementation-delta or purely mechanical evidence refresh may use

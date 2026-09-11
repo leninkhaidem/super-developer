@@ -83,9 +83,9 @@ commit, or ancestry alone does not stale unaffected work.
 
 Before repair, record identity, prior outcome, unresolved state, affected packages/paths/checklists/reports/seams, and
 screened commands. One worker owns a cluster sharing cause, scope, and verification envelope. Use the loaded
-bounded-attempt contract for stable identity, three changed attempts, one no-authority-expansion code reclassification,
-second exhaustion, and immutable stop report. Stop on unchanged work, uncertain cleanup/readiness, missing
-history/authority/facts, scope/safety change, or risk.
+bounded-work contract for observed progress, shared remaining repair time, round history/reassessment, and stop
+reporting. Reopen planning only for an evidenced plan defect, never a failed-round count. Stop on non-convergence,
+exhausted budget, uncertain cleanup/readiness, missing history/authority/facts, or scope/safety/risk change.
 
 ## Conflict Handling
 
@@ -126,8 +126,9 @@ neither output is a freeze input, substitute, or cross-role authority:
   claims.
 
 Route either gate's plan blockers before code repair. Each repair/continuation creates a new freeze after affected
-checks and feature Acceptance. Focused review-code Fix Verification may restore `CLEAN`; a fresh cold auditor still
-must issue same-freeze `PASS`.
+checks and feature Acceptance. Pass shared remaining repair time/deadline to review/closure and audit; exhausted
+checks are incomplete, never waived. Focused Fix Verification may restore `CLEAN`; a fresh cold auditor still must
+issue same-freeze `PASS`.
 
 After same-freeze CLEAN+PASS, apply source-publication final push/catch-up for approved remote cadences only if SHA
 differs as specified; use `worktree` and require post-push remote SHA equality. `local-only` stays network-free.

@@ -247,7 +247,18 @@ Claude Code discovers packaged skills automatically. Other hosts need equivalent
 > Plan this feature
 ```
 
-A delegated planner writes the task artifacts and the draft flows directly into review—no extra draft-confirmation gate. The reviewed plan requires approval. `implement` presents a concise Execution Contract summary of changes, allowed actions, verification, and stops, with detailed machinery retained for agents. Ready plan and execution decisions may share one presentation, but both must be explicitly authorized. Auto-resolve covers bounded code/probes/tests, plan continuation/focused review, repairs, verification, review-code, and audit. Probe cleanup is local, manifest-bound, and non-force; continuation package worktrees are retained until final ancestry/no-unique-commit cleanup. Credentials, protected actions, semantic/risk/manual changes, target delivery, and uncertainty still stop, as does three-attempt non-convergence for an empirical question or a plan-owned cluster. A code repair cluster's first attempt-3 exhaustion is instead re-classified once and continues through the plan-defect route; its second exhaustion stops.
+A delegated planner writes the artifacts and the draft flows directly into review. Plan and execution decisions
+remain separately authorized; ready decisions may share one concise presentation. Auto-resolve covers only approved
+in-scope work. Credentials, protected actions, scope/risk/manual changes, and target delivery retain their boundaries.
+
+Implementation, review-owned repairs, and diagnose-and-fix share
+[`bounded-attempts.md`](references/bounded-attempts.md): continue on observed progress within one task-wide repair-time
+budget. Ordinary edit/test cycles and worker handoffs are not failed rounds. Three unsuccessful complete rounds
+trigger reassessment—not automatic stopping, a new allowance, or a planning handoff. Reopen planning only for an
+evidenced plan defect or an authorized broad/risky decision. Stop when progress cannot justify a next step, the shared
+budget expires, or authority is missing. The existing authorization carries the time allowance (30-minute repair-time
+default when none is supplied); no new approval screen or retry ledger is added. Standalone empirical probes retain
+their separate three-invocation bound.
 
 Final `review-code` is primary production-defect discovery, including changes from standard packages without a
 separate verifier. The independent cold `audit` reconciles complete delivery evidence and inspects code when

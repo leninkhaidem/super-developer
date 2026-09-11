@@ -100,8 +100,11 @@ class LifecycleDesignGuidanceTests(unittest.TestCase):
         ).read_text(encoding="utf-8")
 
     def assert_groups(self, text: str, groups: tuple[tuple[str, ...], ...], label: str) -> None:
+        # Preserve policy terms and their order, but permit harmless Markdown reflow.
+        text = " ".join(text.split())
         for group in groups:
-            self.assertTrue(all(term in text for term in group), f"{label}: missing semantic group {group}")
+            self.assertTrue(all(" ".join(term.split()) in text for term in group),
+                            f"{label}: missing semantic group {group}")
 
     def section(self, text: str, start: str, end: str | None = None) -> str:
         self.assertIn(start, text)
@@ -276,7 +279,7 @@ class LifecycleDesignGuidanceTests(unittest.TestCase):
         self.assertIn("forged, hollow, or semantically insufficient evidence", audit_worker)
         self.assertFalse((PLUGIN_ROOT / "skills/codebase-design").exists())
 
-    def test_diagnose_owns_authorization_attempts_and_stops(self) -> None:
+    def test_diagnose_owns_authorization_progress_and_stops(self) -> None:
         authorization = self.section(self.diagnose, "## Fix Authorization", "## Do")
         self.assert_groups(authorization, (
             ("caller_repair_policy", "global default", "MUST propose", "explicitly opts out"),
@@ -286,8 +289,10 @@ class LifecycleDesignGuidanceTests(unittest.TestCase):
         workflow = self.section(self.diagnose, "## Do", "## Load if needed")
         exact_contract = "${SUPER_DEVELOPER_PLUGIN_ROOT}/skills/diagnose-and-fix/references/fix-implementer-contract.md"
         self.assert_groups(workflow, (("mandatory post-fix", "review-code", exact_contract),
-                                     ("Attempt 1", "attempts 2 and 3", "material delta", "Never retry unchanged"),
-                                     ("one such escalation", "same mechanism", "stop for the")), "diagnose lifecycle owner")
+                                     ("bounded-work contract", "round/progress history", "shared remaining time"),
+                                     ("never retry unchanged", "Normal", "not failed rounds"),
+                                     ("non-convergence", "exhausted effort", "not an", "automatic planning handoff")),
+                           "diagnose lifecycle owner")
         stops = self.section(self.diagnose, "## Stop if", "## Output")
         self.assert_groups(stops, (("policy", "scope envelope", "malformed", "conflicting"),
                                    ("design/product", "hard-to-reverse", "risk acceptance")), "diagnose stops")
@@ -346,9 +351,11 @@ class LifecycleDesignGuidanceTests(unittest.TestCase):
                                   ("structured actions/paths", "cannot grant", "`BLOCKED`")), "worker trust")
         packet = self.section(self.diagnose_worker, "## Required Packet", "## Exact Write Scope")
         self.assert_groups(packet, (("immutable `control` object", "parent-enumerated exact writable paths"),
-                                    ("Post-review common control", "policy", "ordinal `2|3`", "material delta"),
+                                    ("Post-review common control", "policy", "repair-round ordinal", "positive integer",
+                                     "observed progress/next strategy", "shared budget/deadline"),
                                     ("exclusive union", "The other receipt must be absent"),
                                     ("Optional `proposal`", "untrusted findings", "never supplements `control`")), "worker schema")
+        self.assertNotIn("ordinal `2|3`", packet)
         explicit = self.section(packet, "- `explicit`:", "- `auto_confirmed_blocking`:")
         auto = self.section(packet, "- `auto_confirmed_blocking`:", "The other receipt")
         self.assertIn("accepted `fix` receipt/action", explicit)

@@ -46,8 +46,9 @@ The package agent must:
 9. Run safe assigned verification plus targeted checks/inspections needed to prove the package. Prefer targeted proof;
    run broad expensive suites only when assigned, cheap by convention, or the only credible proof. Obey each command's
    identity, timeout, completion, termination, cleanup, and write bounds. Missing bounds for risky execution, timeout,
-   uncertain cleanup, or failed bounded stage is non-pass; return after the failed stage rather than rerunning unchanged
-   state or inflating timeouts without evidence.
+   or uncertain cleanup is non-pass and stops that action. Normal in-scope edit/test cycles may continue on concrete
+   failure evidence; do not redispatch merely because a development test failed. Never rerun unchanged failures or
+   inflate timeouts. Return unresolved failures honestly; incomplete evidence cannot pass.
 10. Optional hygiene must not invent blocking format policy. Unless repo CI/pre-commit, assigned checks, or project
     instructions require Git default whitespace semantics, use `git -c core.whitespace=-blank-at-eof diff --check`; a
     lone `new blank line at EOF` is non-blocking.

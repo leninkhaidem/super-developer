@@ -18,7 +18,9 @@ Write nothing until every applicable item passes:
   limitations/cleanup checks, and no unchanged, exhausted, malformed, or unbounded circuit remains. Independent
   questions may run in parallel; a sequential question arose only from accepted evidence. The planner did not invoke
   a spike; unresolved behavior produced `BLOCKED: empirical_evidence_needed` before writes.
-- Continuation names its stage/defect and accepted reports or `none`; every write and command is within contract.
+- Continuation names its evidenced stage/defect and reports or `none`; every write and command is within contract.
+  Any plan repair carries shared remaining time/deadline and round/progress history, including initial-mode repair.
+  Checks/re-review consume that same allowance; failed-round count alone never creates a plan defect.
   Mechanical inline edits satisfy the complete amendment whitelist and owning-orchestrator authority. Semantic edits
   use planner repair/review.
 - Every continuation-created package records `BASE_KIND`, exact `BASE_REF`, candidate `REVIEWED_BASE_SHA`, and

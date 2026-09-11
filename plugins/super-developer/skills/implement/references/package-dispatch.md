@@ -78,14 +78,15 @@ Every package, repair, or verifier packet is compact and pointer-based. Include:
 - each executable command's identity, cwd, provenance, scope, timeout, progress/completion signal, termination,
   cleanup, expected writes, and readiness/targeted/broad/final role;
 - triggered readiness result/blockers when applicable; package Notes path plus persisted depth/reason; for repair,
-  bounded-attempt logical ID, ordinal, prior outcomes, material delta, escalation state, and permitted next action;
+  bounded-work contract path, shared consumed/remaining repair time and active deadline, logical ID, round history,
+  observed progress, next falsifiable strategy, and permitted action; preserve the budget in verifier packets too;
 - resolved Semgrep state; when enabled, require only the helper command
   `python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/semgrep_rules.py" scan ...`, bounded consumption, expected
   `.tasks/<feature>/semgrep/` paths/digests, and advisory findings; forbid raw direct `semgrep` scans or JSON dumps;
 - no copied package/Slice/result bodies, hidden chat summaries, or model override unless intentionally resolved.
 
-An interrupted dispatch produced no result. Its partial findings may seed a fresh packet, but never close its gate.
-Re-dispatch the role fresh.
+An interrupted dispatch produced no result. Its evidence may seed a fresh packet, never close its gate. Preserve
+consumed time/history; interruption is not another completed repair round. Redispatch only within remaining authority.
 
 Screen Slice paths against the artifact root: reject absolute, drive-qualified, home/shell-expanded, empty/traversal
 segments, duplicates, symlink escapes, missing/unreadable files, out-of-workspace paths, or mixed concept workspaces.
@@ -103,7 +104,8 @@ Slice Authority Kernel:
 Include package-agent contract path, clean-code contract path, package/SPEC/registry/Slice paths, package ID,
 worktree/branch, report path, verification expectations, dependencies, Semgrep state, and mandatory `SELF_REVIEW`.
 Separate readiness/targeted commands from broad integration/final checks. Require the supplied runtime envelope, stop
-on a missing risky-execution bound, and return after a failed bounded stage.
+on a missing risky-execution bound or unsafe/timed-out stage. Normal evidence-backed edit/test cycles stay inside
+one implementation invocation; incomplete verification remains non-pass.
 
 ```md
 You are implementing work package `<WP-ID>`.
@@ -121,8 +123,8 @@ semantic impact from the diff, not descendants: owners/consumers, observable con
 dynamic consumers, shared harnesses/oracles, global risk invariants, merge resolutions, and evidence invalidation.
 Include artifact paths, affected packages/Slices/results/checklists/seams, findings, failed observations, screened
 commands, and package Notes depth/reason. Cluster only shared cause, writable scope, and verification envelope. Use the
-bounded-attempt contract for identity, material follow-up, one code reclassification, and stop; missing history or
-unchanged work stops rather than resets.
+bounded-work contract for progress, reassessment, shared effort, and stops. Pass its exact path and current binding;
+missing history/timing blocks rather than resets. Required verification and review consume that same repair budget.
 
 ## Package Verifier Packet
 

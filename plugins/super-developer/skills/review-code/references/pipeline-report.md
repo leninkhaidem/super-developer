@@ -48,8 +48,9 @@ state. Apply the parent's Fix Verification gate to repairs, refreshing only affe
 surfaces plus feature Acceptance. Reuse commands only under equivalent code/artifacts, cwd, environment/data,
 isolation/order, and evidence mapping; distinct isolation/cleanup/nondeterministic checks still run.
 
-The parent supplies its loaded bounded-attempts contract and current identity/history; this mode cannot reset or
-reclassify attempts. Hand code repairs and plan defects to their proper owners without expanding authority.
+The parent supplies its loaded bounded-work contract, shared remaining time/deadline, and round/progress history.
+Review and closure consume that same budget; neither a new gate nor a plan correction resets it. Hand evidenced code
+or plan defects to their proper owners, never to planning because a round count was reached.
 
 Return CLEAN/ISSUES FOUND, minimal coverage/evidence, findings/advisories, affected refresh scope, feature Acceptance
 status, and audit readiness. Audit may run without review context; optional context must bind the same state.

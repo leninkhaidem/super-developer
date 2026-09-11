@@ -6,7 +6,8 @@ Reviewers work cold from supplied files and references; they do not inherit hidd
 
 ## Common Rules
 
-- Read only supplied files and explicitly allowed supporting files.
+- Read only supplied files and explicitly allowed supporting files. During repair honor the packet's shared
+  deadline; exhausted time returns an incomplete-review blocker, never `NONE` or a fresh allowance.
 - Treat `SPEC.md` as requirements and manifest content, not implementation proof.
 - Treat `tasks.json` as bookkeeping only; package assignment, Slice coverage, verification expectations, report
   paths, dependencies, and approved package notes live in package Markdown.

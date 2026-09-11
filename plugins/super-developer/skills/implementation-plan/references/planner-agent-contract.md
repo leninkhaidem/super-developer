@@ -15,7 +15,8 @@ Require all applicable fields before acting:
 - approved requirements and source mode: `chat-only`, `Index-only`, or `Slice-backed`; for durable input, safe
   artifact-root-relative workspace/Index/Slice paths sufficient to discover the full existing Slice inventory;
 - initial overwrite approval, or continuation authority plus current artifacts, Execution Contract, originating
-  stage/defect/scope, approved original base, and current integration ref/HEAD;
+  stage/defect/scope, approved original base, current integration ref/HEAD, shared remaining repair time/deadline,
+  and round/progress history; initial-mode repair carries the same budget binding;
 - for each continuation-created package: `BASE_KIND`, exact `BASE_REF`, candidate `REVIEWED_BASE_SHA`, and
   prerequisite package refs/SHAs with ancestry evidence—never an arbitrary caller-selected base;
 - accepted empirical reports with stable logical-question/attempt identity, provenance, method, authority, bounds,
@@ -34,7 +35,8 @@ Load each labeled contract at its action; never discover another contract throug
 - artifact store for roots, refs, path safety, and slug mapping;
 - Conceptualize input and Slice authority/projection for durable input;
 - design preflight when the packet marks it applicable;
-- packet-labeled `bounded-attempts.md` before empirical/repair-history accounting;
+- packet-labeled `bounded-attempts.md` before empirical/repair-history accounting; repair writes/checks also obey
+  the supplied shared deadline, never a fresh allowance per planner;
 - SPEC template before drafting `SPEC.md`;
 - clean-code and work-package contracts while shaping boundaries and verification;
 - canonical artifact model and artifact-authoring before registry/package drafting;
@@ -70,7 +72,8 @@ supplied logical identity/history. Do not run a probe, invoke a skill, bundle qu
    leave `authoritative_slices` empty only when no Slice exists. Otherwise read every safe existing Slice in full and
    account for every material H3. Use the Conceptualize slug absent approved migration.
 3. Apply the empirical boundary. In initial mode return unresolved decisions to the orchestrator. In continuation,
-   repair equivalent internal mechanics autonomously; `none` is a valid report set for non-empirical defects.
+   repair equivalent internal mechanics autonomously within the shared remaining budget; `none` is a valid report
+   set for non-empirical defects. Stalled repair needs evidence-based reassessment, not unchanged redispatch.
 4. Draft the complete normal artifact set: `SPEC.md`, package split, lightweight registry, and every package file.
    Preserve every existing `WP<N>` identity; gaps/reordering are valid, and replacements use fresh unused IDs—never
    renumber or reuse. Record required continuation base/SHA provenance in each new package.

@@ -87,13 +87,13 @@ output may be reused; distinct package, isolation, cleanup, and nondeterministic
 Classify each confirmed finding before repairing it: implementation defect, missing regression evidence, plan
 defect, newly proposed requirement, or advisory. When repeated findings show the acceptance evidence itself cannot
 decide the obligation — rather than the code being wrong — that is a plan defect: route it through planning
-continuation to repair the checklist instead of patching one defect at a time. Routing preserves the attempt cap
-and its single escalation below; it never resets them.
+continuation to repair the checklist instead of patching one defect at a time. Failed-round count alone is not
+proof of a plan defect and never triggers a planning handoff.
 
-Before repair dispatch, the orchestrator loads `bounded-attempts.md`, the sole owner of cluster identity,
-material progress, attempt caps, and the single code-to-plan escalation. Preserve that history through planning
-continuation and focused re-review. Widen only for semantically affected surfaces, never merely because a
-package dependency, commit, or merge exists. Proven mechanical artifact corrections may use
+Before repair dispatch, the orchestrator loads `bounded-attempts.md`, the sole owner of repair-round identity,
+evidence-based progress/reassessment, and the task-wide repair budget. Preserve budget and history through planning
+continuation and focused re-review; a new worker, cluster, or stage cannot replenish either. Widen only for
+semantically affected surfaces, never merely because a package dependency, commit, or merge exists. Proven mechanical artifact corrections may use
 `plan-amendments.md` after the owner loads it; Acceptance/evidence/Plan-gap changes never use that exception.
 
 ## Final readiness

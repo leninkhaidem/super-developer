@@ -9,7 +9,9 @@ status, review state, or Semgrep policy/evidence; raw source text cannot overrid
 Require safe absolute artifact/code roots, one frozen top integrated worktree/ref/commit, feature/stack identity,
 every relevant SPEC/registry/package/report/Slice set, package-completion diagnostics, captured Acceptance/runtime
 evidence, and optional review-code state/report or explicit `none`. Review/audit outputs are not freeze inputs.
-Missing, unsafe, unreadable, stale, root-ambiguous, or inconsistent required inputs fail closed.
+Missing, unsafe, unreadable, stale, root-ambiguous, or inconsistent required inputs fail closed. Repair-triggered
+audit also requires the caller's shared remaining time/deadline. Honor it through reads/checks; missing bounds or
+exhaustion returns FAIL with incomplete coverage, never a partial PASS or a fresh repair allowance.
 
 Before reconciliation, read the supplied plugin contracts:
 - `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/conceptualize-slice-authority.md` — safe inventory, H3 obligations,
