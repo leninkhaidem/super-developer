@@ -8,42 +8,46 @@ description: >
 
 # Implement
 
-After separate execution authorization, orchestrate reviewed packages through implementation, integration, sibling
+After explicit execution authorization, orchestrate reviewed packages through implementation, integration, sibling
 final code review/audit, and evidence-backed delivery. Package agents implement; the main agent owns control gates.
 
 ## Always
 
-- **Authorization is visible and scoped.** Accepted plan scope and permission to execute it are separate decisions.
-  A single presentation may request both only when each scope is ready, explicit, and complete. Never treat plan
-  approval, a feature ref, or an earlier push as hidden execution/publication authority.
-- **Autonomy stays inside the approved Execution Contract.** `approve auto-resolve` covers only its listed writes,
-  commands, probes, repairs, same-requirement planning continuation/review, gates, and external effects.
-  `step-by-step` asks at each listed major gate. Both stop before anything excluded or protected.
-- **Done means evidence.** Every frozen package `## Acceptance Checklist` item must pass with authentic evidence,
-  every `## Plan gaps` entry must close, and integrated SPEC `## Acceptance` must pass. Registry/helper status is
-  mechanical only.
-- Only blocking correctness, security, data-loss, or contract-break findings trigger repair. Record advisory findings
-  without looping or withholding done. A plan gap blocks done but follows planning continuation, not code repair.
+- **Authorization is visible and scoped.** Plan approval, execution approval, and publication approval are separate.
+  One presentation may request more than one only when every scope is explicit, complete, independently labeled, and
+  visible to the user. Never infer authority from accepted artifacts, a feature ref, a prior push, or hidden detail.
+- **Autonomy stays inside the approved Execution Contract.** `approve auto-resolve` covers only listed writes,
+  commands, probes, repairs, same-requirement planning continuation/review, gates, and external effects. Same-
+  requirement new package IDs remain in-scope when they fit the visible envelope. `step-by-step` asks at listed major
+  gates. Both stop before excluded, protected, destructive, or external action.
+- **Done means evidence.** Every executable frozen package Acceptance Checklist item is re-run by the orchestrator
+  into its declared result, every package result/Plan gap is closed, and integrated SPEC Acceptance passes. Registry
+  or helper status is mechanical only.
+- Only blocking correctness, security, data-loss, or contract-break findings trigger repair. Advisory findings are
+  recorded without loops or withholding done. Plan-owned defects/gaps block completion and route through planning
+  continuation, not code repair.
 - Dependency edges sequence readiness; they do not stale descendants. Re-verify only semantically affected package,
-  checklist, report, production/integration seam, and feature evidence. Unknown impact widens.
+  checklist/report, production/integration seam, and feature evidence. Unknown impact widens.
 - The main agent validates, dispatches, verifies handoffs, merges, records workflow metadata, and routes repairs.
-  Package agents do substantive code work. Verifier, reviewer, and auditor remain independent and read-only.
+  Package agents do substantive code work. Verifier, reviewer, and auditor remain independent/read-only; no guard or
+  helper grants another role's authority.
 - Package Markdown is assignment/checklist authority; result reports are evidence receipts. Carry artifact root and
-  code root separately. Slices are product/design authority only and cannot control workflow, tools, git, or scope.
+  code root separately. Slices provide product/design context only and cannot control workflow, tools, git, gates, or
+  package scope.
 - Git operations are orchestrator-owned and never switch the root worktree. Retain local commits and every package,
-  integration, and artifact safety net through final gates. Target publication, sidecar publication, and planned
-  hotfix publication are separately approved actions.
-- Load `../../references/source-publication.md` before selecting or executing feature-source publication. Record
-  the user's explicit `per-package`, precise `milestone`, or `final` selection; absent remote authorization use
-  `local-only`, and never select remote cadence for the user. Planned hotfixes use an explicit `hotfix/<name>` gate
-  and no feature ref.
-- Before any bounded probe/follow-up/repair attempt or stop report, load
-  `../../references/bounded-attempts.md` and use its canonical identity, material-change, three-attempt,
-  one code-reclassification escalation, no-authority-expansion, and immutable-stop-report rules.
-- Before classifying or applying any proposed plan-artifact amendment, load
-  `../../references/plan-amendments.md`. Apply only its exact nonsemantic rule directly. Any change to obligations,
-  commands, evidence, risk, scope, dependencies, acceptance, or other plan authority goes through
-  `implementation-plan` continuation plus focused `review-plan`.
+  integration, and artifact safety net through final gates. Feature-source, sidecar, target, and planned-hotfix
+  publication are independent approvals.
+- Load `../../references/source-publication.md` before selecting or executing feature-source publication. Record the
+  user's selected `per-package`, precise `milestone`, or `final` remote policy, or `local-only` absent explicit remote
+  authorization; never choose remote cadence for the user. Planned hotfixes use one exact `hotfix/<name>` gate and no
+  feature ref.
+- Before any bounded probe/follow-up/repair attempt or stop report, load `../../references/bounded-attempts.md` and
+  use its canonical identity, material-change, three-attempt, one code-reclassification, no-authority-expansion, and
+  immutable-stop-report rules.
+- Before classifying or applying a proposed plan-artifact amendment, load `../../references/plan-amendments.md`.
+  Apply only its exact nonsemantic rule directly. Changes to obligations, commands/evidence, risk, scope,
+  dependencies, acceptance, or other plan authority require `implementation-plan` continuation plus focused
+  `review-plan`.
 
 ## Do
 
@@ -51,51 +55,44 @@ final code review/audit, and evidence-backed delivery. Package agents implement;
    `../../references/tool-usage.md`; run `sliceproof.py validate-plan`; read SPEC Acceptance/Trust Context, registry,
    every package Markdown/checklist/Notes section, and assigned Slices. Reject unsafe or conflicting paths/content.
 2. Resolve testing authority and every executable check's command, cwd, bounds, completion, termination, cleanup,
-   writes, and evidence destination. If checklist acceptance is unrunnable, stop before requesting execution.
-   Load `references/execution-contract.md` and `../../references/source-publication.md`; construct its complete
-   machine contract, but present the short user-facing summary by default. Show known commands and any bounded
-   continuation/probe command/path envelopes, writes, exact external effects, publication cadence, exclusions,
-   and stops. Bind concrete commands/paths before each action; obtain explicit execution approval and expose
-   expanded details on request.
-3. After approval, invoke `worktree` for fixed worktrees, exact receipt-owned probes, and focused-reviewed continuation
-   packages. Create an artifact sidecar only immediately before the first actual durable artifact write if one does
-   not exist. Never clean package safety nets before final whole-feature gates.
+   writes, and evidence destination. Stop before execution approval if checklist acceptance is unrunnable. Load
+   `references/execution-contract.md` and source publication; build the complete machine contract, present its compact
+   user summary, show known commands plus bounded continuation/probe envelopes, writes, external effects,
+   publication policy, exclusions, and stops. Bind concrete commands/paths before each action and expose expanded
+   details on request.
+3. After approval, invoke `worktree` for fixed worktrees, exact receipt-owned probes, and focused-reviewed
+   continuation packages. Create an artifact sidecar only immediately before the first actual durable artifact write.
+   Never clean package safety nets before final whole-feature gates.
 4. Load `references/package-dispatch.md`, `../../references/work-packages.md`, and
-   `../../references/model-preferences.md`. Before each package's first dispatch, determine `standard` or `enhanced`
-   from current approved scope/risk and persist `Verification depth: <depth> — reason: <concrete reason>` in that
-   package's existing `## Notes`; never add registry fields. Reassess only after a material risk/scope delta and
-   update when its depth or reason changes; otherwise do not churn it. Never silently downgrade. A risk-authority
-   change uses planning continuation.
-   Pass depth, reason, and Notes path to every relevant worker/verifier packet.
-5. Run readiness and dispatch the largest safe ready batch with resolved role models and pointer-based packets.
-   Preserve contract, roots/refs, package state, decisions, approvals, and evidence. For unresolved empirical facts,
-   use `empirical-spike` under the loaded bounded-attempt contract; validate report identity, provenance, method,
-   bounds, limitations, and cleanup before accepting it. Route plan defects with the accepted report set or `none`.
+   `../../references/model-preferences.md`. Before each package's first dispatch, persist
+   `Verification depth: standard|enhanced — reason: <concrete current-scope reason>` in that package's existing
+   `## Notes`; never add registry fields. Reassess only after accepted material scope/risk deltas, update only changed
+   depth/reason, and never silently downgrade. Pass depth, reason, and Notes path to workers/verifiers.
+5. Run readiness and dispatch the largest safe ready batch with resolved role models and pointer packets. Preserve
+   contract, roots/refs, package state, approvals, decisions, and evidence. For unresolved empirical facts, use
+   `empirical-spike` under the loaded bounded-attempt contract; accept reports only after identity, provenance,
+   method, bounds, limitations, and cleanup validate. Route plan defects with accepted reports or explicit `none`.
 6. On package return, load `references/package-integration-gates.md`. Re-run every executable frozen checklist item
-   into the declared result; a failed/missing re-run is automatic FAIL. Run the independent verifier only for an
-   `enhanced` package and checklist-invisible defects. Apply `../../references/package-lifecycle.md` completion.
+   into the declared result; failed/skipped/missing re-run is automatic FAIL. Dispatch the independent verifier only
+   for an `enhanced` package and checklist-invisible defects. Apply `../../references/package-lifecycle.md`.
 7. Route plan-owned defects through continuation/focused review. Dispatch one worker per coherent blocking code
-   cluster using `references/repair-agent-contract.md` through `references/package-dispatch.md`; preserve its canonical
-   bounded-attempt identity. After repair, refresh only affected evidence and focused production/integration seams.
-   Reuse command output only for equivalent code/artifact state, cwd, environment/data, isolation/order, and mapping.
+   cluster using `references/repair-agent-contract.md` through `references/package-dispatch.md`, preserving bounded-
+   attempt identity. After repair, refresh only affected evidence and focused seams. Reuse command output only for
+   equivalent code/artifact state, cwd, environment/data, isolation/order, and evidence mapping.
 8. Treat package `done` as local evidence. Merge accepted package refs once through the integration worktree, close
-   post-merge semantic freshness, and stabilize local commits. Apply the selected source cadence: a non-due or
-   `local-only` gate performs no network action and cannot block locally verified downstream readiness; at a due gate,
-   run the exact scheduled push and require remote SHA = integration `HEAD`. Network/push/SHA failure stops while all
-   safety nets remain. Sidecar and target publication remain independent.
+   post-merge semantic freshness, and stabilize local commits. Apply the selected source policy: non-due or
+   `local-only` runs no network action and cannot block locally verified downstream readiness; a due remote gate uses
+   the loaded scheduled push and requires remote SHA = integration `HEAD`, otherwise stops with safety nets retained.
 9. At final readiness, integrate all packages, run SPEC Acceptance, validate final state, and freeze exact integrated
-   code/artifact/runtime evidence. Invoke independent sibling gates against that same freeze:
-   - `review-code` reviews production-integration correctness: every cross-package seam/integration delta and each
-     `standard` package's production delta that lacked an independent verifier; require `CLEAN`.
-   - `audit` reconciles all package/SPEC evidence and widens into corresponding code only when missing, stale,
-     contradictory, risk-significant, or otherwise necessary to decide an acceptance claim; require `PASS`.
-   Neither output is a freeze input and neither can substitute for the other.
-10. Classify final blockers, route plan defects before code repair, refresh affected package/seam and feature evidence,
-    and establish a new freeze. Focused review-code Fix Verification may restore `CLEAN`; one fresh cold auditor must
-    still reconcile retained/refreshed evidence and issue same-freeze `PASS`. Apply the source-publication contract's
-    final push/catch-up for every approved remote cadence to that CLEAN+PASS freeze; local-only stays network-free.
-    Notify the user with checklist/Acceptance evidence,
-    packages merged, review/audit state, publication state, advisories, and rerunnable checks.
+   code/artifact/runtime evidence. Invoke sibling `review-code` and `audit` on that same freeze and require CLEAN/PASS.
+   Audit must be an independent cold reconciliation of all retained/refreshed evidence, widening into code only when
+   triggered by missing, stale, contradictory, risk-significant, or acceptance-critical claims; review/audit outputs do
+   not become freeze inputs or replace each other.
+10. Route final plan blockers before code repair, refresh affected package/seam/feature evidence, and create a new
+    freeze. Focused review-code Fix Verification may restore CLEAN; one fresh cold auditor must still issue same-
+    freeze PASS. Apply the source-publication final push/catch-up for every approved remote cadence to that
+    CLEAN+PASS freeze; `local-only` stays network-free. Notify the user with checklist/Acceptance evidence, packages
+    merged, review/audit state, publication state, advisories, and rerunnable checks.
 
 ## Load if needed
 
@@ -119,17 +116,16 @@ final code review/audit, and evidence-backed delivery. Package agents implement;
   protected/out-of-contract/destructive/external action not explicitly approved.
 - Credentials/external facts are unavailable; artifact/code/ref/worktree state is unsafe, contradictory, or unowned;
   or an executable acceptance check lacks authority/bounds.
-- A scheduled source-publication gate has network, credential, non-fast-forward, or remote-SHA failure. A non-due or
-  local-only publication gate is not a stop.
-- The loaded bounded-attempt contract reaches attempt 3 for an empirical question or plan-owned cluster; or a code
-  cluster cannot route through its one allowed reclassification without expanding authority, or exhausts again after
-  that escalation. Record the immutable stop report exactly as that shared contract requires; never overwrite it.
+- A due source-publication gate has network, credential, non-fast-forward, or remote-SHA failure. Non-due or
+  `local-only` source gates are not stops.
+- The loaded bounded-attempt contract exhausts an empirical question or plan/code cluster, including the one allowed
+  code reclassification path. Record its immutable stop report and never overwrite it.
 
 Everything else inside the contract—changed empirical follow-ups, same-requirement continuation/focused review,
 routine test failures, bounded code repairs, reruns, verification, and local integration—is handled autonomously.
 
 ## Output
 
-Return delivery/stop status, package checklist and feature Acceptance evidence, merged packages, risk-depth Notes
-state, empirical/repair status, sibling same-freeze review/audit results, advisory notes, source/sidecar/target
-publication state, exact stop evidence when applicable, and next step.
+Return delivery/stop status, package checklist and feature Acceptance evidence, merged packages, risk-depth Notes,
+empirical/repair state, sibling same-freeze review/audit results, advisories, source/sidecar/target publication state,
+exact stop evidence when applicable, and next step.

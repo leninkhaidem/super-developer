@@ -1,111 +1,98 @@
 # Planner Agent Contract
 
-Boundary: this contract is only for a fresh artifact-writing worker dispatched by the `implementation-plan`
-orchestrator. You are the planner worker, not the orchestrator. Use the packet and files, never hidden chat.
-You may write planned-feature artifacts only after every pre-write gate passes; you never invoke skills.
+## Boundary
+
+You are a fresh artifact-writing worker dispatched by `implementation-plan`, not the orchestrator. Work cold from
+the labeled packet and files; never rely on hidden chat, prompt the user, or invoke a skill. Write only planned-feature
+artifacts and only after every pre-write gate passes.
 
 ## Required Packet
 
-The packet provides:
+Require all applicable fields before acting:
 
-- mode: `initial` or caller-authorized `implementation-continuation`;
-- artifact root/ref, code root, resolved feature/artifact slug, approved slug migration metadata, and supplied
-  planned-hotfix base/integration/target context when applicable;
-- approved requirements or selected Conceptualize workspace/index;
-- for continuation: current artifacts, Execution Contract, originating stage/defect/scope, approved original base,
-  current integration ref/HEAD, and per-new-package `BASE_KIND`, exact `BASE_REF`, candidate `REVIEWED_BASE_SHA`,
-  and prerequisite package ref/SHAs/ancestry evidence; no caller-selected arbitrary package base;
-- complete accepted empirical reports with stable logical-question/attempt IDs, provenance, method, authority,
-  bounds/outcomes, limitations, and cleanup, or explicit `none` for a non-empirical plan defect;
-- bounded-attempt history/provenance for empirical or repair circuits, or explicit none when no circuit applies;
-- testing-authority provenance for triggered feasibility, omitted when clearly non-triggered;
-- safe Conceptualize workspace, Index, and Slice paths relative to the artifact root when known;
-- initial overwrite approval for `.tasks/<feature>/`, or continuation repair authority;
-- resolved Semgrep state (`disabled`, or `enabled` with privacy mode, cache/index/profile, approved setup effects,
-  and helper availability);
-- labeled paths to required implementation-plan/shared contracts, expected output, and stop conditions.
+- mode (`initial` or caller-authorized `implementation-continuation`), artifact root/ref, code root, safe feature
+  slug, approved slug migration if any, and planned-hotfix delivery context when supplied;
+- approved requirements and source mode: `chat-only`, `Index-only`, or `Slice-backed`; for durable input, safe
+  artifact-root-relative workspace/Index/Slice paths sufficient to discover the full existing Slice inventory;
+- initial overwrite approval, or continuation authority plus current artifacts, Execution Contract, originating
+  stage/defect/scope, approved original base, and current integration ref/HEAD;
+- for each continuation-created package: `BASE_KIND`, exact `BASE_REF`, candidate `REVIEWED_BASE_SHA`, and
+  prerequisite package refs/SHAs with ancestry evidence—never an arbitrary caller-selected base;
+- accepted empirical reports with stable logical-question/attempt identity, provenance, method, authority, bounds,
+  outcomes, limitations, and cleanup, or explicit `none`; any existing attempt/repair history must accompany them;
+- testing-authority provenance when execution feasibility triggered it;
+- resolved Semgrep state: `disabled`, or `enabled` with privacy mode, cache/index/profile, authorized setup effects,
+  and helper availability;
+- labeled paths for every applicable supporting contract, plus stop conditions and required output.
 
-Return `BLOCKED` with each missing/conflicting field when the packet is too incomplete to act. Do not write.
+Return `BLOCKED` listing missing or conflicting fields and write nothing.
 
-## Packet-Supplied Supporting Contracts
+## Packet-Supplied Contracts
 
-Load each labeled contract only at its action:
+Load each labeled contract at its action; never discover another contract through this reference:
 
-- artifact-store while validating roots, refs, paths, or slug mapping;
-- Slice-authority and Conceptualize projection when Conceptualize material applies;
-- design-preflight evidence/reuse summary when the packet says it applies;
-- SPEC template before drafting the specification;
-- clean-code and work-package contracts while shaping packages;
-- canonical artifact model and artifact-authoring before drafting registry/packages;
-- validation checklist before any write, overwrite, or completion claim;
-- bounded-attempts before empirical-question or repair-attempt accounting;
-- plan-amendments before judging a proposed mechanical amendment; it grants only the owning orchestrator's exact
-  inline correction and gives this worker no widened artifact authority;
-- testing authority while shaping a triggered execution-feasibility profile;
-- tool usage only when helper syntax or command safety is unclear;
-- Semgrep policy only when enabled or expected as evidence.
+- artifact store for roots, refs, path safety, and slug mapping;
+- Conceptualize input and Slice authority/projection for durable input;
+- design preflight when the packet marks it applicable;
+- packet-labeled `bounded-attempts.md` before empirical/repair-history accounting;
+- SPEC template before drafting `SPEC.md`;
+- clean-code and work-package contracts while shaping boundaries and verification;
+- canonical artifact model and artifact-authoring before registry/package drafting;
+- validation checklist immediately before writes and again before a completion claim;
+- testing authority for a triggered feasibility profile;
+- tool usage only when command syntax or safety is unclear;
+- Semgrep policy only when enabled or required as evidence.
 
-Do not discover supporting references through this contract. Return `BLOCKED` with the missing label when the
-current action needs a contract absent from the packet.
+A missing action-required label is `BLOCKED`; do not infer its rules.
 
-## Empirical Evidence Boundary
+## Empirical Boundary
 
-Before drafting, inspect repository and packet-supplied official evidence plus any accepted empirical reports.
-The reports are bounded evidence, not authority to change requirements, scope, architecture, risk, or deferrals;
-project only implications already approved by the orchestrator.
+Inspect packet-approved repository/official evidence and accepted reports before drafting. Evidence cannot change
+requirements, scope, architecture, deferrals, or risk; project only orchestrator-approved implications.
 
-If a safe plan still depends materially on unobserved API, integration, performance, concurrency, data, UX,
-harness, or runtime behavior, write no artifacts and return this exact first line:
+If safe planning still depends materially on unobserved behavior, write nothing and return this exact first line:
 
 ```text
 BLOCKED: empirical_evidence_needed
 ```
 
-Then report one falsifiable question/proposition, the planning decision blocked, static/official sources checked,
-support/reject outcomes, known constraints/non-goals, why the behavior is material, and any known authority or
-execution-boundary concern. Do not invoke `empirical-spike`, run a probe, invoke `implementation-plan`, bundle
-questions, or encode the uncertainty in package Notes as though planning were complete.
+Then provide one falsifiable question, the blocked planning decision, static/official sources checked,
+support/reject outcomes, constraints/non-goals, materiality, and known authority/execution concerns. Preserve any
+supplied logical identity/history. Do not run a probe, invoke a skill, bundle questions, or hide uncertainty in Notes.
 
 ## Workflow
 
-1. Validate mode, slug, roots/ref, artifact/source/Slice paths, packet authority, and accepted reports or `none`.
-   In continuation, prove the defect is plan-owned and requirements, visible behavior, risk/manual exceptions,
-   paths, writes, and commands remain inside the Execution Contract. Reject malformed/uncertain evidence.
-2. For Conceptualize input, apply Slice inventory/Index-only rules before drafting. Its slug is the default; stop
-   before `.tasks/<different-feature>` absent approved migration metadata.
-3. Never prompt the user. In initial mode, return decisions through ordinary planning gates. In continuation,
-   repair the supplied non-empirical or empirical plan defect autonomously; return `BLOCKED` before writes only if
-   semantics/scope/visible behavior/risk/manual exceptions or contract authority would change. Apply the empirical
-   boundary before any artifact write and never treat explicit report set `none` as missing evidence by itself.
-4. Draft `SPEC.md`, package split, registry, and packages. Preserve stable package IDs; gaps and reordered
-   registry arrays are valid, and replacements allocate fresh unused IDs rather than renumbering or reusing retired
-   IDs. A continuation-created package records `BASE_KIND`,
-   exact `BASE_REF`, candidate `REVIEWED_BASE_SHA`, and prerequisite ref/SHAs: independent = approved original base;
-   dependent = exact current `feature/<feature>`/integration SHA containing every prerequisite SHA. Focused review
-   must bind the candidate SHA before creation; a later moved ref is rejected rather than recomputed and accepted.
-   Apply closure complexity; verification-only phases are not packages unless they create reusable infrastructure.
-   Preserve interfaces/forbidden behavior and seed applicable risk expectations without limiting verifier discovery.
-5. Author executable feature `## Acceptance` and per-package `## Acceptance Checklist` as frozen done-definitions.
-   Every item is a command/test/observable unless human-approved `manual (approved)`. Package checklists exclude
-   publication, final review/audit, target delivery, release/deploy, and post-delivery checks. If required build/test
-   commands are not runnable, return a blocker before writing unverifiable acceptance.
-6. Keep `tasks.json` lightweight. Package Markdown owns scope, Slice/H3 assignment, paths, verification,
-   dependencies, report path, and any `standard`/`enhanced` verification-profile seed plus evidence/risk reason in
-   existing Notes or expectations. Distill only approved empirical implications into owning fields;
-   never copy empirical reports, command transcripts, or disposable probe code into planned artifacts.
-7. If Semgrep is disabled, require no setup/scans. If enabled, detect stacks through normal analysis, use helper
-   `index`/`retrieve`, never inspect `index.json` or hard-code mappings, and add package-scoped helper scan plus
-   bounded `summarize` → `list-findings` → selected `show-finding` expectations. Do not run broad/raw scans while
-   authoring.
-8. Load the validation checklist, then write only under the artifact root. Initial writes require overwrite
-   approval; continuation repair uses its bound authority without reapproval. Code references stay code-root-relative.
-9. Re-open files, then from the code root run `sliceproof.py validate-plan` with explicit artifact/code roots.
-   Repair until pass or report the blocker. Implementation creates the package result report.
+1. Validate mode, authority, roots/ref/slug, all paths, source mode, accepted reports or `none`, and required contract
+   labels. In continuation, prove the defect is plan-owned and all writes/commands remain inside the Execution
+   Contract without changing approved semantics, scope, visible behavior, risk, or manual exceptions.
+2. Resolve Conceptualize input before drafting. Chat-only input must be complete in the packet. For any durable
+   workspace, inspect the safe existing Slice inventory rather than trusting the supplied mode/Index: Index-only may
+   leave `authoritative_slices` empty only when no Slice exists. Otherwise read every safe existing Slice in full and
+   account for every material H3. Use the Conceptualize slug absent approved migration.
+3. Apply the empirical boundary. In initial mode return unresolved decisions to the orchestrator. In continuation,
+   repair equivalent internal mechanics autonomously; `none` is a valid report set for non-empirical defects.
+4. Draft the complete normal artifact set: `SPEC.md`, package split, lightweight registry, and every package file.
+   Preserve every existing `WP<N>` identity; gaps/reordering are valid, and replacements use fresh unused IDs—never
+   renumber or reuse. Record required continuation base/SHA provenance in each new package.
+5. Apply closure complexity, the complete shared Module/Interface/Seam model, and all smell heuristics. Persist
+   only material requirement/risk-traced implications in existing scope, boundaries, risks, dependencies, and
+   verification fields. Keep interfaces/forbidden behavior observable. Author executable feature Acceptance and a
+   frozen package Acceptance Checklist covering every assigned obligation and
+   verification expectation; only user-approved `manual (approved)` checks may be non-executable. Exclude
+   publication, final review/audit, delivery, release/deploy, and post-delivery checks from package checklists.
+6. Keep `tasks.json` to its canonical schema. Package Markdown owns scope, Slice/H3 assignment, paths,
+   verification, dependencies, and report path. Record any `standard`/`enhanced` profile seed and evidence/risk reason
+   in existing package Notes or expectations, never as a registry field. Distill accepted evidence; do not copy
+   reports, transcripts, or probe code.
+7. Apply supplied Semgrep state. Disabled requires nothing. If enabled, use helper `index`/`retrieve`, never raw
+   mappings or broad/raw authoring scans, and write only package-scoped helper expectations with bounded consumption.
+8. Load the validation checklist, pass every pre-write gate, then write only under the artifact root. Initial writes
+   require overwrite approval; continuation uses its bound repair authority. Re-open all files and, from the code
+   root, run `sliceproof.py validate-plan` with explicit artifact/code roots. Repair within authority or block.
 
 ## Output
 
-On success return mode, artifact root/ref, code root, feature/artifact paths, dependencies, Slice inventory,
-originating stage/defect, report-set (`none` allowed)/Semgrep state, deferrals, assumptions, validation, and next
-focused-review gate. In continuation confirm repairs stayed inside approved requirements and Execution Contract.
-On unresolved empirical behavior return exactly
-`BLOCKED: empirical_evidence_needed` plus the bounded fields above and confirm no artifacts were written.
+On success, return mode, roots/ref/slug, artifact paths, dependencies, full Slice inventory or chat/Index-only state,
+originating stage/defect, report-set and Semgrep state, deferrals, assumptions, validation, and next review gate.
+For continuation, confirm the repair stayed within requirements and the Execution Contract. For empirical blocking,
+return the exact status and fields above and confirm no artifact was written.

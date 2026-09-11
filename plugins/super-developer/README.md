@@ -288,102 +288,22 @@ Invoke it explicitly in Claude Code, replacing `<target>` with a feature, PR, re
 
 ---
 
-## Plugin Structure
+## Plugin Structure and Checks
 
-```text
-plugins/super-developer/
-+-- .claude-plugin/
-|   +-- plugin.json
-+-- assets/
-|   +-- semgrep_rules.py
-|   +-- sliceproof.py
-|   +-- tests/
-|       +-- test_conceptualize_capture_policy.py
-|       +-- test_lifecycle_design_guidance.py
-|       +-- test_semgrep_rules.py
-|       +-- test_skill_prompts.py
-|       +-- test_sliceproof.py
-+-- references/
-|   +-- artifact-store.md
-|   +-- bounded-attempts.md
-|   +-- change-routing.md
-|   +-- clean-code-rules.md
-|   +-- conceptualize-slice-authority.md
-|   +-- decision-prompts.md
-|   +-- known-risk-patterns.md
-|   +-- model-preferences.md
-|   +-- package-lifecycle.md
-|   +-- package-verification-report.md
-|   +-- plan-amendments.md
-|   +-- semgrep.md
-|   +-- source-publication.md
-|   +-- slice-first-artifacts.md
-|   +-- tool-usage.md
-|   +-- work-packages.md
-+-- skills/
-|   +-- audit/
-|   |   +-- SKILL.md
-|   |   +-- references/audit-subagent-contract.md
-|   +-- code-doc/
-|   |   +-- SKILL.md
-|   |   +-- references/update-merge.md
-|   +-- conceptualize/
-|   |   +-- SKILL.md
-|   |   +-- references/final-handoff.md
-|   |   +-- references/slice-template.md
-|   |   +-- references/workspace-index.md
-|   +-- implementation-plan/
-|   |   +-- SKILL.md
-|   |   +-- references/artifact-authoring.md
-|   |   +-- references/conceptualize-inputs.md
-|   |   +-- references/design-preflight.md
-|   |   +-- references/spec-template.md
-|   |   +-- references/validation-checklist.md
-|   +-- implement/
-|   |   +-- SKILL.md
-|   |   +-- references/execution-contract.md
-|   |   +-- references/package-agent-contract.md
-|   |   +-- references/package-dispatch.md
-|   |   +-- references/package-verification.md
-|   |   +-- references/repair-agent-contract.md
-|   |   +-- references/package-integration-gates.md
-|   +-- review-code/
-|   |   +-- SKILL.md
-|   |   +-- references/fix-implementer-contract.md
-|   |   +-- references/local-workflow.md
-|   |   +-- references/pipeline-report.md
-|   |   +-- references/pr-workflow.md
-|   +-- review-plan/
-|   |   +-- SKILL.md
-|   |   +-- references/plan-review-findings.md
-|   |   +-- references/plan-review-resolution.md
-|   |   +-- references/plan-review-rubrics.md
-|   +-- skill-authoring/
-|   |   +-- SKILL.md
-|   +-- testing/
-|   |   +-- SKILL.md
-|   |   +-- references/workflow-contract.md
-|   |   +-- references/delegation-packets.md
-|   |   +-- references/core/generic-testing.md
-|   |   +-- references/web/application-testing.md
-|   |   +-- references/web/browser-e2e-stack-setup.md
-|   +-- walk-me-through/SKILL.md
-|   +-- worktree/
-|   |   +-- SKILL.md
-|   |   +-- references/bugfix-hotfix-workflow.md
-|   |   +-- references/cleanup-safety.md
-|   |   +-- references/feature-package-workflow.md
-|   +-- perspectives/SKILL.md
-|   +-- diagnose-and-fix/
-|   |   +-- SKILL.md
-|   |   +-- references/fix-implementer-contract.md
-|   |   +-- references/orchestration-mechanics.md
-|   +-- readme-polish/
-|   |   +-- SKILL.md
-|   |   +-- references/banner-examples.md
-|   +-- empirical-spike/SKILL.md
-|   +-- release/SKILL.md
+- `skills/`: entrypoints and action-specific worker contracts.
+- `references/`: shared policy owners; callers load them at the relevant action instead of copying their rules.
+- `assets/`: deterministic helpers and local regression tests.
+- `.claude-plugin/plugin.json`: plugin manifest.
+
+Run the local suite from the repository root:
+
+```bash
+python3 -m unittest discover -s plugins/super-developer/assets/tests
 ```
+
+`test_sliceproof.py` and `test_semgrep_rules.py` exercise helper behavior. `test_skill_prompts.py`,
+`test_lifecycle_design_guidance.py`, and `test_conceptualize_capture_policy.py` guard prompt structure/policy;
+these static guards do not measure live agent behavior. The skill-authoring audit checks budgets and reference links.
 
 ---
 

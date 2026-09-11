@@ -2,49 +2,38 @@
 
 ## Boundary
 
-This is the narrow inline-edit exception to planner-owned artifact authoring. Load it before classifying or
-applying a proposed mechanical amendment in planning, plan review, or implementation. It grants no new write
-scope and does not replace semantic planning continuation or review.
+This is the only inline-edit exception to planner-owned artifact authoring. Load it before classifying or applying
+an amendment in planning, plan review, or implementation. It grants no write scope and never replaces semantic
+planning or review.
 
-## Eligible Corrections
+## Whitelist
 
-An amendment is mechanical only when the existing approved authority determines one exact correction:
+An edit is mechanical only when existing approved authority determines one exact correction:
 
-- Markdown presentation or explanatory spelling outside requirements, Slice commitments, commands, Acceptance
-  Checklists, approval/deferral text, and recorded evidence;
-- a duplicated bookkeeping locator that disagrees with its already-approved authoritative locator, where both
-  identity and the existing in-root destination are independently established;
-- JSON formatting or display order that preserves every value, stable package ID, dependency edge, and meaning.
+- Markdown presentation or explanatory spelling outside protected meaning;
+- a duplicated bookkeeping locator corrected to an independently established, already-approved in-root locator;
+- JSON formatting or display order with every value and meaning unchanged.
 
-A locator correction cannot move/rename a file, redirect a command, change a code/evidence root, rebind a reviewed
-state, or select among plausible targets. Never renumber packages to make a list contiguous.
-
-## Exclusions
-
-Changes to requirements, behavior, scope, risk, manual exceptions, Acceptance items/IDs, test commands or expected
-outcomes, package ownership, dependency edges, Slice assignments, approvals, report evidence, or Plan gaps are
-not mechanical. Neither changing a verifier's depth nor closing a finding is a spelling fix. A short edit can
-still be semantic; uncertainty uses the ordinary planner/focused-review route, not this exception.
+The exception permits **no** change to requirements, behavior, scope, risk, manual exceptions, Acceptance items or
+IDs, commands or expected outcomes, evidence, package/work identity, ownership, dependency edges, Slice assignments,
+approvals/deferrals, report evidence, Plan gaps, verification depth, roots, or reviewed-state binding. A locator
+edit cannot move/rename a file, redirect a command, select among plausible targets, or change a code/evidence root.
+Never renumber or reuse a package ID. Length does not make an edit mechanical; uncertainty uses normal repair.
 
 ## Procedure
 
-1. Confirm the active authorization covers the exact artifact writes and that the files/targets are safe and
-   user changes will not be overwritten. Establish the authoritative before/after values from existing files.
-2. State the correction and why every excluded meaning is unchanged. Record a concise amendment note in existing
-   package Notes or the caller's existing decisions record; do not create a new ledger or approval artifact.
-3. The owning orchestrator may make only that correction. Workers report candidates; they do not acquire wider
-   artifact authority from this reference.
-4. Re-open the affected artifacts and run `sliceproof.py validate-plan` with explicit artifact/code roots.
-   Verify the exact diff against the exclusions. Failure or ambiguous equivalence returns to normal repair;
-   never mark reviewed from the mechanical helper alone.
-5. Reuse unaffected semantic review without launching a fresh planner/reviewer just for this correction. An
-   initially unreviewed plan still needs initial review and approval. Existing reviewed status can be retained
-   only for proven mechanical equivalence; semantic changes follow the normal route and approval boundaries.
-6. If frozen final-gate inputs changed, establish a new integrated freeze and apply the existing same-state
-   review/audit freshness rules. A mechanical amendment never grants an exemption from final-state binding.
+1. Confirm active authority covers the exact safe artifact target and that no user change will be overwritten.
+   Establish the authoritative before/after values from existing files.
+2. State the exact correction and why every protected meaning above is unchanged. Record a concise note in existing
+   package Notes or the caller's existing decisions record; create no ledger or approval artifact.
+3. The owning orchestrator applies only that edit. Workers may report candidates but gain no artifact authority.
+4. Re-open the files, inspect the exact diff against the whitelist, and run `sliceproof.py validate-plan` with
+   explicit artifact/code roots. Ambiguity or failure returns to planner-owned repair.
+5. Reuse unaffected semantic review only for proven equivalence. Initial review and plan approval remain mandatory;
+   helper success cannot mark an unreviewed plan reviewed. Any semantic change follows normal review and approval.
+6. If a frozen final-gate input changed, establish a new integrated freeze and apply existing same-state
+   review/audit freshness rules.
 
-## Stop or Route
-
-Missing write authority or a new semantic/risk decision goes to the user-facing owner. Same-requirement plan
-repair outside this exception uses `implementation-plan` and focused `review-plan` during implementation, or
-the ordinary initial planning/review path before approval. Never send a plan-owned defect to a code repair worker.
+Missing write authority or a new semantic/risk decision returns to the user-facing owner. Nonmechanical
+same-requirement defects use `implementation-plan` and focused `review-plan` during implementation, or ordinary
+initial planning/review before approval. Never send a plan-owned defect to a code repair worker.

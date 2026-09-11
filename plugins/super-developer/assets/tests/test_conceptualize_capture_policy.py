@@ -28,61 +28,65 @@ def section(text: str, heading: str) -> str:
 
 
 def assert_has_all(test: unittest.TestCase, text: str, needles: list[str]) -> None:
-    lowered = text.lower()
-    missing = [needle for needle in needles if needle.lower() not in lowered]
+    lowered = " ".join(text.lower().replace("**", "").split())
+    missing = [needle for needle in needles if " ".join(needle.lower().split()) not in lowered]
     test.assertEqual(missing, [])
 
 
 class ConceptualizeCapturePolicyTests(unittest.TestCase):
     def test_startup_is_conversation_first_and_write_free(self) -> None:
         skill = read("skills/conceptualize/SKILL.md")
+        introduction = skill.split("## Always", 1)[0]
+        assert_has_all(
+            self, introduction, ["Invocation alone", "creates no files, slug", "artifact root", "worktree"]
+        )
         first_step = re.search(r"^1\. (?P<body>.*?)(?=^2\. )", section(skill, "Do"), re.M | re.S)
         self.assertIsNotNone(first_step)
         assert_has_all(
             self,
             first_step.group("body"),  # type: ignore[union-attr]
-            ["Start in chat", "Do not", "artifact paths", "derive a slug", "create files", "set up git"],
+            ["Start in chat", "do not", "artifact paths", "set up git"],
         )
         self.assertNotIn("Create and maintain at least one Slice before any successful handoff", skill)
 
     def test_durability_gate_precedes_any_artifact_resolution(self) -> None:
         skill = read("skills/conceptualize/SKILL.md")
         do = section(skill, "Do")
-        gate = do.index("Apply the Durability Gate")
-        first_write = do.index("Only at the first needed write")
+        gate = do.index("Durability Gate")
+        first_write = do.index("Only for a needed write")
         self.assertLess(gate, first_write)
         assert_has_all(
             self,
             do[gate:first_write],
-            ["no settled shared understanding", "simple settled work", "durable need", "smallest sufficient",
-             "explicitly requested"],
+            ["no settled understanding", "simple settled work", "durable need", "smallest sufficient",
+             "documentation request"],
         )
         assert_has_all(self, do[first_write:], ["artifact-store.md", "workspace-index.md", "worktree"])
 
     def test_handoff_route_loads_change_routing_at_route_choice(self) -> None:
         skill = read("skills/conceptualize/SKILL.md")
-        route_step = re.search(r"actual handoff route choice.*?change-routing\.md", skill, re.S)
+        route_step = re.search(r"At handoff.*?change-routing\.md", section(skill, "Do"), re.S)
         self.assertIsNotNone(route_step)
         assert_has_all(
             self,
             skill,
-            ["direct task", "planned feature", "verification", "expectations", "Do not force a new planning tier"],
+            ["direct task", "planning", "verification expectations", "never backfill Slices"],
         )
 
     def test_durable_references_allow_chat_index_or_slice_handoffs(self) -> None:
-        final = read("skills/conceptualize/references/final-handoff.md")
+        skill = read("skills/conceptualize/SKILL.md")
         index = read("skills/conceptualize/references/workspace-index.md")
         template = read("skills/conceptualize/references/slice-template.md")
         authority = read("references/conceptualize-slice-authority.md")
-        assert_has_all(self, final, ["chat-only", "Index-only", "Slice-backed", "smallest form"])
+        assert_has_all(self, skill, ["chat-only", "Index-only", "smallest durable record"])
         assert_has_all(self, index, ["Index-only handoff is valid", "no Slice is independently useful"])
         assert_has_all(self, template, ["Durability Gate", "independently useful", "Batch updates"])
         assert_has_all(self, authority, ["Chat-only", "Index-only", "Once any Slice exists", "full safe inventory"])
 
     def test_documentation_handoff_can_expose_questions_without_readiness_claim(self) -> None:
-        final_stops = section(read("skills/conceptualize/references/final-handoff.md"), "Fail Closed When")
-        skill_stops = section(read("skills/conceptualize/SKILL.md"), "Stop if")
-        assert_has_all(self, final_stops, ["readiness claim", "continued-discovery", "open questions", "valid notes"])
+        skill = read("skills/conceptualize/SKILL.md")
+        skill_stops = section(skill, "Stop if")
+        assert_has_all(self, section(skill, "Do"), ["continued-discovery", "open questions", "without claiming"])
         assert_has_all(self, skill_stops, ["readiness", "continued-discovery", "open questions", "blocked"])
 
     def test_implementation_plan_accepts_complete_non_slice_inputs(self) -> None:

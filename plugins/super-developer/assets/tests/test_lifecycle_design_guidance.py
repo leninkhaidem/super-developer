@@ -206,7 +206,8 @@ class LifecycleDesignGuidanceTests(unittest.TestCase):
             "diagnose-fix-implementer": ("complete shared codebase-design model", "every smell", "directly affected Interfaces"),
         }
         for role, relative in CONSUMERS.items():
-            text = (PLUGIN_ROOT / relative).read_text(encoding="utf-8")
+            # Formatting/reflow is not a policy change; retain the same contract terms.
+            text = " ".join((PLUGIN_ROOT / relative).read_text(encoding="utf-8").split())
             self.assertTrue(all(term in text for term in route_terms[role]), f"missing {role} route")
         for relative in CONSUMERS.values():
             text = (PLUGIN_ROOT / relative).read_text(encoding="utf-8")
@@ -233,11 +234,28 @@ class LifecycleDesignGuidanceTests(unittest.TestCase):
         )
         self.assertTrue(all(term in self.shared for term in scope_terms))
 
+    def test_cold_planner_receives_history_accounting_contract(self) -> None:
+        planner = (PLUGIN_ROOT / "skills/implementation-plan/SKILL.md").read_text(encoding="utf-8")
+        worker = (PLUGIN_ROOT / "skills/implementation-plan/references/planner-agent-contract.md").read_text(
+            encoding="utf-8"
+        )
+        workflow = self.section(planner, "## Do", "## Load if needed")
+        dispatch = re.search(r"Dispatch a fresh planner.*?(?=^\d+\. |\Z)", workflow, re.M | re.S)
+        self.assertIsNotNone(dispatch)
+        self.assertIn("`../../references/bounded-attempts.md`", dispatch.group(0))
+        loads = self.section(worker, "## Packet-Supplied Contracts", "## Empirical Boundary")
+        self.assert_groups(loads, (
+            ("packet-labeled `bounded-attempts.md`", "before empirical/repair-history accounting"),
+            ("missing action-required label", "BLOCKED", "do not infer"),
+        ), "cold planner history contract")
+
     def test_review_verifier_and_audit_authority_stays_finite(self) -> None:
         review = (PLUGIN_ROOT / "skills/review-code/SKILL.md").read_text(encoding="utf-8")
         verifier = (PLUGIN_ROOT / "skills/implement/references/package-verification.md").read_text(encoding="utf-8")
         audit = (PLUGIN_ROOT / "skills/audit/SKILL.md").read_text(encoding="utf-8")
-        audit_worker = (PLUGIN_ROOT / "skills/audit/references/audit-subagent-contract.md").read_text(encoding="utf-8")
+        audit_worker = " ".join(
+            (PLUGIN_ROOT / "skills/audit/references/audit-subagent-contract.md").read_text(encoding="utf-8").split()
+        )
         self.assertTrue(all(x in review for x in ("two tiers", "BLOCKING", "ADVISORY", "Skeptic", "Fix Verification", "integration-first", "clean-code-rules.md")))
         self.assertTrue(all(x in verifier for x in ("closed and frozen", "Acceptance Checklist", "blocking", "advisory")))
         self.assertTrue(all(x in audit for x in ("finite", "SPEC `## Acceptance`", "read-only", "package-local verification")))

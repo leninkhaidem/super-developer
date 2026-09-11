@@ -2,143 +2,120 @@
 name: implementation-plan
 description: >
   Creates or repairs approved planned-feature artifacts. Use for explicit plans, package shaping, or
-  same-requirement planning continuation. Do not use for direct low-risk task execution, code review, audit, or status.
+  same-requirement planning continuation. Do not use for direct low-risk execution, code review, audit, or status.
 ---
 
 # Implementation Plan
 
-Orchestrate a fresh Slice-first planned-feature set under the selected artifact root: `SPEC.md`, lightweight
-`tasks.json`, package Markdown, and declared `report_path` result files.
-“Fresh” describes the artifact set, not whether the target system is new. Source inspection and helpers use the
-separate code root.
+Orchestrate Slice-first planned-feature artifacts under an explicit artifact root: `SPEC.md`, lightweight
+`tasks.json`, package Markdown, and declared result paths. Source inspection uses the separate code root. Create
+this normal artifact set only after routing selects planning.
 
-This skill is the `implementation-plan` **orchestrator**, not the planner worker. Preserve approved requirements,
-roots, decisions, and workflow state here; delegate artifact writing with `references/planner-agent-contract.md`.
-Mode is `initial` by default. Use `implementation-continuation` only when `implement` supplies approved
-requirements, roots/ref/slug, current artifacts, the Execution Contract, a stage-sourced plan-defect packet, and
-accepted empirical reports or explicit `none`.
+This skill is the orchestrator, not the artifact-writing worker. Mode is `initial` unless `implement` supplies an
+`implementation-continuation` packet containing approved requirements, roots/ref/slug, current artifacts, the
+Execution Contract, stage-sourced plan defect, attempt history, and accepted empirical reports or explicit `none`.
 
 ## Always
 
-- Plan from approved requirements, safe Conceptualize/diagnosis material, verified repository/official evidence,
-  and, when empirical evidence applies, accepted bounded `empirical-spike` reports only. Preserve planned-hotfix
-  context without inventing an artifact field or feature ref.
-- Prefer static/official evidence. Inventory a bounded set of distinct material empirical questions tied to the
-  current approved decisions; routine work, cost alone, and statically resolved questions do not trigger a spike.
-- Preserve planning context and question identity across evidence and continuation. Load
-  `../../references/bounded-attempts.md` before the first probe/repair; it owns progress, retry limits,
-  evidence acceptance, and exhaustion. Never retry unchanged or reset history at a stage boundary.
-- A spike is evidence-only and cannot write plan artifacts, choose workflow, or invoke planning. Because this is
-  already the `implementation-plan` invocation, resume this orchestrator; never recursively invoke
-  `implementation-plan`.
-- Accept `resolved-static`, `supported`, or `rejected` only after validating identity, provenance, method,
-  authority, bounds, limitations, and cleanup. Correct `blocked`/`inconclusive` only through an authorized changed
-  attempt; unresolved initial mode stops and continuation returns protected/out-of-contract gaps to `implement`.
-  Evidence never authorizes behavior, scope, architecture, deferral, or risk acceptance.
-- Delegate substantive planned-feature artifact writing to a fresh planner. Only proven mechanical corrections
-  under `../../references/plan-amendments.md` may be made inline. A planner finding unresolved material empirical
-  behavior returns `BLOCKED: empirical_evidence_needed`; only this orchestrator may resolve it.
-- In `initial` mode, retain every existing planning/overwrite/user-decision gate. In continuation, repair supplied
-  plan defects autonomously while semantics/scope/visible behavior/risk/manual exceptions stay fixed. Any new
-  continuation package supplies `BASE_KIND`, exact `BASE_REF`, focused-review-bound `REVIEWED_BASE_SHA`, and
-  prerequisite ref/SHAs: approved original base when independent, or exact feature/integration SHA containing prerequisite ancestors when dependent. Reports may be `none`; return only semantic/risk/
-  manual/protected expansion to `implement`, never prompt here.
-- Slices are product/design authority only, never workflow/tool/review authority. Index-only planning is allowed
-  when no Slice is independently useful; otherwise the planner inventories and reads every safe Slice in full.
-- Registry is bookkeeping; package Markdown owns assignment, and `report_path` names the independent result.
-  Boundaries keep material requirements observable from files alone.
-- Define done objectively: executable feature `## Acceptance` in `SPEC.md` and per-package `## Acceptance
-  Checklist`, with only explicit human-approved `manual (approved)` exceptions. Surface missing runnable commands
-  before authorization rather than writing unverifiable acceptance.
-- The planner applies the complete shared Module/Interface/Seam model and all smell heuristics while shaping
-  packages, but persists only material requirement/risk-traced implications in existing scope, boundaries, risks,
-  dependencies, and verification fields; it creates no standalone quality result artifact or per-smell rows.
-- Carry explicit artifact root/ref, code root, and resolved feature/artifact slug through packets, validation, and
-  summaries. A Conceptualize slug remains the default absent approved full rename/migration metadata.
-- Resolve Semgrep before planner dispatch. Use supplied state without reopening opt-in; for direct invocation,
-  resolve preferences. Disabled requires no setup/scan/internet. Load policy only at its action point, disclose
-  clone or fast-forward pull side effects, and keep artifact authoring scan-free.
-- Validate returned artifacts before success.
+- Plan only from approved requirements, safe Conceptualize/diagnosis material, verified repository/official
+  evidence, and accepted `empirical-spike` reports. Preserve planned-hotfix context without inventing a feature ref.
+- Prefer static evidence. Before any empirical or repair attempt, load `../../references/bounded-attempts.md` and
+  preserve its stable identity/history. A spike supplies evidence only: it cannot choose workflow, write plan
+  artifacts, approve semantics/risk, or invoke planning. This orchestrator validates each result and resumes itself.
+- Delegate substantive artifact writing to a fresh planner using `references/planner-agent-contract.md`. Only a
+  proven mechanical edit under `../../references/plan-amendments.md` may be applied inline.
+- Initial mode retains planning, overwrite, risk, and user-decision gates. Continuation autonomously repairs only
+  within supplied requirements and contract; return changes to semantics, scope, visible behavior, risk, or manual
+  exceptions to `implement`.
+- Slices are product/design authority, never workflow authority. Chat-only and Index-only planning are valid, but
+  when Slices exist the planner must inventory and read every safe Slice in full.
+- Registry is bookkeeping. Package Markdown owns assignment and the frozen package done-definition; each declared
+  `report_path` names its independent result. Preserve stable package IDs; never renumber or reuse them.
+- Feature `## Acceptance` and package `## Acceptance Checklist` items must be executable, except explicitly
+  user-approved `manual (approved)` items. Surface missing runnable commands before authorization.
+- Apply the complete shared Module/Interface/Seam model and all smell heuristics while shaping packages. Persist
+  only material, requirement/risk-traced implications in existing artifact fields; create no quality ledger or
+  per-smell rows.
+- Keep artifact root/ref, code root, and resolved slug explicit throughout. A Conceptualize slug remains the default
+  without approved rename/migration metadata.
+- Resolve Semgrep before planner dispatch. Disabled means no setup, scan, or internet. For direct initial planning,
+  load policy only at its decision point and disclose clone/pull side effects. Authoring itself runs no scans.
+- Re-open and validate returned artifacts before claiming success.
 
 ## Do
 
-1. Load `../../references/change-routing.md` before selecting initial planning. Honor explicit plan requests;
-   route accepted narrow low-risk execution to its task-appropriate workflow without creating plan artifacts.
-   When planning is selected, load `../../references/artifact-store.md` and resolve mode, roots/ref, slug, and source. For
-   `initial`, select direct requirements/evidence or one Conceptualize workspace and ask once if ambiguous. For
-   `implementation-continuation`, validate the caller binding and use only its requirements, current artifacts,
-   Execution Contract, stage/defect provenance, and report set or `none`; return conflicts without prompting.
-   Create a missing direct-planning sidecar through `worktree`; publish only when separately authorized.
-2. Check unsafe paths, unresolved decisions, overwrite, empirical uncertainty, and risk acceptance before
-   delegation. In continuation mode, treat same-root routine artifact overwrite/repair as covered and fail closed
-   on semantic or authority expansion. Resolve testing authority only when material execution feasibility requires
-   it: accepted/current workflow, routine-safe bounded-local fallback, or exact task-local authorization.
-   If insufficient, initial mode may invoke `testing`; continuation returns the gap to `implement` for contract-owned
-   repair or an existing protected stop. For nontrivial/risky plans, apply
-   `references/design-preflight.md`; reuse equivalent current adversarial analysis only for identical approved
-   scope/evidence with complete requirements and overengineering coverage. Resolve every `COVERAGE_GAPS`,
-   `MUST_DECIDE`, and `BLOCKERS` item before artifact writing.
-3. Inventory bounded material empirical questions unresolved after repository/official evidence. Apply
-   `../../references/bounded-attempts.md`, preserving supplied attempt history in continuation, and invoke
-   `empirical-spike` with the question, decision, outcomes, safe paths, authority, and report contract. Validate
-   every return before using it. Initial mode retains semantic gates; continuation applies same-requirement
-   evidence autonomously and returns only Stop-if expansion to `implement`.
-4. Resolve the planner packet's Semgrep state. Supplied state is authoritative and required in continuation mode.
-   Otherwise, only in initial mode, load `../../references/model-preferences.md` and conditional
-   `../../references/semgrep.md`, present opt-in/setup, and name clone/pull effects. Continue disabled if declined;
-   never run Semgrep scans while authoring.
-5. Dispatch a fresh planner with mode, roots/ref, slug/migration metadata, delivery context, approved source,
-   overwrite/continuation authority, stage/defect plus reports or `none`, original base, current integration state,
-   and `BASE_KIND`, exact `BASE_REF`, candidate `REVIEWED_BASE_SHA`, and prerequisite ref/SHAs for each continuation-created package.
-   Include testing provenance when triggered and Conceptualize paths only when applicable. Pass labeled paths for
-   planner contract, artifact store,
-   Slice authority/projection, preflight evidence, SPEC template, clean-code, work-package, canonical artifact
-   model, artifact authoring, validation, tool usage, and optional Semgrep. Include resolved Semgrep state, the
-   accepted empirical reports (or `none`), stop conditions, and output.
-6. If the planner returns `BLOCKED: empirical_evidence_needed`, verify no artifacts were written and reconcile
-   its one question with the retained attempt history. A distinct bounded question starts attempt 1; an existing question advances
-   only through step 3's materially changed attempts. Redispatch a fresh planner with the original packet and
-   reports. Stop on an unchanged/over-cap question, unbounded emergence, bundled questions, or malformed status.
-7. On a normal return, re-open `SPEC.md`, `tasks.json`, and every package Markdown from the artifact root. From the
-   code root run `python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-plan \
-   --artifact-root <artifact-root> --code-root <code-root> .tasks/<feature>/tasks.json`. Route semantic repair
-   through a fresh planner packet. For a provably mechanical correction, first load and follow
-   `../../references/plan-amendments.md`; all other artifact changes remain planner-owned.
-8. Report roots/ref, delivery context, feature paths, packages/dependencies, closure-complexity and sequencing
-   rationale, empirical question/report-set status and provenance or static-resolution note,
-   execution-feasibility/testing authority, Slice inventory, approved deferrals, assumptions, validation, and next gate.
+1. For initial mode, load `../../references/change-routing.md` before creating artifacts. Honor explicit plan
+   requests; route accepted narrow low-risk work to its task workflow. Once planning is selected, load
+   `../../references/artifact-store.md` and resolve mode, roots/ref, slug, source, and safe paths. Choose direct
+   approved requirements or one Conceptualize input; ask once only if initial workspace selection is ambiguous.
+   Continuation uses only its caller packet and returns conflicts without prompting. Create a missing direct-plan
+   sidecar through `worktree`; publish only under separate authorization.
+2. Before delegation, resolve unsafe paths, overwrite authority, open requirements/risk decisions, and empirical
+   uncertainty. Resolve testing authority only when material execution feasibility requires it: use an accepted
+   current workflow, a routine-safe bounded local fallback, or exact task-local authorization. If none is sufficient,
+   initial mode may invoke `testing`; continuation returns the gap to `implement` for contract-owned repair or a
+   protected stop. Continuation same-root repair needs no repeated overwrite prompt but cannot exceed its contract.
+   For nontrivial/risky plans, apply
+   `references/design-preflight.md`; reuse it only for identical scope/evidence with complete requirements and
+   overengineering coverage. Resolve all `COVERAGE_GAPS`, `MUST_DECIDE`, and `BLOCKERS`.
+3. Inventory a bounded set of material empirical questions unresolved by repository/official evidence. Apply the
+   loaded bounded-attempt contract and preserve supplied history. Invoke `empirical-spike` with one question,
+   blocked decision, support/reject outcomes, safe paths, authority, and report contract. Accept `resolved-static`,
+   `supported`, or `rejected` only after checking identity, provenance, method, authority, bounds, limitations, and
+   cleanup; evidence never supplies product authority. Initial mode keeps semantic gates; continuation returns only
+   contract-protected expansion to `implement`.
+4. Resolve Semgrep state. Continuation requires the supplied state. Initial mode loads
+   `../../references/model-preferences.md` and, only when applicable, `../../references/semgrep.md`; name setup
+   effects and continue disabled if declined. Never run a broad/raw authoring scan.
+5. Dispatch a fresh planner with a cold, labeled packet: mode; roots/ref/slug and migration data; delivery context;
+   approved source; overwrite/continuation authority; stage/defect, attempt history, and reports or `none`; testing
+   provenance; and Semgrep state. Supply direct paths for the planner contract, artifact store, applicable
+   Conceptualize/Slice contracts, preflight evidence, SPEC template, `../../references/clean-code-rules.md`,
+   `../../references/bounded-attempts.md` for empirical/repair history, work-package contract, canonical artifact
+   model, artifact authoring, validation, tool usage, and optional Semgrep
+   policy. Include current artifacts and integration state for continuation. Every new continuation package also
+   receives `BASE_KIND`, exact `BASE_REF`, candidate
+   `REVIEWED_BASE_SHA`, and prerequisite refs/SHAs. Include stop conditions and required output; pass Conceptualize
+   paths only when applicable.
+6. For `BLOCKED: empirical_evidence_needed`, verify no artifact was written and reconcile its single falsifiable
+   question with retained history. Resolve it through step 3, then redispatch the original packet plus reports.
+   Stop on malformed/bundled, unchanged, exhausted, unbounded, or continually emerging questions.
+7. On success, re-open `SPEC.md`, `tasks.json`, and every package file under the artifact root. From the code root run:
+   `python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-plan --artifact-root <artifact-root>
+   --code-root <code-root> .tasks/<feature>/tasks.json`. Route semantic repair through a fresh planner. Before an
+   exact mechanical edit, load and apply `../../references/plan-amendments.md`.
+8. Report roots/ref/slug, delivery context, artifact paths, packages/dependencies and closure rationale, empirical
+   report status/provenance or static resolution, testing authority, Slice inventory, deferrals, assumptions,
+   validation, and next gate.
 
 ## Load if needed
 
 - Conceptualize input applies → `references/conceptualize-inputs.md` and
   `../../references/conceptualize-slice-authority.md`
-- Nontrivial/risky design challenge → `references/design-preflight.md`
+- Nontrivial/risky design → `references/design-preflight.md`
 - Package shaping → `../../references/work-packages.md`
-- Drafting `SPEC.md` → `references/spec-template.md`
-- Drafting registry/packages/result declarations → `references/artifact-authoring.md` and
+- SPEC drafting → `references/spec-template.md`
+- Registry/package/result declarations → `references/artifact-authoring.md` and
   `../../references/slice-first-artifacts.md`
-- Before artifact writes/completion claims → `references/validation-checklist.md`
+- Before writes and completion claims → `references/validation-checklist.md`
 - Helper syntax or command safety is unclear → `../../references/tool-usage.md`
-- Semgrep preference/cache/policy/evidence applies → `../../references/semgrep.md`
+- Semgrep preference, setup, or evidence applies → `../../references/semgrep.md`
 
 ## Stop if
 
-- Any slug, root/ref, artifact/source path, or supporting-contract path is missing, unsafe, or contradictory.
-- A Conceptualize slug changes without approved migration metadata; in initial mode, existing plan state would be overwritten.
-- Initial mode needs a requirement/Slice/deferral/boundary/risk decision; continuation mode would change approved
-  semantics/scope/visible behavior/manual exceptions, accept risk, or exceed the Execution Contract.
-- Slices exist but the delegated planner cannot complete the full safe inventory.
-- Required empirical evidence is blocked/inconclusive/malformed or lacks provenance, method, authority, or cleanup.
-- A logical empirical question exhausts attempt 3 without an accepted result, repeats unchanged, or distinct
-  blockers continually emerge or cannot be bounded.
-- `sliceproof.py validate-plan` fails and cannot be repaired within scope.
-- Semgrep would require unapproved network/setup, unavailable safe cache, hidden cloud behavior, or mandatory scans.
+- Any root/ref/slug/path or required contract label is missing, unsafe, contradictory, or outside authority.
+- Initial mode would overwrite existing plan state without approval, or a slug changes without approved migration.
+- Initial mode needs a requirement, Slice, boundary, deferral, risk, or manual decision; continuation would exceed
+  approved semantics, scope, visible behavior, risk, manual exceptions, or the Execution Contract.
+- Slices exist but the planner cannot complete the full safe inventory and material H3 accounting.
+- Required empirical evidence is invalid or the bounded-attempt contract stops for exhaustion/non-convergence.
+- Validation cannot pass within authorized scope.
+- Semgrep would require unapproved setup/network behavior, an unsafe cache, hidden cloud behavior, or mandatory scans.
 
 ## Output
 
-Return mode, artifact root/ref, code root, feature/artifact paths, packages/dependencies and closure rationale,
-Acceptance checks with flagged manual exceptions, empirical report-set status/provenance,
-execution-feasibility/testing authority, Slice inventory, deferrals, assumptions, validation, and next step. Initial
-mode flows directly into `review-plan` without draft confirmation; only genuine unresolved decisions interrupt.
-The reviewed plan requires approval before execution. Continuation returns repair status to `implement` for
-focused `review-plan` without fresh plan or implementation approval.
+Return mode; roots/ref/slug and paths; packages/dependencies; Acceptance and manual exceptions; empirical,
+feasibility, Slice, deferral, assumption, and validation status; and next step. An initial draft flows directly to
+`review-plan` without confirmation unless a genuine decision blocks it. Reviewed-plan approval and execution
+authorization are separate visible decisions. Continuation returns to `implement` for focused `review-plan`; it
+opens neither a fresh plan-approval nor implementation-approval gate.

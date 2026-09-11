@@ -5,7 +5,8 @@ and propagation. Boundary: isolated non-root worktrees and immutable diagnose de
 - Root files/index are user-owned: never switch, edit, merge, or deliver there. Orchestration commands may run from
   `$PROJECT_ROOT` to create/remove approved non-root worktrees/refs.
 - Bugfix/hotfix/source/target refs and SHAs require exact approval. A probe requires the auto-resolve Execution
-  Contract envelope or exact current-task approval for its question, expected base/ref, path, effects, bounds, and cleanup; never infer a base.
+  Contract envelope or exact current-task approval for its question, expected base/ref, path, effects, bounds, and
+  cleanup; never infer a base.
 - Probe authority forbids stage/index writes, commit/merge/push, reset/stash/clean/force, and permits only exact
   receipt-owned tracked/untracked/ignored/symlink/process/data changes. Live containment remains outside.
 - Creation, edits, commit, branch push, target merge, target push, and cleanup otherwise remain separate gates.
@@ -40,7 +41,9 @@ EXPECTED=<expected_remote_destination_sha>
 test "$(git rev-parse bugfix/<name>)" = "$SOURCE_SHA"
 REMOTE_LINE="$(git ls-remote --heads origin "$DEST_REF")"
 REMOTE_SHA="${REMOTE_LINE%%$'\t'*}"
-if [[ "$REMOTE_SHA" == "$SOURCE_SHA" ]]; then printf '%s\n' 'remote already at source; no-op'; exit 0; fi
+if [[ "$REMOTE_SHA" == "$SOURCE_SHA" ]]; then
+  printf '%s\n' 'remote already at source; no-op'; exit 0
+fi
 if [[ "$EXPECTED" == "absent" ]]; then
   test -z "$REMOTE_LINE"
   git push --force-with-lease="$DEST_REF:" origin "$SOURCE_SHA:$DEST_REF"
@@ -52,7 +55,8 @@ fi
 ```
 Bare `--force`, unqualified `--force-with-lease`, and a lease without required ancestry proof are forbidden.
 ## Isolated Worktree Creation
-Receipt-bound probe: auto-resolve supplies its Execution Contract envelope; a non-envelope diagnostic spike requires exact current-task approval for the same receipt paths, fields, and digest-bound external NUL manifests:
+Receipt-bound probe: auto-resolve supplies its Execution Contract envelope; a non-envelope diagnostic spike requires
+exact current-task approval for the same receipt paths, fields, and digest-bound external NUL manifests:
 ```bash
 set -euo pipefail; cd "$PROJECT_ROOT"
 FEATURE=<approved-feature>; QUESTION_ID=<logical-question-id>; ATTEMPT_ID=<1|2|3>
@@ -60,15 +64,22 @@ FEATURE=<approved-feature>; QUESTION_ID=<logical-question-id>; ATTEMPT_ID=<1|2|3
 [[ "$ATTEMPT_ID" =~ ^[123]$ ]]; BASE_REF=<approved-base-ref>; EXPECTED_BASE_SHA=<caller-or-contract-supplied-sha>
 case "$BASE_REF" in <allowed-or-exact-base-ref-1>|<allowed-base-ref-2>) ;; *) exit 1 ;; esac
 test "$(git rev-parse "$BASE_REF")" = "$EXPECTED_BASE_SHA"
-WT="$PROJECT_ROOT/.worktrees/$FEATURE/probe-$QUESTION_ID-a$ATTEMPT_ID"; BRANCH="probe/$FEATURE/$QUESTION_ID/a$ATTEMPT_ID"; REF="refs/heads/$BRANCH"
+WT="$PROJECT_ROOT/.worktrees/$FEATURE/probe-$QUESTION_ID-a$ATTEMPT_ID"
+BRANCH="probe/$FEATURE/$QUESTION_ID/a$ATTEMPT_ID"; REF="refs/heads/$BRANCH"
 test ! -e "$WT"; test ! -L "$WT"; test -z "$(git show-ref --verify --hash "$REF" 2>/dev/null || :)"
 git worktree add --no-track -b "$BRANCH" "$WT" "$EXPECTED_BASE_SHA"
 test "$(git rev-parse "$BASE_REF")" = "$EXPECTED_BASE_SHA"; test -z "$(git for-each-ref --format='%(upstream)' "$REF")"
-test -z "$(git config --get "branch.$BRANCH.remote" || :)"; test -z "$(git config --get "branch.$BRANCH.merge" || :)"; test -z "$(git config --get "branch.$BRANCH.pushRemote" || :)"
-test "$(git -C "$WT" symbolic-ref -q HEAD)" = "$REF"; test "$(git -C "$WT" rev-parse HEAD)" = "$EXPECTED_BASE_SHA"; git -C "$WT" diff --cached --quiet; git -C "$WT" diff --quiet "$EXPECTED_BASE_SHA" --
+test -z "$(git config --get "branch.$BRANCH.remote" || :)"
+test -z "$(git config --get "branch.$BRANCH.merge" || :)"
+test -z "$(git config --get "branch.$BRANCH.pushRemote" || :)"
+test "$(git -C "$WT" symbolic-ref -q HEAD)" = "$REF"
+test "$(git -C "$WT" rev-parse HEAD)" = "$EXPECTED_BASE_SHA"
+git -C "$WT" diff --cached --quiet
+git -C "$WT" diff --quiet "$EXPECTED_BASE_SHA" --
 git -C "$WT" status --porcelain=v1 -z --untracked-files=all >"$INITIAL_STATUS_NUL"; test ! -s "$INITIAL_STATUS_NUL"
 git -C "$WT" ls-files --others --ignored --exclude-standard -z >"$INITIAL_IGNORED_NUL"; test ! -s "$INITIAL_IGNORED_NUL"
-git -C "$WT" ls-files --stage -z >"$INITIAL_INDEX_NUL"; INDEX_DIGEST="$(git hash-object --no-filters "$INITIAL_INDEX_NUL")"
+git -C "$WT" ls-files --stage -z >"$INITIAL_INDEX_NUL"
+INDEX_DIGEST="$(git hash-object --no-filters "$INITIAL_INDEX_NUL")"
 ```
 Before probe writes, bind `BASE_REF`, supplied `EXPECTED_BASE_SHA`, full direct `REF`, clean HEAD/index/worktree,
 `INDEX_DIGEST`, canonical path, manifest digests, no tracking config, forbidden actions, and `remote_action=none`.

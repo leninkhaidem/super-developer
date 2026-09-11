@@ -2,20 +2,17 @@
 
 ## Contract
 
-- Apply the packet-supplied canonical artifact-model contract; return `BLOCKED` if its labeled path is missing.
-- Write `.tasks/`, result `report_path` declarations, and Slice inventory paths under the artifact root; keep source/plugin/test paths code-root-relative.
-- `tasks.json` is a lightweight registry: feature metadata, Slice inventory, package paths, `report_path`, status
-  signals, and dependencies only.
-- Package Markdown is the package assignment source of truth.
-- Package result reports are declared during planning and written by the orchestrator or agent; they record each `## Acceptance Checklist` item as pass/fail with pointer plus observed output.
-- Do not duplicate package scope, assigned H3 IDs, primary paths, verification expectations, result evidence, review findings, command output, or lifecycle history in the registry.
+Apply the packet-labeled canonical artifact model before drafting. Write `.tasks/`, Slice inventory, and declared
+result paths under the artifact root; source/plugin/test paths are code-root-relative. `tasks.json` is bookkeeping,
+package Markdown is the assignment authority, and each `report_path` names the later independent result. Return
+`BLOCKED` if the contract label or safe write authority is missing.
 
-## Registry Shape
+## Registry
 
 ```json
 {
   "feature": "<feature-name>",
-  "title": "Human-readable feature title",
+  "title": "Human-readable title",
   "status": "planned",
   "spec_path": ".tasks/<feature-name>/SPEC.md",
   "authoritative_slices": [
@@ -33,28 +30,27 @@
 }
 ```
 
-Use an empty `authoritative_slices` array only for Index-only or no-Slice plans where no Slice is independently useful.
+Rules:
 
-## Registry Rules
+- `feature` matches the safe slug and `.tasks/<feature>/`; a Conceptualize slug changes only with approved
+  migration metadata. `spec_path` names the written SPEC.
+- `authoritative_slices` is the full safe existing Slice inventory. It is empty only for chat-only, Index-only, or
+  no-Slice plans with no authoritative Slice file.
+- Package entries contain only `id`, `path`, `report_path`, `status`, and `depends_on`. Do not copy scope, H3
+  assignment, primary paths, verification, evidence, findings, command output, or lifecycle history into them.
+- IDs are stable `WP<N>`. Gaps and registry reorder are valid; never renumber or reuse an ID after reorder, split,
+  merge, deferral, or retirement. Replacements receive fresh unused IDs.
+- Dependencies are ID-only durable prerequisites and match package Markdown; rationale belongs in Notes.
+- All artifact paths are artifact-root-relative POSIX paths. Reject absolute, traversal, home, drive-qualified,
+  empty-segment, symlink-escape, or out-of-root paths.
 
-- `feature` must match the safe feature/artifact slug and `.tasks/<feature>/` directory.
-- If Conceptualize supplied the plan, `feature` defaults to the concept slug; divergent slugs require explicit approved migration metadata.
-- `spec_path` points to the written `SPEC.md` file.
-- `authoritative_slices` lists the full safe Slice inventory when Slices exist.
-- Each package entry contains only `id`, `path`, `report_path`, `status`, and `depends_on`.
-- Package IDs are stable `WP<N>` values. Gaps and reordered registry arrays are valid; never renumber or reuse IDs
-  after reorder, split, merge, deferral, or retirement. Allocate fresh unused IDs for replacements.
-- Dependencies are ID-only durable sequencing prerequisites and must match package Markdown; rationale belongs in package `Notes`.
-- Keep registry, package, report, and Slice paths artifact-root-relative POSIX paths.
-- Reject absolute, traversal, home, drive-qualified, empty-segment, symlink-escape, or out-of-root paths.
-
-## Package Markdown Template
+## Package Template
 
 ```md
 # Work Package: WP1 — <title>
 
 ## Scope
-<Package-specific outcome, boundaries, caller contracts, externally observable surfaces when relevant, and explicitly excluded nearby work.>
+<Owned outcome, boundaries, caller contracts, visible surfaces, and excluded nearby work.>
 
 ## Assigned Slices
 - None.
@@ -63,12 +59,12 @@ Use an empty `authoritative_slices` array only for Index-only or no-Slice plans 
 - `path/to/inspect/first`
 
 ## Verification Expectations
-- <Expected command, static inspection, edge/failure case, no-mock boundary, audience-surface check, risk/interface seed, or manual observation.>
+- <Package-specific command, inspection, risk/interface case, or approved manual observation.>
 
 ## Acceptance Checklist
-- AC-1: <package-level outcome that proves this package is done> — check: `<command or test id>` — expected: <observable pass condition>
-- AC-2: <outcome that cannot be automated> — check: manual (approved) — verify: <exact manual step and expected result>
-- AC-3: <outcome a forbidden behavior constrains> — check: `<test id>` — expected: <pass condition>
+- AC-1: <one outcome> — check: `<command or test id>` — expected: <observable pass condition>
+- AC-2: <non-automatable outcome> — check: manual (approved) — verify: <step and expected result>
+- AC-3: <forbidden behavior outcome> — check: `<test id>` — expected: <pass condition>
   — rejects: <wrong-but-plausible implementation this check fails against>
 
 ## Package Verification Report
@@ -78,104 +74,76 @@ Use an empty `authoritative_slices` array only for Index-only or no-Slice plans 
 - None.
 
 ## Notes
-- Optional: deferrals, verification profile (`standard`/`enhanced`) plus evidence/risk reason, risk/replan triggers,
-  closure/execution profile, constraints, and sequencing rationale.
+- Optional: deferrals; verification profile and evidence/risk reason; execution/replan constraints; sequencing.
 ```
 
-`sliceproof.py` mechanically requires `Scope`, `Assigned Slices`, `Primary Paths`, `Verification Expectations`, `Package Verification Report`, and `Dependencies`. `Notes` is optional. `## Acceptance Checklist` is the frozen closed done-definition for the package (see Package Rules); extra sections are allowed.
+The helper requires `Scope`, `Assigned Slices`, `Primary Paths`, `Verification Expectations`, `Package Verification
+Report`, and `Dependencies`; Notes is optional. Acceptance is the frozen closed package done-definition.
 
-When Slices exist, replace the `- None.` body with Slice subsections:
+For each assigned Slice, replace `- None.` with:
 
 ```md
 ### `.planning/<concept-slug>/slices/<slice-name>.md`
 Must satisfy:
-- `<H3-ID>` — <H3 title or short obligation>
+- `<H3-ID>` — <title or short obligation>
 
 Context only:
-- `<H3-ID>` — <why this package must read it even though closure belongs elsewhere>
+- `<H3-ID>` — <why closure belongs elsewhere or is unnecessary>
 ```
 
-## Semgrep Verification Expectations
+## Authoring Rules
 
-When the orchestrator packet says Semgrep is disabled, package Markdown must not require Semgrep setup, scan evidence, or internet access.
+- Scope states package-owned behavior and boundaries. Name every changed externally observable surface: UI, CLI,
+  API/errors, generated or operator docs, examples, reports/exports, operator logs, SDK material, prompts, or
+  templates. Delivered surfaces use audience/domain language and are actionable/redacted where needed. `WP`,
+  `Slice`, `contract`, `seam`, `stub`, `placeholder`, and `fixture` are leakage indicators only when they carry
+  internal planning/staging meaning; legitimate domain/API/operator/developer-diagnostic or escaped raw input is
+  allowed when audience-appropriate.
+- `Must satisfy` IDs are closure obligations represented by Acceptance items. `Context only` requires a concrete
+  reason and cannot hide work. Every material H3 in the full inventory is assigned, justified as context, or
+  durably approved as deferred/out of scope/rejected/narrowed.
+- Every material expectation and `Must satisfy` obligation is covered by a concrete executable Acceptance item or
+  an explicit user-approved `manual (approved)` exception. Coverage may be many-to-one only for facets of one claim.
+- Make each item atomic: one behavioral claim, observable boundary, primary check, and failure condition. Split
+  unrelated concerns, subsystems, resource limits, or independent assertions.
+- An item proving a Slice `Forbidden behaviors` clause names `rejects:` with a counterfeit implementation its check
+  would fail. Prefer observable consequences over structural assertions. Use implementation structure only when no
+  observable signal exists, and state why.
+- Primary paths are code-root-relative starting points, not hard boundaries. Declare the result path now; produce
+  evidence later.
+- Apply packet-labeled package closure/dependency rules. Expectations are package-specific and cover applicable
+  commands, static inspection, edge/failure/default behavior, trust boundaries, data, security, privacy,
+  performance, concurrency, generated contracts, no-mock boundaries, lifecycle, and audience surfaces. A single
+  `not-applicable: <dimensions>` line may name only dimensions the SPEC Trust Context already excludes and this
+  package does not touch.
+- Seed applicable exact-interface, forbidden-behavior, interactive UI, retry/fail-closed, trigger-precedence,
+  restart/reaper, cache, model/default, generated-default, and state-pollution checks; identify the triggering
+  surface instead of copying a worksheet. Planner seeds never limit verifier discovery from scope, Slices, code,
+  tests, expectations, and known failure modes.
+- Unresolved material behavior blocks all writes: return `BLOCKED: empirical_evidence_needed` to the orchestrator.
+  For non-blocking feasibility, record repository-backed sources/bounds and testing-authority provenance in Notes
+  or expectations.
+- Dependencies match the registry and represent consumed durable prerequisites, not convenience serialization.
+  Put non-obvious output/contract/evidence rationale in Notes.
+- Record `standard`/`enhanced` profile seeds and evidence/risk reasons in Notes or expectations, never registry
+  schema. A seed does not authorize later ungrounded downgrade while its risk remains.
 
-When Semgrep is enabled, keep verification expectations helper-owned and package-scoped:
+## Semgrep Expectations
 
-- refresh `.superdeveloper/semgrep/stack-profile.yml` via helper `index`/`retrieve` (never inspect `index.json` or hard-code stack-to-rule mappings);
-- run scans only through `python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/semgrep_rules.py" scan ...` with local configs, writing `.tasks/<feature>/semgrep/<WP-ID>.semgrep.json` and `.semgrep-summary.json`; never require raw direct `semgrep` scans;
-- cite raw/summary path + digest, scan scope, and a concise bounded finding/no-finding summary in result-file evidence;
-- consume via `summarize` → filtered/limited `list-findings` → selected `show-finding` (excerpts need `--target` + expected summary digest); never dump raw JSON;
-- integrated scans are conditional one-shot expectations only for concrete cross-package/shared-surface risk.
+Disabled Semgrep imposes no setup, scan, or internet requirement. When enabled, keep evidence package-scoped:
 
-## Package Rules
+- refresh the stack profile through helper `index`/`retrieve`; never inspect `index.json` or hard-code mappings;
+- invoke only `python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/semgrep_rules.py" scan ...` with local configs,
+  writing `<WP-ID>.semgrep.json` and `.semgrep-summary.json` under `.tasks/<feature>/semgrep/`; never require direct
+  raw `semgrep` scans;
+- cite raw/summary paths, digest, scan scope, and a bounded finding/no-finding summary in result evidence;
+- consume via `summarize`, filtered/limited `list-findings`, then selected `show-finding`; excerpts require
+  `--target` and the expected summary digest. Never dump raw JSON;
+- use an integrated one-shot scan only for a concrete cross-package/shared-surface risk.
 
-- Scope states owned behavior and boundaries in implementation-agent terms.
-- If a package creates or changes externally observable surfaces, Scope names them. Surfaces
-  include user/operator/consumer-facing UI, CLI output, API responses/errors, generated docs,
-  README/operator docs, exported reports/files, logs intended for operators, SDK examples, and
-  prompts/templates.
-- Delivered surfaces use audience/domain language, not Super Developer planning/package/staging terminology.
-  Terms like `WP`, `Slice`, `contract`, `seam`, `stub`, `placeholder`, or `fixture` are leakage indicators only
-  with internal planning/staging meaning; legitimate domain, API, SDK, operator, developer-diagnostic, or escaped
-  raw user/provider uses are allowed when audience-appropriate.
-- `Must satisfy` IDs are package closure obligations and map onto Acceptance Checklist items.
-- `## Acceptance Checklist` is the **closed, frozen done-definition**: every `Must satisfy` obligation and every
-  material verification expectation is discharged by some item, each an **executable** check (command, test id, or
-  observable output) unless it carries a human-approved `manual (approved)` exception. The verifier checks exactly
-  this list — nothing invented — so items are concrete and runnable, not aspirational prose. Coverage must be
-  complete; the mapping need not be one-to-one.
-- **Atomic items.** Each item makes one behavioral claim with one observable boundary, one primary check, and one
-  failure condition. Split an item whose claim chains unrelated concerns — separate resource limits, distinct
-  subsystems, or independent assertions joined by `and`; a single claim with compound setup stays one item.
-  A compound item leaves the frozen done-definition ambiguous exactly where no downstream role may renegotiate it,
-  so it passes on partial proof.
-- **Falsification pointer.** An item proving a Slice `Forbidden behaviors` clause states `rejects:` — the
-  wrong-but-plausible implementation the check fails against. Ask: would this check still pass if that counterfeit
-  were substituted? If yes, the check is not evidence. Items with no forbidden behavior in scope omit `rejects:`;
-  this is a targeted defense against a green checklist that proves nothing, not a field to fill on every row.
-- **Prefer consequence over mechanism.** Separate an item from its `rejects:` counterfeit through observable
-  behavior — output, state, error, resource bound — wherever such a signal exists. A structural assertion on the
-  implementation itself (a named type or data structure, a call count, source text, syntax-tree shape) is a
-  legitimate last resort, not a default: it pins an implementation the requirement never asked for, so it fails a
-  correct rewrite while proving nothing a caller can observe. Reach for it only where no observable consequence
-  distinguishes the counterfeit — a retention bound with no deterministic collection point, a cache whose only
-  distinguishing signal is load count — and say in the item why the observable route is unavailable. Where an
-  observable consequence does exist, asserting mechanism instead is a defect.
-- `Context only` IDs are required reading/context; do not use them to hide package obligations.
-- Every material H3 in the full Slice inventory must be assigned, context-only with a concrete reason, or explicitly approved as deferred/out of scope/rejected.
-- Primary paths are code-root-relative starting points, not hard boundaries; the result `report_path` is declared during planning, with evidence produced later.
-- Apply shared closure-complexity rules; counts are warnings, not thresholds, and fixed package gates count.
-- Verification expectations are package-specific and cover relevant edge, failure, trust-boundary, data,
-  security, privacy, performance, concurrency, generated-contract, audience-surface, and lifecycle cases.
-  Exclude dimensions the SPEC `## Trust Context` places outside the feature's boundary with one
-  `not-applicable: <dimensions>` line, never per-dimension prose repeated on every package. That line may only
-  name dimensions the SPEC already placed out of boundary — a package cannot widen its own exclusions — and never
-  covers a dimension this package's own behavior touches. Material unresolved
-  empirical behavior blocks authoring: before writes return
-  `BLOCKED: empirical_evidence_needed` to the orchestrator; never invoke `empirical-spike` or hide it in `Notes`.
-  For non-blocking execution feasibility, record repo-backed sources/bounds and testing-authority provenance.
-- Every listed expectation is discharged by a concrete `## Acceptance Checklist` item, in package order. Where
-  expectations are facets of one behavioral claim with one observable boundary, one item discharges them all —
-  name each in that item so coverage stays legible. A Slice obligation and an expectation proving the same claim
-  share one check. Splitting one claim across several items buys no assurance and costs a test, an evidence row,
-  and a re-run each; splitting **distinct** claims is required by the atomicity rule above and is not this.
-- Seed visible interface/risk expectations without boilerplate: exact interfaces, forbidden behaviors, interactive UI, retry/fail-closed, trigger precedence, lifecycle/restart/reaper, cache invalidation, model/default precedence, generated defaults, and state pollution when applicable.
-  That list is a filter, not a worksheet: name the changed surface that raises each expectation you seed.
-- Planner seeds do not limit verifier discovery; verifier packets still require inspection of package scope, assigned Slices, changed code/diff, tests, verification expectations, and known failure modes for emergent blocking findings.
-- For externally observable surfaces, verification expectations include surface-appropriate checks
-  that delivered text, examples, errors, exports, logs, or prompts are audience-appropriate,
-  actionable where needed, redacted when sensitive, and free of planning/workflow leakage.
-- Dependencies are ID-only durable sequencing prerequisites and must match the registry. Put non-obvious consumed output, contract, or evidence rationale in `Notes`; runtime impact or failure alone does not create an edge, and edges must not merely serialize independent work.
-- Record `standard`/`enhanced` verification profile seeds and evidence/risk reasons in `Notes` or expectations, never as registry fields. Planner seeds do not authorize later ungrounded downgrades while a risk trigger remains.
+## Fail Closed
 
-## Fail Closed When
-
-- Registry contains package assignment or evidence details.
-- Package Markdown omits a required section or declared report path.
-- A package omits `## Acceptance Checklist`, or a checklist item is neither an executable check nor a human-approved `manual (approved)` exception.
-- A checklist item chains unrelated behavioral claims instead of splitting into atomic items.
-- An item proving a Slice `Forbidden behaviors` clause names no rejected counterfeit implementation.
-- A package boundary hides a material Slice obligation.
-- Verification expectations are generic boilerplate, omit visible interface/risk seeds, or imply verifier discovery is limited to planner-declared risks.
-- A package changes externally observable surfaces without identifying them or without an audience-language/leakage verification expectation.
-- A package cannot be verified independently with the declared result file.
+Do not write when a required section/result path is absent; assignment is hidden in the registry; checklist
+coverage, atomicity, executability, or forbidden-behavior falsification fails; a Slice obligation is hidden; visible
+surfaces or audience checks are missing; expectations are boilerplate; dependencies are inconsistent; or the
+package cannot be independently verified through its declared report.
