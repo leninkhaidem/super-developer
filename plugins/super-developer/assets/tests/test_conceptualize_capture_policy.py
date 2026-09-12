@@ -89,6 +89,21 @@ class ConceptualizeCapturePolicyTests(unittest.TestCase):
         assert_has_all(self, section(skill, "Do"), ["continued-discovery", "open questions", "without claiming"])
         assert_has_all(self, skill_stops, ["readiness", "continued-discovery", "open questions", "blocked"])
 
+    def test_canonical_registry_and_authoring_allow_the_same_no_slice_modes(self) -> None:
+        for path in (
+            "references/slice-first-artifacts.md",
+            "skills/implementation-plan/references/artifact-authoring.md",
+        ):
+            with self.subTest(path=path):
+                text = read(path)
+                rule = re.search(r"^- `authoritative_slices`.*?(?=^- |^## |\Z)", text, re.M | re.S)
+                self.assertIsNotNone(rule)
+                assert_has_all(self, rule.group(0), [
+                    "full safe existing Slice inventory", "empty only", "chat-only", "Index-only",
+                    "no-Slice", "no authoritative Slice file",
+                ])
+                self.assertNotIn("empty only for Index-only", rule.group(0))
+
     def test_implementation_plan_accepts_complete_non_slice_inputs(self) -> None:
         inputs = read("skills/implementation-plan/references/conceptualize-inputs.md")
         assert_has_all(

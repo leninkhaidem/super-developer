@@ -54,7 +54,8 @@ Rules:
 - `feature` is a filesystem-safe slug.
 - feature `status` is one of `planned`, `reviewed`, `in_progress`, `completed`, `blocked`, or `on_hold`.
 - package `status` is one of `pending`, `in_progress`, `done`, or `blocked`.
-- `authoritative_slices` may be empty only for Index-only plans with no independent Slice obligations.
+- `authoritative_slices` is the full safe existing Slice inventory. It is empty only for chat-only, Index-only, or
+  no-Slice plans with no authoritative Slice file.
 - all artifact paths are POSIX paths relative to the selected artifact root and must stay inside it;
 - package IDs are stable `WP<N>` values; gaps and registry reordering are valid, IDs are never renumbered or
   reused after reorder/split/merge, and dependencies reference declared packages.

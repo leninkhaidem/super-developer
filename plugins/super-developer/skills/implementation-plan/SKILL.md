@@ -56,9 +56,10 @@ accepted empirical reports or explicit `none`.
    current workflow, a routine-safe bounded local fallback, or exact task-local authorization. If none is sufficient,
    initial mode may invoke `testing`; continuation returns the gap to `implement` for contract-owned repair or a
    protected stop. Continuation same-root repair needs no repeated overwrite prompt but cannot exceed its contract.
-   For nontrivial/risky plans, apply
-   `references/design-preflight.md`; reuse it only for identical scope/evidence with complete requirements and
-   overengineering coverage. Resolve all `COVERAGE_GAPS`, `MUST_DECIDE`, and `BLOCKERS`.
+   Apply `references/design-preflight.md` only for consequential unresolved design decisions before drafting;
+   ordinary settled work proceeds to drafting and independent `review-plan`. When triggered, reuse it only for
+   identical scope/evidence with complete requirements and overengineering coverage. Resolve all `COVERAGE_GAPS`,
+   `MUST_DECIDE`, and `BLOCKERS`.
 3. Inventory a bounded set of material empirical questions unresolved by repository/official evidence. Apply the
    loaded bounded-attempt contract and preserve supplied history. Invoke `empirical-spike` with one question,
    blocked decision, support/reject outcomes, safe paths, authority, and report contract. Accept `resolved-static`,
@@ -73,8 +74,9 @@ accepted empirical reports or explicit `none`.
    provenance; and Semgrep state. For any repair include shared remaining rounds, round/progress history,
    and next strategy; initial repair binds the loaded policy's allowance without another approval layer.
    Supply direct paths for the planner contract, artifact store, applicable
-   Conceptualize/Slice contracts, preflight evidence, SPEC template, `../../references/clean-code-rules.md`,
-   `../../references/bounded-attempts.md` for empirical/repair history, work-package contract, canonical artifact
+   Conceptualize/Slice contracts, preflight evidence or explicit `not applicable`, SPEC template,
+   `../../references/clean-code-rules.md`, `../../references/bounded-attempts.md` for empirical/repair history,
+   work-package contract, canonical artifact
    model, artifact authoring, validation, tool usage, and optional Semgrep
    policy. Include current artifacts and integration state for continuation. Every new continuation package also
    receives `BASE_KIND`, exact `BASE_REF`, candidate
@@ -95,7 +97,7 @@ accepted empirical reports or explicit `none`.
 
 - Conceptualize input applies → `references/conceptualize-inputs.md` and
   `../../references/conceptualize-slice-authority.md`
-- Nontrivial/risky design → `references/design-preflight.md`
+- Consequential unresolved design decisions → `references/design-preflight.md`
 - Package shaping → `../../references/work-packages.md`
 - SPEC drafting → `references/spec-template.md`
 - Registry/package/result declarations → `references/artifact-authoring.md` and

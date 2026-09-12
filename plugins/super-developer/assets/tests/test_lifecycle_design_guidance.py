@@ -216,6 +216,51 @@ class LifecycleDesignGuidanceTests(unittest.TestCase):
             text = (PLUGIN_ROOT / relative).read_text(encoding="utf-8")
             self.assertFalse(all(name in text for name in SMELL_ANCHORS), f"duplicated smell glossary in {relative}")
 
+    def test_preflight_requires_an_unresolved_consequential_decision(self) -> None:
+        """Static routing guard, not a live-agent decision or performance test."""
+        planner = (PLUGIN_ROOT / CONSUMERS["planner"]).read_text(encoding="utf-8")
+        preflight = (PLUGIN_ROOT / CONSUMERS["preflight"]).read_text(encoding="utf-8")
+        trigger = self.section(preflight, "## Trigger and Reuse", "## Authority Split")
+        self.assert_groups(trigger, (
+            ("only when a consequential design decision remains unresolved", "before drafting"),
+            ("trust/data ownership", "migration/rollback", "material behavior or safety tradeoffs"),
+            ("Complexity", "cross-cutting scope", "sensitivity alone", "do not trigger"),
+            ("ordinary settled work", "draft directly", "independent `review-plan`"),
+            ("does not waive", "security review", "empirical evidence", "user decisions"),
+            ("When the trigger still applies", "Rerun only", "scope/evidence materially changed"),
+        ), "preflight applicability")
+        workflow = self.section(planner, "## Do", "## Load if needed")
+        self.assert_groups(workflow, (
+            ("only for consequential unresolved design decisions", "ordinary settled work", "independent `review-plan`"),
+        ), "planner preflight route")
+        loads = self.section(planner, "## Load if needed", "## Stop if")
+        self.assertIn("Consequential unresolved design decisions → `references/design-preflight.md`", loads)
+        for text in (planner, preflight):
+            self.assertNotIn("nontrivial/risky", text.lower())
+
+    def test_skipped_preflight_preserves_cold_handoff_and_plan_review(self) -> None:
+        planner = (PLUGIN_ROOT / CONSUMERS["planner"]).read_text(encoding="utf-8")
+        checklist = (PLUGIN_ROOT / "skills/implementation-plan/references/validation-checklist.md").read_text(
+            encoding="utf-8"
+        )
+        worker = (PLUGIN_ROOT / "skills/implementation-plan/references/planner-agent-contract.md").read_text(
+            encoding="utf-8"
+        )
+        review = (PLUGIN_ROOT / CONSUMERS["plan-review"]).read_text(encoding="utf-8")
+        dispatch = re.search(r"Dispatch a fresh planner.*?(?=^\d+\. |\Z)", planner, re.M | re.S)
+        self.assertIsNotNone(dispatch)
+        self.assert_groups(dispatch.group(0), (("preflight evidence or explicit `not applicable`",),),
+                           "cold preflight handoff")
+        prewrite = self.section(checklist, "## Pre-Write", "## `SPEC.md`")
+        self.assert_groups(prewrite, (
+            ("packet marks preflight `not applicable`", "settled design"),
+            ("when triggered", "identical scope/evidence", "COVERAGE_GAPS", "MUST_DECIDE", "BLOCKERS"),
+        ), "conditional preflight validation")
+        self.assertIn("design preflight when the packet marks it applicable", worker)
+        self.assertIn("Always run one Plan Reviewer/Triage", review)
+        self.assertIn("### Pass 1: Challenge", review)
+        self.assertIn("security-surface pre-screen", review)
+
     def test_aggregate_handoff_grammar_and_scope(self) -> None:
         grammar = "design_and_smell_review: complete; material_findings=none|fixed:<items>; justified_non_actions=none|<evidence>"
         not_applicable = "design_and_smell_review: not_applicable; reason=<concrete reason>"

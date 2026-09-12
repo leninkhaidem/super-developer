@@ -11,8 +11,9 @@ Write nothing until every applicable item passes:
   continuation is bound to the same artifact path and caller Execution Contract. Conceptualize slug changes have
   approved migration metadata. Post-Conceptualize local artifact state is valid; sidecar publication occurs only
   under exact separate authorization for its action and ref.
-- Only active-path contracts were loaded. Design preflight is either current for identical scope/evidence and its
-  completeness/overengineering lens, or newly applied; no `COVERAGE_GAPS`, `MUST_DECIDE`, or `BLOCKERS` remain.
+- Only active-path contracts were loaded. The packet marks preflight `not applicable` for settled design; when
+  triggered, its accepted completeness/overengineering evidence is current for identical scope/evidence, with no
+  unresolved `COVERAGE_GAPS`, `MUST_DECIDE`, or `BLOCKERS`.
 - Every material empirical question was checked against repository/official evidence and the bounded-attempt
   contract. Supplied identity/history is preserved, accepted reports pass provenance/method/authority/bounds/
   limitations/cleanup checks, and no unchanged, exhausted, malformed, or unbounded circuit remains. Independent
