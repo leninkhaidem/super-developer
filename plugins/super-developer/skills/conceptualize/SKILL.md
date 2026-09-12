@@ -1,13 +1,15 @@
 ---
 name: conceptualize
 description: >
-  Explore an idea through focused discovery. Use for shaping requirements, resolving design choices,
-  or preparing planning context. Do not use for implementation, code review, audit, or task status.
+  Interview relentlessly until shared understanding is reached. Use for shaping requirements, resolving design
+  choices, or preparing planning context. Do not use for implementation, code review, audit, or task status.
 ---
 
 # Conceptualize
 
-Build shared understanding in conversation. Invocation alone creates no files, slug, artifact root, or worktree.
+Interview relentlessly until shared understanding is reached.
+
+Keep the interview in conversation. Invocation alone creates no files, slug, artifact root, or worktree.
 Simple settled work may finish entirely in chat.
 
 ## Always
