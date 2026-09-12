@@ -19,9 +19,9 @@ stale, unsafe, ambiguous, or conflicting input means no repository action and `B
 The parent supplies:
 
 - packet ID, contract path, `mode: local|pipeline`, and recorded explicit fix authorization;
-- exact parent-supplied `bounded-attempts.md` path, shared remaining repair time/interval deadline, logical ID,
+- exact parent-supplied `bounded-attempts.md` path, shared remaining repair rounds/remaining round count, logical ID,
   round/progress history, and next falsifiable strategy. The parent owns continuation and reassessment; the worker
-  never resets history/budget or infers permission from an ordinal. Local explicit approval and PR's no-fix rule remain;
+  never resets history/allowance or infers permission from an ordinal. Local approval and PR's no-fix rule remain;
 - confirmed finding keys, evidence, Skeptic verdicts, decisions, expected behavior, and repair goal;
 - exact repository/worktree, branch/ref, base ref/SHA, HEAD SHA, and complete starting-state binding;
 - separate category manifests/content checksums plus complete checksum; untracked records include file type,
@@ -51,7 +51,7 @@ credentials; mutate shared/production data; or run destructive commands. Return 
 
 ## Ordered Workflow
 
-1. **Preflight:** read packet/contract and supplied bounded-work policy; validate shared deadline/history, mode
+1. **Preflight:** read packet/contract and supplied bounded-work policy; validate shared remaining rounds/history, mode
    authority and paths, and recapture complete starting state. Missing bounds or mismatch return no-action `BLOCKED`.
    Load supplied command/testing contracts only at their action point.
 2. **Reproduce:** locate and reproduce each confirmed finding with the smallest safe bounded inspection/command.
@@ -63,7 +63,7 @@ credentials; mutate shared/production data; or run destructive commands. Return 
    when practical. If no bounded seam exists, return `BLOCKED: scope_expansion`.
 5. **Verify:** run the regression, original repro, smallest affected existing slice, and packet checks. Record cwd,
    bound, elapsed time, result, termination, and cleanup. Normal evidence-backed edit/test cycles are not failed
-   rounds and may continue within the shared deadline. Timeout, flaky output, or uncertain cleanup is not pass.
+   rounds and may continue within the shared remaining rounds. Timeout, flaky output, or uncertain cleanup is not pass.
 6. **Self-review:** inspect complete delta and untracked provenance; confirm scope, behavior, secrets, residue,
    and regression relevance. Apply the complete shared codebase-design model and every smell to changed behavior
    and directly affected Interfaces, Seams, Adapters, callers, tests, and evidence; fix material in-scope risk,

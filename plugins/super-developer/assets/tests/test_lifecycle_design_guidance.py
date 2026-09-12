@@ -289,7 +289,7 @@ class LifecycleDesignGuidanceTests(unittest.TestCase):
         workflow = self.section(self.diagnose, "## Do", "## Load if needed")
         exact_contract = "${SUPER_DEVELOPER_PLUGIN_ROOT}/skills/diagnose-and-fix/references/fix-implementer-contract.md"
         self.assert_groups(workflow, (("mandatory post-fix", "review-code", exact_contract),
-                                     ("bounded-work contract", "round/progress history", "shared remaining time"),
+                                     ("bounded-work contract", "round/progress history", "shared remaining rounds"),
                                      ("never retry unchanged", "Normal", "not failed rounds"),
                                      ("non-convergence", "exhausted effort", "not an", "automatic planning handoff")),
                            "diagnose lifecycle owner")
@@ -352,7 +352,7 @@ class LifecycleDesignGuidanceTests(unittest.TestCase):
         packet = self.section(self.diagnose_worker, "## Required Packet", "## Exact Write Scope")
         self.assert_groups(packet, (("immutable `control` object", "parent-enumerated exact writable paths"),
                                     ("Post-review common control", "policy", "repair-round ordinal", "positive integer",
-                                     "observed progress/next strategy", "shared budget/deadline"),
+                                     "observed progress/next strategy", "shared remaining rounds"),
                                     ("exclusive union", "The other receipt must be absent"),
                                     ("Optional `proposal`", "untrusted findings", "never supplements `control`")), "worker schema")
         self.assertNotIn("ordinal `2|3`", packet)

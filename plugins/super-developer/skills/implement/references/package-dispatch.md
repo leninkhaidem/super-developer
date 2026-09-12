@@ -78,8 +78,8 @@ Every package, repair, or verifier packet is compact and pointer-based. Include:
 - each executable command's identity, cwd, provenance, scope, timeout, progress/completion signal, termination,
   cleanup, expected writes, and readiness/targeted/broad/final role;
 - triggered readiness result/blockers when applicable; package Notes path plus persisted depth/reason; for repair,
-  bounded-work contract path, shared consumed/remaining repair time and active deadline, logical ID, round history,
-  observed progress, next falsifiable strategy, and permitted action; preserve the budget in verifier packets too;
+  bounded-work contract path, shared consumed/remaining repair rounds, logical ID, round history,
+  observed progress, next falsifiable strategy, and permitted action; preserve the allowance in verifier packets too;
 - resolved Semgrep state; when enabled, require only the helper command
   `python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/semgrep_rules.py" scan ...`, bounded consumption, expected
   `.tasks/<feature>/semgrep/` paths/digests, and advisory findings; forbid raw direct `semgrep` scans or JSON dumps;
@@ -124,7 +124,7 @@ dynamic consumers, shared harnesses/oracles, global risk invariants, merge resol
 Include artifact paths, affected packages/Slices/results/checklists/seams, findings, failed observations, screened
 commands, and package Notes depth/reason. Cluster only shared cause, writable scope, and verification envelope. Use the
 bounded-work contract for progress, reassessment, shared effort, and stops. Pass its exact path and current binding;
-missing history/timing blocks rather than resets. Required verification and review consume that same repair budget.
+missing history blocks rather than resets. Required verification and review consume that same round allowance.
 
 ## Package Verifier Packet
 

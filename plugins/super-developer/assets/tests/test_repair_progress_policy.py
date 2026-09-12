@@ -1,7 +1,7 @@
 """Static guards for repair effort/progress policy and its cold handoffs.
 
 These check explicit policy placement and retired rules, not agent decisions,
-clock enforcement, live workflow behavior, or optimal budget duration.
+live workflow behavior, or optimal repair depth.
 """
 
 from pathlib import Path
@@ -52,35 +52,40 @@ class RepairProgressPolicyTests(unittest.TestCase):
         rounds = section(self.policy, "Repair Rounds and Progress")
         self.has(rounds, "three unsuccessful complete rounds", "reassess the diagnosis", "verification oracle",
                  "internal reassessment trigger", "not an automatic stop", "planning handoff",
-                 "fresh-agent requirement", "entitlement to three more rounds", "unchanged budget")
+                 "fresh-agent requirement", "entitlement to three more rounds", "unchanged allowance")
 
-    def test_task_budget_has_a_finite_disclosed_default_and_no_resets(self) -> None:
-        budget = section(self.policy, "One Shared Repair Budget")
-        self.has(budget, "finite elapsed repair-time allowance", "tighter remaining task/host limit", "30-minute",
-                 "not a separate ask", "not an evidence-backed optimal duration",
-                 "stricter explicitly approved attempt/round caps", "whole authorized task",
-                 "not each package, finding, cluster, round, or worker", "actual elapsed repair time",
-                 "Parallel work shares one elapsed interval", "all repair work is stopped",
-                 "active command/reviewer", "consumed/remaining time", "shared absolute deadline",
-                 "code→plan→review never replenish", "Missing/unrecoverable timing or history stops",
+    def test_task_allowance_is_round_denominated_with_a_disclosed_default(self) -> None:
+        allowance = section(self.policy, "One Shared Round Allowance")
+        self.has(allowance, "finite repair-round allowance", "six-round default", "not a separate ask",
+                 "not an evidence-backed optimal depth", "stricter explicitly approved attempt/round caps",
+                 "whole authorized task", "not each package, finding, cluster, round, or worker",
+                 "Count every complete round", "one shared pool, not one allowance per worker",
+                 "consumed/remaining rounds", "shared remaining count",
+                 "code→plan→review never replenish", "Missing/unrecoverable round history stops",
                  "Only explicit user authorization may extend")
 
-    def test_budget_cannot_bypass_checks_or_permission(self) -> None:
-        budget = section(self.policy, "One Shared Repair Budget")
-        self.has(budget, "before dispatch, edits, and commands", "termination/cleanup time",
-                 "cannot safely fit is blocked", "not skipped or truncated into a pass",
-                 "Stop new work at exhaustion", "independent review/audit gates never become optional",
+    def test_effort_bound_is_rounds_and_defers_runtime_to_command_timeouts(self) -> None:
+        """The allowance counts rounds; per-action runtime stays owned by existing timeout rules."""
+        allowance = section(self.policy, "One Shared Round Allowance")
+        self.has(allowance, "Check the remaining count before dispatch and before opening another round",
+                 "existing command/worker timeout, termination, and cleanup rules",
+                 "adds no separate runtime limit")
+
+    def test_allowance_cannot_bypass_checks_or_permission(self) -> None:
+        allowance = section(self.policy, "One Shared Round Allowance")
+        self.has(allowance, "cannot safely run is blocked", "not skipped or truncated into a pass",
+                 "Stop new rounds at exhaustion", "independent review/audit gates never become optional",
                  "never overrides an explicit fix gate")
         routing = section(self.policy, "Route the Evidence, Not the Counter")
         self.has(routing, "Advisories are report-only", "observations contradict", "evidenced plan/Acceptance defect",
                  "not because three rounds failed", "authority changes return to the user-facing owner")
 
-    def test_empirical_bound_is_distinct_and_cannot_escape_repair_budget(self) -> None:
+    def test_empirical_bound_is_distinct_and_opens_no_separate_allowance(self) -> None:
         empirical = section(self.policy, "Empirical Questions")
         self.has(empirical, "one invocation", "Three total empirical attempts", "no automatic escalation",
-                 "Repair-related probes also consume the shared repair budget")
+                 "runs inside the round that requested it and opens no separate allowance")
         stops = section(self.policy, "Stops and Evidence")
-        self.has(stops, "failed hypotheses", "budget consumed", "never claim completion",
+        self.has(stops, "failed hypotheses", "rounds consumed", "never claim completion",
                  "Never overwrite, edit, or delete", "diagnosis/reproducer handback",
                  "No new receipt/registry", "return the same evidence in chat")
 
@@ -89,7 +94,7 @@ class RepairProgressPolicyTests(unittest.TestCase):
             with self.subTest(skill=skill):
                 self.has(read(f"skills/{skill}/SKILL.md"), "../../references/bounded-attempts.md")
 
-    def test_cold_repair_workers_receive_policy_and_budget(self) -> None:
+    def test_cold_repair_workers_receive_policy_and_allowance(self) -> None:
         for path in (
             "skills/implement/references/repair-agent-contract.md",
             "skills/implementation-plan/references/planner-agent-contract.md",
@@ -97,15 +102,15 @@ class RepairProgressPolicyTests(unittest.TestCase):
             "skills/diagnose-and-fix/references/fix-implementer-contract.md",
         ):
             with self.subTest(path=path):
-                self.has(read(path), "bounded-attempts.md", "deadline", "history")
+                self.has(read(path), "bounded-attempts.md", "rounds", "history")
         for path in (
             "skills/implement/references/package-dispatch.md",
             "skills/diagnose-and-fix/references/orchestration-mechanics.md",
         ):
             with self.subTest(path=path):
-                self.has(read(path), "remaining", "deadline", "progress")
+                self.has(read(path), "remaining", "rounds", "progress")
 
-    def test_verification_review_and_audit_keep_the_shared_deadline(self) -> None:
+    def test_verification_review_and_audit_keep_the_shared_allowance(self) -> None:
         for path in (
             "skills/implement/references/package-verification.md",
             "skills/review-code/SKILL.md",
@@ -116,15 +121,18 @@ class RepairProgressPolicyTests(unittest.TestCase):
             "skills/audit/references/audit-subagent-contract.md",
         ):
             with self.subTest(path=path):
-                self.has(read(path), "deadline")
+                self.has(read(path), "rounds")
         self.has(read("skills/audit/references/audit-subagent-contract.md"),
                  "incomplete coverage", "never a partial PASS")
 
     def test_retired_repair_circuits_are_not_still_authoritative(self) -> None:
         retired = ("three-attempt cap", "three-attempt circuit", "one code reclassification",
                    "one exhaustion fallback", "second exhaustion", "ordinal `2|3`",
-                   "at most three total repair attempts", "one such escalation")
-        paths = [ROOT / "references/package-lifecycle.md", ROOT / "README.md"]
+                   "at most three total repair attempts", "one such escalation",
+                   "30-minute", "elapsed repair time", "repair-time allowance",
+                   "shared absolute deadline", "remaining time/deadline", "repair budget")
+        paths = [ROOT / "references/package-lifecycle.md", ROOT / "references/bounded-attempts.md",
+                 ROOT / "README.md"]
         for skill in ("implement", "implementation-plan", "review-plan", "review-code", "diagnose-and-fix"):
             paths.extend((ROOT / "skills" / skill).rglob("*.md"))
         for path in paths:

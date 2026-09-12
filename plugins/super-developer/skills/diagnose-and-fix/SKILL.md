@@ -36,7 +36,7 @@ a fresh Fix Implementer edits under the passed contract.
 - Delegate localized edits to a fresh Fix Implementer. The parent constructs the authority packet, passes
   `references/fix-implementer-contract.md`, and validates its report and repository state. Post-fix `review-code`
   is mandatory; a successful implementation report is not delivery readiness.
-- Before Fix Authorization or repair, load `../../references/bounded-attempts.md`. Share its repair-time budget
+- Before Fix Authorization or repair, load `../../references/bounded-attempts.md`. Share its repair-round allowance
   across diagnosis follow-ups, fixes, verification, and review; use evidence-based reassessment, not launch counts.
   Revisit a contradicted diagnosis before more edits. Failed rounds alone never authorize planning or wider scope.
 - Never infer approval from silence, “fix this,” diagnosis approval, or another approved action.
@@ -60,7 +60,7 @@ Ask for one compact, human-readable Fix Authorization:
 - exactly one scope envelope: (a) a fixed exact-path allowlist, or (b) canonical root allowlist plus the direct-effect
   rule—only implementation, directly affected callsites, and regression tests for the same confirmed mechanism—and
   explicit exclusions. Every worker still receives parent-enumerated exact writable paths; and
-- one finite shared repair-time allowance under the loaded bounded-work contract, shown in this same authorization.
+- one finite shared repair-round allowance under the loaded bounded-work contract, shown in this same authorization.
 
 One response may authorize the displayed localized route through the selected branch delivery, including the
 testing authority and the `preferences.yml` creation it names, so neither becomes a separate ask. Reassessment
@@ -118,7 +118,7 @@ Contract and delivery gates separately own implementation, source/sidecar public
     authority: apply the complete validation, control construction, fresh dispatch, verification, rebinding, and
     re-review transition in `references/orchestration-mechanics.md`. Only Skeptic-confirmed blocking findings enter
     the automatic loop; advisories, suggestions, and disputes remain report-only.
-    Apply the loaded bounded-work contract: preserve round/progress history and shared remaining time, reassess
+    Apply the loaded bounded-work contract: preserve round/progress history and shared remaining rounds, reassess
     diagnosis when progress stalls, and never retry unchanged or reset effort by relabeling the mechanism. Normal
     edit/test cycles are not failed rounds. Stop for non-convergence or exhausted effort using step 15, not an
     automatic planning handoff. Explicit repair gates and scope/risk boundaries still apply.
@@ -135,7 +135,7 @@ Contract and delivery gates separately own implementation, source/sidecar public
 
 - Command/testing authority, any state binding or revalidation, receipt reporting, worker or review dispatch,
   delivery, or durable evidence on exhaustion or a post-fix-loop stop → `references/orchestration-mechanics.md`.
-- Fix Authorization or repair → `../../references/bounded-attempts.md`; pass its exact path and shared budget/history
+- Fix Authorization or repair → `../../references/bounded-attempts.md`; pass its exact path and allowance/history
   with `references/fix-implementer-contract.md` to the worker and through review handoffs.
 - Nontrivial repro/test/harness/service command → `../../references/tool-usage.md` and testing authority.
 - Worktree/ref creation, push, merge, or cleanup → invoke `worktree`.
@@ -149,7 +149,7 @@ Contract and delivery gates separately own implementation, source/sidecar public
 - Authorization, policy, scope envelope, or an internal path/ref/SHA/remote/worktree/snapshot binding is missing,
   malformed, or conflicting.
 - State is dirty, drifted, or ambiguous enough to mix, hide, or overwrite user changes.
-- The shared repair budget is exhausted/unrecoverable, or no evidence-backed next step remains after reassessment.
+- The shared round allowance is exhausted/unrecoverable, or no evidence-backed next step remains after reassessment.
 - A localized fix expands beyond its selected scope envelope or crosses a broad/risky boundary; disputed or
   advisory findings, design/product choices, hard-to-reverse contracts, unbounded scope, unsafe/external actions,
   risk acceptance, stale state, or missing authority are never automatic repairs.

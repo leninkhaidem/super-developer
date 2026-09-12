@@ -19,9 +19,9 @@ fresh sub-agents perform semantic review. Do not mutate until the active mode au
   delivery needs independent same-freeze CLEAN + PASS; generated gate reports are not freeze inputs.
 - Revalidate the bound state before posting, fixing, committing, refreshing evidence, or handing off audit context.
 - Before authorizing review-owned repair, load `../../references/bounded-attempts.md` and bind its shared repair
-  allowance in the existing fix approval. Supply its path, round/progress history, and deadline to fix workers.
-  During any caller-owned repair, all review/closure workers inherit the caller's remaining time/deadline; never
-  restart its budget or infer fix permission. PR remains review-only; local explicit gates remain unchanged.
+  allowance in the existing fix approval. Supply its path, round/progress history, and remaining rounds to fix workers.
+  During any caller-owned repair, all review/closure workers inherit the caller's remaining rounds; never
+  restart its allowance or infer fix permission. PR remains review-only; local explicit gates remain unchanged.
 
 ## Mode Routing
 
@@ -99,7 +99,7 @@ bound-contract authoritative control. Review-code/Main never builds a caller pac
 Only for review-owned repair may Main apply a trivial behavior-preserving mechanical edit, with rationale.
 
 Cluster only shared root cause, writable scope, and verification envelope; preserve round/progress history and the
-shared task budget. Reassess failed rounds under the loaded policy; planning requires an actual plan defect.
+shared task allowance. Reassess failed rounds under the loaded policy; planning requires an actual plan defect.
 Cross-package repair requires every affected package/path/finding explicitly within one coherent seam envelope;
 otherwise split or stop. Fresh Fix Verification checks closure, not second discovery, returning per finding
 `verdict: closed|not_closed|reopened`, evidence, and `next_action: none|same_scope_fix|authority_boundary`.
@@ -114,7 +114,7 @@ package verifier, Fix Verification, and auditor separate.
 - A blocking candidate lacks Skeptic confirmation, or required coverage remains weak after its bounded follow-up.
 - A fix requires scope/product/risk/manual authority, new dependencies/services, credentials/external facts,
   unsafe/destructive commands, or repair reaches non-convergence/exhausted effort. Required review that cannot fit
-  the remaining budget is incomplete, never CLEAN by omission.
+  the remaining allowance is incomplete, never CLEAN by omission.
 - Pipeline review is asked to replace audit, or PR/local review is asked to satisfy unscoped pipeline gates.
 
 ## Output

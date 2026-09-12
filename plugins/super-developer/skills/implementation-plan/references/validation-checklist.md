@@ -19,7 +19,7 @@ Write nothing until every applicable item passes:
   questions may run in parallel; a sequential question arose only from accepted evidence. The planner did not invoke
   a spike; unresolved behavior produced `BLOCKED: empirical_evidence_needed` before writes.
 - Continuation names its evidenced stage/defect and reports or `none`; every write and command is within contract.
-  Any plan repair carries shared remaining time/deadline and round/progress history, including initial-mode repair.
+  Any plan repair carries shared remaining rounds and round/progress history, including initial-mode repair.
   Checks/re-review consume that same allowance; failed-round count alone never creates a plan defect.
   Mechanical inline edits satisfy the complete amendment whitelist and owning-orchestrator authority. Semantic edits
   use planner repair/review.

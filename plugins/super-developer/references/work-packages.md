@@ -139,7 +139,7 @@ audit, or quality-contract changes; those stay with final review-code and audit.
 Documentation-only and reference-only packages use standard orchestrator re-run confirmation. Enhanced risk
 adds the independent verifier; it does not replace those checks.
 
-## Runtime and Repair-Time Adjustment
+## Runtime and Repair Adjustment
 
 Package sizing is not a one-time decision. After accepted plan-review repairs, reapply semantic closure-complexity
 analysis to affected packages when obligations, failure/risk cases, dependencies, evidence boundaries, or

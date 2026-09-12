@@ -47,7 +47,7 @@ Slice metadata and assignment/verification gaps in package Markdown.
 1. Group duplicate findings by target/issue and classify every finding above.
 2. Apply only amendments proven under the parent-loaded contract. Collect all other plan-owned defects for the
    ordinary initial planner path or caller-owned continuation; never send them to a code repair worker. Bind/carry
-   the parent's shared repair budget and round/progress history through planner, validation, and re-review.
+   the parent's shared repair-round allowance and round/progress history through planner, validation, and re-review.
 3. For empirical blockers, preserve review state and stable identity/history. The parent loads and applies the
    bounded-attempt contract before any attempt. Initial unresolved evidence stops; focused protected/out-of-contract
    evidence gaps return to `implement`.

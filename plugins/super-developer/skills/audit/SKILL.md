@@ -23,7 +23,7 @@ state. One cold auditor performs semantic work; the main agent validates inputs,
 ## Do
 
 1. Resolve safe absolute artifact/code roots, feature slug, integrated worktree/ref/commit, and every relevant
-   artifact set for a stacked feature. For repair-triggered audit, inherit remaining repair time/deadline before
+   artifact set for a stacked feature. For repair-triggered audit, inherit remaining repair rounds before
    commands or dispatch; missing/exhausted bounds block, never grant PASS. Freeze code, artifacts, and runtime
    evidence; generated review/audit outputs are not inputs. Reject missing or uncertain state.
 2. Require SPEC Acceptance, registry, package Markdown/checklists, result reports, and applicable Slices/evidence.
@@ -38,7 +38,7 @@ state. One cold auditor performs semantic work; the main agent validates inputs,
    A cosmetic shape advisory is not semantic failure; missing required results or plan/registry mismatch blocks.
 3. Load `../../references/model-preferences.md` for the auditor model and
    `references/audit-subagent-contract.md` for its packet. Supply complete retained/refreshed evidence, safe roots,
-   state bindings, optional same-state review context or explicit `none`, and any inherited repair deadline;
+   state bindings, optional same-state review context or explicit `none`, and any inherited remaining repair rounds;
    never depend on hidden conversation or allocate a fresh repair allowance.
    Dispatch one fresh read-only auditor to reconcile all obligations and judge evidence sufficiency.
 4. Preserve its complete PASS/FAIL report and minimal repair targets. Route blockers to the owning orchestrator,

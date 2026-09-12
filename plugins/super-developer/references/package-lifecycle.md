@@ -91,8 +91,8 @@ continuation to repair the checklist instead of patching one defect at a time. F
 proof of a plan defect and never triggers a planning handoff.
 
 Before repair dispatch, the orchestrator loads `bounded-attempts.md`, the sole owner of repair-round identity,
-evidence-based progress/reassessment, and the task-wide repair budget. Preserve budget and history through planning
-continuation and focused re-review; a new worker, cluster, or stage cannot replenish either. Widen only for
+evidence-based progress/reassessment, and the task-wide repair-round allowance. Preserve the allowance and history
+through planning continuation and focused re-review; a new worker, cluster, or stage cannot replenish it. Widen only for
 semantically affected surfaces, never merely because a package dependency, commit, or merge exists. Proven mechanical artifact corrections may use
 `plan-amendments.md` after the owner loads it; Acceptance/evidence/Plan-gap changes never use that exception.
 

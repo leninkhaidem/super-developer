@@ -10,7 +10,7 @@ Require safe absolute artifact/code roots, one frozen top integrated worktree/re
 every relevant SPEC/registry/package/report/Slice set, package-completion diagnostics, captured Acceptance/runtime
 evidence, and optional review-code state/report or explicit `none`. Review/audit outputs are not freeze inputs.
 Missing, unsafe, unreadable, stale, root-ambiguous, or inconsistent required inputs fail closed. Repair-triggered
-audit also requires the caller's shared remaining time/deadline. Honor it through reads/checks; missing bounds or
+audit also requires the caller's shared remaining rounds. Honor it through reads/checks; missing bounds or
 exhaustion returns FAIL with incomplete coverage, never a partial PASS or a fresh repair allowance.
 
 Before reconciliation, read the supplied plugin contracts:
