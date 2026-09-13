@@ -50,6 +50,9 @@ Read-only checks:
 python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-plan \
   --artifact-root "$ARTIFACT_ROOT" --code-root "$CODE_ROOT" \
   ".tasks/<feature>/tasks.json"
+python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" render-report \
+  --artifact-root "$ARTIFACT_ROOT" --code-root "$CODE_ROOT" \
+  ".tasks/<feature>/tasks.json" --package WP1
 python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-package-complete \
   --artifact-root "$ARTIFACT_ROOT" --code-root "$CODE_ROOT" \
   ".tasks/<feature>/tasks.json" --package WP1
@@ -58,22 +61,47 @@ python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" validate-final \
   ".tasks/<feature>/tasks.json"
 ```
 
-`validate-package-complete` is the only result command. It and `validate-final` are read-only: only the
-orchestrator or agent writes the result file. They return JSON on stdout when successful. On failure, they return
-JSON on stderr with `errors`. Both also carry a top-level `advisories` array, but the helper emits no advisories:
-it is always `[]`, kept only so the JSON shape stays stable. Read `errors`; there is no advisory channel to route.
+`render-report` prints a deterministic Markdown skeleton to stdout for one package's frozen Acceptance Checklist
+IDs. It is read-only: it never writes files, runs commands, creates PASS evidence, mutates status, or reads an
+existing report. Use it only after the caller authorizes creating a missing first report and validates the exact
+`REPORT_PATH` and its parent inside the artifact root. A safe create-only pattern is:
+
+```bash
+(
+  REPORT_CONTENT="$(python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/sliceproof.py" render-report \
+    --artifact-root "$ARTIFACT_ROOT" --code-root "$CODE_ROOT" \
+    ".tasks/<feature>/tasks.json" --package WP1)" || exit
+  test -n "$REPORT_CONTENT" || { printf '%s\n' 'No report generated; nothing written.' >&2; exit 1; }
+  set -o noclobber
+  printf '%s\n' "$REPORT_CONTENT" > "$REPORT_PATH"
+)
+```
+
+Capture successful non-empty output before opening the destination: helper failure must not create an empty
+report. A failed final write is still a failed action, not a valid report; preserve and report partial state.
+
+Never overwrite an existing report or erase result/Plan-gaps history. Result agents use it for the first report,
+then edit the existing report.
+
+`validate-package-complete` and `validate-final` are read-only completion checks: only the orchestrator or agent
+writes the result file. They return JSON on stdout when successful. On failure, they return JSON on stderr with
+`errors`. Both also carry a top-level `advisories` array, but the helper emits no advisories: it is always `[]`,
+kept only so the JSON shape stays stable. Read `errors`; there is no advisory channel to route.
 
 ## Mechanical Boundaries
 
 `validate-plan` checks:
 
 - lightweight registry shape and allowed package keys;
+- stable `WP<N>` shape, duplicate IDs, dependency references and cycles; gaps/reordered arrays are valid;
 - safe repo-relative SPEC, Slice, package, and report paths;
 - non-empty `## Acceptance Checklist` per package with at least one executable item, and non-empty SPEC `## Acceptance`;
-- package dependency references and cycles;
 - package Markdown required sections;
 - package Markdown report/dependency references;
 - assigned Slice H3 IDs under `## Shared Understanding`.
+
+`render-report` uses the same plan/package parser, emits all checklist rows as pending with explicit missing
+evidence, includes required Plan-gaps/Reviewed-state headings, and produces no semantic completion signal.
 
 `validate-package-complete` checks one selected new-shape package: checklist coverage, cheap pointer resolve
 (presence, non-placeholder, and safe path existence when the pointer looks like a path), Gaps metadata presence,

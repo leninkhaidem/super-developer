@@ -1,156 +1,125 @@
 # Execution Contract
+
 ## Boundary
-This reference owns the user-facing implement approval template and its approval boundaries.
-## Contract
-- Derive the contract only from approved plan artifacts, package Markdown, safe assigned Slice content,
-  resolved testing authority when execution feasibility is triggered, current git state, and explicit user
-  instructions.
-- Approval covers only listed actions. For auto-resolve list in-scope code/test writes, bounded empirical-spike
-  dispatch, disposable local harness/temp/probe-worktree writes and cleanup, evidence, changed follow-ups,
-  same-requirement plan repair/focused re-review, ordinary repairs/review/audit, and pushes.
-- Auto-resolve never re-asks while scope/side effects stay within those listings; it stops when they exceed the
-  contract or reach a protected boundary. Step-by-step still asks at each contracted major gate.
-- Name fixed worktrees and one bounded dynamic envelope: exact feature namespace/path/ref patterns, probe base refs
-  plus caller/contract-supplied expected base SHAs, package bases/prerequisites, bindings, manifests, and prohibitions.
-- A probe receipt binds `BASE_REF`, `EXPECTED_BASE_SHA`, full direct `REF`, clean initial HEAD/index/worktree,
-  non-writing `git hash-object --no-filters` `INDEX_DIGEST`, exact NUL owned tracked/untracked/ignored/symlink/process/
-  data manifests, and `remote_action=none`; it forbids index writes, commit/merge/push/force/reset/stash/clean.
-- Continuation may create—but never remove—focused-reviewed package IDs. Each package artifact/contract supplies
-  `BASE_KIND`, exact `BASE_REF`, focused-reviewed `REVIEWED_BASE_SHA`, and prerequisite ref/SHAs. Independent uses
-  approved original base; dependent integration `HEAD` equals that SHA with every prerequisite SHA its ancestor.
-- Autonomous envelope cleanup is probe-only after exact owned-delta restoration and clean proofs. It checks local
-  upstream/tracking absence, performs no network/credential check or remote action, and leaves remote refs untouched.
-- Normal feature execution requires the exact non-force `feature/<feature>` checkpoint after every accepted
-  package merge with remote-SHA verification; auto-resolve covers all repetitions. Planned-hotfix push is separate.
-- Sidecar pushes require their own exact listed command/ref; source/target publication never implies them or vice
-  versa. One approval may list both. When excluded, valid local artifacts remain usable but unpublished.
-- Target merge/push, force push, tag, release, remote deletion, local ref deletion outside owned probe/final package
-  cleanup, destructive command, service install/start, credentialed action, or external effect needs approval.
-- Dependency installs/additions are covered only when exact commands and manifest/lockfile paths are
-  derived from approved artifacts or explicit user instruction and listed in this contract; otherwise
-  they require separate approval.
-- Accept `resolved-static`, `supported`, or `rejected` only after validating report identity, provenance, method,
-  authority, bounds, limitations, and cleanup. Auto-resolve corrects in-contract `blocked`/`inconclusive`; protected/
-  out-of-contract needs return at a Stop condition. Each logical empirical question has at most three total attempts:
-  attempt 1 is initial; attempts 2–3 are each a fresh invocation with stable ID and named corrected packet or changed method/signal.
-  Exhaustion of an empirical question stops, with no escalation; unchanged work is forbidden and no other counter
-  exists for it. Code repair clusters use the separate circuit in pipeline step 13.
-- Step-by-step mode asks before each major gate, package wave, repair loop, source push, and final handoff.
-## Do
-1. Validate `.tasks/<feature>/`, package/report/Slice paths, current git refs, and—when execution
-   feasibility is triggered—the testing-authority provenance and command/write bounds.
-2. Name delivery context, roots/refs, fixed worktrees, probe receipts, continuation `BASE_KIND`/exact `BASE_REF`/
-   `REVIEWED_BASE_SHA`/prerequisites, optional sidecar command, and context-applicable source command: repeated feature checkpoints only for `feature`,
-   or separately contracted `hotfix/<name>` publication.
-3. For each package, summarize assigned Slice obligations, primary paths, dependencies, approved dependency
-   changes, verification expectations/depth, known blockers, and any execution-feasibility profile: authority,
-   preconditions/cleanup, cost, bounds, readiness probe, and broad placement or broad-only justification.
-4. List covered production/test/plan/temp writes, empirical and verification actions, logical question/attempt
-   ledger, cleanup, changed follow-ups, same-requirement focused re-review, pushes, Semgrep flow, and exclusions.
-5. List command-safety boundaries and every action not authorized by this contract.
-6. Offer exactly three choices: `approve auto-resolve`, `step-by-step`, or `abort`.
-7. Stop unless the user approves one choice or prior explicit instruction already selected one.
-## Template
+
+Owns planned-feature execution authorization. It separates the retained machine contract from the compact user summary.
+This reference grants no authority by itself.
+
+## Authorization Rules
+
+- Derive fields from accepted reviewed artifacts, safe Slice projections, resolved testing authority, current
+  git/worktree state, loaded source-publication/plan-amendment/bounded-attempt contracts, and explicit user
+  instructions. Approval covers only actions and bounded envelopes visible in the user summary; hidden machine detail
+  cannot grant authority.
+- Plan approval, execution approval, and publication approval are separate. A single presentation may request multiple
+  choices only when each scope is ready, explicit, complete, independently labeled, and independently selectable.
+- `approve auto-resolve` runs all and only listed actions until a stop. `step-by-step` asks before each listed package
+  wave, repair loop, external effect, and final handoff. Neither mode expands the contract.
+- Consume the loaded source-publication packet before selecting feature-source policy. Use `local-only` absent explicit
+  remote authorization; otherwise require the user's selected remote cadence and complete final catch-up authorization.
+  Same-requirement continuation packages/new IDs remain covered only when they fit the visible envelope.
+- Source, target, sidecar, and planned-hotfix publication are independent. Planned hotfix publication is one exact
+  `hotfix/<name>` gate and creates no feature ref.
+- Target merge/push, force, tags/releases, remote deletion, local ref deletion outside exact probe/final cleanup,
+  destructive action, service/dependency side effects, and credentialed/external effects require explicit listing.
+- Plan-amendment authority may cover only the shared contract's exact nonsemantic procedure. Changes to obligations,
+  commands/evidence, risk, acceptance, scope, dependencies, or approval use planning continuation and focused review.
+- The bounded-work contract supplies progress/reassessment rules and one shared repair-round allowance. Neither
+  progress nor a remaining round authorizes scope expansion, unchanged retries, or omitted verification.
+
+## Expanded Machine Contract
+
+Construct and retain this record in orchestration context; do not create another ledger or dump it into the prompt.
+Tell the user it is available and render requested sections before approval. If context cannot retain it across
+handoff, pass it in the existing orchestrator packet.
+
+Record:
+
+1. **Identity/state:** feature, plan/review provenance, delivery context, artifact/code/project roots, base,
+   integration, artifact, package, target refs, current SHAs, and fixed worktree paths.
+2. **Packages:** package path/report/Slices, obligations, primary writes, dependencies, approved dependency changes,
+   Acceptance items, blockers/deferrals, and existing Notes path.
+3. **Verification depth:** `standard|enhanced` plus reason per package, persisted in existing Notes; later changes
+   name prior/new depth and the approved material risk/scope delta. Never silently downgrade or add registry fields.
+4. **Commands/checks:** exact known commands and approved bounded command families with trusted source, cwd, budgets,
+   pass/completion signal, termination/cleanup, writes, evidence destinations, and stage. Bind concrete commands before
+   execution. Same-requirement follow-ups must fit this visible envelope and testing authority.
+5. **Writes:** exact paths and approved path/ref patterns under named roots for same-requirement continuation, local
+   probes, evidence, and mechanical amendments. Bind concrete destinations before writing and preserve user state.
+6. **Dynamic worktrees:** namespace/path/ref patterns, allowed bases and caller-supplied base SHAs, reviewed
+   continuation IDs/base/prerequisite SHAs, receipt manifests, forbidden operations, and cleanup proofs. Probe
+   authority is local-only: no stage/commit/merge/push/reset/stash/clean/force/network.
+7. **Repair/probes:** shared repair-round allowance and consumed/remaining rounds, stable
+   logical IDs, round/probe history, observed progress and next strategy, accepted empirical reports or `none`.
+   Carry the same allowance through all clusters, workers, planning repair, review, and resume; never reset it.
+8. **Publication:** selected feature-source policy packet, exact `origin` destination/command, milestone triggers when
+   applicable, final catch-up for remote cadences, and remote-SHA success check; or `local-only` without network.
+   Separately record exact hotfix, sidecar, and target actions or `excluded`.
+9. **Safety/exclusions/stops:** root-worktree prohibition, destructive/external/dependency/service limits, cleanup
+   retention, Semgrep/network constraints, manual exceptions, unauthorized actions, missing facts/credentials, unsafe
+   state, unbound commands, scheduled publication failure/SHA mismatch, non-convergence, and exhausted effort.
+
+Probe receipts additionally bind full direct ref, expected base SHA before/after creation, clean HEAD/index/status,
+non-writing index digest, exact NUL owned tracked/untracked/ignored/symlink/process/data manifests,
+`remote_action=none`, and cleanup proof. Continuation packages bind `BASE_KIND`, `BASE_REF`, `REVIEWED_BASE_SHA`, and
+prerequisite refs/SHAs, and are created only from that reviewed state.
+
+## Short User-Facing Summary
+
+Present this by default. Use concrete roots, refs, outcomes, and boundaries. Consolidate known commands by cadence;
+future in-scope work needs a described bounded class/pattern, not an unexplained placeholder. Bind exact values before
+action. List external commands/destinations exactly.
+
 ```text
-Execution Contract for <feature>
-Delivery context: feature | planned-hotfix
-Git refs:
-  base ref: <base-ref>
-  integration ref: feature/<feature> | hotfix/<name> (planned-hotfix; no implicit feature ref)
-  artifact ref: artifacts/<feature>
-  target ref: <target-ref>
-Roots:
-  artifact root: .worktrees/<feature>/artifacts (owns .planning/.tasks, reports, reviews)
-  code root: <root or integration/package worktree used for source validation>
-Testing authority:
-  source: <accepted/current workflow + companions | routine-safe fallback | task-local authorization | not triggered>
-  runtime policy: <command budgets, progress/completion, termination, cleanup, shared-resource constraints>
-Covered actions:
-  writes: <implementation/test plus disposable local harness/temp/worktree and same-requirement plan-artifact writes>
-  execution/evidence: <bounded empirical-spike, test/review/audit commands; evidence destinations and cleanup>
-  follow-up/replan: <stable logical-question ID; attempts 1–3; corrected packet or changed method/signal;
-                     plan repair with empirical report set or none + focused re-review; no unchanged attempt>
-  pushes: <required normal-feature checkpoints and each optional planned-hotfix/sidecar action below>
-Remote actions:
-  source checkpoints: <normal feature: repeated non-force post-package push + remote-SHA verification | planned hotfix: exact push or excluded>
-  sidecar checkpoints: <exact push of artifacts/<feature> from its worktree at eligible gates, or excluded/local-only>
-  target merge/push: not authorized; requires separate explicit approval for <target-ref>
-  force/remote-delete/tag/release actions: not authorized; probe cleanup records remote_action=none
-Worktree authority envelope:
-  namespace: .worktrees/<feature>/...; refs probe/<feature>/... and wp/<feature>/... only
-  probe: exact allowed BASE_REF + supplied EXPECTED_BASE_SHA; require equality before/after creation; receipt stores full REF
-  probe state: clean HEAD/index/worktree + INDEX_DIGEST and exact NUL tracked/deleted/untracked/ignored/symlink/process/data manifests
-  probe limits: no stage/index write/commit/merge/push/reset/stash/force/git-clean/broad delete
-  probe cleanup: restore/remove exact owned only; prove expected base/full ref/index/status; normal remove/direct full-ref CAS
-  local-only: no upstream/tracking config; remote_action=none; no network lookup or remote ref mutation
-  continuation package: create only; reviewed ID + BASE_KIND + exact BASE_REF + REVIEWED_BASE_SHA + prerequisite ref/SHAs
-  package creation: base ref equals reviewed SHA before/after add; dependent clean integration HEAD equals it and contains prerequisites
-  retention: active/retired package worktrees/refs remain through final whole-feature cleanup
-Fixed worktrees:
-  artifact sidecar: .worktrees/<feature>/artifacts on artifacts/<feature>
-  integration code: <non-root path> on feature/<feature> | hotfix/<name>
-  planned packages: <exact WP-ID path/ref list>
-Semgrep:
-  state/source: <disabled | enabled privacy mode + local cache/index/profile>
-  helper/evidence: <none | wrapper scan, bounded summarize/list/show, package/integration paths + digests>
-  limits: no raw scan/JSON; advisory by default; no hidden cloud/network/setup/credentials/service side effects
-Packages:
-- <WP-ID>: <title>
-  package: <artifact-root>/.tasks/<feature>/packages/<WP-ID>.md
-  report: <artifact-root>/.tasks/<feature>/reports/<WP-ID>.package-verification.md
-  primary paths: <paths or none>
-  assigned Slices/H3 IDs: <slice paths + H3 IDs or none>
-  context-only Slices/H3 IDs: <slice paths + H3 IDs or none>
-  dependencies: <package IDs or none>; continuation creation: <BASE_KIND; exact BASE_REF; REVIEWED_BASE_SHA; prerequisite ref/SHAs | n/a>
-  verification expectations: <safe scoped commands/inspections or none>
-  dependency installs/additions: <none or exact approved manifest/lockfile paths and commands>
-  package verification: <standard | enhanced + lenses/reasons>
-  execution readiness: <omit when clearly non-triggered | triggered sources/bounds/cleanup/probe/broad placement>
-  known blockers/deferrals: <none or approved details>
-Pipeline:
-1. create fixed worktrees; create probes/continuation packages only under their exact runtime-validated envelope
-2. declare each package `report_path`; create no undeclared artifact files
-3. run attempt-ledger probes; NUL-classify/restore owned dirty state before normal local cleanup, never force/network
-4. dispatch package agents with artifact-root package/Slice/report paths and package code worktrees
-5. require package-agent SELF_REVIEW; after return, re-run every executable frozen AC item into the result file
-6. treat a failed re-run as automatic FAIL with no LLM; then run root-aware `validate-package-complete`
-7. merge each accepted source-only package branch into the integration worktree after its gates pass
-8. refresh affected evidence/seams; only for delivery context `feature`, checkpoint and require remote feature SHA = integration `HEAD` before downstream progression; retain all safety nets on failure/divergence
-9. planned-hotfix has no feature ref/SHA or package-boundary source push; run its separately listed `hotfix/<name>` publication only at its source-push gate; publish sidecar only when listed
-10. route any plan-owned defect (reports or none) through continuation/focused review; repair code separately
-11. run root-aware final validation; freeze integrated-code/artifact/runtime-evidence inputs
-12. invoke `review-code` and `audit` as sibling checks; their outputs are not freeze inputs
-13. preserve logical question/finding identity and the existing three-total-attempt circuit; never retry unchanged;
-    empirical questions and plan-owned clusters stop on that exhaustion, while a code repair cluster is instead
-    re-classified once as a possible plan defect and routed through step 10 when that preserves approved semantics,
-    scope, user-visible behavior, risk, and manual exceptions — otherwise that routing is new semantic authority and
-    stops; at most one such escalation per cluster identity, relabeling or reclustering earns no second one, and the
-    same cluster's second attempt-3 exhaustion stops
-14. stabilize repairs; deduplicate commands only for equivalent state/cwd/environment/isolation/evidence mappings; establish a new freeze and require focused review-code closure plus a fresh cold complete same-freeze audit PASS
-15. retain all package safety nets to final cleanup; then run only independently listed sidecar/source pushes
-Stop conditions:
-- unsafe, contradictory, out-of-contract, uncertain, or unowned artifact/code/package/report/Slice/worktree state
-- genuine requirement/scope/user-visible behavior/Slice semantic/manual-exception change or risk acceptance
-- missing credentials/external facts, or command/write authority absent from this Execution Contract
-- destructive/external/service/dependency action not explicitly listed and approved
-- sidecar action would escape `origin artifacts/<feature>` or merge artifact-only state into deliverable code
-- feature/hotfix checkpoint diverges, non-fast-forwards, or fails protected remote/credential checks
-- target delivery, force/remote-delete/tag/release, or local ref deletion outside probe/final-package cleanup
-- attempt-3 exhaustion of an empirical question or plan-owned cluster, a code repair cluster's second attempt-3
-  exhaustion after its one allowed re-classification, unbounded questions, or other true bounded non-convergence
-Choices:
-  approve auto-resolve — run covered code/probes/tests/replan/re-review/repairs/review/audit and, for `feature`,
-                         listed checkpoints while scope, authority, and material-progress rules hold, until stop
-  step-by-step        — ask before each package wave, repair loop, push, and final handoff
-  abort               — stop before worktree creation or dispatch
+Execution approval — <feature> (plan already approved separately: <plan/review pointer>)
+Changes:
+- <package IDs: concrete behavior and exact primary write paths>
+Actions:
+- local writes/worktrees: <known paths/refs + bounded continuation/probe patterns and cleanup limits, or none>
+- commands: <known commands; permitted follow-up families with trusted source, cwd, write/resource limits, and cadence>
+- checks: <Acceptance/test/build/review-code/audit checks and expected pass signal>
+- repair effort: <finite task-wide allowance; inherited cap or disclosed bounded-work default>
+External effects:
+- feature source: <local-only | cadence + exact origin/ref/command + milestone triggers + final same-freeze catch-up>
+- sidecar: <excluded | exact command/ref/gate>
+- target/hotfix/other: <excluded | exact separately authorized action>
+Stops:
+- <concise exact semantic/safety/facts/non-convergence/allowance/publication stop boundaries>
+Not authorized: <target/force/release/delete/service/dependency/cleanup exclusions>
+Expanded machine contract: available before approval on request.
+Choose: approve auto-resolve | step-by-step | abort
 ```
+
+If no remote publication was explicitly requested, the exact source line is `feature source: local-only; no fetch,
+ls-remote, or push`. Omitted actions/classes, write scopes, external effects, or material stops are not authorized. A
+concrete continuation path or command may be bound later without new approval only when it provably fits a visible
+envelope; record the binding before acting. The `standard|enhanced` reason may be compact in the package bullet but
+must remain in the machine contract and package Notes.
+
+## Post-Approval Rules
+
+1. Record the selected choice in current orchestration handoff; do not re-prompt for listed in-contract actions.
+2. Before each action, bind exact commands/paths/refs and validate current state against visible authority and the
+   retained machine contract. In-envelope same-requirement bindings proceed autonomously; out-of-envelope action stops
+   or follows its owning decision route. Machine detail never widens permission.
+3. Preserve a local package recovery commit/ref after each accepted package. Non-due or `local-only` source policy runs
+   no network action and does not block local integration/downstream readiness.
+4. At a due remote source gate, use the loaded source-publication command and close only after post-push remote SHA
+   equals integration `HEAD`. Any network/credential/push/SHA failure stops with local safety nets retained.
+5. Keep expanded details available in status/handoff context and disclose requested sections. Do not require the user
+   to read an unsolicited machine-contract dump for approval.
+
 ## Stop if
-- Any template field cannot be derived from safe approved artifacts, resolved testing authority, or explicit user
-  instruction.
-- The user wants target merge/push, force/remote-delete/tag/release, destructive action, or early package cleanup,
-  service install/start, credentialed action, or external side effect, or a dependency install not derived from
-  approved artifacts/explicit instruction and listed exactly in the contract.
-- Package verification depth, Slice obligations, package dependencies, delivery context, or source-push boundary is ambiguous enough to affect execution.
+
+- A summary boundary cannot be derived safely, execution feasibility remains unresolved, or plan/execution approval
+  cannot be distinguished. An unresolved concrete binding stops that action, not an otherwise precise envelope.
+- Remote source publication lacks explicit authorization or user-selected cadence; a milestone trigger is ambiguous;
+  or final/catch-up push lacks sibling same-freeze `review-code` CLEAN and `audit` PASS.
+- Any action, concrete command/write, dependency/service effect, cleanup, or publication is outside the visible
+  approved scope/envelope and its action-time binding.
+- Testing depth, package/Slice scope, delivery context, or authority is ambiguous enough to affect execution.
+
 ## Output
-Return the filled contract, selected choice, testing-authority provenance, feasibility profiles/readiness probes,
-covered/excluded actions, progress/circuit boundaries, blockers, and fields needing user clarification.
+
+Return the short summary, selected choice, plan-versus-execution state, expanded-contract availability, testing
+provenance, package depth/reasons, covered/excluded effects, publication policy, and unresolved fields.

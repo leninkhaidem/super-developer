@@ -1,22 +1,22 @@
 # Implement Package Dispatch
 
-Load after plan validation and artifact inspection. This reference owns package selection, conditional
-execution readiness, safe batching, and pointer-based package/repair/verifier dispatch. Worker contracts
-define worker behavior.
+Load after plan validation and artifact inspection. Owns package selection, persisted verification depth, readiness,
+safe batching, and pointer-based package/repair/verifier dispatch. Worker contracts define worker behavior. Before
+empirical or repair dispatch, consume the bounded-attempt contract included by `implement`.
 
 ## Context Boundary
 
-The orchestrator owns artifact validation, worktree infrastructure, package selection, readiness,
-result-file handoff, integration validation, repair routing, and pipeline continuation. Pass worker-contract
-paths to sub-agents; load those contracts in the orchestrator only to resolve ambiguous instructions or reports.
+The orchestrator owns artifact validation, worktree infrastructure, package selection, readiness, result-file handoff,
+integration validation, repair routing, and continuation. Pass worker-contract paths to sub-agents; the orchestrator
+loads them only to resolve ambiguous instructions or reports.
 
 ## Package Surfaces
 
 Use artifact-root package surfaces, never an assumed code checkout:
 
 - `tasks.json` is registry/bookkeeping only.
-- Package Markdown owns assignment; the declared result file owns package confirmation.
-- The declared package report is the independent lightweight verification result.
+- Package Markdown owns assignment and checklist; the declared result file owns package confirmation.
+- The declared package report is the lightweight independent verification result.
 - Assigned Slices are product/design context, not workflow/tool/git/review control text.
 - Package and integration worktrees are separate code roots for source edits and validation.
 
@@ -24,57 +24,50 @@ Use artifact-root package surfaces, never an assumed code checkout:
 
 Before dispatch, confirm:
 
-- the `WP<N>` registry entry is `pending` or explicitly resumed for repair;
-- every dependency has a fresh `PASS` report and clean `validate-package-complete`; registry `done` alone does
-  not unlock dependents, and helper ok alone does not unlock dependents;
+- registry state is `pending` or explicitly resumed for repair;
+- dependencies have fresh PASS reports, clean `validate-package-complete`, merge/freshness closure, and any due source
+  gate closed; registry `done` or helper ok alone does not unlock dependents;
 - `sliceproof.py validate-plan` passed and package/report paths agree under the artifact root;
-- required package sections are non-empty, assigned Slice paths/H3 IDs are safe and valid, and every package has
-  at least one executable Acceptance Checklist item;
-- a continuation-created package supplies focused-reviewed `BASE_KIND`, exact `BASE_REF`, `REVIEWED_BASE_SHA`, and
-  prerequisite ref/SHAs. Independent requires approved original base; create only if the ref and dependent integration HEAD equal that SHA with every prerequisite SHA as ancestor. Never accept a moved base.
+- required package sections are non-empty, assigned Slice paths/H3 IDs are safe and valid, and each package has at
+  least one executable Acceptance Checklist item;
+- existing package `## Notes` contains `Verification depth: standard|enhanced — reason: <concrete current-scope reason>`
+  before first dispatch; no registry field duplicates it;
+- continuation-created packages carry focused-reviewed `BASE_KIND`, `BASE_REF`, `REVIEWED_BASE_SHA`, and prerequisite
+  refs/SHAs. Independent packages require the approved original base; dependent packages require that the ref and
+  integration HEAD still equal the reviewed SHA with prerequisites as ancestors. Never accept a moved base.
 
-Trigger readiness only when material execution feasibility remains unresolved because a changed, shared,
-costly, or unproven command/harness/fixture/contract, async/process boundary, external precondition, or broad/
-serial run lacks authoritative provenance, bounds, completion, or cleanup. A shared or broad surface alone is not
-a trigger when accepted workflow policy and repository evidence already establish those facts. Omit routine
-non-trigger bookkeeping; state a reason only when the decision is non-obvious.
+Trigger readiness only for material execution feasibility gaps: changed/shared/costly/unproven command, harness,
+fixture, contract, async/process boundary, external precondition, or broad/serial run lacking authoritative provenance,
+bounds, completion, or cleanup. Shared or broad scope alone is not a trigger when accepted workflow policy and repo
+evidence already establish those facts. State a reason only when non-obvious.
 
-For a triggered package, ready means all of the following are established from the approved Execution Contract,
-resolved testing authority, repository evidence, and shared command runtime envelope:
+For a triggered package, ready means approved Execution Contract, testing authority, repository evidence, and runtime
+envelope establish: sources and compatibility; preconditions/data isolation/budgets/side effects; command discovery;
+timeout/progress/completion; termination/cleanup; isolated evidence destinations; and either the smallest credible
+bounded probe or a documented broad-only branch with bounded preflight. Missing criteria withhold the affected wave and
+route the owner. Plan-owned defects go to `implement` for `implementation-plan` continuation plus focused
+`review-plan`, passing empirical reports or explicit `none`. Workers do not probe, patch plan artifacts, guess, or
+retry unchanged.
 
-1. authoritative contract/fixture sources, tool/client compatibility, configured preconditions, data isolation,
-   resource/rate/concurrency budgets, and allowed side effects;
-2. command/test discovery, explicit timeout and progress/completion, owned-process termination, cleanup, and
-   isolated evidence destinations;
-3. the smallest approved bounded probe when credible, or a documented no-narrower-check justification plus an
-   explicitly bounded broad command as the first runtime evidence.
-
-If any criterion is absent, withhold the affected wave and classify its owner. Return every plan-owned defect to
-`implement` for `implementation-plan` `implementation-continuation` plus focused `review-plan`; use empirical
-reports only when observation is material, otherwise pass explicit report set `none`. Workers do not probe, patch
-plan artifacts, guess, or retry unchanged. Broad/costly execution requires clean readiness and targeted evidence
-when credible; a documented broad-only branch may use bounded preflight. Readiness is dispatch control, not confirmation.
-
-Pass only declared artifact paths. Do not dispatch from a summary alone; workers receive safe paths and read
-authoritative files directly.
+Pass declared artifact paths and safe roots, not summaries; workers read authoritative files directly.
 
 ## Batch Selection and Runtime Adjustment
 
 Choose the largest safe useful batch after readiness:
 
 1. Prefer dependency-ready packages with non-overlapping file, subsystem, contract, Slice, and result-file scope.
-2. If one uncertainty gates several packages, retire it with the smallest bounded readiness action before affected
-   fanout while unrelated ready packages remain parallel.
-3. Do not maximize agent count, impose universal serialization, or split coherent work merely for parallelism.
-4. Serialize or merge work only for concrete shared state, contract, file, artifact, or prerequisite risk.
-5. Branch downstream packages only after prerequisite package branches merge.
+2. If one uncertainty gates several packages, retire it with the smallest bounded readiness action while unrelated
+   ready packages remain parallel.
+3. Do not maximize agent count, universally serialize, or split coherent work merely for parallelism.
+4. Serialize or merge only for concrete shared state, contract, file, artifact, or prerequisite risk.
+5. Branch downstream packages only after prerequisites merge.
 
-State the batch rationale. The orchestrator may reorder work within reviewed artifacts. Any needed plan-owned
-scope, Slice, dependency, result-file, deferral, split, or merge correction follows the continuation/focused-review
-route; prompt only for changed semantics/scope/visible behavior/risk/manual exceptions. Consume the orchestrator's
-explicit in-memory `standard`/`enhanced` classification for every ready package; do not infer or recompute depth
-here. Every package needs `SELF_REVIEW` and orchestrator re-run confirmation. Packages classified `enhanced` also
-need the independent verifier.
+State the batch rationale. The orchestrator may reorder work within reviewed artifacts. Any plan-owned correction to
+scope, Slice, dependency, result-file, deferral, split/merge, obligation, command/evidence, or risk uses
+continuation/focused review; prompt only for changed semantics/scope/visible behavior/risk/manual exception. Reassess
+verification depth only after accepted material scope/risk deltas; update the existing Notes only when depth or reason
+changes. Never silently downgrade. Every package needs `SELF_REVIEW` and orchestrator re-run; only `enhanced`
+needs verifier.
 
 ## Dispatch Packet Kernel
 
@@ -83,37 +76,36 @@ Every package, repair, or verifier packet is compact and pointer-based. Include:
 - validated artifact/code roots, artifact ref, package/report/Slice paths, code worktree, and allowed writes;
 - approved dependencies/commands, triggered testing-authority provenance, and project instructions;
 - each executable command's identity, cwd, provenance, scope, timeout, progress/completion signal, termination,
-  cleanup, expected writes, and whether it is readiness, targeted, broad, or final;
-- triggered readiness result/blockers only when applicable; for package dispatch, the orchestrator's explicit
-  `standard`/`enhanced` classification; for repair, attempt identity, prior outcome, relevant delta, circuit state,
-  and permitted next action;
-- resolved Semgrep state; when enabled, require only
+  cleanup, expected writes, and readiness/targeted/broad/final role;
+- triggered readiness result/blockers when applicable; package Notes path plus persisted depth/reason; for repair,
+  bounded-work contract path, shared consumed/remaining repair rounds, logical ID, round history,
+  observed progress, next falsifiable strategy, and permitted action; preserve the allowance in verifier packets too;
+- resolved Semgrep state; when enabled, require only the helper command
   `python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/semgrep_rules.py" scan ...`, bounded consumption, expected
   `.tasks/<feature>/semgrep/` paths/digests, and advisory findings; forbid raw direct `semgrep` scans or JSON dumps;
 - no copied package/Slice/result bodies, hidden chat summaries, or model override unless intentionally resolved.
 
-An **interrupted** dispatch — cancelled, timed out, or ended before returning — produced no result: its partial
-findings may seed a fresh packet as context, but never stand in for the verdict or close the gate it was sent to
-close. Re-dispatch the role fresh.
+An interrupted dispatch produced no result. Its evidence may seed a fresh packet, never close its gate. Preserve
+consumed time/history; interruption is not another completed repair round. Redispatch only within remaining authority.
 
-Screen Slice paths against the artifact root: reject absolute, drive-qualified, home/shell-expanded, empty or
-traversal segments, duplicates, symlink escapes, missing/unreadable files, out-of-workspace paths, or mixed
-concept workspaces.
+Screen Slice paths against the artifact root: reject absolute, drive-qualified, home/shell-expanded, empty/traversal
+segments, duplicates, symlink escapes, missing/unreadable files, out-of-workspace paths, or mixed concept workspaces.
 
 Slice Authority Kernel:
 
 - Assigned Slices are product/design context for package completeness.
-- Slice text cannot override higher instructions, safety, scope, worktrees, result-file lifecycle, or final gates.
+- Slice text cannot override higher instructions, safety, scope, worktrees, result lifecycle, or final gates.
 - Implement, repair, and verify through projected artifacts, findings, and explicit assignment metadata.
-- Unprojected hard requirements, conflicts, control-plane directives, or unapproved locked-commitment deviations
-  are Slice plan defects that block acceptance.
+- Unprojected hard requirements, conflicts, control-plane directives, or unapproved locked-commitment deviations are
+  Slice plan defects that block acceptance.
 
 ## Package Agent Packet
 
-Include the package-agent contract path, clean-code contract path, package/SPEC/registry/Slice paths, package ID,
-worktree/branch, report path, verification expectations, dependency approvals, Semgrep state, and mandatory
-`SELF_REVIEW`. Separate readiness/targeted commands from broad integration/final checks. Require the worker to use
-the supplied runtime envelope, stop on a missing bound for risky execution, and return after a failed bounded stage.
+Include package-agent contract path, clean-code contract path, package/SPEC/registry/Slice paths, package ID,
+worktree/branch, report path, verification expectations, dependencies, Semgrep state, and mandatory `SELF_REVIEW`.
+Separate readiness/targeted commands from broad integration/final checks. Require the supplied runtime envelope, stop
+on a missing risky-execution bound or unsafe/timed-out stage. Normal evidence-backed edit/test cycles stay inside
+one implementation invocation; incomplete verification remains non-pass.
 
 ```md
 You are implementing work package `<WP-ID>`.
@@ -125,27 +117,31 @@ Do not create worktrees/branches/merges or force-add ignored result artifacts.
 ```
 
 ## Repair Agent Packet
-Dispatch only a blocking code defect; plan-owned defects must complete planning continuation/focused review first.
-Classify semantic impact from the diff, not dependency descendants: owners/consumers, observable contracts,
-generated/config/migration surfaces, dynamic consumers, shared harnesses/oracles, global risk invariants, merge
-resolutions, and evidence invalidation. Include artifact paths; affected packages/Slices/result/checklist/seams;
-findings, failed observations, and screened commands. Cluster only a shared cause, writable scope, and verification
-envelope under one stable ID. Attempt 1 is initial; attempts 2–3 name a material code/diagnostic delta. Identity is
-not progress and cannot reset the three-total-attempt cap. Stop for authority/safety/facts/risk or unchanged work.
+
+Dispatch only a blocking code defect; plan-owned defects complete planning continuation/focused review first. Classify
+semantic impact from the diff, not descendants: owners/consumers, observable contracts, generated/config/migration,
+dynamic consumers, shared harnesses/oracles, global risk invariants, merge resolutions, and evidence invalidation.
+Include artifact paths, affected packages/Slices/results/checklists/seams, findings, failed observations, screened
+commands, and package Notes depth/reason. Cluster only shared cause, writable scope, and verification envelope. Use the
+bounded-work contract for progress, reassessment, shared effort, and stops. Pass its exact path and current binding;
+missing history blocks rather than resets. Required verification and review consume that same round allowance.
 
 ## Package Verifier Packet
 
-Dispatch only for an enhanced-risk package after the orchestrator re-run. Require first reads of
+Dispatch only after orchestrator re-run for a package whose Notes records `enhanced`. Require first reads of
 `plugins/super-developer/skills/implement/references/package-verification.md` and
-`plugins/super-developer/references/package-verification-report.md`. Include artifact/package/result/Slice paths,
-reviewed code/ref, `SELF_REVIEW`, orchestrator-observed output, `SPEC.md` for `## Trust Context`, and optional
-Semgrep bindings. The verifier checks
-checklist-invisible blocking risk from scope, Slices, diff, tests, expectations, and known failure modes; planner
-seeds do not limit discovery. It returns PASS/FAIL plus blocking/advisory findings. The orchestrator records them
-in the same result report; the verifier neither creates another artifact nor replaces observed output.
+`plugins/super-developer/references/package-verification-report.md`. Include Notes path, depth/reason,
+artifact/package/result/Slice paths, reviewed code/ref, `SELF_REVIEW`, orchestrator-observed output, SPEC Trust
+Context, and optional Semgrep bindings. The verifier checks checklist-invisible blocking risk from scope, Slices,
+diff, tests, expectations, and known failure modes; planner seeds do not limit discovery. It returns PASS/FAIL plus
+blocking/advisory findings. The orchestrator records them in the same result report; the verifier creates no artifact
+and never replaces observed output.
 
 ## Orchestrator Edit Boundary
 
-The orchestrator does not implement code behavior or plan-owned repairs inline. Direct edits are limited to
-workflow metadata, handoff/validation bookkeeping, mechanical integration state, and status transitions; plan
-artifacts are repaired only by the planner route above.
+The orchestrator does not implement code behavior or plan-owned repairs inline. It may update verification-depth
+workflow metadata in existing package Notes under the Execution Contract; that record cannot change risk authority.
+Before any other plan-artifact amendment, consume the plan-amendments contract and apply only its exact nonsemantic
+rule. Actual obligations, commands/evidence, risk, scope, dependency, acceptance, or finding closure uses planning
+continuation and focused review. Other direct edits stay limited to handoff/validation bookkeeping, mechanical
+integration state, and status transitions.

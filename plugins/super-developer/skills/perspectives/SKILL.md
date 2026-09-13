@@ -1,12 +1,9 @@
 ---
 name: perspectives
 description: >
-  This skill should be used when the user asks to "explore approaches", "get multiple perspectives",
-  "divergent analysis", "think about this from different angles", "architecture decision",
-  "devil's advocate", or faces a complex design decision, architectural problem, or technical
-  challenge. Triggers on phrases like "perspectives on", "multiple angles", "explore options",
-  "compare approaches". Also appropriate when architecting a new product or facing ambiguous
-  cross-cutting problems.
+  Compares approaches through independent perspectives and adversarial synthesis. Use for architecture
+  decisions, exploring options, or multiple angles on a complex problem. Do not use for routine edits,
+  implementation, or final code audit.
 ---
 
 # Perspectives: Divergent Problem-Solving
@@ -144,13 +141,8 @@ All findings remain in the conversation context for downstream skills to consume
 
 ## Pipeline Continuation
 
-If this stage failed or requires user intervention, STOP. Otherwise route the user's next request by the accepted
-recommendation and current risk—do not treat confirmation as automatic planning authorization.
-
-- Continue discussion when the user asks follow-up questions or decisions remain open.
-- Invoke `implementation-plan` only when the user asks for a plan or execution needs package shaping, unresolved
-  design decisions, material risk acceptance, or a durable multi-package contract.
-- For an accepted narrow, low-risk change with no unresolved scope/risk decision, route directly to the
-  task-appropriate implementation workflow. Do not create planned-feature artifacts merely because Perspectives ran.
-
-When planning is selected, invoke the `implementation-plan` skill rather than executing plan logic inline.
+If this stage failed or requires a user decision, STOP. Otherwise load `../../references/change-routing.md`
+when selecting the next action. Confirmation of a recommendation is not automatic planning or execution
+permission. Continue discussion for open decisions, use the task-appropriate direct route for accepted narrow
+low-risk execution, and invoke `implementation-plan` only when explicitly requested or the work needs planning.
+Never create planned-feature artifacts merely because Perspectives ran; do not execute plan logic inline.

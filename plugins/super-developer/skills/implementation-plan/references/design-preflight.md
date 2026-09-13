@@ -10,14 +10,18 @@ instruction stream.
 
 ## Trigger and Reuse
 
-Require this challenge for nontrivial/risky plans: architecture or data/permission/external/persistence changes;
-security, privacy, safety, reliability, migration, concurrency, rollback, destructive-action, novel-harness risk,
-ambiguity, cross-cutting changes, or semantic tradeoffs. For material design, apply the complete shared model and
-all smells: challenge shallow/pass-through Modules, wide/leaky Interfaces, hypothetical Seams, unjustified Adapters,
-scattered ownership, and tests reaching past the Interface. Persist only material implications. Skip narrow,
-mechanical plans with no material Module/Interface decision and a clear caller contract.
+Require this challenge only when a consequential design decision remains unresolved before drafting, such as
+trust/data ownership, architecture, migration/rollback, or alternatives with material behavior or safety tradeoffs.
+Complexity, cross-cutting scope, or sensitivity alone do not trigger preflight when approved requirements and current
+repository evidence settle the relevant decisions. For ordinary settled work, draft directly and let independent
+`review-plan` challenge the actual plan. Skipping preflight does not waive required plan/security review, empirical
+evidence, or user decisions.
 
-Do not launch duplicate challengers when current read-only adversarial analysis already covers requirement
+When triggered, apply the complete shared model and all smells: challenge shallow/pass-through Modules, wide/leaky
+Interfaces, hypothetical Seams, unjustified Adapters, scattered ownership, and tests reaching past the Interface.
+Persist only material implications.
+
+When the trigger still applies, reuse current read-only adversarial analysis that already covers requirement
 completeness and overengineering for the same approved scope and current repository evidence, with no unresolved
 `MUST_DECIDE`, `COVERAGE_GAPS`, or `BLOCKERS`. Carry a concise provenance/coverage summary in the planner packet,
 not a new artifact or persisted transcript. Rerun only when scope/evidence materially changed or coverage is absent.

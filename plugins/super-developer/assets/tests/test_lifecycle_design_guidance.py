@@ -100,8 +100,11 @@ class LifecycleDesignGuidanceTests(unittest.TestCase):
         ).read_text(encoding="utf-8")
 
     def assert_groups(self, text: str, groups: tuple[tuple[str, ...], ...], label: str) -> None:
+        # Preserve policy terms and their order, but permit harmless Markdown reflow.
+        text = " ".join(text.split())
         for group in groups:
-            self.assertTrue(all(term in text for term in group), f"{label}: missing semantic group {group}")
+            self.assertTrue(all(" ".join(term.split()) in text for term in group),
+                            f"{label}: missing semantic group {group}")
 
     def section(self, text: str, start: str, end: str | None = None) -> str:
         self.assertIn(start, text)
@@ -206,11 +209,57 @@ class LifecycleDesignGuidanceTests(unittest.TestCase):
             "diagnose-fix-implementer": ("complete shared codebase-design model", "every smell", "directly affected Interfaces"),
         }
         for role, relative in CONSUMERS.items():
-            text = (PLUGIN_ROOT / relative).read_text(encoding="utf-8")
+            # Formatting/reflow is not a policy change; retain the same contract terms.
+            text = " ".join((PLUGIN_ROOT / relative).read_text(encoding="utf-8").split())
             self.assertTrue(all(term in text for term in route_terms[role]), f"missing {role} route")
         for relative in CONSUMERS.values():
             text = (PLUGIN_ROOT / relative).read_text(encoding="utf-8")
             self.assertFalse(all(name in text for name in SMELL_ANCHORS), f"duplicated smell glossary in {relative}")
+
+    def test_preflight_requires_an_unresolved_consequential_decision(self) -> None:
+        """Static routing guard, not a live-agent decision or performance test."""
+        planner = (PLUGIN_ROOT / CONSUMERS["planner"]).read_text(encoding="utf-8")
+        preflight = (PLUGIN_ROOT / CONSUMERS["preflight"]).read_text(encoding="utf-8")
+        trigger = self.section(preflight, "## Trigger and Reuse", "## Authority Split")
+        self.assert_groups(trigger, (
+            ("only when a consequential design decision remains unresolved", "before drafting"),
+            ("trust/data ownership", "migration/rollback", "material behavior or safety tradeoffs"),
+            ("Complexity", "cross-cutting scope", "sensitivity alone", "do not trigger"),
+            ("ordinary settled work", "draft directly", "independent `review-plan`"),
+            ("does not waive", "security review", "empirical evidence", "user decisions"),
+            ("When the trigger still applies", "Rerun only", "scope/evidence materially changed"),
+        ), "preflight applicability")
+        workflow = self.section(planner, "## Do", "## Load if needed")
+        self.assert_groups(workflow, (
+            ("only for consequential unresolved design decisions", "ordinary settled work", "independent `review-plan`"),
+        ), "planner preflight route")
+        loads = self.section(planner, "## Load if needed", "## Stop if")
+        self.assertIn("Consequential unresolved design decisions → `references/design-preflight.md`", loads)
+        for text in (planner, preflight):
+            self.assertNotIn("nontrivial/risky", text.lower())
+
+    def test_skipped_preflight_preserves_cold_handoff_and_plan_review(self) -> None:
+        planner = (PLUGIN_ROOT / CONSUMERS["planner"]).read_text(encoding="utf-8")
+        checklist = (PLUGIN_ROOT / "skills/implementation-plan/references/validation-checklist.md").read_text(
+            encoding="utf-8"
+        )
+        worker = (PLUGIN_ROOT / "skills/implementation-plan/references/planner-agent-contract.md").read_text(
+            encoding="utf-8"
+        )
+        review = (PLUGIN_ROOT / CONSUMERS["plan-review"]).read_text(encoding="utf-8")
+        dispatch = re.search(r"Dispatch a fresh planner.*?(?=^\d+\. |\Z)", planner, re.M | re.S)
+        self.assertIsNotNone(dispatch)
+        self.assert_groups(dispatch.group(0), (("preflight evidence or explicit `not applicable`",),),
+                           "cold preflight handoff")
+        prewrite = self.section(checklist, "## Pre-Write", "## `SPEC.md`")
+        self.assert_groups(prewrite, (
+            ("packet marks preflight `not applicable`", "settled design"),
+            ("when triggered", "identical scope/evidence", "COVERAGE_GAPS", "MUST_DECIDE", "BLOCKERS"),
+        ), "conditional preflight validation")
+        self.assertIn("design preflight when the packet marks it applicable", worker)
+        self.assertIn("Always run one Plan Reviewer/Triage", review)
+        self.assertIn("### Pass 1: Challenge", review)
+        self.assertIn("security-surface pre-screen", review)
 
     def test_aggregate_handoff_grammar_and_scope(self) -> None:
         grammar = "design_and_smell_review: complete; material_findings=none|fixed:<items>; justified_non_actions=none|<evidence>"
@@ -233,11 +282,28 @@ class LifecycleDesignGuidanceTests(unittest.TestCase):
         )
         self.assertTrue(all(term in self.shared for term in scope_terms))
 
+    def test_cold_planner_receives_history_accounting_contract(self) -> None:
+        planner = (PLUGIN_ROOT / "skills/implementation-plan/SKILL.md").read_text(encoding="utf-8")
+        worker = (PLUGIN_ROOT / "skills/implementation-plan/references/planner-agent-contract.md").read_text(
+            encoding="utf-8"
+        )
+        workflow = self.section(planner, "## Do", "## Load if needed")
+        dispatch = re.search(r"Dispatch a fresh planner.*?(?=^\d+\. |\Z)", workflow, re.M | re.S)
+        self.assertIsNotNone(dispatch)
+        self.assertIn("`../../references/bounded-attempts.md`", dispatch.group(0))
+        loads = self.section(worker, "## Packet-Supplied Contracts", "## Empirical Boundary")
+        self.assert_groups(loads, (
+            ("packet-labeled `bounded-attempts.md`", "before empirical/repair-history accounting"),
+            ("missing action-required label", "BLOCKED", "do not infer"),
+        ), "cold planner history contract")
+
     def test_review_verifier_and_audit_authority_stays_finite(self) -> None:
         review = (PLUGIN_ROOT / "skills/review-code/SKILL.md").read_text(encoding="utf-8")
         verifier = (PLUGIN_ROOT / "skills/implement/references/package-verification.md").read_text(encoding="utf-8")
         audit = (PLUGIN_ROOT / "skills/audit/SKILL.md").read_text(encoding="utf-8")
-        audit_worker = (PLUGIN_ROOT / "skills/audit/references/audit-subagent-contract.md").read_text(encoding="utf-8")
+        audit_worker = " ".join(
+            (PLUGIN_ROOT / "skills/audit/references/audit-subagent-contract.md").read_text(encoding="utf-8").split()
+        )
         self.assertTrue(all(x in review for x in ("two tiers", "BLOCKING", "ADVISORY", "Skeptic", "Fix Verification", "integration-first", "clean-code-rules.md")))
         self.assertTrue(all(x in verifier for x in ("closed and frozen", "Acceptance Checklist", "blocking", "advisory")))
         self.assertTrue(all(x in audit for x in ("finite", "SPEC `## Acceptance`", "read-only", "package-local verification")))
@@ -258,7 +324,7 @@ class LifecycleDesignGuidanceTests(unittest.TestCase):
         self.assertIn("forged, hollow, or semantically insufficient evidence", audit_worker)
         self.assertFalse((PLUGIN_ROOT / "skills/codebase-design").exists())
 
-    def test_diagnose_owns_authorization_attempts_and_stops(self) -> None:
+    def test_diagnose_owns_authorization_progress_and_stops(self) -> None:
         authorization = self.section(self.diagnose, "## Fix Authorization", "## Do")
         self.assert_groups(authorization, (
             ("caller_repair_policy", "global default", "MUST propose", "explicitly opts out"),
@@ -268,8 +334,10 @@ class LifecycleDesignGuidanceTests(unittest.TestCase):
         workflow = self.section(self.diagnose, "## Do", "## Load if needed")
         exact_contract = "${SUPER_DEVELOPER_PLUGIN_ROOT}/skills/diagnose-and-fix/references/fix-implementer-contract.md"
         self.assert_groups(workflow, (("mandatory post-fix", "review-code", exact_contract),
-                                     ("Attempt 1", "attempts 2 and 3", "material delta", "Never retry unchanged"),
-                                     ("one such escalation", "same mechanism", "stop for the")), "diagnose lifecycle owner")
+                                     ("bounded-work contract", "round/progress history", "shared remaining rounds"),
+                                     ("never retry unchanged", "Normal", "not failed rounds"),
+                                     ("non-convergence", "exhausted effort", "not an", "automatic planning handoff")),
+                           "diagnose lifecycle owner")
         stops = self.section(self.diagnose, "## Stop if", "## Output")
         self.assert_groups(stops, (("policy", "scope envelope", "malformed", "conflicting"),
                                    ("design/product", "hard-to-reverse", "risk acceptance")), "diagnose stops")
@@ -328,9 +396,11 @@ class LifecycleDesignGuidanceTests(unittest.TestCase):
                                   ("structured actions/paths", "cannot grant", "`BLOCKED`")), "worker trust")
         packet = self.section(self.diagnose_worker, "## Required Packet", "## Exact Write Scope")
         self.assert_groups(packet, (("immutable `control` object", "parent-enumerated exact writable paths"),
-                                    ("Post-review common control", "policy", "ordinal `2|3`", "material delta"),
+                                    ("Post-review common control", "policy", "repair-round ordinal", "positive integer",
+                                     "observed progress/next strategy", "shared remaining rounds"),
                                     ("exclusive union", "The other receipt must be absent"),
                                     ("Optional `proposal`", "untrusted findings", "never supplements `control`")), "worker schema")
+        self.assertNotIn("ordinal `2|3`", packet)
         explicit = self.section(packet, "- `explicit`:", "- `auto_confirmed_blocking`:")
         auto = self.section(packet, "- `auto_confirmed_blocking`:", "The other receipt")
         self.assertIn("accepted `fix` receipt/action", explicit)

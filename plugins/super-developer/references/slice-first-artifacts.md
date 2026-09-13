@@ -54,15 +54,18 @@ Rules:
 - `feature` is a filesystem-safe slug.
 - feature `status` is one of `planned`, `reviewed`, `in_progress`, `completed`, `blocked`, or `on_hold`.
 - package `status` is one of `pending`, `in_progress`, `done`, or `blocked`.
-- `authoritative_slices` may be empty only for Index-only plans with no independent Slice obligations.
+- `authoritative_slices` is the full safe existing Slice inventory. It is empty only for chat-only, Index-only, or
+  no-Slice plans with no authoritative Slice file.
 - all artifact paths are POSIX paths relative to the selected artifact root and must stay inside it;
-- package IDs are contiguous `WP<N>` values and dependencies reference declared packages.
+- package IDs are stable `WP<N>` values; gaps and registry reordering are valid, IDs are never renumbered or
+  reused after reorder/split/merge, and dependencies reference declared packages.
 
 ## Package Markdown Assignment
 
 Package Markdown owns assignment and must be self-sufficient for a package agent reading files cold.
 
-Required sections:
+Assignment template (the orchestrator resolves the Notes verification depth before dispatch; it is not a new
+registry field or a retroactive structural-validation requirement):
 
 ```md
 # Work Package: WP1 — <title>
@@ -92,6 +95,9 @@ Context only:
 
 ## Dependencies
 - None.
+
+## Notes
+- Verification depth: <standard|enhanced> — reason: <current scope/risk evidence; resolve before dispatch>
 ```
 
 `Must satisfy` Slice IDs map onto Acceptance Checklist items. `Context only` IDs must be read and respected but do not create result rows unless another package owns them. `## Acceptance Checklist` is the frozen closed definition of the package verdict (see `package-lifecycle.md`, which also requires every plan gap closed before the package is done). Every package needs at least one independently confirmable executable check.
@@ -100,7 +106,8 @@ Context only:
 
 A lightweight result confirming the package was verified against its frozen `## Acceptance Checklist`.
 `plugins/super-developer/references/package-verification-report.md` is the single authoritative source for its
-section list, verdict values, and per-section rules; do not restate that shape here or in any consuming skill.
+section list, verdict values, per-section rules, and first-report skeleton; do not restate that shape here or in
+any consuming skill.
 
 PASS requires every checklist item `pass` with authentic observed evidence, no open blocking finding, and no
 unapproved gap. Mechanical helper output is structural only; it does not establish semantic completion.

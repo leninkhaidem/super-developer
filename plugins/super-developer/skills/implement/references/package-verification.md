@@ -7,7 +7,8 @@ output, or re-review clean neighboring work.
 ## The one rule
 
 Return PASS when the orchestrator-observed checklist evidence is authentic and no checklist-invisible blocking
-finding remains. Return FAIL only for a real correctness, security, data-loss, or contract-break defect.
+finding remains. Return FAIL for a real correctness, security, data-loss, or contract-break defect, or when required
+verification cannot be completed. An execution/allowance blocker is not evidence of a code defect.
 
 - The Acceptance Checklist is **closed and frozen** — it comes from the package Markdown `## Acceptance
   Checklist` section (authored during planning, approved at the plan gate). Check *exactly* those items. Do not add
@@ -102,8 +103,8 @@ shape without starting a code-repair loop.
 ## PASS / FAIL
 
 Return **PASS** when every checklist item passes with authentic evidence and no blocking finding is open.
-Return **FAIL** with the specific blocking findings only. List advisory findings separately, clearly marked
-non-blocking. Never return FAIL solely for advisory issues, report formatting, or "insufficient completeness"
+Return **FAIL** with specific blocking findings or the exact incomplete-verification reason. List advisory findings
+separately, clearly marked non-blocking. Never return FAIL solely for advisory issues, report formatting, or "insufficient completeness"
 beyond the frozen checklist.
 
 ## Result Handoff
@@ -118,6 +119,8 @@ Keep the handoff short. No long transcripts or additional receipt/matrix artifac
 
 ## Re-verification after repair (delta-only)
 
+During repair, require and honor the parent packet's shared remaining rounds; do not allocate a new allowance.
+Missing/exhausted bounds return FAIL for incomplete verification, not a fabricated code finding or a partial PASS.
 Remain an independent approving verifier. From the semantic repair impact, re-check only affected package-local
 checklist and result-file evidence plus affected build/lint/test checks; retain unaffected results. Re-check the
 package's own wiring surface when a repair touched it. Closing a seam **across** packages remains exclusively with

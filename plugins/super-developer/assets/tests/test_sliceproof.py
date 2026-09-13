@@ -4,6 +4,7 @@ import importlib.util
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -33,6 +34,14 @@ SLICEPROOF = load_sliceproof_module()
 
 def remove_h3_section(text: str, section: str) -> str:
     return re.sub(rf"\n### {re.escape(section)}\n.*?(?=\n### |\n## |\Z)", "\n", text, count=1, flags=re.DOTALL)
+
+
+def snapshot_regular_files(root: Path) -> dict[str, bytes]:
+    return {
+        str(path.relative_to(root)): path.read_bytes()
+        for path in sorted(root.rglob("*"))
+        if path.is_file() and not path.is_symlink()
+    }
 
 
 class SliceproofFixture:
@@ -431,6 +440,194 @@ class SliceproofTests(unittest.TestCase):
             self.assertEqual(0, final_check.returncode, final_check.stdout + final_check.stderr)
         finally:
             fixture.cleanup()
+
+    def test_render_report_is_deterministic_read_only_and_incomplete(self) -> None:
+        expected = textwrap.dedent(
+            """
+            ## Package Verification: WP1
+
+            ### Verdict
+            PENDING_VERIFICATION
+
+            ## Acceptance Checklist Result
+            | Item | Result | Evidence |
+            |---|---|---|
+            | `AC-1` | pending | missing evidence: AC-1 not verified; replace with pointer plus observed output. |
+            | `AC-2` | pending | missing evidence: AC-2 not verified; replace with pointer plus observed output. |
+
+            ## Blocking findings
+            - none
+
+            ## Advisory notes
+            - generated skeleton only; replace pending rows with verifier-observed evidence.
+
+            ## Plan gaps
+            - none
+
+            ## Reviewed state
+            - Worktree/ref/commit of the code verified: pending; missing verifier-observed state.
+
+            ## Gaps
+            - none
+            """
+        ).lstrip()
+        before = snapshot_regular_files(self.fixture.workspace)
+
+        first = self.fixture.run("render-report", str(self.fixture.tasks_path), "--package", "WP1")
+        second = self.fixture.run("render-report", str(self.fixture.tasks_path), "--package", "WP1")
+
+        self.assertEqual(0, first.returncode, first.stdout + first.stderr)
+        self.assertEqual(0, second.returncode, second.stdout + second.stderr)
+        self.assertEqual(expected, first.stdout)
+        self.assertEqual(first.stdout, second.stdout)
+        self.assertEqual("", first.stderr)
+        self.assertEqual(before, snapshot_regular_files(self.fixture.workspace))
+        self.assertFalse(self.fixture.report_path.exists())
+
+        self.fixture.report_path.write_text(first.stdout, encoding="utf-8")
+        completion = self.fixture.run("validate-package-complete", str(self.fixture.tasks_path), "--package", "WP1")
+        self.assertNotEqual(0, completion.returncode, completion.stdout + completion.stderr)
+        errors = "\n".join(json.loads(completion.stderr)["errors"])
+        self.assertIn("Verdict must be PASS (found PENDING_VERIFICATION)", errors)
+        self.assertIn("checklist item AC-1 result must be pass (found 'pending')", errors)
+
+    @unittest.skipUnless(shutil.which("bash"), "documented create-only recipe requires bash")
+    def test_documented_report_creation_is_exclusive_and_failure_leaves_no_file(self) -> None:
+        usage = (ASSETS_DIR.parent / "references" / "tool-usage.md").read_text(encoding="utf-8")
+        recipe_section = usage.split("A safe create-only pattern is:", 1)[1]
+        recipe = recipe_section.split("```bash\n", 1)[1].split("```", 1)[0]
+        recipe = recipe.replace("<feature>", "fixture")
+        env = {
+            **os.environ,
+            "SUPER_DEVELOPER_PLUGIN_ROOT": str(ASSETS_DIR.parent),
+            "ARTIFACT_ROOT": str(self.fixture.artifact_root),
+            "CODE_ROOT": str(self.fixture.repo),
+            "REPORT_PATH": str(self.fixture.report_path),
+        }
+
+        def run(prefix: str = "") -> subprocess.CompletedProcess[str]:
+            return subprocess.run(
+                ["bash", "-c", prefix + recipe], cwd=self.fixture.repo, env=env,
+                text=True, capture_output=True, timeout=10, check=False,
+            )
+
+        # A failed producer, even one with partial stdout, must not consume the destination.
+        failed = run("python3() { printf 'partial report'; return 7; };\n")
+        self.assertEqual(7, failed.returncode, failed.stderr)
+        self.assertFalse(self.fixture.report_path.exists())
+        empty = run("python3() { return 0; };\n")
+        self.assertNotEqual(0, empty.returncode)
+        self.assertFalse(self.fixture.report_path.exists())
+
+        invalid = self.fixture.plan()
+        invalid["work_packages"][0]["report_path"] = "../invalid.package-verification.md"
+        self.fixture.write_plan(invalid)
+        rejected = run()
+        self.assertNotEqual(0, rejected.returncode, rejected.stdout + rejected.stderr)
+        self.assertFalse(self.fixture.report_path.exists())
+        self.fixture.write_plan(self.fixture.plan())
+
+        created = run()
+        self.assertEqual(0, created.returncode, created.stdout + created.stderr)
+        self.assertIn("PENDING_VERIFICATION", self.fixture.report_path.read_text(encoding="utf-8"))
+        # Existing result and gap history are never replaced by a fresh skeleton.
+        history = b"Existing evidence\n## Plan gaps\n- warrant: plan-gap open historical obligation\n"
+        self.fixture.report_path.write_bytes(history)
+        existing = run()
+        self.assertNotEqual(0, existing.returncode)
+        self.assertEqual(history, self.fixture.report_path.read_bytes())
+
+    def test_render_report_supports_sidecar_code_root_and_missing_package_error(self) -> None:
+        fixture = SliceproofFixture(separate_roots=True)
+        try:
+            result = fixture.run("render-report", *fixture.root_args(), ".tasks/fixture/tasks.json", "--package", "WP1")
+            self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+            self.assertIn("## Plan gaps\n- none", result.stdout)
+            self.assertIn("## Reviewed state", result.stdout)
+            self.assertFalse(fixture.report_path.exists())
+
+            unknown = fixture.run("render-report", *fixture.root_args(), ".tasks/fixture/tasks.json", "--package", "WP9")
+            self.assertNotEqual(0, unknown.returncode, unknown.stdout + unknown.stderr)
+            self.assertIn("unknown package id WP9", "\n".join(json.loads(unknown.stderr)["errors"]))
+        finally:
+            fixture.cleanup()
+
+    def test_render_report_uses_plan_validation_for_malformed_paths_and_acceptance_items(self) -> None:
+        cases = []
+
+        def malformed_report_path(fixture: SliceproofFixture) -> None:
+            plan = fixture.plan()
+            plan["work_packages"][0]["report_path"] = "../WP1.package-verification.md"
+            fixture.write_plan(plan)
+
+        cases.append((malformed_report_path, "path must not contain"))
+
+        def malformed_acceptance_item(fixture: SliceproofFixture) -> None:
+            fixture.package_path.write_text(
+                fixture.package_text(acceptance_checklist="- verifies without a stable id — check: `x`"),
+                encoding="utf-8",
+            )
+
+        cases.append((malformed_acceptance_item, "must start with a stable ID"))
+
+        for mutate, expected_error in cases:
+            with self.subTest(expected_error=expected_error):
+                fixture = SliceproofFixture()
+                try:
+                    mutate(fixture)
+                    render = fixture.run("render-report", str(fixture.tasks_path), "--package", "WP1")
+                    validate = fixture.run("validate-plan", str(fixture.tasks_path))
+                    self.assertNotEqual(0, render.returncode, render.stdout + render.stderr)
+                    self.assertNotEqual(0, validate.returncode, validate.stdout + validate.stderr)
+                    self.assertIn(expected_error, "\n".join(json.loads(render.stderr)["errors"]))
+                    self.assertIn(expected_error, "\n".join(json.loads(validate.stderr)["errors"]))
+                finally:
+                    fixture.cleanup()
+
+    def test_render_report_markdown_table_pipe_escaping_matches_parser(self) -> None:
+        escaped = SLICEPROOF.markdown_table_cell("AC-1: A | B")
+        self.assertEqual(r"AC-1: A \| B", escaped)
+        self.assertEqual(
+            ["AC-1: A | B", "pending", "missing evidence"],
+            SLICEPROOF.split_markdown_table_row(f"| {escaped} | pending | missing evidence |"),
+        )
+
+    def test_validate_plan_accepts_stable_gap_reordered_ids_and_rejects_duplicate_or_dangling(self) -> None:
+        self.fixture.write_simple_package_artifacts("WP3", must_ids=["HELPER-PIPE-004"])
+        self.fixture.write_simple_package_artifacts("WP10", must_ids=["HELPER-INTERFACE-005"])
+        plan = self.fixture.plan()
+        wp1 = plan["work_packages"][0]
+        wp3 = {
+            "id": "WP3",
+            "path": ".tasks/fixture/packages/WP3.md",
+            "report_path": ".tasks/fixture/reports/WP3.package-verification.md",
+            "status": "pending",
+            "depends_on": [],
+        }
+        wp10 = {
+            "id": "WP10",
+            "path": ".tasks/fixture/packages/WP10.md",
+            "report_path": ".tasks/fixture/reports/WP10.package-verification.md",
+            "status": "pending",
+            "depends_on": [],
+        }
+        plan["work_packages"] = [wp3, wp1, wp10]
+        self.fixture.write_plan(plan)
+        result = self.fixture.run("validate-plan", str(self.fixture.tasks_path))
+        self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+        self.assertEqual(["WP3", "WP1", "WP10"], json.loads(result.stdout)["packages"])
+
+        duplicate = {**plan, "work_packages": [wp3, wp1, {**wp10, "id": "WP1"}]}
+        self.fixture.write_plan(duplicate)
+        dup_result = self.fixture.run("validate-plan", str(self.fixture.tasks_path))
+        self.assertNotEqual(0, dup_result.returncode, dup_result.stdout + dup_result.stderr)
+        self.assertIn("duplicate package id WP1", "\n".join(json.loads(dup_result.stderr)["errors"]))
+
+        dangling = {**plan, "work_packages": [{**wp3, "depends_on": ["WP9"]}, wp1, wp10]}
+        self.fixture.write_plan(dangling)
+        dangling_result = self.fixture.run("validate-plan", str(self.fixture.tasks_path))
+        self.assertNotEqual(0, dangling_result.returncode, dangling_result.stdout + dangling_result.stderr)
+        self.assertIn("unknown package id WP9", "\n".join(json.loads(dangling_result.stderr)["errors"]))
 
     def test_explicit_roots_reject_artifact_and_code_path_escape_masking(self) -> None:
         if not hasattr(os, "symlink"):
