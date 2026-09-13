@@ -6,6 +6,38 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [v2.6.0] - 2026-09-13
+
+### Added
+- Added read-only `sliceproof.py render-report` support for creating unverified package-report skeletons without
+  treating generated content as evidence of completion.
+
+### Changed
+- Made Conceptualize lead with “Interview relentlessly until shared understanding is reached.” Discovery stays
+  in conversation; invocation no longer creates files, slugs, artifact roots, or worktrees. Durable capture is
+  driven by need, and complete chat-only or Index-only handoffs are valid.
+- Routed clear, bounded, low-risk tasks directly to their appropriate workflow instead of manufacturing planned
+  packages. Explicit planning still retains its normal artifacts, acceptance criteria, and authorization.
+- Reserved design preflight for consequential unresolved decisions. Settled plans proceed directly to drafting
+  and independent plan review, while triggered security review and genuine user decisions remain required.
+- Replaced invocation-count repair limits with complete repair rounds and evidence-backed progress. Three failed
+  rounds trigger reassessment rather than automatic planning; a shared task-wide allowance defaults to six rounds
+  unless an approved limit applies. Existing command and worker timeouts continue to bound individual actions.
+- Preserved package identities across gaps, reordering, splits, and repairs without renumbering existing work.
+- Made source publication explicitly configurable as local-only, per-package, milestone, or final delivery, with
+  separate authority for artifact-sidecar publication and target-branch actions.
+- Streamlined lifecycle instructions, execution authorization, and cold-worker handoffs while retaining authentic
+  Acceptance evidence, risk-proportionate verification, and distinct integrated review and audit responsibilities.
+
+### Fixed
+- Prevented failed or empty report rendering from creating empty evidence files, and preserved existing reports
+  through a create-only generation recipe.
+- Aligned canonical registry rules with chat-only and no-Slice planning, without allowing mode labels to bypass
+  the full inventory and reading of existing authoritative Slices.
+- Supplied cold planners with the explicit policy needed to account for repair and empirical history, and made
+  skipped design preflight valid throughout dispatch and pre-write validation.
+- Applied final source-publication catch-up to every authorized remote cadence rather than only final cadence.
+
 ## [v2.5.0] - 2026-09-08
 
 ### Added
