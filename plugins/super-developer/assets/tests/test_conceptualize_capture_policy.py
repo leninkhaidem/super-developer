@@ -1,9 +1,10 @@
 """Static prompt-contract guards for Conceptualize capture/routing policy.
 
 These checks do not execute an agent or prove runtime behavior. They guard policy structure:
-conversation-first startup, gated/delayed artifact writes, optional Index/Slice
-handoffs, route selection at handoff time, and planner handling of chat-only or
-Index-only inputs.
+conversation-first startup, readiness-driven questions, read-only resume,
+uncertainty recovery, gated/delayed artifact writes, lossless Index/Slice handoffs,
+route selection at handoff time, and planner handling of chat-only or Index-only
+inputs.
 """
 
 from __future__ import annotations
@@ -49,10 +50,85 @@ class ConceptualizeCapturePolicyTests(unittest.TestCase):
         )
         self.assertNotIn("Create and maintain at least one Slice before any successful handoff", skill)
 
-    def test_durability_gate_precedes_any_artifact_resolution(self) -> None:
+    def test_settled_context_can_skip_questions(self) -> None:
+        skill = read("skills/conceptualize/SKILL.md")
+        always = section(skill, "Always")
+        do = section(skill, "Do")
+        readiness = do.index("Check next-step readiness")
+        question = do.index("Otherwise ask one focused question")
+        self.assertLess(readiness, question)
+        assert_has_all(self, always, ["at most one focused question", "skip questions"])
+        assert_has_all(
+            self,
+            do[readiness:question],
+            ["before the first question", "after each answer", "approved context is sufficient",
+             "ask no further questions", "Durability Gate"],
+        )
+        self.assertNotIn("Ask exactly one focused question", skill)
+
+    def test_intent_discovery_does_not_require_premature_recommendations(self) -> None:
+        always = section(read("skills/conceptualize/SKILL.md"), "Always")
+        assert_has_all(
+            self,
+            always,
+            ["Discover unclear intent", "open-ended questions", "recommendation only when",
+             "evidence and the user's goals", "do not guess the audience, problem, or desired outcome"],
+        )
+        self.assertNotIn("For each material question, give your recommended answer", always)
+
+    def test_unknown_answers_have_bounded_recovery_without_assumed_approval(self) -> None:
+        do = section(read("skills/conceptualize/SKILL.md"), "Do")
+        recovery = do[do.index("If the user cannot answer:"):do.index("Apply the **Durability Gate**")]
+        assert_has_all(
+            self,
+            recovery,
+            ["unclear intent", "concrete scenario", "unknown fact", "bounded read-only evidence",
+             "uncertain preference", "without choosing for the user", "Keep hypotheses unapproved",
+             "next useful action instead of repeating prompts or claiming readiness"],
+        )
+
+    def test_resume_reads_existing_context_before_questioning_without_a_checkpoint(self) -> None:
+        do = section(read("skills/conceptualize/SKILL.md"), "Do")
+        resume_start = do.index("When resuming an existing workspace")
+        readiness = do.index("Check next-step readiness")
+        gate = do.index("Apply the **Durability Gate**")
+        self.assertLess(resume_start, readiness)
+        self.assertLess(resume_start, gate)
+        resume = do[resume_start:do.index("Gather bounded repository/research evidence")]
+        assert_has_all(
+            self,
+            resume,
+            ["artifact-store.md", "workspace-index.md", "safely resolve", "read the Index",
+             "conceptualize-slice-authority.md", "inventory and read every safe Slice",
+             "in full before selecting a question", "Reuse approved decisions",
+             "Read-only recovery needs no new checkpoint or worktree", "missing context is a blocker"],
+        )
+        boundary = section(read("skills/conceptualize/references/workspace-index.md"), "Boundary")
+        assert_has_all(self, boundary, ["Resuming is read-only recovery", "before selecting the next question"])
+        self.assertNotIn("Create or resume it only after the Durability Gate", boundary)
+
+    def test_index_to_slice_transition_preserves_existing_commitments(self) -> None:
+        index = read("skills/conceptualize/references/workspace-index.md")
+        transition = section(index, "Lossless Index-to-Slice Transition")
+        assert_has_all(
+            self,
+            transition,
+            ["Inventory every approved implementation-shaping Index commitment", "stable H3 blocks",
+             "scope, rationale", "accepted tradeoffs, non-goals, verification expectations",
+             "user-decision provenance", "do not invent missing details or narrow commitments",
+             "open questions explicitly unresolved", "not as approved", "H3 commitments",
+             "Verify every original commitment", "before replacing detailed Index entries",
+             "one authoritative home", "not fresh product approval or permission to drop scope"],
+        )
+        self.assertLess(transition.index("Carry each commitment"), transition.index("replacing detailed Index entries"))
+        assert_has_all(self, section(index, "Stop"), ["leave a material commitment only in the Index"])
+        do = section(read("skills/conceptualize/SKILL.md"), "Do")
+        self.assertIn("apply the lossless transition in", do)
+
+    def test_durability_gate_precedes_new_workspace_resolution_and_writes(self) -> None:
         skill = read("skills/conceptualize/SKILL.md")
         do = section(skill, "Do")
-        gate = do.index("Durability Gate")
+        gate = do.index("Apply the **Durability Gate**")
         first_write = do.index("Only for a needed write")
         self.assertLess(gate, first_write)
         assert_has_all(
