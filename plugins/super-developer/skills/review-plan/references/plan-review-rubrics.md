@@ -6,8 +6,10 @@ Reviewers work cold from supplied files and references; they do not inherit hidd
 
 ## Common Rules
 
-- Read only supplied files and explicitly allowed supporting files. During repair honor the packet's shared
-  remaining rounds; an exhausted allowance returns an incomplete-review blocker, never `NONE` or a fresh allowance.
+- Read only supplied files and explicitly allowed supporting files. Missing required review scope, including
+  deferred QA scope, returns an incomplete-review blocker to the parent, never `NONE`; do not widen reads yourself.
+  During repair honor the packet's shared remaining rounds; an exhausted allowance returns an incomplete-review
+  blocker, never `NONE` or a fresh allowance.
 - Treat `SPEC.md` as requirements and manifest content, not implementation proof.
 - Treat `tasks.json` as bookkeeping only; package assignment, Slice coverage, verification expectations, report
   paths, dependencies, and approved package notes live in package Markdown.
@@ -55,7 +57,9 @@ Check whether:
 - foreseeable quality-contract risks are visible, actionable, and verifiable;
 - a Security/Failure-Mode Reviewer is needed.
 
-If Pass 1 finds a semantic blocker likely to change the plan, keep Pass 2 to obvious mechanical defects.
+If Pass 1 finds a semantic blocker likely to change the plan, Pass 2 may be limited to obvious mechanical defects.
+Name the deferred checks and their artifact scope in the blocker's existing `ISSUE`/`FIX` prose so the parent can
+include unfinished required QA in the next cold packet. Deferral is not completed review or a waiver of QA.
 
 ### Pass 2: Artifact QA
 
@@ -69,17 +73,22 @@ Check whether:
 - the registry contains only feature/package bookkeeping and safe paths;
 - every package Markdown file has coherent scope, assigned Slice paths/H3 IDs, context-only reasons, primary paths, verification expectations, report path, and dependencies;
 - every package has at least one independently confirmable executable Acceptance Checklist item;
-- each Acceptance Checklist item is **atomic**: one behavioral claim, one observable boundary, one primary check,
-  one failure condition. An item chaining unrelated concerns — separate resource limits, distinct subsystems, or
-  independent assertions joined by `and` — is a finding, because the frozen checklist can then pass on partial
-  proof and no downstream role may renegotiate it;
-- every item proving a Slice `Forbidden behaviors` clause states `rejects:` naming the wrong-but-plausible
-  implementation it fails against, and the named check would genuinely fail if that counterfeit were substituted;
-  a check that would pass against its own counterfeit is not evidence;
-- an item that separates itself from its counterfeit by a structural assertion on the implementation — a named
-  type or data structure, a call count, source text, or syntax-tree shape — says why no observable consequence was
-  available. Such an assertion is legitimate where none is, and a finding where one is: it pins an implementation
-  no requirement asked for, so it fails a correct rewrite while proving nothing a caller can see;
+- each Acceptance Checklist item is **atomic**: one coherent behavioral claim at an observable boundary. Success,
+  failure, and boundary cases may share an item and a scenario or parameterized suite. Split independently meaningful
+  outcomes, not each assertion, input, conjunction, or case; preserve every material obligation and distinct failure
+  coverage under the work-package contract's many-to-one mapping;
+- every behavioral claim's check would reject a plausible wrong implementation, using the existing expected-result
+  or failure description rather than a new field. A check that also passes for that implementation is inadequate;
+- every item proving a Slice `Forbidden behaviors` clause additionally states `rejects:` naming the
+  wrong-but-plausible implementation its check would genuinely fail against; require this field only for those clauses;
+- text or structure checks prove only the literal artifact property inspected. They are valid for required literal
+  properties or supporting evidence, not proxy proof of runtime behavior or agent decisions. For a Slice forbidden
+  behavior check using implementation structure, require why no observable signal exists; that explanation cannot
+  turn structure into behavioral proof or justify pinning an implementation no requirement asks for;
+- behavioral claims use representative behavior/scenario checks, or a precise user-approved `manual (approved)`
+  check with steps and expected results when automation is unavailable. Missing approval is a finding. If no
+  legitimate check meets the executable package floor, report a feasibility blocker; do not accept a weak substitute
+  or invent a test framework to hide the gap;
 - package Markdown report paths match the registry and are usable by `sliceproof.py`;
 - package dependencies and parallel assumptions are safe, with ID-only dependency edges limited to durable prerequisites and non-obvious consumed output, contract, or evidence rationale recorded in package `Notes`;
 - verification expectations are observable and tied to Slice/package obligations and changed behavior;

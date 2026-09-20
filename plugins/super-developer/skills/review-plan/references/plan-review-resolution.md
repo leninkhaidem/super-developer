@@ -60,12 +60,19 @@ Slice metadata and assignment/verification gaps in package Markdown.
 6. Put implementation-time concerns in package files, not chat-only summaries. If repair moves or materially expands
    closure complexity, reapply the packet-labeled work-package contract and route boundary changes through the
    semantic rule; file overlap may serialize otherwise separate packages without inventing a dependency.
-7. From code root run `sliceproof.py validate-plan` with explicit roots after edits, then re-review only changed
-   semantic scope.
+7. From code root run `sliceproof.py validate-plan` with explicit roots after edits, then review the scope defined
+   below before approval or restored readiness.
 
 ## Re-Review
 
-Send exact changed targets plus affected package and Slice files, not excerpts. Reuse unaffected reviewed evidence.
+The parent sends a cold packet with exact changed targets, affected package and Slice files, and all unfinished
+required QA, including checks and artifact scope deferred in finding prose. Supply complete files, not excerpts,
+within the existing safe read boundary; pending QA stays in scope even when its artifacts did not change. Missing
+required scope is an incomplete-review blocker, never `NONE`; the parent must supply safe scope before review resumes.
+Reuse only previously completed, unaffected review evidence; do not rerun that QA just because other work was deferred.
+Completing deferred QA finishes initial coverage, not a new stage or an automatic whole-plan rerun.
+
 Widen to holistic review only when global boundaries, Slice inventory, cross-package dependency shape, or explicit
-user direction requires it. Do not loop for reviewer satisfaction: initial mode stops when blockers/decisions close;
-focused mode restores readiness when blockers close or returns a genuine protected decision to `implement`.
+user direction requires it. Do not loop for reviewer satisfaction: initial mode reaches the plan gate only after
+blockers/decisions close and all required review coverage is complete. Focused mode restores readiness only after
+blockers close and required coverage is complete, or returns a genuine protected decision to `implement`.
