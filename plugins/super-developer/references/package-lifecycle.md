@@ -90,11 +90,12 @@ decide the obligation — rather than the code being wrong — that is a plan de
 continuation to repair the checklist instead of patching one defect at a time. Failed-round count alone is not
 proof of a plan defect and never triggers a planning handoff.
 
-Before repair dispatch, the orchestrator loads `bounded-attempts.md`, the sole owner of repair-round identity,
-evidence-based progress/reassessment, and the task-wide repair-round allowance. Preserve the allowance and history
-through planning continuation and focused re-review; a new worker, cluster, or stage cannot replenish it. Widen only for
-semantically affected surfaces, never merely because a package dependency, commit, or merge exists. Proven mechanical artifact corrections may use
-`plan-amendments.md` after the owner loads it; Acceptance/evidence/Plan-gap changes never use that exception.
+Before repair dispatch, the orchestrator loads `bounded-attempts.md`, the sole owner of repair identity,
+evidence-based progress/reassessment, and applicable limits. Preserve repair evidence/history and any binding limit
+state through planning continuation and focused re-review; worker, cluster, or stage changes reset neither. Widen only
+for semantically affected surfaces, never merely because a package dependency, commit, or merge exists. Proven
+mechanical artifact corrections may use `plan-amendments.md` after the owner loads it; Acceptance/evidence/Plan-gap
+changes never use that exception.
 
 ## Final readiness
 Before final `review-code` and `audit`, every package is `done`, the integrated code is assembled, and the

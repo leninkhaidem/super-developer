@@ -15,8 +15,8 @@ Require all applicable fields before acting:
 - approved requirements and source mode: `chat-only`, `Index-only`, or `Slice-backed`; for durable input, safe
   artifact-root-relative workspace/Index/Slice paths sufficient to discover the full existing Slice inventory;
 - initial overwrite approval, or continuation authority plus current artifacts, Execution Contract, originating
-  stage/defect/scope, approved original base, current integration ref/HEAD, shared remaining repair rounds,
-  and round/progress history; initial-mode repair carries the same allowance binding;
+  stage/defect/scope, approved original base, current integration ref/HEAD, and repair identity/evidence/history;
+  any repair, including initial-mode repair, carries applicable limit state only when a limit exists;
 - for each continuation-created package: `BASE_KIND`, exact `BASE_REF`, candidate `REVIEWED_BASE_SHA`, and
   prerequisite package refs/SHAs with ancestry evidence—never an arbitrary caller-selected base;
 - accepted empirical reports with stable logical-question/attempt identity, provenance, method, authority, bounds,
@@ -26,7 +26,8 @@ Require all applicable fields before acting:
   and helper availability;
 - labeled paths for every applicable supporting contract, plus stop conditions and required output.
 
-Return `BLOCKED` listing missing or conflicting fields and write nothing.
+Return `BLOCKED` listing missing or conflicting required fields and write nothing. No quota/counter is required
+without an applicable count limit.
 
 ## Packet-Supplied Contracts
 
@@ -35,8 +36,8 @@ Load each labeled contract at its action; never discover another contract throug
 - artifact store for roots, refs, path safety, and slug mapping;
 - Conceptualize input and Slice authority/projection for durable input;
 - design preflight when the packet marks it applicable;
-- packet-labeled `bounded-attempts.md` before empirical/repair-history accounting; repair writes/checks also obey
-  the supplied shared remaining rounds, never a fresh allowance per planner;
+- packet-labeled `bounded-attempts.md` before handling empirical history or repair; use its progress and scoped-limit
+  and recovery rules for writes/checks and inner edit/validation cycles, preserving history and applicable limits;
 - SPEC template before drafting `SPEC.md`;
 - clean-code, work-package, and artifact-authoring contracts before choosing deliverable mechanisms and checks;
 - canonical artifact model before registry/package drafting;
@@ -72,8 +73,8 @@ supplied logical identity/history. Do not run a probe, invoke a skill, bundle qu
    leave `authoritative_slices` empty only when no Slice exists. Otherwise read every safe existing Slice in full and
    account for every material H3. Use the Conceptualize slug absent approved migration.
 3. Apply the empirical boundary. In initial mode return unresolved decisions to the orchestrator. In continuation,
-   repair equivalent internal mechanics autonomously within the shared remaining allowance; `none` is a valid report
-   set for non-empirical defects. Stalled repair needs evidence-based reassessment, not unchanged redispatch.
+   repair equivalent internal mechanics autonomously under the loaded repair policy; `none` is a valid report set
+   for non-empirical defects. Stalled repair needs evidence-based reassessment, not unchanged redispatch.
 4. Shape the smallest complete deliverable before expanding the artifact set. Apply closure complexity, the
    complete shared Module/Interface/Seam model, all smell heuristics, and artifact-authoring's removal/reuse and
    Acceptance Design rules even when preflight was not triggered. Distinguish approved outcomes from suggested

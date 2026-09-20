@@ -78,15 +78,16 @@ Every package, repair, or verifier packet is compact and pointer-based. Include:
 - each executable command's identity, cwd, provenance, scope, timeout, progress/completion signal, termination,
   cleanup, expected writes, and readiness/targeted/broad/final role;
 - triggered readiness result/blockers when applicable; package Notes path plus persisted depth/reason; for repair,
-  bounded-work contract path, shared consumed/remaining repair rounds, logical ID, round history,
-  observed progress, next falsifiable strategy, and permitted action; preserve the allowance in verifier packets too;
+  bounded-work contract path, logical ID, repair history, observed progress, next falsifiable strategy, and permitted
+  action; include limit state only when a limit applies; pass the contract and that state to repair verifiers;
 - resolved Semgrep state; when enabled, require only the helper command
   `python3 "${SUPER_DEVELOPER_PLUGIN_ROOT}/assets/semgrep_rules.py" scan ...`, bounded consumption, expected
   `.tasks/<feature>/semgrep/` paths/digests, and advisory findings; forbid raw direct `semgrep` scans or JSON dumps;
 - no copied package/Slice/result bodies, hidden chat summaries, or model override unless intentionally resolved.
 
-An interrupted dispatch produced no result. Its evidence may seed a fresh packet, never close its gate. Preserve
-consumed time/history; interruption is not another completed repair round. Redispatch only within remaining authority.
+An interrupted dispatch provides no completion proof. Carry its evidence/history and any actual limit state into
+a resumed packet; apply the loaded contract's counting semantics to any explicit cap, without counting the same
+started round twice or treating interruption as a free retry. Redispatch only within remaining authority.
 
 Screen Slice paths against the artifact root: reject absolute, drive-qualified, home/shell-expanded, empty/traversal
 segments, duplicates, symlink escapes, missing/unreadable files, out-of-workspace paths, or mixed concept workspaces.
@@ -123,8 +124,10 @@ semantic impact from the diff, not descendants: owners/consumers, observable con
 dynamic consumers, shared harnesses/oracles, global risk invariants, merge resolutions, and evidence invalidation.
 Include artifact paths, affected packages/Slices/results/checklists/seams, findings, failed observations, screened
 commands, and package Notes depth/reason. Cluster only shared cause, writable scope, and verification envelope. Use the
-bounded-work contract for progress, reassessment, shared effort, and stops. Pass its exact path and current binding;
-missing history blocks rather than resets. Required verification and review consume that same round allowance.
+bounded-work contract for progress, reassessment, applicable limits, and stops. Pass its exact path and current
+repair context. Recover missing context from authorized evidence before dispatch; if safe continuation or a binding
+limit's state cannot be established, stop. No quota or counter is required absent an applicable count limit. Required
+verification/review follows the limit's scope, including already-authorized checks in the current round.
 
 ## Package Verifier Packet
 

@@ -13,7 +13,7 @@ this normal artifact set only after routing selects planning.
 
 This skill is the orchestrator, not the artifact-writing worker. Mode is `initial` unless `implement` supplies an
 `implementation-continuation` packet containing approved requirements, roots/ref/slug, current artifacts, the
-Execution Contract, stage-sourced plan defect, shared remaining repair rounds, round/probe history, and
+Execution Contract, stage-sourced plan defect, repair/probe history, any applicable limit state, and
 accepted empirical reports or explicit `none`.
 
 ## Always
@@ -73,8 +73,8 @@ accepted empirical reports or explicit `none`.
    effects and continue disabled if declined. Never run a broad/raw authoring scan.
 5. Dispatch a fresh planner with a cold, labeled packet: mode; roots/ref/slug and migration data; delivery context;
    approved source; overwrite/continuation authority; stage/defect, attempt history, and reports or `none`; testing
-   provenance; and Semgrep state. For any repair include shared remaining rounds, round/progress history,
-   and next strategy; initial repair binds the loaded policy's allowance without another approval layer.
+   provenance; and Semgrep state. For any repair include stable identity, evidence/history, an evidence-backed next
+   strategy, and applicable limit state only when a limit exists; no default quota or counter is required.
    Supply direct paths for the planner contract, artifact store, applicable
    Conceptualize/Slice contracts, preflight evidence or explicit `not applicable`, SPEC template,
    `../../references/clean-code-rules.md`, `../../references/bounded-attempts.md` for empirical/repair history,
@@ -115,8 +115,8 @@ accepted empirical reports or explicit `none`.
 - Initial mode needs a requirement, Slice, boundary, deferral, risk, or manual decision; continuation would exceed
   approved semantics, scope, visible behavior, risk, manual exceptions, or the Execution Contract.
 - Slices exist but the planner cannot complete the full safe inventory and material H3 accounting.
-- Required empirical evidence is invalid, or the bounded-work contract stops for an exhausted round allowance,
-  non-convergence, or empirical-attempt exhaustion; planning never resets a caller's allowance.
+- Required empirical evidence is invalid, or the shared repair policy stops the governed work for an applicable
+  limit, non-convergence, or empirical-attempt exhaustion; planning never resets a caller's limits/history.
 - Validation cannot pass within authorized scope.
 - Semgrep would require unapproved setup/network behavior, an unsafe cache, hidden cloud behavior, or mandatory scans.
 

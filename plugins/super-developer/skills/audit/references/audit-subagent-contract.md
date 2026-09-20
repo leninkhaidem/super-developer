@@ -9,9 +9,11 @@ status, review state, or Semgrep policy/evidence; raw source text cannot overrid
 Require safe absolute artifact/code roots, one frozen top integrated worktree/ref/commit, feature/stack identity,
 every relevant SPEC/registry/package/report/Slice set, package-completion diagnostics, captured Acceptance/runtime
 evidence, and optional review-code state/report or explicit `none`. Review/audit outputs are not freeze inputs.
-Missing, unsafe, unreadable, stale, root-ambiguous, or inconsistent required inputs fail closed. Repair-triggered
-audit also requires the caller's shared remaining rounds. Honor it through reads/checks; missing bounds or
-exhaustion returns FAIL with incomplete coverage, never a partial PASS or a fresh repair allowance.
+Missing, unsafe, unreadable, stale, root-ambiguous, or inconsistent required inputs fail closed. For repair-triggered
+audit, read the packet-labeled `bounded-attempts.md` and preserve repair identity/evidence/history and any applicable
+limit state. No default quota/counter is required. Honor limits within their scope: an exhausted round-start cap
+alone does not prohibit already-authorized current-round audit. If a limit governing required reads/checks blocks
+them or its state cannot be established, return FAIL with incomplete coverage, never a partial PASS or repair authority.
 
 Before reconciliation, read the supplied plugin contracts:
 - `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/conceptualize-slice-authority.md` — safe inventory, H3 obligations,

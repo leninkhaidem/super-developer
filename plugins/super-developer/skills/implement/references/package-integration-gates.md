@@ -83,9 +83,10 @@ commit, or ancestry alone does not stale unaffected work.
 
 Before repair, record identity, prior outcome, unresolved state, affected packages/paths/checklists/reports/seams, and
 screened commands. One worker owns a cluster sharing cause, scope, and verification envelope. Use the loaded
-bounded-work contract for observed progress, shared remaining repair rounds, round history/reassessment, and stop
-reporting. Reopen planning only for an evidenced plan defect, never a failed-round count. Stop on non-convergence,
-an exhausted allowance, uncertain cleanup/readiness, missing history/authority/facts, or scope/safety/risk change.
+bounded-work contract for observed progress, repair history/reassessment, applicable limits, context recovery, and
+stop reporting. Reopen planning only for an evidenced plan defect, never a failed-round count. Stop on non-convergence,
+a limit blocking the next action, uncertain cleanup/readiness, unrecoverable essential context, missing authority/facts,
+or scope/safety/risk change; absence of a default counter is not missing context.
 
 ## Conflict Handling
 
@@ -126,9 +127,9 @@ neither output is a freeze input, substitute, or cross-role authority:
   claims.
 
 Route either gate's plan blockers before code repair. Each repair/continuation creates a new freeze after affected
-checks and feature Acceptance. Pass shared remaining repair rounds to review/closure and audit; exhausted
-checks are incomplete, never waived. Focused Fix Verification may restore `CLEAN`; a fresh cold auditor still must
-issue same-freeze `PASS`.
+checks and feature Acceptance. Pass repair history and any applicable limit state to review/closure and audit;
+checks blocked by a limit are incomplete, never waived. A round-start cap does not bar authorized current-round checks.
+Focused Fix Verification may restore `CLEAN`; a fresh cold auditor still must issue same-freeze `PASS`.
 
 After same-freeze CLEAN+PASS, apply source-publication final push/catch-up for approved remote cadences only if SHA
 differs as specified; use `worktree` and require post-push remote SHA equality. `local-only` stays network-free.

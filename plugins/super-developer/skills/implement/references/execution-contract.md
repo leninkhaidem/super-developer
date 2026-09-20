@@ -24,8 +24,8 @@ This reference grants no authority by itself.
   destructive action, service/dependency side effects, and credentialed/external effects require explicit listing.
 - Plan-amendment authority may cover only the shared contract's exact nonsemantic procedure. Changes to obligations,
   commands/evidence, risk, acceptance, scope, dependencies, or approval use planning continuation and focused review.
-- The bounded-work contract supplies progress/reassessment rules and one shared repair-round allowance. Neither
-  progress nor a remaining round authorizes scope expansion, unchanged retries, or omitted verification.
+- The bounded-work contract supplies progress/reassessment and applicable-limit rules. Neither
+  progress nor available capacity authorizes scope expansion, unchanged retries, or omitted verification.
 
 ## Expanded Machine Contract
 
@@ -49,15 +49,17 @@ Record:
 6. **Dynamic worktrees:** namespace/path/ref patterns, allowed bases and caller-supplied base SHAs, reviewed
    continuation IDs/base/prerequisite SHAs, receipt manifests, forbidden operations, and cleanup proofs. Probe
    authority is local-only: no stage/commit/merge/push/reset/stash/clean/force/network.
-7. **Repair/probes:** shared repair-round allowance and consumed/remaining rounds, stable
-   logical IDs, round/probe history, observed progress and next strategy, accepted empirical reports or `none`.
-   Carry the same allowance through all clusters, workers, planning repair, review, and resume; never reset it.
+7. **Repair/probes:** stable logical IDs, repair/probe history, observed progress and next strategy, accepted
+   empirical reports or `none`. Carry limit state only when a user/approved cap or host limit applies;
+   consumed/remaining round counts are needed only for an applicable round cap. Preserve that state across workers,
+   gates, and resume.
 8. **Publication:** selected feature-source policy packet, exact `origin` destination/command, milestone triggers when
    applicable, final catch-up for remote cadences, and remote-SHA success check; or `local-only` without network.
    Separately record exact hotfix, sidecar, and target actions or `excluded`.
 9. **Safety/exclusions/stops:** root-worktree prohibition, destructive/external/dependency/service limits, cleanup
    retention, Semgrep/network constraints, manual exceptions, unauthorized actions, missing facts/credentials, unsafe
-   state, unbound commands, scheduled publication failure/SHA mismatch, non-convergence, and exhausted effort.
+   state, unbound commands, scheduled publication failure/SHA mismatch, non-convergence, and exhausted applicable
+   limits.
 
 Probe receipts additionally bind full direct ref, expected base SHA before/after creation, clean HEAD/index/status,
 non-writing index digest, exact NUL owned tracked/untracked/ignored/symlink/process/data manifests,
@@ -78,13 +80,13 @@ Actions:
 - local writes/worktrees: <known paths/refs + bounded continuation/probe patterns and cleanup limits, or none>
 - commands: <known commands; permitted follow-up families with trusted source, cwd, write/resource limits, and cadence>
 - checks: <Acceptance/test/build/review-code/audit checks and expected pass signal>
-- repair effort: <finite task-wide allowance; inherited cap or disclosed bounded-work default>
+- explicit limits, if any: <user/approved caps and their scope; omit this line when absent>
 External effects:
 - feature source: <local-only | cadence + exact origin/ref/command + milestone triggers + final same-freeze catch-up>
 - sidecar: <excluded | exact command/ref/gate>
 - target/hotfix/other: <excluded | exact separately authorized action>
 Stops:
-- <concise exact semantic/safety/facts/non-convergence/allowance/publication stop boundaries>
+- <concise exact semantic/safety/facts/non-convergence/applicable-limit/publication stop boundaries>
 Not authorized: <target/force/release/delete/service/dependency/cleanup exclusions>
 Expanded machine contract: available before approval on request.
 Choose: approve auto-resolve | step-by-step | abort

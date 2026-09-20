@@ -8,7 +8,7 @@ output, or re-review clean neighboring work.
 
 Return PASS when the orchestrator-observed checklist evidence is authentic and no checklist-invisible blocking
 finding remains. Return FAIL for a real correctness, security, data-loss, or contract-break defect, or when required
-verification cannot be completed. An execution/allowance blocker is not evidence of a code defect.
+verification cannot be completed. An execution/limit blocker is not evidence of a code defect.
 
 - The Acceptance Checklist is **closed and frozen** — it comes from the package Markdown `## Acceptance
   Checklist` section (authored during planning, approved at the plan gate). Check *exactly* those items. Do not add
@@ -119,8 +119,10 @@ Keep the handoff short. No long transcripts or additional receipt/matrix artifac
 
 ## Re-verification after repair (delta-only)
 
-During repair, require and honor the parent packet's shared remaining rounds; do not allocate a new allowance.
-Missing/exhausted bounds return FAIL for incomplete verification, not a fabricated code finding or a partial PASS.
+During repair, read the packet-supplied `bounded-attempts.md` and honor any applicable limits within their scope.
+Absent a count limit, no quota/counter is required. An exhausted round-start cap does not forbid already-authorized
+current-round checks. If a binding limit blocks a required check or its state is unknown, return FAIL for incomplete
+verification, not a fabricated code finding or a partial PASS.
 Remain an independent approving verifier. From the semantic repair impact, re-check only affected package-local
 checklist and result-file evidence plus affected build/lint/test checks; retain unaffected results. Re-check the
 package's own wiring surface when a repair touched it. Closing a seam **across** packages remains exclusively with

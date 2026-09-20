@@ -8,8 +8,9 @@ Reviewers work cold from supplied files and references; they do not inherit hidd
 
 - Read only supplied files and explicitly allowed supporting files. Missing required review scope, including
   deferred QA scope, returns an incomplete-review blocker to the parent, never `NONE`; do not widen reads yourself.
-  During repair honor the packet's shared remaining rounds; an exhausted allowance returns an incomplete-review
-  blocker, never `NONE` or a fresh allowance.
+  During repair load packet-labeled `bounded-attempts.md`; honor scoped limits, with no default counters.
+  An exhausted round-start cap does not block already-authorized current-round QA or authorize further repair.
+  Limits blocking required checks return incomplete-review blockers, never `NONE`.
 - Treat `SPEC.md` as requirements and manifest content, not implementation proof.
 - Treat `tasks.json` as bookkeeping only; package assignment, Slice coverage, verification expectations, report
   paths, dependencies, and approved package notes live in package Markdown.

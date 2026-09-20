@@ -282,7 +282,7 @@ class LifecycleDesignGuidanceTests(unittest.TestCase):
         )
         self.assertTrue(all(term in self.shared for term in scope_terms))
 
-    def test_cold_planner_receives_history_accounting_contract(self) -> None:
+    def test_cold_planner_receives_progress_and_history_contract(self) -> None:
         planner = (PLUGIN_ROOT / "skills/implementation-plan/SKILL.md").read_text(encoding="utf-8")
         worker = (PLUGIN_ROOT / "skills/implementation-plan/references/planner-agent-contract.md").read_text(
             encoding="utf-8"
@@ -293,7 +293,7 @@ class LifecycleDesignGuidanceTests(unittest.TestCase):
         self.assertIn("`../../references/bounded-attempts.md`", dispatch.group(0))
         loads = self.section(worker, "## Packet-Supplied Contracts", "## Empirical Boundary")
         self.assert_groups(loads, (
-            ("packet-labeled `bounded-attempts.md`", "before empirical/repair-history accounting"),
+            ("packet-labeled `bounded-attempts.md`", "before handling empirical history or repair"),
             ("missing action-required label", "BLOCKED", "do not infer"),
         ), "cold planner history contract")
 
@@ -334,9 +334,9 @@ class LifecycleDesignGuidanceTests(unittest.TestCase):
         workflow = self.section(self.diagnose, "## Do", "## Load if needed")
         exact_contract = "${SUPER_DEVELOPER_PLUGIN_ROOT}/skills/diagnose-and-fix/references/fix-implementer-contract.md"
         self.assert_groups(workflow, (("mandatory post-fix", "review-code", exact_contract),
-                                     ("bounded-work contract", "round/progress history", "shared remaining rounds"),
+                                     ("bounded-work contract", "history", "limits"),
                                      ("never retry unchanged", "Normal", "not failed rounds"),
-                                     ("non-convergence", "exhausted effort", "not an", "automatic planning handoff")),
+                                     ("non-convergence", "limit", "not an", "automatic planning handoff")),
                            "diagnose lifecycle owner")
         stops = self.section(self.diagnose, "## Stop if", "## Output")
         self.assert_groups(stops, (("policy", "scope envelope", "malformed", "conflicting"),
@@ -396,8 +396,8 @@ class LifecycleDesignGuidanceTests(unittest.TestCase):
                                   ("structured actions/paths", "cannot grant", "`BLOCKED`")), "worker trust")
         packet = self.section(self.diagnose_worker, "## Required Packet", "## Exact Write Scope")
         self.assert_groups(packet, (("immutable `control` object", "parent-enumerated exact writable paths"),
-                                    ("Post-review common control", "policy", "repair-round ordinal", "positive integer",
-                                     "observed progress/next strategy", "shared remaining rounds"),
+                                    ("Post-review common control", "policy", "prior outcomes",
+                                     "observed progress/next strategy", "any applicable limit state"),
                                     ("exclusive union", "The other receipt must be absent"),
                                     ("Optional `proposal`", "untrusted findings", "never supplements `control`")), "worker schema")
         self.assertNotIn("ordinal `2|3`", packet)
