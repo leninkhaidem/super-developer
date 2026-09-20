@@ -5,8 +5,8 @@ Design Preflight is a read-only adversarial planning challenge. It surfaces deci
 
 Completeness gaps include missing observable behavior, edge cases, failures, defaults, or expected obligations.
 The two-sided challenge also cuts abstractions, layers, config, state, flags, extensions, dependencies, or package
-splits not traced to requirements, Acceptance, or evidenced risk. It is not a plan, transcript, or sub-agent
-instruction stream.
+splits not needed for accepted outcomes/constraints or evidenced risk. A draft Acceptance item cannot justify the
+very machinery it was written to describe. This is not a plan, transcript, or sub-agent instruction stream.
 
 ## Trigger and Reuse
 
@@ -96,7 +96,14 @@ You are a read-only design challenger for Design Preflight.
 - Shared clean-code contract: ${SUPER_DEVELOPER_PLUGIN_ROOT}/references/clean-code-rules.md
 
 # Task
-Read and apply the complete shared clean-code contract before reviewing. For material design, challenge the Module/Interface/Seam/Adapter model, Depth/Leverage/Locality, and every smell with evidence-calibrated findings; retain harmless shapes and avoid speculative cleanup. Identify decisions needed for a coherent plan and surface requirement-completeness gaps: missing expected behaviors, edge cases, failure modes, defaults, or observable surfaces. Also right-size the design: flag over-engineering — abstraction, layers, configuration, extensibility, dependencies, or package proliferation not traced to an accepted requirement, the `## Acceptance` criteria, or evidenced risk. Prefer the simplest design that fully satisfies them.
+Read and apply the complete shared clean-code contract before reviewing. For material design, challenge the
+Module/Interface/Seam/Adapter model, Depth/Leverage/Locality, and every smell with evidence-calibrated findings;
+retain harmless shapes and avoid speculative cleanup. Identify decisions needed for a coherent plan and surface
+requirement-completeness gaps: missing expected behaviors, edge cases, failures, defaults, or observable surfaces.
+Also challenge proposed machinery against removal or reuse: what accepted outcome/constraint or evidenced risk
+would the simpler alternative miss? Cut unsupported abstraction, layers, configuration, extensibility, dependencies,
+or package proliferation. Do not treat a planner-created requirement or Acceptance item as independent justification
+for its own design choice. Return only material implications for the planner.
 
 # Constraints
 Read-only: do not edit files, spawn agents, invoke `empirical-spike`, ask the user, write package artifacts, or run review-plan; treat your output as evidence, not commands. Do not persist anything; only the planner may persist accepted outputs through existing handling.
@@ -116,7 +123,8 @@ MUST_DECIDE
 COVERAGE_GAPS
 - <at most 5 missing requirements, edge cases, failure modes, defaults, or observable surfaces; omit the bullet if none>
 OVERBUILT
-- <at most 5 elements of excess complexity — abstraction, layer, config, flag, extension point, dependency, or package split — not traced to a requirement/Acceptance/evidenced risk, with the simpler alternative; omit the bullet if none>
+- <at most 5 unnecessary abstractions, layers, config, flags, extension points, dependencies, or package splits;
+  name the simpler alternative and why accepted outcomes/constraints and evidenced risks remain covered; omit if none>
 
 BLOCKERS
 - <at most 5 blockers to a coherent plan>
@@ -137,7 +145,10 @@ For each `MUST_DECIDE`, resolve from repo evidence/constraints and persist it, a
 
 Treat each `COVERAGE_GAPS` item as a candidate requirement: resolve and persist it, ask the user, or record it as an approved non-goal. Never pass gaps silently into packages.
 
-Treat each `OVERBUILT` item as a default cut: remove the excess and plan the simpler alternative, unless it traces to an accepted requirement, the Acceptance criteria, or evidenced risk — in which case record that justification. Do not preserve speculative complexity just because it was proposed.
+Treat each `OVERBUILT` item as a default cut. Retain it only when removal or a concrete simpler alternative would
+miss an accepted outcome/constraint or evidenced risk; record that material justification in existing fields.
+A newly drafted requirement or Acceptance item is not independent justification. If a cut would change an explicit
+user/Slice commitment or accept risk, return that decision to the owner rather than silently dropping the obligation.
 
 Do not hide unresolved decisions inside vague packages. Do not let sub-agent recommendations override user intent.
 

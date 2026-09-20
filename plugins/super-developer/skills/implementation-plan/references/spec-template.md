@@ -37,6 +37,9 @@ User-facing functional requirements and safe Slice-derived feature requirements.
 
 ## Acceptance
 Feature-level definition of success: the end-to-end checks that prove the whole feature actually works.
+Select distinct integrated outcomes rather than mechanically copying package items or individual test cases.
+Reuse a package check when it proves the integrated outcome; supporting cases stay in referenced tests/scenarios.
+Retain every required feature-level behavior and risk.
 This is the final delivery gate — the feature is delivered only when every check here passes on the integrated
 code. **Executable-by-default:** each item is a runnable check (command, test id, or observable output). An item
 that genuinely cannot be automated is allowed only as an explicit human-approved manual-verification exception,

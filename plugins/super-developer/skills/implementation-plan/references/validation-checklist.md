@@ -36,6 +36,10 @@ Write nothing until every applicable item passes:
   and reported.
 - Semgrep state is resolved before delegation. Enabled setup names clone/pull effects; disabled requires no scan or
   internet; authoring performed no broad/raw scan.
+- Proposed deliverable machinery passed the authoring contract's removal/reuse challenge, including settled
+  designs. New state, interfaces, policy propagation, dependencies, or configuration address accepted outcomes or
+  evidenced risks that a simpler alternative would miss. A planner-created requirement/check does not justify its
+  own mechanism. Required behavior and safeguards remain; changes to approved constraints return to the owner.
 - Package boundaries are coherent and dependency-safe, expose shared files/contracts/risks/visible surfaces and
   Slice obligations, and reflect semantic closure complexity plus fixed package-gate cost. Counts are warnings, not
   thresholds. Do not split tiny/tightly coupled edits for agent count or serialize substantial independent packages
@@ -51,8 +55,10 @@ Confirm that it:
 
 - contains every approved feature requirement, constraint, non-goal, acceptance criterion, and deferral without
   invented behavior, architecture, non-functional targets, or success conditions;
-- has non-empty executable `## Acceptance`, except explicitly approved `manual (approved)` items surfaced at plan
-  review;
+- has non-empty `## Acceptance` covering distinct integrated outcomes without mechanically copying all package
+  cases. Reused package checks actually prove those integrated outcomes. Checks satisfy Acceptance Design and reject
+  plausible wrong behavior, rather than merely execute successfully. Non-executable items are explicitly approved
+  `manual (approved)` exceptions surfaced at plan review;
 - has factual approved `## Trust Context` covering actors, trust boundary, data sensitivity, and deployment surface;
   no excluded dimension is relied on by a requirement or Slice;
 - contains no secrets/PII, implementation code or pseudocode, line numbers, result rows, findings, transcripts, or
@@ -70,9 +76,13 @@ For every package, confirm:
 - assigned Slice paths/H3 IDs exist in the full inventory. Closure obligations are `Must satisfy`; `Context only`
   gives a real reason and hides no work;
 - `## Acceptance Checklist` completely covers every `Must satisfy` obligation and material expectation. Each item
-  has one claim, observable boundary, primary executable check, and failure condition, or is an approved manual
-  exception. Unrelated chained claims fail. A forbidden-behavior item includes `rejects:` naming a counterfeit its
-  check fails; structural checks explain why no observable consequence exists;
+  has one coherent claim, observable boundary, meaningful primary check, and failure condition, or is an approved
+  manual exception. Cases for one claim may share an item; unrelated chained outcomes fail. Duplicate outcomes and
+  implementation-detail-only obligations were removed without losing distinct failure coverage. A plausible wrong
+  implementation would fail the check. A forbidden-behavior item includes `rejects:` naming that counterfeit;
+- structural/wording checks claim only the artifact properties they inspect, never runtime or agent behavior by
+  proxy. Broader claims have representative behavioral/scenario evidence or an explicitly approved manual check;
+  no weak executable substitute hides missing automation;
 - checklist items exclude publication, final review/audit, delivery, release/deploy, and post-delivery validation;
 - expectations are package-specific, observable, and cover applicable edge/failure/default/security/privacy/data/
   concurrency/performance/lifecycle/audience cases. One `not-applicable:` line may use only SPEC-excluded dimensions
