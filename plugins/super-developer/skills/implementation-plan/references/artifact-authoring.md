@@ -2,35 +2,56 @@
 
 ## Contract
 
-Apply the packet-labeled canonical artifact model before drafting. Write `.tasks/`, Slice inventory, and declared
-result paths under the artifact root; source/plugin/test paths are code-root-relative. `tasks.json` is bookkeeping,
-package Markdown is the assignment authority, and each `report_path` names the later independent result. Return
-`BLOCKED` if the contract label or safe write authority is missing.
+Use this contract while choosing deliverable mechanisms and acceptance checks, including settled designs and
+continuations. Before drafting registry/package files, apply the packet-labeled canonical artifact model; it owns
+file shapes and templates. Write `.tasks/`, Slice inventory, and declared result paths under the artifact root;
+source/plugin/test paths are code-root-relative. Registry is bookkeeping, package Markdown owns assignment, and
+`report_path` names the later independent result. Missing contract labels or safe write authority are `BLOCKED`.
+
+## Smallest Complete Deliverable
+
+- Separate required outcomes and approved constraints from suggested mechanisms. A variable, class, flag, or
+  architectural sketch does not become a requirement merely by appearing in a discussion or earlier draft.
+  Preserve explicit user/Slice commitments; propose changes to those through the existing decision route.
+- Start with the existing owning code and a concrete end-to-end path. Prefer reuse or a local change when it meets
+  the accepted behavior and risks; do not copy an existing defect or force reuse across an unsuitable boundary.
+- For non-obvious added state, markers, abstractions, configuration, dependencies, retry policies, or extension
+  points, compare removal or reuse with the proposal: what accepted outcome or evidenced failure would the simpler
+  alternative miss? If none, cut the addition. A new requirement/check written to describe that addition is not
+  independent justification. Hypothetical future needs, agent convenience, and ease of checking are insufficient.
+- Keep policy and mutable state with the appropriate owner. Pass policy details across an interface only when the
+  consumer's behavior needs them. Where correctness depends on a check and subsequent action, avoid splitting their
+  authority or creating a check-then-act gap; reuse an existing safe operation before adding coordination machinery.
+- Retain necessary validation, security, failure handling, compatibility, and verification. Small changes can be
+  high risk. If simplification changes approved behavior, scope, or risk acceptance, stop for the owner to decide.
+- Apply this reasoning while drafting, not as another review stage. Record only material decisions and rejected
+  simpler alternatives in existing Scope/Notes; create no per-element justification ledger or new artifact.
+
+## Acceptance Design
+
+Apply to feature Acceptance and package checklists:
+
+- Derive checks from required outcomes, approved constraints, and evidenced risks—not from every sentence or step
+  in the proposed implementation. Keep implementation instructions in Scope/Notes and test details in tests.
+- One item owns one coherent behavioral claim at an observable boundary. Success, failure, and boundary cases for
+  that claim may share an item and a parameterized test or scenario suite. Split independently meaningful outcomes,
+  not every assertion, input, phrase, or case. Preserve coverage of every material obligation.
+- For each behavioral claim, identify a plausible wrong implementation and how the proposed check would reject it.
+  Use the existing expected-result/failure description; no extra per-item field is required. A command that runs
+  successfully but also passes for that wrong implementation is not adequate evidence.
+- A grep or structure check proves only the literal artifact property it inspects. It is appropriate when that
+  property is itself required, or as supporting evidence; it cannot prove runtime behavior, agent decisions, or
+  enforcement merely because their descriptions appear in a file. Use a representative behavior/scenario check
+  for those claims, or surface a precise `manual (approved)` verification for user approval. Do not invent a weak
+  executable substitute to avoid acknowledging an automation gap. If no legitimate check meets the existing
+  executable package floor, return a feasibility blocker rather than inventing an obligation to satisfy it.
+- Review the resulting set for duplicated outcomes, supporting test cases promoted into obligations, and checks
+  that only enforce an unnecessary design choice. Consolidate without losing distinct failure coverage. There is
+  no numerical cap; a large set needs distinct outcomes/risks, not repeated wording checks or process completion rows.
 
 ## Registry
 
-```json
-{
-  "feature": "<feature-name>",
-  "title": "Human-readable title",
-  "status": "planned",
-  "spec_path": ".tasks/<feature-name>/SPEC.md",
-  "authoritative_slices": [
-    ".planning/<concept-slug>/slices/<slice-name>.md"
-  ],
-  "work_packages": [
-    {
-      "id": "WP1",
-      "path": ".tasks/<feature-name>/packages/WP1.md",
-      "report_path": ".tasks/<feature-name>/reports/WP1.package-verification.md",
-      "status": "pending",
-      "depends_on": []
-    }
-  ]
-}
-```
-
-Rules:
+Use the supplied canonical registry template with these authoring rules:
 
 - `feature` matches the safe slug and `.tasks/<feature>/`; a Conceptualize slug changes only with approved
   migration metadata. `spec_path` names the written SPEC.
@@ -44,51 +65,19 @@ Rules:
 - All artifact paths are artifact-root-relative POSIX paths. Reject absolute, traversal, home, drive-qualified,
   empty-segment, symlink-escape, or out-of-root paths.
 
-## Package Template
+## Package Assignment
+
+Use the supplied canonical package template and Slice-assignment shape. Write `- None.` when no Slice or dependency
+applies. The helper requires `Scope`, `Assigned Slices`, `Primary Paths`, `Verification Expectations`,
+`Package Verification Report`, and `Dependencies`; Notes is optional. Acceptance is the frozen closed package
+done-definition. Keep deferrals, verification-profile reasons, repair constraints, and sequencing rationale in Notes.
+
+Retain these specialized Acceptance forms where applicable:
 
 ```md
-# Work Package: WP1 — <title>
-
-## Scope
-<Owned outcome, boundaries, caller contracts, visible surfaces, and excluded nearby work.>
-
-## Assigned Slices
-- None.
-
-## Primary Paths
-- `path/to/inspect/first`
-
-## Verification Expectations
-- <Package-specific command, inspection, risk/interface case, or approved manual observation.>
-
-## Acceptance Checklist
-- AC-1: <one outcome> — check: `<command or test id>` — expected: <observable pass condition>
 - AC-2: <non-automatable outcome> — check: manual (approved) — verify: <step and expected result>
 - AC-3: <forbidden behavior outcome> — check: `<test id>` — expected: <pass condition>
   — rejects: <wrong-but-plausible implementation this check fails against>
-
-## Package Verification Report
-- `.tasks/<feature-name>/reports/WP1.package-verification.md`
-
-## Dependencies
-- None.
-
-## Notes
-- Optional: deferrals; verification profile and evidence/risk reason; execution/replan constraints; sequencing.
-```
-
-The helper requires `Scope`, `Assigned Slices`, `Primary Paths`, `Verification Expectations`, `Package Verification
-Report`, and `Dependencies`; Notes is optional. Acceptance is the frozen closed package done-definition.
-
-For each assigned Slice, replace `- None.` with:
-
-```md
-### `.planning/<concept-slug>/slices/<slice-name>.md`
-Must satisfy:
-- `<H3-ID>` — <title or short obligation>
-
-Context only:
-- `<H3-ID>` — <why closure belongs elsewhere or is unnecessary>
 ```
 
 ## Authoring Rules
@@ -102,10 +91,9 @@ Context only:
 - `Must satisfy` IDs are closure obligations represented by Acceptance items. `Context only` requires a concrete
   reason and cannot hide work. Every material H3 in the full inventory is assigned, justified as context, or
   durably approved as deferred/out of scope/rejected/narrowed.
-- Every material expectation and `Must satisfy` obligation is covered by a concrete executable Acceptance item or
-  an explicit user-approved `manual (approved)` exception. Coverage may be many-to-one only for facets of one claim.
-- Make each item atomic: one behavioral claim, observable boundary, primary check, and failure condition. Split
-  unrelated concerns, subsystems, resource limits, or independent assertions.
+- Every material expectation and `Must satisfy` obligation is covered by an Acceptance item satisfying Acceptance
+  Design above: a meaningful executable check or an explicit user-approved `manual (approved)` exception. Coverage
+  may be many-to-one for facets/cases of one behavioral claim, never to hide unrelated outcomes.
 - An item proving a Slice `Forbidden behaviors` clause names `rejects:` with a counterfeit implementation its check
   would fail. Prefer observable consequences over structural assertions. Use implementation structure only when no
   observable signal exists, and state why.
@@ -143,7 +131,8 @@ Disabled Semgrep imposes no setup, scan, or internet requirement. When enabled, 
 
 ## Fail Closed
 
-Do not write when a required section/result path is absent; assignment is hidden in the registry; checklist
-coverage, atomicity, executability, or forbidden-behavior falsification fails; a Slice obligation is hidden; visible
-surfaces or audience checks are missing; expectations are boilerplate; dependencies are inconsistent; or the
-package cannot be independently verified through its declared report.
+Do not write when proposed machinery lacks a required outcome/evidenced-risk justification; a required section or
+result path is absent; assignment is hidden in the registry; checklist coverage, atomicity, meaningful verification,
+or forbidden-behavior falsification fails; a Slice obligation is hidden; visible surfaces or audience checks are
+missing; expectations are boilerplate; dependencies are inconsistent; or the package cannot be independently
+verified through its declared report. Return approval conflicts rather than silently cutting required behavior.

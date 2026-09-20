@@ -37,6 +37,8 @@ accepted empirical reports or explicit `none`.
 - Apply the complete shared Module/Interface/Seam model and all smell heuristics while shaping packages. Persist
   only material, requirement/risk-traced implications in existing artifact fields; create no quality ledger or
   per-smell rows.
+- During ordinary drafting, apply `references/artifact-authoring.md` to challenge deliverable machinery and
+  acceptance-check quality. Settled design does not skip this reasoning; it adds no reviewer, phase, or report.
 - Keep artifact root/ref, code root, and resolved slug explicit throughout. A Conceptualize slug remains the default
   without approved rename/migration metadata.
 - Resolve Semgrep before planner dispatch. Disabled means no setup, scan, or internet. For direct initial planning,
@@ -100,8 +102,8 @@ accepted empirical reports or explicit `none`.
 - Consequential unresolved design decisions → `references/design-preflight.md`
 - Package shaping → `../../references/work-packages.md`
 - SPEC drafting → `references/spec-template.md`
-- Registry/package/result declarations → `references/artifact-authoring.md` and
-  `../../references/slice-first-artifacts.md`
+- Deliverable design and Acceptance shaping → `references/artifact-authoring.md`
+- Registry/package/result declarations → `../../references/slice-first-artifacts.md`
 - Before writes and completion claims → `references/validation-checklist.md`
 - Helper syntax or command safety is unclear → `../../references/tool-usage.md`
 - Semgrep preference, setup, or evidence applies → `../../references/semgrep.md`
