@@ -2,7 +2,8 @@
 
 Each test drives real git in a throwaway repository and asserts the observable
 outcome of a git command recipe hardcoded in this file (ref creation/teardown
-ordering, --no-track isolation, portable index digests, moved-base rejection).
+ordering, --no-track isolation, portable index digests, moved-base rejection,
+and safe local synchronization with a filesystem-only remote).
 
 Scope limit: the recipes are duplicated here, never extracted from the skill
 markdown, so these tests do not verify that any prompt still prescribes them.
@@ -218,6 +219,218 @@ test "$(git rev-parse "$BASE_REF")" = "$EXPECTED_BASE_SHA"
                 ["git", "-C", str(repo), "show-ref", "--verify", "--quiet", "refs/heads/wp/demo/WP2"], check=False
             )
             self.assertNotEqual(branch.returncode, 0)
+
+
+class PrTargetSynchronizationTests(unittest.TestCase):
+    """Real Git primitives, not a simulation of GitHub or agent decisions."""
+
+    def setUp(self) -> None:
+        temp = tempfile.TemporaryDirectory()
+        self.addCleanup(temp.cleanup)
+        self.root = Path(temp.name)
+        self.env = {key: value for key, value in os.environ.items() if not key.startswith("GIT_")}
+        self.env.update({
+            "GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": os.devnull,
+            "GIT_TERMINAL_PROMPT": "0", "GIT_ALLOW_PROTOCOL": "file",
+        })
+        self.base = "release/next"
+        self.ref = f"refs/heads/{self.base}"
+        self.tracking = f"refs/remotes/pr-target/{self.base}"
+        self.remote = self.root / "remote.git"
+        self.producer = self.root / "remote writer"
+        self.repo = self.root / "local"
+        self.git(self.root, "init", "--bare", "-q", str(self.remote))
+        self.git(self.root, "init", "-q", "-b", self.base, str(self.producer))
+        self.commit(self.producer, "seed", "seed\n")
+        self.git(self.producer, "remote", "add", "pr-target", str(self.remote))
+        self.git(self.producer, "push", "-q", "pr-target", f"HEAD:{self.ref}")
+        self.git(self.root, "clone", "-q", "--origin", "pr-target", "--branch", self.base,
+                 str(self.remote), str(self.repo))
+        self.old = self.sha(self.repo)
+        self.commit(self.producer, "accepted", "merged PR\n")
+        self.merged = self.sha(self.producer)
+        self.git(self.producer, "push", "-q", "pr-target", f"HEAD:{self.ref}")
+
+    def git(self, repo: Path, *args: str, check: bool = True,
+            input_text: str | None = None) -> subprocess.CompletedProcess[str]:
+        return subprocess.run(
+            ["git", "-c", "core.hooksPath=/dev/null", "-c", "submodule.recurse=false",
+             "-c", "commit.gpgsign=false", "-c", "user.name=Contract Test",
+             "-c", "user.email=test@example.com", "-C", str(repo), *args],
+            env=self.env, check=check, text=True, input=input_text, capture_output=True, timeout=15,
+        )
+
+    def sha(self, repo: Path, ref: str = "HEAD") -> str:
+        return self.git(repo, "rev-parse", ref).stdout.strip()
+
+    def commit(self, repo: Path, path: str, content: str) -> None:
+        (repo / path).write_text(content, encoding="utf-8")
+        self.git(repo, "add", "--", path)
+        self.git(repo, "commit", "-qm", path)
+
+    def fetch_target(self) -> str:
+        self.git(self.repo, "fetch", "-q", "--no-tags", "--no-recurse-submodules", "--refmap=",
+                 "pr-target", f"{self.ref}:{self.tracking}")
+        target = self.sha(self.repo, self.tracking)
+        self.git(self.repo, "merge-base", "--is-ancestor", self.merged, target)
+        return target
+
+    def checked_out_ff(self, worktree: Path, old: str, target: str) -> subprocess.CompletedProcess[str]:
+        # Identity/cleanliness/ancestry plus the actual FF primitive; policy must
+        # separately resolve occupancy, authority and merge status before this.
+        script = r'''
+set -euo pipefail
+g() { git -c core.hooksPath=/dev/null -c submodule.recurse=false -C "$WT" "$@"; }
+test "$(g symbolic-ref -q HEAD)" = "$BASE_REF"
+test "$(g rev-parse HEAD)" = "$OLD"
+g diff --quiet HEAD --
+g diff --cached --quiet
+g merge-base --is-ancestor "$OLD" "$TARGET"
+g merge --ff-only --no-autostash --no-overwrite-ignore "$TARGET"
+test "$(g rev-parse HEAD)" = "$TARGET"
+'''
+        return subprocess.run(
+            ["bash", "-c", script], cwd=self.root,
+            env={**self.env, "WT": str(worktree), "BASE_REF": self.ref, "OLD": old, "TARGET": target},
+            check=False, text=True, capture_output=True, timeout=15,
+        )
+
+    def test_non_main_base_ff_preserves_untracked_ignored_files_and_skips_hooks(self) -> None:
+        target = self.fetch_target()
+        (self.repo / ".pi").mkdir()
+        (self.repo / ".pi/session").write_text("keep\n", encoding="utf-8")
+        (self.repo / ".git/info/exclude").write_text("ignored\n", encoding="utf-8")
+        (self.repo / "ignored").write_text("keep ignored\n", encoding="utf-8")
+        hook = self.repo / ".git/hooks/post-merge"
+        hook.write_text('#!/bin/sh\nprintf invoked > "$PWD/hook-ran"\n', encoding="utf-8")
+        hook.chmod(0o755)
+        result = self.checked_out_ff(self.repo, self.old, target)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.sha(self.repo), self.merged)
+        self.assertEqual(self.sha(self.repo, self.tracking), target)
+        self.assertEqual(self.git(self.repo, "symbolic-ref", "HEAD").stdout.strip(), self.ref)
+        self.assertEqual((self.repo / ".pi/session").read_text(), "keep\n")
+        self.assertEqual((self.repo / "ignored").read_text(), "keep ignored\n")
+        self.assertFalse((self.repo / "hook-ran").exists())
+
+    def test_linked_base_updates_without_switching_or_editing_unrelated_current_branch(self) -> None:
+        self.git(self.repo, "switch", "-qc", "feature/topic")
+        (self.repo / "seed").write_text("user edit\n", encoding="utf-8")
+        before_index = self.git(self.repo, "ls-files", "--stage", "-z").stdout
+        checkout = self.root / "base checkout\nwith space"
+        self.git(self.repo, "worktree", "add", "-q", str(checkout), self.base)
+        records = self.git(self.repo, "worktree", "list", "--porcelain", "-z").stdout.split("\0\0")
+        owners = [record for record in records if f"branch {self.ref}\0" in record + "\0"]
+        self.assertEqual(len(owners), 1)
+        self.assertEqual(owners[0].split("\0")[0], f"worktree {checkout}")
+        self.git(self.repo, "config", "remote.pr-target.fetch", f"{self.ref}:refs/heads/feature/topic")
+        target = self.fetch_target()
+        result = self.checked_out_ff(checkout, self.old, target)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.sha(checkout), target)
+        self.assertEqual(self.sha(self.repo), self.old)
+        self.assertEqual(self.git(self.repo, "symbolic-ref", "HEAD").stdout.strip(), "refs/heads/feature/topic")
+        self.assertEqual((self.repo / "seed").read_text(), "user edit\n")
+        self.assertEqual(self.git(self.repo, "ls-files", "--stage", "-z").stdout, before_index)
+
+    def test_dirty_and_staged_target_are_preserved(self) -> None:
+        target = self.fetch_target()
+        (self.repo / "seed").write_text("local changes\n", encoding="utf-8")
+        for staged in (False, True):
+            with self.subTest(staged=staged):
+                if staged:
+                    self.git(self.repo, "add", "seed")
+                index = self.git(self.repo, "ls-files", "--stage", "-z").stdout
+                result = self.checked_out_ff(self.repo, self.old, target)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertEqual(self.sha(self.repo), self.old)
+                self.assertEqual((self.repo / "seed").read_text(), "local changes\n")
+                self.assertEqual(self.git(self.repo, "ls-files", "--stage", "-z").stdout, index)
+
+    def test_divergence_and_local_ahead_do_not_reset_local_commits(self) -> None:
+        target = self.fetch_target()
+        self.commit(self.repo, "local", "local commit\n")
+        local = self.sha(self.repo)
+        result = self.checked_out_ff(self.repo, local, target)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(self.sha(self.repo), local)
+        # A local-ahead ref is likewise not a fast-forward to its older ancestor.
+        result = self.checked_out_ff(self.repo, local, self.old)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(self.sha(self.repo), local)
+
+    def test_untracked_and_ignored_collisions_are_not_overwritten(self) -> None:
+        target = self.fetch_target()
+        collision = self.repo / "accepted"
+        collision.write_text("user data\n", encoding="utf-8")
+        for ignored in (False, True):
+            with self.subTest(ignored=ignored):
+                if ignored:
+                    (self.repo / ".git/info/exclude").write_text("accepted\n", encoding="utf-8")
+                result = self.checked_out_ff(self.repo, self.old, target)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertEqual(self.sha(self.repo), self.old)
+                self.assertEqual(collision.read_text(), "user data\n")
+
+    def test_ignored_directory_collision_preserves_nested_user_data(self) -> None:
+        target = self.fetch_target()
+        (self.repo / "accepted").mkdir()
+        retained = self.repo / "accepted/user-data"
+        retained.write_text("keep nested data\n", encoding="utf-8")
+        (self.repo / ".git/info/exclude").write_text("accepted/\n", encoding="utf-8")
+        result = self.checked_out_ff(self.repo, self.old, target)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(self.sha(self.repo), self.old)
+        self.assertEqual(retained.read_text(), "keep nested data\n")
+
+    def test_unoccupied_ref_ff_create_and_stale_cas_leave_current_head_untouched(self) -> None:
+        self.git(self.repo, "switch", "-qc", "feature/topic")
+        target = self.fetch_target()
+        self.git(self.repo, "merge-base", "--is-ancestor", self.old, target)
+        self.git(self.repo, "update-ref", "--no-deref", self.ref, target, self.old)
+        stale = self.git(self.repo, "update-ref", "--no-deref", self.ref, self.old, self.old, check=False)
+        self.assertNotEqual(stale.returncode, 0)
+        self.assertEqual(self.sha(self.repo, self.ref), target)
+        self.assertEqual(self.sha(self.repo), self.old)
+        self.git(self.repo, "update-ref", "--no-deref", "-d", self.ref, target)
+        self.git(self.repo, "update-ref", "--stdin", input_text=f"option no-deref\ncreate {self.ref} {target}\n")
+        duplicate = self.git(self.repo, "update-ref", "--stdin", check=False,
+                             input_text=f"option no-deref\ncreate {self.ref} {self.old}\n")
+        self.assertNotEqual(duplicate.returncode, 0)
+        self.assertEqual(self.sha(self.repo, self.ref), target)
+        self.assertEqual(self.sha(self.repo), self.old)
+        self.assertEqual(self.git(self.repo, "symbolic-ref", "HEAD").stdout.strip(), "refs/heads/feature/topic")
+
+    def test_failed_fetch_or_missing_merge_ancestry_cannot_use_a_stale_snapshot(self) -> None:
+        failed = self.git(self.repo, "fetch", "--no-tags", str(self.root / "absent.git"), self.ref, check=False)
+        self.assertNotEqual(failed.returncode, 0)
+        self.assertEqual(self.sha(self.repo), self.old)
+        self.assertEqual(self.sha(self.repo, self.tracking), self.old)
+        self.fetch_target()
+        omitted_merge = self.git(self.repo, "merge-base", "--is-ancestor", self.merged, self.old, check=False)
+        self.assertNotEqual(omitted_merge.returncode, 0)
+        self.assertEqual(self.sha(self.repo), self.old)
+
+    def test_live_remote_advance_is_detected_after_local_ff(self) -> None:
+        target = self.fetch_target()
+        result = self.checked_out_ff(self.repo, self.old, target)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.commit(self.producer, "later", "later remote change\n")
+        self.git(self.producer, "push", "-q", "pr-target", f"HEAD:{self.ref}")
+        live = self.git(self.repo, "ls-remote", "--heads", "pr-target", self.ref).stdout.split()[0]
+        self.assertNotEqual(self.sha(self.repo, self.ref), live)
+        self.assertEqual(self.sha(self.repo), target, "Keep the completed FF; do not claim final equality or reset")
+
+    def test_occupied_review_destination_retains_detached_recovery_commit(self) -> None:
+        checkout = self.root / "pr-review/7"
+        self.git(self.repo, "worktree", "add", "-q", "--detach", str(checkout), self.old)
+        self.commit(checkout, "recovery", "prior session\n")
+        retained = self.sha(checkout)
+        attempt = self.git(self.repo, "worktree", "add", "--detach", str(checkout), self.old, check=False)
+        self.assertNotEqual(attempt.returncode, 0)
+        self.assertEqual(self.sha(checkout), retained)
+        self.assertEqual((checkout / "recovery").read_text(), "prior session\n")
+        self.assertEqual(self.sha(self.repo), self.old)
 
 
 if __name__ == "__main__":

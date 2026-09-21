@@ -2,7 +2,9 @@
 
 Load before removal, pushes, target merge, or teardown. For planned-feature source publication, use the loaded
 source-publication packet. Every block is fresh Bash with `set -euo pipefail`; failed proof stops later SHA capture,
-push, removal, or deletion. Root checkout files/index remain untouched.
+push, removal, or deletion. Root checkout files/index remain untouched except under the exact owning exceptions
+listed in worktree's Always rules. This reference grants no root authority: review-code's verified post-PR base
+sync is distinct from non-root target integration/push below; it never implies source-branch deletion.
 
 ## Cleanup Authority Binding
 

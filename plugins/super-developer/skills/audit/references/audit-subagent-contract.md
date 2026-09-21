@@ -71,8 +71,9 @@ semantically insufficient evidence. Real correctness/security/data-loss/contract
 
 ## Optional Review Context
 
-Audit may run without review context. When supplied, bind it to this feature/freeze and inspect `mode: pipeline`,
-`state: ready_for_audit`, `findings.open_serious`, and `closure_status.ready_for_audit`/`proofs_and_reports_fresh`.
+Audit may run without review context. When supplied, read the existing Markdown review report and bind its
+pipeline identity and reviewed state to this feature/freeze. Inspect its verdict, open blocking findings,
+evidence/refresh scope, feature Acceptance status, and audit readiness; no separate structured state object is required.
 Absent/non-clean context alone does not fail audit;
 contradictory evidence or requested reliance on unsafe/stale context does. Delivery still requires independent
 same-freeze review-code `CLEAN` and audit `PASS`; neither check declares the other or authorizes merge/publication.
