@@ -322,6 +322,14 @@ class LifecycleDesignGuidanceTests(unittest.TestCase):
         self.assertTrue(all(x in pipeline for x in bounded_test_review))
         self.assertTrue(all(x in audit_worker for x in bounded_test_review))
         self.assertIn("forged, hollow, or semantically insufficient evidence", audit_worker)
+        optional_review = self.section(audit_worker, "## Optional Review Context", "## Report and Repair Handback")
+        self.assert_groups(optional_review, (
+            ("existing Markdown review report", "pipeline identity", "reviewed state", "feature/freeze"),
+            ("verdict", "open blocking findings", "evidence/refresh scope", "audit readiness"),
+            ("Absent/non-clean context alone does not fail", "contradictory evidence", "unsafe/stale context"),
+        ), "optional review report consumer")
+        for retired_field in ("findings.open_serious", "closure_status.", "state: ready_for_audit"):
+            self.assertNotIn(retired_field, optional_review)
         self.assertFalse((PLUGIN_ROOT / "skills/codebase-design").exists())
 
     def test_diagnose_owns_authorization_progress_and_stops(self) -> None:
@@ -382,13 +390,36 @@ class LifecycleDesignGuidanceTests(unittest.TestCase):
 
     def test_main_review_and_review_worker_preserve_caller_ownership(self) -> None:
         gate = self.section(self.review, "## Fix Verification Gate", "## Stop if")
-        self.assert_groups(gate, (("caller-owned local repair", "untrusted repair", "accepted-fix receipt"),
+        self.assert_groups(gate, (("review-owned local/pipeline repair", "read `references/fix-implementer-contract.md`",
+                                   "before constructing its packet", "or validating its return"),
+                                  ("caller-owned local repair", "untrusted repair", "accepted-fix receipt"),
                                   ("owner validates", "authoritative control"),
                                   ("Review-code/Main", "never builds", "edits caller-owned repair"),
                                   ("Only for review-owned", "trivial behavior-preserving")), "main review ownership")
         boundary = self.section(self.review_worker, "# Review-Code Fix Implementer Contract", "## Role and Authority")
         self.assert_groups(boundary, (("caller-owned local repair", "inoperative", "untrusted proposal", "not an authoritative packet", "no inline-edit path"),),
                            "review worker boundary")
+
+    def test_pr_merge_keeps_reviewed_head_ownership_and_local_sync_contract(self) -> None:
+        # Placement guards only; Git primitive behavior is tested separately.
+        pr = (PLUGIN_ROOT / "skills/review-code/references/pr-workflow.md").read_text(encoding="utf-8")
+        setup = self.section(pr, "## Setup and Reviewed State", "## Preview and Action Keywords")
+        setup_commands = "\n".join(re.findall(r"```bash\n(.*?)```", setup, re.S))
+        self.assertNotIn("worktree remove", setup_commands)
+        self.assert_groups(setup, (("collision", "Preserve it and stop", "REVIEWED_HEAD"),), "PR setup")
+        merge = self.section(pr, "## Merge Action", "## Safe Local Base Synchronization")
+        merge_commands = "\n".join(re.findall(r"```bash\n(.*?)```", merge, re.S))
+        self.assertIn('--match-head-commit "$REVIEWED_HEAD"', merge_commands)
+        self.assertNotIn("--delete-branch", merge_commands)
+        sync = self.section(pr, "## Safe Local Base Synchronization", "## Cleanup and Blanket Mode")
+        self.assert_groups(sync, (
+            ("MERGE_SHA", "SNAPSHOT", "merge-base --is-ancestor"),
+            ("--ff-only --no-autostash --no-overwrite-ignore", "update-ref --no-deref"),
+            ("PR merged; local synchronization blocked", "Resume only synchronization"),
+        ), "PR target synchronization")
+        cleanup = self.section(pr, "## Cleanup and Blanket Mode")
+        self.assert_groups(cleanup, (("this invocation's successfully created", "exact captured matches",
+                                      "never force", "No cleanup on setup collision"),), "PR cleanup ownership")
 
     def test_worker_owns_control_schema_receipt_union_and_scope(self) -> None:
         role = self.section(self.diagnose_worker, "## Role and Authority", "## Required Packet")

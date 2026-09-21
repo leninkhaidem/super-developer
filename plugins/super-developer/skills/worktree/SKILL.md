@@ -14,8 +14,10 @@ spike, integration, target-merge, and artifact-sidecar work.
 
 - Root files/index are user-owned: never switch, merge, reset, stash, clean, force, or deliver there. Commands may run
   from `$PROJECT_ROOT` to create/remove approved non-root worktrees/refs. Exact root exceptions: authorized gitignored
-  creation of `$PROJECT_ROOT/.superdeveloper/preferences.yml`, and an approved Release Contract post-release fetch plus
-  fast-forward of the canonical checkout already on the base branch. Neither permits unrelated root edits or switching.
+  creation of `$PROJECT_ROOT/.superdeveloper/preferences.yml`; approved Release Contract post-release fetch plus
+  fast-forward of the canonical checkout already on its base; and review-code's explicitly authorized PR merge with
+  verified remote merge followed by safe local base synchronization, only on a checkout already on that bound base.
+  These exceptions permit no unrelated root edits, switching, or general root development/delivery.
 - Resolve the primary root with the NUL-safe common-directory procedure below; `--show-toplevel` alone may be a linked
   worktree and must not anchor nested `.worktrees/`.
 - Keep agent-managed checkouts under `$PROJECT_ROOT/.worktrees/`; ensure `.worktrees/` is ignored.
@@ -31,7 +33,8 @@ spike, integration, target-merge, and artifact-sidecar work.
   task approval may authorize one diagnostic probe. Both bind base/ref/path, effects, cleanup, clean state, manifests,
   and `remote_action=none`; neither grants package cleanup, root/remote/force, other namespace, or arbitrary authority.
 - Other planned setup may propose `main` only when its contract allows. Bugfix/hotfix/spike bases are explicit and
-  never inferred. Branches checked out in one worktree are locked; create separate refs instead of reusing checkouts.
+  never inferred. Outside the exact root exceptions above, checked-out branches are locked; create separate refs
+  instead of reusing checkouts.
 - Stabilize each accepted package in a local recovery commit/ref and retain active or retired package worktrees/refs
   through final gates. Whole-feature cleanup removes one only after exact proofs show its tip is integrated, or a
   continuation tip equals its bound creation base.
@@ -72,7 +75,8 @@ linked worktree.
 ## Do
 
 1. Identify the workflow: planned-feature package, planned production-hotfix package, localized bugfix/hotfix,
-   disposable probe, auto-resolve dynamic resource, cleanup, source push, or target merge.
+   disposable probe, auto-resolve dynamic resource, cleanup, source push, target merge, or bound post-PR base sync.
+   For post-PR sync, review-code owns the merge/sync contract; this skill resolves root and enforces safety.
 2. Resolve root, state, refs, and paths. Probe creation validates its envelope or exact current-task approval, then
    records a receipt; cleanup validates both authority and receipt. Other base/target refs are never inferred.
 3. For planned-feature artifacts, load `../../references/artifact-store.md`; create/resume a sidecar only when an
@@ -128,6 +132,10 @@ and report it. No package cleanup occurs before final gates.
   with recovery refs retained. Sidecar and planned-hotfix pushes stay separately gated.
 - Target merge binds source/pre-target SHAs, snapshot, strategy, and non-root worktree. Target push separately binds
   result and expected remote SHA; exact lease plus ancestry enforces compare-and-swap without non-FF rewrite.
+- An explicit review-code PR merge includes its displayed repository/remote/base synchronization target, not another
+  prompt. Only after verified remote merge may the exact base advance FF-only in its existing safe checkout, or by
+  direct-ref CAS when unoccupied. No switching, reset/stash/clean/force, source deletion, or independent target push.
+  Preserve local edits/commits and unrelated worktrees; unsafe sync reports remote merge success separately.
 - Cleanup binds path/HEAD/index/state, direct ref/SHA, landing/base ancestry when required, ownership, and action.
   Probe cleanup records `remote_action=none`; normal delivery cleanup retains separate remote-state bindings.
 - Remote branch deletion is never implied by local cleanup, target merge, feature push, or sidecar push. Release may
@@ -137,7 +145,7 @@ and report it. No package cleanup occurs before final gates.
 
 ## Stop if
 
-- Root checkout files/index would be switched, used as delivery checkout, or written except for the two root exceptions.
+- Root files/index would be switched, used as delivery checkout, or written outside the exact Always exceptions.
 - `.worktrees/` is not ignored and cannot be safely ignored.
 - Base, feature, target, artifact, package, worktree path, or cleanup namespace is ambiguous.
 - A branch is already checked out elsewhere and no playbook alternative applies.

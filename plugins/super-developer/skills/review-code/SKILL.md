@@ -92,9 +92,10 @@ Otherwise delegate an unambiguous fix when the mode permits it.
 
 ## Fix Verification Gate
 
-Every review-owned local/pipeline repair passes `references/fix-implementer-contract.md` to a fresh Fix
-Implementer; PR mode has no fix path. For caller-owned local repair, review-code returns only an untrusted repair
-proposal—and, in explicit mode, its accepted-fix receipt—to the owner; the owner validates it and constructs
+For review-owned local/pipeline repair, read `references/fix-implementer-contract.md` before constructing its packet
+or validating its return. Pass that contract to a fresh Fix Implementer; PR mode has no fix path. For caller-owned
+local repair, review-code returns only an untrusted repair proposal—and, in explicit mode, its accepted-fix
+receipt—to the owner; the owner validates it and constructs
 bound-contract authoritative control. Review-code/Main never builds a caller packet or edits caller-owned repair.
 Only for review-owned repair may Main apply a trivial behavior-preserving mechanical edit, with rationale.
 
