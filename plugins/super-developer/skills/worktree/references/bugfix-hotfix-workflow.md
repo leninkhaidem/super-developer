@@ -94,7 +94,11 @@ git worktree add .worktrees/bugfix-<name> -b bugfix/<name> <feature-base-sha>
 
 Probe edits stay uncommitted and evidence-only: never commit, merge, push, or touch unowned writes/processes/data.
 Their workflow applies bounded method/execution checks; do not production-harden, security-review, `review-code`, or
-`audit` them. For repairs, verify base ref/SHA and edit/commit only after complete-state CLEAN review.
+`audit` them.
+
+For localized repairs, validate the authorized worktree/base ref/SHA and starting state before approved production
+edits. Complete the repair and verification before post-fix review. Commit only with commit authority, passing
+verification, and complete-state CLEAN review of the unchanged snapshot; stage only reviewed changes.
 ## Planned Production-Hotfix Bridge
 When a confirmed broad/risky production repair is routed through planning, the diagnosis handoff carries its
 mechanism/evidence, behavior goal/non-goals, regression acceptance, residual risk, explicit production base

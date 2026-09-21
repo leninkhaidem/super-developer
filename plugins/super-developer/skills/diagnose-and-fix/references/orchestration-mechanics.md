@@ -9,16 +9,26 @@ worker, applies it.
 
 ## Command and testing authority
 
-Before a nontrivial repro, test, harness, or service command, resolve testing authority from exactly one of these,
-after loading the parent-supplied tool-usage contract:
+For test writes, nontrivial repro/test/harness/service commands, or delegated testing, load the parent-supplied
+tool-usage contract and select authority using these eligibility rules:
 
-- an accepted, current `docs/testing/workflow.md` for high-risk or reusable work;
-- the routine-safe fallback, for one clearly bounded local command;
-- a task-local Testing Authorization for an exact focused approval, which the Fix Authorization may supply up front
-  for its named commands.
+- An accepted, current `docs/testing/workflow.md` must cover the next act, including delegated testing when needed.
+  Canonical workflow is required for broad/reusable or recurring work, browser/E2E, live services, shared data,
+  network, credentials, dependency/config/CI/orchestration, multi-stage harnesses, long-running, destructive, or
+  unclear-cleanup test work. Task-local approval cannot replace that required workflow.
+- Routine-safe fallback is parent-only: one repo-local, project-owned command with clear provenance,
+  bounded timeout/scope/completion, and trivial owned cleanup. It permits no network, credentials, browser, live
+  services, shared data, dependency/config/CI/orchestration or destructive effects, and
+  no source/fixture/snapshot/config/manifest/lockfile writes except known local cache/report artifacts.
+  It cannot authorize delegated testing.
+- Task-local Testing Authorization is explicit current-task approval for focused work or a focused delegated act,
+  naming exact paths, commands, writes, timeout, cleanup, and side effects. It is not reusable project policy.
 
-Resolve authority; never fabricate it. If authority is insufficient, invoke `testing` or stop with
-`blocked`/`not-run`; never report not-run work as passed.
+Resolve the needed authority while preparing Fix Authorization, and validate it before commands or worker dispatch.
+A complete task-local authorization may be bundled into Fix Authorization; do not ask again or require workflow
+creation when it already covers the act. Internally chosen bounds alone are not user authorization.
+If authority is insufficient, invoke `testing` or stop with `blocked`/`not-run`; never fabricate authority or report
+not-run work as passed.
 
 ## Internal receipts
 

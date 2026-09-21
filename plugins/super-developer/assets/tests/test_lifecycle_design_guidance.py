@@ -350,6 +350,52 @@ class LifecycleDesignGuidanceTests(unittest.TestCase):
         self.assert_groups(stops, (("policy", "scope envelope", "malformed", "conflicting"),
                                    ("design/product", "hard-to-reverse", "risk acceptance")), "diagnose stops")
 
+    def test_localized_edits_precede_review_but_commit_keeps_its_gate(self) -> None:
+        """Static phase-order guard; not a live-agent execution test."""
+        playbook = (PLUGIN_ROOT / "skills/worktree/references/bugfix-hotfix-workflow.md").read_text(
+            encoding="utf-8"
+        )
+        self.assertNotRegex(playbook, r"edit/commit\s+only after")
+        repair = self.section(playbook, "For localized repairs,", "## Planned Production-Hotfix Bridge")
+        self.assertIn("Commit only", repair)
+        before_commit, commit = repair.split("Commit only", 1)
+        self.assert_groups(before_commit, (
+            ("authorized worktree/base ref/SHA", "starting state", "approved production", "edits"),
+            ("repair and verification", "before post-fix review"),
+        ), "authorized edits before review")
+        self.assertNotIn("CLEAN", before_commit, "CLEAN must not be a first-edit prerequisite")
+        self.assert_groups(commit, (
+            ("commit authority", "passing verification", "complete-state CLEAN", "unchanged snapshot"),
+            ("stage only reviewed changes",),
+        ), "reviewed commit gate")
+        workflow = " ".join(self.section(self.diagnose, "## Do", "## Load if needed").split())
+        self.assertLess(workflow.index("worker-dispatch prerequisites"), workflow.index("mandatory post-fix"))
+        self.assertIn("empty complete state", self.local_review)
+
+    def test_diagnose_testing_authority_reaches_parent_and_worker(self) -> None:
+        """Placement/authority guards; passing does not prove an agent follows the policy."""
+        authority = self.section(self.orchestration, "## Command and testing authority", "## Internal receipts")
+        packet = self.section(self.diagnose_worker, "## Required Packet", "## Exact Write Scope")
+        for role, text in (("parent", authority), ("worker", packet)):
+            with self.subTest(role=role):
+                self.assert_groups(text.lower(), (
+                    ("routine-safe fallback", "parent-only", "cannot authorize delegated testing"),
+                    ("docs/testing/workflow.md", "delegated"),
+                    ("task-local", "exact paths", "commands", "writes", "timeout", "cleanup", "side effects"),
+                    ("broad/reusable", "recurring", "browser/e2e", "multi-stage", "unclear-cleanup"),
+                ), f"{role} testing authority")
+        self.assert_groups(authority, (
+            ("one repo-local, project-owned command", "clear provenance", "bounded timeout/scope/completion"),
+            ("no source/fixture/snapshot/config/manifest/lockfile writes", "known local cache/report artifacts"),
+            ("while preparing Fix Authorization", "before commands or worker dispatch"),
+            ("do not ask again", "workflow creation", "already covers the act"),
+            ("Internally chosen bounds", "not user authorization", "invoke `testing` or stop"),
+        ), "parent eligibility and bundled approval")
+        self.assert_groups(packet, (
+            ("Missing or insufficient authority", "`not applicable`", "no-action `BLOCKED`"),
+            ("bundled into Fix Authorization", "needs no additional approval"),
+        ), "worker rejects invalid authority without another approval gate")
+
     def test_review_proposal_to_orchestrator_control_transition(self) -> None:
         setup = self.section(self.local_review, "## Scope and Complete-State Setup", "## Report and Explicit Action Gate")
         exact_contract = "${SUPER_DEVELOPER_PLUGIN_ROOT}/skills/diagnose-and-fix/references/fix-implementer-contract.md"
