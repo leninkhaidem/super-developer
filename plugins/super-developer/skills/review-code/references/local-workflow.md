@@ -74,9 +74,10 @@ local review defaults `explicit`; caller-owned policy never defaults. The explic
 | `details <N>` | Expand finding N without mutation. |
 | `abort` | End without mutation. |
 
-For review-owned fixes, include the finite repair-round allowance in the existing proposed fix action after loading
-bounded-work policy through the parent. Preserve consumed effort across explicit follow-ups; accepting `fix` does not
-reset it. Caller-owned review inherits the caller's remaining rounds and returns proposals without extending either.
+For review-owned fixes, apply the parent's loaded repair policy under the existing explicit fix gate. Preserve
+repair identity/evidence/history and any applicable limits across follow-ups; accepting `fix` does not reset them.
+Caller-owned review inherits applicable limits and returns proposals without extending limits or repair authority.
+Do not add quota-setting or extension prompts when no applicable limit exists.
 
 Silence, earlier approval, or partial confirmation authorizes nothing in `explicit` mode. Ordinary explicit
 suggestion bundling remains governed by the main review-code skill; a suggestion never starts a fix.

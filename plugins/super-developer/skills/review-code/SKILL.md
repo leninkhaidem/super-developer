@@ -18,10 +18,10 @@ fresh sub-agents perform semantic review. Do not mutate until the active mode au
 - `CLEAN` means no open blocking finding for the reviewed state, not audit PASS or merge permission. Pipeline
   delivery needs independent same-freeze CLEAN + PASS; generated gate reports are not freeze inputs.
 - Revalidate the bound state before posting, fixing, committing, refreshing evidence, or handing off audit context.
-- Before authorizing review-owned repair, load `../../references/bounded-attempts.md` and bind its shared repair
-  allowance in the existing fix approval. Supply its path, round/progress history, and remaining rounds to fix workers.
-  During any caller-owned repair, all review/closure workers inherit the caller's remaining rounds; never
-  restart its allowance or infer fix permission. PR remains review-only; local explicit gates remain unchanged.
+- Before authorizing review-owned repair or reviewing caller-owned repair, load `../../references/bounded-attempts.md`.
+  Supply its path, stable identity/evidence/history, and any applicable limit state to repair/review/closure workers.
+  No default quota/counter is required; preserve existing limits without resetting them or inferring fix permission.
+  PR remains review-only; local explicit gates remain unchanged.
 
 ## Mode Routing
 
@@ -98,8 +98,9 @@ proposal—and, in explicit mode, its accepted-fix receipt—to the owner; the o
 bound-contract authoritative control. Review-code/Main never builds a caller packet or edits caller-owned repair.
 Only for review-owned repair may Main apply a trivial behavior-preserving mechanical edit, with rationale.
 
-Cluster only shared root cause, writable scope, and verification envelope; preserve round/progress history and the
-shared task allowance. Reassess failed rounds under the loaded policy; planning requires an actual plan defect.
+Cluster only shared root cause, writable scope, and verification envelope; preserve repair identity/evidence/history
+and any applicable limits. Apply the loaded progress policy within and between rounds; planning requires an actual
+plan defect.
 Cross-package repair requires every affected package/path/finding explicitly within one coherent seam envelope;
 otherwise split or stop. Fresh Fix Verification checks closure, not second discovery, returning per finding
 `verdict: closed|not_closed|reopened`, evidence, and `next_action: none|same_scope_fix|authority_boundary`.
@@ -113,8 +114,9 @@ package verifier, Fix Verification, and auditor separate.
 - Requested action/mode is ambiguous, the bound state is stale or broadened, or side-effect authority is missing.
 - A blocking candidate lacks Skeptic confirmation, or required coverage remains weak after its bounded follow-up.
 - A fix requires scope/product/risk/manual authority, new dependencies/services, credentials/external facts,
-  unsafe/destructive commands, or repair reaches non-convergence/exhausted effort. Required review that cannot fit
-  the remaining allowance is incomplete, never CLEAN by omission.
+  unsafe/destructive commands, or repair reaches non-convergence/an applicable limit. A limit blocking required
+  review makes it incomplete, never CLEAN by omission; an exhausted round-start cap alone does not prohibit
+  already-authorized current-round verification/review.
 - Pipeline review is asked to replace audit, or PR/local review is asked to satisfy unscoped pipeline gates.
 
 ## Output

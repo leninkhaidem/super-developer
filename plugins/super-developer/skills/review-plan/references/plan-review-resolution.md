@@ -46,8 +46,9 @@ Slice metadata and assignment/verification gaps in package Markdown.
 
 1. Group duplicate findings by target/issue and classify every finding above.
 2. Apply only amendments proven under the parent-loaded contract. Collect all other plan-owned defects for the
-   ordinary initial planner path or caller-owned continuation; never send them to a code repair worker. Bind/carry
-   the parent's shared repair-round allowance and round/progress history through planner, validation, and re-review.
+   ordinary initial planner path or caller-owned continuation; never send them to a code repair worker. Apply the
+   parent's loaded repair policy, preserving identity/evidence/history and any applicable limits through planner,
+   validation, and re-review. Continue from observed progress, not a repair count.
 3. For empirical blockers, preserve review state and stable identity/history. The parent loads and applies the
    bounded-attempt contract before any attempt. Initial unresolved evidence stops; focused protected/out-of-contract
    evidence gaps return to `implement`.
@@ -55,8 +56,8 @@ Slice metadata and assignment/verification gaps in package Markdown.
    semantic rule, reruns mechanical validation and focused review, then presents the ordinary plan gate. It never
    invokes planning continuation.
 5. Focused mode sends defects plus accepted reports or explicit `none` through caller-owned `implementation-plan`
-   continuation, then validates and focused-reviews the result. Exhausted effort/non-convergence or semantic/risk expansion
-   returns to `implement`.
+   continuation, then validates and focused-reviews the result. Non-convergence, a limit blocking required work,
+   or semantic/risk expansion returns to `implement`.
 6. Put implementation-time concerns in package files, not chat-only summaries. If repair moves or materially expands
    closure complexity, reapply the packet-labeled work-package contract and route boundary changes through the
    semantic rule; file overlap may serialize otherwise separate packages without inventing a dependency.

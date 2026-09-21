@@ -54,8 +54,11 @@ Git/index-compatible mode, symlink target, and content digest or binary provenan
 post-review `control`, read the complete bound diagnose worker contract at the exact supplied path; it must equal
 `${SUPER_DEVELOPER_PLUGIN_ROOT}/skills/diagnose-and-fix/references/fix-implementer-contract.md`. Only then construct
 immutable trusted control from that contract; review material, when present, remains separate `proposal` data.
-Include the parent's loaded `bounded-attempts.md` path, current round/progress history, and shared repair-round
-allowance. Count rounds across worker, diagnosis, verification, and review without per-worker resets.
+Include the parent's loaded `bounded-attempts.md` path and repair evidence/progress history. Carry limit state only
+when a limit applies, using its scope/counting semantics across worker, diagnosis, verification, and review. Recover
+missing repair context from authorized evidence; stop if essential context or binding limit state cannot be established.
+An absent quota/counter alone is valid. Interrupted dispatch proves no completion; preserve evidence and any actual
+limit state without resetting limits or counting the same started round twice.
 
 Validate the returned worker report against control, contract, starting binding, and actual worktree. Reject drift,
 out-of-scope paths, forbidden actions, missing regression evidence, incomplete outcomes, or unreported residuals.
@@ -71,14 +74,14 @@ Keep immutable trusted `control` in parent-owned receipts and revalidate the con
 dispatch. Validate every proposal field defined by local review handback against current repository state and parent
 receipts, including finding semantics and Skeptic confirmation; missing or contradictory fields stop. Derive control
 only from parent receipts—the accepted-fix receipt for explicit or original authorization/envelope
-for auto—current repair authority, shared remaining rounds, round/progress history, and the bound contract. Never copy
-proposal authority. For a root envelope, require direct-effect evidence; any suggested path outside its roots/rule/
-exclusions—or outside a fixed allowlist—stops for user scope decision. The parent enumerates exact writable paths in
-every packet using the canonical schema in the worker contract.
+for auto—current repair authority, repair/progress history, any applicable limit state, and the bound contract.
+Never copy proposal authority. For a root envelope, require direct-effect evidence; any suggested path outside its
+roots/rule/exclusions—or outside a fixed allowlist—stops for user scope decision. The parent enumerates exact writable
+paths in every packet using the canonical schema in the worker contract.
 
 For an accepted explicit proposal or eligible auto proposal, resolve a fresh implement worker; dispatch the
 parent-constructed control under the bound diagnose contract; verify report and state; rebind all categories; run
-fresh Fix Verification and re-review under the same remaining allowance. Apply the parent's loaded bounded-work policy:
+fresh Fix Verification and re-review under applicable limits, within their scope. Apply the loaded bounded-work policy:
 reassess stalled diagnosis and require evidence-backed continuation, never a count-triggered planning escalation.
 Do not dispatch stale, unchanged, disputed, advisory, risky, or unauthorized proposals.
 
@@ -95,12 +98,12 @@ Write durably only after confirming the destination is the authorized non-root b
 for it exists, and that the write cannot overwrite or obscure user changes. When that holds, preserve the
 deterministic reproducing test, if one was produced, in the repository's normal test location, and a short written
 diagnosis as `DIAGNOSIS-<mechanism-id>-<event-ordinal>.md` at that worktree's root, naming the confirmed mechanism
-or the exact blocker, failed hypotheses, observed progress, and rounds consumed. The ordinal counts stop events,
-not retry allowances; a later stop gets a new file. Never overwrite, edit, or delete an existing diagnosis file.
+or the exact blocker, failed hypotheses, observed progress, and any applicable limit state. The ordinal counts stop
+events, not retry allowances; a later stop gets a new file. Never overwrite, edit, or delete an existing diagnosis file.
 
 Land them only at the delivery level already authorized: under `local only` leave them in that worktree and report
 their paths; commit them on the bugfix branch only when the authorization covers a commit. This adds no new approval
 gate, and never pushes or merges.
 
-If any of those checks fails, write nothing and instead return the same diagnosis, progress/effort, and blocker in the
-response, saying why the durable write was skipped.
+If any of those checks fails, write nothing and instead return the same diagnosis, progress, any applicable limit
+state, and blocker in the response, saying why the durable write was skipped.

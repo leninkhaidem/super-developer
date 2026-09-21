@@ -23,9 +23,11 @@ state. One cold auditor performs semantic work; the main agent validates inputs,
 ## Do
 
 1. Resolve safe absolute artifact/code roots, feature slug, integrated worktree/ref/commit, and every relevant
-   artifact set for a stacked feature. For repair-triggered audit, inherit remaining repair rounds before
-   commands or dispatch; missing/exhausted bounds block, never grant PASS. Freeze code, artifacts, and runtime
-   evidence; generated review/audit outputs are not inputs. Reject missing or uncertain state.
+   artifact set for a stacked feature. For repair-triggered audit, load `../../references/bounded-attempts.md`
+   before commands or dispatch and inherit applicable limit state only when a limit exists. No default quota/counter
+   is required; a round-start cap alone does not prohibit already-authorized current-round audit. A limit preventing
+   required work blocks PASS. Freeze code, artifacts, and runtime evidence; generated review/audit outputs are not
+   inputs. Reject missing or uncertain state.
 2. Require SPEC Acceptance, registry, package Markdown/checklists, result reports, and applicable Slices/evidence.
    Load `../../references/tool-usage.md` and capture the read-only structural diagnostic:
 
@@ -38,8 +40,9 @@ state. One cold auditor performs semantic work; the main agent validates inputs,
    A cosmetic shape advisory is not semantic failure; missing required results or plan/registry mismatch blocks.
 3. Load `../../references/model-preferences.md` for the auditor model and
    `references/audit-subagent-contract.md` for its packet. Supply complete retained/refreshed evidence, safe roots,
-   state bindings, optional same-state review context or explicit `none`, and any inherited remaining repair rounds;
-   never depend on hidden conversation or allocate a fresh repair allowance.
+   state bindings, and optional same-state review context or explicit `none`. For repair-triggered audit include the
+   loaded repair-policy path, repair identity/evidence/history, and any applicable limit state; never depend on hidden
+   conversation or reset limits. Audit grants no authority for another correction.
    Dispatch one fresh read-only auditor to reconcile all obligations and judge evidence sufficiency.
 4. Preserve its complete PASS/FAIL report and minimal repair targets. Route blockers to the owning orchestrator,
    never fix inline. After repair, require a new freeze and new cold complete audit; focused code Fix Verification

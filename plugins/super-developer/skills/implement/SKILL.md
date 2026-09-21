@@ -42,8 +42,8 @@ final code review/audit, and evidence-backed delivery. Package agents implement;
   authorization; never choose remote cadence for the user. Planned hotfixes use one exact `hotfix/<name>` gate and no
   feature ref.
 - Before authorizing repair, dispatching a probe/follow-up, or writing a stop report, load
-  `../../references/bounded-attempts.md`. Preserve evidence-based progress, shared task-wide repair rounds, round/probe
-  history, authority boundaries, and stop evidence; failed rounds never automatically invoke planning.
+  `../../references/bounded-attempts.md`. Preserve evidence-based progress, repair/probe history, applicable limits,
+  authority boundaries, and stop evidence; failed rounds never automatically invoke planning.
 - Before classifying or applying a proposed plan-artifact amendment, load `../../references/plan-amendments.md`.
   Apply only its exact nonsemantic rule directly. Changes to obligations, commands/evidence, risk, scope,
   dependencies, acceptance, or other plan authority require `implementation-plan` continuation plus focused
@@ -58,7 +58,7 @@ final code review/audit, and evidence-backed delivery. Package agents implement;
    writes, and evidence destination. Stop before execution approval if checklist acceptance is unrunnable. Load
    `references/execution-contract.md` and source publication; build the complete machine contract, present its compact
    user summary, show known commands plus bounded continuation/probe envelopes, writes, external effects,
-   publication policy, shared repair-round allowance, exclusions, and stops. Bind concrete commands/paths before
+   publication policy, any applicable explicit limits, exclusions, and stops. Bind concrete commands/paths before
    each action and expose expanded details on request.
 3. After approval, invoke `worktree` for fixed worktrees, exact receipt-owned probes, and focused-reviewed
    continuation packages. Create an artifact sidecar only immediately before the first actual durable artifact write.
@@ -76,8 +76,8 @@ final code review/audit, and evidence-backed delivery. Package agents implement;
    into the declared result; failed/skipped/missing re-run is automatic FAIL. Dispatch the independent verifier only
    for an `enhanced` package and checklist-invisible defects. Apply `../../references/package-lifecycle.md`.
 7. Route plan-owned defects through continuation/focused review. Dispatch one worker per coherent blocking code
-   cluster using `references/repair-agent-contract.md` through `references/package-dispatch.md`. Carry the shared
-   repair-round allowance and round history through each gate; reassess stalled diagnosis rather than retry unchanged.
+   cluster using `references/repair-agent-contract.md` through `references/package-dispatch.md`. Carry repair
+   evidence/history and applicable limits through each gate; use the loaded progress rules inside repair loops too.
    After repair, refresh only affected evidence and focused seams. Reuse command output only for
    equivalent code/artifact state, cwd, environment/data, isolation/order, and evidence mapping.
 8. Treat package `done` as local evidence. Merge accepted package refs once through the integration worktree, close
@@ -90,7 +90,7 @@ final code review/audit, and evidence-backed delivery. Package agents implement;
    triggered by missing, stale, contradictory, risk-significant, or acceptance-critical claims; review/audit outputs do
    not become freeze inputs or replace each other.
 10. Route final plan blockers before code repair, refresh affected package/seam/feature evidence, and create a new
-    freeze. Carry the same remaining repair rounds into review/closure and audit. Focused review-code Fix
+    freeze. Carry repair history and applicable limits into review/closure and audit. Focused review-code Fix
     Verification may restore CLEAN; one fresh cold auditor must still issue same-freeze PASS. Apply the
     source-publication final push/catch-up for every approved remote cadence to that CLEAN+PASS freeze; `local-only` stays network-free. Notify the user with checklist/Acceptance evidence, packages
     merged, review/audit state, publication state, advisories, and rerunnable checks.
@@ -99,7 +99,7 @@ final code review/audit, and evidence-backed delivery. Package agents implement;
 
 - User approval boundary → `references/execution-contract.md`
 - Feature source cadence or scheduled push → `../../references/source-publication.md`
-- First bounded attempt or stop report → `../../references/bounded-attempts.md`
+- Repair authorization, probe/follow-up, or stop report → `../../references/bounded-attempts.md`
 - Any plan-artifact amendment → `../../references/plan-amendments.md`
 - Package/repair/verifier selection or packet → `references/package-dispatch.md`
 - Package completion/integration/final handoff → `references/package-integration-gates.md` and
@@ -119,8 +119,8 @@ final code review/audit, and evidence-backed delivery. Package agents implement;
   or an executable acceptance check lacks authority/bounds.
 - A due source-publication gate has network, credential, non-fast-forward, or remote-SHA failure. Non-due or
   `local-only` source gates are not stops.
-- The loaded bounded-work contract stops for non-convergence, an exhausted round allowance, or an exhausted empirical
-  question. Preserve its stop evidence; do not buy more rounds by changing agents, clusters, or stages.
+- The loaded bounded-work contract stops for non-convergence, an exhausted applicable limit, or an exhausted empirical
+  question. Preserve its stop evidence; changing agents, clusters, or stages resets neither history nor limits.
 
 Everything else inside the contract—changed empirical follow-ups, same-requirement continuation/focused review,
 routine test failures, bounded code repairs, reruns, verification, and local integration—is handled autonomously.

@@ -252,14 +252,15 @@ remain separately authorized; ready decisions may share one concise presentation
 in-scope work. Credentials, protected actions, scope/risk/manual changes, and target delivery retain their boundaries.
 
 Implementation, review-owned repairs, and diagnose-and-fix share
-[`bounded-attempts.md`](references/bounded-attempts.md): continue on observed progress within one task-wide
-repair-round allowance. Ordinary edit/test cycles and worker handoffs are not failed rounds. Three unsuccessful
-complete rounds trigger reassessment—not automatic stopping, a new allowance, or a planning handoff. Reopen planning
-only for an evidenced plan defect or an authorized broad/risky decision. Stop when progress cannot justify a next
-step, the shared allowance is exhausted, or authority is missing. The existing authorization carries the allowance
-(six-round default when none is supplied); per-action runtime stays bounded by existing command/worker timeouts, and
-no new approval screen or retry ledger is added. Standalone empirical probes retain their separate three-invocation
-bound.
+[`bounded-attempts.md`](references/bounded-attempts.md): continue when task-relevant observations justify the next
+safe, falsifiable correction or diagnostic. Reassess when evidence contradicts the diagnosis or progress stalls,
+including inside long repair rounds. There is no default repair quota, count-triggered reassessment, or mandatory
+counter bookkeeping without an applicable count limit. Preserve useful history and explicit limits across workers
+and resumes; stop for non-convergence, a limit blocking required work, or missing safety/authority. Reopen planning
+only for an evidenced plan defect or an authorized broad/risky decision. Existing verification, review, audit, command/worker
+timeouts, termination, and cleanup remain required. Per-action timeouts do not guarantee a whole-task resource
+ceiling; without external enforcement, aggregate effort control is best-effort. No new approval screen, progress
+form, or retry ledger is added. Standalone empirical probes retain their separate three-invocation bound.
 
 Final `review-code` is primary production-defect discovery, including changes from standard packages without a
 separate verifier. The independent cold `audit` reconciles complete delivery evidence and inspects code when
