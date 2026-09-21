@@ -33,6 +33,15 @@ The parent supplies one immutable `control` object containing:
 - permitted diagnostic artifacts/cleanup ownership, forbidden actions, scope-expansion route, and report fields;
 - approval receipt: for the initial fix, the Fix Authorization; for post-review, the exclusive union below.
 
+For delegated test writes or repro/test/harness commands, require an accepted, current `docs/testing/workflow.md`
+covering the act or a complete task-local Testing Authorization naming exact paths, commands, writes, timeout,
+cleanup, and side effects. Canonical workflow is required for broad/reusable or recurring test work, browser/E2E,
+live services, shared data, network, credentials, dependency/config/CI/orchestration, multi-stage harnesses,
+long-running, destructive, or unclear-cleanup work; task-local approval cannot replace it or permit forbidden actions.
+Routine-safe fallback is parent-only and cannot authorize delegated testing. Missing or insufficient authority,
+including `not applicable` for requested test work, is no-action `BLOCKED`.
+A complete testing authorization bundled into Fix Authorization needs no additional approval.
+
 Post-review common control is policy, parent-validated confirmed-finding keys, prior outcomes,
 observed progress/next strategy, any applicable limit state, and exact writable paths.
 Its receipt union is exactly one of:
