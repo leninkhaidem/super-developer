@@ -1,17 +1,18 @@
 # Testing Strategy Interview Reference
 
-Use this reference for explicit requests to initialize, update, adopt, migrate, link, or revise a
-repository testing workflow, including greenfield repositories with no/minimal tests, no strategy, or
-no canonical workflow. It supplies interview coverage and starter contracts for project docs;
-it does not authorize test writes, command execution, installs, browser/live/network actions,
-configuration changes, CI changes, or accepted workflow-doc writes without the normal approvals.
+Use this reference when a workflow request requires a strategy interview under `SKILL.md`. Editorial-only
+corrections to accepted/current workflow docs use its narrow draft-and-approval path instead; the exception skips
+strategy questions, not repo inspection or explicit post-draft write approval. New or materially changed strategy,
+including greenfield repositories with no/minimal tests, no strategy, or no canonical workflow, still needs the
+interview. This reference supplies coverage and starter contracts for project docs; it does not authorize test
+writes, commands, installs, browser/live/network actions, config/CI changes, or unapproved workflow-doc writes.
 
 ## Entry and Ordering
 
 1. Inspect repo evidence first: stack manifests, scripts, test directories, fixtures, existing docs,
    CI/config, app surfaces, report locations, data/auth boundaries, and stale/conflict signals.
-2. Treat absent/minimal tests, no documented strategy, and existing testing docs as source evidence,
-   not a reason to skip the interview.
+2. Outside the editorial-only exception, treat absent/minimal tests, no documented strategy, and existing testing
+   docs as source evidence, not a reason to skip the interview.
 3. Summarize the evidence, then ask one focused strategy question at a time. Include a
    recommendation and short options when useful; do not dump a broad questionnaire.
 4. Start the user-facing strategy branch with the confidence outcome the user wants before choosing

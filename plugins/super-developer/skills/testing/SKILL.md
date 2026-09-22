@@ -35,13 +35,15 @@ default to standalone broad test edits or commands.
 - Task-local Testing Authorization is a current-task one-off. It must explicitly name exact paths, commands,
   writes, timeout, cleanup, and side effects; it is not reusable, not project policy, and does not weaken higher
   safety gates or make high-blast-radius work routine-safe.
-- Explicit initialize/update/adopt/migrate/link/revise requests require a strategy interview after repository
-  inspection, including greenfield/no-strategy repositories or minimal-test repositories; existing docs are
-  source material, not a skip.
+- For initialize/update/adopt/migrate/link/revise requests, inspect repo evidence before a strategy interview.
+  Skip the interview only for editorial-only corrections to accepted/current workflow docs that demonstrably preserve
+  meaning, strategy, commands, scope, effects, authority, evidence/reporting, and cleanup. Missing/stale policy,
+  material changes, or uncertain equivalence still require the interview. Command, path, link, or anchor changes
+  are not automatically editorial.
 - Missing workflow alone permits read-only discovery and planning. It does not force workflow creation unless the
   requested write/command/delegation lacks applicable authority, or the policy should be reusable.
-- Initialization/update is recommendation-led: inspect repo evidence before broad questions, propose the best
-  project-fit strategy, ask focused confirmation questions one at a time, starting with confidence goals, resolve
+- When an interview is required, it is recommendation-led: inspect repo evidence before broad questions, propose the
+  best project-fit strategy, ask focused confirmation questions one at a time, starting with confidence goals, resolve
   mandatory strategy domains or user deferrals, then present a draft summary and proposed file changes before
   writing workflow docs.
 - Workflow documentation writes to root `AGENTS.md` or `docs/testing/*` require explicit current-task approval
@@ -66,17 +68,20 @@ default to standalone broad test edits or commands.
    and relevant companions. If absent or inadequate, load `references/workflow-contract.md`, classify the request,
    and use bounded read-only candidate discovery only as source material. Do not edit tests or run harness commands
    until authority covers the act; do not delegate without canonical workflow or task-local Testing Authorization.
-3. For initialization/update, inspect relevant repo evidence, load `references/strategy-interview.md`, optionally
-   load proposal references, recommend the project-fit workflow, ask focused confidence-first confirmation/approval
-   questions, and present a draft covering the `AGENTS.md` lazy pointer, `docs/testing/workflow.md`, companion docs,
-   plan/report paths, execution choices, approval gates, evidence/reporting, reliability/cleanup, redaction,
-   stale/conflict handling, and update procedure.
+3. For initialization/update, inspect relevant repo evidence and apply the editorial-only exception above. If it
+   applies, present the narrow correction and why policy is unchanged; otherwise load
+   `references/strategy-interview.md`, optionally load proposal references, recommend the project-fit workflow, ask
+   focused confidence-first questions, and present a draft covering the `AGENTS.md` lazy pointer,
+   `docs/testing/workflow.md`, companion docs, plan/report paths, execution choices, approval gates, evidence/reporting,
+   reliability/cleanup, redaction, stale/conflict handling, and update procedure. Both paths require the next step's
+   explicit post-draft write approval.
 4. After explicit approval, the main agent may create or surgically update root `AGENTS.md` and `docs/testing/*`
    in the target repo. Without approval, continue discovery or stop with the draft; leave no partial workflow docs
    as accepted.
-5. For author/alter or execution with sufficient authority, or delegation with canonical/task-local authority, load
-   `references/delegation-packets.md`, build a packet naming the authority source, scope, approval gates, outcome
-   language, and cleanup. Executors must report that they consulted the authority before edits or commands.
+5. For authorized test delegation under canonical/task-local authority, load `references/delegation-packets.md`
+   before building and dispatching its packet. Supply its resolved path as the
+   executor contract alongside the authority source, scope, approval gates, outcome language, and cleanup. Require
+   the executor to read the packet, contract, and authority before action and cite them in the returned report.
 6. Treat executor output as evidence, not authority. Verify authority provenance, files changed, command identity/
    classification/bounds, readiness order, sanitized evidence, progress/termination/cleanup, rerun deltas,
    product-failure routing, blocked approvals, skipped/not-run handling, and unresolved risks.
@@ -88,10 +93,10 @@ default to standalone broad test edits or commands.
 - Testing authority model, canonical workflow interface, candidate discovery, routine-safe fallback,
   task-local Testing Authorization, approval-gated docs, and browser E2E strategy establishment →
   `references/workflow-contract.md`
-- Explicit initialize/update/adopt/migrate/link/revise strategy interview domains, confidence-first sequencing,
+- Workflow strategy interview when the editorial-only exception does not apply: domains, confidence-first sequencing,
   starter plan/report/execution contracts, conditional browser/web prompts, legacy handling, and reliability/
   cleanup defaults → `references/strategy-interview.md`
-- Authority-aware delegation packet, no-executor fallback, executor receipt/report, stop conditions,
+- Authority-aware delegation packet and executor contract, no-executor fallback, receipt/report, stop conditions,
   product-failure routing, and command/write safety boundaries → `references/delegation-packets.md`
 - Optional stack-agnostic test design, command safety, outcomes, durable plan/report schema, and write boundaries
   → `references/core/generic-testing.md`

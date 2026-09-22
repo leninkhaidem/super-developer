@@ -59,7 +59,8 @@ Classify workflow state before edits or commands:
 - `approved/current`: `docs/testing/workflow.md` exists, has been accepted for the repository, is
   relevant to the task, and does not conflict with higher-priority instructions or clear repo
   evidence. Load linked companion docs as needed. Explicit initialize, update, adopt, migrate,
-  link, or revise requests still route to the strategy interview; existing docs are source material.
+  link, or revise requests route to the strategy interview unless the editorial-only exception in `SKILL.md`
+  applies; existing docs alone do not exempt substantive changes from that interview.
 - `missing`: no canonical entry point exists, including greenfield repositories with no/minimal tests
   or no documented testing strategy. Absence alone allows read-only discovery and planning. For
   commands/writes, either prove routine-safe fallback, obtain task-local Testing Authorization, or
@@ -105,12 +106,13 @@ as manifests, scripts, test directories, fixtures, existing docs, app entry poin
 CI/config files, known report/artifact locations, and risk-sensitive data/auth boundaries. Use the
 smallest useful evidence set; avoid large generated or secret-bearing files.
 
-For greenfield/no-strategy repositories and explicit initialize, update, adopt, migrate, link, or
-revise requests, follow the parent-owned strategy-interview branch before accepted workflow-doc
-writes. Existing workflows, absent/minimal tests, candidates, and companion docs inform the
-recommendation but do not skip the interview. Ordinary author/alter/execute may use accepted/current
-workflow, routine-safe fallback, or task-local Testing Authorization when adequate; insufficient
-authority routes to this update path.
+For initialize, update, adopt, migrate, link, or revise requests, apply the editorial-only exception in
+`SKILL.md` after inspecting repo evidence. A qualifying correction goes directly to the draft and approval gate
+below, preserving accepted decisions without strategy questions. It does not waive inspection or write approval.
+Otherwise follow the parent-owned strategy interview, including for greenfield/no-strategy or minimal-test repos.
+Existing workflows, candidates, and companions inform that interview; they do not exempt substantive changes or
+uncertain equivalence. Ordinary author/alter/execute may use accepted/current workflow, routine-safe fallback, or
+task-local Testing Authorization when adequate; insufficient authority routes to this update path.
 
 Interview one focused question at a time after the evidence summary. Start the user-facing strategy
 branch with confidence goals, using optional examples only when helpful rather than a mandatory

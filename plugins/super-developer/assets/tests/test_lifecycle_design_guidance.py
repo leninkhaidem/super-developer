@@ -396,6 +396,68 @@ class LifecycleDesignGuidanceTests(unittest.TestCase):
             ("bundled into Fix Authorization", "needs no additional approval"),
         ), "worker rejects invalid authority without another approval gate")
 
+    def test_testing_packet_binds_cold_executor_rules_before_action(self) -> None:
+        """Static handoff/placement guard, not proof of executor behavior."""
+        testing = PLUGIN_ROOT / "skills/testing"
+        skill = (testing / "SKILL.md").read_text(encoding="utf-8")
+        contract = (testing / "references/delegation-packets.md").read_text(encoding="utf-8")
+        parent = self.section(skill, "## Do", "## Load if needed")
+        self.assert_groups(parent, (
+            ("`references/delegation-packets.md`", "before building and dispatching", "resolved path"),
+            ("executor contract", "read the packet, contract, and authority before action"),
+            ("Treat executor output as evidence, not authority", "cleanup", "unresolved risks"),
+        ), "parent handoff and validation")
+        packet = self.section(contract, "## Packet Shape", "## Executor Contract")
+        self.assert_groups(packet, (
+            ("Executor contract:", "resolved path", "references/delegation-packets.md"),
+            ("Required first step:", "packet", "executor contract", "authority source before action"),
+        ), "cold packet binding")
+        worker = self.section(contract, "## Executor Contract", "## Executor Receipt and Report")
+        self.assert_groups(worker, (
+            ("Before test writes, commands, or side effects", "read", "packet", "contract", "authority source"),
+            ("Validate the Delegation Preconditions and Packet Shape", "Missing or conflicting", "no-action `BLOCKED`"),
+            ("goal, repo/path, authority, scope, approval, command bounds, cleanup", "returned to the parent"),
+            ("Routine-safe fallback cannot authorize delegation", "exact paths, commands, writes", "timeout, cleanup, and side effects"),
+            ("Canonical-only work", "covering workflow", "applicable approvals"),
+            ("reproduction evidence", "instead of editing production/runtime code or weakening assertions"),
+            ("terminate owned processes", "await exit", "verify required cleanup"),
+            ("skipped, not-run, timed-out, flaky, inconclusive", "termination/cleanup-uncertain", "never passed", "exited zero"),
+            ("existing receipt/report", "Do not invent additional plans or report files"),
+        ), "operative executor boundary")
+        self.assertLess(worker.index("no-action `BLOCKED`"), worker.index("2. Perform"))
+        self.assert_groups(contract, (("supplied packet", "selects executor behavior", "not the parent's setup"),),
+                           "packet-selected role")
+
+    def test_testing_editorial_exception_keeps_inspection_and_write_approval(self) -> None:
+        """Static routing guard; equivalence still needs human/agent judgment."""
+        testing = PLUGIN_ROOT / "skills/testing"
+        skill = (testing / "SKILL.md").read_text(encoding="utf-8")
+        workflow = (testing / "references/workflow-contract.md").read_text(encoding="utf-8")
+        interview = (testing / "references/strategy-interview.md").read_text(encoding="utf-8")
+        always = self.section(skill, "## Always", "## Do")
+        self.assert_groups(always, (
+            ("Skip the interview only for editorial-only corrections", "accepted/current workflow docs"),
+            ("demonstrably preserve meaning, strategy, commands, scope, effects", "authority, evidence/reporting, and cleanup"),
+            ("Missing/stale policy, material changes, or uncertain equivalence", "still require the interview"),
+            ("Command, path, link, or anchor changes are not automatically editorial",),
+            ("Workflow documentation writes", "explicit current-task approval", "after the draft"),
+        ), "narrow exception and unchanged approval")
+        route = " ".join(self.section(skill, "3. For initialization/update", "4. After explicit approval").split())
+        self.assertLess(route.index("editorial-only exception"), route.index("load `references/strategy-interview.md`"))
+        self.assert_groups(route, (("narrow correction", "otherwise load", "Both paths", "post-draft write approval"),),
+                           "editorial versus strategy routing")
+        for label, text in (("workflow", workflow), ("interview", interview)):
+            with self.subTest(owner=label):
+                self.assert_groups(text, (("editorial-only", "`SKILL.md`", "inspection", "write approval"),),
+                                   f"{label} exception ownership")
+        gate = self.section(workflow, "## Draft and Approval Gate", "## Minimal Workflow Entry Template")
+        self.assert_groups(gate, (("Before writing", "present a draft", "only after explicit current-task approval"),),
+                           "post-draft workflow write gate")
+        self.assert_groups(workflow, (("substantive changes or uncertain equivalence",),), "non-editorial interview")
+        self.assert_groups(interview, (("New or materially changed strategy", "no canonical workflow", "still needs the interview"),),
+                           "new strategy interview")
+        self.assertIn("explicitly deferred by the user", interview)
+
     def test_review_proposal_to_orchestrator_control_transition(self) -> None:
         setup = self.section(self.local_review, "## Scope and Complete-State Setup", "## Report and Explicit Action Gate")
         exact_contract = "${SUPER_DEVELOPER_PLUGIN_ROOT}/skills/diagnose-and-fix/references/fix-implementer-contract.md"

@@ -1,10 +1,10 @@
 # Testing Delegation Packets Reference
 
-Use this reference only after testing authority is resolved for the exact downstream authoring,
-alteration, execution, or report task. The main agent remains an orchestrator: it documents/updates
-workflow docs after approval, resolves one-off authority when allowed, then delegates. If no executor
-or sub-agent mechanism is available, return the packet to the user and stop instead of doing the work
-directly.
+The parent uses this reference after resolving authority for the exact downstream authoring, alteration,
+execution, or report task. It owns setup, approval, packet construction, dispatch, and return validation.
+If no executor is available, it returns the packet rather than doing delegated work inline. A supplied packet
+selects executor behavior: follow the Executor Contract and Receipt and Report below, not the parent's setup or
+delegation steps. This reference supplies execution rules, not permission to act.
 
 ## Delegation Preconditions
 
@@ -38,7 +38,9 @@ Testing delegation packet
 - Target repo/worktree: <path or explicit repo context>
 - Testing authority: <canonical-workflow | task-local Testing Authorization>
 - Authority source: <docs/testing/workflow.md + companions, or exact one-off approval text>
-- Required first step: read the authority source; receipt/report must cite it.
+- Executor contract: <resolved path to this references/delegation-packets.md>
+- Required first step: read this packet, the executor contract, and authority source before action;
+  cite them in the report.
 - Approved plan path/version: <path+version, or authority-approved no-plan reason>
 - Selected execution choice(s): <focused check/feature confidence/browser review/broad regression/do not run yet/etc.>
 - Allowed scope: <test files/fixtures/helpers/docs/commands/evidence surfaces>
@@ -65,11 +67,29 @@ state that canonical workflow docs govern conflicting guidance when they exist. 
 Authorization must be quoted or summarized exactly enough to prove paths, commands, writes, timeout,
 cleanup, and side effects; it must not be described as project policy.
 
+## Executor Contract
+
+1. Before test writes, commands, or side effects, read the supplied packet, this contract, and its authority source.
+   Validate the Delegation Preconditions and Packet Shape above against the requested act. Missing or conflicting
+   goal, repo/path, authority, scope, approval, command bounds, cleanup, or governing input requires no-action `BLOCKED`
+   with the missing/conflicting item and evidence returned to the parent. Do not infer permission or expand authority.
+   Routine-safe fallback cannot authorize delegation; task-local approval must cover exact paths, commands, writes,
+   timeout, cleanup, and side effects. Canonical-only work still requires the covering workflow and applicable
+   approvals.
+2. Perform only the packet's authorized work, following its execution order, bounds, and rerun rule. Return after
+   failure; report product failures with reproduction evidence instead of editing production/runtime code or weakening
+   assertions to obtain a pass. Send needed approval or scope decisions to the parent, not a new worker or workflow.
+3. On timeout, cancellation, or interruption, terminate owned processes, await exit, and verify required cleanup.
+   Failed, skipped, not-run, timed-out, flaky, inconclusive, or termination/cleanup-uncertain work is never passed,
+   even if a command exited zero. Report uncertainty and remaining cleanup obligations rather than hiding them.
+4. Return the existing receipt/report below with actual evidence and limitations. Do not invent additional
+   plans or report files when the authority does not require them.
+
 ## Executor Receipt and Report
 
-The executor's first reportable fact should prove authority consultation:
+The executor's first reportable fact should prove pre-action consultation:
 
-- authority kind and source loaded;
+- packet, executor contract, authority kind and source loaded;
 - relevant companion docs loaded or not needed;
 - observed authority constraints that shaped edits/commands;
 - any stale/conflicting/unsafe authority finding that stopped work.
