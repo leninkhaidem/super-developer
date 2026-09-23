@@ -6,6 +6,33 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [v2.7.0] - 2026-09-23
+
+### Changed
+- Made discovery more open-ended and scenario-driven, with proportionate follow-up questions and bounded research.
+- Made implementation plans favor the smallest sufficient design, distinguish required outcomes from suggested
+  mechanisms, and use acceptance checks that distinguish correct behavior from realistic failures. Related
+  verification scenarios can be grouped without dropping exact interfaces, constraints, or approved manual exceptions.
+- Replaced default repair quotas and count-only interruptions with evidence-driven progress and reassessment when
+  work stalls. Preserved repair history, explicit limits, required verification, and the separate empirical-attempt cap.
+- Allowed editorial-only corrections to accepted, current testing-workflow documentation to skip the strategy
+  interview when policy and behavior remain unchanged. Inspection and explicit approval of the drafted edit remain required.
+
+### Fixed
+- Preserved existing discovery context during resume and Index-to-Slice transitions, without guessing missing
+  decisions or losing captured material.
+- Preserved deferred plan-review QA across focused re-review, including unchanged artifacts that have not yet been reviewed.
+- Bound pull-request checkouts and merges to the intended repository and reviewed commit, rejected pre-existing
+  checkout destinations, and safely synchronized the canonical local base after a verified merge. Source branches
+  remain unless deletion is separately authorized.
+- Corrected bug-fix ordering so authorized edits and verification precede post-fix review, while retaining the
+  separate verification, review, and commit-authorization gates.
+- Made delegated testing receive its execution contract before acting, reject missing or conflicting authority
+  and bounds, and report uncertain termination or cleanup as non-passing. Clarified the same testing-authority
+  boundary for bug-fix handoffs, without reopening complete existing approval.
+- Aligned audit's optional review context with the current Markdown review report instead of obsolete structured
+  fields, preserving independent review and audit requirements.
+
 ## [v2.6.0] - 2026-09-13
 
 ### Added
