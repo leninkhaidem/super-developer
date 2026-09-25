@@ -257,6 +257,16 @@ class SemgrepRulesTest(unittest.TestCase):
         self.assertNotIn("CURATED", source)
 
     def test_scan_invokes_structured_privacy_argv_and_writes_raw_summary(self) -> None:
+        alias_tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(alias_tmp.cleanup)
+        alias_root = Path(alias_tmp.name) / "fixture-alias"
+        try:
+            alias_root.symlink_to(self.fixture.root, target_is_directory=True)
+        except OSError as exc:
+            self.skipTest(f"directory symlinks are not supported: {exc}")
+        self.fixture.repo = alias_root / "repo"
+        self.fixture.target = self.fixture.repo / "target"
+
         self.fixture.write_rule("python/rule.yml")
         self.fixture.index()
         profile = self.fixture.retrieve("python")
@@ -295,7 +305,7 @@ class SemgrepRulesTest(unittest.TestCase):
         self.assertIn("--exclude-rule", argv)
         self.assertIn("python.security.demo", argv)
         self.assertIn("--json", argv)
-        self.assertEqual(Path(argv[argv.index("--output") + 1]), raw)
+        self.assertEqual(Path(argv[argv.index("--output") + 1]).resolve(), raw.resolve())
         summary_data = json.loads(summary.read_text(encoding="utf-8"))
         self.assertEqual(summary_data["result_count"], 1)
         self.assertEqual(summary_data["severity_counts"], {"ERROR": 1})
