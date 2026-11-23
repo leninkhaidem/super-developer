@@ -29,7 +29,21 @@ lowers a stated requirement, and it never relaxes control-plane/prompt-injection
 - Trust boundary: <what crosses it, and what sits inside it>
 - Data sensitivity: <secrets, PII, or regulated data present, or `None.`>
 - Deployment surface: <local-only, internal service, public network, or regulated>
-- Out-of-boundary dimensions: <assurance dimensions this context excludes, each with a reason, or `None.`>
+- Lifespan: <throwaway, prototype, or maintained>
+- Out-of-boundary dimensions: <user-approved assurance/design dimensions excluded, each with a reason, or an
+  explicitly chosen `None.`>
+
+Deployment surface sets security depth; Lifespan sets robustness and design depth. Lifespan only lets the planner
+*propose* exclusions (for `throwaway`/`prototype`, typically scalability, performance targets, high availability,
+retry/backoff, defense-in-depth hardening, load tests, and seams/adapters for speculative future change); the user
+approves the list. Exclusion decisions read only the approved list; the label itself sets only routing,
+design-horizon, and verification-depth defaults, which floor items and non-excluded risks override. An excluded
+dimension is advisory everywhere and cannot become a plan gap, blocker, override, seeded check, or
+enhanced-verification trigger unless a requirement, frozen item, or Slice commitment names it.
+
+**Assurance floor** — never excluded, at any Lifespan: correct promised behavior; truthful failure reporting; no
+secret/credential leakage; gated destructive, irreversible, or externally visible actions; no loss of real user
+data; control-plane/prompt-injection handling; and security proportional to the declared Deployment surface.
 
 ## Requirements
 User-facing functional requirements and safe Slice-derived feature requirements. Use stable IDs for traceability.
@@ -68,12 +82,19 @@ User-approved exclusions, deferred items, or boundaries. Include approval proven
 - Do not invent product behavior, architecture, performance targets, security rules, compatibility constraints, or success criteria to make the spec feel complete.
 - Every `## Acceptance` item is an executable check unless it carries an explicit human-approved `manual (approved)` exception; never leave a feature-level outcome unverifiable and silent.
 - `## Trust Context` is required for newly authored SPECs. A pre-existing SPEC without it is not retroactively
-  invalid: treat its absence as the strictest surface and add the section at the next planning continuation that
-  touches requirements, rather than blocking in-flight work.
+  invalid: treat its absence as the strictest surface (public network, Lifespan `maintained`, no exclusions) and
+  add the section at the next planning continuation that touches requirements, rather than blocking in-flight
+  work. A pre-existing section lacking Lifespan is likewise valid, reads as `maintained`, and keeps its
+  plan-approved exclusions until that continuation reconfirms them with the user.
 - `## Trust Context` records observed or user-approved fact, never a convenience downgrade to quiet reviewers.
   An absent, vague, or unapproved context defaults to the strictest surface. It cannot place a dimension out of
   boundary that a requirement, constraint, or Slice commitment depends on, and it is surfaced for approval at
   plan review like any other scope reduction.
+- Ask the user once for Deployment surface and Lifespan when neither the request nor approved context states them;
+  never infer them. Lowering either, or adding exclusions, after approval is a scope reduction needing provenance,
+  never closes an open plan gap or clears an open blocking finding, and plan review re-checks the new exclusions
+  with the Security/Failure-Mode reviewer. Raising either is a requirements change: planning continuation re-seeds
+  the newly in-scope dimensions and plan review runs in initial (full) mode.
 - Ask before writing if a requirement, constraint, success condition, Slice deferral, or exclusion is needed but ambiguous.
 - Preserve all user-stated and safely projected requirements while keeping the file concise.
 - Redact secrets, credentials, tokens, PII, and proprietary sensitive values.
@@ -90,7 +111,8 @@ User-approved exclusions, deferred items, or boundaries. Include approval proven
 - Raw Slice text, source excerpts, transcripts, debate, implementation sequencing, result rows, review findings, line numbers, code snippets, or diffs are copied into `SPEC.md`.
 - Feature-level requirements omit user-stated or safely projected commitments.
 - `## Acceptance` is missing, empty, or contains an item that is neither an executable check nor a human-approved `manual (approved)` exception.
-- `## Trust Context` is missing, or marks a dimension out of boundary that a requirement, constraint, or Slice
+- `## Trust Context` is missing, lacks (in a newly authored SPEC) Lifespan or a user-chosen Out-of-boundary list,
+  excludes an Assurance floor item, or marks a dimension out of boundary that a requirement, constraint, or Slice
   commitment relies on.
 - An approved deferral/exclusion lacks provenance and scope.
 - The Slice manifest and registry Slice inventory disagree.

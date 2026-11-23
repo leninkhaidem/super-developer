@@ -65,5 +65,6 @@ state. One cold auditor performs semantic work; the main agent validates inputs,
 ## Output
 
 Return PASS/FAIL bound to the audited code/evidence state, roots/worktree, complete coverage summary, concrete gaps
-with evidence/repair pointers, and separate non-blocking advisories. State optional review-context status and the
+with evidence/repair pointers, separate non-blocking advisories, and `delivered under exclusions: <approved
+Out-of-boundary list>` or `none`, keeping skipped assurance visible. State optional review-context status and the
 same-freeze `CLEAN` + `PASS` requirement; audit alone never authorizes merge or publication.

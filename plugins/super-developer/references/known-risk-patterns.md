@@ -37,7 +37,8 @@ This is a probe library only; do not persist these prompts as registry fields or
 ## Use
 
 Scan probes against package scope, assigned Slices, verification expectations, changed code/diff/tests, and
-runtime observations. Verifiers raise only applicable probes that reveal a real blocking finding
-(correctness/security/data-loss/contract-break) or a missed Acceptance Checklist obligation; everything else is
-an advisory note. Mention nearby high-signal non-applicable probes concisely; omit the rest instead of creating
-durable noise.
+runtime observations; skip probes in SPEC-excluded dimensions unless a
+requirement, frozen item, or Slice names them. Verifiers raise only applicable probes that reveal
+a real blocking finding (correctness/security/data-loss/contract-break) or a missed Acceptance Checklist
+obligation; everything else is an advisory note. Mention nearby high-signal non-applicable probes briefly; omit
+the rest.

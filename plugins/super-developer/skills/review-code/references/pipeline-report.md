@@ -18,7 +18,8 @@ verification, not an unrestricted rereview.
 ## Production Coverage
 
 Review cross-package seams/callers, shared/public contracts, whole-feature contradictions, integration/merge
-changes, and triggered security/privacy/data/concurrency/lifecycle risk. Trust fresh independent package-local
+changes, and triggered security/privacy/data/concurrency/lifecycle risk outside approved Trust Context
+exclusions. Trust fresh independent package-local
 verification where relevant, not as proof that assembly is correct.
 
 For every standard package's production delta, record the changed path/symbol, behavior/invariant, relevant caller

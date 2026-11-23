@@ -95,11 +95,12 @@ no-mock constraints, generated-contract checks, interface/risk seeds, or manual 
 `## Acceptance Checklist` items.
 
 Use only the existing depth vocabulary: `standard`/`enhanced` package verification,
-`baseline-only`/`sampled`/`deep` test review, and `focused`/`full` reruns. These are orthogonal decisions, not
-new lifecycle tiers or registry fields. Record the selected `standard`/`enhanced` package-verification profile and
-the evidence/risk reason in package `Notes`, not `tasks.json`. The planner may seed triggers; the implement
-orchestrator maintains the classification before dispatch and must not downgrade it while a triggering risk remains
-without a grounded reason.
+`baseline-only`/`sampled`/`deep` test review, and `focused`/`full` reruns — orthogonal decisions, not new tiers
+or registry fields. Record the selected profile and its reason in package `Notes`. The planner may seed triggers;
+the implement orchestrator maintains the classification before dispatch and must not downgrade it without a
+grounded reason while a triggering risk remains; a SPEC-excluded dimension is not one. `throwaway`/`prototype`
+Lifespan defaults to `standard`, `baseline-only`/`sampled`, and `focused` unless an Assurance floor item or
+non-excluded trigger applies.
 
 Rules:
 
@@ -118,9 +119,10 @@ Rules:
 
 ## Risk and Review Lenses
 
-Package scope and assigned Slices should make risk visible without adding durable checklist fields to the registry.
+Package scope and assigned Slices make risk visible without durable registry checklist fields.
 
-Enhanced verification is triggered by surfaces such as:
+Enhanced verification is triggered by surfaces such as these, unless their only risk is a SPEC-excluded
+dimension (Assurance floor items still trigger):
 
 - security, privacy, or safety;
 - persistence, data integrity, migration, or rollback;
@@ -136,8 +138,8 @@ substitute one, and a check confirming the substitute passes identically whether
 Do not automatically enhance generic cross-package work or orchestration, git, package-verification, review,
 audit, or quality-contract changes; those stay with final review-code and audit.
 
-Documentation-only and reference-only packages use standard orchestrator re-run confirmation. Enhanced risk
-adds the independent verifier; it does not replace those checks.
+Documentation- and reference-only packages use standard orchestrator re-run confirmation. Enhanced risk adds
+the independent verifier without replacing those checks.
 
 ## Runtime and Repair Adjustment
 

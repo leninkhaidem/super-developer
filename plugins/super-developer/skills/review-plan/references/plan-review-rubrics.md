@@ -2,7 +2,7 @@
 
 ## Boundary
 
-Reviewers work cold from supplied files and references; they do not inherit hidden conversation context.
+Reviewers work cold from supplied files and references, without hidden conversation context.
 
 ## Common Rules
 
@@ -29,7 +29,8 @@ Reviewers work cold from supplied files and references; they do not inherit hidd
 
 ## Plan Reviewer
 
-Always run one Plan Reviewer/Triage. Perform challenge first, then artifact QA. The orchestrator's security-surface pre-screen may already have dispatched the Security/Failure-Mode Reviewer in the first wave; if not, this reviewer decides whether Security/Failure-Mode escalation is needed from the same file-only evidence.
+Always run one Plan Reviewer/Triage: challenge first, then artifact QA. If the pre-screen did not dispatch the
+Security/Failure-Mode Reviewer, this reviewer decides from the same file-only evidence whether escalation is needed.
 
 ### Pass 1: Challenge
 
@@ -67,10 +68,11 @@ include unfinished required QA in the next cold packet. Deferral is not complete
 Check whether:
 
 - `SPEC.md` records requirements, constraints, non-goals, Slice inventory, accepted deferrals, and acceptance summary without burying package assignment;
-- `SPEC.md` has a `## Trust Context` stating actors, trust boundary, data sensitivity, and deployment surface, and
-  no dimension it places out of boundary is relied on by a requirement, constraint, or Slice commitment;
-- every package `not-applicable:` line names only dimensions the SPEC already excluded, and none of them is
-  touched by that package's own behavior; a package cannot widen its own exclusions;
+- `SPEC.md` has a `## Trust Context` stating actors, trust boundary, data sensitivity, deployment surface, Lifespan,
+  and a user-approved Out-of-boundary list; no exclusion is an Assurance floor item (including security below
+  the declared surface) or relied on by a requirement, constraint, or Slice; a raised Lifespan or surface requires
+  initial-mode review;
+- package `not-applicable:` lines name only SPEC-excluded dimensions; a package cannot widen its exclusions;
 - the registry contains only feature/package bookkeeping and safe paths;
 - every package Markdown file has coherent scope, assigned Slice paths/H3 IDs, context-only reasons, primary paths, verification expectations, report path, and dependencies;
 - every package has at least one independently confirmable executable Acceptance Checklist item;
@@ -125,13 +127,16 @@ Valid `NONE` requires safe roots/paths, mechanical validation, file self-suffici
 
 ## Security/Failure-Mode Reviewer
 
-Run when the orchestrator's security-surface pre-screen tripped (first wave, parallel with the Plan Reviewer/Triage) or, as a backstop, when the Plan Reviewer/Triage requests `ESCALATE: security-failure-mode`.
+Run when the security-surface pre-screen tripped (first wave) or Triage requests `ESCALATE: security-failure-mode`
+(backstop).
 
 Check whether:
 
 - the `## Trust Context` is factual and approved rather than a convenience downgrade that quiets this review;
   treat an absent, vague, or unapproved context as the strictest surface, and check that security expectations
   match the declared boundary instead of a default-hostile assumption;
+- each exclusion is user-approved, excluding no Assurance floor item (spec template) or dimension a
+  requirement/Slice relies on; seeded expectations targeting excluded dimensions are over-seeding findings;
 - failures surface truthfully instead of plausible success;
 - security, privacy, and safety invariants are explicit and verifiable;
 - destructive, irreversible, externally visible, or credential-sensitive actions are gated;
@@ -152,4 +157,5 @@ Check whether:
 
 ## Reviewer Selection
 
-Default to one Plan Reviewer/Triage. Add the Security/Failure-Mode Reviewer when the security-surface pre-screen trips (first wave) or when the Plan Reviewer/Triage emits `ESCALATE: security-failure-mode` (backstop). More reviewers are not inherently better.
+Default to one Plan Reviewer/Triage; add the Security/Failure-Mode Reviewer only as its section states. More
+reviewers are not inherently better.

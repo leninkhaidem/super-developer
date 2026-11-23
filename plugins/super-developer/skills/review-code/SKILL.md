@@ -70,6 +70,11 @@ Severity has two tiers:
 - 🟡 **ADVISORY:** style, taste, speculative completeness, or maintainability concerns without such a defect.
   Report only; never block delivery or start a fix loop.
 
+Read assurance context first: SPEC `## Trust Context` (pipeline) or the direct-task contract's Deployment
+surface/Lifespan/Out-of-boundary list; absent context is the strictest surface. Findings only
+in approved Out-of-boundary dimensions are advisory; security severity follows the declared surface; Assurance floor
+items (`../implementation-plan/references/spec-template.md`) stay block-eligible.
+
 Challenge overengineering not traced to accepted requirements, Acceptance, or evidenced risk: unused extension
 points, unnecessary layers/configuration, and premature optimization. It stays advisory unless it causes a real
 blocking defect. Do not demand rewrites of working right-sized code; missing validation/error handling/tests are

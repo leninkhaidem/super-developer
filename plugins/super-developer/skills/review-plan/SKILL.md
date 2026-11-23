@@ -47,8 +47,10 @@ history or explicit `none`, any applicable limit state, and changed artifact sco
    prerequisite refs/SHAs/ancestry. Reject arbitrary/moved bases and stale testing provenance.
 4. Pre-screen SPEC, packages, and Slices for auth, credentials/secrets, sensitive data, permissions, crypto,
    external integrations, persistence/migration, untrusted input, paths/files, subprocess/shell, and deserialization.
-   Weigh signals against approved SPEC Trust Context; absent/vague/unapproved context is the strictest surface. This
-   selects reviewers but does not replace semantic review.
+   Weigh signals against approved SPEC Trust Context; absent/vague/unapproved context is the strictest surface.
+   Signals only in approved Out-of-boundary dimensions do not dispatch Security; Assurance floor signals, and any
+   exclusion touching security, privacy, or data, do. This
+   selects reviewers, not replacing semantic review.
 5. Load `../../references/model-preferences.md`. Initial mode dispatches Plan Reviewer/Triage and, when pre-screened,
    Security/Failure-Mode Reviewer in parallel. Focused mode sends only changed artifacts and affected global
    boundaries, reusing unaffected reviewed evidence; add Security only for a changed triggering surface. If Triage

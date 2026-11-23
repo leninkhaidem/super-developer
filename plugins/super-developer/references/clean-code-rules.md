@@ -91,17 +91,21 @@ avoid secret/private-data leakage; keep one cohesive owner; reveal intent; and u
 docs, schemas, examples, and generated artifacts.
 
 **Right-sized complexity:** choose the smallest complete design satisfying accepted requirements and Acceptance.
-Every added state, marker, flag, abstraction, dependency, configuration, branch, retry, cache, or extension point
-MUST trace to a current requirement or evidenced risk, otherwise cut it. Simplicity MUST NOT remove correctness,
-boundary validation, safety, failure handling, or required verification.
+Every added state, flag, abstraction, dependency, configuration, branch, retry, cache, or extension point MUST trace
+to a current requirement or evidenced risk; for `throwaway`/`prototype` Lifespan, Seams, Adapters, extension points,
+and configurability need current requirements or evidenced near-term change, never speculative future change.
+Simplicity MUST NOT remove correctness, boundary validation, safety, failure handling, secret hygiene, other Assurance
+floor items (Trust Context, `../skills/implementation-plan/references/spec-template.md`), or required verification.
 
 1. **Discover/Design:** inspect requirements, conventions, outcomes, callers, boundaries, likely change paths, and
    risks; state owner, caller contract, failure strategy, dependency direction, Locality, and verification approach.
 2. **Implement:** make the smallest complete change for the behavior/risk class; preserve contracts and avoid stale,
    speculative, or unrelated work.
 3. **Verify:** exercise real behavior where practical, including material failure, invalid/default input, contracts,
-   and relevant data/security/privacy/concurrency/lifecycle/network/subprocess/performance/resource risks. Bound and
-   clean up timeouts/retries/fanout/queues. Disclose mocks, skips, manual/static checks; mocks MUST NOT hide an
+   and data/security/privacy/concurrency/lifecycle/network/subprocess/performance/resource risks in scope per the
+   approved Trust Context or direct-task contract (absent: strictest; excluded dimensions only when a requirement names
+   them). Bound
+   and clean up timeouts/retries/fanout/queues. Disclose mocks, skips, manual/static checks; mocks MUST NOT hide an
    otherwise unverified external, library, runtime, or API contract.
 4. **Review/audit:** establish correctness and truthful evidence before polish. Every serious finding identifies an
    affected caller, future change, verification claim, or material risk.
