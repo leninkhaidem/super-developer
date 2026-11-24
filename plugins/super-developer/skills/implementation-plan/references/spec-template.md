@@ -67,10 +67,9 @@ User-approved exclusions, deferred items, or boundaries. Include approval proven
 - Include normative product content only when stated, explicitly approved, or safely projected from authoritative Slice product/design commitments.
 - Do not invent product behavior, architecture, performance targets, security rules, compatibility constraints, or success criteria to make the spec feel complete.
 - Every `## Acceptance` item is an executable check unless it carries an explicit human-approved `manual (approved)` exception; never leave a feature-level outcome unverifiable and silent.
-- `## Trust Context` is required for newly authored SPECs and follows
-  `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/trust-context.md` for exclusion effect, the Assurance floor, capture
-  (ask once, never infer), the strictest default, lowering/raising, and legacy SPECs without the section or without
-  Lifespan.
+- `## Trust Context` is required and follows `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/trust-context.md` for
+  exclusion effect, the Assurance floor, capture (ask once, never infer), the strictest default, and
+  lowering/raising.
 - Ask before writing if a requirement, constraint, success condition, Slice deferral, or exclusion is needed but ambiguous.
 - Preserve all user-stated and safely projected requirements while keeping the file concise.
 - Redact secrets, credentials, tokens, PII, and proprietary sensitive values.
@@ -87,8 +86,7 @@ User-approved exclusions, deferred items, or boundaries. Include approval proven
 - Raw Slice text, source excerpts, transcripts, debate, implementation sequencing, result rows, review findings, line numbers, code snippets, or diffs are copied into `SPEC.md`.
 - Feature-level requirements omit user-stated or safely projected commitments.
 - `## Acceptance` is missing, empty, or contains an item that is neither an executable check nor a human-approved `manual (approved)` exception.
-- A newly authored SPEC's `## Trust Context` is missing or lacks Lifespan or a user-chosen Out-of-boundary list;
-  or any Trust Context excludes an Assurance floor item or a dimension a requirement, constraint, or Slice
-  commitment relies on.
+- `## Trust Context` is missing or lacks Lifespan or a user-chosen Out-of-boundary list; or it excludes an Assurance
+  floor item or a dimension a requirement, constraint, or Slice commitment relies on.
 - An approved deferral/exclusion lacks provenance and scope.
 - The Slice manifest and registry Slice inventory disagree.

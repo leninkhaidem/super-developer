@@ -23,9 +23,9 @@ verification cannot be completed. An execution/limit blocker is not evidence of 
 Read from files, not prompt prose:
 
 - package Markdown `.tasks/<feature>/packages/<WP-ID>.md`, including its `## Acceptance Checklist`;
-- `.tasks/<feature>/SPEC.md` for `## Trust Context`; when absent (legacy SPEC), assume the strictest surface
-  (`${SUPER_DEVELOPER_PLUGIN_ROOT}/references/trust-context.md`) —
-  an unstated boundary never relaxes anything;
+- `.tasks/<feature>/SPEC.md` for `## Trust Context` (rules:
+  `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/trust-context.md`); it is a required input, and an unstated boundary
+  never relaxes anything;
 - the assigned Slice files (product/design context only);
 - the package implementation diff/code in the package or integration worktree;
 - the package agent report with `SELF_REVIEW` (hygiene, not a gate);

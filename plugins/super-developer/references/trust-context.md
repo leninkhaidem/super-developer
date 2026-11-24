@@ -47,11 +47,3 @@ itself is therefore never excludable; only defense-in-depth beyond the declared 
   the Security/Failure-Mode reviewer.
 - Raising either field is a requirements change: planning continuation re-seeds the newly in-scope dimensions and
   plan review runs in initial (full) mode.
-
-## Legacy SPECs
-
-A pre-existing SPEC without `## Trust Context` stays valid at the strictest surface until the next planning
-continuation that touches requirements adds the section. A pre-existing section lacking Lifespan stays valid,
-reads as `maintained`, and keeps its plan-approved exclusions with their prior meaning (only hostile-input,
-authentication, race-hardening, and adversarial-filesystem concerns become advisory) until that continuation
-reconfirms them with the user. Neither case blocks in-flight work.
