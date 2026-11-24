@@ -6,6 +6,31 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## [v2.8.0] - 2026-11-24
+
+### Added
+- Added a Lifespan (`throwaway`, `prototype`, or `maintained`) and a user-approved list of excluded assurance
+  dimensions to the SPEC Trust Context, so non-production work no longer defaults to production-grade
+  security, scalability, and robustness. Planning asks once for Deployment surface and Lifespan instead of
+  inferring them, and proposes exclusions for approval.
+- Added a shared Trust Context reference with a non-excludable Assurance floor: correct promised behavior,
+  truthful failure reporting, no secret leakage, gated destructive or external actions, no loss of real user
+  data, control-plane handling, and security proportional to the declared surface.
+- Final audit now reports `delivered under exclusions`, so skipped assurance stays visible.
+
+### Changed
+- Excluded dimensions are advisory across planning, plan review, package verification, code review, and audit:
+  they no longer become seeded checks, plan gaps, blocking findings, overrides, enhanced-verification triggers,
+  or review/audit widening triggers unless a requirement, frozen item, or Slice names them.
+- Throwaway and prototype work defaults to direct execution, lighter standard verification and test review, and
+  a current-requirements design horizon without speculative seams, adapters, or configuration, unless a concrete
+  floor risk or unresolved design decision requires planning.
+- Direct tasks record the user-stated Deployment surface, Lifespan, and exclusions in their task contract.
+- Lowering Lifespan or adding exclusions after approval cannot clear open plan gaps or blocking findings and
+  re-triggers security review; raising them requires a full plan re-review.
+- A planned-feature SPEC without Trust Context, Lifespan, or a chosen exclusion list now fails closed at every
+  gate. Legacy SPECs are no longer given a grace path.
+
 ## [v2.7.0] - 2026-09-23
 
 ### Changed
