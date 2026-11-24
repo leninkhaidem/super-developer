@@ -24,7 +24,7 @@ Read from files, not prompt prose:
 
 - package Markdown `.tasks/<feature>/packages/<WP-ID>.md`, including its `## Acceptance Checklist`;
 - `.tasks/<feature>/SPEC.md` for `## Trust Context`; when absent (legacy SPEC), assume the strictest surface
-  (`spec-template.md`: public network, no exclusions) —
+  (`${SUPER_DEVELOPER_PLUGIN_ROOT}/references/trust-context.md`) —
   an unstated boundary never relaxes anything;
 - the assigned Slice files (product/design context only);
 - the package implementation diff/code in the package or integration worktree;
@@ -76,7 +76,7 @@ stated contract?* If not, it is advisory. Do not manufacture blockers.
 Read the SPEC `## Trust Context` before classifying. An `Out-of-boundary dimensions` entry is advisory — never
 blocking or a plan gap — unless a frozen item, requirement, or Slice obligation names it. Judge
 `override:security` against the Deployment surface; no override cites an excluded dimension, but Assurance floor
-items (`spec-template.md`) stay blocking-eligible. Trust Context never scopes the control-plane boundary above or
+items (`trust-context.md`) stay blocking-eligible. Trust Context never scopes the control-plane boundary above or
 downgrades a defect in promised behavior.
 
 ### Warrant (required on every blocking finding)

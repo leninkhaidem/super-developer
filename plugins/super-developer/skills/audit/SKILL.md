@@ -17,7 +17,8 @@ state. One cold auditor performs semantic work; the main agent validates inputs,
   the worker's explicit widening triggers govern further code/test inspection and rejection of hollow evidence.
 - Keep the auditor independent from implementer, Code Reviewer, and Fix Verification. Review-code and audit are
   sibling checks: optional review context may be `none`, but delivery requires independent same-freeze `CLEAN` + `PASS`.
-- Only missing/failed/invalid evidence, unmet obligations, or real correctness/security/data/contract defects block.
+- Only missing/failed/invalid evidence, unmet obligations, or real correctness/security/data/contract defects block;
+  findings only in approved SPEC Trust Context exclusions are advisory, Assurance floor defects always block.
   Advisory notes never fail audit, and helper/status/self-review output alone never proves completion.
 
 ## Do
@@ -65,6 +66,6 @@ state. One cold auditor performs semantic work; the main agent validates inputs,
 ## Output
 
 Return PASS/FAIL bound to the audited code/evidence state, roots/worktree, complete coverage summary, concrete gaps
-with evidence/repair pointers, separate non-blocking advisories, and `delivered under exclusions: <approved
-Out-of-boundary list>` or `none`, keeping skipped assurance visible. State optional review-context status and the
-same-freeze `CLEAN` + `PASS` requirement; audit alone never authorizes merge or publication.
+with evidence/repair pointers, separate non-blocking advisories, and `delivered under exclusions: <approved SPEC
+Trust Context Out-of-boundary list>` or `none`, keeping skipped assurance visible. State optional review-context
+status and the same-freeze `CLEAN` + `PASS` requirement; audit alone never authorizes merge or publication.

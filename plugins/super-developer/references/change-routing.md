@@ -22,10 +22,9 @@ resolve or route it before expanding—not after silently changing scope.
 
 Every direct task still needs accepted outcome/write scope, applicable safety/testing authority, actual checks, and
 an honest result/limitations report. Its contract records user-stated Deployment surface, Lifespan, and approved
-Out-of-boundary list or `None.` (ask once if unstated and material; never infer); the Trust Context exclusion rule
-and Assurance floor in `../skills/implementation-plan/references/spec-template.md` apply. Use independent review
-when risk or the task contract calls for it. It cannot claim planned-feature audit PASS without that pipeline's
-artifacts and gates.
+Out-of-boundary list or `None.` (captured per `trust-context.md`, whose exclusion rule and Assurance floor apply).
+Use independent review when risk or the task contract calls for it. It cannot claim planned-feature audit PASS
+without that pipeline's artifacts and gates.
 
 Chat-only and Index-only handoffs are valid; do not backfill Slices just because planning is next. A delegated or
 resumed executor receives complete approved context in its packet or the smallest necessary durable record.

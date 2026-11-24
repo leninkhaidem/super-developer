@@ -67,11 +67,10 @@ never starts a repair loop, but while it stays open the package does not become 
 dependents. The consuming orchestrator routes it through planning continuation and re-verifies against the
 repaired checklist, so a missing requirement is neither forced in by a verifier nor silently lost.
 
-Scope assurance to the SPEC `## Trust Context` (authority: `spec-template.md`). An excluded dimension is
-advisory, never a plan gap or blocker, unless a frozen item, requirement, or Slice obligation names it.
-`override:security` is judged against the Deployment surface and never cites an excluded dimension; Assurance
-floor items stay blocking-eligible. Trust Context never scopes the control plane or downgrades a defect in
-promised behavior.
+Scope assurance to the SPEC `## Trust Context` (authority: `trust-context.md`). An excluded dimension is advisory,
+never a plan gap or blocker, unless a frozen item, requirement, or Slice obligation names it. `override:security` is
+judged against the Deployment surface and never cites an excluded dimension; Assurance floor items stay
+blocking-eligible. Trust Context never scopes the control plane or downgrades a defect in promised behavior.
 
 ## Repair impact and re-verification (delta-only, bounded)
 Dependency edges express readiness/sequencing only: descendants are not staleness fan-out. Classify semantic

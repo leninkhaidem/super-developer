@@ -95,7 +95,7 @@ Every added state, flag, abstraction, dependency, configuration, branch, retry, 
 to a current requirement or evidenced risk; for `throwaway`/`prototype` Lifespan, Seams, Adapters, extension points,
 and configurability need current requirements or evidenced near-term change, never speculative future change.
 Simplicity MUST NOT remove correctness, boundary validation, safety, failure handling, secret hygiene, other Assurance
-floor items (Trust Context, `../skills/implementation-plan/references/spec-template.md`), or required verification.
+floor items (`trust-context.md`), or required verification.
 
 1. **Discover/Design:** inspect requirements, conventions, outcomes, callers, boundaries, likely change paths, and
    risks; state owner, caller contract, failure strategy, dependency direction, Locality, and verification approach.
@@ -103,10 +103,9 @@ floor items (Trust Context, `../skills/implementation-plan/references/spec-templ
    speculative, or unrelated work.
 3. **Verify:** exercise real behavior where practical, including material failure, invalid/default input, contracts,
    and data/security/privacy/concurrency/lifecycle/network/subprocess/performance/resource risks in scope per the
-   approved Trust Context or direct-task contract (absent: strictest; excluded dimensions only when a requirement names
-   them). Bound
-   and clean up timeouts/retries/fanout/queues. Disclose mocks, skips, manual/static checks; mocks MUST NOT hide an
-   otherwise unverified external, library, runtime, or API contract.
+   approved Trust Context or direct-task contract (absent: strictest; excluded dimensions only when a requirement
+   names them). Bound and clean up timeouts/retries/fanout/queues. Disclose mocks, skips, manual/static checks;
+   mocks MUST NOT hide an otherwise unverified external, library, runtime, or API contract.
 4. **Review/audit:** establish correctness and truthful evidence before polish. Every serious finding identifies an
    affected caller, future change, verification claim, or material risk.
 
