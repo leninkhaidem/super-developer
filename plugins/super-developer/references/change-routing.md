@@ -12,13 +12,19 @@ cleanup, or write authority.
   unresolved implementation-shaping decisions, material risk, or separate ownership/evidence boundaries use
   `implementation-plan`. One coherent package is valid; reviewed-plan approval precedes package execution.
 
+`throwaway`/`prototype` Lifespan defaults to Execute directly unless a plan request, an unresolved
+implementation-shaping decision, a concrete floor risk (destructive/external action, secrets, real user data, or a
+security surface beyond local-only), or a risk below forces Plan.
+
 Small is not automatically low risk: assess authentication, sensitive data, persistence/migration, public
 contracts, concurrency, destructive actions, and uncertain verification. If direct work develops a planning need,
 resolve or route it before expanding—not after silently changing scope.
 
-Every direct task still needs accepted outcome/write scope, applicable safety/testing authority, actual checks,
-and an honest result/limitations report. Use independent review when risk or the task contract calls for it.
-It cannot claim planned-feature audit PASS without that pipeline's artifacts and gates.
+Every direct task still needs accepted outcome/write scope, applicable safety/testing authority, actual checks, and
+an honest result/limitations report. Its contract records user-stated Deployment surface, Lifespan, and approved
+Out-of-boundary list or `None.` (captured per `trust-context.md`, whose exclusion rule and Assurance floor apply).
+Use independent review when risk or the task contract calls for it. It cannot claim planned-feature audit PASS
+without that pipeline's artifacts and gates.
 
 Chat-only and Index-only handoffs are valid; do not backfill Slices just because planning is next. A delegated or
 resumed executor receives complete approved context in its packet or the smallest necessary durable record.

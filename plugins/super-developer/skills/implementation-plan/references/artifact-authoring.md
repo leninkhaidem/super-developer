@@ -99,11 +99,11 @@ Retain these specialized Acceptance forms where applicable:
   observable signal exists, and state why.
 - Primary paths are code-root-relative starting points, not hard boundaries. Declare the result path now; produce
   evidence later.
-- Apply packet-labeled package closure/dependency rules. Expectations are package-specific and cover applicable
-  commands, static inspection, edge/failure/default behavior, trust boundaries, data, security, privacy,
-  performance, concurrency, generated contracts, no-mock boundaries, lifecycle, and audience surfaces. A single
-  `not-applicable: <dimensions>` line may name only dimensions the SPEC Trust Context already excludes and this
-  package does not touch.
+- Apply packet-labeled package closure/dependency rules. Expectations are package-specific and seed only dimensions
+  the approved SPEC Trust Context does not exclude: commands, static inspection, edge/failure/default behavior, trust
+  boundaries, data, security, privacy, performance, concurrency, generated contracts, no-mock boundaries, lifecycle,
+  and audience surfaces. Excluded dimensions need no `not-applicable:` line (one stays allowed); Assurance floor
+  items stay seedable.
 - Seed applicable exact-interface, forbidden-behavior, interactive UI, retry/fail-closed, trigger-precedence,
   restart/reaper, cache, model/default, generated-default, and state-pollution checks; identify the triggering
   surface instead of copying a worksheet. Planner seeds never limit verifier discovery from scope, Slices, code,

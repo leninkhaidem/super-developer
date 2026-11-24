@@ -58,6 +58,8 @@ accepted empirical reports or explicit `none`.
    current workflow, a routine-safe bounded local fallback, or exact task-local authorization. If none is sufficient,
    initial mode may invoke `testing`; continuation returns the gap to `implement` for contract-owned repair or a
    protected stop. Continuation same-root repair needs no repeated overwrite prompt but cannot exceed its contract.
+   Initial mode applies the `../../references/trust-context.md` ask-once gate for Deployment surface and Lifespan,
+   then proposes exclusions for user approval.
    Apply `references/design-preflight.md` only for consequential unresolved design decisions before drafting;
    ordinary settled work proceeds to drafting and independent `review-plan`. When triggered, reuse it only for
    identical scope/evidence with complete requirements and overengineering coverage. Resolve all `COVERAGE_GAPS`,

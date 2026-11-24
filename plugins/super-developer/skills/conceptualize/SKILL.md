@@ -75,8 +75,9 @@ Simple settled work may finish entirely in chat.
 10. Before claiming readiness, check the selected context for missing accepted outcomes, applicable edge cases,
     concrete failure risks, stale commitments, and unapproved deferrals. For durable context, validate its paths,
     read the Index and every existing safe Slice, and account for their material H3 obligations. Resolve material
-    gaps with the user; do not invent speculative obligations. Documentation/continued-discovery handoffs may
-    expose open questions without claiming planning/direct-execution readiness.
+    gaps with the user; do not invent speculative obligations. Planning handoffs carry user-stated Deployment
+    surface and Lifespan when known; never infer them or require them for chat-only/discussion outcomes.
+    Documentation/continued-discovery handoffs may expose open questions without claiming readiness.
 11. Return the handoff without executing the next skill inline. If planning is requested, its parent transition
     resolves preferences/Semgrep and any separately authorized sidecar publication. Local artifacts remain usable
     without publication; a chat-only outcome needs no artifact ref.

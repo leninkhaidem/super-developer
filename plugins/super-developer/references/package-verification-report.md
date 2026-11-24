@@ -59,7 +59,8 @@ intentionally unverified and cannot satisfy completion.
   Everything else is an `## Advisory note` — it never changes the verdict.
 - **Warrant:** every blocking finding carries `warrant: AC-<id>`, `warrant: regression:<ref>`, or
   `warrant: override:<class>`. An unwarranted finding is not blocking: it becomes an advisory note, or a
-  `## Plan gaps` entry (`warrant: plan-gap`) when it names a real obligation the frozen checklist omits.
+  `## Plan gaps` entry (`warrant: plan-gap`) when it names a real obligation the frozen checklist omits. A finding
+  in a SPEC-excluded dimension is advisory, never a plan gap.
   A plan gap never changes the verdict and never starts a code repair loop, but it is a plan defect, not an
   advisory: while it stays open `validate-package-complete` and `validate-final` fail, the package does not become
   `done`, and dependents do not unlock. The orchestrator routes it to planning continuation, so a missing

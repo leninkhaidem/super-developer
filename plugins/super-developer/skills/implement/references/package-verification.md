@@ -23,8 +23,9 @@ verification cannot be completed. An execution/limit blocker is not evidence of 
 Read from files, not prompt prose:
 
 - package Markdown `.tasks/<feature>/packages/<WP-ID>.md`, including its `## Acceptance Checklist`;
-- `.tasks/<feature>/SPEC.md` for `## Trust Context`; when that section is absent, assume the strictest surface and
-  classify as if the feature were publicly exposed — an unstated boundary never relaxes anything;
+- `.tasks/<feature>/SPEC.md` for `## Trust Context` (rules:
+  `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/trust-context.md`); it is a required input, and an unstated boundary
+  never relaxes anything;
 - the assigned Slice files (product/design context only);
 - the package implementation diff/code in the package or integration worktree;
 - the package agent report with `SELF_REVIEW` (hygiene, not a gate);
@@ -72,10 +73,11 @@ Classify every finding:
 When unsure whether a finding is blocking, ask: *does it make the software wrong, unsafe, lose data, or break a
 stated contract?* If not, it is advisory. Do not manufacture blockers.
 
-Read the SPEC `## Trust Context` before classifying. Weigh hostile-input, authentication, race-hardening, and
-adversarial-filesystem concerns against the declared boundary: inside a trusted boundary they are advisory unless
-a frozen item, requirement, or Slice obligation names them. Trust Context never scopes the control-plane boundary
-above, and never downgrades a defect in behavior the package actually promises.
+Read the SPEC `## Trust Context` before classifying. An `Out-of-boundary dimensions` entry is advisory — never
+blocking or a plan gap — unless a frozen item, requirement, or Slice obligation names it. Judge
+`override:security` against the Deployment surface; no override cites an excluded dimension, but Assurance floor
+items (`trust-context.md`) stay blocking-eligible. Trust Context never scopes the control-plane boundary above or
+downgrades a defect in promised behavior.
 
 ### Warrant (required on every blocking finding)
 

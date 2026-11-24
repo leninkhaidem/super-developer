@@ -18,7 +18,8 @@ verification, not an unrestricted rereview.
 ## Production Coverage
 
 Review cross-package seams/callers, shared/public contracts, whole-feature contradictions, integration/merge
-changes, and triggered security/privacy/data/concurrency/lifecycle risk. Trust fresh independent package-local
+changes, and triggered security/privacy/data/concurrency/lifecycle risk outside approved Trust Context
+exclusions. Trust fresh independent package-local
 verification where relevant, not as proof that assembly is correct.
 
 For every standard package's production delta, record the changed path/symbol, behavior/invariant, relevant caller
@@ -34,7 +35,8 @@ snapshots. Widen only when:
 - evidence is missing, vague, stale, or contradictory;
 - a suspected production defect is cheaply falsifiable through a targeted test;
 - integration or merge resolution changed the relevant production or test surface;
-- production behavior triggers a material security/privacy/data/concurrency/lifecycle risk; or
+- production behavior triggers a material security/privacy/data/concurrency/lifecycle risk outside approved
+  Trust Context exclusions (Assurance floor risks always trigger); or
 - verifier/reviewer evidence identifies a specific weakness.
 
 Inspect the minimum relevant tests or evidence needed to resolve the trigger, then stop. Further widening needs

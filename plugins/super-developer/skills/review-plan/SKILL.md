@@ -47,8 +47,10 @@ history or explicit `none`, any applicable limit state, and changed artifact sco
    prerequisite refs/SHAs/ancestry. Reject arbitrary/moved bases and stale testing provenance.
 4. Pre-screen SPEC, packages, and Slices for auth, credentials/secrets, sensitive data, permissions, crypto,
    external integrations, persistence/migration, untrusted input, paths/files, subprocess/shell, and deserialization.
-   Weigh signals against approved SPEC Trust Context; absent/vague/unapproved context is the strictest surface. This
-   selects reviewers but does not replace semantic review.
+   Weigh signals against approved SPEC Trust Context; absent/vague/unapproved context is the strictest surface.
+   Signals only in approved Out-of-boundary dimensions do not dispatch Security; Assurance floor signals, and any
+   exclusion touching security, privacy, or data, do. This
+   selects reviewers, not replacing semantic review.
 5. Load `../../references/model-preferences.md`. Initial mode dispatches Plan Reviewer/Triage and, when pre-screened,
    Security/Failure-Mode Reviewer in parallel. Focused mode sends only changed artifacts and affected global
    boundaries, reusing unaffected reviewed evidence; add Security only for a changed triggering surface. If Triage
@@ -56,10 +58,10 @@ history or explicit `none`, any applicable limit state, and changed artifact sco
 6. Give each reviewer a cold packet with roots/ref/slug, delivery context, narrowed artifact paths, testing
    provenance, and expected output. During repair include identity/evidence/history, any applicable limit state,
    and the direct path to `../../references/bounded-attempts.md`; an incomplete review cannot restore readiness.
-   Label direct paths to `references/plan-review-rubrics.md`,
-   `references/plan-review-findings.md`, and the shared artifact-store, artifact-model, work-package, clean-code,
-   and conditional Slice-authority contracts. Pass files and paths, never hidden chat or copied Slice prose; a
-   private reviewer reference must not make the worker discover a second-hop contract.
+   Label direct paths to `references/plan-review-rubrics.md`, `references/plan-review-findings.md`,
+   `../../references/trust-context.md`, and the shared artifact-store, artifact-model, work-package, clean-code, and
+   conditional Slice-authority contracts. Pass files and paths, never hidden chat or copied Slice prose; a private
+   reviewer reference must not make the worker discover a second-hop contract.
 7. If findings exist, load `references/plan-review-resolution.md`. Apply the bounded-attempt contract to empirical
    blockers and retain question/history. In initial mode, resolve authorized findings through ordinary planning,
    persist accepted evidence under the Semantic Change Rule, validate, and focused re-review before the plan gate;

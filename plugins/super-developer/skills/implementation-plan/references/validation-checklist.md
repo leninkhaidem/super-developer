@@ -60,8 +60,9 @@ Confirm that it:
   cases. Reused package checks actually prove those integrated outcomes. Checks satisfy Acceptance Design and reject
   plausible wrong behavior, rather than merely execute successfully. Non-executable items are explicitly approved
   `manual (approved)` exceptions surfaced at plan review;
-- has factual approved `## Trust Context` covering actors, trust boundary, data sensitivity, and deployment surface;
-  no excluded dimension is relied on by a requirement or Slice;
+- has factual approved `## Trust Context` covering actors, trust boundary, data sensitivity, deployment surface,
+  Lifespan, and a user-chosen Out-of-boundary list (explicit `None.` is a choice); no excluded dimension is an
+  Assurance floor item or relied on by a requirement or Slice;
 - contains no secrets/PII, implementation code or pseudocode, line numbers, result rows, findings, transcripts, or
   debate; manifests are path-only, Code References are verified paths or `None identified.`, and deferrals include
   approval provenance and scope;
@@ -86,8 +87,8 @@ For every package, confirm:
   no weak executable substitute hides missing automation;
 - checklist items exclude publication, final review/audit, delivery, release/deploy, and post-delivery validation;
 - expectations are package-specific, observable, and cover applicable edge/failure/default/security/privacy/data/
-  concurrency/performance/lifecycle/audience cases. One `not-applicable:` line may use only SPEC-excluded dimensions
-  untouched by the package. Applicable exact-interface, retry/fail-closed, trigger, restart/reaper, cache,
+  concurrency/performance/lifecycle/audience cases; no seed targets a SPEC-excluded dimension unless a requirement,
+  frozen item, or Slice names it. Applicable exact-interface, retry/fail-closed, trigger, restart/reaper, cache,
   model/default, generated-default, state-pollution, and audience-language risks are seeded;
 - every expectation maps to a checklist item, while planner seeds do not limit verifier discovery from package
   scope, Slices, changed code/diff, tests, or known failure modes;

@@ -21,7 +21,11 @@ Before reconciliation, read the supplied plugin contracts:
 - `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/slice-first-artifacts.md` — artifact roles;
 - `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/package-lifecycle.md` and
   `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/package-verification-report.md` — completion and report grammar;
-- `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/clean-code-rules.md` — evidence and actual-defect standards.
+- `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/clean-code-rules.md` — evidence and actual-defect standards;
+- `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/trust-context.md` —
+  approved Out-of-boundary dimensions and the Assurance floor. Read each SPEC's Trust Context before widening or
+  classifying; a missing section is a missing required input (fail closed), vague or unapproved context the
+  strictest surface.
 
 Then read each included SPEC/registry, package assignment and report, and the full safe Slice inventory. Use only
 bounded helper views for enabled/contracted Semgrep evidence, never wholesale raw JSON. Read production code/tests
@@ -61,13 +65,16 @@ Code/test inspection is conditional, not an unconditional global review. Widen w
 - evidence is missing, vague, stale, or contradictory, including hollow/dishonest passing claims;
 - a suspected production defect is cheaply falsifiable through a targeted test;
 - integration or merge resolution changed the relevant production or test surface;
-- production behavior triggers a material security/privacy/data/concurrency/lifecycle risk; or
+- production behavior triggers a material security/privacy/data/concurrency/lifecycle risk outside approved
+  Trust Context exclusions (Assurance floor risks always trigger); or
 - verifier/reviewer evidence identifies a specific weakness.
 
 Inspect the minimum relevant tests or evidence and corresponding production paths/seams needed to decide that
 trigger, then stop. Widen further only for a discovered concrete defect, contradiction, evidence gap, or unbounded
 impact. Trust fresh package-local test-quality review without surrendering the duty to reject forged, hollow, or
-semantically insufficient evidence. Real correctness/security/data-loss/contract defects remain blocking.
+semantically insufficient evidence. Real correctness/security/data-loss/contract defects remain blocking; a finding
+only in an approved excluded dimension is advisory unless a requirement, frozen item, or Slice names it, while
+Assurance floor defects always block.
 
 ## Optional Review Context
 
@@ -88,7 +95,8 @@ Return one concise report, not repeated tables of the same package evidence:
 - each blocking issue's category, violated obligation, decisive evidence, affected paths/packages, and minimal
   repair/reverification scope; useful categories include `[SLICE-GAP]`, `[RESULT-GAP]`, `[INTERFACE-EXACTNESS]`,
   `[SEMGREP-EVIDENCE]`, `[STACK-GAP]`, and `[CONTROL-PLANE]`;
-- optional review-context status and non-blocking advisories separately.
+- optional review-context status and non-blocking advisories separately;
+- `delivered under exclusions: <each SPEC's approved Trust Context Out-of-boundary list>` or `none`.
 
 PASS requires the complete reconciliation above with no blocking gap/defect. Advisory style/maintainability
 opinions never fail it. Do not fix, approve a deferral, or mark state from this role.
