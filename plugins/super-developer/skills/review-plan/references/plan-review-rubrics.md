@@ -135,7 +135,7 @@ Check whether:
 - the `## Trust Context` is factual and approved rather than a convenience downgrade that quiets this review;
   treat an absent, vague, or unapproved context as the strictest surface, and check that security expectations
   match the declared boundary instead of a default-hostile assumption;
-- each exclusion is user-approved, excluding no Assurance floor item (spec template) or dimension a
+- each exclusion is user-approved, excluding no Assurance floor item (trust-context.md) or dimension a
   requirement/Slice relies on; seeded expectations targeting excluded dimensions are over-seeding findings;
 - failures surface truthfully instead of plausible success;
 - security, privacy, and safety invariants are explicit and verifiable;

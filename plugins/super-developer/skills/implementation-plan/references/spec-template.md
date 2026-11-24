@@ -22,8 +22,7 @@ Full safe Slice inventory for this plan. Details stay in Slice files.
 - Use `None; Index-only/no-Slice plan.` when no Slice is independently useful.
 
 ## Trust Context
-The feature's operating boundary, stated as fact and approved at the plan gate. Rules, exclusion effect, Assurance
-floor, and legacy handling: `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/trust-context.md`.
+The feature's operating boundary, stated as fact and approved at the plan gate.
 - Actors: <who invokes this, and are they trusted?>
 - Trust boundary: <what crosses it, and what sits inside it>
 - Data sensitivity: <secrets, PII, or regulated data present, or `None.`>
@@ -69,8 +68,9 @@ User-approved exclusions, deferred items, or boundaries. Include approval proven
 - Do not invent product behavior, architecture, performance targets, security rules, compatibility constraints, or success criteria to make the spec feel complete.
 - Every `## Acceptance` item is an executable check unless it carries an explicit human-approved `manual (approved)` exception; never leave a feature-level outcome unverifiable and silent.
 - `## Trust Context` is required for newly authored SPECs and follows
-  `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/trust-context.md` for capture (ask once, never infer), the strictest
-  default, lowering/raising, and legacy SPECs without the section or without Lifespan.
+  `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/trust-context.md` for exclusion effect, the Assurance floor, capture
+  (ask once, never infer), the strictest default, lowering/raising, and legacy SPECs without the section or without
+  Lifespan.
 - Ask before writing if a requirement, constraint, success condition, Slice deferral, or exclusion is needed but ambiguous.
 - Preserve all user-stated and safely projected requirements while keeping the file concise.
 - Redact secrets, credentials, tokens, PII, and proprietary sensitive values.
