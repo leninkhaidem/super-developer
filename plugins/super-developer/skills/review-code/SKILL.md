@@ -71,9 +71,10 @@ Severity has two tiers:
   Report only; never block delivery or start a fix loop.
 
 Read assurance context first: SPEC `## Trust Context` (pipeline) or the direct-task contract's Deployment
-surface/Lifespan/Out-of-boundary list; absent context is the strictest surface. Findings only
-in approved Out-of-boundary dimensions are advisory; security severity follows the declared surface; Assurance floor
-items (`../../references/trust-context.md`) stay block-eligible.
+surface/Lifespan/Out-of-boundary list; a pipeline SPEC missing it fails closed, and vague/unapproved or direct-task
+omitted context is the strictest surface. Findings only in approved Out-of-boundary dimensions are advisory;
+security severity follows the declared surface; Assurance floor items (`../../references/trust-context.md`) stay
+block-eligible.
 
 Challenge overengineering not traced to accepted requirements, Acceptance, or evidenced risk: unused extension
 points, unnecessary layers/configuration, and premature optimization. It stays advisory unless it causes a real

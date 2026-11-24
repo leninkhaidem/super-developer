@@ -24,7 +24,8 @@ Before reconciliation, read the supplied plugin contracts:
 - `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/clean-code-rules.md` — evidence and actual-defect standards;
 - `${SUPER_DEVELOPER_PLUGIN_ROOT}/references/trust-context.md` —
   approved Out-of-boundary dimensions and the Assurance floor. Read each SPEC's Trust Context before widening or
-  classifying; absent context is the strictest surface.
+  classifying; a missing section is a missing required input (fail closed), vague or unapproved context the
+  strictest surface.
 
 Then read each included SPEC/registry, package assignment and report, and the full safe Slice inventory. Use only
 bounded helper views for enabled/contracted Semgrep evidence, never wholesale raw JSON. Read production code/tests

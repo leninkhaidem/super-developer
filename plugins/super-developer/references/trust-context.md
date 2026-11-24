@@ -40,8 +40,10 @@ itself is therefore never excludable; only defense-in-depth beyond the declared 
 - Ask the user once for Deployment surface and Lifespan when neither the request nor approved context states them
   and the answer could change scope, checks, or design. Never infer them; an unasked fact defaults to the
   strictest surface.
-- Record observed or user-approved fact, never a convenience downgrade to quiet reviewers. Absent, vague, or
-  unapproved context is the **strictest surface**: public network, Lifespan `maintained`, no exclusions.
+- Record observed or user-approved fact, never a convenience downgrade to quiet reviewers. A pipeline SPEC
+  missing `## Trust Context` is a required-input failure at every gate (fail closed; no legacy carve-out). Vague
+  or unapproved context, or a direct task that omits the facts, is the **strictest surface**: public network,
+  Lifespan `maintained`, no exclusions.
 - Lowering either field, or adding exclusions, after approval is a scope reduction needing provenance. It never
   closes an open plan gap or clears an open blocking finding, and plan review re-checks the new exclusions with
   the Security/Failure-Mode reviewer.
